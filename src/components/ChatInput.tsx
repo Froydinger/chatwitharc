@@ -3,7 +3,7 @@ import { Send, Paperclip } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { OpenAIService } from "@/services/openai";
 import { GlassButton } from "@/components/ui/glass-button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,9 +16,21 @@ export function ChatInput() {
   } = useArcStore();
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { profile } = useAuth();
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const scrollHeight = textareaRef.current.scrollHeight;
+      const lineHeight = 24; // Approximate line height
+      const maxHeight = lineHeight * 3; // 3 lines max before scrolling
+      textareaRef.current.style.height = Math.min(scrollHeight, maxHeight) + 'px';
+    }
+  }, [inputValue]);
 
   // Auto-respond to quick start messages
   useEffect(() => {
@@ -200,7 +212,7 @@ export function ChatInput() {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -294,16 +306,18 @@ export function ChatInput() {
           </GlassButton>
         </div>
 
-        <div className="flex-1">
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder={selectedImages.length > 0 ? "Add a message with your images..." : "Ask me anything..."}
-            disabled={isLoading}
-            className="glass border-0 bg-glass/30 text-foreground placeholder:text-muted-foreground resize-none"
-          />
-        </div>
+          <div className="flex-1">
+            <Textarea
+              ref={textareaRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder={selectedImages.length > 0 ? "Add a message with your images..." : "Ask me anything..."}
+              disabled={isLoading}
+              className="glass border-0 bg-glass/30 text-foreground placeholder:text-muted-foreground resize-none min-h-[40px] max-h-[72px] leading-6"
+              rows={1}
+            />
+          </div>
 
         <GlassButton
           variant={inputValue.trim() ? "default" : "ghost"}

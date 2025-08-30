@@ -77,9 +77,34 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-32">
-      {/* Fixed Header - Just logo and new chat button */}
-      <div className="fixed top-0 left-0 right-0 z-30 flex justify-center">
-        <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-4 bg-background/20 backdrop-blur-sm">
+      {/* Gradient Header Mask - Smooth fade */}
+      <div className="fixed top-0 left-0 right-0 z-30 h-32 pointer-events-none">
+        <div 
+          className="w-full h-full"
+          style={{
+            background: `linear-gradient(to bottom, 
+              hsl(var(--background)) 0%, 
+              hsl(var(--background) / 0.98) 15%,
+              hsl(var(--background) / 0.92) 30%,
+              hsl(var(--background) / 0.8) 45%,
+              hsl(var(--background) / 0.6) 60%,
+              hsl(var(--background) / 0.3) 75%,
+              hsl(var(--background) / 0.1) 90%,
+              transparent 100%)`,
+            backdropFilter: 'blur(0px) blur(5px) blur(10px) blur(15px) blur(20px)',
+            WebkitBackdropFilter: 'blur(0px) blur(5px) blur(10px) blur(15px) blur(20px)',
+            maskImage: `linear-gradient(to bottom, 
+              black 0%, 
+              rgba(0,0,0,0.8) 40%,
+              rgba(0,0,0,0.4) 70%,
+              transparent 100%)`
+          }}
+        />
+      </div>
+
+      {/* Floating Header Content */}
+      <div className="fixed top-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
+        <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-4 pointer-events-auto">
           <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-8 w-8" />
           <motion.div
             initial={{ opacity: 0, scale: 0 }}
@@ -113,8 +138,8 @@ export function ChatInterface() {
         onDrop={handleDrop}
       >
         <div ref={messagesContainerRef} className="h-full overflow-y-auto space-y-4 scroll-smooth relative">
-          {/* Content area - no top padding so content flows behind header */}
-          <div className="px-4 sm:px-6 pt-20 space-y-4">
+          {/* Content area with top padding for header clearance */}
+          <div className="px-4 sm:px-6 pt-28 space-y-4">
             <AnimatePresence mode="popLayout">
               {messages.length === 0 ? (
                 <motion.div
