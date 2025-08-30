@@ -119,6 +119,28 @@ All colors MUST be HSL for perfect glass effects.
     overflow-x: hidden;
   }
 
+  /* Text Selection Styles */
+  ::selection {
+    background: hsl(var(--primary) / 0.3);
+    color: hsl(var(--primary-foreground));
+  }
+
+  ::-moz-selection {
+    background: hsl(var(--primary) / 0.3);
+    color: hsl(var(--primary-foreground));
+  }
+
+  /* Light mode specific selection */
+  .light ::selection {
+    background: hsl(200 100% 50% / 0.4);
+    color: hsl(240 10% 12%);
+  }
+
+  .light ::-moz-selection {
+    background: hsl(200 100% 50% / 0.4);
+    color: hsl(240 10% 12%);
+  }
+
   /* Enhanced Glass Utilities - More bouncy and fun */
   .glass {
     background: linear-gradient(135deg, 
