@@ -110,11 +110,13 @@ All colors MUST be HSL for perfect glass effects.
     @apply border-border;
   }
 
+  html {
+    background: hsl(var(--background));
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    background: linear-gradient(135deg, 
-      hsl(var(--background)) 0%,
-      hsl(var(--glass-overlay)) 100%);
+    background: hsl(var(--background));
     min-height: 100vh;
     overflow-x: hidden;
   }

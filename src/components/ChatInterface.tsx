@@ -42,31 +42,33 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto overflow-hidden relative">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-20 flex justify-between items-center p-4 bg-background/80 backdrop-blur-sm">
-        <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-8 w-8" />
-        <motion.div
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5, type: "spring", damping: 15 }}
-        >
-          <GlassButton
-            variant="bubble"
-            size="icon"
-            onClick={handleNewChat}
-            className="hover:scale-105 transition-transform duration-200"
+    <div className="flex flex-col h-screen w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative">
+      {/* Fixed Header */}
+      <div className="fixed top-0 left-0 right-0 z-30 flex justify-center">
+        <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-4 bg-background/90 backdrop-blur-md">
+          <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-8 w-8" />
+          <motion.div
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5, type: "spring", damping: 15 }}
           >
-            <Plus className="h-5 w-5" />
-          </GlassButton>
-        </motion.div>
+            <GlassButton
+              variant="bubble"
+              size="icon"
+              onClick={handleNewChat}
+              className="hover:scale-105 transition-transform duration-200"
+            >
+              <Plus className="h-5 w-5" />
+            </GlassButton>
+          </motion.div>
+        </div>
       </div>
 
       {/* Messages Container */}
       <GlassCard 
         variant="bubble" 
         glow
-        className={`flex-1 mx-4 mb-4 transition-all duration-300 overflow-hidden ${
+        className={`flex-1 mx-4 mt-20 mb-4 transition-all duration-300 overflow-hidden ${
           dragOver ? 'border-primary-glow border-2' : ''
         }`}
         onDragOver={(e) => {
