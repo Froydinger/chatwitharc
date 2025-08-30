@@ -17,7 +17,7 @@ export function ChatHistoryPanel() {
     setCurrentTab 
   } = useArcStore();
   const { toast } = useToast();
-  const { forceSyncByEmail } = useChatSync();
+  const { forceSyncByEmail, deleteChatSession: deleteChatFromServer } = useChatSync();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleNewChat = () => {
@@ -34,18 +34,27 @@ export function ChatHistoryPanel() {
     setCurrentTab('chat');
   };
 
-  const handleDeleteSession = (sessionId: string, event: React.MouseEvent) => {
+  const handleDeleteSession = async (sessionId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     setDeletingId(sessionId);
     
-    setTimeout(() => {
-      deleteSession(sessionId);
-      setDeletingId(null);
+    try {
+      // Delete from both server and local state
+      await deleteChatFromServer(sessionId);
+      
       toast({
         title: "Chat Deleted",
-        description: "Chat session has been removed."
+        description: "Chat session has been removed from all devices."
       });
-    }, 300);
+    } catch (error) {
+      toast({
+        title: "Delete Failed",
+        description: "Could not delete chat session.",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const formatDate = (date: Date) => {

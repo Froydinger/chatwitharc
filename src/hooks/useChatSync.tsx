@@ -10,7 +10,7 @@ export function useChatSync() {
   const { chatSessions, messages, currentSessionId, addMessage } = useArcStore();
   const { toast } = useToast();
 
-  // Load chat sessions from server
+  // Load chat sessions from server (additive sync - never delete existing)
   const loadChatSessions = useCallback(async () => {
     if (!user) return;
 
@@ -47,7 +47,17 @@ export function useChatSync() {
         );
 
         const validSessions = decryptedSessions.filter(Boolean);
-        useArcStore.setState({ chatSessions: validSessions });
+        
+        // Merge with existing sessions (additive sync)
+        const currentSessions = chatSessions;
+        const existingIds = new Set(currentSessions.map(s => s.id));
+        const newSessions = validSessions.filter(s => !existingIds.has(s.id));
+        
+        if (newSessions.length > 0) {
+          useArcStore.setState({ 
+            chatSessions: [...currentSessions, ...newSessions]
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading chat sessions:', error);
@@ -57,7 +67,7 @@ export function useChatSync() {
         variant: "destructive"
       });
     }
-  }, [user, toast]);
+  }, [user, toast, chatSessions]);
 
   // Save current session to server
   const saveChatSession = useCallback(async () => {
@@ -85,11 +95,12 @@ export function useChatSync() {
     }
   }, [user, currentSessionId, messages, chatSessions]);
 
-  // Delete session from server
+  // Delete session from server and local state
   const deleteChatSession = useCallback(async (sessionId: string) => {
     if (!user) return;
 
     try {
+      // Delete from server first
       const { error } = await supabase
         .from('chat_sessions')
         .delete()
@@ -97,6 +108,17 @@ export function useChatSync() {
         .eq('user_id', user.id);
 
       if (error) throw error;
+
+      // Update local state to remove the session
+      const currentSessions = useArcStore.getState().chatSessions;
+      const updatedSessions = currentSessions.filter(s => s.id !== sessionId);
+      
+      useArcStore.setState({ 
+        chatSessions: updatedSessions,
+        currentSessionId: useArcStore.getState().currentSessionId === sessionId ? null : useArcStore.getState().currentSessionId,
+        messages: useArcStore.getState().currentSessionId === sessionId ? [] : useArcStore.getState().messages
+      });
+
     } catch (error) {
       console.error('Error deleting chat session:', error);
       toast({
@@ -125,7 +147,7 @@ export function useChatSync() {
     }
   }, [user, currentSessionId, messages, saveChatSession]);
 
-  // Force sync function for debugging
+  // Force sync function for debugging (additive only)
   const forceSyncByEmail = useCallback(async () => {
     if (!user) {
       toast({
@@ -137,17 +159,16 @@ export function useChatSync() {
     }
 
     toast({
-      title: "Force syncing...",
-      description: `Syncing chats for ${user.email}`,
+      title: "Syncing...",
+      description: `Adding missing chats for ${user.email}`,
     });
 
-    // Clear current sessions and reload from server
-    useArcStore.setState({ chatSessions: [], currentSessionId: null, messages: [] });
+    // Load additional sessions from server without clearing existing ones
     await loadChatSessions();
     
     toast({
       title: "Sync complete",
-      description: `Synced chats for account: ${user.email}`,
+      description: `Added missing chats for: ${user.email}`,
     });
   }, [user, toast, loadChatSessions]);
 
