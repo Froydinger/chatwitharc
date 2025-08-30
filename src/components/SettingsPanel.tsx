@@ -16,12 +16,12 @@ export function SettingsPanel() {
     setSelectedVoice, 
     theme, 
     setTheme,
-    clearMessages
+    clearAllSessions
   } = useArcStore();
   const [showApiModal, setShowApiModal] = useState(false);
 
   const handleClearMessages = () => {
-    clearMessages();
+    clearAllSessions();
     // Simulate haptic feedback
     if (navigator.vibrate) {
       navigator.vibrate([50, 50, 50]);

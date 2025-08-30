@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Image, Paperclip } from "lucide-react";
+import { Send, Image, Paperclip, Plus } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { OpenAIService } from "@/services/openai";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -10,7 +10,15 @@ import { MessageBubble } from "@/components/MessageBubble";
 import { useToast } from "@/hooks/use-toast";
 
 export function ChatInterface() {
-  const { messages, addMessage, isLoading, setLoading, apiKey } = useArcStore();
+  const { 
+    messages, 
+    addMessage, 
+    isLoading, 
+    setLoading, 
+    apiKey, 
+    createNewSession,
+    currentSessionId 
+  } = useArcStore();
   const [inputValue, setInputValue] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -176,8 +184,35 @@ export function ChatInterface() {
     files.forEach(handleImageUpload);
   };
 
+  const handleNewChat = () => {
+    createNewSession();
+    toast({
+      title: "New Chat Started",
+      description: "Ready for a fresh conversation!"
+    });
+  };
+
   return (
-    <div className="flex flex-col h-full max-h-[70vh] w-full max-w-4xl mx-auto">
+    <div className="flex flex-col h-full max-h-[70vh] w-full max-w-4xl mx-auto relative">
+      {/* New Chat Button - Floating */}
+      {messages.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5, type: "spring", damping: 15 }}
+          className="absolute top-4 right-4 z-10"
+        >
+          <GlassButton
+            variant="bubble"
+            size="icon"
+            onClick={handleNewChat}
+            className="animate-bounce-gentle"
+          >
+            <Plus className="h-5 w-5" />
+          </GlassButton>
+        </motion.div>
+      )}
+
       {/* Messages Container */}
       <GlassCard 
         variant="bubble" 

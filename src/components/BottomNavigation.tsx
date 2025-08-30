@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { MessageCircle, Settings, Info } from "lucide-react";
+import { MessageCircle, Settings, Info, History } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 
 const navigationItems = [
   { id: 'chat', icon: MessageCircle, label: 'Chat' },
-  // { id: 'voice', icon: Mic, label: 'Voice' }, // Hidden for now - voice logic preserved
+  { id: 'history', icon: History, label: 'History' },
   { id: 'settings', icon: Settings, label: 'Settings' },
   { id: 'info', icon: Info, label: 'Info' }
 ] as const;

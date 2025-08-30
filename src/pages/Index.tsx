@@ -6,7 +6,9 @@ import { ChatInterface } from "@/components/ChatInterface";
 // import { VoiceInterface } from "@/components/VoiceInterface"; // Voice logic preserved
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { InfoPanel } from "@/components/InfoPanel";
+import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { ApiKeyModal } from "@/components/ApiKeyModal";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
 const Index = () => {
   const { currentTab, apiKey, theme } = useArcStore();
@@ -31,6 +33,8 @@ const Index = () => {
     switch (currentTab) {
       case 'chat':
         return <ChatInterface />;
+      case 'history':
+        return <ChatHistoryPanel />;
       // case 'voice': // Voice functionality preserved for future use
       //   return <VoiceInterface />;
       case 'settings':
@@ -85,6 +89,9 @@ const Index = () => {
         isOpen={showApiModal} 
         onClose={() => setShowApiModal(false)} 
       />
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
     </div>
   );
 };

@@ -9,6 +9,15 @@
     <meta name="keywords" content="AI chatbot, voice AI, OpenAI, realtime voice, glassmorphism, liquid glass UI, conversational AI" />
     <link rel="canonical" href="/" />
 
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/icon-192.png" type="image/png">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ArcAI">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+
     <meta property="og:title" content="ArcAI - Liquid Glass AI Chatbot" />
     <meta property="og:description" content="Magical AI conversations with liquid glass aesthetics and realtime voice capabilities" />
     <meta property="og:type" content="website" />
@@ -23,5 +32,20 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- PWA Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
