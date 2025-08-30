@@ -16,26 +16,14 @@ export function BottomNavigation() {
   const containerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
   
-  // Get actual position of active tab to center bubble
+  // Get bubble position centered behind active tab
   const getBubblePosition = () => {
     const activeIndex = navigationItems.findIndex(item => item.id === currentTab);
-    const tabElement = tabRefs.current[activeIndex];
-    const containerElement = containerRef.current;
-    
-    if (tabElement && containerElement) {
-      const tabRect = tabElement.getBoundingClientRect();
-      const containerRect = containerElement.getBoundingClientRect();
-      
-      return {
-        x: tabRect.left - containerRect.left + (tabRect.width / 2) - 32, // 32 = half bubble width
-        y: tabRect.top - containerRect.top + (tabRect.height / 2) - 32    // 32 = half bubble height
-      };
-    }
-    
-    // Fallback positioning
+    // Each tab is w-24 (96px), bubble is w-16 (64px)
+    // Center bubble: tab_start + (tab_width - bubble_width) / 2
     return {
-      x: activeIndex * 96 + 16,
-      y: 16
+      x: activeIndex * 96 + (96 - 64) / 2, // 16px offset to center 64px bubble in 96px tab
+      y: 10 // Small vertical offset from top
     };
   };
 
