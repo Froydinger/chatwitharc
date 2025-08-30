@@ -125,7 +125,7 @@ export function BottomNavigation() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.3, delay: 0.1 }}
-              className="absolute bottom-full left-6 right-6 pb-6"
+              className="absolute bottom-full left-0 right-0 mb-2 mx-6"
             >
               <div className="bubble-nav p-4">
                 <ChatInput />
