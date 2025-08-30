@@ -266,31 +266,36 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto">
-      {/* New Chat Button - Floating */}
-      {messages.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5, type: "spring", damping: 15 }}
-          className="absolute top-4 right-4 z-10"
-        >
-          <GlassButton
-            variant="bubble"
-            size="icon"
-            onClick={handleNewChat}
-            className="hover:scale-105 transition-transform duration-200"
+    <div className="flex flex-col h-screen w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto overflow-hidden">
+      {/* Header with New Chat Button */}
+      <div className="flex justify-between items-center p-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-8 w-8" />
+          <h1 className="text-xl font-semibold text-foreground">ArcAI</h1>
+        </div>
+        {messages.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5, type: "spring", damping: 15 }}
           >
-            <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-5 w-5" />
-          </GlassButton>
-        </motion.div>
-      )}
+            <GlassButton
+              variant="bubble"
+              size="icon"
+              onClick={handleNewChat}
+              className="hover:scale-105 transition-transform duration-200"
+            >
+              <Plus className="h-5 w-5" />
+            </GlassButton>
+          </motion.div>
+        )}
+      </div>
 
       {/* Messages Container */}
       <GlassCard 
         variant="bubble" 
         glow
-        className={`flex-1 min-h-[60vh] p-4 sm:p-6 mb-44 transition-all duration-300 ${
+        className={`flex-1 mx-4 mb-4 transition-all duration-300 overflow-hidden ${
           dragOver ? 'border-primary-glow border-2' : ''
         }`}
         onDragOver={(e) => {
@@ -300,7 +305,7 @@ export function ChatInterface() {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
       >
-        <div className="h-full overflow-y-auto space-y-4 scroll-smooth">
+        <div className="h-full overflow-y-auto p-4 sm:p-6 space-y-4 scroll-smooth">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
               <motion.div
@@ -382,8 +387,8 @@ export function ChatInterface() {
         )}
       </GlassCard>
 
-      {/* Input Area - Positioned to avoid keyboard */}
-      <div className="fixed bottom-32 left-4 right-4 z-40">
+      {/* Input Area - Fixed at bottom */}
+      <div className="shrink-0 p-4">
         <GlassCard variant="bubble" className="p-4 pb-6 rounded-3xl mb-2">
         {/* Selected Images Preview */}
         {selectedImages.length > 0 && (
