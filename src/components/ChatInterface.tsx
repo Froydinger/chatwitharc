@@ -16,7 +16,6 @@ export function ChatInterface() {
     addMessage, 
     isLoading, 
     setLoading, 
-    apiKey, 
     createNewSession,
     currentSessionId 
   } = useArcStore();
@@ -37,14 +36,6 @@ export function ChatInterface() {
   const handleSend = async () => {
     if ((!inputValue.trim() && selectedImages.length === 0) || isLoading) return;
 
-    if (!apiKey) {
-      toast({
-        title: "API Key Required",
-        description: "Please add your OpenAI API key in settings to start chatting.",
-        variant: "destructive"
-      });
-      return;
-    }
 
     const userMessage = inputValue.trim();
     setInputValue("");
@@ -175,7 +166,7 @@ export function ChatInterface() {
       
       // Add error message
       addMessage({
-        content: "Sorry, I encountered an error. Please check your API key and try again.",
+        content: "Sorry, I encountered an error. Please try again.",
         role: 'assistant',
         type: 'text'
       });
@@ -233,14 +224,6 @@ export function ChatInterface() {
     const messageIndex = messages.findIndex(m => m.id === messageId);
     if (messageIndex === -1) return;
 
-    if (!apiKey) {
-      toast({
-        title: "API Key Required",
-        description: "Please add your OpenAI API key to continue the conversation.",
-        variant: "destructive"
-      });
-      return;
-    }
 
     setLoading(true);
 

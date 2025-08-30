@@ -29,7 +29,7 @@ export function InfoPanel() {
     {
       icon: Shield,
       title: "Secure & Private",
-      description: "Your API key stays in your browser - no server storage, maximum privacy"
+      description: "Server-side API handling with secure encryption - maximum privacy"
     }
   ];
 

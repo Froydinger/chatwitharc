@@ -20,9 +20,7 @@ export interface Message {
 }
 
 export interface ArcState {
-  // API Key Management
-  apiKey: string | null;
-  setApiKey: (key: string | null) => void;
+  // State Management
   
   // Chat Sessions Management
   currentSessionId: string | null;
@@ -64,9 +62,7 @@ export interface ArcState {
 export const useArcStore = create<ArcState>()(
   persist(
     (set, get) => ({
-      // API Key
-      apiKey: null,
-      setApiKey: (key) => set({ apiKey: key }),
+      // Theme and UI State
       
       // Chat Sessions
       currentSessionId: null,
@@ -230,7 +226,6 @@ export const useArcStore = create<ArcState>()(
     {
       name: 'arc-ai-storage',
       partialize: (state) => ({
-        apiKey: state.apiKey,
         selectedVoice: state.selectedVoice,
         theme: state.theme,
         chatSessions: state.chatSessions,

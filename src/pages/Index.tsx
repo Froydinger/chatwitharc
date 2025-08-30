@@ -7,29 +7,20 @@ import { BottomNavigation } from "@/components/BottomNavigation";
 import { ChatInterface } from "@/components/ChatInterface";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
-import { ApiKeyModal } from "@/components/ApiKeyModal";
+
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { AuthPage } from "@/components/AuthPage";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 
 const Index = () => {
-  const { currentTab, apiKey, theme } = useArcStore();
+  const { currentTab, theme } = useArcStore();
   const { user, loading, needsOnboarding } = useAuth();
-  const [showApiModal, setShowApiModal] = useState(false);
+  
   const [onboardingComplete, setOnboardingComplete] = useState(false);
 
   // Initialize chat sync hook
   useChatSync();
 
-  // Check for API key on first load (only for authenticated users)
-  useEffect(() => {
-    if (user && !apiKey) {
-      const timer = setTimeout(() => {
-        setShowApiModal(true);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [user, apiKey]);
 
   // Apply theme to document
   useEffect(() => {
@@ -116,11 +107,6 @@ const Index = () => {
         <BottomNavigation />
       </div>
 
-      {/* API Key Modal */}
-      <ApiKeyModal 
-        isOpen={showApiModal} 
-        onClose={() => setShowApiModal(false)} 
-      />
 
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />

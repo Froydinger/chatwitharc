@@ -9,15 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiKeyModal } from "@/components/ApiKeyModal";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export function SettingsPanel() {
   const { 
-    apiKey, 
-    setApiKey, 
-    selectedVoice, 
+    selectedVoice,
     setSelectedVoice, 
     theme, 
     setTheme,
@@ -29,7 +27,7 @@ export function SettingsPanel() {
   } = useArcStore();
   const { profile } = useAuth();
   const { toast } = useToast();
-  const [showApiModal, setShowApiModal] = useState(false);
+  
 
   const handleClearMessages = () => {
     clearAllSessions();
@@ -86,25 +84,6 @@ export function SettingsPanel() {
             />
           ),
           fullWidth: true
-        }
-      ]
-    },
-    {
-      title: "API Configuration",
-      icon: Key,
-      items: [
-        {
-          label: "OpenAI API Key",
-          description: apiKey ? "API key configured" : "No API key set",
-          action: (
-            <GlassButton
-              variant={apiKey ? "ghost" : "glow"}
-              size="sm"
-              onClick={() => setShowApiModal(true)}
-            >
-              {apiKey ? "Change" : "Add Key"}
-            </GlassButton>
-          )
         }
       ]
     },
@@ -268,15 +247,11 @@ export function SettingsPanel() {
             <p>🤖 Powered by OpenAI GPT-5 Nano & Realtime API</p>
             <p>🎙️ Cedar & Marin voice support</p>
             <p>📱 Mobile-first responsive design</p>
-            <p>🔒 Secure local API key storage</p>
+            <p>🔒 Secure server-side API handling</p>
           </div>
         </GlassCard>
       </motion.div>
 
-      <ApiKeyModal 
-        isOpen={showApiModal} 
-        onClose={() => setShowApiModal(false)} 
-      />
     </div>
   );
 }
