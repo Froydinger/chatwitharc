@@ -171,7 +171,7 @@ export const useArcStore = create<ArcState>()(
         if (session) {
           set({
             currentSessionId: sessionId,
-            messages: session.messages
+            messages: [...session.messages] // Create a new array to ensure reactivity
           });
         }
       },
