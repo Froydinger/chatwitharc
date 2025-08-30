@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { motion } from "framer-motion";
 import { User, Bot } from "lucide-react";
 import { Message } from "@/store/useArcStore";
@@ -6,16 +7,19 @@ interface MessageBubbleProps {
   message: Message;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
-  const isUser = message.role === 'user';
-  
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className={`flex ${isUser ? 'justify-end' : 'justify-start'} group`}
-    >
+export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
+  ({ message }, ref) => {
+    const isUser = message.role === 'user';
+    
+    return (
+      <motion.div
+        ref={ref}
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className={`flex ${isUser ? 'justify-end' : 'justify-start'} group`}
+      >
       <div
         className={`flex items-start gap-3 max-w-[80%] ${
           isUser ? 'flex-row-reverse' : 'flex-row'
@@ -110,6 +114,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </motion.div>
         </motion.div>
       </div>
-    </motion.div>
-  );
-}
+      </motion.div>
+    );
+  }
+);
+
+MessageBubble.displayName = "MessageBubble";

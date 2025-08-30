@@ -2,17 +2,20 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Image, Paperclip } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
+import { OpenAIService } from "@/services/openai";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
 import { MessageBubble } from "@/components/MessageBubble";
+import { useToast } from "@/hooks/use-toast";
 
 export function ChatInterface() {
-  const { messages, addMessage, isLoading, setLoading } = useArcStore();
+  const { messages, addMessage, isLoading, setLoading, apiKey } = useArcStore();
   const [inputValue, setInputValue] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -20,6 +23,15 @@ export function ChatInterface() {
 
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading) return;
+
+    if (!apiKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please add your OpenAI API key in settings to start chatting.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const userMessage = inputValue.trim();
     setInputValue("");
@@ -33,15 +45,47 @@ export function ChatInterface() {
 
     setLoading(true);
 
-    // Simulate AI response with realistic delay
-    setTimeout(() => {
+    try {
+      const openai = new OpenAIService(apiKey);
+      
+      // Convert messages to OpenAI format
+      const openaiMessages = messages
+        .filter(msg => msg.type === 'text') // Only text messages for now
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+      
+      // Add the new user message
+      openaiMessages.push({
+        role: 'user',
+        content: userMessage
+      });
+
+      const response = await openai.sendMessage(openaiMessages);
+      
       addMessage({
-        content: `I understand you said: "${userMessage}". This is a demo response from ArcAI! The OpenAI integration will be implemented to use gpt-5-nano for fast, intelligent responses.`,
+        content: response,
         role: 'assistant',
         type: 'text'
       });
+    } catch (error) {
+      console.error('Chat error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to get AI response",
+        variant: "destructive"
+      });
+      
+      // Add error message
+      addMessage({
+        content: "Sorry, I encountered an error. Please check your API key and try again.",
+        role: 'assistant',
+        type: 'text'
+      });
+    } finally {
       setLoading(false);
-    }, 1000 + Math.random() * 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -51,14 +95,70 @@ export function ChatInterface() {
     }
   };
 
-  const handleImageUpload = (file: File) => {
+  const handleImageUpload = async (file: File) => {
+    if (!apiKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please add your OpenAI API key to analyze images.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const imageUrl = URL.createObjectURL(file);
+    
+    // Add user message with image
     addMessage({
       content: `Uploaded image: ${file.name}`,
       role: 'user',
       type: 'image',
       imageUrl
     });
+
+    setLoading(true);
+
+    try {
+      const openai = new OpenAIService(apiKey);
+      
+      // Convert to base64 for API
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64 = reader.result as string;
+          
+          const response = await openai.sendMessageWithImage(
+            [{ role: 'user', content: 'What do you see in this image?' }],
+            base64
+          );
+          
+          addMessage({
+            content: response,
+            role: 'assistant',
+            type: 'text'
+          });
+        } catch (error) {
+          console.error('Image analysis error:', error);
+          toast({
+            title: "Error",
+            description: "Failed to analyze image",
+            variant: "destructive"
+          });
+          
+          addMessage({
+            content: "Sorry, I couldn't analyze this image. Please try again.",
+            role: 'assistant',
+            type: 'text'
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Image upload error:', error);
+      setLoading(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
