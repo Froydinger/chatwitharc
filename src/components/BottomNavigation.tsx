@@ -18,31 +18,25 @@ export function BottomNavigation() {
   const bubbleWrapperRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
   
-  // Get bubble position using tab refs and wrapper-relative positioning
   const getBubblePosition = () => {
     const activeIndex = navigationItems.findIndex(item => item.id === currentTab);
     const activeTabRef = tabRefs.current[activeIndex];
     
     if (!activeTabRef || !bubbleWrapperRef.current) {
-      // Fallback calculation if refs aren't ready
-      const tabWidth = 80; // Each tab gets 80px in the 240px space
-      const bubbleWidth = 80; // w-20 = 80px
+      const tabWidth = 96; // w-24
+      const bubbleWidth = 80; // w-20
       const x = (activeIndex * tabWidth) + (tabWidth - bubbleWidth) / 2;
       return { x, y: -8 };
     }
     
-    // Get actual positions from DOM
     const wrapperRect = bubbleWrapperRef.current.getBoundingClientRect();
     const tabRect = activeTabRef.getBoundingClientRect();
-    
-    // Calculate bubble position relative to wrapper
     const tabCenterX = tabRect.left + tabRect.width / 2 - wrapperRect.left;
-    const bubbleX = tabCenterX - 40; // 40 = half of 80px bubble width
+    const bubbleX = tabCenterX - 40; // half of 80
     
     return { x: bubbleX, y: -8 };
   };
 
-  // Move bubble to active tab when tab changes
   useEffect(() => {
     const position = getBubblePosition();
     if (!isDragging) {
@@ -60,54 +54,36 @@ export function BottomNavigation() {
     }
   }, [currentTab, isDragging, bubbleControls]);
 
-  // Set initial position immediately and ensure perfect positioning
   useEffect(() => {
     const setPosition = () => {
       const position = getBubblePosition();
-      bubbleControls.set({
-        x: position.x,
-        y: position.y
-      });
+      bubbleControls.set({ x: position.x, y: position.y });
     };
-    
-    // Set initial position immediately
     setPosition();
-    
-    // Re-calculate after layout is stable
     const timer = setTimeout(setPosition, 50);
-    
-    // Also re-calculate when window resizes to maintain perfect positioning
     const handleResize = () => setPosition();
     window.addEventListener('resize', handleResize);
-    
     return () => {
       clearTimeout(timer);
       window.removeEventListener('resize', handleResize);
     };
-  }, []); // Only run on mount
+  }, []); 
 
-  const handleDragEnd = (event: any, info: PanInfo) => {
+  const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
-    
-    // Find the closest tab based on horizontal position only (lock vertical position)
     let closestTabIndex = 0;
     let minDistance = Infinity;
-    
     tabRefs.current.forEach((tabRef, index) => {
       if (tabRef) {
-        const tabRect = tabRef.getBoundingClientRect();
-        const tabCenterX = tabRect.left + tabRect.width / 2;
-        
-        // Only consider horizontal distance, ignore vertical
-        const distance = Math.abs(info.point.x - tabCenterX);
-        
-        if (distance < minDistance) {
-          minDistance = distance;
+        const r = tabRef.getBoundingClientRect();
+        const center = r.left + r.width / 2;
+        const d = Math.abs(info.point.x - center);
+        if (d < minDistance) {
+          minDistance = d;
           closestTabIndex = index;
         }
       }
     });
-    
     setCurrentTab(navigationItems[closestTabIndex].id);
   };
 
@@ -116,14 +92,10 @@ export function BottomNavigation() {
       <motion.div
         ref={containerRef}
         initial={{ y: 30, opacity: 0 }}
-        animate={{ 
-          y: 0, 
-          opacity: 1,
-        }}
+        animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
-        {/* Unified Glass Container - Morphs to include chat input */}
         <motion.div 
           className="relative flex flex-col items-center"
           animate={{
@@ -142,11 +114,10 @@ export function BottomNavigation() {
               inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
               inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
             `,
-            minWidth: '288px', // Fixed minimum width for consistency
+            minWidth: '288px',
             width: 'auto'
           }}
         >
-          {/* Chat Input - Only visible on chat tab */}
           {currentTab === 'chat' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -159,40 +130,33 @@ export function BottomNavigation() {
             </motion.div>
           )}
           
-          {/* Bubble Wrapper - Matches tabs container width for accurate positioning */}
+          {/* Bubble wrapper aligned to tab rail */}
           <div 
             ref={bubbleWrapperRef}
             className="absolute inset-0 pointer-events-none z-30"
             style={{ 
-              top: currentTab === 'chat' ? '6rem' : '0.75rem', // Adjust for chat input
-              left: '0',
-              right: '0',
+              top: currentTab === 'chat' ? '6rem' : '0.75rem',
+              left: 0,
+              right: 0,
               bottom: '0.75rem',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'end'
             }}
           >
-            <div 
-              className="relative"
-              style={{ width: '288px', height: '64px' }} // Match tabs container exactly
-            >
-              {/* Draggable Selection Bubble */}
+            <div className="relative" style={{ width: '288px', height: '64px' }}>
               <motion.div
-                drag="x" // Only allow horizontal dragging
-                dragMomentum={true} // Enable momentum for jelly physics
-                dragElastic={0.4} // More elastic for rubber band effect
+                drag="x"
+                dragMomentum={true}
+                dragElastic={0.4}
                 dragConstraints={bubbleWrapperRef}
                 onDragStart={() => setIsDragging(true)}
                 onDragEnd={handleDragEnd}
                 animate={bubbleControls}
                 initial={getBubblePosition()}
-                whileHover={{ 
-                  scale: 1.05,
-                  transition: { type: "spring", damping: 10, stiffness: 400 }
-                }}
+                whileHover={{ scale: 1.05, transition: { type: "spring", damping: 10, stiffness: 400 } }}
                 whileDrag={{ 
-                  scale: 1.3, // Much bigger when dragging - magnifying glass effect
+                  scale: 1.3, 
                   zIndex: 1000,
                   filter: "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
                   transition: { type: "spring", damping: 5, stiffness: 300 }
@@ -210,7 +174,6 @@ export function BottomNavigation() {
                   `
                 }}
               >
-                {/* Inner light effects */}
                 <div className="absolute inset-1 rounded-full overflow-hidden">
                   <div className="absolute top-1 left-2 w-6 h-0.5 bg-white opacity-70 blur-sm rounded-full" />
                   <div className="absolute bottom-2 right-1 w-4 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
@@ -219,8 +182,11 @@ export function BottomNavigation() {
             </div>
           </div>
 
-          {/* Tab Items Container - Fixed width and centered */}
-          <div className="flex items-center justify-center relative z-20 px-6" style={{ width: '288px' }}>
+          {/* Tab Items — removed px-6 and forced even distribution */}
+          <div
+            className="flex items-center justify-between relative z-20"
+            style={{ width: '288px' }}
+          >
             {navigationItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = currentTab === item.id;
@@ -228,25 +194,15 @@ export function BottomNavigation() {
               return (
                 <motion.div
                   key={item.id}
-                  ref={(el) => tabRefs.current[index] = el}
+                  ref={(el) => (tabRefs.current[index] = el)}
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  transition={{ 
-                    duration: 0.2, 
-                    delay: 0.1 + index * 0.05, 
-                    ease: [0.25, 0.1, 0.25, 1]
-                  }}
+                  transition={{ duration: 0.2, delay: 0.1 + index * 0.05, ease: [0.25, 0.1, 0.25, 1] }}
                 >
                   <motion.div
                     className="w-24 h-16 flex flex-col items-center justify-center cursor-pointer"
-                    whileHover={{ 
-                      scale: 1.05,
-                      transition: { type: "spring", damping: 20, stiffness: 400 }
-                    }}
-                    whileTap={{ 
-                      scale: 0.95,
-                      transition: { duration: 0.1 }
-                    }}
+                    whileHover={{ scale: 1.05, transition: { type: "spring", damping: 20, stiffness: 400 } }}
+                    whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
                     onClick={() => setCurrentTab(item.id)}
                   >
                     <Icon 
@@ -254,7 +210,6 @@ export function BottomNavigation() {
                         isActive ? "text-primary-foreground drop-shadow-lg" : "text-muted-foreground hover:text-foreground"
                       }`} 
                     />
-                    
                     <span 
                       className={`text-xs font-medium transition-colors duration-300 ${
                         isActive ? "text-primary-foreground drop-shadow-sm" : "text-muted-foreground hover:text-foreground"
