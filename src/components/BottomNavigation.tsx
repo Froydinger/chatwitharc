@@ -1,12 +1,12 @@
 import { motion, PanInfo, useAnimation } from "framer-motion";
-import { Smile } from "lucide-react";
+import { MessageCircle, Settings, History } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { useRef, useState, useEffect } from "react";
 
 const navigationItems = [
-  { id: 'chat', icon: Smile, label: 'Chat' },
-  { id: 'history', icon: Smile, label: 'History' },
-  { id: 'settings', icon: Smile, label: 'Settings' }
+  { id: 'chat', icon: MessageCircle, label: 'Chat' },
+  { id: 'history', icon: History, label: 'History' },
+  { id: 'settings', icon: Settings, label: 'Settings' }
 ] as const;
 
 export function BottomNavigation() {
@@ -24,7 +24,7 @@ export function BottomNavigation() {
     const bubbleWidth = 80;
     return {
       x: activeIndex * tabWidth + (tabWidth - bubbleWidth) / 2, // Center the large circular bubble
-      y: -2 // Move up to be better centered on tab bar
+      y: -6 // Move up more to be properly centered on tab bar
     };
   };
 

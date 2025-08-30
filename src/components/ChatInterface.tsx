@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Image, Paperclip, Plus } from "lucide-react";
+import { Send, Image, Paperclip, Plus, Smile } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { OpenAIService } from "@/services/openai";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -208,7 +208,7 @@ export function ChatInterface() {
             onClick={handleNewChat}
             className="animate-bounce-gentle"
           >
-            <Plus className="h-5 w-5" />
+            <Smile className="h-5 w-5" />
           </GlassButton>
         </motion.div>
       )}
@@ -217,7 +217,7 @@ export function ChatInterface() {
       <GlassCard 
         variant="bubble" 
         glow
-        className={`flex-1 p-6 mb-4 overflow-hidden transition-all duration-300 ${
+        className={`flex-1 p-6 mb-4 transition-all duration-300 ${
           dragOver ? 'border-primary-glow border-2' : ''
         }`}
         onDragOver={(e) => {
@@ -298,7 +298,7 @@ export function ChatInterface() {
             className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary-glow rounded-[var(--radius)] flex items-center justify-center"
           >
             <div className="text-center">
-              <Image className="h-12 w-12 text-primary-glow mx-auto mb-2" />
+              <Smile className="h-12 w-12 text-primary-glow mx-auto mb-2" />
               <p className="text-primary-foreground font-medium">Drop images here</p>
             </div>
           </motion.div>
@@ -324,7 +324,7 @@ export function ChatInterface() {
               onClick={() => fileInputRef.current?.click()}
               className="shrink-0"
             >
-              <Paperclip className="h-4 w-4" />
+              <Smile className="h-4 w-4" />
             </GlassButton>
           </div>
 
@@ -346,7 +346,7 @@ export function ChatInterface() {
             disabled={!inputValue.trim() || isLoading}
             className="shrink-0"
           >
-            <Send className="h-4 w-4" />
+            <Smile className="h-4 w-4" />
           </GlassButton>
         </div>
       </GlassCard>
