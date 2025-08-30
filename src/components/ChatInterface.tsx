@@ -301,7 +301,7 @@ export function ChatInterface() {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
       >
-        <div className="h-full overflow-y-auto space-y-4 scroll-smooth pt-16">
+        <div className="h-full overflow-y-auto space-y-4 scroll-smooth">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
               <motion.div
@@ -385,18 +385,7 @@ export function ChatInterface() {
 
       {/* Input Area - Positioned to avoid keyboard */}
       <div className="fixed bottom-32 left-4 right-4 z-40">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ 
-            type: "tween",
-            duration: 0.3, 
-            delay: 0.35, 
-            ease: "easeOut"
-          }}
-        >
-          <GlassCard variant="bubble" className="p-4 pb-6 rounded-3xl mb-2">
+        <GlassCard variant="bubble" className="p-4 pb-6 rounded-3xl mb-2">
         {/* Selected Images Preview */}
         {selectedImages.length > 0 && (
           <div className="mb-4 p-3 bg-glass/20 rounded-lg">
@@ -479,7 +468,6 @@ export function ChatInterface() {
           </GlassButton>
         </div>
         </GlassCard>
-        </motion.div>
       </div>
     </div>
   );
