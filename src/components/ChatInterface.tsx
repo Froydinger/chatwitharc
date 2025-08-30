@@ -113,20 +113,18 @@ export function ChatInterface() {
       <div className="fixed top-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
         <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-4 pointer-events-auto">
           <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-8 w-8" />
-          <motion.div
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5, type: "spring", damping: 15 }}
+          <div
+            className="w-12 h-12 rounded-full glass p-3 mb-4"
           >
-            <GlassButton
-              variant="bubble"
-              size="icon"
-              onClick={handleNewChat}
-              className="hover:scale-105 transition-transform duration-200"
-            >
-              <Plus className="h-5 w-5" />
-            </GlassButton>
-          </motion.div>
+            <Plus className="h-6 w-6 text-primary-glow" />
+          </div>
+          <GlassButton
+            variant="bubble"
+            size="icon"
+            onClick={handleNewChat}
+          >
+            <Plus className="h-5 w-5" />
+          </GlassButton>
         </div>
       </div>
 
@@ -149,48 +147,20 @@ export function ChatInterface() {
           <div className="px-4 sm:px-6 pt-28 space-y-4">
             <AnimatePresence mode="popLayout">
               {messages.length === 0 ? (
-                <motion.div
-                  variants={fadeInVariants}
-                  initial="initial"
-                  animate="animate"
-                  className="text-center py-12"
-                >
-                  <motion.div
-                    animate={{ rotate: [0, 2, -2, 0] }}
-                    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                    className="flex justify-center mb-4"
-                  >
+                <div className="text-center py-12">
+                  <div className="flex justify-center mb-4">
                     <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-16 w-16" />
-                  </motion.div>
-                  <motion.h3 
-                    variants={welcomeTextVariants}
-                    initial="initial"
-                    animate="animate"
-                    className="text-xl font-semibold text-foreground mb-2"
-                  >
+                  </div>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">
                     Welcome to ArcAI
-                  </motion.h3>
-                  <motion.p 
-                    variants={welcomeTextVariants}
-                    initial="initial"
-                    animate="animate"
-                    transition={{ delay: 0.1 }}
-                    className="text-muted-foreground mb-8"
-                  >
+                  </h3>
+                  <p className="text-muted-foreground mb-8">
                     Start a conversation or drop an image to analyze
-                  </motion.p>
+                  </p>
                   
                   {/* Quick Start Options - with bottom padding */}
-                  <motion.div 
-                    variants={staggerContainerVariants}
-                    initial="initial"
-                    animate="animate"
-                    className="grid grid-cols-1 gap-3 max-w-md mx-auto pb-40"
-                  >
-                    <motion.button
-                      variants={staggerItemVariants}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                  <div className="grid grid-cols-1 gap-3 max-w-md mx-auto pb-40">
+                    <button
                       onClick={() => startChatWithMessage("I'd like a mental wellness check-in. How are you feeling today and what's on your mind?")}
                       className="glass p-4 rounded-xl text-left hover:glass-glow transition-all duration-200"
                     >
@@ -203,12 +173,9 @@ export function ChatInterface() {
                           <p className="text-sm text-muted-foreground">Reflect on your feelings and thoughts</p>
                         </div>
                       </div>
-                    </motion.button>
+                    </button>
                     
-                    <motion.button
-                      variants={staggerItemVariants}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                    <button
                       onClick={() => startChatWithMessage("I need someone to talk to today. Can you be a supportive companion?")}
                       className="glass p-4 rounded-xl text-left hover:glass-glow transition-all duration-200"
                     >
@@ -221,12 +188,9 @@ export function ChatInterface() {
                           <p className="text-sm text-muted-foreground">Chat with a supportive AI friend</p>
                         </div>
                       </div>
-                    </motion.button>
+                    </button>
                     
-                    <motion.button
-                      variants={staggerItemVariants}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                    <button
                       onClick={() => startChatWithMessage("Let's get creative! Help me brainstorm some ideas or work on a creative project.")}
                       className="glass p-4 rounded-xl text-left hover:glass-glow transition-all duration-200"
                     >
@@ -239,9 +203,9 @@ export function ChatInterface() {
                           <p className="text-sm text-muted-foreground">Explore ideas and spark creativity</p>
                         </div>
                       </div>
-                    </motion.button>
-                  </motion.div>
-                </motion.div>
+                    </button>
+                  </div>
+                </div>
               ) : (
                 messages.map((message) => (
                   <MessageBubble 
@@ -253,35 +217,23 @@ export function ChatInterface() {
               )}
               
               {isLoading && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
+                <div
                   className="flex justify-start"
                 >
                   <div className="glass rounded-2xl px-4 py-3 max-w-xs">
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">
                         {[0, 1, 2].map((i) => (
-                          <motion.div
+                          <div
                             key={i}
-                            className="w-2 h-2 bg-primary-glow rounded-full"
-                            animate={{ 
-                              scale: [1, 1.2, 1],
-                              opacity: [0.5, 1, 0.5]
-                            }}
-                            transition={{
-                              duration: 1,
-                              repeat: Infinity,
-                              delay: i * 0.2
-                            }}
+                            className="w-2 h-2 bg-primary-glow rounded-full animate-pulse"
                           />
                         ))}
                       </div>
                       <span className="text-sm text-muted-foreground">Thinking...</span>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )}
             </AnimatePresence>
             <div ref={messagesEndRef} />
@@ -290,16 +242,14 @@ export function ChatInterface() {
 
         {/* Drag overlay */}
         {dragOver && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+          <div
             className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary-glow rounded-[var(--radius)] flex items-center justify-center"
           >
             <div className="text-center">
               <Image className="h-12 w-12 text-primary-glow mx-auto mb-2" />
               <p className="text-primary-foreground font-medium">Drop images here</p>
             </div>
-          </motion.div>
+          </div>
         )}
       </GlassCard>
     </div>

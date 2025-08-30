@@ -198,7 +198,6 @@ All colors MUST be HSL for perfect glass effects.
   .bubble-nav-item {
     @apply glass;
     border-radius: var(--radius-xl);
-    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
 
   .bubble-nav-item.active {
@@ -206,7 +205,6 @@ All colors MUST be HSL for perfect glass effects.
     background: linear-gradient(135deg, 
       hsla(var(--primary), 0.2) 0%,
       hsla(var(--primary-glow), 0.3) 100%);
-    transform: scale(1.1);
   }
 
   /* Enhanced Bouncy Animations */
@@ -285,16 +283,16 @@ All colors MUST be HSL for perfect glass effects.
     animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
 
-  /* Enhanced Haptic feedback with bounce */
+  /* Remove all haptic animations */
   .haptic {
-    transition: transform 0.15s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    /* No transitions */
   }
 
   .haptic:active {
-    transform: scale(0.95);
+    /* No transform */
   }
 
   .haptic:hover {
-    transform: scale(1.02);
+    /* No transform */
   }
 }

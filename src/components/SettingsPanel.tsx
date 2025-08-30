@@ -315,23 +315,19 @@ export function SettingsPanel() {
         </GlassCard>
       </div>
       
-      <motion.div
-        variants={staggerContainerVariants}
-        initial="initial"
-        animate="animate"
+      <div
         className="text-center mb-8"
       >
         <h2 className="text-2xl font-bold text-foreground mb-2">Settings</h2>
         <p className="text-muted-foreground">Customize your ArcAI experience</p>
-      </motion.div>
+      </div>
 
       {settings.map((section, sectionIndex) => {
         const Icon = section.icon;
         
         return (
-          <motion.div
+          <div
             key={section.title}
-            variants={staggerItemVariants}
           >
             <GlassCard variant="bubble" glow className="p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -345,9 +341,8 @@ export function SettingsPanel() {
 
               <div className="space-y-4">
                 {section.items.map((item, itemIndex) => (
-                  <motion.div
+                  <div
                     key={item.label}
-                    variants={staggerItemVariants}
                     className={`glass rounded-lg p-4 ${
                       item.fullWidth ? 'space-y-3' : 'flex items-center justify-between'
                     }`}
@@ -359,18 +354,16 @@ export function SettingsPanel() {
                     <div className={item.fullWidth ? 'w-full' : 'ml-4'}>
                       {item.action}
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             </GlassCard>
-          </motion.div>
+          </div>
         );
       })}
 
       {/* App Info */}
-      <motion.div
-        variants={staggerItemVariants}
-      >
+      <div>
         <GlassCard variant="bubble" className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="glass rounded-lg p-2">
@@ -387,7 +380,7 @@ export function SettingsPanel() {
             <p>🔒 Secure server-side API handling</p>
           </div>
         </GlassCard>
-      </motion.div>
+      </div>
 
     </div>
   );

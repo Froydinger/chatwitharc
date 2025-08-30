@@ -77,10 +77,7 @@ export function ChatHistoryPanel() {
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8 pb-8 pt-16 px-4 h-full overflow-y-auto">
       {/* Header */}
-      <motion.div
-        variants={fadeInVariants}
-        initial="initial"
-        animate="animate"
+      <div
         className="text-center space-y-4"
       >
         <div className="flex items-center justify-center gap-3">
@@ -96,15 +93,12 @@ export function ChatHistoryPanel() {
           <Plus className="h-4 w-4 mr-2" />
           New Chat
         </GlassButton>
-      </motion.div>
+      </div>
 
       {/* Chat Sessions */}
       <div className="space-y-8">
         {Object.keys(groupedSessions).length === 0 ? (
-          <motion.div
-            variants={fadeInVariants}
-            initial="initial"
-            animate="animate"
+          <div
             className="text-center py-16"
           >
             <GlassCard variant="bubble" glow className="p-12 max-w-md mx-auto">
@@ -126,14 +120,11 @@ export function ChatHistoryPanel() {
                 Create First Chat
               </GlassButton>
             </GlassCard>
-          </motion.div>
+          </div>
         ) : (
           Object.entries(groupedSessions).map(([dateGroup, sessions], groupIndex) => (
-            <motion.div
+            <div
               key={dateGroup}
-              variants={staggerContainerVariants}
-              initial="initial"
-              animate="animate"
             >
               <div className="flex items-center gap-4 mb-6">
                 <div className="glass rounded-full p-2">
@@ -146,19 +137,13 @@ export function ChatHistoryPanel() {
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <AnimatePresence mode="popLayout">
                   {sessions.map((session, sessionIndex) => (
-                    <motion.div
+                    <div
                       key={session.id}
-                      variants={staggerItemVariants}
-                      animate={{ 
+                      style={{ 
                         opacity: deletingId === session.id ? 0 : 1, 
-                        scale: deletingId === session.id ? 0.9 : 1 
+                        transform: deletingId === session.id ? 'scale(0.9)' : 'scale(1)',
+                        transition: 'opacity 0.3s ease-out, transform 0.3s ease-out'
                       }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ 
-                        duration: 0.3,
-                        ease: "easeOut"
-                      }}
-                      layout
                     >
                       <GlassCard
                         variant={currentSessionId === session.id ? "bubble" : "default"}
@@ -210,22 +195,18 @@ export function ChatHistoryPanel() {
                           )}
                         </div>
                       </GlassCard>
-                    </motion.div>
+                    </div>
                   ))}
                 </AnimatePresence>
               </div>
-            </motion.div>
+            </div>
           ))
         )}
       </div>
 
       {/* Stats */}
       {chatSessions.length > 0 && (
-        <motion.div
-          variants={fadeInVariants}
-          initial="initial"
-          animate="animate"
-        >
+        <div>
           <GlassCard variant="bubble" glow className="p-8">
             <h3 className="text-xl font-semibold text-foreground mb-6 text-center">Chat Statistics</h3>
             <div className="grid grid-cols-3 gap-8 text-center">
@@ -258,7 +239,7 @@ export function ChatHistoryPanel() {
               </div>
             </div>
           </GlassCard>
-        </motion.div>
+        </div>
       )}
     </div>
   );
