@@ -26,6 +26,7 @@ export function ChatInterface() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { profile } = useAuth();
   
 
   useEffect(() => {
@@ -58,7 +59,6 @@ export function ChatInterface() {
 
     try {
       const openai = new OpenAIService();
-      const { profile } = useAuth();
       
       // Check if user is requesting image generation
       const imageKeywords = [
@@ -228,7 +228,6 @@ export function ChatInterface() {
 
     try {
       const openai = new OpenAIService();
-      const { profile } = useAuth();
       
       // Get messages up to the edited message
       const conversationHistory = messages
