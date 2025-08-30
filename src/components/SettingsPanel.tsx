@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Key, Volume2, Palette, Info, Trash2, User, LogOut } from "lucide-react";
+import { Trash2, User, LogOut, AlertTriangle } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,6 +12,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { ProfileManager } from "@/components/ProfileManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function SettingsPanel() {
   const { 
@@ -22,6 +33,7 @@ export function SettingsPanel() {
   const { profile } = useAuth();
   const { updateProfile, updating } = useProfile();
   const { toast } = useToast();
+  const [isDeleting, setIsDeleting] = useState(false);
   
 
   const handleClearMessages = () => {
@@ -47,6 +59,47 @@ export function SettingsPanel() {
         description: error.message || "Failed to sign out",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      // First clear all user data locally
+      clearAllSessions();
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+      
+      // Delete profile and chat sessions manually (they have CASCADE delete)
+      await supabase
+        .from('profiles')
+        .delete()
+        .eq('user_id', user.id);
+        
+      await supabase
+        .from('chat_sessions')
+        .delete()
+        .eq('user_id', user.id);
+      
+      toast({
+        title: "Account deleted",
+        description: "Your account has been permanently deleted. You can register again if needed."
+      });
+      
+      // Sign out after deletion - this effectively removes the auth user
+      await supabase.auth.signOut();
+      
+    } catch (error: any) {
+      console.error('Delete account error:', error);
+      toast({
+        title: "Deletion failed",
+        description: "Failed to delete account. Please try again or contact support.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -84,28 +137,6 @@ export function SettingsPanel() {
         }
       ]
     },
-    // Voice settings hidden but preserved
-    // {
-    //   title: "Voice Settings",
-    //   icon: Volume2,
-    //   items: [
-    //     {
-    //       label: "Voice Selection",
-    //       description: "Choose your AI voice",
-    //       action: (
-    //         <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-    //           <SelectTrigger className="w-32 glass border-glass-border">
-    //             <SelectValue />
-    //           </SelectTrigger>
-    //           <SelectContent className="glass border-glass-border">
-    //             <SelectItem value="cedar">Cedar</SelectItem>
-    //             <SelectItem value="marin">Marin</SelectItem>
-    //           </SelectContent>
-    //         </Select>
-    //       )
-    //     }
-    //   ]
-    // },
     {
       title: "Data Management",
       icon: Trash2,
@@ -143,13 +174,55 @@ export function SettingsPanel() {
               Sign Out
             </GlassButton>
           )
+        },
+        {
+          label: "Delete Account",
+          description: "Permanently delete your account and all data",
+          action: (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <GlassButton
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? "Deleting..." : "Delete Account"}
+                </GlassButton>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="glass border-destructive/20">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="h-5 w-5" />
+                    Delete Account Permanently
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-foreground">
+                    This action cannot be undone. This will permanently delete your account,
+                    remove all your data including chat history, profile information, and 
+                    disconnect any Google authentication. You can register again with the 
+                    same email if needed.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="glass">Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleDeleteAccount}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? "Deleting..." : "Delete Account"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )
         }
       ]
     }
   ];
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-6 pb-8 pt-16">
+    <div className="w-full max-w-2xl mx-auto space-y-6 pb-8 pt-16 px-4 h-full overflow-y-auto">
       {/* Profile Manager */}
       <ProfileManager />
       
@@ -217,7 +290,7 @@ export function SettingsPanel() {
         <GlassCard variant="bubble" className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="glass rounded-lg p-2">
-              <Info className="h-5 w-5 text-primary-glow" />
+              <User className="h-5 w-5 text-primary-glow" />
             </div>
             <h3 className="text-lg font-semibold text-foreground">About ArcAI</h3>
           </div>

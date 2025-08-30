@@ -25,10 +25,25 @@ export function ChatInterface() {
   const { toast } = useToast();
   const { profile } = useAuth();
 
-  // Scroll to bottom when messages change
+  // Scroll to show latest user message when new message is added
   useEffect(() => {
     if (messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === 'user') {
+        // For user messages, scroll so the message is visible but user can still scroll up
+        setTimeout(() => {
+          if (messagesContainerRef.current) {
+            const container = messagesContainerRef.current;
+            const scrollHeight = container.scrollHeight;
+            const clientHeight = container.clientHeight;
+            // Scroll to show the message but leave some space to see previous messages
+            container.scrollTop = scrollHeight - clientHeight - 100;
+          }
+        }, 100);
+      } else {
+        // For AI responses, scroll to bottom
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
     }
   }, [messages]);
 
@@ -61,7 +76,7 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative">
+    <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-32">
       {/* Fixed Header - Just logo and new chat button */}
       <div className="fixed top-0 left-0 right-0 z-30 flex justify-center">
         <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-4 bg-background/20 backdrop-blur-sm">

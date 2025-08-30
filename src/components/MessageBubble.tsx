@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { User, Smile, Copy, Edit2, Check } from "lucide-react";
 import { Message } from "@/store/useArcStore";
 import { useArcStore } from "@/store/useArcStore";
+import { useProfile } from "@/hooks/useProfile";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +16,7 @@ interface MessageBubbleProps {
 export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
   ({ message, onEdit }, ref) => {
     const { editMessage } = useArcStore();
+    const { profile } = useProfile();
     const { toast } = useToast();
     const [isEditing, setIsEditing] = useState(false);
     const [editContent, setEditContent] = useState(message.content);
@@ -95,7 +97,15 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           }`}
         >
           {isUser ? (
-            <User className="h-4 w-4 text-primary-glow" />
+            profile?.avatar_url ? (
+              <img 
+                src={profile.avatar_url} 
+                alt="User" 
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <User className="h-4 w-4 text-primary-glow" />
+            )
           ) : (
             <div className="w-8 h-8 rounded-full bg-cover bg-center bg-no-repeat" 
                  style={{backgroundImage: `url('/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png')`}} />

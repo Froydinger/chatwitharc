@@ -73,7 +73,7 @@ export function Index() {
         {/* Main Container - accounts for bottom navigation */}
         <div className="relative z-10 h-screen flex flex-col">
           <main className="flex-1 overflow-hidden">
-            {/* Smoother content transitions */}
+            {/* Smoother content transitions - removed extra scroll container */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentTab}
@@ -81,11 +81,9 @@ export function Index() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="h-full overflow-y-auto pb-32"
+                className="h-full"
               >
-                <div className="min-h-full p-2 sm:p-4 lg:p-6">
-                  {renderCurrentTab()}
-                </div>
+                {renderCurrentTab()}
               </motion.div>
             </AnimatePresence>
           </main>
