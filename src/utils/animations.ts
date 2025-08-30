@@ -1,44 +1,31 @@
 // Robust animation utilities to prevent glitches
 import { Variants } from "framer-motion";
 
-// Prevent animation glitches by using consistent initial states
+// Remove all initial transforms to prevent layout shifts and glitches
 export const fadeInVariants: Variants = {
   initial: {
-    opacity: 0,
+    opacity: 1, // Start fully visible to prevent flash
   },
   animate: {
     opacity: 1,
     transition: {
-      duration: 0.4,
-      ease: "easeOut",
-    },
-  },
-  exit: {
-    opacity: 0,
-    transition: {
-      duration: 0.2,
+      duration: 0,
+      ease: "linear",
     },
   },
 };
 
 export const slideUpVariants: Variants = {
   initial: {
-    opacity: 0,
-    y: 8,
+    opacity: 1,
+    y: 0,
   },
   animate: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.4,
-      ease: "easeOut",
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: -8,
-    transition: {
-      duration: 0.2,
+      duration: 0,
+      ease: "linear",
     },
   },
 };
@@ -47,77 +34,69 @@ export const staggerContainerVariants: Variants = {
   initial: {},
   animate: {
     transition: {
-      staggerChildren: 0.05,
-      delayChildren: 0.1,
+      staggerChildren: 0,
+      delayChildren: 0,
     },
   },
 };
 
 export const staggerItemVariants: Variants = {
   initial: {
-    opacity: 0,
-    y: 8,
+    opacity: 1,
+    y: 0,
   },
   animate: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.3,
-      ease: "easeOut",
+      duration: 0,
+      ease: "linear",
     },
   },
 };
 
-// Animation presets for different components
+// Simple variants with no transforms to prevent glitches
 export const welcomeTextVariants: Variants = {
   initial: {
-    opacity: 0,
-    y: 12,
+    opacity: 1,
+    y: 0,
   },
   animate: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.6,
-      ease: "easeOut",
+      duration: 0,
+      ease: "linear",
     },
   },
 };
 
 export const inputBarVariants: Variants = {
   initial: {
-    opacity: 0,
-    y: 16,
+    opacity: 1,
+    y: 0,
   },
   animate: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.5,
-      ease: "easeOut",
-      delay: 0.2,
+      duration: 0,
+      ease: "linear",
     },
   },
 };
 
 export const cardVariants: Variants = {
   initial: {
-    opacity: 0,
-    scale: 0.98,
+    opacity: 1,
+    scale: 1,
   },
   animate: {
     opacity: 1,
     scale: 1,
     transition: {
-      duration: 0.4,
-      ease: "easeOut",
-    },
-  },
-  exit: {
-    opacity: 0,
-    scale: 0.95,
-    transition: {
-      duration: 0.2,
+      duration: 0,
+      ease: "linear",
     },
   },
 };
@@ -128,30 +107,21 @@ export const animationConfig = {
   respectMotionPreference: true,
   // Use transform instead of layout properties
   layoutId: undefined,
-  // Prevent bounce/spring animations that can cause glitches
+  // Prevent animations completely
   transition: {
-    type: "tween",
-    ease: "easeOut",
+    duration: 0,
   },
 };
 
-// Helper to create consistent page animations
+// Helper to create consistent page animations (no animations)
 export const createPageVariants = (delay: number = 0): Variants => ({
   initial: {
-    opacity: 0,
+    opacity: 1,
   },
   animate: {
     opacity: 1,
     transition: {
-      duration: 0.4,
-      ease: "easeOut",
-      delay,
-    },
-  },
-  exit: {
-    opacity: 0,
-    transition: {
-      duration: 0.2,
+      duration: 0,
     },
   },
 });

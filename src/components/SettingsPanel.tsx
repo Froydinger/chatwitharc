@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Trash2, User, LogOut, AlertTriangle } from "lucide-react";
+import { Trash2, User, LogOut, AlertTriangle, Camera } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,7 +34,51 @@ export function SettingsPanel() {
   const { profile, updateProfile, updating } = useProfile();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setIsUploading(true);
+    try {
+      // Upload file to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Update profile with new avatar URL
+      await updateProfile({ avatar_url: publicUrl });
+
+      toast({
+        title: "Avatar updated",
+        description: "Your profile picture has been updated successfully!"
+      });
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload profile picture. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+      // Clear the input value
+      const input = document.getElementById('avatar-upload') as HTMLInputElement;
+      if (input) input.value = '';
+    }
+  };
 
   const handleClearMessages = () => {
     clearAllSessions();
@@ -232,26 +276,43 @@ export function SettingsPanel() {
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6 pb-8 pt-16 px-4 h-full overflow-y-auto">
-      {/* Profile Manager - Only show avatar section */}
+      {/* Profile Picture Upload */}
       <div className="max-w-md mx-auto">
-        <div className="flex flex-col items-center mb-8">
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full overflow-hidden bg-muted border-2 border-border">
-              {profile?.avatar_url ? (
-                <img 
-                  src={profile.avatar_url} 
-                  alt="Profile" 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <User className="w-8 h-8 text-muted-foreground" />
-                </div>
-              )}
+        <GlassCard variant="bubble" className="p-6">
+          <div className="flex flex-col items-center">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full overflow-hidden bg-muted border-2 border-border">
+                {profile?.avatar_url ? (
+                  <img 
+                    src={profile.avatar_url} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <User className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+              <GlassButton
+                variant="bubble"
+                size="icon"
+                className="absolute -bottom-2 -right-2 w-8 h-8"
+                onClick={() => document.getElementById('avatar-upload')?.click()}
+              >
+                <Camera className="w-4 h-4" />
+              </GlassButton>
             </div>
+            <input
+              id="avatar-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
+            <p className="text-sm text-muted-foreground mt-2">Click camera to upload profile picture</p>
           </div>
-          <p className="text-sm text-muted-foreground mt-2">Profile Picture</p>
-        </div>
+        </GlassCard>
       </div>
       
       <motion.div
