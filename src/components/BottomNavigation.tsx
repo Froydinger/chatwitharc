@@ -24,14 +24,21 @@ export function BottomNavigation() {
     const tabWidth = 96;
     const bubbleWidth = 80;
     
-    // Calculate vertical position - bubble should always be centered on the tab items
+    // Calculate horizontal position - tabs are centered in a 288px container
+    const containerWidth = 288;
+    const totalTabsWidth = navigationItems.length * tabWidth; // 3 * 96 = 288px
+    const tabStartX = (containerWidth - totalTabsWidth) / 2; // Should be 0 since they match
+    const tabCenterX = tabStartX + (activeIndex * tabWidth) + (tabWidth / 2);
+    const bubbleX = tabCenterX - (bubbleWidth / 2);
+    
+    // Calculate vertical position - bubble should be centered on the tab items
     const tabBarHeight = 64; // h-16 = 64px (height of tab items container)
     const bubbleHeight = 80; // h-20 = 80px
     const verticalOffset = -(bubbleHeight - tabBarHeight) / 2; // Center bubble on tab items
     
     return {
-      x: activeIndex * tabWidth + (tabWidth - bubbleWidth) / 2, // Center horizontally
-      y: verticalOffset // Always centered on tab items, regardless of chat input
+      x: bubbleX,
+      y: verticalOffset // Always centered on tab items
     };
   };
 
