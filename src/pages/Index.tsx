@@ -76,18 +76,7 @@ export function Index() {
             {/* Scrollable content container with preserved scroll position */}
             <div className="h-full overflow-y-auto pb-32" key={currentTab}>
               <div className="min-h-full p-2 sm:p-4 lg:p-6">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentTab}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.2, ease: "easeInOut" }}
-                    className="w-full"
-                  >
-                    {renderCurrentTab()}
-                  </motion.div>
-                </AnimatePresence>
+                {renderCurrentTab()}
               </div>
             </div>
           </main>
