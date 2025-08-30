@@ -107,7 +107,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             transition={{ delay: 0.5 }}
             className="mt-1 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            {message.timestamp.toLocaleTimeString([], { 
+            {message.timestamp && new Date(message.timestamp).toLocaleTimeString([], { 
               hour: '2-digit', 
               minute: '2-digit' 
             })}

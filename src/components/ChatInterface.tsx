@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Image, Paperclip, Plus, Smile } from "lucide-react";
+import { Send, Image, Paperclip, Plus } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { OpenAIService } from "@/services/openai";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -208,7 +208,7 @@ export function ChatInterface() {
             onClick={handleNewChat}
             className="animate-bounce-gentle"
           >
-            <Smile className="h-5 w-5" />
+            <Plus className="h-5 w-5" />
           </GlassButton>
         </motion.div>
       )}
@@ -298,7 +298,7 @@ export function ChatInterface() {
             className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary-glow rounded-[var(--radius)] flex items-center justify-center"
           >
             <div className="text-center">
-              <Smile className="h-12 w-12 text-primary-glow mx-auto mb-2" />
+              <Image className="h-12 w-12 text-primary-glow mx-auto mb-2" />
               <p className="text-primary-foreground font-medium">Drop images here</p>
             </div>
           </motion.div>
@@ -324,7 +324,7 @@ export function ChatInterface() {
               onClick={() => fileInputRef.current?.click()}
               className="shrink-0"
             >
-              <Smile className="h-4 w-4" />
+              <Paperclip className="h-4 w-4" />
             </GlassButton>
           </div>
 
@@ -346,7 +346,7 @@ export function ChatInterface() {
             disabled={!inputValue.trim() || isLoading}
             className="shrink-0"
           >
-            <Smile className="h-4 w-4" />
+            <Send className="h-4 w-4" />
           </GlassButton>
         </div>
       </GlassCard>
