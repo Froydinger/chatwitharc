@@ -44,6 +44,9 @@ export interface ArcState {
   isLoading: boolean;
   setLoading: (loading: boolean) => void;
   
+  // Quick Start
+  startChatWithMessage: (message: string) => void;
+  
   // Voice Settings
   selectedVoice: 'cedar' | 'marin';
   setSelectedVoice: (voice: 'cedar' | 'marin') => void;
@@ -200,6 +203,17 @@ export const useArcStore = create<ArcState>()(
       setVoiceMode: (enabled) => set({ isVoiceMode: enabled }),
       isLoading: false,
       setLoading: (loading) => set({ isLoading: loading }),
+      
+      // Quick Start
+      startChatWithMessage: (message) => {
+        const state = get();
+        // Add the user message
+        state.addMessage({
+          content: message,
+          role: 'user',
+          type: 'text'
+        });
+      },
       
       // Voice
       selectedVoice: 'cedar',

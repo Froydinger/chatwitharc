@@ -16,7 +16,8 @@ export function ChatInterface() {
     isLoading, 
     setLoading, 
     createNewSession,
-    currentSessionId 
+    currentSessionId,
+    startChatWithMessage 
   } = useArcStore();
   const [dragOver, setDragOver] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -44,6 +45,12 @@ export function ChatInterface() {
 
   const handleNewChat = () => {
     createNewSession();
+    // Force scroll to top immediately
+    setTimeout(() => {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = 0;
+      }
+    }, 0);
     toast({
       title: "New Chat Started",
       description: "Ready for a fresh conversation!"
@@ -107,9 +114,63 @@ export function ChatInterface() {
                   <h3 className="text-xl font-semibold text-foreground mb-2">
                     Welcome to ArcAI
                   </h3>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground mb-8">
                     Start a conversation or drop an image to analyze
                   </p>
+                  
+                  {/* Quick Start Options */}
+                  <div className="grid grid-cols-1 gap-3 max-w-md mx-auto">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => startChatWithMessage("I'd like a mental wellness check-in. How are you feeling today and what's on your mind?")}
+                      className="glass p-4 rounded-xl text-left hover:glass-glow transition-all duration-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <span className="text-green-400 text-lg">🧘</span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-foreground">Mental Wellness Check-in</h4>
+                          <p className="text-sm text-muted-foreground">Reflect on your feelings and thoughts</p>
+                        </div>
+                      </div>
+                    </motion.button>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => startChatWithMessage("I need someone to talk to today. Can you be a supportive companion?")}
+                      className="glass p-4 rounded-xl text-left hover:glass-glow transition-all duration-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                          <span className="text-blue-400 text-lg">💙</span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-foreground">Friendly Companion</h4>
+                          <p className="text-sm text-muted-foreground">Chat with a supportive AI friend</p>
+                        </div>
+                      </div>
+                    </motion.button>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => startChatWithMessage("Let's get creative! Help me brainstorm some ideas or work on a creative project.")}
+                      className="glass p-4 rounded-xl text-left hover:glass-glow transition-all duration-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                          <span className="text-purple-400 text-lg">🎨</span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-foreground">Creative Inspiration</h4>
+                          <p className="text-sm text-muted-foreground">Explore ideas and spark creativity</p>
+                        </div>
+                      </div>
+                    </motion.button>
+                  </div>
                 </motion.div>
               ) : (
                 messages.map((message) => (
