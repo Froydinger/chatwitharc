@@ -1,33 +1,64 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
+import { useAuth } from "@/hooks/useAuth";
+import { useChatSync } from "@/hooks/useChatSync";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { ChatInterface } from "@/components/ChatInterface";
-// import { VoiceInterface } from "@/components/VoiceInterface"; // Voice logic preserved
 import { SettingsPanel } from "@/components/SettingsPanel";
-
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { ApiKeyModal } from "@/components/ApiKeyModal";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { AuthPage } from "@/components/AuthPage";
+import { OnboardingScreen } from "@/components/OnboardingScreen";
 
 const Index = () => {
   const { currentTab, apiKey, theme } = useArcStore();
+  const { user, loading, needsOnboarding } = useAuth();
   const [showApiModal, setShowApiModal] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
 
-  // Check for API key on first load
+  // Initialize chat sync hook
+  useChatSync();
+
+  // Check for API key on first load (only for authenticated users)
   useEffect(() => {
-    if (!apiKey) {
+    if (user && !apiKey) {
       const timer = setTimeout(() => {
         setShowApiModal(true);
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [apiKey]);
+  }, [user, apiKey]);
 
   // Apply theme to document
   useEffect(() => {
     document.documentElement.className = theme;
   }, [theme]);
+
+  // Show loading screen while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <motion.div
+          animate={{ rotate: [0, 5, -5, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-16 w-16" />
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Show auth page if user is not authenticated
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  // Show onboarding if user needs it and hasn't completed it
+  if (needsOnboarding && !onboardingComplete) {
+    return <OnboardingScreen onComplete={() => setOnboardingComplete(true)} />;
+  }
 
   const renderCurrentTab = () => {
     switch (currentTab) {

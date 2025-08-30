@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Key, Volume2, Palette, Info, Trash2, User } from "lucide-react";
+import { Key, Volume2, Palette, Info, Trash2, User, LogOut } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
+import { useAuth } from "@/hooks/useAuth";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,6 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiKeyModal } from "@/components/ApiKeyModal";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export function SettingsPanel() {
   const { 
@@ -24,6 +27,8 @@ export function SettingsPanel() {
     userContext,
     setUserContext
   } = useArcStore();
+  const { profile } = useAuth();
+  const { toast } = useToast();
   const [showApiModal, setShowApiModal] = useState(false);
 
   const handleClearMessages = () => {
@@ -31,6 +36,24 @@ export function SettingsPanel() {
     // Simulate haptic feedback
     if (navigator.vibrate) {
       navigator.vibrate([50, 50, 50]);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: "Signed out",
+        description: "You've been signed out successfully"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sign out",
+        variant: "destructive"
+      });
     }
   };
 
@@ -44,7 +67,7 @@ export function SettingsPanel() {
           description: "How Arc should address you",
           action: (
             <Input
-              value={userName}
+              value={userName || profile?.display_name || ""}
               onChange={(e) => setUserName(e.target.value)}
               placeholder="Enter your name"
               className="w-40 glass border-glass-border text-sm"
@@ -56,7 +79,7 @@ export function SettingsPanel() {
           description: "Tell Arc about yourself and your needs",
           action: (
             <Textarea
-              value={userContext}
+              value={userContext || profile?.context_info || ""}
               onChange={(e) => setUserContext(e.target.value)}
               placeholder="I'm interested in... I prefer... I'm working on..."
               className="w-full glass border-glass-border text-sm min-h-[80px] resize-none"
@@ -142,6 +165,26 @@ export function SettingsPanel() {
               className="text-destructive hover:text-destructive"
             >
               Clear All
+            </GlassButton>
+          )
+        }
+      ]
+    },
+    {
+      title: "Account",
+      icon: LogOut,
+      items: [
+        {
+          label: "Sign Out",
+          description: "Sign out of your account",
+          action: (
+            <GlassButton
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              className="text-destructive hover:text-destructive"
+            >
+              Sign Out
             </GlassButton>
           )
         }

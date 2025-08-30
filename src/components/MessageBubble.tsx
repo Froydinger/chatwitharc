@@ -115,18 +115,37 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           onClick={handleMessageClick}
         >
           {/* Image Preview */}
-          {message.type === 'image' && message.imageUrl && (
+          {message.type === 'image' && (message.imageUrl || message.imageUrls) && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3, duration: 0.3 }}
               className="mb-2"
             >
-              <img
-                src={message.imageUrl}
-                alt="Uploaded"
-                className="max-w-full h-auto max-h-48 rounded-lg object-cover"
-              />
+              {message.imageUrls && message.imageUrls.length > 0 ? (
+                <div className={`grid gap-2 ${
+                  message.imageUrls.length === 1 ? 'grid-cols-1' :
+                  message.imageUrls.length === 2 ? 'grid-cols-2' :
+                  message.imageUrls.length === 3 ? 'grid-cols-2' :
+                  'grid-cols-2'
+                }`}>
+                  {message.imageUrls.map((url, index) => (
+                    <div key={index} className={message.imageUrls!.length === 3 && index === 0 ? 'col-span-2' : ''}>
+                      <img
+                        src={url}
+                        alt={`Image ${index + 1}`}
+                        className="w-full h-auto max-h-48 rounded-lg object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : message.imageUrl && (
+                <img
+                  src={message.imageUrl}
+                  alt="Uploaded"
+                  className="max-w-full h-auto max-h-48 rounded-lg object-cover"
+                />
+              )}
             </motion.div>
           )}
 

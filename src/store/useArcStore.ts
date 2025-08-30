@@ -16,6 +16,7 @@ export interface Message {
   timestamp: Date;
   type: 'text' | 'voice' | 'image';
   imageUrl?: string;
+  imageUrls?: string[]; // Support for multiple images
 }
 
 export interface ArcState {

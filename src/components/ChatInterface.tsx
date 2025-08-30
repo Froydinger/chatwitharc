@@ -21,6 +21,7 @@ export function ChatInterface() {
   } = useArcStore();
   const [inputValue, setInputValue] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -30,7 +31,7 @@ export function ChatInterface() {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!inputValue.trim() || isLoading) return;
+    if ((!inputValue.trim() && selectedImages.length === 0) || isLoading) return;
 
     if (!apiKey) {
       toast({
@@ -43,12 +44,20 @@ export function ChatInterface() {
 
     const userMessage = inputValue.trim();
     setInputValue("");
+
+    // Handle multiple images
+    let imageUrls: string[] = [];
+    if (selectedImages.length > 0) {
+      imageUrls = selectedImages.map(file => URL.createObjectURL(file));
+      setSelectedImages([]);
+    }
     
-    // Add user message
+    // Add user message with images
     addMessage({
-      content: userMessage,
+      content: userMessage || "Sent images",
       role: 'user',
-      type: 'text'
+      type: selectedImages.length > 0 ? 'image' : 'text',
+      imageUrls: imageUrls.length > 0 ? imageUrls : undefined
     });
 
     setLoading(true);
@@ -69,7 +78,7 @@ export function ChatInterface() {
         userMessage.toLowerCase().includes(keyword.toLowerCase())
       ) || /\b(draw|paint|sketch|illustrate|visualize|picture|image)\s+(?:me\s+)?(?:a\s+|an\s+|some\s+)?/i.test(userMessage);
 
-      if (isImageRequest) {
+      if (isImageRequest && selectedImages.length === 0) {
         // Extract the image description from the message
         let imagePrompt = userMessage;
         for (const keyword of imageKeywords) {
@@ -87,6 +96,47 @@ export function ChatInterface() {
           type: 'image',
           imageUrl
         });
+      } else if (selectedImages.length > 0) {
+        // Handle image analysis with text
+        const openai = new OpenAIService(apiKey);
+        
+        // Convert first image to base64 for analysis
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const base64 = reader.result as string;
+            const analysisPrompt = userMessage || 'What do you see in these images?';
+            
+            const response = await openai.sendMessageWithImage(
+              [{ role: 'user', content: analysisPrompt }],
+              base64
+            );
+            
+            addMessage({
+              content: response,
+              role: 'assistant',
+              type: 'text'
+            });
+          } catch (error) {
+            console.error('Image analysis error:', error);
+            toast({
+              title: "Error",
+              description: "Failed to analyze images",
+              variant: "destructive"
+            });
+            
+            addMessage({
+              content: "Sorry, I couldn't analyze these images. Please try again.",
+              role: 'assistant',
+              type: 'text'
+            });
+          } finally {
+            setLoading(false);
+          }
+        };
+        
+        reader.readAsDataURL(selectedImages[0]);
+        return; // Exit early since we handle the response in the file reader
       } else {
         // Regular text conversation
         // Convert messages to OpenAI format
@@ -137,70 +187,24 @@ export function ChatInterface() {
     }
   };
 
-  const handleImageUpload = async (file: File) => {
-    if (!apiKey) {
+  const handleImageUpload = (files: File[]) => {
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    const maxImages = 4;
+    
+    if (selectedImages.length + imageFiles.length > maxImages) {
       toast({
-        title: "API Key Required",
-        description: "Please add your OpenAI API key to analyze images.",
+        title: "Too many images",
+        description: `You can only send up to ${maxImages} images at once`,
         variant: "destructive"
       });
       return;
     }
 
-    const imageUrl = URL.createObjectURL(file);
-    
-    // Add user message with image
-    addMessage({
-      content: `Uploaded image: ${file.name}`,
-      role: 'user',
-      type: 'image',
-      imageUrl
-    });
+    setSelectedImages(prev => [...prev, ...imageFiles.slice(0, maxImages - prev.length)]);
+  };
 
-    setLoading(true);
-
-    try {
-      const openai = new OpenAIService(apiKey);
-      
-      // Convert to base64 for API
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64 = reader.result as string;
-          
-          const response = await openai.sendMessageWithImage(
-            [{ role: 'user', content: 'What do you see in this image?' }],
-            base64
-          );
-          
-          addMessage({
-            content: response,
-            role: 'assistant',
-            type: 'text'
-          });
-        } catch (error) {
-          console.error('Image analysis error:', error);
-          toast({
-            title: "Error",
-            description: "Failed to analyze image",
-            variant: "destructive"
-          });
-          
-          addMessage({
-            content: "Sorry, I couldn't analyze this image. Please try again.",
-            role: 'assistant',
-            type: 'text'
-          });
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Image upload error:', error);
-      setLoading(false);
-    }
+  const removeImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -208,14 +212,16 @@ export function ChatInterface() {
     setDragOver(false);
     
     const files = Array.from(e.dataTransfer.files);
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
-    
-    imageFiles.forEach(handleImageUpload);
+    handleImageUpload(files);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    files.forEach(handleImageUpload);
+    handleImageUpload(files);
+    // Reset the input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleEditMessage = async (messageId: string, newContent: string) => {
@@ -393,6 +399,40 @@ export function ChatInterface() {
 
       {/* Input Area */}
       <GlassCard variant="bubble" className="p-4">
+        {/* Selected Images Preview */}
+        {selectedImages.length > 0 && (
+          <div className="mb-4 p-3 bg-glass/20 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">
+                Selected Images ({selectedImages.length}/4)
+              </span>
+              <button
+                onClick={() => setSelectedImages([])}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Clear All
+              </button>
+            </div>
+            <div className="flex gap-2 overflow-x-auto">
+              {selectedImages.map((file, index) => (
+                <div key={index} className="relative group shrink-0">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={`Selected ${index + 1}`}
+                    className="w-16 h-16 object-cover rounded-lg"
+                  />
+                  <button
+                    onClick={() => removeImage(index)}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex items-end gap-3">
           <div className="flex gap-2">
             <input
@@ -409,6 +449,7 @@ export function ChatInterface() {
               size="icon"
               onClick={() => fileInputRef.current?.click()}
               className="shrink-0"
+              disabled={selectedImages.length >= 4}
             >
               <Paperclip className="h-4 w-4" />
             </GlassButton>
@@ -419,17 +460,17 @@ export function ChatInterface() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask me anything..."
+              placeholder={selectedImages.length > 0 ? "Add a message with your images..." : "Ask me anything..."}
               disabled={isLoading}
               className="glass border-0 bg-glass/30 text-foreground placeholder:text-muted-foreground resize-none"
             />
           </div>
 
           <GlassButton
-            variant={inputValue.trim() ? "glow" : "ghost"}
+            variant={(inputValue.trim() || selectedImages.length > 0) ? "glow" : "ghost"}
             size="icon"
             onClick={handleSend}
-            disabled={!inputValue.trim() || isLoading}
+            disabled={(!inputValue.trim() && selectedImages.length === 0) || isLoading}
             className="shrink-0"
           >
             <Send className="h-4 w-4" />
