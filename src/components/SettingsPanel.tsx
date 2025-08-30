@@ -9,7 +9,7 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
+import { ProfileManager } from "@/components/ProfileManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -150,6 +150,9 @@ export function SettingsPanel() {
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6 pb-8 pt-16">
+      {/* Profile Manager */}
+      <ProfileManager />
+      
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

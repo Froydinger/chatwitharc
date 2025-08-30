@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Send, Paperclip } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { OpenAIService } from "@/services/openai";
@@ -19,6 +19,52 @@ export function ChatInput() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { profile } = useAuth();
+
+  // Auto-respond to quick start messages
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.role === 'user' && isLoading && !inputValue) {
+      handleAIResponse(lastMessage.content);
+    }
+  }, [messages, isLoading]);
+
+  const handleAIResponse = async (userMessage: string) => {
+
+    try {
+      const openai = new OpenAIService();
+      
+      // Convert messages to OpenAI format
+      const openaiMessages = messages
+        .filter(msg => msg.type === 'text')
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+
+      const response = await openai.sendMessage(openaiMessages, profile);
+      
+      addMessage({
+        content: response,
+        role: 'assistant',
+        type: 'text'
+      });
+    } catch (error) {
+      console.error('AI response error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to get AI response",
+        variant: "destructive"
+      });
+      
+      addMessage({
+        content: "Sorry, I encountered an error. Please try again.",
+        role: 'assistant',
+        type: 'text'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSend = async () => {
     if ((!inputValue.trim() && selectedImages.length === 0) || isLoading) return;

@@ -1,52 +1,78 @@
-import { useState, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from './useAuth';
+
+export interface Profile {
+  id: string;
+  user_id: string;
+  display_name: string | null;
+  context_info: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export function useProfile() {
-  const { user, profile } = useAuth();
-  const { toast } = useToast();
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  const updateProfile = useCallback(async (updates: {
-    display_name?: string;
-    context_info?: string;
-  }) => {
-    if (!user) return;
+  const fetchProfile = async () => {
+    if (!user) {
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      setProfile(data);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateProfile = async (updates: Partial<Omit<Profile, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => {
+    if (!user) throw new Error('No user found');
 
     setUpdating(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user.id,
-          ...updates
-        });
+        .update(updates)
+        .eq('user_id', user.id)
+        .select()
+        .single();
 
       if (error) throw error;
-
-      toast({
-        title: "Profile updated",
-        description: "Your information has been saved successfully"
-      });
-
-      // Trigger a refetch of the profile
-      window.location.reload();
-    } catch (error: any) {
-      console.error('Error updating profile:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update profile",
-        variant: "destructive"
-      });
+      setProfile(data);
+      return data;
     } finally {
       setUpdating(false);
     }
-  }, [user, toast]);
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, [user]);
 
   return {
     profile,
+    loading,
+    updating,
+    error,
     updateProfile,
-    updating
+    refetch: fetchProfile
   };
 }

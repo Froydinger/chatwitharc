@@ -121,8 +121,8 @@ export function ChatInterface() {
                     Start a conversation or drop an image to analyze
                   </p>
                   
-                  {/* Quick Start Options */}
-                  <div className="grid grid-cols-1 gap-3 max-w-md mx-auto">
+                  {/* Quick Start Options - with bottom padding */}
+                  <div className="grid grid-cols-1 gap-3 max-w-md mx-auto pb-40">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}

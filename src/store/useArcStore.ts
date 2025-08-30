@@ -201,11 +201,11 @@ export const useArcStore = create<ArcState>()(
       setCurrentTab: (tab) => set({ currentTab: tab }),
       isVoiceMode: false,
       setVoiceMode: (enabled) => set({ isVoiceMode: enabled }),
-      isLoading: false,
-      setLoading: (loading) => set({ isLoading: loading }),
-      
-      // Quick Start
-      startChatWithMessage: (message) => {
+  isLoading: false,
+  setLoading: (loading) => set({ isLoading: loading }),
+  
+  // Quick Start
+      startChatWithMessage: async (message) => {
         const state = get();
         // Add the user message
         state.addMessage({
@@ -213,6 +213,9 @@ export const useArcStore = create<ArcState>()(
           role: 'user',
           type: 'text'
         });
+        
+        // Set loading to trigger AI response in ChatInput
+        state.setLoading(true);
       },
       
       // Voice
