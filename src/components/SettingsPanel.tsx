@@ -30,7 +30,7 @@ export function SettingsPanel() {
     setSelectedVoice, 
     clearAllSessions
   } = useArcStore();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const { updateProfile, updating } = useProfile();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -134,6 +134,15 @@ export function SettingsPanel() {
             />
           ),
           fullWidth: true
+        },
+        {
+          label: "Email Address",
+          description: "Your account email",
+          action: (
+            <div className="text-sm text-muted-foreground font-mono bg-glass/30 px-3 py-2 rounded-md">
+              {user?.email || "No email"}
+            </div>
+          )
         }
       ]
     },
@@ -227,8 +236,9 @@ export function SettingsPanel() {
       <ProfileManager />
       
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 0 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
         className="text-center mb-8"
       >
         <h2 className="text-2xl font-bold text-foreground mb-2">Settings</h2>
@@ -241,9 +251,13 @@ export function SettingsPanel() {
         return (
           <motion.div
             key={section.title}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 0 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: sectionIndex * 0.1 }}
+            transition={{ 
+              duration: 0.6, 
+              ease: "easeOut",
+              delay: sectionIndex * 0.1 
+            }}
           >
             <GlassCard variant="bubble" glow className="p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -259,9 +273,13 @@ export function SettingsPanel() {
                 {section.items.map((item, itemIndex) => (
                   <motion.div
                     key={item.label}
-                    initial={{ opacity: 0, x: -20 }}
+                    initial={{ opacity: 0, x: 0 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: (sectionIndex * 0.1) + (itemIndex * 0.05) }}
+                    transition={{ 
+                      duration: 0.5, 
+                      ease: "easeOut",
+                      delay: (sectionIndex * 0.1) + (itemIndex * 0.05) 
+                    }}
                     className={`glass rounded-lg p-4 ${
                       item.fullWidth ? 'space-y-3' : 'flex items-center justify-between'
                     }`}
@@ -283,9 +301,9 @@ export function SettingsPanel() {
 
       {/* App Info */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 0 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
       >
         <GlassCard variant="bubble" className="p-6">
           <div className="flex items-center gap-3 mb-4">
