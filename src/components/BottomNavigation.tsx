@@ -16,13 +16,13 @@ export function BottomNavigation() {
   const containerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
   
-  // Get bubble position for active tab (full width)
+  // Get bubble position for active tab (full width and height)
   const getBubblePosition = () => {
     const activeIndex = navigationItems.findIndex(item => item.id === currentTab);
-    // Each tab is w-24 (96px), bubble should be same width
+    // Each tab is w-24 (96px), bubble should be same width and nearly full height
     return {
       x: activeIndex * 96, // No offset needed for full width
-      y: 8 // Small vertical offset from top
+      y: 2 // Very small vertical offset to leave thin border
     };
   };
 
@@ -82,7 +82,7 @@ export function BottomNavigation() {
         className="relative"
       >
         {/* Fixed Tab Bar Background */}
-        <div className="bubble-nav relative px-8 py-4">
+        <div className="bubble-nav relative px-6 py-3">
           {/* Draggable Selection Bubble */}
           <motion.div
             drag
@@ -103,7 +103,7 @@ export function BottomNavigation() {
               filter: "drop-shadow(0 0 30px hsla(200, 100%, 60%, 0.8))",
               transition: { type: "spring", damping: 5, stiffness: 300 }
             }}
-            className="absolute w-24 h-20 rounded-2xl cursor-grab active:cursor-grabbing z-10"
+            className="absolute w-24 h-16 rounded-xl cursor-grab active:cursor-grabbing z-10"
             style={{
               background: "radial-gradient(circle at 30% 30%, hsla(200, 100%, 80%, 0.7) 0%, hsla(200, 100%, 50%, 0.5) 100%)",
               backdropFilter: "blur(20px)",
@@ -117,9 +117,9 @@ export function BottomNavigation() {
             }}
           >
             {/* Inner light effects */}
-            <div className="absolute inset-2 rounded-xl overflow-hidden">
-              <div className="absolute top-3 left-4 w-12 h-1 bg-white opacity-70 blur-sm rounded-full" />
-              <div className="absolute bottom-4 right-3 w-8 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
+            <div className="absolute inset-2 rounded-lg overflow-hidden">
+              <div className="absolute top-2 left-4 w-12 h-1 bg-white opacity-70 blur-sm rounded-full" />
+              <div className="absolute bottom-2 right-3 w-8 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
             </div>
           </motion.div>
 
@@ -143,7 +143,7 @@ export function BottomNavigation() {
                   }}
                 >
                   <motion.div
-                    className="w-24 h-20 flex flex-col items-center justify-center cursor-pointer"
+                    className="w-24 h-16 flex flex-col items-center justify-center cursor-pointer"
                     whileHover={{ 
                       scale: 1.05,
                       transition: { type: "spring", damping: 15, stiffness: 300 }
