@@ -290,7 +290,7 @@ export function ChatInterface() {
             onClick={handleNewChat}
             className="animate-bounce-gentle"
           >
-            <Plus className="h-5 w-5" />
+            <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-5 w-5" />
           </GlassButton>
         </motion.div>
       )}

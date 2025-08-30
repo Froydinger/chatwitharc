@@ -109,7 +109,7 @@ export function BottomNavigation() {
             }}
             className="absolute w-20 h-20 rounded-full cursor-grab active:cursor-grabbing z-30"
             style={{
-              background: "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.3) 0%, hsla(200, 100%, 80%, 0.4) 40%, hsla(200, 100%, 50%, 0.7) 100%)",
+              background: "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.2) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
               backdropFilter: "blur(20px)",
               border: "2px solid hsla(200, 100%, 70%, 0.7)",
               boxShadow: `

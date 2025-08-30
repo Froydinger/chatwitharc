@@ -88,7 +88,7 @@ export function ChatHistoryPanel() {
           onClick={handleNewChat}
           className="animate-bounce-gentle"
         >
-          <Plus className="h-5 w-5 mr-2" />
+          <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-5 w-5 mr-2" />
           Start New Chat
         </GlassButton>
       </motion.div>
@@ -113,7 +113,7 @@ export function ChatHistoryPanel() {
                 variant="glow"
                 onClick={handleNewChat}
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-4 w-4 mr-2" />
                 Create First Chat
               </GlassButton>
             </GlassCard>
