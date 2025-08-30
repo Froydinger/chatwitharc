@@ -122,6 +122,15 @@ export function SettingsPanel() {
           )
         },
         {
+          label: "Email Address",
+          description: "Your account email",
+          action: (
+            <div className="text-sm text-muted-foreground font-mono bg-glass/30 px-3 py-2 rounded-md">
+              {user?.email || "No email"}
+            </div>
+          )
+        },
+        {
           label: "Context & Preferences", 
           description: "Tell Arc about yourself and your needs",
           action: (
@@ -134,15 +143,6 @@ export function SettingsPanel() {
             />
           ),
           fullWidth: true
-        },
-        {
-          label: "Email Address",
-          description: "Your account email",
-          action: (
-            <div className="text-sm text-muted-foreground font-mono bg-glass/30 px-3 py-2 rounded-md">
-              {user?.email || "No email"}
-            </div>
-          )
         }
       ]
     },
