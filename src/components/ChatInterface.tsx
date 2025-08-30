@@ -27,13 +27,15 @@ export function ChatInterface() {
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
-  // Scroll to top when starting new chat
+  // Scroll to top when starting new chat - more aggressive approach
   useEffect(() => {
     if (messages.length === 0 && messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = 0;
+      messagesContainerRef.current.scrollTo({ top: 0, behavior: "instant" });
     }
   }, [currentSessionId, messages.length]);
 
@@ -45,12 +47,13 @@ export function ChatInterface() {
 
   const handleNewChat = () => {
     createNewSession();
-    // Force scroll to top immediately
-    setTimeout(() => {
+    // Immediate scroll to top with multiple approaches
+    requestAnimationFrame(() => {
       if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTo({ top: 0, behavior: "instant" });
         messagesContainerRef.current.scrollTop = 0;
       }
-    }, 0);
+    });
     toast({
       title: "New Chat Started",
       description: "Ready for a fresh conversation!"

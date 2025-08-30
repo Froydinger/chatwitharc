@@ -38,22 +38,31 @@ export function BottomNavigation() {
         y: position.y,
         transition: {
           type: "spring",
-          damping: 8, // Lower damping for more jelly physics
-          stiffness: 200, // Lower stiffness for bouncier feel
-          mass: 0.8, // Add mass for more realistic bounce
-          duration: 0.8
+          damping: 12,
+          stiffness: 300,
+          mass: 0.6,
+          duration: 0.4
         }
       });
     }
   }, [currentTab, isDragging, bubbleControls]);
 
-  // Set initial position without animation
+  // Set initial position immediately and fix positioning
   useEffect(() => {
     const position = getBubblePosition();
     bubbleControls.set({
       x: position.x,
       y: position.y
     });
+    // Force re-calculation after a short delay to ensure proper positioning
+    const timer = setTimeout(() => {
+      const correctedPosition = getBubblePosition();
+      bubbleControls.set({
+        x: correctedPosition.x,
+        y: correctedPosition.y
+      });
+    }, 100);
+    return () => clearTimeout(timer);
   }, []); // Only run on mount
 
   const handleDragEnd = (event: any, info: PanInfo) => {
