@@ -134,19 +134,19 @@ export function ChatInterface() {
           <div className="px-4 sm:px-6 pt-28 pb-32 space-y-4">
             <div>
               {messages.length === 0 ? (
-                <div className="text-center py-12 transform-none opacity-100 transition-none">
-                  <div className="flex justify-center mb-4 transform-none opacity-100 transition-none">
-                    <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-16 w-16 transform-none opacity-100 transition-none" />
+                <div className="text-center py-12">
+                  <div className="flex justify-center mb-4">
+                    <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-16 w-16" />
                   </div>
-                  <h3 className="text-xl font-semibold text-foreground mb-2 opacity-100">
+                  <h3 className="text-xl font-semibold text-foreground mb-2">
                     Welcome to ArcAI
                   </h3>
-                  <p className="text-muted-foreground mb-8 opacity-100">
+                  <p className="text-muted-foreground mb-8">
                     Start a conversation or drop an image to analyze
                   </p>
                   
                   {/* Quick Start Options - with bottom padding */}
-                  <div className="grid grid-cols-1 gap-3 max-w-md mx-auto pb-40 opacity-100">
+                  <div className="grid grid-cols-1 gap-3 max-w-md mx-auto pb-40">
                     <button
                       onClick={() => startChatWithMessage("I'd like a mental wellness check-in. How are you feeling today and what's on your mind?")}
                       className="glass p-4 rounded-xl text-left"
