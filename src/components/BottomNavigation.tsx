@@ -14,15 +14,28 @@ export function BottomNavigation() {
   const [isDragging, setIsDragging] = useState(false);
   const bubbleControls = useAnimation();
   const containerRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
   
-  // Calculate bubble position to center behind active tab
+  // Get actual position of active tab to center bubble
   const getBubblePosition = () => {
     const activeIndex = navigationItems.findIndex(item => item.id === currentTab);
-    // Each tab is 96px wide (w-24), bubble is 64px wide, so offset by 16px to center
-    // Plus 32px padding on left side of container
+    const tabElement = tabRefs.current[activeIndex];
+    const containerElement = containerRef.current;
+    
+    if (tabElement && containerElement) {
+      const tabRect = tabElement.getBoundingClientRect();
+      const containerRect = containerElement.getBoundingClientRect();
+      
+      return {
+        x: tabRect.left - containerRect.left + (tabRect.width / 2) - 32, // 32 = half bubble width
+        y: tabRect.top - containerRect.top + (tabRect.height / 2) - 32    // 32 = half bubble height
+      };
+    }
+    
+    // Fallback positioning
     return {
-      x: 32 + (activeIndex * 96) + 16, // Center the 64px bubble in 96px tab space
-      y: 12 // Vertical center offset
+      x: activeIndex * 96 + 16,
+      y: 16
     };
   };
 
@@ -46,25 +59,29 @@ export function BottomNavigation() {
   const handleDragEnd = (event: any, info: PanInfo) => {
     setIsDragging(false);
     
-    // Determine which tab the bubble is closest to based on drag position
-    const bubbleX = info.point.x;
-    const containerRect = containerRef.current?.getBoundingClientRect();
+    // Find the closest tab based on drag position
+    let closestTabIndex = 0;
+    let minDistance = Infinity;
     
-    if (containerRect) {
-      const relativeX = bubbleX - containerRect.left;
-      let closestTabIndex = 0;
-      
-      // Each tab takes up 96px of space
-      if (relativeX < 96) {
-        closestTabIndex = 0; // chat
-      } else if (relativeX < 192) {
-        closestTabIndex = 1; // history  
-      } else {
-        closestTabIndex = 2; // settings
+    tabRefs.current.forEach((tabRef, index) => {
+      if (tabRef) {
+        const tabRect = tabRef.getBoundingClientRect();
+        const tabCenterX = tabRect.left + tabRect.width / 2;
+        const tabCenterY = tabRect.top + tabRect.height / 2;
+        
+        const distance = Math.sqrt(
+          Math.pow(info.point.x - tabCenterX, 2) + 
+          Math.pow(info.point.y - tabCenterY, 2)
+        );
+        
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestTabIndex = index;
+        }
       }
-      
-      setCurrentTab(navigationItems[closestTabIndex].id);
-    }
+    });
+    
+    setCurrentTab(navigationItems[closestTabIndex].id);
   };
 
   return (
@@ -77,7 +94,7 @@ export function BottomNavigation() {
         className="relative"
       >
         {/* Fixed Tab Bar Background */}
-        <div className="bubble-nav relative px-8 py-3">
+        <div className="bubble-nav relative px-8 py-4">
           {/* Draggable Selection Bubble */}
           <motion.div
             drag
@@ -123,6 +140,7 @@ export function BottomNavigation() {
               return (
                 <motion.div
                   key={item.id}
+                  ref={(el) => tabRefs.current[index] = el}
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ 
