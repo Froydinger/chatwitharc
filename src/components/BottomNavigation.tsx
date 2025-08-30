@@ -21,18 +21,25 @@ export function BottomNavigation() {
   const getBubblePosition = () => {
     const activeIndex = navigationItems.findIndex(item => item.id === currentTab);
     
-    // Pure mathematical positioning based on fixed container structure:
-    // Container: 288px fixed width with 24px padding on each side (px-6)
-    // Tabs: 96px each (w-24) within the padded area
-    // Bubble: 80px width, needs to center on each tab
-    // Formula: containerPadding + (activeIndex * tabWidth) + centeringOffset
+    // Container structure analysis:
+    // - Outer container: 288px fixed width, centered
+    // - Inner tabs container: has px-6 (24px padding on each side)
+    // - Available tab space: 288px - 48px (total padding) = 240px
+    // - Each tab: 240px / 3 tabs = 80px actual width per tab
+    // - Tab visual width: w-24 (96px) but constrained by container
+    // - Bubble: 80px width (w-20)
     
-    const containerPadding = 24; // px-6 = 24px left padding
-    const tabWidth = 96; // w-24 = 96px
+    // Calculate position within the 240px available space
+    const availableWidth = 240; // 288px - 48px padding
+    const tabWidth = availableWidth / 3; // 80px per tab
     const bubbleWidth = 80; // w-20 = 80px
-    const centeringOffset = (tabWidth - bubbleWidth) / 2; // 8px to center bubble on tab
     
-    const x = containerPadding + (activeIndex * tabWidth) + centeringOffset;
+    // Position bubble at the center of each tab
+    const tabCenter = (activeIndex * tabWidth) + (tabWidth / 2);
+    const bubbleLeft = tabCenter - (bubbleWidth / 2);
+    
+    // Add the container's left padding (24px) to get final position
+    const x = 24 + bubbleLeft;
     const y = -8; // Center vertically on tab
     
     return { x, y };
