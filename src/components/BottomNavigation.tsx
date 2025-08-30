@@ -116,42 +116,39 @@ export function BottomNavigation() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
-        {/* Tab Bar Background - Fixed position container */}
-        <div className="relative px-6 py-3" style={{
-          background: "linear-gradient(135deg, hsla(240, 15%, 12%, 0.3) 0%, hsla(240, 20%, 15%, 0.4) 100%)",
-          backdropFilter: "blur(20px)",
-          borderRadius: "2rem",
-          border: "1px solid hsla(240, 25%, 25%, 0.3)",
-          boxShadow: `
-            0 0 40px hsla(200, 100%, 70%, 0.2),
-            0 8px 32px hsla(200, 100%, 60%, 0.15),
-            inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
-            inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
-          `
-        }}>
-          {/* Chat Input - Only visible on chat tab, positioned above tabs */}
+        {/* Unified Glass Container - Morphs to include chat input */}
+        <motion.div 
+          className="relative"
+          animate={{
+            paddingTop: currentTab === 'chat' ? '1.5rem' : '0.75rem',
+            paddingBottom: '0.75rem',
+            paddingLeft: '1.5rem',
+            paddingRight: '1.5rem'
+          }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          style={{
+            background: "linear-gradient(135deg, hsla(240, 15%, 12%, 0.3) 0%, hsla(240, 20%, 15%, 0.4) 100%)",
+            backdropFilter: "blur(20px)",
+            borderRadius: "2rem",
+            border: "1px solid hsla(240, 25%, 25%, 0.3)",
+            boxShadow: `
+              0 0 40px hsla(200, 100%, 70%, 0.2),
+              0 8px 32px hsla(200, 100%, 60%, 0.15),
+              inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
+              inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
+            `
+          }}
+        >
+          {/* Chat Input - Only visible on chat tab */}
           {currentTab === 'chat' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.3, delay: 0.1 }}
-              className="absolute bottom-full left-0 right-0 mb-2 mx-6"
+              className="mb-6"
             >
-              <div className="p-4" style={{
-                background: "linear-gradient(135deg, hsla(240, 15%, 12%, 0.3) 0%, hsla(240, 20%, 15%, 0.4) 100%)",
-                backdropFilter: "blur(20px)",
-                borderRadius: "2rem",
-                border: "1px solid hsla(240, 25%, 25%, 0.3)",
-                boxShadow: `
-                  0 0 40px hsla(200, 100%, 70%, 0.2),
-                  0 8px 32px hsla(200, 100%, 60%, 0.15),
-                  inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
-                  inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
-                `
-              }}>
-                <ChatInput />
-              </div>
+              <ChatInput />
             </motion.div>
           )}
           {/* Draggable Selection Bubble */}
@@ -242,7 +239,7 @@ export function BottomNavigation() {
               );
             })}
           </div>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );
