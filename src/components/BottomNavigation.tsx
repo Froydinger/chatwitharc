@@ -17,33 +17,31 @@ export function BottomNavigation() {
   const containerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
   
-  // Get bubble position for active tab (designed for unified container)
+  // Get bubble position for active tab using actual DOM measurements
   const getBubblePosition = () => {
     const activeIndex = navigationItems.findIndex(item => item.id === currentTab);
+    const activeTabRef = tabRefs.current[activeIndex];
     
-    // New unified container structure:
-    // Container: 288px fixed width, centered
-    // Each tab: 96px width (w-24)
-    // Bubble: 80px width (w-20)
-    // Tabs container has 24px padding on each side (px-6)
+    if (!activeTabRef || !containerRef.current) {
+      // Fallback to simple calculation if refs not ready
+      return {
+        x: activeIndex * 96 + 8, // 96px tab width + 8px to center 80px bubble
+        y: -8 // Center vertically
+      };
+    }
     
-    const tabWidth = 96;
-    const bubbleWidth = 80;
-    const containerPadding = 24; // px-6 = 24px left padding
+    // Get actual positions from DOM
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const tabRect = activeTabRef.getBoundingClientRect();
     
-    // Calculate position relative to the tabs container
-    // Tab position within the padded container
-    const tabLeftEdge = activeIndex * tabWidth;
-    const tabCenter = tabLeftEdge + (tabWidth / 2);
-    const bubbleLeft = tabCenter - (bubbleWidth / 2);
+    // Calculate bubble position relative to container
+    const tabCenterX = tabRect.left + tabRect.width / 2 - containerRect.left;
+    const bubbleX = tabCenterX - 40; // 40 = half of 80px bubble width
     
-    // Final position accounts for container padding
-    const x = containerPadding + bubbleLeft;
-    
-    // Vertical position - center on tab items
-    const y = -(80 - 64) / 2; // (bubbleHeight - tabHeight) / 2
-    
-    return { x, y };
+    return {
+      x: bubbleX,
+      y: -8 // Center vertically on tab
+    };
   };
 
   // Move bubble to active tab when tab changes
