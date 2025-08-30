@@ -2,6 +2,7 @@ import { motion, PanInfo, useAnimation } from "framer-motion";
 import { MessageCircle, Settings, History } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { useRef, useState, useEffect } from "react";
+import { ChatInput } from "@/components/ChatInput";
 
 const navigationItems = [
   { id: 'chat', icon: MessageCircle, label: 'Chat' },
@@ -95,7 +96,7 @@ export function BottomNavigation() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
-        {/* Tab Bar Background - Expands first, then input fades in */}
+        {/* Tab Bar Background - Expands to include chat input when on chat tab */}
         <motion.div 
           className="bubble-nav relative px-6"
           animate={{
@@ -104,6 +105,18 @@ export function BottomNavigation() {
           }}
           transition={{ duration: 0.25, ease: "easeOut" }}
         >
+          {/* Chat Input - Only visible on chat tab */}
+          {currentTab === 'chat' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              className="mb-6"
+            >
+              <ChatInput />
+            </motion.div>
+          )}
           {/* Draggable Selection Bubble */}
           <motion.div
             drag
