@@ -117,13 +117,8 @@ export function BottomNavigation() {
         className="relative"
       >
         {/* Tab Bar Background - Expands to include chat input when on chat tab */}
-        <motion.div 
-          className="bubble-nav relative px-6"
-          animate={{
-            paddingTop: currentTab === 'chat' ? '1.5rem' : '0.75rem',
-            paddingBottom: currentTab === 'chat' ? '1.5rem' : '0.75rem'
-          }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
+<motion.div 
+          className="bubble-nav relative px-6 py-3"
         >
           {/* Chat Input - Only visible on chat tab */}
           {currentTab === 'chat' && (
