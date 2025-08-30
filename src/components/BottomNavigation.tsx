@@ -17,31 +17,25 @@ export function BottomNavigation() {
   const containerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
   
-  // Get bubble position for active tab using actual DOM measurements
+  // Get bubble position for active tab using pure mathematical positioning
   const getBubblePosition = () => {
     const activeIndex = navigationItems.findIndex(item => item.id === currentTab);
-    const activeTabRef = tabRefs.current[activeIndex];
     
-    if (!activeTabRef || !containerRef.current) {
-      // Fallback to simple calculation if refs not ready
-      return {
-        x: activeIndex * 96 + 8, // 96px tab width + 8px to center 80px bubble
-        y: -8 // Center vertically
-      };
-    }
+    // Pure mathematical positioning based on fixed container structure:
+    // Container: 288px fixed width with 24px padding on each side (px-6)
+    // Tabs: 96px each (w-24) within the padded area
+    // Bubble: 80px width, needs to center on each tab
+    // Formula: containerPadding + (activeIndex * tabWidth) + centeringOffset
     
-    // Get actual positions from DOM
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const tabRect = activeTabRef.getBoundingClientRect();
+    const containerPadding = 24; // px-6 = 24px left padding
+    const tabWidth = 96; // w-24 = 96px
+    const bubbleWidth = 80; // w-20 = 80px
+    const centeringOffset = (tabWidth - bubbleWidth) / 2; // 8px to center bubble on tab
     
-    // Calculate bubble position relative to container
-    const tabCenterX = tabRect.left + tabRect.width / 2 - containerRect.left;
-    const bubbleX = tabCenterX - 40; // 40 = half of 80px bubble width
+    const x = containerPadding + (activeIndex * tabWidth) + centeringOffset;
+    const y = -8; // Center vertically on tab
     
-    return {
-      x: bubbleX,
-      y: -8 // Center vertically on tab
-    };
+    return { x, y };
   };
 
   // Move bubble to active tab when tab changes
