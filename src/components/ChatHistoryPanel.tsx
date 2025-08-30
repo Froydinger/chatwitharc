@@ -1,11 +1,9 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { History, Plus, Trash2, MessageSquare, Calendar } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useToast } from "@/hooks/use-toast";
-import { fadeInVariants, staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
 
 export function ChatHistoryPanel() {
   const { 
@@ -135,69 +133,67 @@ export function ChatHistoryPanel() {
               </div>
 
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                <AnimatePresence mode="popLayout">
-                  {sessions.map((session, sessionIndex) => (
-                    <div
-                      key={session.id}
-                      style={{ 
-                        opacity: deletingId === session.id ? 0 : 1, 
-                        transform: deletingId === session.id ? 'scale(0.9)' : 'scale(1)',
-                        transition: 'opacity 0.3s ease-out, transform 0.3s ease-out'
-                      }}
+                {sessions.map((session, sessionIndex) => (
+                  <div
+                    key={session.id}
+                    style={{ 
+                      opacity: deletingId === session.id ? 0 : 1, 
+                      transform: deletingId === session.id ? 'scale(0.9)' : 'scale(1)',
+                      transition: 'opacity 0.3s ease-out, transform 0.3s ease-out'
+                    }}
+                  >
+                    <GlassCard
+                      variant={currentSessionId === session.id ? "bubble" : "default"}
+                      glow={currentSessionId === session.id}
+                      className={`p-6 cursor-pointer transition-all duration-300 hover:glass-strong group ${
+                        currentSessionId === session.id ? "ring-2 ring-primary-glow" : ""
+                      }`}
+                      onClick={() => handleLoadSession(session.id)}
                     >
-                      <GlassCard
-                        variant={currentSessionId === session.id ? "bubble" : "default"}
-                        glow={currentSessionId === session.id}
-                        className={`p-6 cursor-pointer transition-all duration-300 hover:glass-strong group ${
-                          currentSessionId === session.id ? "ring-2 ring-primary-glow" : ""
-                        }`}
-                        onClick={() => handleLoadSession(session.id)}
-                      >
-                        <div className="space-y-4">
-                          <div className="flex items-start justify-between gap-2">
-                            <h4 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary-glow transition-colors text-base">
-                              {session.title}
-                            </h4>
-                            
-                            <GlassButton
-                              variant="ghost"
-                              size="icon"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-destructive hover:text-destructive flex-shrink-0"
-                              onClick={(e) => handleDeleteSession(session.id, e)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </GlassButton>
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-2 text-primary-glow">
-                                <MessageSquare className="h-4 w-4" />
-                                <span className="font-medium">{session.messages.length}</span>
-                              </div>
-                              <span className="text-muted-foreground text-xs">
-                                {new Date(session.lastMessageAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                            
-                            <div className="text-xs text-muted-foreground">
-                              {new Date(session.lastMessageAt).toLocaleTimeString()}
-                            </div>
-                          </div>
-
-                          {/* Preview of last message */}
-                          {session.messages.length > 0 && (
-                            <div className="text-sm text-muted-foreground bg-glass/30 rounded-lg p-3 border border-glass-border/50">
-                              <p className="line-clamp-3 leading-relaxed">
-                                {session.messages[session.messages.length - 1].content}
-                              </p>
-                            </div>
-                          )}
+                      <div className="space-y-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary-glow transition-colors text-base">
+                            {session.title}
+                          </h4>
+                          
+                          <GlassButton
+                            variant="ghost"
+                            size="icon"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-destructive hover:text-destructive flex-shrink-0"
+                            onClick={(e) => handleDeleteSession(session.id, e)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </GlassButton>
                         </div>
-                      </GlassCard>
-                    </div>
-                  ))}
-                </AnimatePresence>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2 text-primary-glow">
+                              <MessageSquare className="h-4 w-4" />
+                              <span className="font-medium">{session.messages.length}</span>
+                            </div>
+                            <span className="text-muted-foreground text-xs">
+                              {new Date(session.lastMessageAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(session.lastMessageAt).toLocaleTimeString()}
+                          </div>
+                        </div>
+
+                        {/* Preview of last message */}
+                        {session.messages.length > 0 && (
+                          <div className="text-sm text-muted-foreground bg-glass/30 rounded-lg p-3 border border-glass-border/50">
+                            <p className="line-clamp-3 leading-relaxed">
+                              {session.messages[session.messages.length - 1].content}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </GlassCard>
+                  </div>
+                ))}
               </div>
             </div>
           ))

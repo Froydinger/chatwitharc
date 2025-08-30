@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Image, Plus } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { OpenAIService } from "@/services/openai";
@@ -8,13 +7,6 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { MessageBubble } from "@/components/MessageBubble";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  fadeInVariants, 
-  staggerContainerVariants, 
-  staggerItemVariants, 
-  welcomeTextVariants,
-  inputBarVariants 
-} from "@/utils/animations";
 
 export function ChatInterface() {
   const { 
@@ -113,11 +105,6 @@ export function ChatInterface() {
       <div className="fixed top-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
         <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-4 pointer-events-auto">
           <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-8 w-8" />
-          <div
-            className="w-12 h-12 rounded-full glass p-3 mb-4"
-          >
-            <Plus className="h-6 w-6 text-primary-glow" />
-          </div>
           <GlassButton
             variant="bubble"
             size="icon"
@@ -145,7 +132,7 @@ export function ChatInterface() {
         <div ref={messagesContainerRef} className="h-full overflow-y-auto space-y-4 scroll-smooth relative">
           {/* Content area with top padding for header clearance */}
           <div className="px-4 sm:px-6 pt-28 space-y-4">
-            <AnimatePresence mode="popLayout">
+            <div>
               {messages.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="flex justify-center mb-4">
@@ -162,7 +149,7 @@ export function ChatInterface() {
                   <div className="grid grid-cols-1 gap-3 max-w-md mx-auto pb-40">
                     <button
                       onClick={() => startChatWithMessage("I'd like a mental wellness check-in. How are you feeling today and what's on your mind?")}
-                      className="glass p-4 rounded-xl text-left hover:glass-glow transition-all duration-200"
+                      className="glass p-4 rounded-xl text-left hover:glass-glow"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
@@ -177,7 +164,7 @@ export function ChatInterface() {
                     
                     <button
                       onClick={() => startChatWithMessage("I need someone to talk to today. Can you be a supportive companion?")}
-                      className="glass p-4 rounded-xl text-left hover:glass-glow transition-all duration-200"
+                      className="glass p-4 rounded-xl text-left hover:glass-glow"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
@@ -192,7 +179,7 @@ export function ChatInterface() {
                     
                     <button
                       onClick={() => startChatWithMessage("Let's get creative! Help me brainstorm some ideas or work on a creative project.")}
-                      className="glass p-4 rounded-xl text-left hover:glass-glow transition-all duration-200"
+                      className="glass p-4 rounded-xl text-left hover:glass-glow"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
@@ -217,9 +204,7 @@ export function ChatInterface() {
               )}
               
               {isLoading && (
-                <div
-                  className="flex justify-start"
-                >
+                <div className="flex justify-start">
                   <div className="glass rounded-2xl px-4 py-3 max-w-xs">
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">
@@ -235,7 +220,7 @@ export function ChatInterface() {
                   </div>
                 </div>
               )}
-            </AnimatePresence>
+            </div>
             <div ref={messagesEndRef} />
           </div>
         </div>
