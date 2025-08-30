@@ -18,6 +18,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const { toast } = useToast();
     const [isEditing, setIsEditing] = useState(false);
     const [editContent, setEditContent] = useState(message.content);
+    const [showActions, setShowActions] = useState(false);
     const isUser = message.role === 'user';
     
     const handleCopy = async () => {
@@ -27,6 +28,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           title: "Copied!",
           description: "Message copied to clipboard",
         });
+        setShowActions(false); // Hide buttons after copy
       } catch (error) {
         toast({
           title: "Copy failed",
@@ -38,6 +40,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
     const handleEdit = () => {
       setIsEditing(true);
+      setShowActions(false); // Hide buttons when editing
     };
 
     const handleSaveEdit = () => {
@@ -59,6 +62,12 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
         handleSaveEdit();
       } else if (e.key === 'Escape') {
         handleCancelEdit();
+      }
+    };
+
+    const handleMessageClick = () => {
+      if (!isEditing) {
+        setShowActions(!showActions);
       }
     };
     
@@ -98,11 +107,12 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.2 }}
-          className={`relative glass rounded-2xl px-4 py-3 ${
+          className={`relative glass rounded-2xl px-4 py-3 cursor-pointer ${
             isUser 
               ? 'bg-primary/20 border-primary/30' 
               : 'bg-glass/50 border-glass-border/50'
           }`}
+          onClick={handleMessageClick}
         >
           {/* Image Preview */}
           {message.type === 'image' && message.imageUrl && (
@@ -155,16 +165,21 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           )}
 
           {/* Action Buttons */}
-          {!isEditing && (
+          {!isEditing && showActions && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.2 }}
+              className="absolute top-3 right-3 flex gap-1"
             >
               <GlassButton
                 variant="ghost"
                 size="icon"
-                onClick={handleCopy}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCopy();
+                }}
                 className="h-6 w-6 bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg"
               >
                 <Copy className="h-3 w-3" />
@@ -173,7 +188,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 <GlassButton
                   variant="ghost"
                   size="icon"
-                  onClick={handleEdit}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEdit();
+                  }}
                   className="h-6 w-6 bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg"
                 >
                   <Edit2 className="h-3 w-3" />
