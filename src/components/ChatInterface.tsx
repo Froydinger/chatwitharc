@@ -20,12 +20,21 @@ export function ChatInterface() {
   } = useArcStore();
   const [dragOver, setDragOver] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { profile } = useAuth();
 
+  // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Scroll to top when starting new chat
+  useEffect(() => {
+    if (messages.length === 0 && messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = 0;
+    }
+  }, [currentSessionId, messages.length]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -78,7 +87,7 @@ export function ChatInterface() {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
       >
-        <div className="h-full overflow-y-auto space-y-4 scroll-smooth relative">
+        <div ref={messagesContainerRef} className="h-full overflow-y-auto space-y-4 scroll-smooth relative">
           {/* Content area - no top padding so content flows behind header */}
           <div className="px-4 sm:px-6 pt-20 space-y-4">
             <AnimatePresence mode="popLayout">
