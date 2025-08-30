@@ -16,13 +16,15 @@ export function BottomNavigation() {
   const containerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
   
-  // Get bubble position for active tab (full width and height)
+  // Get bubble position for active tab (circular bubble)
   const getBubblePosition = () => {
     const activeIndex = navigationItems.findIndex(item => item.id === currentTab);
-    // Each tab is w-24 (96px), bubble should be same width and nearly full height
+    // Each tab is w-24 (96px), bubble is w-14 h-14 (56px) - circular and centered
+    const tabWidth = 96;
+    const bubbleWidth = 56;
     return {
-      x: activeIndex * 96, // No offset needed for full width
-      y: 2 // Very small vertical offset to leave thin border
+      x: activeIndex * tabWidth + (tabWidth - bubbleWidth) / 2, // Center the circular bubble
+      y: 4 // Small vertical offset
     };
   };
 
@@ -94,16 +96,18 @@ export function BottomNavigation() {
             animate={bubbleControls}
             initial={getBubblePosition()}
             whileHover={{ 
-              scale: 1.02,
+              scale: 1.05,
+              y: -2,
               transition: { type: "spring", damping: 10, stiffness: 400 }
             }}
             whileDrag={{ 
-              scale: 1.05,
+              scale: 1.3, // Much bigger when dragging - magnifying glass effect
+              y: -8, // Lift it up
               zIndex: 1000,
-              filter: "drop-shadow(0 0 30px hsla(200, 100%, 60%, 0.8))",
+              filter: "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
               transition: { type: "spring", damping: 5, stiffness: 300 }
             }}
-            className="absolute w-24 h-16 rounded-xl cursor-grab active:cursor-grabbing z-10"
+            className="absolute w-14 h-14 rounded-full cursor-grab active:cursor-grabbing z-10"
             style={{
               background: "radial-gradient(circle at 30% 30%, hsla(200, 100%, 80%, 0.7) 0%, hsla(200, 100%, 50%, 0.5) 100%)",
               backdropFilter: "blur(20px)",
@@ -117,9 +121,9 @@ export function BottomNavigation() {
             }}
           >
             {/* Inner light effects */}
-            <div className="absolute inset-2 rounded-lg overflow-hidden">
-              <div className="absolute top-2 left-4 w-12 h-1 bg-white opacity-70 blur-sm rounded-full" />
-              <div className="absolute bottom-2 right-3 w-8 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
+            <div className="absolute inset-1 rounded-full overflow-hidden">
+              <div className="absolute top-1 left-2 w-6 h-0.5 bg-white opacity-70 blur-sm rounded-full" />
+              <div className="absolute bottom-2 right-1 w-4 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
             </div>
           </motion.div>
 
