@@ -117,12 +117,14 @@ export function BottomNavigation() {
         className="relative"
       >
         {/* Tab Bar Background - Fixed position container */}
-        <div className="glass-strong rounded-[var(--radius-bubble)] px-6 py-3" style={{
-          background: "linear-gradient(135deg, hsla(var(--glass), 0.3) 0%, hsla(var(--glass-overlay), 0.4) 100%)",
+        <div className="relative px-6 py-3" style={{
+          background: "linear-gradient(135deg, hsla(240, 15%, 12%, 0.3) 0%, hsla(240, 20%, 15%, 0.4) 100%)",
           backdropFilter: "blur(20px)",
+          borderRadius: "2rem",
+          border: "1px solid hsla(240, 25%, 25%, 0.3)",
           boxShadow: `
-            0 0 40px hsla(var(--primary-glow), 0.2),
-            0 8px 32px hsla(var(--primary), 0.15),
+            0 0 40px hsla(200, 100%, 70%, 0.2),
+            0 8px 32px hsla(200, 100%, 60%, 0.15),
             inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
             inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
           `
@@ -136,12 +138,14 @@ export function BottomNavigation() {
               transition={{ duration: 0.3, delay: 0.1 }}
               className="absolute bottom-full left-0 right-0 mb-2 mx-6"
             >
-              <div className="glass-strong rounded-[var(--radius-bubble)] p-4" style={{
-                background: "linear-gradient(135deg, hsla(var(--glass), 0.3) 0%, hsla(var(--glass-overlay), 0.4) 100%)",
+              <div className="p-4" style={{
+                background: "linear-gradient(135deg, hsla(240, 15%, 12%, 0.3) 0%, hsla(240, 20%, 15%, 0.4) 100%)",
                 backdropFilter: "blur(20px)",
+                borderRadius: "2rem",
+                border: "1px solid hsla(240, 25%, 25%, 0.3)",
                 boxShadow: `
-                  0 0 40px hsla(var(--primary-glow), 0.2),
-                  0 8px 32px hsla(var(--primary), 0.15),
+                  0 0 40px hsla(200, 100%, 70%, 0.2),
+                  0 8px 32px hsla(200, 100%, 60%, 0.15),
                   inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
                   inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
                 `
