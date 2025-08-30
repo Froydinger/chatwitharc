@@ -43,11 +43,30 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col h-screen w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto overflow-hidden relative">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-20 flex justify-between items-center p-4 bg-background/80 backdrop-blur-sm">
+        <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-8 w-8" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5, type: "spring", damping: 15 }}
+        >
+          <GlassButton
+            variant="bubble"
+            size="icon"
+            onClick={handleNewChat}
+            className="hover:scale-105 transition-transform duration-200"
+          >
+            <Plus className="h-5 w-5" />
+          </GlassButton>
+        </motion.div>
+      </div>
+
       {/* Messages Container */}
       <GlassCard 
         variant="bubble" 
         glow
-        className={`flex-1 mx-4 my-4 transition-all duration-300 overflow-hidden ${
+        className={`flex-1 mx-4 mb-4 transition-all duration-300 overflow-hidden ${
           dragOver ? 'border-primary-glow border-2' : ''
         }`}
         onDragOver={(e) => {
@@ -58,30 +77,8 @@ export function ChatInterface() {
         onDrop={handleDrop}
       >
         <div className="h-full overflow-y-auto space-y-4 scroll-smooth relative">
-          {/* Floating Header - scrolls with content */}
-          <div className="flex justify-between items-center p-4 pb-8">
-            <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-8 w-8" />
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5, type: "spring", damping: 15 }}
-            >
-              <GlassButton
-                variant="bubble"
-                size="icon"
-                onClick={handleNewChat}
-                className="hover:scale-105 transition-transform duration-200"
-              >
-                <Plus className="h-5 w-5" />
-              </GlassButton>
-            </motion.div>
-          </div>
-          
-          {/* Content area with padding */}
-          <div className="px-4 sm:px-6 space-y-4">
-            {/* Fade effect at bottom */}
-            <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card/80 to-transparent pointer-events-none z-10" />
-            
+          {/* Content area with top padding for header clearance */}
+          <div className="pt-4 px-4 sm:px-6 space-y-4">
             <AnimatePresence mode="popLayout">
               {messages.length === 0 ? (
                 <motion.div
