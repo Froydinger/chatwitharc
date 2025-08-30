@@ -90,7 +90,9 @@ export default {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'float': 'bubble-float 6s ease-in-out infinite',
+				'bounce-gentle': 'bubble-bounce 3s ease-in-out infinite',
 				'glow-pulse': 'glow-pulse 3s ease-in-out infinite',
+				'bounce-in': 'bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
 				'ripple': 'ripple 0.6s ease-out'
 			}
 		}

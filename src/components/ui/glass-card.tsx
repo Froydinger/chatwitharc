@@ -16,7 +16,7 @@ const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
     const variantClasses = {
       default: "glass",
       strong: "glass-strong", 
-      bubble: "bubble"
+      bubble: "bubble glass-glow animate-bounce-gentle"
     };
 
     const glowClass = glow ? "glass-glow" : "";
@@ -25,9 +25,14 @@ const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
     return (
       <motion.div
         ref={ref}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+        initial={{ opacity: 0, y: 30, scale: 0.9 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ 
+          duration: 0.5, 
+          ease: "easeOut",
+          type: "spring",
+          damping: 20
+        }}
         className={cn(
           baseClasses,
           variantClasses[variant],

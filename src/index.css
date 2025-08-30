@@ -50,11 +50,14 @@ All colors MUST be HSL for perfect glass effects.
     --blur-sm: 4px;
     --blur-md: 8px;
     --blur-lg: 16px;
+    --blur-xl: 24px;
     --opacity-glass: 0.1;
     --opacity-glass-strong: 0.15;
     
-    /* Bubble Radius */
-    --radius: 1.5rem;
+    /* Bubble Radius - Much more rounded for bouncy feel */
+    --radius: 2rem;
+    --radius-xl: 3rem;
+    --radius-bubble: 4rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -116,61 +119,117 @@ All colors MUST be HSL for perfect glass effects.
     overflow-x: hidden;
   }
 
-  /* Glass Utilities */
+  /* Enhanced Glass Utilities - More bouncy and fun */
   .glass {
     background: linear-gradient(135deg, 
-      hsla(var(--glass), var(--opacity-glass)) 0%,
-      hsla(var(--glass-overlay), var(--opacity-glass-strong)) 100%);
-    backdrop-filter: blur(var(--blur-md));
-    border: 1px solid hsla(var(--glass-border), 0.2);
+      hsla(var(--glass), 0.15) 0%,
+      hsla(var(--glass-overlay), 0.25) 100%);
+    backdrop-filter: blur(var(--blur-lg));
+    border: 1.5px solid hsla(var(--glass-border), 0.3);
+    border-radius: var(--radius);
   }
 
   .glass-strong {
     background: linear-gradient(135deg, 
-      hsla(var(--glass), 0.2) 0%,
-      hsla(var(--glass-overlay), 0.25) 100%);
-    backdrop-filter: blur(var(--blur-lg));
-    border: 1px solid hsla(var(--glass-border), 0.3);
+      hsla(var(--glass), 0.25) 0%,
+      hsla(var(--glass-overlay), 0.35) 100%);
+    backdrop-filter: blur(var(--blur-xl));
+    border: 2px solid hsla(var(--glass-border), 0.4);
+    border-radius: var(--radius);
   }
 
   .glass-glow {
     box-shadow: 
-      0 0 20px hsla(var(--primary-glow), 0.1),
-      0 8px 32px hsla(var(--primary), 0.1),
-      inset 0 1px 0 hsla(var(--foreground), 0.1);
+      0 0 30px hsla(var(--primary-glow), 0.15),
+      0 8px 40px hsla(var(--primary), 0.15),
+      inset 0 1px 0 hsla(var(--foreground), 0.15);
   }
 
   .bubble {
-    @apply glass glass-glow rounded-[var(--radius)];
+    @apply glass glass-glow;
+    border-radius: var(--radius-xl);
   }
 
   .bubble-nav {
-    @apply bubble;
-    border-radius: 2rem;
+    @apply glass-strong glass-glow;
+    border-radius: var(--radius-bubble);
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, 
+      hsla(var(--glass), 0.3) 0%,
+      hsla(var(--glass-overlay), 0.4) 100%);
   }
 
-  /* Animations */
+  .bubble-nav-item {
+    @apply glass;
+    border-radius: var(--radius-xl);
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  .bubble-nav-item.active {
+    @apply glass-strong glass-glow;
+    background: linear-gradient(135deg, 
+      hsla(var(--primary), 0.2) 0%,
+      hsla(var(--primary-glow), 0.3) 100%);
+    transform: scale(1.1);
+  }
+
+  /* Enhanced Bouncy Animations */
   @keyframes bubble-float {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    33% { transform: translateY(-4px) rotate(1deg); }
-    66% { transform: translateY(2px) rotate(-1deg); }
+    0%, 100% { 
+      transform: translateY(0px) rotate(0deg) scale(1); 
+    }
+    33% { 
+      transform: translateY(-6px) rotate(1deg) scale(1.02); 
+    }
+    66% { 
+      transform: translateY(3px) rotate(-1deg) scale(0.98); 
+    }
+  }
+
+  @keyframes bubble-bounce {
+    0%, 100% { 
+      transform: scale(1) translateY(0px); 
+    }
+    50% { 
+      transform: scale(1.05) translateY(-2px); 
+    }
   }
 
   @keyframes ripple {
-    0% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(4); opacity: 0; }
+    0% { 
+      transform: scale(1); 
+      opacity: 1; 
+    }
+    100% { 
+      transform: scale(4); 
+      opacity: 0; 
+    }
   }
 
   @keyframes glow-pulse {
     0%, 100% { 
       box-shadow: 
-        0 0 20px hsla(var(--primary-glow), 0.1),
-        0 8px 32px hsla(var(--primary), 0.1);
+        0 0 30px hsla(var(--primary-glow), 0.15),
+        0 8px 40px hsla(var(--primary), 0.15);
     }
     50% { 
       box-shadow: 
-        0 0 30px hsla(var(--primary-glow), 0.2),
-        0 12px 40px hsla(var(--primary), 0.15);
+        0 0 50px hsla(var(--primary-glow), 0.25),
+        0 12px 60px hsla(var(--primary), 0.2);
+    }
+  }
+
+  @keyframes bounce-in {
+    0% { 
+      transform: scale(0.3) rotate(-180deg); 
+      opacity: 0; 
+    }
+    50% { 
+      transform: scale(1.1) rotate(-90deg); 
+    }
+    100% { 
+      transform: scale(1) rotate(0deg); 
+      opacity: 1; 
     }
   }
 
@@ -178,16 +237,28 @@ All colors MUST be HSL for perfect glass effects.
     animation: bubble-float 6s ease-in-out infinite;
   }
 
+  .animate-bounce-gentle {
+    animation: bubble-bounce 3s ease-in-out infinite;
+  }
+
   .animate-glow-pulse {
     animation: glow-pulse 3s ease-in-out infinite;
   }
 
-  /* Haptic feedback simulation */
+  .animate-bounce-in {
+    animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  /* Enhanced Haptic feedback with bounce */
   .haptic {
-    transition: transform 0.1s ease-out;
+    transition: transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
 
   .haptic:active {
-    transform: scale(0.95);
+    transform: scale(0.9);
+  }
+
+  .haptic:hover {
+    transform: scale(1.05);
   }
 }
