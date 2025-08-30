@@ -7,8 +7,9 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
 import { MessageBubble } from "@/components/MessageBubble";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useChatSync } from "@/hooks/useChatSync";
+
 
 export function ChatInterface() {
   const { 
@@ -26,8 +27,6 @@ export function ChatInterface() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
-  // Initialize chat sync for automatic saving to Supabase
-  useChatSync();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -59,7 +58,7 @@ export function ChatInterface() {
 
     try {
       const openai = new OpenAIService();
-      const { userName, userContext } = useArcStore.getState();
+      const { profile } = useAuth();
       
       // Check if user is requesting image generation
       const imageKeywords = [
@@ -148,7 +147,7 @@ export function ChatInterface() {
           content: userMessage
         });
 
-        const response = await openai.sendMessage(openaiMessages, userName, userContext);
+        const response = await openai.sendMessage(openaiMessages, profile);
         
         addMessage({
           content: response,
@@ -229,7 +228,7 @@ export function ChatInterface() {
 
     try {
       const openai = new OpenAIService();
-      const { userName, userContext } = useArcStore.getState();
+      const { profile } = useAuth();
       
       // Get messages up to the edited message
       const conversationHistory = messages
@@ -240,7 +239,7 @@ export function ChatInterface() {
           content: msg.id === messageId ? newContent : msg.content
         }));
 
-      const response = await openai.sendMessage(conversationHistory, userName, userContext);
+      const response = await openai.sendMessage(conversationHistory, profile);
       
       addMessage({
         content: response,

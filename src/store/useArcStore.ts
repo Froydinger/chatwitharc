@@ -49,11 +49,6 @@ export interface ArcState {
   setSelectedVoice: (voice: 'cedar' | 'marin') => void;
   
   
-  // User Personalization
-  userName: string;
-  setUserName: (name: string) => void;
-  userContext: string;
-  setUserContext: (context: string) => void;
 }
 
 export const useArcStore = create<ArcState>()(
@@ -210,21 +205,13 @@ export const useArcStore = create<ArcState>()(
       selectedVoice: 'cedar',
       setSelectedVoice: (voice) => set({ selectedVoice: voice }),
       
-      
-      // User Personalization
-      userName: '',
-      setUserName: (name) => set({ userName: name }),
-      userContext: '',
-      setUserContext: (context) => set({ userContext: context })
     }),
     {
       name: 'arc-ai-storage',
       partialize: (state) => ({
         selectedVoice: state.selectedVoice,
         chatSessions: state.chatSessions,
-        currentSessionId: state.currentSessionId,
-        userName: state.userName,
-        userContext: state.userContext
+        currentSessionId: state.currentSessionId
       })
     }
   )

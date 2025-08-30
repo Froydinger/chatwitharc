@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Key, Volume2, Palette, Info, Trash2, User, LogOut } from "lucide-react";
+import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
 import { useAuth } from "@/hooks/useAuth";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -17,13 +17,10 @@ export function SettingsPanel() {
   const { 
     selectedVoice,
     setSelectedVoice, 
-    clearAllSessions,
-    userName,
-    setUserName,
-    userContext,
-    setUserContext
+    clearAllSessions
   } = useArcStore();
   const { profile } = useAuth();
+  const { updateProfile, updating } = useProfile();
   const { toast } = useToast();
   
 
@@ -63,10 +60,11 @@ export function SettingsPanel() {
           description: "How Arc should address you",
           action: (
             <Input
-              value={userName || profile?.display_name || ""}
-              onChange={(e) => setUserName(e.target.value)}
+              value={profile?.display_name || ""}
+              onChange={(e) => updateProfile({ display_name: e.target.value })}
               placeholder="Enter your name"
               className="w-40 glass border-glass-border text-sm"
+              disabled={updating}
             />
           )
         },
@@ -75,10 +73,11 @@ export function SettingsPanel() {
           description: "Tell Arc about yourself and your needs",
           action: (
             <Textarea
-              value={userContext || profile?.context_info || ""}
-              onChange={(e) => setUserContext(e.target.value)}
+              value={profile?.context_info || ""}
+              onChange={(e) => updateProfile({ context_info: e.target.value })}
               placeholder="I'm interested in... I prefer... I'm working on..."
               className="w-full glass border-glass-border text-sm min-h-[80px] resize-none"
+              disabled={updating}
             />
           ),
           fullWidth: true

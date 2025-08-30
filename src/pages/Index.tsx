@@ -2,44 +2,33 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
 import { useAuth } from "@/hooks/useAuth";
-import { useChatSync } from "@/hooks/useChatSync";
+import { NamePrompt } from "@/components/NamePrompt";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { ChatInterface } from "@/components/ChatInterface";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
-
+import { VoiceInterface } from "@/components/VoiceInterface";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
-import { AuthPage } from "@/components/AuthPage";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
+import { AuthPage } from "@/components/AuthPage";
 
-const Index = () => {
+export function Index() {
   const { currentTab } = useArcStore();
   const { user, loading, needsOnboarding } = useAuth();
   
   const [onboardingComplete, setOnboardingComplete] = useState(false);
-
-  // Initialize chat sync hook
-  useChatSync();
-
 
   // Force dark mode
   useEffect(() => {
     document.documentElement.className = 'dark';
   }, []);
 
-  // Show loading screen while checking auth
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: [0, 5, -5, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-16 w-16" />
-        </motion.div>
-      </div>
-    );
+  // Show name prompt for users without display name
+  if (user && needsOnboarding) {
+    return <NamePrompt />;
   }
+
+  if (loading) return null;
 
   // Show auth page if user is not authenticated
   if (!user) {
@@ -107,11 +96,8 @@ const Index = () => {
         <BottomNavigation />
       </div>
 
-
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
     </div>
   );
-};
-
-export default Index;
+}

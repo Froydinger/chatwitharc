@@ -5,7 +5,6 @@ import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useToast } from "@/hooks/use-toast";
-import { useChatSync } from "@/hooks/useChatSync";
 
 export function ChatHistoryPanel() {
   const { 
@@ -17,7 +16,6 @@ export function ChatHistoryPanel() {
     setCurrentTab 
   } = useArcStore();
   const { toast } = useToast();
-  const { forceSyncByEmail, deleteChatSession: deleteChatFromServer } = useChatSync();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleNewChat = () => {
@@ -39,17 +37,15 @@ export function ChatHistoryPanel() {
     setDeletingId(sessionId);
     
     try {
-      // Delete from both server and local state
-      await deleteChatFromServer(sessionId);
-      
+      deleteSession(sessionId);
       toast({
-        title: "Chat Deleted",
-        description: "Chat session has been removed from all devices."
+        title: "Chat deleted",
+        description: "The chat has been removed successfully"
       });
     } catch (error) {
       toast({
-        title: "Delete Failed",
-        description: "Could not delete chat session.",
+        title: "Error", 
+        description: "Failed to delete chat",
         variant: "destructive"
       });
     } finally {
@@ -89,18 +85,9 @@ export function ChatHistoryPanel() {
           <History className="h-8 w-8 text-primary-glow" />
           <h2 className="text-2xl font-bold text-foreground">Chat History</h2>
         </div>
-        <div className="flex items-center justify-between">
-          <p className="text-muted-foreground">
-            All your conversations are stored locally and privately
-          </p>
-          <GlassButton
-            variant="ghost"
-            onClick={forceSyncByEmail}
-            className="text-primary hover:text-primary-glow"
-          >
-            Sync Chats
-          </GlassButton>
-        </div>
+        <p className="text-muted-foreground">
+          All your conversations are stored locally and privately
+        </p>
       </motion.div>
 
       {/* Chat Sessions */}
