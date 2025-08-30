@@ -16,15 +16,15 @@ export function BottomNavigation() {
   const containerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
   
-  // Get bubble position for active tab (circular bubble)
+  // Get bubble position for active tab (large circular bubble)
   const getBubblePosition = () => {
     const activeIndex = navigationItems.findIndex(item => item.id === currentTab);
-    // Each tab is w-24 (96px), bubble is w-14 h-14 (56px) - circular and centered
+    // Each tab is w-24 (96px), bubble is w-20 h-20 (80px) - large circular bubble
     const tabWidth = 96;
-    const bubbleWidth = 56;
+    const bubbleWidth = 80;
     return {
-      x: activeIndex * tabWidth + (tabWidth - bubbleWidth) / 2, // Center the circular bubble
-      y: 4 // Small vertical offset
+      x: activeIndex * tabWidth + (tabWidth - bubbleWidth) / 2, // Center the large circular bubble
+      y: 2 // Small vertical offset
     };
   };
 
@@ -107,7 +107,7 @@ export function BottomNavigation() {
               filter: "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
               transition: { type: "spring", damping: 5, stiffness: 300 }
             }}
-            className="absolute w-14 h-14 rounded-full cursor-grab active:cursor-grabbing z-10"
+            className="absolute w-20 h-20 rounded-full cursor-grab active:cursor-grabbing z-30"
             style={{
               background: "radial-gradient(circle at 30% 30%, hsla(200, 100%, 80%, 0.7) 0%, hsla(200, 100%, 50%, 0.5) 100%)",
               backdropFilter: "blur(20px)",
