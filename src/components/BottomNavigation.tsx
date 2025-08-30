@@ -5,7 +5,7 @@ import { GlassButton } from "@/components/ui/glass-button";
 
 const navigationItems = [
   { id: 'chat', icon: MessageCircle, label: 'Chat' },
-  { id: 'voice', icon: Mic, label: 'Voice' },
+  // { id: 'voice', icon: Mic, label: 'Voice' }, // Hidden for now - voice logic preserved
   { id: 'settings', icon: Settings, label: 'Settings' },
   { id: 'info', icon: Info, label: 'Info' }
 ] as const;

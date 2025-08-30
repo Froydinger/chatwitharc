@@ -15,11 +15,12 @@ export function InfoPanel() {
       title: "Smart Text Chat",
       description: "Powered by OpenAI GPT-5 Nano for lightning-fast, intelligent responses"
     },
-    {
-      icon: Mic2,
-      title: "Realtime Voice",
-      description: "Seamless voice conversations with Cedar and Marin voices via OpenAI Realtime API"
-    },
+    // Voice feature temporarily hidden
+    // {
+    //   icon: Mic2,
+    //   title: "Realtime Voice",
+    //   description: "Seamless voice conversations with Cedar and Marin voices via OpenAI Realtime API"
+    // },
     {
       icon: Zap,
       title: "Low Latency",
@@ -33,6 +34,7 @@ export function InfoPanel() {
   ];
 
   const roadmap = [
+    "🎙️ Realtime voice conversations (coming soon)",
     "🔧 Function calling integration",
     "🔗 Model Context Protocol (MCP) support", 
     "📸 Advanced image analysis",
@@ -68,8 +70,8 @@ export function InfoPanel() {
           Welcome to ArcAI
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Experience the future of AI conversation with liquid glass aesthetics, 
-          realtime voice capabilities, and magical interactions
+          Experience the future of AI conversation with liquid glass aesthetics 
+          and magical interactions. Voice mode coming soon!
         </p>
       </motion.div>
 

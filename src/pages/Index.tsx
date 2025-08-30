@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { ChatInterface } from "@/components/ChatInterface";
-import { VoiceInterface } from "@/components/VoiceInterface";
+// import { VoiceInterface } from "@/components/VoiceInterface"; // Voice logic preserved
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { InfoPanel } from "@/components/InfoPanel";
 import { ApiKeyModal } from "@/components/ApiKeyModal";
@@ -31,8 +31,8 @@ const Index = () => {
     switch (currentTab) {
       case 'chat':
         return <ChatInterface />;
-      case 'voice':
-        return <VoiceInterface />;
+      // case 'voice': // Voice functionality preserved for future use
+      //   return <VoiceInterface />;
       case 'settings':
         return <SettingsPanel />;
       case 'info':

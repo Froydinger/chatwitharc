@@ -48,27 +48,28 @@ export function SettingsPanel() {
         }
       ]
     },
-    {
-      title: "Voice Settings",
-      icon: Volume2,
-      items: [
-        {
-          label: "Voice Selection",
-          description: "Choose your AI voice",
-          action: (
-            <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-              <SelectTrigger className="w-32 glass border-glass-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="glass border-glass-border">
-                <SelectItem value="cedar">Cedar</SelectItem>
-                <SelectItem value="marin">Marin</SelectItem>
-              </SelectContent>
-            </Select>
-          )
-        }
-      ]
-    },
+    // Voice settings hidden but preserved
+    // {
+    //   title: "Voice Settings",
+    //   icon: Volume2,
+    //   items: [
+    //     {
+    //       label: "Voice Selection",
+    //       description: "Choose your AI voice",
+    //       action: (
+    //         <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+    //           <SelectTrigger className="w-32 glass border-glass-border">
+    //             <SelectValue />
+    //           </SelectTrigger>
+    //           <SelectContent className="glass border-glass-border">
+    //             <SelectItem value="cedar">Cedar</SelectItem>
+    //             <SelectItem value="marin">Marin</SelectItem>
+    //           </SelectContent>
+    //         </Select>
+    //       )
+    //     }
+    //   ]
+    // },
     {
       title: "Appearance",
       icon: Palette,
