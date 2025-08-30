@@ -384,8 +384,8 @@ export function ChatInterface() {
         )}
       </GlassCard>
 
-      {/* Input Area - Fades in after tab bar expands */}
-      <div className="fixed bottom-24 left-4 right-4 z-40">
+      {/* Input Area - Positioned to avoid keyboard */}
+      <div className="fixed bottom-32 left-4 right-4 z-40">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

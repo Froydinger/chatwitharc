@@ -17,8 +17,6 @@ export function SettingsPanel() {
   const { 
     selectedVoice,
     setSelectedVoice, 
-    theme, 
-    setTheme,
     clearAllSessions,
     userName,
     setUserName,
@@ -109,26 +107,6 @@ export function SettingsPanel() {
     //     }
     //   ]
     // },
-    {
-      title: "Appearance",
-      icon: Palette,
-      items: [
-        {
-          label: "Glass Theme",
-          description: "Switch between dark and light glass",
-          action: (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Dark</span>
-              <Switch
-                checked={theme === 'light'}
-                onCheckedChange={(checked) => setTheme(checked ? 'light' : 'dark')}
-              />
-              <span className="text-sm text-muted-foreground">Light</span>
-            </div>
-          )
-        }
-      ]
-    },
     {
       title: "Data Management",
       icon: Trash2,

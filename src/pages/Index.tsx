@@ -13,7 +13,7 @@ import { AuthPage } from "@/components/AuthPage";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 
 const Index = () => {
-  const { currentTab, theme } = useArcStore();
+  const { currentTab } = useArcStore();
   const { user, loading, needsOnboarding } = useAuth();
   
   const [onboardingComplete, setOnboardingComplete] = useState(false);
@@ -22,10 +22,10 @@ const Index = () => {
   useChatSync();
 
 
-  // Apply theme to document
+  // Force dark mode
   useEffect(() => {
-    document.documentElement.className = theme;
-  }, [theme]);
+    document.documentElement.className = 'dark';
+  }, []);
 
   // Show loading screen while checking auth
   if (loading) {
