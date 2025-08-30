@@ -23,9 +23,16 @@ export function BottomNavigation() {
     // Each tab is w-24 (96px), bubble is w-20 h-20 (80px) - large circular bubble
     const tabWidth = 96;
     const bubbleWidth = 80;
+    
+    // Calculate vertical position based on the actual tab bar height
+    // Tab bar height is 4rem (64px), bubble should be centered on it
+    const tabBarHeight = 64; // 4rem = 64px
+    const bubbleHeight = 80; // h-20 = 80px
+    const verticalOffset = -(bubbleHeight - tabBarHeight) / 2; // Center the bubble perfectly
+    
     return {
-      x: activeIndex * tabWidth + (tabWidth - bubbleWidth) / 2, // Center the large circular bubble
-      y: -6 // Move up more to be properly centered on tab bar
+      x: activeIndex * tabWidth + (tabWidth - bubbleWidth) / 2, // Center horizontally
+      y: verticalOffset // Always perfectly centered vertically
     };
   };
 
@@ -47,28 +54,36 @@ export function BottomNavigation() {
     }
   }, [currentTab, isDragging, bubbleControls]);
 
-  // Set initial position immediately and fix positioning
+  // Set initial position immediately and ensure perfect positioning
   useEffect(() => {
-    const position = getBubblePosition();
-    bubbleControls.set({
-      x: position.x,
-      y: position.y
-    });
-    // Force re-calculation after a short delay to ensure proper positioning
-    const timer = setTimeout(() => {
-      const correctedPosition = getBubblePosition();
+    const setPosition = () => {
+      const position = getBubblePosition();
       bubbleControls.set({
-        x: correctedPosition.x,
-        y: correctedPosition.y
+        x: position.x,
+        y: position.y
       });
-    }, 100);
-    return () => clearTimeout(timer);
+    };
+    
+    // Set initial position immediately
+    setPosition();
+    
+    // Re-calculate after layout is stable
+    const timer = setTimeout(setPosition, 50);
+    
+    // Also re-calculate when window resizes to maintain perfect positioning
+    const handleResize = () => setPosition();
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []); // Only run on mount
 
   const handleDragEnd = (event: any, info: PanInfo) => {
     setIsDragging(false);
     
-    // Find the closest tab based on drag position
+    // Find the closest tab based on horizontal position only (lock vertical position)
     let closestTabIndex = 0;
     let minDistance = Infinity;
     
@@ -76,12 +91,9 @@ export function BottomNavigation() {
       if (tabRef) {
         const tabRect = tabRef.getBoundingClientRect();
         const tabCenterX = tabRect.left + tabRect.width / 2;
-        const tabCenterY = tabRect.top + tabRect.height / 2;
         
-        const distance = Math.sqrt(
-          Math.pow(info.point.x - tabCenterX, 2) + 
-          Math.pow(info.point.y - tabCenterY, 2)
-        );
+        // Only consider horizontal distance, ignore vertical
+        const distance = Math.abs(info.point.x - tabCenterX);
         
         if (distance < minDistance) {
           minDistance = distance;
