@@ -193,7 +193,7 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[70vh] w-full max-w-4xl mx-auto relative">
+    <div className="flex flex-col h-full max-h-[75vh] sm:max-h-[70vh] w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative">
       {/* New Chat Button - Floating */}
       {messages.length > 0 && (
         <motion.div

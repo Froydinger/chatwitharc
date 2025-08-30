@@ -61,7 +61,7 @@ const Index = () => {
 
       {/* Main Content */}
       <div className="relative z-10 flex flex-col min-h-screen">
-        <main className="flex-1 flex items-center justify-center p-4 pb-24">
+        <main className="flex-1 flex items-center justify-center p-2 sm:p-4 pb-28 sm:pb-24">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentTab}

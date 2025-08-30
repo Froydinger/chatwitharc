@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import { motion } from "framer-motion";
-import { User, Bot } from "lucide-react";
+import { User, Smile } from "lucide-react";
 import { Message } from "@/store/useArcStore";
 
 interface MessageBubbleProps {
@@ -37,7 +37,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           {isUser ? (
             <User className="h-4 w-4 text-primary-glow" />
           ) : (
-            <Bot className="h-4 w-4 text-primary-glow" />
+            <Smile className="h-4 w-4 text-primary-glow" />
           )}
         </motion.div>
 
