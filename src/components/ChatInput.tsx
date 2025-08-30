@@ -35,13 +35,14 @@ export function ChatInput() {
   // Auto-respond to quick start messages
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.role === 'user' && isLoading && !inputValue) {
+    if (lastMessage?.role === 'user' && !isLoading && messages.filter(m => m.role === 'assistant').length === 0) {
+      // Only trigger auto-response if there are no assistant messages yet (first message of conversation)
+      setLoading(true);
       handleAIResponse(lastMessage.content);
     }
-  }, [messages, isLoading]);
+  }, [messages]);
 
   const handleAIResponse = async (userMessage: string) => {
-
     try {
       const openai = new OpenAIService();
       

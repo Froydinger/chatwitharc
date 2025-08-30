@@ -346,8 +346,7 @@ export const useArcStore = create<ArcState>()(
           type: 'text'
         });
         
-        // Set loading to trigger AI response in ChatInput
-        state.setLoading(true);
+        // Don't trigger loading here - let ChatInput handle the response
       },
       
       // Voice
