@@ -18,21 +18,21 @@ All colors MUST be HSL for perfect glass effects.
     --glass-glow: 240 100% 70%;
     --glass-overlay: 240 20% 15%;
 
-    /* Primary Glass Accent */
-    --primary: 240 100% 70%;
+    /* Primary Blue Glass Accent */
+    --primary: 200 100% 60%;
     --primary-foreground: 240 10% 95%;
-    --primary-glow: 240 100% 80%;
+    --primary-glow: 200 100% 70%;
 
-    /* Secondary Glass */
-    --secondary: 240 15% 18%;
+    /* Secondary Blue Glass */
+    --secondary: 210 15% 18%;
     --secondary-foreground: 240 10% 90%;
 
-    /* Muted Glass */
-    --muted: 240 12% 15%;
-    --muted-foreground: 240 8% 65%;
+    /* Muted Blue Glass */
+    --muted: 215 12% 15%;
+    --muted-foreground: 215 8% 65%;
 
-    /* Accent Glass */
-    --accent: 240 20% 20%;
+    /* Accent Blue Glass */
+    --accent: 210 20% 20%;
     --accent-foreground: 240 10% 95%;
 
     /* States */
@@ -86,9 +86,9 @@ All colors MUST be HSL for perfect glass effects.
     --glass-glow: 240 100% 60%;
     --glass-overlay: 240 20% 92%;
     
-    --primary: 240 100% 60%;
+    --primary: 200 100% 50%;
     --primary-foreground: 240 10% 95%;
-    --primary-glow: 240 100% 70%;
+    --primary-glow: 200 100% 60%;
     
     --secondary: 240 15% 88%;
     --secondary-foreground: 240 10% 20%;
@@ -151,12 +151,23 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   .bubble-nav {
-    @apply glass-strong glass-glow;
+    @apply glass-strong;
     border-radius: var(--radius-bubble);
     padding: 1rem 2rem;
     background: linear-gradient(135deg, 
       hsla(var(--glass), 0.3) 0%,
       hsla(var(--glass-overlay), 0.4) 100%);
+    box-shadow: 
+      0 0 40px hsla(var(--primary-glow), 0.2),
+      0 8px 32px hsla(var(--primary), 0.15),
+      inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
+      inset 0 -1px 0 hsla(200, 100%, 30%, 0.2);
+    border: 2px solid hsla(200, 100%, 60%, 0.3);
+    cursor: grab;
+  }
+  
+  .bubble-nav:active {
+    cursor: grabbing;
   }
 
   .bubble-nav-item {
@@ -238,7 +249,7 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   .animate-bounce-gentle {
-    animation: bubble-bounce 3s ease-in-out infinite;
+    /* Removed automatic animation - only on hover/active states */
   }
 
   .animate-glow-pulse {

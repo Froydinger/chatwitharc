@@ -5,7 +5,7 @@ import { BottomNavigation } from "@/components/BottomNavigation";
 import { ChatInterface } from "@/components/ChatInterface";
 // import { VoiceInterface } from "@/components/VoiceInterface"; // Voice logic preserved
 import { SettingsPanel } from "@/components/SettingsPanel";
-import { InfoPanel } from "@/components/InfoPanel";
+
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { ApiKeyModal } from "@/components/ApiKeyModal";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
@@ -35,12 +35,8 @@ const Index = () => {
         return <ChatInterface />;
       case 'history':
         return <ChatHistoryPanel />;
-      // case 'voice': // Voice functionality preserved for future use
-      //   return <VoiceInterface />;
       case 'settings':
         return <SettingsPanel />;
-      case 'info':
-        return <InfoPanel />;
       default:
         return <ChatInterface />;
     }
