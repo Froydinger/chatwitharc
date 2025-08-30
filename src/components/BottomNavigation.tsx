@@ -24,10 +24,8 @@ export function BottomNavigation() {
     const tabWidth = 96;
     const bubbleWidth = 80;
     
-    // Simple calculation: account for 24px left padding + tab positioning
-    const leftPadding = 24; // px-6 = 24px
-    const tabCenterX = leftPadding + (activeIndex * tabWidth) + (tabWidth / 2);
-    const bubbleX = tabCenterX - (bubbleWidth / 2);
+    // Back to original simple calculation that was working
+    const x = activeIndex * tabWidth + (tabWidth - bubbleWidth) / 2;
     
     // Calculate vertical position - bubble should be centered on the tab items
     const tabBarHeight = 64; // h-16 = 64px (height of tab items container)
@@ -35,7 +33,7 @@ export function BottomNavigation() {
     const verticalOffset = -(bubbleHeight - tabBarHeight) / 2; // Center bubble on tab items
     
     return {
-      x: bubbleX,
+      x: x,
       y: verticalOffset // Always centered on tab items
     };
   };
