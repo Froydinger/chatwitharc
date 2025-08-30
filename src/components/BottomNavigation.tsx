@@ -15,34 +15,31 @@ export function BottomNavigation() {
   const [isDragging, setIsDragging] = useState(false);
   const bubbleControls = useAnimation();
   const containerRef = useRef<HTMLDivElement>(null);
+  const bubbleWrapperRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
   
-  // Get bubble position for active tab using pure mathematical positioning
+  // Get bubble position using tab refs and wrapper-relative positioning
   const getBubblePosition = () => {
     const activeIndex = navigationItems.findIndex(item => item.id === currentTab);
+    const activeTabRef = tabRefs.current[activeIndex];
     
-    // Container structure analysis:
-    // - Outer container: 288px fixed width, centered
-    // - Inner tabs container: has px-6 (24px padding on each side)
-    // - Available tab space: 288px - 48px (total padding) = 240px
-    // - Each tab: 240px / 3 tabs = 80px actual width per tab
-    // - Tab visual width: w-24 (96px) but constrained by container
-    // - Bubble: 80px width (w-20)
+    if (!activeTabRef || !bubbleWrapperRef.current) {
+      // Fallback calculation if refs aren't ready
+      const tabWidth = 80; // Each tab gets 80px in the 240px space
+      const bubbleWidth = 80; // w-20 = 80px
+      const x = (activeIndex * tabWidth) + (tabWidth - bubbleWidth) / 2;
+      return { x, y: -8 };
+    }
     
-    // Calculate position within the 240px available space
-    const availableWidth = 240; // 288px - 48px padding
-    const tabWidth = availableWidth / 3; // 80px per tab
-    const bubbleWidth = 80; // w-20 = 80px
+    // Get actual positions from DOM
+    const wrapperRect = bubbleWrapperRef.current.getBoundingClientRect();
+    const tabRect = activeTabRef.getBoundingClientRect();
     
-    // Position bubble at the center of each tab
-    const tabCenter = (activeIndex * tabWidth) + (tabWidth / 2);
-    const bubbleLeft = tabCenter - (bubbleWidth / 2);
+    // Calculate bubble position relative to wrapper
+    const tabCenterX = tabRect.left + tabRect.width / 2 - wrapperRect.left;
+    const bubbleX = tabCenterX - 40; // 40 = half of 80px bubble width
     
-    // Add the container's left padding (24px) to get final position
-    const x = 24 + bubbleLeft;
-    const y = -8; // Center vertically on tab
-    
-    return { x, y };
+    return { x: bubbleX, y: -8 };
   };
 
   // Move bubble to active tab when tab changes
@@ -161,45 +158,66 @@ export function BottomNavigation() {
               <ChatInput />
             </motion.div>
           )}
-          {/* Draggable Selection Bubble */}
-          <motion.div
-            drag="x" // Only allow horizontal dragging
-            dragMomentum={true} // Enable momentum for jelly physics
-            dragElastic={0.4} // More elastic for rubber band effect
-            dragConstraints={containerRef}
-            onDragStart={() => setIsDragging(true)}
-            onDragEnd={handleDragEnd}
-            animate={bubbleControls}
-            initial={getBubblePosition()}
-            whileHover={{ 
-              scale: 1.05,
-              transition: { type: "spring", damping: 10, stiffness: 400 }
-            }}
-            whileDrag={{ 
-              scale: 1.3, // Much bigger when dragging - magnifying glass effect
-              zIndex: 1000,
-              filter: "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
-              transition: { type: "spring", damping: 5, stiffness: 300 }
-            }}
-            className="absolute w-20 h-20 rounded-full cursor-grab active:cursor-grabbing z-30"
-            style={{
-              background: "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.2) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
-              backdropFilter: "blur(20px)",
-              border: "2px solid hsla(200, 100%, 70%, 0.7)",
-              boxShadow: `
-                0 0 40px hsla(200, 100%, 60%, 0.5),
-                0 8px 32px hsla(200, 100%, 50%, 0.3),
-                inset 0 2px 0 hsla(200, 100%, 90%, 0.6),
-                inset 0 -2px 0 hsla(200, 100%, 30%, 0.4)
-              `
+          
+          {/* Bubble Wrapper - Matches tabs container width for accurate positioning */}
+          <div 
+            ref={bubbleWrapperRef}
+            className="absolute inset-0 pointer-events-none z-30"
+            style={{ 
+              top: currentTab === 'chat' ? '6rem' : '0.75rem', // Adjust for chat input
+              left: '0',
+              right: '0',
+              bottom: '0.75rem',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'end'
             }}
           >
-            {/* Inner light effects */}
-            <div className="absolute inset-1 rounded-full overflow-hidden">
-              <div className="absolute top-1 left-2 w-6 h-0.5 bg-white opacity-70 blur-sm rounded-full" />
-              <div className="absolute bottom-2 right-1 w-4 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
+            <div 
+              className="relative"
+              style={{ width: '288px', height: '64px' }} // Match tabs container exactly
+            >
+              {/* Draggable Selection Bubble */}
+              <motion.div
+                drag="x" // Only allow horizontal dragging
+                dragMomentum={true} // Enable momentum for jelly physics
+                dragElastic={0.4} // More elastic for rubber band effect
+                dragConstraints={bubbleWrapperRef}
+                onDragStart={() => setIsDragging(true)}
+                onDragEnd={handleDragEnd}
+                animate={bubbleControls}
+                initial={getBubblePosition()}
+                whileHover={{ 
+                  scale: 1.05,
+                  transition: { type: "spring", damping: 10, stiffness: 400 }
+                }}
+                whileDrag={{ 
+                  scale: 1.3, // Much bigger when dragging - magnifying glass effect
+                  zIndex: 1000,
+                  filter: "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
+                  transition: { type: "spring", damping: 5, stiffness: 300 }
+                }}
+                className="absolute w-20 h-20 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
+                style={{
+                  background: "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.2) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
+                  backdropFilter: "blur(20px)",
+                  border: "2px solid hsla(200, 100%, 70%, 0.7)",
+                  boxShadow: `
+                    0 0 40px hsla(200, 100%, 60%, 0.5),
+                    0 8px 32px hsla(200, 100%, 50%, 0.3),
+                    inset 0 2px 0 hsla(200, 100%, 90%, 0.6),
+                    inset 0 -2px 0 hsla(200, 100%, 30%, 0.4)
+                  `
+                }}
+              >
+                {/* Inner light effects */}
+                <div className="absolute inset-1 rounded-full overflow-hidden">
+                  <div className="absolute top-1 left-2 w-6 h-0.5 bg-white opacity-70 blur-sm rounded-full" />
+                  <div className="absolute bottom-2 right-1 w-4 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
+                </div>
+              </motion.div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Tab Items Container - Fixed width and centered */}
           <div className="flex items-center justify-center relative z-20 px-6" style={{ width: '288px' }}>
