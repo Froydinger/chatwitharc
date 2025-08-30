@@ -43,7 +43,7 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col h-screen w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative">
-      {/* Fixed Header */}
+      {/* Fixed Header - Just logo and new chat button */}
       <div className="fixed top-0 left-0 right-0 z-30 flex justify-center">
         <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-4 bg-background/90 backdrop-blur-md">
           <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-8 w-8" />
