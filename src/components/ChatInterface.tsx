@@ -305,7 +305,7 @@ export function ChatInterface() {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
       >
-        <div className="h-full overflow-y-auto p-4 sm:p-6 space-y-4 scroll-smooth">
+        <div className="h-full overflow-y-auto p-4 sm:p-6 pt-8 space-y-4 scroll-smooth">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
               <motion.div
