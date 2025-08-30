@@ -140,7 +140,7 @@ export function BottomNavigation() {
           )}
           {/* Draggable Selection Bubble */}
           <motion.div
-            drag
+            drag="x" // Only allow horizontal dragging
             dragMomentum={true} // Enable momentum for jelly physics
             dragElastic={0.4} // More elastic for rubber band effect
             dragConstraints={containerRef}
@@ -150,12 +150,10 @@ export function BottomNavigation() {
             initial={getBubblePosition()}
             whileHover={{ 
               scale: 1.05,
-              y: -2,
               transition: { type: "spring", damping: 10, stiffness: 400 }
             }}
             whileDrag={{ 
               scale: 1.3, // Much bigger when dragging - magnifying glass effect
-              y: -8, // Lift it up
               zIndex: 1000,
               filter: "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
               transition: { type: "spring", damping: 5, stiffness: 300 }
