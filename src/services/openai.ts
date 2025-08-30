@@ -100,4 +100,38 @@ export class OpenAIService {
       throw error;
     }
   }
+
+  async generateImage(prompt: string): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-image-1',
+          prompt: prompt,
+          n: 1,
+          size: '1024x1024',
+          quality: 'standard',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Image generation failed');
+      }
+
+      const data = await response.json();
+      return data.data[0]?.url || '';
+    } catch (error) {
+      console.error('OpenAI Image Generation Error:', error);
+      throw error;
+    }
+  }
 }

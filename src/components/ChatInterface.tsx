@@ -56,27 +56,54 @@ export function ChatInterface() {
     try {
       const openai = new OpenAIService(apiKey);
       
-      // Convert messages to OpenAI format
-      const openaiMessages = messages
-        .filter(msg => msg.type === 'text') // Only text messages for now
-        .map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }));
-      
-      // Add the new user message
-      openaiMessages.push({
-        role: 'user',
-        content: userMessage
-      });
+      // Check if user is requesting image generation
+      const imageKeywords = ['generate image', 'create image', 'make image', 'draw', 'generate a picture', 'create a picture', 'make a picture'];
+      const isImageRequest = imageKeywords.some(keyword => 
+        userMessage.toLowerCase().includes(keyword)
+      );
 
-      const response = await openai.sendMessage(openaiMessages);
-      
-      addMessage({
-        content: response,
-        role: 'assistant',
-        type: 'text'
-      });
+      if (isImageRequest) {
+        // Extract the image description from the message
+        let imagePrompt = userMessage;
+        for (const keyword of imageKeywords) {
+          if (userMessage.toLowerCase().includes(keyword)) {
+            imagePrompt = userMessage.toLowerCase().replace(keyword, '').trim();
+            break;
+          }
+        }
+        
+        const imageUrl = await openai.generateImage(imagePrompt || userMessage);
+        
+        addMessage({
+          content: `Generated image: ${imagePrompt || userMessage}`,
+          role: 'assistant',
+          type: 'image',
+          imageUrl
+        });
+      } else {
+        // Regular text conversation
+        // Convert messages to OpenAI format
+        const openaiMessages = messages
+          .filter(msg => msg.type === 'text') // Only text messages for now
+          .map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }));
+        
+        // Add the new user message
+        openaiMessages.push({
+          role: 'user',
+          content: userMessage
+        });
+
+        const response = await openai.sendMessage(openaiMessages);
+        
+        addMessage({
+          content: response,
+          role: 'assistant',
+          type: 'text'
+        });
+      }
     } catch (error) {
       console.error('Chat error:', error);
       toast({
