@@ -194,13 +194,15 @@ export function ChatInterface() {
                   </div>
                 </div>
               ) : (
-                messages.map((message) => (
-                  <MessageBubble 
-                    key={message.id} 
-                    message={message} 
-                    onEdit={() => {}} // Removed edit functionality for now
-                  />
-                ))
+                <div className="space-y-6">
+                  {messages.map((message) => (
+                    <MessageBubble 
+                      key={message.id} 
+                      message={message} 
+                      onEdit={() => {}} // Removed edit functionality for now
+                    />
+                  ))}
+                </div>
               )}
               
               {isLoading && (
