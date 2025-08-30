@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useArcStore } from '@/store/useArcStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -6,13 +6,16 @@ import { useAuth } from './useAuth';
 export function useChatSync() {
   const { user } = useAuth();
   const { syncFromSupabase, chatSessions, saveChatToSupabase } = useArcStore();
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
 
   // Initial sync when user loads
   useEffect(() => {
-    if (user) {
-      syncFromSupabase();
+    if (user && !hasInitiallyLoaded) {
+      syncFromSupabase().finally(() => {
+        setHasInitiallyLoaded(true);
+      });
     }
-  }, [user, syncFromSupabase]);
+  }, [user, syncFromSupabase, hasInitiallyLoaded]);
 
   // Set up real-time updates for chat sessions
   useEffect(() => {
@@ -66,6 +69,6 @@ export function useChatSync() {
   }, [user, syncFromSupabase]);
 
   return {
-    isLoaded: chatSessions.length > 0 || !user
+    isLoaded: hasInitiallyLoaded || !user
   };
 }
