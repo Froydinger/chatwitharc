@@ -24,16 +24,14 @@ export function BottomNavigation() {
     const tabWidth = 96;
     const bubbleWidth = 80;
     
-    // Calculate vertical position based on the tab container position
-    // When chat input is shown, tabs are further down, so we need to account for that
+    // Calculate vertical position - bubble should always be centered on the tab items
     const tabBarHeight = 64; // h-16 = 64px (height of tab items container)
     const bubbleHeight = 80; // h-20 = 80px
-    const chatInputOffset = currentTab === 'chat' ? 96 : 0; // Chat input + margin takes ~96px
-    const verticalOffset = chatInputOffset - (bubbleHeight - tabBarHeight) / 2; // Position relative to tab items
+    const verticalOffset = -(bubbleHeight - tabBarHeight) / 2; // Center bubble on tab items
     
     return {
       x: activeIndex * tabWidth + (tabWidth - bubbleWidth) / 2, // Center horizontally
-      y: verticalOffset // Position relative to tab items, accounting for chat input
+      y: verticalOffset // Always centered on tab items, regardless of chat input
     };
   };
 
