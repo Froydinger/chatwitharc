@@ -118,12 +118,10 @@ export function BottomNavigation() {
       >
         {/* Unified Glass Container - Morphs to include chat input */}
         <motion.div 
-          className="relative"
+          className="relative flex flex-col items-center"
           animate={{
             paddingTop: currentTab === 'chat' ? '1.5rem' : '0.75rem',
-            paddingBottom: '0.75rem',
-            paddingLeft: '1.5rem',
-            paddingRight: '1.5rem'
+            paddingBottom: '0.75rem'
           }}
           transition={{ duration: 0.25, ease: "easeOut" }}
           style={{
@@ -136,7 +134,9 @@ export function BottomNavigation() {
               0 8px 32px hsla(200, 100%, 60%, 0.15),
               inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
               inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
-            `
+            `,
+            minWidth: '288px', // Fixed minimum width for consistency
+            width: 'auto'
           }}
         >
           {/* Chat Input - Only visible on chat tab */}
@@ -146,7 +146,7 @@ export function BottomNavigation() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.3, delay: 0.1 }}
-              className="mb-6"
+              className="w-full px-6 mb-6"
             >
               <ChatInput />
             </motion.div>
@@ -191,8 +191,8 @@ export function BottomNavigation() {
             </div>
           </motion.div>
 
-          {/* Tab Items */}
-          <div className="flex items-center relative z-20">
+          {/* Tab Items Container - Fixed width and centered */}
+          <div className="flex items-center justify-center relative z-20 px-6" style={{ width: '288px' }}>
             {navigationItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = currentTab === item.id;
