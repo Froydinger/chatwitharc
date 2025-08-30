@@ -45,7 +45,7 @@ export function ChatInterface() {
     <div className="flex flex-col h-screen w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative">
       {/* Fixed Header - Just logo and new chat button */}
       <div className="fixed top-0 left-0 right-0 z-30 flex justify-center">
-        <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-4 bg-background/90 backdrop-blur-md">
+        <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-4 bg-background/20 backdrop-blur-sm">
           <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-8 w-8" />
           <motion.div
             initial={{ opacity: 0, scale: 0 }}
@@ -68,7 +68,7 @@ export function ChatInterface() {
       <GlassCard 
         variant="bubble" 
         glow
-        className={`flex-1 mx-4 mt-20 mb-4 transition-all duration-300 overflow-hidden ${
+        className={`flex-1 mx-4 mb-4 transition-all duration-300 overflow-hidden ${
           dragOver ? 'border-primary-glow border-2' : ''
         }`}
         onDragOver={(e) => {
@@ -79,8 +79,8 @@ export function ChatInterface() {
         onDrop={handleDrop}
       >
         <div className="h-full overflow-y-auto space-y-4 scroll-smooth relative">
-          {/* Content area with top padding for header clearance */}
-          <div className="pt-4 px-4 sm:px-6 space-y-4">
+          {/* Content area - no top padding so content flows behind header */}
+          <div className="px-4 sm:px-6 pt-20 space-y-4">
             <AnimatePresence mode="popLayout">
               {messages.length === 0 ? (
                 <motion.div
