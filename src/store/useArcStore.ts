@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { supabase } from '@/integrations/supabase/client';
+import { ChatEncryption } from '@/utils/encryption';
 
 export interface ChatSession {
   id: string;
@@ -51,7 +53,11 @@ export interface ArcState {
   selectedVoice: 'cedar' | 'marin';
   setSelectedVoice: (voice: 'cedar' | 'marin') => void;
   
-  
+  // Supabase Sync
+  syncFromSupabase: () => Promise<void>;
+  saveChatToSupabase: (session: ChatSession) => Promise<void>;
+  isOnline: boolean;
+  lastSyncAt: Date | null;
 }
 
 export const useArcStore = create<ArcState>()(
@@ -62,6 +68,80 @@ export const useArcStore = create<ArcState>()(
       // Chat Sessions
       currentSessionId: null,
       chatSessions: [],
+      isOnline: navigator.onLine,
+      lastSyncAt: null,
+      
+      // Supabase Sync Functions
+      syncFromSupabase: async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          const { data: sessions, error } = await supabase
+            .from('chat_sessions')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('updated_at', { ascending: false });
+
+          if (error) {
+            console.error('Error fetching sessions:', error);
+            return;
+          }
+
+          if (sessions) {
+            const decryptedSessions: ChatSession[] = [];
+            
+            for (const session of sessions) {
+              try {
+                const decryptedData = await ChatEncryption.decrypt(session.encrypted_data, user.id);
+                decryptedSessions.push({
+                  id: session.id,
+                  title: session.title,
+                  createdAt: new Date(session.created_at),
+                  lastMessageAt: new Date(session.updated_at),
+                  messages: decryptedData.messages || []
+                });
+              } catch (error) {
+                console.error('Error decrypting session:', session.id, error);
+              }
+            }
+
+            set({
+              chatSessions: decryptedSessions,
+              lastSyncAt: new Date()
+            });
+          }
+        } catch (error) {
+          console.error('Error syncing from Supabase:', error);
+        }
+      },
+
+      saveChatToSupabase: async (session: ChatSession) => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          const encryptedData = await ChatEncryption.encrypt({
+            messages: session.messages
+          }, user.id);
+
+          const { error } = await supabase
+            .from('chat_sessions')
+            .upsert({
+              id: session.id,
+              user_id: user.id,
+              title: session.title,
+              encrypted_data: encryptedData,
+              updated_at: new Date().toISOString()
+            });
+
+          if (error) {
+            console.error('Error saving session to Supabase:', error);
+          }
+        } catch (error) {
+          console.error('Error saving to Supabase:', error);
+        }
+      },
       
       createNewSession: () => {
         // Generate a proper UUID for Supabase compatibility
@@ -80,6 +160,9 @@ export const useArcStore = create<ArcState>()(
           messages: []
         }));
         
+        // Save to Supabase
+        get().saveChatToSupabase(newSession);
+        
         return sessionId;
       },
       
@@ -93,7 +176,7 @@ export const useArcStore = create<ArcState>()(
         }
       },
       
-      deleteSession: (sessionId) => {
+      deleteSession: async (sessionId) => {
         const state = get();
         const updatedSessions = state.chatSessions.filter(s => s.id !== sessionId);
         
@@ -102,13 +185,42 @@ export const useArcStore = create<ArcState>()(
           currentSessionId: state.currentSessionId === sessionId ? null : state.currentSessionId,
           messages: state.currentSessionId === sessionId ? [] : state.messages
         }));
+
+        // Delete from Supabase
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase
+              .from('chat_sessions')
+              .delete()
+              .eq('id', sessionId)
+              .eq('user_id', user.id);
+          }
+        } catch (error) {
+          console.error('Error deleting session from Supabase:', error);
+        }
       },
       
-      clearAllSessions: () => set({ 
-        chatSessions: [], 
-        currentSessionId: null, 
-        messages: [] 
-      }),
+      clearAllSessions: async () => {
+        set({ 
+          chatSessions: [], 
+          currentSessionId: null, 
+          messages: [] 
+        });
+
+        // Clear from Supabase
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase
+              .from('chat_sessions')
+              .delete()
+              .eq('user_id', user.id);
+          }
+        } catch (error) {
+          console.error('Error clearing sessions from Supabase:', error);
+        }
+      },
       
       // Current Chat
       messages: [],
@@ -126,11 +238,12 @@ export const useArcStore = create<ArcState>()(
           // Update current session
           let updatedSessions = state.chatSessions;
           let currentSessionId = state.currentSessionId;
+          let sessionToSave: ChatSession;
           
           if (!currentSessionId) {
             // Create new session if none exists
             currentSessionId = crypto.randomUUID();
-            const newSession: ChatSession = {
+            sessionToSave = {
               id: currentSessionId,
               title: message.role === 'user' ? 
                 (message.content.length > 30 ? message.content.substring(0, 30) + '...' : message.content) : 
@@ -139,20 +252,27 @@ export const useArcStore = create<ArcState>()(
               lastMessageAt: new Date(),
               messages: updatedMessages
             };
-            updatedSessions = [newSession, ...state.chatSessions];
+            updatedSessions = [sessionToSave, ...state.chatSessions];
           } else {
             // Update existing session
+            const existingSession = state.chatSessions.find(s => s.id === currentSessionId);
+            sessionToSave = {
+              id: currentSessionId,
+              title: existingSession?.title === "New Chat" && message.role === 'user' ? 
+                (message.content.length > 30 ? message.content.substring(0, 30) + '...' : message.content) : 
+                (existingSession?.title || "New Chat"),
+              createdAt: existingSession?.createdAt || new Date(),
+              lastMessageAt: new Date(),
+              messages: updatedMessages
+            };
+            
             updatedSessions = state.chatSessions.map(session => 
-              session.id === currentSessionId ? {
-                ...session,
-                lastMessageAt: new Date(),
-                messages: updatedMessages,
-                title: session.title === "New Chat" && message.role === 'user' ? 
-                  (message.content.length > 30 ? message.content.substring(0, 30) + '...' : message.content) : 
-                  session.title
-              } : session
+              session.id === currentSessionId ? sessionToSave : session
             );
           }
+          
+          // Save to Supabase asynchronously
+          get().saveChatToSupabase(sessionToSave);
           
           return {
             messages: updatedMessages,
@@ -179,14 +299,26 @@ export const useArcStore = create<ArcState>()(
           
           // Update current session
           let updatedSessions = state.chatSessions;
+          let sessionToSave: ChatSession | null = null;
+          
           if (state.currentSessionId) {
-            updatedSessions = state.chatSessions.map(session => 
-              session.id === state.currentSessionId ? {
-                ...session,
+            const existingSession = state.chatSessions.find(s => s.id === state.currentSessionId);
+            if (existingSession) {
+              sessionToSave = {
+                ...existingSession,
                 lastMessageAt: new Date(),
                 messages: updatedMessages
-              } : session
-            );
+              };
+              
+              updatedSessions = state.chatSessions.map(session => 
+                session.id === state.currentSessionId ? sessionToSave! : session
+              );
+            }
+          }
+          
+          // Save to Supabase if we have a session
+          if (sessionToSave) {
+            get().saveChatToSupabase(sessionToSave);
           }
           
           return {
@@ -201,10 +333,10 @@ export const useArcStore = create<ArcState>()(
       setCurrentTab: (tab) => set({ currentTab: tab }),
       isVoiceMode: false,
       setVoiceMode: (enabled) => set({ isVoiceMode: enabled }),
-  isLoading: false,
-  setLoading: (loading) => set({ isLoading: loading }),
-  
-  // Quick Start
+      isLoading: false,
+      setLoading: (loading) => set({ isLoading: loading }),
+      
+      // Quick Start
       startChatWithMessage: async (message) => {
         const state = get();
         // Add the user message
@@ -227,7 +359,7 @@ export const useArcStore = create<ArcState>()(
       name: 'arc-ai-storage',
       partialize: (state) => ({
         selectedVoice: state.selectedVoice,
-        chatSessions: state.chatSessions,
+        // Don't persist chat sessions - they'll be loaded from Supabase
         currentSessionId: state.currentSessionId
       })
     }

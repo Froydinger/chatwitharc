@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useArcStore } from "@/store/useArcStore";
 import { useAuth } from "@/hooks/useAuth";
+import { useChatSync } from "@/hooks/useChatSync";
 import { NamePrompt } from "@/components/NamePrompt";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { ChatInterface } from "@/components/ChatInterface";
@@ -14,6 +15,7 @@ import { AuthPage } from "@/components/AuthPage";
 export function Index() {
   const { currentTab } = useArcStore();
   const { user, loading, needsOnboarding } = useAuth();
+  const { isLoaded } = useChatSync(); // Initialize chat syncing
   
   const [onboardingComplete, setOnboardingComplete] = useState(false);
 
@@ -27,7 +29,18 @@ export function Index() {
     return <NamePrompt />;
   }
 
-  if (loading) return null;
+  if (loading || (user && !isLoaded)) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="glass rounded-lg p-8 text-center">
+          <div className="animate-pulse flex justify-center mb-4">
+            <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-12 w-12" />
+          </div>
+          <p className="text-muted-foreground">Loading your chats...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Show auth page if user is not authenticated
   if (!user) {
