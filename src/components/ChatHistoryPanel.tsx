@@ -77,9 +77,8 @@ export function ChatHistoryPanel() {
     <div className="w-full max-w-6xl mx-auto space-y-8 pb-8 pt-16 px-4">
       {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: 0 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        initial={{ opacity: 1 }}
+        animate={{ opacity: 1 }}
         className="text-center space-y-4"
       >
         <div className="flex items-center justify-center gap-3">
@@ -101,9 +100,8 @@ export function ChatHistoryPanel() {
       <div className="space-y-8">
         {Object.keys(groupedSessions).length === 0 ? (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
             className="text-center py-16"
           >
             <GlassCard variant="bubble" glow className="p-12 max-w-md mx-auto">
@@ -130,13 +128,8 @@ export function ChatHistoryPanel() {
           Object.entries(groupedSessions).map(([dateGroup, sessions], groupIndex) => (
             <motion.div
               key={dateGroup}
-              initial={{ opacity: 0, y: 0 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ 
-                duration: 0.6, 
-                ease: "easeOut",
-                delay: groupIndex * 0.1 
-              }}
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 1 }}
             >
               <div className="flex items-center gap-4 mb-6">
                 <div className="glass rounded-full p-2">
@@ -151,16 +144,15 @@ export function ChatHistoryPanel() {
                   {sessions.map((session, sessionIndex) => (
                     <motion.div
                       key={session.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
+                      initial={{ opacity: 1 }}
                       animate={{ 
                         opacity: deletingId === session.id ? 0 : 1, 
                         scale: deletingId === session.id ? 0.9 : 1 
                       }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ 
-                        duration: 0.5,
-                        ease: "easeOut",
-                        delay: sessionIndex * 0.05
+                        duration: 0.3,
+                        ease: "easeOut"
                       }}
                       layout
                     >
@@ -226,9 +218,8 @@ export function ChatHistoryPanel() {
       {/* Stats */}
       {chatSessions.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 0 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut", delay: 0.5 }}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 1 }}
         >
           <GlassCard variant="bubble" glow className="p-8">
             <h3 className="text-xl font-semibold text-foreground mb-6 text-center">Chat Statistics</h3>
