@@ -84,16 +84,26 @@ export function BottomNavigation() {
   };
 
   return (
-    <div className="fixed bottom-0 left-4 right-4 z-30 flex justify-center">
+    <div className="fixed bottom-4 left-4 right-4 z-30 flex justify-center">
       <motion.div
         ref={containerRef}
         initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.2, type: "spring", damping: 15 }}
+        animate={{ 
+          y: 0, 
+          opacity: 1,
+        }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         className="relative"
       >
-        {/* Fixed Tab Bar Background - Unified with input */}
-        <div className="bubble-nav relative px-6 py-3 pt-16 pb-6 rounded-b-3xl rounded-t-none border-t-0">
+        {/* Tab Bar Background - Expands for chat */}
+        <motion.div 
+          className="bubble-nav relative px-6"
+          animate={{
+            paddingTop: currentTab === 'chat' ? '1.5rem' : '0.75rem',
+            paddingBottom: currentTab === 'chat' ? '1.5rem' : '0.75rem'
+          }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+        >
           {/* Draggable Selection Bubble */}
           <motion.div
             drag
@@ -185,7 +195,7 @@ export function BottomNavigation() {
               );
             })}
           </div>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );
