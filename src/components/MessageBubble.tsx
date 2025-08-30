@@ -1,15 +1,66 @@
-import { forwardRef } from "react";
+import { forwardRef, useState } from "react";
 import { motion } from "framer-motion";
-import { User, Smile } from "lucide-react";
+import { User, Smile, Copy, Edit2, Check } from "lucide-react";
 import { Message } from "@/store/useArcStore";
+import { useArcStore } from "@/store/useArcStore";
+import { GlassButton } from "@/components/ui/glass-button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 interface MessageBubbleProps {
   message: Message;
+  onEdit?: (messageId: string, newContent: string) => void;
 }
 
 export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
-  ({ message }, ref) => {
+  ({ message, onEdit }, ref) => {
+    const { editMessage } = useArcStore();
+    const { toast } = useToast();
+    const [isEditing, setIsEditing] = useState(false);
+    const [editContent, setEditContent] = useState(message.content);
     const isUser = message.role === 'user';
+    
+    const handleCopy = async () => {
+      try {
+        await navigator.clipboard.writeText(message.content);
+        toast({
+          title: "Copied!",
+          description: "Message copied to clipboard",
+        });
+      } catch (error) {
+        toast({
+          title: "Copy failed",
+          description: "Could not copy message to clipboard",
+          variant: "destructive"
+        });
+      }
+    };
+
+    const handleEdit = () => {
+      setIsEditing(true);
+    };
+
+    const handleSaveEdit = () => {
+      if (editContent.trim() && editContent !== message.content) {
+        editMessage(message.id, editContent.trim());
+        onEdit?.(message.id, editContent.trim());
+      }
+      setIsEditing(false);
+    };
+
+    const handleCancelEdit = () => {
+      setEditContent(message.content);
+      setIsEditing(false);
+    };
+
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSaveEdit();
+      } else if (e.key === 'Escape') {
+        handleCancelEdit();
+      }
+    };
     
     return (
       <motion.div
@@ -69,9 +120,66 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           )}
 
           {/* Text Content */}
-          <p className="text-foreground whitespace-pre-wrap break-words">
-            {message.content}
-          </p>
+          {isEditing ? (
+            <div className="space-y-2">
+              <Input
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                onKeyDown={handleKeyPress}
+                className="glass border-0 bg-glass/30 text-foreground"
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <GlassButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelEdit}
+                >
+                  Cancel
+                </GlassButton>
+                <GlassButton
+                  variant="glow"
+                  size="sm"
+                  onClick={handleSaveEdit}
+                >
+                  <Check className="h-3 w-3 mr-1" />
+                  Save
+                </GlassButton>
+              </div>
+            </div>
+          ) : (
+            <p className="text-foreground whitespace-pre-wrap break-words">
+              {message.content}
+            </p>
+          )}
+
+          {/* Action Buttons */}
+          {!isEditing && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="absolute -top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <GlassButton
+                variant="ghost"
+                size="icon"
+                onClick={handleCopy}
+                className="h-6 w-6"
+              >
+                <Copy className="h-3 w-3" />
+              </GlassButton>
+              {isUser && (
+                <GlassButton
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleEdit}
+                  className="h-6 w-6"
+                >
+                  <Edit2 className="h-3 w-3" />
+                </GlassButton>
+              )}
+            </motion.div>
+          )}
 
           {/* Voice Indicator */}
           {message.type === 'voice' && (

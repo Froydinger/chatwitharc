@@ -57,10 +57,16 @@ export function ChatInterface() {
       const openai = new OpenAIService(apiKey);
       
       // Check if user is requesting image generation
-      const imageKeywords = ['generate image', 'create image', 'make image', 'draw', 'generate a picture', 'create a picture', 'make a picture'];
+      const imageKeywords = [
+        'generate image', 'create image', 'make image', 'draw', 'generate a picture', 
+        'create a picture', 'make a picture', 'show me', 'visualize', 'paint',
+        'sketch', 'illustrate', 'design', 'make me an image', 'can you draw',
+        'I want to see', 'picture of', 'image of'
+      ];
+      
       const isImageRequest = imageKeywords.some(keyword => 
-        userMessage.toLowerCase().includes(keyword)
-      );
+        userMessage.toLowerCase().includes(keyword.toLowerCase())
+      ) || /\b(draw|paint|sketch|illustrate|visualize|picture|image)\s+(?:me\s+)?(?:a\s+|an\s+|some\s+)?/i.test(userMessage);
 
       if (isImageRequest) {
         // Extract the image description from the message
@@ -211,6 +217,53 @@ export function ChatInterface() {
     files.forEach(handleImageUpload);
   };
 
+  const handleEditMessage = async (messageId: string, newContent: string) => {
+    // Find the edited message and continue conversation from that point
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1) return;
+
+    if (!apiKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please add your OpenAI API key to continue the conversation.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const openai = new OpenAIService(apiKey);
+      
+      // Get messages up to the edited message
+      const conversationHistory = messages
+        .slice(0, messageIndex + 1)
+        .filter(msg => msg.type === 'text')
+        .map(msg => ({
+          role: msg.role,
+          content: msg.id === messageId ? newContent : msg.content
+        }));
+
+      const response = await openai.sendMessage(conversationHistory);
+      
+      addMessage({
+        content: response,
+        role: 'assistant',
+        type: 'text'
+      });
+    } catch (error) {
+      console.error('Continue conversation error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to continue conversation",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleNewChat = () => {
     createNewSession();
     toast({
@@ -278,7 +331,11 @@ export function ChatInterface() {
               </motion.div>
             ) : (
               messages.map((message) => (
-                <MessageBubble key={message.id} message={message} />
+                <MessageBubble 
+                  key={message.id} 
+                  message={message} 
+                  onEdit={handleEditMessage}
+                />
               ))
             )}
             

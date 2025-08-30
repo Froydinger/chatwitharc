@@ -34,6 +34,7 @@ export interface ArcState {
   // Current Chat State
   messages: Message[];
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
+  editMessage: (messageId: string, newContent: string) => void;
   clearCurrentMessages: () => void;
   
   // UI State
@@ -163,6 +164,38 @@ export const useArcStore = create<ArcState>()(
       },
       
       clearCurrentMessages: () => set({ messages: [] }),
+      
+      editMessage: (messageId, newContent) => {
+        set((state) => {
+          const messageIndex = state.messages.findIndex(m => m.id === messageId);
+          if (messageIndex === -1) return state;
+          
+          // Update the message content and remove all messages after it
+          const updatedMessages = state.messages.slice(0, messageIndex + 1);
+          updatedMessages[messageIndex] = {
+            ...updatedMessages[messageIndex],
+            content: newContent,
+            timestamp: new Date()
+          };
+          
+          // Update current session
+          let updatedSessions = state.chatSessions;
+          if (state.currentSessionId) {
+            updatedSessions = state.chatSessions.map(session => 
+              session.id === state.currentSessionId ? {
+                ...session,
+                lastMessageAt: new Date(),
+                messages: updatedMessages
+              } : session
+            );
+          }
+          
+          return {
+            messages: updatedMessages,
+            chatSessions: updatedSessions
+          };
+        });
+      },
       
       // UI
       currentTab: 'chat',
