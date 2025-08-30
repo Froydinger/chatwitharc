@@ -117,8 +117,8 @@ export function BottomNavigation() {
         className="relative"
       >
         {/* Tab Bar Background - Expands to include chat input when on chat tab */}
-<motion.div 
-          className="bubble-nav relative px-6 py-3"
+        <motion.div 
+          className="bubble-nav relative py-3"
         >
           {/* Chat Input - Only visible on chat tab */}
           {currentTab === 'chat' && (
