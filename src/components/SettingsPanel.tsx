@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Key, Volume2, Palette, Info, Trash2 } from "lucide-react";
+import { Key, Volume2, Palette, Info, Trash2, User } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ApiKeyModal } from "@/components/ApiKeyModal";
 
 export function SettingsPanel() {
@@ -16,7 +18,11 @@ export function SettingsPanel() {
     setSelectedVoice, 
     theme, 
     setTheme,
-    clearAllSessions
+    clearAllSessions,
+    userName,
+    setUserName,
+    userContext,
+    setUserContext
   } = useArcStore();
   const [showApiModal, setShowApiModal] = useState(false);
 
@@ -29,6 +35,37 @@ export function SettingsPanel() {
   };
 
   const settings = [
+    {
+      title: "Personal Information",
+      icon: User,
+      items: [
+        {
+          label: "Your Name",
+          description: "How Arc should address you",
+          action: (
+            <Input
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              placeholder="Enter your name"
+              className="w-40 glass border-glass-border text-sm"
+            />
+          )
+        },
+        {
+          label: "Context & Preferences", 
+          description: "Tell Arc about yourself and your needs",
+          action: (
+            <Textarea
+              value={userContext}
+              onChange={(e) => setUserContext(e.target.value)}
+              placeholder="I'm interested in... I prefer... I'm working on..."
+              className="w-full glass border-glass-border text-sm min-h-[80px] resize-none"
+            />
+          ),
+          fullWidth: true
+        }
+      ]
+    },
     {
       title: "API Configuration",
       icon: Key,
@@ -150,13 +187,15 @@ export function SettingsPanel() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: (sectionIndex * 0.1) + (itemIndex * 0.05) }}
-                    className="flex items-center justify-between p-4 glass rounded-lg"
+                    className={`glass rounded-lg p-4 ${
+                      item.fullWidth ? 'space-y-3' : 'flex items-center justify-between'
+                    }`}
                   >
-                    <div className="flex-1">
+                    <div className={item.fullWidth ? 'space-y-2' : 'flex-1'}>
                       <p className="font-medium text-foreground">{item.label}</p>
                       <p className="text-sm text-muted-foreground">{item.description}</p>
                     </div>
-                    <div className="ml-4">
+                    <div className={item.fullWidth ? 'w-full' : 'ml-4'}>
                       {item.action}
                     </div>
                   </motion.div>

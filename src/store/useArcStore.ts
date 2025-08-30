@@ -52,6 +52,12 @@ export interface ArcState {
   // Theme
   theme: 'dark' | 'light';
   setTheme: (theme: 'dark' | 'light') => void;
+  
+  // User Personalization
+  userName: string;
+  setUserName: (name: string) => void;
+  userContext: string;
+  setUserContext: (context: string) => void;
 }
 
 export const useArcStore = create<ArcState>()(
@@ -211,7 +217,13 @@ export const useArcStore = create<ArcState>()(
       
       // Theme
       theme: 'dark',
-      setTheme: (theme) => set({ theme })
+      setTheme: (theme) => set({ theme }),
+      
+      // User Personalization
+      userName: '',
+      setUserName: (name) => set({ userName: name }),
+      userContext: '',
+      setUserContext: (context) => set({ userContext: context })
     }),
     {
       name: 'arc-ai-storage',
@@ -220,7 +232,9 @@ export const useArcStore = create<ArcState>()(
         selectedVoice: state.selectedVoice,
         theme: state.theme,
         chatSessions: state.chatSessions,
-        currentSessionId: state.currentSessionId
+        currentSessionId: state.currentSessionId,
+        userName: state.userName,
+        userContext: state.userContext
       })
     }
   )

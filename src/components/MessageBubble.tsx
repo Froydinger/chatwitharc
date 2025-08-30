@@ -88,7 +88,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           {isUser ? (
             <User className="h-4 w-4 text-primary-glow" />
           ) : (
-            <Smile className="h-4 w-4 text-primary-glow" />
+            <div className="w-8 h-8 rounded-full bg-cover bg-center bg-no-repeat" 
+                 style={{backgroundImage: `url('/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png')`}} />
           )}
         </motion.div>
 

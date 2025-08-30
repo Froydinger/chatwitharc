@@ -55,6 +55,7 @@ export function ChatInterface() {
 
     try {
       const openai = new OpenAIService(apiKey);
+      const { userName, userContext } = useArcStore.getState();
       
       // Check if user is requesting image generation
       const imageKeywords = [
@@ -102,7 +103,7 @@ export function ChatInterface() {
           content: userMessage
         });
 
-        const response = await openai.sendMessage(openaiMessages);
+        const response = await openai.sendMessage(openaiMessages, userName, userContext);
         
         addMessage({
           content: response,
@@ -235,6 +236,7 @@ export function ChatInterface() {
 
     try {
       const openai = new OpenAIService(apiKey);
+      const { userName, userContext } = useArcStore.getState();
       
       // Get messages up to the edited message
       const conversationHistory = messages
@@ -245,7 +247,7 @@ export function ChatInterface() {
           content: msg.id === messageId ? newContent : msg.content
         }));
 
-      const response = await openai.sendMessage(conversationHistory);
+      const response = await openai.sendMessage(conversationHistory, userName, userContext);
       
       addMessage({
         content: response,

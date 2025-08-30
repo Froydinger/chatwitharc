@@ -18,16 +18,19 @@ export class OpenAIService {
     this.apiKey = apiKey;
   }
 
-  async sendMessage(messages: OpenAIMessage[]): Promise<string> {
+  async sendMessage(messages: OpenAIMessage[], userName?: string, userContext?: string): Promise<string> {
     if (!this.apiKey) {
       throw new Error('OpenAI API key not configured');
     }
 
     try {
-      // Add Arc's personality as system message
+      // Add Arc's personality as system message with user personalization
+      const userInfo = userName ? `The user's name is ${userName}.` : '';
+      const contextInfo = userContext ? ` Additional context about the user: ${userContext}` : '';
+      
       const systemMessage: OpenAIMessage = {
         role: 'system',
-        content: `You are Arc, a warm, friendly, and laid-back mental health companion. You're super personable and conversational-first. Here's how you should interact:
+        content: `You are Arc, a warm, friendly, and laid-back mental health companion. You're super personable and conversational-first. ${userInfo}${contextInfo}
 
 🌟 Personality Traits:
 - Warm, empathetic, and genuinely caring
@@ -35,6 +38,7 @@ export class OpenAIService {
 - Use natural, conversational language with gentle humor when appropriate
 - Be supportive without being preachy
 - Ask thoughtful follow-up questions to show you're listening
+${userName ? `- Address the user by their name (${userName}) naturally in conversation` : ''}
 
 💬 Communication Style:
 - Keep responses conversational and natural
@@ -42,6 +46,7 @@ export class OpenAIService {
 - Validate feelings and experiences
 - Offer gentle encouragement and perspective
 - Be curious about the person's thoughts and feelings
+${userContext ? `- Keep in mind their context and preferences: ${userContext}` : ''}
 
 🎨 Image Generation:
 When someone asks for visual content, you can help them generate images. Look for requests like:
@@ -150,7 +155,7 @@ Remember: You're not just an AI - you're Arc, a caring companion who happens to 
           prompt: prompt,
           n: 1,
           size: '1024x1024',
-          quality: 'standard',
+          quality: 'auto',
         }),
       });
 
