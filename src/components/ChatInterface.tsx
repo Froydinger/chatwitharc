@@ -68,9 +68,6 @@ export function ChatInterface() {
       const isImageRequest = imageKeywords.some(keyword => 
         userMessage.toLowerCase().includes(keyword.toLowerCase())
       ) || /\b(draw|paint|sketch|illustrate|visualize|picture|image)\s+(?:me\s+)?(?:a\s+|an\s+|some\s+)?/i.test(userMessage);
-      
-      console.log('User message:', userMessage);
-      console.log('Is image request:', isImageRequest);
 
       if (isImageRequest) {
         // Extract the image description from the message
