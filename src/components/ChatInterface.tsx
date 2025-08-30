@@ -292,7 +292,7 @@ export function ChatInterface() {
       <GlassCard 
         variant="bubble" 
         glow
-        className={`flex-1 min-h-[60vh] p-4 sm:p-6 mb-32 transition-all duration-300 ${
+        className={`flex-1 min-h-[60vh] p-4 sm:p-6 mb-40 transition-all duration-300 ${
           dragOver ? 'border-primary-glow border-2' : ''
         }`}
         onDragOver={(e) => {
@@ -384,9 +384,9 @@ export function ChatInterface() {
         )}
       </GlassCard>
 
-      {/* Input Area - Fixed above bottom navigation */}
-      <div className="fixed bottom-28 left-4 right-4 z-40">
-        <GlassCard variant="bubble" className="p-4">
+      {/* Input Area - Unified with bottom navigation */}
+      <div className="fixed bottom-0 left-4 right-4 z-40">
+        <GlassCard variant="bubble" className="p-4 pb-6 rounded-t-3xl rounded-b-none border-b-0">
         {/* Selected Images Preview */}
         {selectedImages.length > 0 && (
           <div className="mb-4 p-3 bg-glass/20 rounded-lg">

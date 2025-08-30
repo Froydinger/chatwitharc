@@ -84,7 +84,7 @@ export function BottomNavigation() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-8">
+    <div className="fixed bottom-0 left-4 right-4 z-30 flex justify-center">
       <motion.div
         ref={containerRef}
         initial={{ y: 100, opacity: 0 }}
@@ -92,8 +92,8 @@ export function BottomNavigation() {
         transition={{ duration: 0.6, delay: 0.2, type: "spring", damping: 15 }}
         className="relative"
       >
-        {/* Fixed Tab Bar Background */}
-        <div className="bubble-nav relative px-6 py-3">
+        {/* Fixed Tab Bar Background - Unified with input */}
+        <div className="bubble-nav relative px-6 py-3 pt-16 pb-6 rounded-b-3xl rounded-t-none border-t-0">
           {/* Draggable Selection Bubble */}
           <motion.div
             drag
