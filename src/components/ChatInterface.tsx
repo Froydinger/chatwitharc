@@ -281,7 +281,7 @@ export function ChatInterface() {
             variant="bubble"
             size="icon"
             onClick={handleNewChat}
-            className="animate-bounce-gentle"
+            className="hover:scale-105 transition-transform duration-200"
           >
             <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-5 w-5" />
           </GlassButton>
@@ -311,8 +311,8 @@ export function ChatInterface() {
                 className="text-center py-12"
               >
                 <motion.div
-                  animate={{ rotate: [0, 5, -5, 0] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  animate={{ rotate: [0, 2, -2, 0] }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                   className="flex justify-center mb-4"
                 >
                   <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-16 w-16" />
@@ -454,10 +454,10 @@ export function ChatInterface() {
           </div>
 
           <GlassButton
-            variant={(inputValue.trim() || selectedImages.length > 0) ? "glow" : "ghost"}
+            variant={inputValue.trim() || selectedImages.length > 0 ? "glow" : "ghost"}
             size="icon"
             onClick={handleSend}
-            disabled={(!inputValue.trim() && selectedImages.length === 0) || isLoading}
+            disabled={isLoading}
             className="shrink-0"
           >
             <Send className="h-4 w-4" />

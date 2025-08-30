@@ -272,7 +272,7 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   .animate-bounce-gentle {
-    /* Removed automatic animation - only on hover/active states */
+    /* Only on hover */
   }
 
   .animate-glow-pulse {
@@ -285,14 +285,14 @@ All colors MUST be HSL for perfect glass effects.
 
   /* Enhanced Haptic feedback with bounce */
   .haptic {
-    transition: transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    transition: transform 0.15s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
 
   .haptic:active {
-    transform: scale(0.9);
+    transform: scale(0.95);
   }
 
   .haptic:hover {
-    transform: scale(1.05);
+    transform: scale(1.02);
   }
 }

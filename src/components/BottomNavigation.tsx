@@ -159,7 +159,7 @@ export function BottomNavigation() {
                     className="w-24 h-16 flex flex-col items-center justify-center cursor-pointer"
                     whileHover={{ 
                       scale: 1.05,
-                      transition: { type: "spring", damping: 15, stiffness: 300 }
+                      transition: { type: "spring", damping: 20, stiffness: 400 }
                     }}
                     whileTap={{ 
                       scale: 0.95,
@@ -169,13 +169,13 @@ export function BottomNavigation() {
                   >
                     <Icon 
                       className={`h-6 w-6 mb-1 transition-colors duration-300 ${
-                        isActive ? "text-white drop-shadow-lg" : "text-muted-foreground"
+                        isActive ? "text-primary-foreground drop-shadow-lg" : "text-muted-foreground hover:text-foreground"
                       }`} 
                     />
                     
                     <span 
                       className={`text-xs font-medium transition-colors duration-300 ${
-                        isActive ? "text-white drop-shadow-sm" : "text-muted-foreground"
+                        isActive ? "text-primary-foreground drop-shadow-sm" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       {item.label}
