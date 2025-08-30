@@ -28,15 +28,23 @@ export function useProfile() {
 
     try {
       setLoading(true);
+      setError(null);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) {
+        console.error('Profile fetch error:', error);
+        setError(error);
+        return;
+      }
+      
       setProfile(data);
     } catch (err) {
+      console.error('Profile fetch error:', err);
       setError(err as Error);
     } finally {
       setLoading(false);

@@ -9,9 +9,9 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ProfileManager } from "@/components/ProfileManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { fadeInVariants, staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -255,8 +255,9 @@ export function SettingsPanel() {
       </div>
       
       <motion.div
-        initial={{ opacity: 1 }}
-        animate={{ opacity: 1 }}
+        variants={staggerContainerVariants}
+        initial="initial"
+        animate="animate"
         className="text-center mb-8"
       >
         <h2 className="text-2xl font-bold text-foreground mb-2">Settings</h2>
@@ -269,8 +270,7 @@ export function SettingsPanel() {
         return (
           <motion.div
             key={section.title}
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 1 }}
+            variants={staggerItemVariants}
           >
             <GlassCard variant="bubble" glow className="p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -286,8 +286,7 @@ export function SettingsPanel() {
                 {section.items.map((item, itemIndex) => (
                   <motion.div
                     key={item.label}
-                    initial={{ opacity: 1 }}
-                    animate={{ opacity: 1 }}
+                    variants={staggerItemVariants}
                     className={`glass rounded-lg p-4 ${
                       item.fullWidth ? 'space-y-3' : 'flex items-center justify-between'
                     }`}
@@ -309,8 +308,7 @@ export function SettingsPanel() {
 
       {/* App Info */}
       <motion.div
-        initial={{ opacity: 1 }}
-        animate={{ opacity: 1 }}
+        variants={staggerItemVariants}
       >
         <GlassCard variant="bubble" className="p-6">
           <div className="flex items-center gap-3 mb-4">

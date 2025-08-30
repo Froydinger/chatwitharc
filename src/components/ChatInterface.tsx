@@ -8,6 +8,13 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { MessageBubble } from "@/components/MessageBubble";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  fadeInVariants, 
+  staggerContainerVariants, 
+  staggerItemVariants, 
+  welcomeTextVariants,
+  inputBarVariants 
+} from "@/utils/animations";
 
 export function ChatInterface() {
   const { 
@@ -143,8 +150,9 @@ export function ChatInterface() {
             <AnimatePresence mode="popLayout">
               {messages.length === 0 ? (
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  variants={fadeInVariants}
+                  initial="initial"
+                  animate="animate"
                   className="text-center py-12"
                 >
                   <motion.div
@@ -154,16 +162,33 @@ export function ChatInterface() {
                   >
                     <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-16 w-16" />
                   </motion.div>
-                  <h3 className="text-xl font-semibold text-foreground mb-2">
+                  <motion.h3 
+                    variants={welcomeTextVariants}
+                    initial="initial"
+                    animate="animate"
+                    className="text-xl font-semibold text-foreground mb-2"
+                  >
                     Welcome to ArcAI
-                  </h3>
-                  <p className="text-muted-foreground mb-8">
+                  </motion.h3>
+                  <motion.p 
+                    variants={welcomeTextVariants}
+                    initial="initial"
+                    animate="animate"
+                    transition={{ delay: 0.1 }}
+                    className="text-muted-foreground mb-8"
+                  >
                     Start a conversation or drop an image to analyze
-                  </p>
+                  </motion.p>
                   
                   {/* Quick Start Options - with bottom padding */}
-                  <div className="grid grid-cols-1 gap-3 max-w-md mx-auto pb-40">
+                  <motion.div 
+                    variants={staggerContainerVariants}
+                    initial="initial"
+                    animate="animate"
+                    className="grid grid-cols-1 gap-3 max-w-md mx-auto pb-40"
+                  >
                     <motion.button
+                      variants={staggerItemVariants}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => startChatWithMessage("I'd like a mental wellness check-in. How are you feeling today and what's on your mind?")}
@@ -181,6 +206,7 @@ export function ChatInterface() {
                     </motion.button>
                     
                     <motion.button
+                      variants={staggerItemVariants}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => startChatWithMessage("I need someone to talk to today. Can you be a supportive companion?")}
@@ -198,6 +224,7 @@ export function ChatInterface() {
                     </motion.button>
                     
                     <motion.button
+                      variants={staggerItemVariants}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => startChatWithMessage("Let's get creative! Help me brainstorm some ideas or work on a creative project.")}
@@ -213,7 +240,7 @@ export function ChatInterface() {
                         </div>
                       </div>
                     </motion.button>
-                  </div>
+                  </motion.div>
                 </motion.div>
               ) : (
                 messages.map((message) => (
