@@ -136,30 +136,26 @@ export function ChatHistoryPanel() {
                 {sessions.map((session, sessionIndex) => (
                   <div
                     key={session.id}
-                    style={{ 
-                      opacity: deletingId === session.id ? 0 : 1, 
-                      transform: deletingId === session.id ? 'scale(0.9)' : 'scale(1)',
-                      transition: 'opacity 0.3s ease-out, transform 0.3s ease-out'
-                    }}
+                    className={`opacity-100 ${deletingId === session.id ? 'hidden' : ''}`}
                   >
                     <GlassCard
                       variant={currentSessionId === session.id ? "bubble" : "default"}
                       glow={currentSessionId === session.id}
-                      className={`p-6 cursor-pointer transition-all duration-300 hover:glass-strong group ${
+                      className={`p-6 cursor-pointer group ${
                         currentSessionId === session.id ? "ring-2 ring-primary-glow" : ""
                       }`}
                       onClick={() => handleLoadSession(session.id)}
                     >
                       <div className="space-y-4">
                         <div className="flex items-start justify-between gap-2">
-                          <h4 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary-glow transition-colors text-base">
+                          <h4 className="font-semibold text-foreground line-clamp-2 text-base">
                             {session.title}
                           </h4>
                           
                           <GlassButton
                             variant="ghost"
                             size="icon"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-destructive hover:text-destructive flex-shrink-0"
+                            className="opacity-0 group-hover:opacity-100 h-8 w-8 text-destructive hover:text-destructive flex-shrink-0"
                             onClick={(e) => handleDeleteSession(session.id, e)}
                           >
                             <Trash2 className="h-4 w-4" />
