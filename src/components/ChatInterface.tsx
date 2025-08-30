@@ -387,10 +387,10 @@ export function ChatInterface() {
       {/* Input Area - Part of unified bottom panel */}
       <div className="fixed bottom-20 left-4 right-4 z-40">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
         >
           <GlassCard variant="bubble" className="p-4 pb-6 rounded-3xl mb-2">
         {/* Selected Images Preview */}
@@ -461,11 +461,15 @@ export function ChatInterface() {
           </div>
 
           <GlassButton
-            variant={inputValue.trim() || selectedImages.length > 0 ? "glow" : "ghost"}
+            variant={inputValue.trim() ? "default" : "ghost"}
             size="icon"
             onClick={handleSend}
             disabled={isLoading}
-            className="shrink-0"
+            className={`shrink-0 transition-all duration-200 ${
+              inputValue.trim() 
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg' 
+                : ''
+            }`}
           >
             <Send className="h-4 w-4" />
           </GlassButton>

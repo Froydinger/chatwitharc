@@ -87,12 +87,12 @@ export function BottomNavigation() {
     <div className="fixed bottom-4 left-4 right-4 z-30 flex justify-center">
       <motion.div
         ref={containerRef}
-        initial={{ y: 100, opacity: 0 }}
+        initial={{ y: 30, opacity: 0 }}
         animate={{ 
           y: 0, 
           opacity: 1,
         }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
         {/* Tab Bar Background - Expands for chat */}
@@ -102,7 +102,7 @@ export function BottomNavigation() {
             paddingTop: currentTab === 'chat' ? '1.5rem' : '0.75rem',
             paddingBottom: currentTab === 'chat' ? '1.5rem' : '0.75rem'
           }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
         >
           {/* Draggable Selection Bubble */}
           <motion.div
@@ -156,13 +156,12 @@ export function BottomNavigation() {
                 <motion.div
                   key={item.id}
                   ref={(el) => tabRefs.current[index] = el}
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
                   transition={{ 
-                    duration: 0.6, 
-                    delay: 0.4 + index * 0.15, 
-                    type: "spring", 
-                    damping: 12 
+                    duration: 0.2, 
+                    delay: 0.1 + index * 0.05, 
+                    ease: [0.25, 0.1, 0.25, 1]
                   }}
                 >
                   <motion.div
