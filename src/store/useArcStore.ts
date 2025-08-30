@@ -74,9 +74,14 @@ export const useArcStore = create<ArcState>()(
       // Supabase Sync Functions
       syncFromSupabase: async () => {
         try {
+          console.log('Starting sync from Supabase...');
           const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
+          if (!user) {
+            console.error('No authenticated user for sync');
+            return;
+          }
 
+          console.log('Fetching sessions for user:', user.id);
           const { data: sessions, error } = await supabase
             .from('chat_sessions')
             .select('*')
@@ -88,11 +93,13 @@ export const useArcStore = create<ArcState>()(
             return;
           }
 
+          console.log('Fetched sessions:', sessions?.length || 0);
           if (sessions) {
             const decryptedSessions: ChatSession[] = [];
             
             for (const session of sessions) {
               try {
+                console.log('Decrypting session:', session.id);
                 const decryptedData = await ChatEncryption.decrypt(session.encrypted_data, user.id);
                 decryptedSessions.push({
                   id: session.id,
@@ -106,6 +113,7 @@ export const useArcStore = create<ArcState>()(
               }
             }
 
+            console.log('Successfully decrypted sessions:', decryptedSessions.length);
             set({
               chatSessions: decryptedSessions,
               lastSyncAt: new Date()
@@ -118,13 +126,19 @@ export const useArcStore = create<ArcState>()(
 
       saveChatToSupabase: async (session: ChatSession) => {
         try {
+          console.log('Attempting to save session to Supabase:', session.id);
           const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
+          if (!user) {
+            console.error('No authenticated user found');
+            return;
+          }
 
+          console.log('User authenticated, encrypting data...');
           const encryptedData = await ChatEncryption.encrypt({
             messages: session.messages
           }, user.id);
-
+          
+          console.log('Data encrypted, saving to database...');
           const { error } = await supabase
             .from('chat_sessions')
             .upsert({
@@ -137,6 +151,9 @@ export const useArcStore = create<ArcState>()(
 
           if (error) {
             console.error('Error saving session to Supabase:', error);
+          } else {
+            console.log('Session saved successfully to Supabase');
+            set({ lastSyncAt: new Date() });
           }
         } catch (error) {
           console.error('Error saving to Supabase:', error);
