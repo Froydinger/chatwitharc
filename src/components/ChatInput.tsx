@@ -325,7 +325,7 @@ export function ChatInput() {
           size="icon"
           onClick={handleSend}
           disabled={isLoading}
-          className={`shrink-0 transition-all duration-200 translate-y-0.5 ${
+          className={`shrink-0 transition-all duration-200 translate-y-1 ${
             inputValue.trim() 
               ? 'bg-primary/30 text-primary-foreground hover:bg-primary/40 shadow-lg' 
               : ''
