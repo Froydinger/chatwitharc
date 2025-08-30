@@ -116,27 +116,20 @@ export function BottomNavigation() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
-        {/* Tab Bar Background - Unified glass container that expands for chat input */}
-        <motion.div 
-          className="bubble-nav relative"
-          animate={{
-            paddingTop: currentTab === 'chat' ? '1.5rem' : '0.75rem',
-            paddingBottom: '0.75rem',
-            paddingLeft: '1.5rem',
-            paddingRight: '1.5rem'
-          }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-        >
-          {/* Chat Input - Only visible on chat tab */}
+        {/* Tab Bar Background - Fixed position container */}
+        <div className="bubble-nav relative px-6 py-3">
+          {/* Chat Input - Only visible on chat tab, positioned above tabs */}
           {currentTab === 'chat' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.3, delay: 0.1 }}
-              className="mb-6"
+              className="absolute bottom-full left-6 right-6 pb-6"
             >
-              <ChatInput />
+              <div className="bubble-nav p-4">
+                <ChatInput />
+              </div>
             </motion.div>
           )}
           {/* Draggable Selection Bubble */}
@@ -227,7 +220,7 @@ export function BottomNavigation() {
               );
             })}
           </div>
-        </motion.div>
+        </div>
       </motion.div>
     </div>
   );
