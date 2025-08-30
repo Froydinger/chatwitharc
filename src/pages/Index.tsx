@@ -59,21 +59,26 @@ const Index = () => {
         />
       </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 flex flex-col min-h-screen">
-        <main className="flex-1 flex items-center justify-center p-2 sm:p-4 pb-28 sm:pb-24">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentTab}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="w-full h-full flex items-center justify-center"
-            >
-              {renderCurrentTab()}
-            </motion.div>
-          </AnimatePresence>
+      {/* Main Container - accounts for bottom navigation */}
+      <div className="relative z-10 h-screen flex flex-col">
+        <main className="flex-1 overflow-hidden">
+          {/* Scrollable content container */}
+          <div className="h-full overflow-y-auto pb-32">
+            <div className="min-h-full p-2 sm:p-4 lg:p-6">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentTab}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="w-full"
+                >
+                  {renderCurrentTab()}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
         </main>
 
         {/* Bottom Navigation */}

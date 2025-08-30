@@ -67,7 +67,7 @@ export function ChatHistoryPanel() {
   }, {} as Record<string, typeof chatSessions>);
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6">
+    <div className="w-full max-w-4xl mx-auto space-y-6 pb-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

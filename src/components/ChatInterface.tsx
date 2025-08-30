@@ -193,7 +193,7 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[75vh] sm:max-h-[70vh] w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative">
+    <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto">
       {/* New Chat Button - Floating */}
       {messages.length > 0 && (
         <motion.div
@@ -217,7 +217,7 @@ export function ChatInterface() {
       <GlassCard 
         variant="bubble" 
         glow
-        className={`flex-1 p-6 mb-4 transition-all duration-300 ${
+        className={`flex-1 min-h-[60vh] p-4 sm:p-6 mb-4 transition-all duration-300 ${
           dragOver ? 'border-primary-glow border-2' : ''
         }`}
         onDragOver={(e) => {
