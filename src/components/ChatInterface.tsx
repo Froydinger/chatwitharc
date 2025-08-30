@@ -320,9 +320,9 @@ export function ChatInterface() {
                 <motion.div
                   animate={{ rotate: [0, 5, -5, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="text-6xl mb-4"
+                  className="flex justify-center mb-4"
                 >
-                  ✨
+                  <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-16 w-16" />
                 </motion.div>
                 <h3 className="text-xl font-semibold text-foreground mb-2">
                   Welcome to ArcAI
