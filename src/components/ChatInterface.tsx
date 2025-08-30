@@ -266,13 +266,10 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto overflow-hidden">
-      {/* Header with New Chat Button */}
-      <div className="flex justify-between items-center p-4 shrink-0">
-        <div className="flex items-center gap-3">
-          <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-8 w-8" />
-          <h1 className="text-xl font-semibold text-foreground">ArcAI</h1>
-        </div>
+    <div className="flex flex-col h-screen w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto overflow-hidden relative">
+      {/* Floating Header */}
+      <div className="absolute top-4 left-4 right-4 z-10 flex justify-between items-center">
+        <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-8 w-8" />
         {messages.length > 0 && (
           <motion.div
             initial={{ opacity: 0, scale: 0 }}
