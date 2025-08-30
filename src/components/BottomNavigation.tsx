@@ -129,7 +129,9 @@ export function BottomNavigation() {
               transition={{ duration: 0.3, delay: 0.1 }}
               className="absolute bottom-full left-0 right-0 pb-6 px-6"
             >
-              <ChatInput />
+              <div className="bubble-nav p-4">
+                <ChatInput />
+              </div>
             </motion.div>
           )}
           {/* Draggable Selection Bubble */}
