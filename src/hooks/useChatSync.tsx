@@ -125,9 +125,36 @@ export function useChatSync() {
     }
   }, [user, currentSessionId, messages, saveChatSession]);
 
+  // Force sync function for debugging
+  const forceSyncByEmail = useCallback(async () => {
+    if (!user) {
+      toast({
+        title: "Not logged in",
+        description: "Please log in to sync chats",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    toast({
+      title: "Force syncing...",
+      description: `Syncing chats for ${user.email}`,
+    });
+
+    // Clear current sessions and reload from server
+    useArcStore.setState({ chatSessions: [], currentSessionId: null, messages: [] });
+    await loadChatSessions();
+    
+    toast({
+      title: "Sync complete",
+      description: `Synced chats for account: ${user.email}`,
+    });
+  }, [user, toast, loadChatSessions]);
+
   return {
     loadChatSessions,
     saveChatSession,
-    deleteChatSession
+    deleteChatSession,
+    forceSyncByEmail
   };
 }

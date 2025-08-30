@@ -28,7 +28,7 @@ export function ChatInterface() {
   const { toast } = useToast();
   
   // Initialize chat sync for automatic saving to Supabase
-  useChatSync();
+  const { forceSyncByEmail } = useChatSync();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -458,6 +458,14 @@ export function ChatInterface() {
               <Paperclip className="h-4 w-4" />
             </GlassButton>
           </div>
+
+          <button
+            onClick={forceSyncByEmail}
+            className="px-3 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors text-sm font-medium"
+            title="Force sync chats by email"
+          >
+            Sync
+          </button>
 
           <div className="flex-1">
             <Input

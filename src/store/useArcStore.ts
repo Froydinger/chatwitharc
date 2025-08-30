@@ -73,7 +73,8 @@ export const useArcStore = create<ArcState>()(
       chatSessions: [],
       
       createNewSession: () => {
-        const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        // Generate a proper UUID for Supabase compatibility
+        const sessionId = crypto.randomUUID();
         const newSession: ChatSession = {
           id: sessionId,
           title: "New Chat",
@@ -137,7 +138,7 @@ export const useArcStore = create<ArcState>()(
           
           if (!currentSessionId) {
             // Create new session if none exists
-            currentSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+            currentSessionId = crypto.randomUUID();
             const newSession: ChatSession = {
               id: currentSessionId,
               title: message.role === 'user' ? 
