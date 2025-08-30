@@ -62,12 +62,15 @@ export function ChatInterface() {
         'generate image', 'create image', 'make image', 'draw', 'generate a picture', 
         'create a picture', 'make a picture', 'show me', 'visualize', 'paint',
         'sketch', 'illustrate', 'design', 'make me an image', 'can you draw',
-        'I want to see', 'picture of', 'image of'
+        'I want to see', 'picture of', 'image of', 'generate an image'
       ];
       
       const isImageRequest = imageKeywords.some(keyword => 
         userMessage.toLowerCase().includes(keyword.toLowerCase())
       ) || /\b(draw|paint|sketch|illustrate|visualize|picture|image)\s+(?:me\s+)?(?:a\s+|an\s+|some\s+)?/i.test(userMessage);
+      
+      console.log('User message:', userMessage);
+      console.log('Is image request:', isImageRequest);
 
       if (isImageRequest) {
         // Extract the image description from the message

@@ -1,12 +1,12 @@
 import { motion } from "framer-motion";
-import { Sparkles, Mic2, MessageSquare, Zap, Shield, Github } from "lucide-react";
+import { Mic2, MessageSquare, Zap, Shield, Github } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 
 export function InfoPanel() {
   const features = [
     {
-      icon: Sparkles,
+      icon: () => <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="Arc AI" className="w-6 h-6" />,
       title: "Liquid Glass UI",
       description: "Apple-inspired translucent interface with fluid animations and micro-interactions"
     },
