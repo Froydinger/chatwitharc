@@ -150,7 +150,7 @@ export function ChatHistoryPanel() {
                       <GlassCard
                         variant={currentSessionId === session.id ? "bubble" : "default"}
                         glow={currentSessionId === session.id}
-                        className={`p-4 cursor-pointer transition-all duration-300 hover:glass-strong group ${
+                        className={`p-4 cursor-pointer transition-all duration-300 hover:glass-strong group rounded-lg ${
                           currentSessionId === session.id ? "ring-2 ring-primary-glow" : ""
                         }`}
                         onClick={() => handleLoadSession(session.id)}
@@ -183,7 +183,7 @@ export function ChatHistoryPanel() {
 
                           {/* Preview of last message */}
                           {session.messages.length > 0 && (
-                            <div className="text-xs text-muted-foreground bg-glass/50 rounded-lg p-2">
+                            <div className="text-xs text-muted-foreground bg-glass/50 rounded-md p-2">
                               <p className="line-clamp-2">
                                 {session.messages[session.messages.length - 1].content}
                               </p>
