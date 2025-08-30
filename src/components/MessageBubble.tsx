@@ -165,7 +165,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 variant="ghost"
                 size="icon"
                 onClick={handleCopy}
-                className="h-6 w-6"
+                className="h-6 w-6 bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg"
               >
                 <Copy className="h-3 w-3" />
               </GlassButton>
@@ -174,7 +174,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   variant="ghost"
                   size="icon"
                   onClick={handleEdit}
-                  className="h-6 w-6"
+                  className="h-6 w-6 bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg"
                 >
                   <Edit2 className="h-3 w-3" />
                 </GlassButton>
