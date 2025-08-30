@@ -117,7 +117,16 @@ export function BottomNavigation() {
         className="relative"
       >
         {/* Tab Bar Background - Fixed position container */}
-        <div className="bubble-nav relative px-6 py-3">
+        <div className="glass-strong rounded-[var(--radius-bubble)] px-6 py-3" style={{
+          background: "linear-gradient(135deg, hsla(var(--glass), 0.3) 0%, hsla(var(--glass-overlay), 0.4) 100%)",
+          backdropFilter: "blur(20px)",
+          boxShadow: `
+            0 0 40px hsla(var(--primary-glow), 0.2),
+            0 8px 32px hsla(var(--primary), 0.15),
+            inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
+            inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
+          `
+        }}>
           {/* Chat Input - Only visible on chat tab, positioned above tabs */}
           {currentTab === 'chat' && (
             <motion.div
@@ -127,7 +136,16 @@ export function BottomNavigation() {
               transition={{ duration: 0.3, delay: 0.1 }}
               className="absolute bottom-full left-0 right-0 mb-2 mx-6"
             >
-              <div className="bubble-nav p-4">
+              <div className="glass-strong rounded-[var(--radius-bubble)] p-4" style={{
+                background: "linear-gradient(135deg, hsla(var(--glass), 0.3) 0%, hsla(var(--glass-overlay), 0.4) 100%)",
+                backdropFilter: "blur(20px)",
+                boxShadow: `
+                  0 0 40px hsla(var(--primary-glow), 0.2),
+                  0 8px 32px hsla(var(--primary), 0.15),
+                  inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
+                  inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
+                `
+              }}>
                 <ChatInput />
               </div>
             </motion.div>
