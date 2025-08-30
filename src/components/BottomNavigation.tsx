@@ -30,8 +30,8 @@ export function BottomNavigation() {
 
   // Move bubble to active tab when tab changes
   useEffect(() => {
+    const position = getBubblePosition();
     if (!isDragging) {
-      const position = getBubblePosition();
       bubbleControls.start({
         x: position.x,
         y: position.y,
@@ -45,6 +45,15 @@ export function BottomNavigation() {
       });
     }
   }, [currentTab, isDragging, bubbleControls]);
+
+  // Set initial position without animation
+  useEffect(() => {
+    const position = getBubblePosition();
+    bubbleControls.set({
+      x: position.x,
+      y: position.y
+    });
+  }, []); // Only run on mount
 
   const handleDragEnd = (event: any, info: PanInfo) => {
     setIsDragging(false);

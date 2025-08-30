@@ -81,16 +81,6 @@ export function ChatHistoryPanel() {
         <p className="text-muted-foreground">
           All your conversations are stored locally and privately
         </p>
-        
-        <GlassButton
-          variant="glow"
-          size="lg"
-          onClick={handleNewChat}
-          className="animate-bounce-gentle"
-        >
-          <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-5 w-5 mr-2" />
-          Start New Chat
-        </GlassButton>
       </motion.div>
 
       {/* Chat Sessions */}
