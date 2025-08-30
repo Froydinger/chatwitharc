@@ -134,9 +134,9 @@ export function ChatInterface() {
           <div className="px-4 sm:px-6 pt-28 space-y-4">
             <div>
               {messages.length === 0 ? (
-                <div className="text-center py-12 opacity-100">
-                  <div className="flex justify-center mb-4 opacity-100">
-                    <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-16 w-16 opacity-100" />
+                <div className="text-center py-12 transform-none opacity-100 transition-none">
+                  <div className="flex justify-center mb-4 transform-none opacity-100 transition-none">
+                    <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-16 w-16 transform-none opacity-100 transition-none" />
                   </div>
                   <h3 className="text-xl font-semibold text-foreground mb-2 opacity-100">
                     Welcome to ArcAI

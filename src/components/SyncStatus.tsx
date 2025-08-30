@@ -59,7 +59,7 @@ export function SyncStatus() {
   const { icon: Icon, color, text } = getSyncStatus();
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex items-center gap-2 glass px-3 py-1 rounded-full text-xs">
+    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-2 glass px-3 py-1 rounded-full text-xs">
       <Icon className={`h-3 w-3 ${color}`} />
       <span className={color}>{text}</span>
     </div>
