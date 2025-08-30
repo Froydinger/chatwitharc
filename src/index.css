@@ -119,26 +119,28 @@ All colors MUST be HSL for perfect glass effects.
     overflow-x: hidden;
   }
 
-  /* Text Selection Styles - Force override */
-  * ::selection {
-    background: #3b82f6 !important;
-    color: #ffffff !important;
+  /* Text Selection Styles - Force override all elements */
+  *::selection {
+    background: #2563eb !important;
+    color: white !important;
   }
 
-  * ::-moz-selection {
-    background: #3b82f6 !important;
-    color: #ffffff !important;
+  *::-moz-selection {
+    background: #2563eb !important;
+    color: white !important;
   }
 
-  /* Light mode specific selection - dark blue background */
-  .light * ::selection {
-    background: #1d4ed8 !important;
-    color: #ffffff !important;
+  /* Input and textarea selection */
+  input::selection,
+  textarea::selection {
+    background: #2563eb !important;
+    color: white !important;
   }
 
-  .light * ::-moz-selection {
-    background: #1d4ed8 !important;
-    color: #ffffff !important;
+  input::-moz-selection,
+  textarea::-moz-selection {
+    background: #2563eb !important;
+    color: white !important;
   }
 
   /* Enhanced Glass Utilities - More bouncy and fun */

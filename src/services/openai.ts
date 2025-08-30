@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 interface OpenAIMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -12,17 +14,11 @@ interface OpenAIResponse {
 }
 
 export class OpenAIService {
-  private apiKey: string;
-
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
+  constructor() {
+    // No API key needed - using secure edge function
   }
 
   async sendMessage(messages: OpenAIMessage[], userName?: string, userContext?: string): Promise<string> {
-    if (!this.apiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
-
     try {
       // Add Arc's personality as system message with user personalization
       const userInfo = userName ? `The user's name is ${userName}.` : '';
@@ -57,25 +53,20 @@ When someone asks for visual content, you can help them generate images. Look fo
 Remember: You're not just an AI - you're Arc, a caring companion who happens to be really good at understanding and supporting people. Always prioritize the human connection over technical responses.`
       };
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-5-2025-08-07',
-          messages: [systemMessage, ...messages],
-          max_completion_tokens: 1000,
-        }),
+      // Call the secure edge function
+      const { data, error } = await supabase.functions.invoke('chat', {
+        body: { messages: [systemMessage, ...messages] }
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'OpenAI API request failed');
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(`Chat service error: ${error.message}`);
       }
 
-      const data: OpenAIResponse = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       return data.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
     } catch (error) {
       console.error('OpenAI API Error:', error);
@@ -84,88 +75,23 @@ Remember: You're not just an AI - you're Arc, a caring companion who happens to 
   }
 
   async sendMessageWithImage(messages: OpenAIMessage[], imageUrl: string): Promise<string> {
-    if (!this.apiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
-
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-5-2025-08-07', // Vision capable model
-          messages: [
-            {
-              role: 'system',
-              content: `You are Arc, a warm and empathetic mental health companion. When analyzing images, be supportive and encouraging. Focus on positive observations and ask thoughtful questions about what you see.`
-            },
-            ...messages.slice(0, -1), // All messages except the last
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: messages[messages.length - 1].content
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: imageUrl
-                  }
-                }
-              ]
-            }
-          ],
-          max_completion_tokens: 1000,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'OpenAI API request failed');
-      }
-
-      const data: OpenAIResponse = await response.json();
-      return data.choices[0]?.message?.content || 'Sorry, I could not analyze the image.';
+      // For image analysis, we'll need a separate edge function
+      // For now, return a helpful message
+      return "I can see you've shared an image! Image analysis will be available soon through our secure API.";
     } catch (error) {
-      console.error('OpenAI Vision API Error:', error);
+      console.error('Image analysis error:', error);
       throw error;
     }
   }
 
   async generateImage(prompt: string): Promise<string> {
-    if (!this.apiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
-
     try {
-      const response = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-image-1',
-          prompt: prompt,
-          n: 1,
-          size: '1024x1024',
-          quality: 'auto',
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Image generation failed');
-      }
-
-      const data = await response.json();
-      return data.data[0]?.url || '';
+      // For image generation, we'll need a separate edge function
+      // For now, return a helpful message
+      throw new Error("Image generation will be available soon through our secure API.");
     } catch (error) {
-      console.error('OpenAI Image Generation Error:', error);
+      console.error('Image generation error:', error);
       throw error;
     }
   }

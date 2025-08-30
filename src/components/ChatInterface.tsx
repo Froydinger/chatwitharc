@@ -67,7 +67,7 @@ export function ChatInterface() {
     setLoading(true);
 
     try {
-      const openai = new OpenAIService(apiKey);
+      const openai = new OpenAIService();
       const { userName, userContext } = useArcStore.getState();
       
       // Check if user is requesting image generation
@@ -102,7 +102,7 @@ export function ChatInterface() {
         });
       } else if (selectedImages.length > 0) {
         // Handle image analysis with text
-        const openai = new OpenAIService(apiKey);
+        const openai = new OpenAIService();
         
         // Convert first image to base64 for analysis
         const reader = new FileReader();
@@ -245,7 +245,7 @@ export function ChatInterface() {
     setLoading(true);
 
     try {
-      const openai = new OpenAIService(apiKey);
+      const openai = new OpenAIService();
       const { userName, userContext } = useArcStore.getState();
       
       // Get messages up to the edited message
