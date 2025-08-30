@@ -15,13 +15,14 @@ export function BottomNavigation() {
   const bubbleControls = useAnimation();
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // Calculate bubble position based on active tab
+  // Calculate bubble position to center behind active tab
   const getBubblePosition = () => {
     const activeIndex = navigationItems.findIndex(item => item.id === currentTab);
-    // Each tab is roughly 120px wide, starting from 40px offset
+    // Each tab is 96px wide (w-24), bubble is 64px wide, so offset by 16px to center
+    // Plus 32px padding on left side of container
     return {
-      x: 40 + (activeIndex * 120),
-      y: 16
+      x: 32 + (activeIndex * 96) + 16, // Center the 64px bubble in 96px tab space
+      y: 12 // Vertical center offset
     };
   };
 
@@ -45,7 +46,7 @@ export function BottomNavigation() {
   const handleDragEnd = (event: any, info: PanInfo) => {
     setIsDragging(false);
     
-    // Determine which tab the bubble is closest to
+    // Determine which tab the bubble is closest to based on drag position
     const bubbleX = info.point.x;
     const containerRect = containerRef.current?.getBoundingClientRect();
     
@@ -53,9 +54,10 @@ export function BottomNavigation() {
       const relativeX = bubbleX - containerRect.left;
       let closestTabIndex = 0;
       
-      if (relativeX < 120) {
+      // Each tab takes up 96px of space
+      if (relativeX < 96) {
         closestTabIndex = 0; // chat
-      } else if (relativeX < 240) {
+      } else if (relativeX < 192) {
         closestTabIndex = 1; // history  
       } else {
         closestTabIndex = 2; // settings
@@ -75,7 +77,7 @@ export function BottomNavigation() {
         className="relative"
       >
         {/* Fixed Tab Bar Background */}
-        <div className="bubble-nav relative">
+        <div className="bubble-nav relative px-8 py-3">
           {/* Draggable Selection Bubble */}
           <motion.div
             drag
@@ -86,34 +88,34 @@ export function BottomNavigation() {
             onDragEnd={handleDragEnd}
             animate={bubbleControls}
             initial={getBubblePosition()}
-            whileHover={{ scale: 1.1 }}
+            whileHover={{ scale: 1.05 }}
             whileDrag={{ 
-              scale: 1.15,
+              scale: 1.1,
               zIndex: 1000,
               filter: "drop-shadow(0 0 30px hsla(200, 100%, 60%, 0.8))"
             }}
-            className="absolute w-16 h-16 rounded-full cursor-grab active:cursor-grabbing z-20"
+            className="absolute w-16 h-16 rounded-full cursor-grab active:cursor-grabbing z-10"
             style={{
-              background: "radial-gradient(circle at 30% 30%, hsla(200, 100%, 80%, 0.6) 0%, hsla(200, 100%, 50%, 0.4) 100%)",
+              background: "radial-gradient(circle at 30% 30%, hsla(200, 100%, 80%, 0.7) 0%, hsla(200, 100%, 50%, 0.5) 100%)",
               backdropFilter: "blur(20px)",
-              border: "2px solid hsla(200, 100%, 70%, 0.6)",
+              border: "2px solid hsla(200, 100%, 70%, 0.7)",
               boxShadow: `
-                0 0 40px hsla(200, 100%, 60%, 0.4),
+                0 0 40px hsla(200, 100%, 60%, 0.5),
                 0 8px 32px hsla(200, 100%, 50%, 0.3),
-                inset 0 2px 0 hsla(200, 100%, 90%, 0.5),
+                inset 0 2px 0 hsla(200, 100%, 90%, 0.6),
                 inset 0 -2px 0 hsla(200, 100%, 30%, 0.4)
               `
             }}
           >
             {/* Inner light effects */}
             <div className="absolute inset-1 rounded-full overflow-hidden">
-              <div className="absolute top-2 left-3 w-8 h-1 bg-white opacity-60 blur-sm rounded-full" />
-              <div className="absolute bottom-3 right-2 w-6 h-0.5 bg-blue-200 opacity-40 blur-sm rounded-full" />
+              <div className="absolute top-2 left-3 w-8 h-1 bg-white opacity-70 blur-sm rounded-full" />
+              <div className="absolute bottom-3 right-2 w-6 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
             </div>
           </motion.div>
 
           {/* Tab Items */}
-          <div className="flex items-center">
+          <div className="flex items-center relative z-20">
             {navigationItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = currentTab === item.id;
@@ -129,10 +131,9 @@ export function BottomNavigation() {
                     type: "spring", 
                     damping: 12 
                   }}
-                  className="relative z-10"
                 >
                   <motion.div
-                    className="w-20 h-20 flex flex-col items-center justify-center cursor-pointer"
+                    className="w-24 h-20 flex flex-col items-center justify-center cursor-pointer"
                     whileHover={{ 
                       scale: 1.05,
                       transition: { type: "spring", damping: 15, stiffness: 300 }
