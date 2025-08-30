@@ -11,6 +11,7 @@ import { VoiceInterface } from "@/components/VoiceInterface";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { AuthPage } from "@/components/AuthPage";
+import { SyncStatus } from "@/components/SyncStatus";
 
 export function Index() {
   const { currentTab } = useArcStore();
@@ -86,6 +87,9 @@ export function Index() {
 
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
+      
+      {/* Sync Status Indicator */}
+      <SyncStatus />
     </div>
   );
 }
