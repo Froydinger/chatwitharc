@@ -159,7 +159,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="absolute -top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <GlassButton
                 variant="ghost"

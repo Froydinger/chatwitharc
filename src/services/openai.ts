@@ -66,7 +66,7 @@ Remember: You're not just an AI - you're Arc, a caring companion who happens to 
         body: JSON.stringify({
           model: 'gpt-5-2025-08-07',
           messages: [systemMessage, ...messages],
-          max_tokens: 1000,
+          max_completion_tokens: 1000,
           temperature: 0.7,
         }),
       });
@@ -120,7 +120,7 @@ Remember: You're not just an AI - you're Arc, a caring companion who happens to 
               ]
             }
           ],
-          max_tokens: 1000,
+          max_completion_tokens: 1000,
           temperature: 0.7,
         }),
       });
