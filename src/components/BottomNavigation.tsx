@@ -16,14 +16,13 @@ export function BottomNavigation() {
   const containerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
   
-  // Get bubble position centered behind active tab
+  // Get bubble position for active tab (full width)
   const getBubblePosition = () => {
     const activeIndex = navigationItems.findIndex(item => item.id === currentTab);
-    // Each tab is w-24 (96px), bubble is w-16 (64px)
-    // Center bubble: tab_start + (tab_width - bubble_width) / 2
+    // Each tab is w-24 (96px), bubble should be same width
     return {
-      x: activeIndex * 96 + (96 - 64) / 2, // 16px offset to center 64px bubble in 96px tab
-      y: 10 // Small vertical offset from top
+      x: activeIndex * 96, // No offset needed for full width
+      y: 8 // Small vertical offset from top
     };
   };
 
@@ -36,9 +35,10 @@ export function BottomNavigation() {
         y: position.y,
         transition: {
           type: "spring",
-          damping: 15,
-          stiffness: 300,
-          duration: 0.6
+          damping: 8, // Lower damping for more jelly physics
+          stiffness: 200, // Lower stiffness for bouncier feel
+          mass: 0.8, // Add mass for more realistic bounce
+          duration: 0.8
         }
       });
     }
@@ -86,20 +86,24 @@ export function BottomNavigation() {
           {/* Draggable Selection Bubble */}
           <motion.div
             drag
-            dragMomentum={false}
-            dragElastic={0.2}
+            dragMomentum={true} // Enable momentum for jelly physics
+            dragElastic={0.4} // More elastic for rubber band effect
             dragConstraints={containerRef}
             onDragStart={() => setIsDragging(true)}
             onDragEnd={handleDragEnd}
             animate={bubbleControls}
             initial={getBubblePosition()}
-            whileHover={{ scale: 1.05 }}
-            whileDrag={{ 
-              scale: 1.1,
-              zIndex: 1000,
-              filter: "drop-shadow(0 0 30px hsla(200, 100%, 60%, 0.8))"
+            whileHover={{ 
+              scale: 1.02,
+              transition: { type: "spring", damping: 10, stiffness: 400 }
             }}
-            className="absolute w-16 h-16 rounded-full cursor-grab active:cursor-grabbing z-10"
+            whileDrag={{ 
+              scale: 1.05,
+              zIndex: 1000,
+              filter: "drop-shadow(0 0 30px hsla(200, 100%, 60%, 0.8))",
+              transition: { type: "spring", damping: 5, stiffness: 300 }
+            }}
+            className="absolute w-24 h-20 rounded-2xl cursor-grab active:cursor-grabbing z-10"
             style={{
               background: "radial-gradient(circle at 30% 30%, hsla(200, 100%, 80%, 0.7) 0%, hsla(200, 100%, 50%, 0.5) 100%)",
               backdropFilter: "blur(20px)",
@@ -113,9 +117,9 @@ export function BottomNavigation() {
             }}
           >
             {/* Inner light effects */}
-            <div className="absolute inset-1 rounded-full overflow-hidden">
-              <div className="absolute top-2 left-3 w-8 h-1 bg-white opacity-70 blur-sm rounded-full" />
-              <div className="absolute bottom-3 right-2 w-6 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
+            <div className="absolute inset-2 rounded-xl overflow-hidden">
+              <div className="absolute top-3 left-4 w-12 h-1 bg-white opacity-70 blur-sm rounded-full" />
+              <div className="absolute bottom-4 right-3 w-8 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
             </div>
           </motion.div>
 
