@@ -1,8 +1,7 @@
 import * as React from "react";
-import { motion, MotionProps } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-export interface GlassCardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> {
+export interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'strong' | 'bubble';
   glow?: boolean;
   float?: boolean;
@@ -23,16 +22,8 @@ const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
     const floatClass = float ? "animate-float" : "";
 
     return (
-      <motion.div
+      <div
         ref={ref}
-        initial={{ opacity: 0, y: 30, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ 
-          duration: 0.5, 
-          ease: "easeOut",
-          type: "spring",
-          damping: 20
-        }}
         className={cn(
           baseClasses,
           variantClasses[variant],
@@ -43,7 +34,7 @@ const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
         {...props}
       >
         {children}
-      </motion.div>
+      </div>
     );
   }
 );

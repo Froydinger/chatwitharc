@@ -119,7 +119,7 @@ export function ChatInterface() {
       <GlassCard 
         variant="bubble" 
         glow
-        className={`flex-1 mx-4 mb-4 transition-all duration-300 overflow-hidden ${
+        className={`flex-1 mx-4 mb-4 overflow-hidden ${
           dragOver ? 'border-primary-glow border-2' : ''
         }`}
         onDragOver={(e) => {
