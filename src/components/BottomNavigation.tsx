@@ -52,7 +52,7 @@ export function BottomNavigation() {
     const root = scopeRef.current;
     if (!root) return;
 
-    const removeClipsAndSpacers = () => {
+    const removeClips = () => {
       const selectors = [
         '[aria-label*="attach" i]',
         '[title*="attach" i]',
@@ -70,78 +70,24 @@ export function BottomNavigation() {
         '.adornment',
       ].join(",");
 
-      // remove obvious clip nodes anywhere
+      // remove obvious clip nodes
       root.querySelectorAll(selectors).forEach(n => n.remove());
 
-      // normalize each field's row: delete ANY leading sibling chain before the top-most wrapper containing the field
-      root.querySelectorAll<HTMLElement>('input,textarea,[contenteditable="true"]').forEach((field) => {
-        // find the "row" that lays things out
-        const row =
-          field.closest<HTMLElement>('form,.row,.input-row,.wrapper,.controls,.toolbar,.grid,[class*="grid"],div') ||
-          field.parentElement;
-        if (!row) return;
-
-        // If grid, collapse to [1fr auto]
-        const cs = getComputedStyle(row);
-        if (cs.display.includes("grid")) {
-          row.style.gridTemplateColumns = "minmax(0,1fr) auto";
-          (row.style as any).gap = "8px";
+      // if there is any element directly before the field, remove that too
+      root.querySelectorAll('input,textarea,[contenteditable="true"]').forEach(field => {
+        const prev = field.previousElementSibling as HTMLElement | null;
+        if (prev) prev.remove();
+        // if parent is a 3-col grid like [prefix|field|send], collapse parent to 2 cols
+        const parent = field.parentElement as HTMLElement | null;
+        if (parent && getComputedStyle(parent).display.includes("grid")) {
+          parent.style.gridTemplateColumns = "minmax(0,1fr) auto";
         }
-
-        // 1) find TOP-MOST descendant of row that still contains the field
-        let container: HTMLElement | null = field as HTMLElement;
-        let lastInsideRow: HTMLElement | null = field as HTMLElement;
-        while (container && container.parentElement && container.parentElement !== row) {
-          container = container.parentElement as HTMLElement;
-          if (!container) break;
-          lastInsideRow = container;
-        }
-        const topWrapper = (lastInsideRow?.parentElement === row ? lastInsideRow : field) as HTMLElement;
-
-        // 2) delete every sibling BEFORE that topWrapper
-        let guard = 0;
-        while (row.firstElementChild && row.firstElementChild !== topWrapper && guard++ < 20) {
-          row.firstElementChild.remove();
-        }
-
-        // 3) flatten wrapper chain on the left so the field reaches the true left edge
-        // hoist field up to row if still nested in a single-purpose wrapper
-        let current = field.parentElement as HTMLElement | null;
-        while (current && current !== row && current.childElementCount === 1) {
-          current.before(field); // move field out
-          current.remove();
-          current = field.parentElement as HTMLElement | null;
-        }
-
-        // final row normalization
-        row.style.display = "flex";
-        row.style.alignItems = "center";
-        row.style.justifyContent = "flex-start";
-        row.style.gap = "8px";
-        row.style.paddingLeft = "0";
-        row.style.marginLeft = "0";
-
-        // kill external left offsets on wrappers along the chain
-        const wrappers = [field.parentElement, field.closest(".pill"), field.closest(".input-wrapper"), field.closest(".field")]
-          .filter(Boolean) as HTMLElement[];
-        wrappers.forEach(w => {
-          w.style.flex = "1 1 auto";
-          w.style.width = "100%";
-          w.style.maxWidth = "none";
-          w.style.minWidth = "0";
-          w.style.marginLeft = "0";
-          w.style.paddingLeft = "0";
-          w.style.boxSizing = "border-box";
-        });
-
-        // ensure field grows
-        (field as HTMLElement).style.flex = "1 1 auto";
-        (field as HTMLElement).style.width = "100%";
       });
     };
 
-    removeClipsAndSpacers();
-    const mo = new MutationObserver(removeClipsAndSpacers);
+    removeClips();
+
+    const mo = new MutationObserver(() => removeClips());
     mo.observe(root, { childList: true, subtree: true });
     return () => mo.disconnect();
   }, []);
