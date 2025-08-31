@@ -140,7 +140,7 @@ export function BottomNavigation() {
               border-color: var(--bubble-blue) !important;
             }
 
-            /* Kill the paperclip attach button */
+            /* Kill any attach/paperclip UI */
             .chat-input-scope [aria-label*="attach" i],
             .chat-input-scope [title*="attach" i],
             .chat-input-scope [data-attach],
@@ -157,16 +157,40 @@ export function BottomNavigation() {
               max-width: 0 !important;
             }
 
-            /* Stretch input and force iOS font-size fix */
-            .chat-input-scope input,
-            .chat-input-scope textarea,
-            .chat-input-scope [contenteditable="true"] {
-              font-size: 16px !important;
+            /* Make the input truly fill the row */
+            .chat-input-scope form,
+            .chat-input-scope .wrapper,
+            .chat-input-scope .row,
+            .chat-input-scope .input-row,
+            .chat-input-scope .controls,
+            .chat-input-scope .toolbar {
+              display: flex !important;
+              align-items: center;
+              gap: 8px;
+              padding-left: 0 !important;   /* remove reserved space for paperclip */
+            }
+
+            .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
+              font-size: 16px !important;   /* iOS anti-zoom */
               line-height: 1.4;
+              flex: 1 1 100% !important;
               width: 100% !important;
               max-width: 100% !important;
-              flex: 1 1 auto !important;
-              min-width: 0;
+              min-width: 0 !important;
+              margin-left: 0 !important;    /* prevent phantom left offset */
+              padding-left: 0.5rem;         /* tiny breathing room */
+            }
+
+            /* If Lovable wraps the field in an extra div/span, force that to grow too */
+            .chat-input-scope .field,
+            .chat-input-scope .flex,
+            .chat-input-scope .grow,
+            .chat-input-scope .input,
+            .chat-input-scope .editor,
+            .chat-input-scope > *:has(:where(input,textarea,[contenteditable="true"])) {
+              flex: 1 1 100% !important;
+              width: 100% !important;
+              max-width: 100% !important;
             }
           `}</style>
 
@@ -201,7 +225,7 @@ export function BottomNavigation() {
             </div>
           </motion.div>
 
-          {/* Rail footer */}
+          {/* Rail footer: fixed height, never moves */}
           <div style={{ height: TAB_RAIL_HEIGHT, position: "relative" }}>
             <div
               ref={railRef}
