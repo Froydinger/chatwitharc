@@ -140,7 +140,7 @@ export function BottomNavigation() {
               border-color: var(--bubble-blue) !important;
             }
 
-            /* Kill any attach/paperclip UI */
+            /* 1) Remove any attach/paperclip control */
             .chat-input-scope [aria-label*="attach" i],
             .chat-input-scope [title*="attach" i],
             .chat-input-scope [data-attach],
@@ -157,19 +157,38 @@ export function BottomNavigation() {
               max-width: 0 !important;
             }
 
-            /* Make the input truly fill the row */
-            .chat-input-scope form,
-            .chat-input-scope .wrapper,
+            /* 2) Make the input row start at the very left and let the field fill it */
+            .chat-input-scope,
+            .chat-input-scope * { box-sizing: border-box; }
+
+            /* zero left padding on common wrappers that might reserve attach space */
             .chat-input-scope .row,
             .chat-input-scope .input-row,
+            .chat-input-scope .wrapper,
             .chat-input-scope .controls,
-            .chat-input-scope .toolbar {
+            .chat-input-scope .toolbar,
+            .chat-input-scope form {
               display: flex !important;
               align-items: center;
               gap: 8px;
-              padding-left: 0 !important;   /* remove reserved space for paperclip */
+              padding-left: 0 !important;
+              margin-left: 0 !important;
+              justify-content: flex-start !important; /* don't center */
+              width: 100% !important;
             }
 
+            /* stretch any immediate parent that contains the input */
+            .chat-input-scope *:has(> :where(input,textarea,[contenteditable="true"])) {
+              display: flex !important;
+              align-items: center;
+              gap: 8px;
+              width: 100% !important;
+              flex: 1 1 100% !important;
+              padding-left: 0 !important;
+              margin-left: 0 !important;
+            }
+
+            /* 3) The field itself: fill the full width and keep iOS at 16px */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               font-size: 16px !important;   /* iOS anti-zoom */
               line-height: 1.4;
@@ -177,20 +196,8 @@ export function BottomNavigation() {
               width: 100% !important;
               max-width: 100% !important;
               min-width: 0 !important;
-              margin-left: 0 !important;    /* prevent phantom left offset */
+              margin-left: 0 !important;
               padding-left: 0.5rem;         /* tiny breathing room */
-            }
-
-            /* If Lovable wraps the field in an extra div/span, force that to grow too */
-            .chat-input-scope .field,
-            .chat-input-scope .flex,
-            .chat-input-scope .grow,
-            .chat-input-scope .input,
-            .chat-input-scope .editor,
-            .chat-input-scope > *:has(:where(input,textarea,[contenteditable="true"])) {
-              flex: 1 1 100% !important;
-              width: 100% !important;
-              max-width: 100% !important;
             }
           `}</style>
 
