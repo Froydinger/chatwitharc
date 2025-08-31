@@ -26,9 +26,7 @@ export function BottomNavigation() {
   const PAD_TOP_EXPANDED = 16;
   const PAD_BOTTOM = 12;
   const CONTAINER_WIDTH = 320;
-
-  // *** no vertical gap outside the input bar
-  const GAP_ABOVE_RAIL = 0;
+  const GAP_ABOVE_RAIL = 8;
 
   // measure natural input height
   const [inputHeight, setInputHeight] = useState(0);
@@ -49,85 +47,47 @@ export function BottomNavigation() {
   const expanded = currentTab === "chat";
   const topPad = expanded ? PAD_TOP_EXPANDED : PAD_TOP_COLLAPSED;
 
-  // hard DOM fix: remove prefix (paperclip) + dead cells, flatten layout to [input | send]
+  // Remove paperclip and any wrapper cells that reserve space
   useEffect(() => {
     const root = scopeRef.current;
     if (!root) return;
 
-    const prune = () => {
-      root.querySelectorAll(`
-        [aria-label*="attach" i],
-        [title*="attach" i],
-        [data-attach],
-        [data-icon="paperclip"],
-        svg[class*="paperclip" i],
-        .attach,.attachment,.leading,.leading-icon,
-        .input-prefix,[data-slot="prefix"],.start,.left,.adornment
-      `).forEach(n => n.remove());
+    const removeClips = () => {
+      const selectors = [
+        '[aria-label*="attach" i]',
+        '[title*="attach" i]',
+        '[data-attach]',
+        '[data-icon="paperclip"]',
+        'svg[class*="paperclip" i]',
+        '.attach',
+        '.attachment',
+        '.leading',
+        '.leading-icon',
+        '.input-prefix',
+        '[data-slot="prefix"]',
+        '.start',
+        '.left',
+        '.adornment',
+      ].join(",");
 
-      const fields = root.querySelectorAll<HTMLElement>('input,textarea,[contenteditable="true"]');
-      fields.forEach(field => {
-        // nearest row
-        const row =
-          field.closest<HTMLElement>(
-            'form,.row,.input-row,.wrapper,.controls,.toolbar,.grid,[class*="grid"],div'
-          ) || field.parentElement;
-        if (!row) return;
+      // remove obvious clip nodes
+      root.querySelectorAll(selectors).forEach(n => n.remove());
 
-        // collapse any grid
-        const cs = getComputedStyle(row);
-        if (cs.display.includes('grid')) {
-          row.style.gridTemplateColumns = 'minmax(0,1fr) auto';
-          (row.style as any).gap = '8px';
+      // if there is any element directly before the field, remove that too
+      root.querySelectorAll('input,textarea,[contenteditable="true"]').forEach(field => {
+        const prev = field.previousElementSibling as HTMLElement | null;
+        if (prev) prev.remove();
+        // if parent is a 3-col grid like [prefix|field|send], collapse parent to 2 cols
+        const parent = field.parentElement as HTMLElement | null;
+        if (parent && getComputedStyle(parent).display.includes("grid")) {
+          parent.style.gridTemplateColumns = "minmax(0,1fr) auto";
         }
-
-        // remove every sibling before the field
-        let guard = 0;
-        while (row.firstElementChild && row.firstElementChild !== field && guard++ < 12) {
-          row.firstElementChild.remove();
-        }
-        // hoist if wrapper still sits before field
-        if (row.firstElementChild && row.firstElementChild !== field) {
-          const first = row.firstElementChild as HTMLElement;
-          if (first.contains(field)) {
-            first.before(field);
-            first.remove();
-          }
-        }
-
-        // force row: pure flex [input | send], no outside spacing
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.justifyContent = 'flex-start';
-        row.style.gap = '8px';
-        row.style.padding = '0';
-        row.style.margin = '0';
-
-        // wrappers: expand + kill EXTERNAL padding/margins
-        const wrappers = [
-          field.parentElement,
-          field.closest('.pill') as HTMLElement | null,
-          field.closest('.input-wrapper') as HTMLElement | null,
-          field.closest('.field') as HTMLElement | null,
-        ].filter(Boolean) as HTMLElement[];
-
-        wrappers.forEach(w => {
-          w.style.flex = '1 1 auto';
-          w.style.width = '100%';
-          w.style.maxWidth = 'none';
-          w.style.minWidth = '0';
-          w.style.padding = '0';
-          w.style.margin = '0';
-        });
-
-        // field grows
-        field.style.flex = '1 1 auto';
-        (field.style as any).width = '100%';
       });
     };
 
-    prune();
-    const mo = new MutationObserver(prune);
+    removeClips();
+
+    const mo = new MutationObserver(() => removeClips());
     mo.observe(root, { childList: true, subtree: true });
     return () => mo.disconnect();
   }, []);
@@ -193,7 +153,7 @@ export function BottomNavigation() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
-        {/* Glass container */}
+        {/* Glass container: flex column, rail is a fixed-height footer */}
         <div
           className="relative flex flex-col"
           style={{
@@ -210,15 +170,14 @@ export function BottomNavigation() {
               inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
               inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
             `,
-            paddingTop: expanded ? PAD_TOP_EXPANDED : PAD_TOP_COLLAPSED,
+            paddingTop: topPad,
             paddingBottom: PAD_BOTTOM,
             ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
-            ["--edge-gutter" as any]: "15px",
             willChange: "transform",
           }}
         >
           <style>{`
-            /* focus visuals */
+            /* Focus visuals */
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
             .chat-input-scope textarea:focus,
@@ -228,22 +187,20 @@ export function BottomNavigation() {
               border-color: var(--bubble-blue) !important;
             }
 
-            /* scope: ONLY side gutters = 15px, NO vertical gaps */
+            /* exact 10px gutters in the scope container */
             .chat-input-scope {
               display: flex !important;
               align-items: center !important;
               justify-content: flex-start !important;
               gap: 8px !important;
-              padding-left: var(--edge-gutter) !important;
-              padding-right: var(--edge-gutter) !important;
-              padding-top: 0 !important;
-              padding-bottom: 0 !important;
-              margin: 0 !important;
+              padding-left: 10px !important;
+              padding-right: 10px !important;
               width: 100% !important;
               box-sizing: border-box !important;
+              margin: 0 !important;
             }
 
-            /* rows normalized; zero vertical spacing */
+            /* normalize inner rows */
             .chat-input-scope form,
             .chat-input-scope .row,
             .chat-input-scope .input-row,
@@ -260,7 +217,12 @@ export function BottomNavigation() {
               flex: 1 1 auto !important;
             }
 
-            /* expand field; NO external padding/margins */
+            /* --- CRUSH EVERY EXTERNAL LEFT OFFSET (wrappers, utilities, inline styles) --- */
+            .chat-input-scope * { margin-left: 0 !important; }
+            .chat-input-scope * { padding-left: 0 !important; }
+            .chat-input-scope > :first-child { margin-left: 0 !important; padding-left: 0 !important; }
+
+            /* grow the field wrapper fully */
             .chat-input-scope .pill,
             .chat-input-scope [class*="pill" i],
             .chat-input-scope .input-wrapper,
@@ -274,12 +236,10 @@ export function BottomNavigation() {
               width: 100% !important;
               max-width: none !important;
               min-width: 0 !important;
-              margin: 0 !important;
-              padding: 0 !important;
               box-sizing: border-box !important;
             }
 
-            /* keep INTERNAL placeholder padding at 10px */
+            /* restore INTERNAL placeholder padding & keep 16px to avoid iOS zoom */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               font-size: 16px !important;
               line-height: 1.4;
@@ -287,10 +247,11 @@ export function BottomNavigation() {
               width: 100% !important;
               margin: 0 !important;
               padding-left: 10px !important; /* internal only */
+              text-indent: 0 !important;
               box-sizing: border-box !important;
             }
 
-            /* send button uses right edge gutter (15px) via scope padding */
+            /* send button sits against right gutter provided by scope padding */
             .chat-input-scope [aria-label*="send" i],
             .chat-input-scope button[type="submit"],
             .chat-input-scope button[class*="send" i] {
@@ -319,15 +280,19 @@ export function BottomNavigation() {
             }}
             style={{ overflow: "hidden", pointerEvents: expanded ? "auto" : "none" }}
           >
-            {/* NO extra padding/margins around the input row */}
-            <div ref={measureRef} className="w-full" style={{ padding: 0, margin: 0 }}>
+            {/* Measured content with strict 10px gutters */}
+            <div
+              ref={measureRef}
+              className="w-full"
+              style={{ paddingBottom: GAP_ABOVE_RAIL }}
+            >
               <div ref={scopeRef} className="chat-input-scope">
                 <ChatInput />
               </div>
             </div>
           </motion.div>
 
-          {/* Rail footer */}
+          {/* Rail footer: fixed height, never moves */}
           <div style={{ height: TAB_RAIL_HEIGHT, position: "relative" }}>
             <div
               ref={railRef}
