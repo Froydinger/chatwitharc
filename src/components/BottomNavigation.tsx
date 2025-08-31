@@ -19,9 +19,9 @@ export function BottomNavigation() {
   const railRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const BUBBLE = 64; // smaller bubble (w-16 h-16)
+  const BUBBLE = 64; // w-16 h-16
 
-  // Compute bubble x relative to the rail using offsetLeft (no viewport math).
+  // Compute bubble x relative to the rail using offsetLeft.
   const getBubblePosition = () => {
     const idx = navigationItems.findIndex(i => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
@@ -29,12 +29,12 @@ export function BottomNavigation() {
 
     if (!tabEl || !rail) {
       const CELL = 106.67;
-      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -6 };
+      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: 0 };
     }
 
     const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
     const xWithinRail = tabCenterX - BUBBLE / 2;
-    return { x: xWithinRail, y: -6 };
+    return { x: xWithinRail, y: 0 };
   };
 
   useEffect(() => {
@@ -68,7 +68,7 @@ export function BottomNavigation() {
     let dist = Infinity;
     tabRefs.current.forEach((el, i) => {
       if (!el) return;
-      const d = Math.abs((info.point.x - (el.getBoundingClientRect().left + el.offsetWidth / 2)));
+      const d = Math.abs(info.point.x - (el.getBoundingClientRect().left + el.offsetWidth / 2));
       if (d < dist) {
         dist = d;
         best = i;
@@ -91,8 +91,9 @@ export function BottomNavigation() {
         <motion.div
           className="relative flex flex-col items-center"
           animate={{
-            paddingTop: "0.5rem",
-            paddingBottom: "0.5rem",
+            // Shorter overall container
+            paddingTop: "0.125rem",
+            paddingBottom: "0.25rem",
           }}
           transition={{ duration: 0.25, ease: "easeOut" }}
           style={{
@@ -112,7 +113,7 @@ export function BottomNavigation() {
             ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
           }}
         >
-          {/* Scoped focus style override */}
+          {/* Focus color override to match bubble blue */}
           <style>{`
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
@@ -124,14 +125,15 @@ export function BottomNavigation() {
             }
           `}</style>
 
-          {/* Chat input */}
+          {/* Chat input area kept mounted, smoothly expands/collapses.
+              Raised slightly and gap reduced a bit. */}
           <motion.div
             initial={false}
             animate={{
-              maxHeight: isChat ? 160 : 0,
+              maxHeight: isChat ? 150 : 0,     // slightly shorter
               opacity: isChat ? 1 : 0,
-              y: isChat ? 0 : 8,
-              marginBottom: isChat ? 32 : 0,
+              y: isChat ? -2 : 8,              // nudge up when open
+              marginBottom: isChat ? 24 : 0,   // smaller gap to bubble interface
             }}
             transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
             className="w-full px-6 chat-input-scope"
@@ -140,8 +142,9 @@ export function BottomNavigation() {
             <ChatInput />
           </motion.div>
 
-          {/* Tabs */}
+          {/* Rail: this contains BOTH the bubble (absolute) and the 3 tab cells */}
           <div className="relative z-20" style={{ width: 320, height: 64 }}>
+            {/* Tabs grid (becomes the offset parent for the bubble) */}
             <div
               ref={railRef}
               className="absolute inset-0 flex justify-between items-center px-4"
@@ -178,7 +181,7 @@ export function BottomNavigation() {
               })}
             </div>
 
-            {/* Bubble */}
+            {/* Bubble lowered a bit */}
             <motion.div
               drag="x"
               dragMomentum
@@ -196,7 +199,7 @@ export function BottomNavigation() {
                   "drop-shadow(0 0 30px hsla(200, 100%, 60%, 0.8)) drop-shadow(0 0 60px hsla(200, 100%, 40%, 0.5))",
                 transition: { type: "spring", damping: 6, stiffness: 280 },
               }}
-              className="absolute left-0 top-0 -translate-y-6 w-16 h-16 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
+              className="absolute left-0 top-0 -translate-y-4 w-16 h-16 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
               style={{
                 background:
                   "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.25) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
