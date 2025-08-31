@@ -234,10 +234,12 @@ export function BottomNavigation() {
             {/* Measured content with strict 10px gutters */}
             <div
               ref={measureRef}
-              className="w-full chat-input-scope"
+              className="chat-input-scope flex items-center w-full"
               style={{ paddingBottom: GAP_ABOVE_RAIL, paddingLeft: 10, paddingRight: 10 }}
             >
-              <ChatInput />
+              <div className="flex-1 min-w-0">
+                <ChatInput />
+              </div>
             </div>
           </motion.div>
 
