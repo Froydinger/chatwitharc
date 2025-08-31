@@ -56,6 +56,7 @@ export function BottomNavigation() {
     setNow();
     const t = setTimeout(setNow, 60);
     const onResize = () => setNow();
+    window.addEventListener("resize", onResize);
     return () => {
       clearTimeout(t);
       window.removeEventListener("resize", onResize);
@@ -69,7 +70,6 @@ export function BottomNavigation() {
     let dist = Infinity;
     tabRefs.current.forEach((el, i) => {
       if (!el) return;
-      const center = el.offsetLeft + el.offsetWidth / 2;
       const d = Math.abs((info.point.x - (el.getBoundingClientRect().left + el.offsetWidth / 2)));
       if (d < dist) {
         dist = d;
@@ -78,6 +78,8 @@ export function BottomNavigation() {
     });
     setCurrentTab(navigationItems[best].id);
   };
+
+  const isChat = currentTab === "chat";
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 flex justify-center">
@@ -91,8 +93,8 @@ export function BottomNavigation() {
         <motion.div
           className="relative flex flex-col items-center"
           animate={{
-            // Move content up slightly when chat is active to create more space above the tabs
-            paddingTop: currentTab === "chat" ? "1rem" : "0.75rem",
+            // Slightly reduced top padding when chat is visible to move content up a bit
+            paddingTop: isChat ? "1rem" : "0.75rem",
             paddingBottom: "0.75rem",
           }}
           transition={{ duration: 0.25, ease: "easeOut" }}
@@ -110,8 +112,6 @@ export function BottomNavigation() {
             `,
             minWidth: 320,
             width: 320,
-            // Expose the bubble blue as a CSS variable for focus outlines
-            // Matches the bubble aesthetic
             ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
           }}
         >
@@ -127,20 +127,21 @@ export function BottomNavigation() {
             }
           `}</style>
 
-          {/* Chat input */}
-          {currentTab === "chat" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-              // Increase margin-bottom a bit to add space above the tab bar,
-              // while the reduced paddingTop keeps overall height in check.
-              className="w-full px-6 mb-8 chat-input-scope"
-            >
-              <ChatInput />
-            </motion.div>
-          )}
+          {/* Chat input area kept mounted, smoothly expands/collapses */}
+          <motion.div
+            initial={false}
+            animate={{
+              maxHeight: isChat ? 160 : 0, // px; large enough for input + buttons
+              opacity: isChat ? 1 : 0,
+              y: isChat ? 0 : 8,
+              marginBottom: isChat ? 32 : 0, // mb-8 when open, 0 when closed
+            }}
+            transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
+            className="w-full px-6 chat-input-scope"
+            style={{ overflow: "hidden", willChange: "max-height, opacity, transform, margin-bottom" }}
+          >
+            <ChatInput />
+          </motion.div>
 
           {/* Rail: this contains BOTH the bubble (absolute) and the 3 tab cells */}
           <div className="relative z-20" style={{ width: 320, height: 64 }}>
