@@ -15,39 +15,29 @@ export function BottomNavigation() {
   const [isDragging, setIsDragging] = useState(false);
   const bubbleControls = useAnimation();
 
-  // Rail and tab refs
+  // Refs
   const railRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  // Slightly smaller bubble
-  const BUBBLE = 72;
-
-  // Base sizes
-  const TAB_RAIL_HEIGHT = 64;         // the height of the icon rail
-  const VERTICAL_PAD_COLLAPSED = 12;  // 0.75rem
-  const VERTICAL_PAD_EXPANDED = 16;   // 1rem
-  const CONTAINER_WIDTH = 320;
-
-  // We keep ChatInput mounted to measure it and animate the container height
   const inputWrapRef = useRef<HTMLDivElement>(null);
-  const [inputHeight, setInputHeight] = useState(0);
 
+  // Sizes
+  const BUBBLE = 72;
+  const TAB_RAIL_HEIGHT = 64;
+  const PAD_COLLAPSED = 12; // 0.75rem
+  const PAD_EXPANDED = 16;  // 1rem
+  const CONTAINER_WIDTH = 320;
+  const GAP_ABOVE_RAIL = 8; // space between input and rail when expanded
+
+  // Measure input
+  const [inputHeight, setInputHeight] = useState(0);
   useLayoutEffect(() => {
     const el = inputWrapRef.current;
     if (!el) return;
-
-    // Measure immediately and on resize
-    const measure = () => {
-      // Use scrollHeight to get natural height even if clipped
-      setInputHeight(el.scrollHeight);
-    };
-
+    const measure = () => setInputHeight(el.scrollHeight || 0);
     measure();
-
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     window.addEventListener("resize", measure);
-
     return () => {
       ro.disconnect();
       window.removeEventListener("resize", measure);
@@ -56,24 +46,26 @@ export function BottomNavigation() {
 
   const expanded = currentTab === "chat";
 
-  // Target container height
-  const containerHeight =
-    TAB_RAIL_HEIGHT +
-    (expanded ? inputHeight + (VERTICAL_PAD_EXPANDED - VERTICAL_PAD_COLLAPSED) + 20 /* bottom margin */ : 0) +
-    VERTICAL_PAD_COLLAPSED + // bottom pad present in both states
-    VERTICAL_PAD_EXPANDED;   // top pad uses expanded value for a smoother curve
+  // Accurate container height with no hidden extras in collapsed state
+  const TOP_PAD = expanded ? PAD_EXPANDED : PAD_COLLAPSED;
+  const BOTTOM_PAD = PAD_COLLAPSED;
 
-  // Position helper
+  const containerHeight =
+    TOP_PAD +
+    BOTTOM_PAD +
+    TAB_RAIL_HEIGHT +
+    (expanded ? inputHeight + GAP_ABOVE_RAIL : 0);
+
+  // Bubble position
   const getBubblePosition = () => {
     const idx = navigationItems.findIndex((i) => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
-
     if (!tabEl) {
       const CELL = CONTAINER_WIDTH / navigationItems.length;
-      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -4 }; // lowered a hair
+      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -4 };
     }
     const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
-    return { x: tabCenterX - BUBBLE / 2, y: -4 }; // lowered a hair
+    return { x: tabCenterX - BUBBLE / 2, y: -4 };
   };
 
   useEffect(() => {
@@ -103,7 +95,6 @@ export function BottomNavigation() {
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
-    // Snap to closest tab
     let best = 0;
     let dist = Infinity;
     tabRefs.current.forEach((el, i) => {
@@ -129,8 +120,11 @@ export function BottomNavigation() {
         {/* Glass container */}
         <motion.div
           className="relative flex flex-col items-center"
-          // Animate the overall height so the input is revealed smoothly
-          animate={{ height: containerHeight, paddingTop: expanded ? VERTICAL_PAD_EXPANDED : VERTICAL_PAD_COLLAPSED, paddingBottom: VERTICAL_PAD_COLLAPSED }}
+          animate={{
+            height: containerHeight,
+            paddingTop: TOP_PAD,
+            paddingBottom: BOTTOM_PAD,
+          }}
           initial={false}
           transition={{ type: "spring", stiffness: 180, damping: 22 }}
           style={{
@@ -151,7 +145,6 @@ export function BottomNavigation() {
             ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
           }}
         >
-          {/* Scoped styles for input focus and paperclip alignment */}
           <style>{`
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
@@ -170,11 +163,11 @@ export function BottomNavigation() {
             }
           `}</style>
 
-          {/* Chat input: always mounted for measurement, revealed with opacity + slide */}
+          {/* Input wrapper measured for height; no extra margins when collapsed */}
           <div
             ref={inputWrapRef}
             className="w-full px-6 chat-input-scope"
-            style={{ marginBottom: 20 }}
+            style={{ marginBottom: expanded ? GAP_ABOVE_RAIL : 0 }}
           >
             <motion.div
               initial={false}
