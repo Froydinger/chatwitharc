@@ -142,7 +142,7 @@ export function ChatInterface() {
                     Welcome to ArcAI
                   </h3>
                   <p className="text-muted-foreground mb-8">
-                    Start a conversation or drop an image to analyze
+                    Start a conversation, or work on something new!
                   </p>
                   
                   {/* Quick Start Options - with bottom padding */}
