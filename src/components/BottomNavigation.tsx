@@ -107,7 +107,7 @@ export function BottomNavigation() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
-        {/* Glass container: flex column, rail is a fixed-height footer */}
+        {/* Glass container */}
         <div
           className="relative flex flex-col"
           style={{
@@ -124,14 +124,14 @@ export function BottomNavigation() {
               inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
               inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
             `,
-            paddingTop: topPad,
+            paddingTop: expanded ? PAD_TOP_EXPANDED : PAD_TOP_COLLAPSED,
             paddingBottom: PAD_BOTTOM,
             ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
             willChange: "transform",
           }}
         >
           <style>{`
-            /* Keep focus polish */
+            /* Focus polish */
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
             .chat-input-scope textarea:focus,
@@ -141,7 +141,7 @@ export function BottomNavigation() {
               border-color: var(--bubble-blue) !important;
             }
 
-            /* -------- Remove left adornments (paperclip/prefix) -------- */
+            /* ---- Nuke paperclip & any left adornment ---- */
             .chat-input-scope [aria-label*="attach" i],
             .chat-input-scope [title*="attach" i],
             .chat-input-scope [data-attach],
@@ -161,7 +161,7 @@ export function BottomNavigation() {
               pointer-events: none !important;
               visibility: hidden !important;
             }
-            /* Fallback: hide any element directly before the field */
+            /* Fallback: if *anything* sits immediately before the field, hide it */
             .chat-input-scope :where(button,a,div,span,svg)[role="button"]:has(+ :where(input,textarea,[contenteditable="true"])),
             .chat-input-scope :where(button,a,div,span,svg):has(+ :where(input,textarea,[contenteditable="true"])) {
               display: none !important;
@@ -170,23 +170,37 @@ export function BottomNavigation() {
               padding: 0 !important;
             }
 
-            /* -------- Exact layout & gutters -------- */
-            /* 10px gutters managed here */
-            .chat-input-scope {
-              padding-left: 10px !important;
-              padding-right: 10px !important;
+            /* ---- Exact layout: 10px gutters; input stretches LEFT->RIGHT ---- */
+            .chat-input-scope { 
+              padding-inline: 10px !important;
               width: 100% !important;
             }
 
-            /* Normalize the row to "INPUT | SEND" with no phantom first column */
-            .chat-input-scope form,
+            /* Make the immediate ChatInput root stretch and be a flex row */
+            .chat-input-scope > * {
+              display: flex !important;
+              align-items: center;
+              gap: 8px;
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+
+            /* Kill phantom grid columns and center alignment */
+            .chat-input-scope * {
+              max-width: 100% !important;
+              box-sizing: border-box;
+            }
+            .chat-input-scope [style*="grid"],
             .chat-input-scope .row,
             .chat-input-scope .input-row,
             .chat-input-scope .wrapper,
             .chat-input-scope .controls,
-            .chat-input-scope .toolbar {
+            .chat-input-scope .toolbar,
+            .chat-input-scope form {
               display: flex !important;
-              align-items: center;
+              align-items: center !important;
               justify-content: space-between !important;
               gap: 8px;
               width: 100% !important;
@@ -195,25 +209,28 @@ export function BottomNavigation() {
               grid-template-columns: unset !important;
             }
 
-            /* If there's an extra wrapper around the field, make it grow */
-            .chat-input-scope *:has(> :where(input,textarea,[contenteditable="true"])) {
+            /* Any ancestor that CONTAINS the field must grow */
+            .chat-input-scope *:has(:where(input,textarea,[contenteditable="true"])) {
+              display: flex !important;
               flex: 1 1 100% !important;
               width: 100% !important;
               max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
             }
 
-            /* The field itself: stretches between gutters and send */
+            /* The field itself fills all space between left gutter and send */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
-              font-size: 16px !important;      /* iOS anti-zoom */
+              font-size: 16px !important;   /* iOS anti-zoom */
               line-height: 1.4;
-              flex: 1 1 auto !important;
+              flex: 1 1 100% !important;
               width: 100% !important;
-              max-width: 100% !important;
               min-width: 0 !important;
               margin: 0 !important;
+              padding-left: 12px !important; /* comfortable typing space */
             }
 
-            /* Send button hugs the right gutter */
+            /* Send button sits at the right gutter */
             .chat-input-scope [aria-label*="send" i],
             .chat-input-scope button[type="submit"],
             .chat-input-scope button[class*="send" i] {
@@ -241,17 +258,17 @@ export function BottomNavigation() {
             }}
             style={{ overflow: "hidden", pointerEvents: expanded ? "auto" : "none" }}
           >
-            {/* Measured content with strict 10px gutters */}
+            {/* Strict 10px gutters container */}
             <div
               ref={measureRef}
-              className="w-full chat-input-scope"
-              style={{ paddingBottom: GAP_ABOVE_RAIL, paddingLeft: 10, paddingRight: 10 }}
+              className="chat-input-scope"
+              style={{ paddingBottom: GAP_ABOVE_RAIL, width: "100%" }}
             >
               <ChatInput />
             </div>
           </motion.div>
 
-          {/* Rail footer: fixed height, never moves */}
+          {/* Rail footer */}
           <div style={{ height: TAB_RAIL_HEIGHT, position: "relative" }}>
             <div
               ref={railRef}
