@@ -23,7 +23,7 @@ export function BottomNavigation() {
 
   // Compute bubble x relative to the rail using offsetLeft.
   const getBubblePosition = () => {
-    const idx = navigationItems.findIndex(i => i.id === currentTab);
+    const idx = navigationItems.findIndex((i) => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
     const rail = railRef.current;
 
@@ -91,7 +91,7 @@ export function BottomNavigation() {
         <motion.div
           className="relative flex flex-col items-center"
           animate={{
-            // Shorter overall container
+            // Compact overall height
             paddingTop: "0.125rem",
             paddingBottom: "0.25rem",
           }}
@@ -126,14 +126,14 @@ export function BottomNavigation() {
           `}</style>
 
           {/* Chat input area kept mounted, smoothly expands/collapses.
-              Raised slightly and gap reduced a bit. */}
+              Slight raise and tighter gap for better alignment with icons. */}
           <motion.div
             initial={false}
             animate={{
-              maxHeight: isChat ? 150 : 0,     // slightly shorter
+              maxHeight: isChat ? 140 : 0,   // a touch shorter
               opacity: isChat ? 1 : 0,
-              y: isChat ? -2 : 8,              // nudge up when open
-              marginBottom: isChat ? 24 : 0,   // smaller gap to bubble interface
+              y: isChat ? -3 : 8,            // raise input a hair when open
+              marginBottom: isChat ? 16 : 0, // tighter gap to bubble interface
             }}
             transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
             className="w-full px-6 chat-input-scope"
@@ -152,7 +152,7 @@ export function BottomNavigation() {
             >
               {navigationItems.map((item, index) => {
                 const Icon = item.icon;
-                const isActive = currentTab === item.id;
+                const active = currentTab === item.id;
                 return (
                   <div
                     key={item.id}
@@ -162,14 +162,14 @@ export function BottomNavigation() {
                   >
                     <Icon
                       className={`h-6 w-6 mb-1 transition-colors duration-300 ${
-                        isActive
+                        active
                           ? "text-primary-foreground drop-shadow-lg"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     />
                     <span
                       className={`text-xs font-medium transition-colors duration-300 ${
-                        isActive
+                        active
                           ? "text-primary-foreground drop-shadow-sm"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
@@ -181,7 +181,7 @@ export function BottomNavigation() {
               })}
             </div>
 
-            {/* Bubble lowered a bit */}
+            {/* Bubble — lowered slightly to meet the tightened input gap */}
             <motion.div
               drag="x"
               dragMomentum
@@ -199,7 +199,7 @@ export function BottomNavigation() {
                   "drop-shadow(0 0 30px hsla(200, 100%, 60%, 0.8)) drop-shadow(0 0 60px hsla(200, 100%, 40%, 0.5))",
                 transition: { type: "spring", damping: 6, stiffness: 280 },
               }}
-              className="absolute left-0 top-0 -translate-y-4 w-16 h-16 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
+              className="absolute left-0 top-0 -translate-y-3 w-16 h-16 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
               style={{
                 background:
                   "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.25) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
