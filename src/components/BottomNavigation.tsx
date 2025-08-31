@@ -1,7 +1,7 @@
 import { motion, PanInfo, useAnimation } from "framer-motion";
 import { MessageCircle, Settings, History } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useLayoutEffect } from "react";
 import { ChatInput } from "@/components/ChatInput";
 
 const navigationItems = [
@@ -22,13 +22,54 @@ export function BottomNavigation() {
   // Slightly smaller bubble
   const BUBBLE = 72;
 
+  // Base sizes
+  const TAB_RAIL_HEIGHT = 64;         // the height of the icon rail
+  const VERTICAL_PAD_COLLAPSED = 12;  // 0.75rem
+  const VERTICAL_PAD_EXPANDED = 16;   // 1rem
+  const CONTAINER_WIDTH = 320;
+
+  // We keep ChatInput mounted to measure it and animate the container height
+  const inputWrapRef = useRef<HTMLDivElement>(null);
+  const [inputHeight, setInputHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = inputWrapRef.current;
+    if (!el) return;
+
+    // Measure immediately and on resize
+    const measure = () => {
+      // Use scrollHeight to get natural height even if clipped
+      setInputHeight(el.scrollHeight);
+    };
+
+    measure();
+
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener("resize", measure);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  const expanded = currentTab === "chat";
+
+  // Target container height
+  const containerHeight =
+    TAB_RAIL_HEIGHT +
+    (expanded ? inputHeight + (VERTICAL_PAD_EXPANDED - VERTICAL_PAD_COLLAPSED) + 20 /* bottom margin */ : 0) +
+    VERTICAL_PAD_COLLAPSED + // bottom pad present in both states
+    VERTICAL_PAD_EXPANDED;   // top pad uses expanded value for a smoother curve
+
   // Position helper
   const getBubblePosition = () => {
-    const idx = navigationItems.findIndex(i => i.id === currentTab);
+    const idx = navigationItems.findIndex((i) => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
 
     if (!tabEl) {
-      const CELL = 106.67;
+      const CELL = CONTAINER_WIDTH / navigationItems.length;
       return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -4 }; // lowered a hair
     }
     const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
@@ -41,7 +82,7 @@ export function BottomNavigation() {
     bubbleControls.start({
       x: p.x,
       y: p.y,
-      transition: { type: "spring", damping: 12, stiffness: 300, mass: 0.6, duration: 0.35 },
+      transition: { type: "spring", damping: 14, stiffness: 260, mass: 0.7 },
     });
   }, [currentTab, isDragging, bubbleControls]);
 
@@ -88,12 +129,12 @@ export function BottomNavigation() {
         {/* Glass container */}
         <motion.div
           className="relative flex flex-col items-center"
-          animate={{
-            paddingTop: currentTab === "chat" ? "1rem" : "0.75rem",
-            paddingBottom: "0.75rem",
-          }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
+          // Animate the overall height so the input is revealed smoothly
+          animate={{ height: containerHeight, paddingTop: expanded ? VERTICAL_PAD_EXPANDED : VERTICAL_PAD_COLLAPSED, paddingBottom: VERTICAL_PAD_COLLAPSED }}
+          initial={false}
+          transition={{ type: "spring", stiffness: 180, damping: 22 }}
           style={{
+            overflow: "hidden",
             background:
               "linear-gradient(135deg, hsla(240, 15%, 12%, 0.3) 0%, hsla(240, 20%, 15%, 0.4) 100%)",
             backdropFilter: "blur(20px)",
@@ -105,8 +146,8 @@ export function BottomNavigation() {
               inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
               inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
             `,
-            minWidth: 320,
-            width: 320,
+            minWidth: CONTAINER_WIDTH,
+            width: CONTAINER_WIDTH,
             ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
           }}
         >
@@ -120,7 +161,6 @@ export function BottomNavigation() {
               box-shadow: 0 0 0 3px color-mix(in oklab, var(--bubble-blue) 35%, transparent) !important;
               border-color: var(--bubble-blue) !important;
             }
-            /* Lower the paperclip a bit and ensure centering with the input */
             .chat-input-scope [aria-label="Attach"],
             .chat-input-scope [data-attach="true"],
             .chat-input-scope .attach-button {
@@ -130,25 +170,35 @@ export function BottomNavigation() {
             }
           `}</style>
 
-          {/* Chat input */}
-          {currentTab === "chat" && (
+          {/* Chat input: always mounted for measurement, revealed with opacity + slide */}
+          <div
+            ref={inputWrapRef}
+            className="w-full px-6 chat-input-scope"
+            style={{ marginBottom: 20 }}
+          >
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-              className="w-full px-6 mb-8 chat-input-scope"
+              initial={false}
+              animate={{
+                opacity: expanded ? 1 : 0,
+                y: expanded ? 0 : 12,
+                pointerEvents: expanded ? "auto" : "none",
+                filter: expanded ? "none" : "blur(1px)",
+              }}
+              transition={{
+                opacity: { duration: 0.18, ease: "easeOut" },
+                y: { type: "spring", stiffness: 260, damping: 22 },
+              }}
             >
               <ChatInput />
             </motion.div>
-          )}
+          </div>
 
           {/* Tabs and bubble rail */}
-          <div className="relative z-20" style={{ width: 320, height: 64 }}>
+          <div className="relative z-20" style={{ width: CONTAINER_WIDTH, height: TAB_RAIL_HEIGHT }}>
             <div
               ref={railRef}
               className="absolute inset-0 flex justify-between items-center px-4"
-              style={{ width: 320, height: 64 }}
+              style={{ width: CONTAINER_WIDTH, height: TAB_RAIL_HEIGHT }}
             >
               {navigationItems.map((item, index) => {
                 const Icon = item.icon;
@@ -167,7 +217,6 @@ export function BottomNavigation() {
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     />
-                    {/* labels removed */}
                   </div>
                 );
               })}
@@ -191,7 +240,6 @@ export function BottomNavigation() {
                   "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
                 transition: { type: "spring", damping: 5, stiffness: 300 },
               }}
-              // removed -translate-y-8; we now control Y purely via motion
               className="absolute left-0 top-0 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto w-[72px] h-[72px]"
               style={{
                 background:
