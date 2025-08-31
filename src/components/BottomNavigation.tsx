@@ -52,7 +52,7 @@ export function BottomNavigation() {
     const root = scopeRef.current;
     if (!root) return;
 
-    const removeClips = () => {
+    const removeClipsAndSpacers = () => {
       const selectors = [
         '[aria-label*="attach" i]',
         '[title*="attach" i]',
@@ -70,24 +70,78 @@ export function BottomNavigation() {
         '.adornment',
       ].join(",");
 
-      // remove obvious clip nodes
+      // remove obvious clip nodes anywhere
       root.querySelectorAll(selectors).forEach(n => n.remove());
 
-      // if there is any element directly before the field, remove that too
-      root.querySelectorAll('input,textarea,[contenteditable="true"]').forEach(field => {
-        const prev = field.previousElementSibling as HTMLElement | null;
-        if (prev) prev.remove();
-        // if parent is a 3-col grid like [prefix|field|send], collapse parent to 2 cols
-        const parent = field.parentElement as HTMLElement | null;
-        if (parent && getComputedStyle(parent).display.includes("grid")) {
-          parent.style.gridTemplateColumns = "minmax(0,1fr) auto";
+      // normalize each field's row: delete ANY leading sibling chain before the top-most wrapper containing the field
+      root.querySelectorAll<HTMLElement>('input,textarea,[contenteditable="true"]').forEach((field) => {
+        // find the "row" that lays things out
+        const row =
+          field.closest<HTMLElement>('form,.row,.input-row,.wrapper,.controls,.toolbar,.grid,[class*="grid"],div') ||
+          field.parentElement;
+        if (!row) return;
+
+        // If grid, collapse to [1fr auto]
+        const cs = getComputedStyle(row);
+        if (cs.display.includes("grid")) {
+          row.style.gridTemplateColumns = "minmax(0,1fr) auto";
+          (row.style as any).gap = "8px";
         }
+
+        // 1) find TOP-MOST descendant of row that still contains the field
+        let container: HTMLElement | null = field as HTMLElement;
+        let lastInsideRow: HTMLElement | null = field as HTMLElement;
+        while (container && container.parentElement && container.parentElement !== row) {
+          container = container.parentElement as HTMLElement;
+          if (!container) break;
+          lastInsideRow = container;
+        }
+        const topWrapper = (lastInsideRow?.parentElement === row ? lastInsideRow : field) as HTMLElement;
+
+        // 2) delete every sibling BEFORE that topWrapper
+        let guard = 0;
+        while (row.firstElementChild && row.firstElementChild !== topWrapper && guard++ < 20) {
+          row.firstElementChild.remove();
+        }
+
+        // 3) flatten wrapper chain on the left so the field reaches the true left edge
+        // hoist field up to row if still nested in a single-purpose wrapper
+        let current = field.parentElement as HTMLElement | null;
+        while (current && current !== row && current.childElementCount === 1) {
+          current.before(field); // move field out
+          current.remove();
+          current = field.parentElement as HTMLElement | null;
+        }
+
+        // final row normalization
+        row.style.display = "flex";
+        row.style.alignItems = "center";
+        row.style.justifyContent = "flex-start";
+        row.style.gap = "8px";
+        row.style.paddingLeft = "0";
+        row.style.marginLeft = "0";
+
+        // kill external left offsets on wrappers along the chain
+        const wrappers = [field.parentElement, field.closest(".pill"), field.closest(".input-wrapper"), field.closest(".field")]
+          .filter(Boolean) as HTMLElement[];
+        wrappers.forEach(w => {
+          w.style.flex = "1 1 auto";
+          w.style.width = "100%";
+          w.style.maxWidth = "none";
+          w.style.minWidth = "0";
+          w.style.marginLeft = "0";
+          w.style.paddingLeft = "0";
+          w.style.boxSizing = "border-box";
+        });
+
+        // ensure field grows
+        (field as HTMLElement).style.flex = "1 1 auto";
+        (field as HTMLElement).style.width = "100%";
       });
     };
 
-    removeClips();
-
-    const mo = new MutationObserver(() => removeClips());
+    removeClipsAndSpacers();
+    const mo = new MutationObserver(removeClipsAndSpacers);
     mo.observe(root, { childList: true, subtree: true });
     return () => mo.disconnect();
   }, []);
@@ -217,12 +271,7 @@ export function BottomNavigation() {
               flex: 1 1 auto !important;
             }
 
-            /* --- CRUSH EVERY EXTERNAL LEFT OFFSET (wrappers, utilities, inline styles) --- */
-            .chat-input-scope * { margin-left: 0 !important; }
-            .chat-input-scope * { padding-left: 0 !important; }
-            .chat-input-scope > :first-child { margin-left: 0 !important; padding-left: 0 !important; }
-
-            /* grow the field wrapper fully */
+            /* grow the field and remove only EXTERNAL offsets on wrappers */
             .chat-input-scope .pill,
             .chat-input-scope [class*="pill" i],
             .chat-input-scope .input-wrapper,
@@ -236,22 +285,32 @@ export function BottomNavigation() {
               width: 100% !important;
               max-width: none !important;
               min-width: 0 !important;
+              margin-left: 0 !important;
+              padding-left: 0 !important;
               box-sizing: border-box !important;
             }
 
-            /* restore INTERNAL placeholder padding & keep 16px to avoid iOS zoom */
+            /* nuke utility offsets that create phantom left gaps */
+            .chat-input-scope [class^="pl-"],
+            .chat-input-scope [class*=" pl-"],
+            .chat-input-scope *[style*="padding-left"] { padding-left: 0 !important; }
+            .chat-input-scope [class^="ml-"],
+            .chat-input-scope [class*=" ml-"],
+            .chat-input-scope *[style*="margin-left"] { margin-left: 0 !important; }
+
+            /* keep internal placeholder padding and 16px font */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               font-size: 16px !important;
               line-height: 1.4;
               flex: 1 1 auto !important;
               width: 100% !important;
               margin: 0 !important;
-              padding-left: 10px !important; /* internal only */
+              padding-left: 10px !important; /* internal */
               text-indent: 0 !important;
               box-sizing: border-box !important;
             }
 
-            /* send button sits against right gutter provided by scope padding */
+            /* send button sits against the right gutter provided by scope padding */
             .chat-input-scope [aria-label*="send" i],
             .chat-input-scope button[type="submit"],
             .chat-input-scope button[class*="send" i] {
