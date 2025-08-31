@@ -19,7 +19,7 @@ export function BottomNavigation() {
   const railRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const BUBBLE = 80; // w-20
+  const BUBBLE = 64; // smaller bubble (w-16 h-16)
 
   // Compute bubble x relative to the rail using offsetLeft (no viewport math).
   const getBubblePosition = () => {
@@ -28,14 +28,13 @@ export function BottomNavigation() {
     const rail = railRef.current;
 
     if (!tabEl || !rail) {
-      // Fallback: cells are now 106px wide in 320px container
       const CELL = 106.67;
-      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -8 };
+      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -6 };
     }
 
     const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
-    const xWithinRail = tabCenterX - BUBBLE / 2; // rail is the offset parent
-    return { x: xWithinRail, y: -8 };
+    const xWithinRail = tabCenterX - BUBBLE / 2;
+    return { x: xWithinRail, y: -6 };
   };
 
   useEffect(() => {
@@ -65,7 +64,6 @@ export function BottomNavigation() {
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
-    // Snap to closest tab horizontally.
     let best = 0;
     let dist = Infinity;
     tabRefs.current.forEach((el, i) => {
@@ -93,9 +91,8 @@ export function BottomNavigation() {
         <motion.div
           className="relative flex flex-col items-center"
           animate={{
-            // Slightly reduced top padding when chat is visible to move content up a bit
-            paddingTop: isChat ? "1rem" : "0.75rem",
-            paddingBottom: "0.75rem",
+            paddingTop: "0.5rem",
+            paddingBottom: "0.5rem",
           }}
           transition={{ duration: 0.25, ease: "easeOut" }}
           style={{
@@ -115,7 +112,7 @@ export function BottomNavigation() {
             ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
           }}
         >
-          {/* Scoped focus style override so the input highlight uses the bubble blue, not purple */}
+          {/* Scoped focus style override */}
           <style>{`
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
@@ -127,14 +124,14 @@ export function BottomNavigation() {
             }
           `}</style>
 
-          {/* Chat input area kept mounted, smoothly expands/collapses */}
+          {/* Chat input */}
           <motion.div
             initial={false}
             animate={{
-              maxHeight: isChat ? 160 : 0, // px; large enough for input + buttons
+              maxHeight: isChat ? 160 : 0,
               opacity: isChat ? 1 : 0,
               y: isChat ? 0 : 8,
-              marginBottom: isChat ? 32 : 0, // mb-8 when open, 0 when closed
+              marginBottom: isChat ? 32 : 0,
             }}
             transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
             className="w-full px-6 chat-input-scope"
@@ -143,9 +140,8 @@ export function BottomNavigation() {
             <ChatInput />
           </motion.div>
 
-          {/* Rail: this contains BOTH the bubble (absolute) and the 3 tab cells */}
+          {/* Tabs */}
           <div className="relative z-20" style={{ width: 320, height: 64 }}>
-            {/* Tabs grid (becomes the offset parent for the bubble) */}
             <div
               ref={railRef}
               className="absolute inset-0 flex justify-between items-center px-4"
@@ -182,7 +178,7 @@ export function BottomNavigation() {
               })}
             </div>
 
-            {/* Bubble now absolutely positioned INSIDE the rail */}
+            {/* Bubble */}
             <motion.div
               drag="x"
               dragMomentum
@@ -194,29 +190,29 @@ export function BottomNavigation() {
               initial={getBubblePosition()}
               whileHover={{ scale: 1.05, transition: { type: "spring", damping: 10, stiffness: 400 } }}
               whileDrag={{
-                scale: 1.3,
+                scale: 1.25,
                 zIndex: 1000,
                 filter:
-                  "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
-                transition: { type: "spring", damping: 5, stiffness: 300 },
+                  "drop-shadow(0 0 30px hsla(200, 100%, 60%, 0.8)) drop-shadow(0 0 60px hsla(200, 100%, 40%, 0.5))",
+                transition: { type: "spring", damping: 6, stiffness: 280 },
               }}
-              className="absolute left-0 top-0 -translate-y-8 w-20 h-20 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
+              className="absolute left-0 top-0 -translate-y-6 w-16 h-16 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
               style={{
                 background:
-                  "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.2) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
+                  "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.25) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
                 backdropFilter: "blur(20px)",
                 border: "2px solid hsla(200, 100%, 70%, 0.7)",
                 boxShadow: `
-                  0 0 40px hsla(200, 100%, 60%, 0.5),
-                  0 8px 32px hsla(200, 100%, 50%, 0.3),
+                  0 0 30px hsla(200, 100%, 60%, 0.4),
+                  0 6px 24px hsla(200, 100%, 50%, 0.25),
                   inset 0 2px 0 hsla(200, 100%, 90%, 0.6),
                   inset 0 -2px 0 hsla(200, 100%, 30%, 0.4)
                 `,
               }}
             >
               <div className="absolute inset-1 rounded-full overflow-hidden">
-                <div className="absolute top-1 left-2 w-6 h-0.5 bg-white opacity-70 blur-sm rounded-full" />
-                <div className="absolute bottom-2 right-1 w-4 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
+                <div className="absolute top-1 left-1.5 w-5 h-0.5 bg-white opacity-70 blur-sm rounded-full" />
+                <div className="absolute bottom-1.5 right-1 w-3 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
               </div>
             </motion.div>
           </div>
