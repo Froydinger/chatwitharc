@@ -54,9 +54,7 @@ export function BottomNavigation() {
       const CELL = CONTAINER_WIDTH / navigationItems.length;
       return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -4 };
     }
-    const tabCenterX = tabEl.offsetLeft + el.offsetWidth / 2;
-    // @ts-ignore
-    const el = tabEl;
+    const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
     return { x: tabCenterX - BUBBLE / 2, y: -4 };
   };
 
@@ -133,7 +131,6 @@ export function BottomNavigation() {
           }}
         >
           <style>{`
-            /* Keep existing focus styling */
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
             .chat-input-scope textarea:focus,
@@ -143,7 +140,7 @@ export function BottomNavigation() {
               border-color: var(--bubble-blue) !important;
             }
 
-            /* HARD REMOVE attachment button (paperclip) regardless of markup */
+            /* Kill the paperclip attach button */
             .chat-input-scope [aria-label*="attach" i],
             .chat-input-scope [title*="attach" i],
             .chat-input-scope [data-attach],
@@ -151,7 +148,6 @@ export function BottomNavigation() {
             .chat-input-scope .attachment,
             .chat-input-scope button[class*="attach" i],
             .chat-input-scope svg[class*="paperclip" i],
-            .chat-input-scope svg[aria-label*="paperclip" i],
             .chat-input-scope [data-icon="paperclip"],
             .chat-input-scope [data-testid="attach-button"] {
               display: none !important;
@@ -161,34 +157,16 @@ export function BottomNavigation() {
               max-width: 0 !important;
             }
 
-            /* Stretch the text field to occupy freed space without touching other UI */
-            .chat-input-scope,
-            .chat-input-scope * {
-              /* Prefer flex growth where possible */
-              --_grow: 1;
-            }
+            /* Stretch input and force iOS font-size fix */
             .chat-input-scope input,
             .chat-input-scope textarea,
             .chat-input-scope [contenteditable="true"] {
-              font-size: 16px !important; /* prevent iOS zoom */
+              font-size: 16px !important;
               line-height: 1.4;
               width: 100% !important;
               max-width: 100% !important;
               flex: 1 1 auto !important;
               min-width: 0;
-            }
-
-            /* If the input sits inside a row with buttons, force that row to flex so input can grow */
-            .chat-input-scope .row,
-            .chat-input-scope .input-row,
-            .chat-input-scope .toolbar,
-            .chat-input-scope .controls,
-            .chat-input-scope .actions,
-            .chat-input-scope form,
-            .chat-input-scope .wrapper {
-              display: flex !important;
-              align-items: center;
-              gap: 8px;
             }
           `}</style>
 
@@ -214,7 +192,6 @@ export function BottomNavigation() {
               pointerEvents: expanded ? "auto" : "none",
             }}
           >
-            {/* Measured content */}
             <div
               ref={measureRef}
               className="w-full px-6 chat-input-scope"
@@ -224,7 +201,7 @@ export function BottomNavigation() {
             </div>
           </motion.div>
 
-          {/* Rail footer: fixed height, never moves */}
+          {/* Rail footer */}
           <div style={{ height: TAB_RAIL_HEIGHT, position: "relative" }}>
             <div
               ref={railRef}
