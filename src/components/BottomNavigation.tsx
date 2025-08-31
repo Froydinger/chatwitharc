@@ -16,8 +16,8 @@ export function BottomNavigation() {
   const bubbleControls = useAnimation();
 
   // The 320px rail that contains BOTH the tabs and the bubble.
-  const railRef = useRef<HTMLDivElement>(null);
-  const tabRefs = useRef<(HTMLDivElement | null)[]>([];
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const tabRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const BUBBLE = 64; // w-16 h-16
 
@@ -110,18 +110,17 @@ export function BottomNavigation() {
             `,
             minWidth: 320,
             width: 320,
-            ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
           }}
         >
-          {/* Focus color override to match bubble blue */}
+          {/* Focus color override to match bubble blue (no CSS var trick) */}
           <style>{`
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
             .chat-input-scope textarea:focus,
             .chat-input-scope textarea:focus-visible {
-              outline-color: var(--bubble-blue) !important;
-              box-shadow: 0 0 0 3px color-mix(in oklab, var(--bubble-blue) 35%, transparent) !important;
-              border-color: var(--bubble-blue) !important;
+              outline-color: hsl(200, 100%, 60%) !important;
+              box-shadow: 0 0 0 3px color-mix(in oklab, hsl(200, 100%, 60%) 35%, transparent) !important;
+              border-color: hsl(200, 100%, 60%) !important;
             }
           `}</style>
 
