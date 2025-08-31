@@ -56,7 +56,6 @@ export function BottomNavigation() {
     setNow();
     const t = setTimeout(setNow, 60);
     const onResize = () => setNow();
-    window.addEventListener("resize", onResize);
     return () => {
       clearTimeout(t);
       window.removeEventListener("resize", onResize);
@@ -92,7 +91,8 @@ export function BottomNavigation() {
         <motion.div
           className="relative flex flex-col items-center"
           animate={{
-            paddingTop: currentTab === "chat" ? "1.5rem" : "0.75rem",
+            // Move content up slightly when chat is active to create more space above the tabs
+            paddingTop: currentTab === "chat" ? "1rem" : "0.75rem",
             paddingBottom: "0.75rem",
           }}
           transition={{ duration: 0.25, ease: "easeOut" }}
@@ -110,8 +110,23 @@ export function BottomNavigation() {
             `,
             minWidth: 320,
             width: 320,
+            // Expose the bubble blue as a CSS variable for focus outlines
+            // Matches the bubble aesthetic
+            ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
           }}
         >
+          {/* Scoped focus style override so the input highlight uses the bubble blue, not purple */}
+          <style>{`
+            .chat-input-scope input:focus,
+            .chat-input-scope input:focus-visible,
+            .chat-input-scope textarea:focus,
+            .chat-input-scope textarea:focus-visible {
+              outline-color: var(--bubble-blue) !important;
+              box-shadow: 0 0 0 3px color-mix(in oklab, var(--bubble-blue) 35%, transparent) !important;
+              border-color: var(--bubble-blue) !important;
+            }
+          `}</style>
+
           {/* Chat input */}
           {currentTab === "chat" && (
             <motion.div
@@ -119,7 +134,9 @@ export function BottomNavigation() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.3, delay: 0.1 }}
-              className="w-full px-6 mb-6"
+              // Increase margin-bottom a bit to add space above the tab bar,
+              // while the reduced paddingTop keeps overall height in check.
+              className="w-full px-6 mb-8 chat-input-scope"
             >
               <ChatInput />
             </motion.div>
