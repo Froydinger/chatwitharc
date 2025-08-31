@@ -141,38 +141,32 @@ export function BottomNavigation() {
               border-color: var(--bubble-blue) !important;
             }
 
-            /* 1) Remove attachment/paperclip controls */
+            /* Remove attachment/prefix completely */
             .chat-input-scope [aria-label*="attach" i],
             .chat-input-scope [title*="attach" i],
             .chat-input-scope [data-attach],
             .chat-input-scope .attach,
             .chat-input-scope .attachment,
-            .chat-input-scope button[class*="attach" i],
-            .chat-input-scope svg[class*="paperclip" i],
-            .chat-input-scope [data-icon="paperclip"],
-            .chat-input-scope [data-testid="attach-button"] {
-              display: none !important;
-              visibility: hidden !important;
-              pointer-events: none !important;
-              width: 0 !important;
-              max-width: 0 !important;
-            }
-
-            /* 2) Kill any LEFT prefix/adornment slot that reserves space */
             .chat-input-scope [class*="prefix"],
             .chat-input-scope [data-slot="prefix"],
             .chat-input-scope .input-prefix,
-            .chat-input-scope .startAdornment,
-            .chat-input-scope .adornment-start,
             .chat-input-scope .leading,
             .chat-input-scope .leading-icon {
               display: none !important;
               width: 0 !important;
               margin: 0 !important;
               padding: 0 !important;
+              pointer-events: none !important;
+              visibility: hidden !important;
             }
 
-            /* 3) Normalize the row to "input | send" so input hugs LEFT */
+            /* Force exact 10px gutters on the input area */
+            .chat-input-scope {
+              padding-left: 10px !important;
+              padding-right: 10px !important;
+            }
+
+            /* Normalize the row to input | send with no extra columns */
             .chat-input-scope form,
             .chat-input-scope .row,
             .chat-input-scope .input-row,
@@ -181,33 +175,29 @@ export function BottomNavigation() {
             .chat-input-scope .toolbar {
               display: flex !important;
               align-items: center;
-              justify-content: space-between !important;
               gap: 8px;
-              padding-left: 0 !important;
-              margin-left: 0 !important;
               width: 100% !important;
-              box-sizing: border-box;
+              padding-left: 0 !important; /* gutters handled by .chat-input-scope */
+              padding-right: 0 !important;
+              margin: 0 !important;
             }
 
-            /* stretch any direct wrapper around the field */
-            .chat-input-scope *:has(> :where(input,textarea,[contenteditable="true"])) {
-              flex: 1 1 100% !important;
-              width: 100% !important;
-              max-width: 100% !important;
-              padding-left: 0 !important;
-              margin-left: 0 !important;
-            }
-
-            /* 4) The field itself */
+            /* Field fills everything between gutters and send */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               font-size: 16px !important;   /* iOS anti-zoom */
               line-height: 1.4;
-              flex: 1 1 100% !important;
+              flex: 1 1 auto !important;
               width: 100% !important;
               max-width: 100% !important;
               min-width: 0 !important;
-              margin-left: 0 !important;
-              padding-left: 0.5rem;         /* small inner padding */
+              margin: 0 !important;
+            }
+
+            /* Send button pinned to the right gutter (no extra margin) */
+            .chat-input-scope [aria-label*="send" i],
+            .chat-input-scope button[type="submit"],
+            .chat-input-scope button[class*="send" i] {
+              margin-right: 0 !important;
             }
           `}</style>
 
@@ -233,10 +223,11 @@ export function BottomNavigation() {
               pointerEvents: expanded ? "auto" : "none",
             }}
           >
+            {/* Measured content container — exact 10px gutters */}
             <div
               ref={measureRef}
-              className="w-full px-6 chat-input-scope"
-              style={{ paddingBottom: GAP_ABOVE_RAIL }}
+              className="w-full chat-input-scope"
+              style={{ paddingBottom: GAP_ABOVE_RAIL, paddingLeft: 10, paddingRight: 10 }}
             >
               <ChatInput />
             </div>
