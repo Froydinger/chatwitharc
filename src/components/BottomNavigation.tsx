@@ -5,34 +5,38 @@ import { useRef, useState, useEffect } from "react";
 import { ChatInput } from "@/components/ChatInput";
 
 const navigationItems = [
-  { id: "chat", icon: MessageCircle },
-  { id: "history", icon: History },
-  { id: "settings", icon: Settings },
+  { id: "chat", icon: MessageCircle, label: "Chat" },
+  { id: "history", icon: History, label: "History" },
+  { id: "settings", icon: Settings, label: "Settings" },
 ] as const;
 
-function BottomNavigation() {
+export function BottomNavigation() {
   const { currentTab, setCurrentTab } = useArcStore();
   const [isDragging, setIsDragging] = useState(false);
   const bubbleControls = useAnimation();
 
+  // The 320px rail that contains BOTH the tabs and the bubble.
   const railRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const BUBBLE = 72; // bigger bubble
+  // Bubble slightly smaller
+  const BUBBLE = 72; // px
 
+  // Compute bubble x relative to the rail using offsetLeft
   const getBubblePosition = () => {
-    const idx = navigationItems.findIndex((i) => i.id === currentTab);
+    const idx = navigationItems.findIndex(i => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
     const rail = railRef.current;
 
     if (!tabEl || !rail) {
+      // Fallback cell calc inside 320 container
       const CELL = 106.67;
-      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -3 };
+      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -8 };
     }
 
     const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
     const xWithinRail = tabCenterX - BUBBLE / 2;
-    return { x: xWithinRail, y: -3 };
+    return { x: xWithinRail, y: -8 };
   };
 
   useEffect(() => {
@@ -61,6 +65,7 @@ function BottomNavigation() {
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
+    // Snap to closest tab horizontally.
     let best = 0;
     let dist = Infinity;
     tabRefs.current.forEach((el, i) => {
@@ -82,6 +87,7 @@ function BottomNavigation() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
+        {/* Glass container */}
         <motion.div
           className="relative flex flex-col items-center"
           animate={{
@@ -106,6 +112,24 @@ function BottomNavigation() {
             ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
           }}
         >
+          {/* Scoped focus color and a tiny paperclip nudge */}
+          <style>{`
+            .chat-input-scope input:focus,
+            .chat-input-scope input:focus-visible,
+            .chat-input-scope textarea:focus,
+            .chat-input-scope textarea:focus-visible {
+              outline-color: var(--bubble-blue) !important;
+              box-shadow: 0 0 0 3px color-mix(in oklab, var(--bubble-blue) 35%, transparent) !important;
+              border-color: var(--bubble-blue) !important;
+            }
+            /* Nudge paperclip down a bit. Targets a common pattern safely. */
+            .chat-input-scope button[aria-label="Attach"],
+            .chat-input-scope [data-attach="true"] {
+              transform: translateY(2px);
+            }
+          `}</style>
+
+          {/* Chat input */}
           {currentTab === "chat" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -118,7 +142,9 @@ function BottomNavigation() {
             </motion.div>
           )}
 
+          {/* Rail: this contains BOTH the bubble and the 3 tab cells */}
           <div className="relative z-20" style={{ width: 320, height: 64 }}>
+            {/* Tabs grid */}
             <div
               ref={railRef}
               className="absolute inset-0 flex justify-between items-center px-4"
@@ -131,7 +157,7 @@ function BottomNavigation() {
                   <div
                     key={item.id}
                     ref={(el) => (tabRefs.current[index] = el)}
-                    className="flex items-center justify-center cursor-pointer select-none px-4 py-2"
+                    className="flex flex-col items-center justify-center cursor-pointer select-none px-4 py-2"
                     onClick={() => setCurrentTab(item.id)}
                   >
                     <Icon
@@ -141,11 +167,13 @@ function BottomNavigation() {
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     />
+                    {/* Titles removed */}
                   </div>
                 );
               })}
             </div>
 
+            {/* Bubble absolutely positioned INSIDE the rail */}
             <motion.div
               drag="x"
               dragMomentum
@@ -163,7 +191,7 @@ function BottomNavigation() {
                   "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
                 transition: { type: "spring", damping: 5, stiffness: 300 },
               }}
-              className="absolute left-0 top-0 -translate-y-7 w-[72px] h-[72px] rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
+              className="absolute left-0 top-0 -translate-y-8 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto w-[72px] h-[72px]"
               style={{
                 background:
                   "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.2) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
@@ -188,5 +216,3 @@ function BottomNavigation() {
     </div>
   );
 }
-
-export default BottomNavigation;
