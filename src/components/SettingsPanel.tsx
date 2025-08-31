@@ -275,7 +275,7 @@ export function SettingsPanel() {
   ];
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-6 pb-8 pt-16 px-4 h-full overflow-y-auto">
+    <div className="w-full max-w-2xl mx-auto space-y-6 pb-20 pt-16 px-4 h-full overflow-y-auto">
       {/* Profile Picture Upload */}
       <div className="max-w-md mx-auto">
         <GlassCard variant="bubble" className="p-6">

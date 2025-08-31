@@ -73,7 +73,7 @@ export function ChatHistoryPanel() {
   }, {} as Record<string, typeof chatSessions>);
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-8 pb-8 pt-16 px-4 h-full overflow-y-auto">
+    <div className="w-full max-w-6xl mx-auto space-y-8 pb-20 pt-16 px-4 h-full overflow-y-auto">
       {/* Header */}
       <div
         className="text-center space-y-4"
