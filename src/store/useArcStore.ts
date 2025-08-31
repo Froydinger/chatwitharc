@@ -16,9 +16,10 @@ export interface Message {
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
-  type: 'text' | 'voice' | 'image';
+  type: 'text' | 'voice' | 'image' | 'image-generating';
   imageUrl?: string;
   imageUrls?: string[]; // Support for multiple images
+  imagePrompt?: string; // For image generation placeholders
 }
 
 export interface ArcState {

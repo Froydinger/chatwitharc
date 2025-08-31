@@ -15,7 +15,7 @@ export function BottomNavigation() {
   const [isDragging, setIsDragging] = useState(false);
   const bubbleControls = useAnimation();
 
-  // The 288px rail that contains BOTH the tabs and the bubble.
+  // The 320px rail that contains BOTH the tabs and the bubble.
   const railRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -28,8 +28,8 @@ export function BottomNavigation() {
     const rail = railRef.current;
 
     if (!tabEl || !rail) {
-      // Fallback: cells are 96px wide
-      const CELL = 96;
+      // Fallback: cells are now 106px wide in 320px container
+      const CELL = 106.67;
       return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -8 };
     }
 
@@ -108,8 +108,8 @@ export function BottomNavigation() {
               inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
               inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
             `,
-            minWidth: 288,
-            width: "auto",
+            minWidth: 320,
+            width: 320,
           }}
         >
           {/* Chat input */}
@@ -126,12 +126,12 @@ export function BottomNavigation() {
           )}
 
           {/* Rail: this contains BOTH the bubble (absolute) and the 3 tab cells */}
-          <div className="relative z-20" style={{ width: 288, height: 64 }}>
+          <div className="relative z-20" style={{ width: 320, height: 64 }}>
             {/* Tabs grid (becomes the offset parent for the bubble) */}
             <div
               ref={railRef}
-              className="absolute inset-0 grid grid-cols-3 gap-0 p-0"
-              style={{ width: 288, height: 64 }}
+              className="absolute inset-0 flex justify-between items-center px-4"
+              style={{ width: 320, height: 64 }}
             >
               {navigationItems.map((item, index) => {
                 const Icon = item.icon;
@@ -140,7 +140,7 @@ export function BottomNavigation() {
                   <div
                     key={item.id}
                     ref={(el) => (tabRefs.current[index] = el)}
-                    className="w-24 h-16 inline-flex flex-col items-center justify-center cursor-pointer select-none"
+                    className="flex flex-col items-center justify-center cursor-pointer select-none px-4 py-2"
                     onClick={() => setCurrentTab(item.id)}
                   >
                     <Icon

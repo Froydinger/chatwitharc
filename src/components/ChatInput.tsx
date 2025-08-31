@@ -127,14 +127,32 @@ export function ChatInput() {
           }
         }
         
-        const imageUrl = await openai.generateImage(imagePrompt || userMessage);
-        
+        // Add placeholder message immediately
         addMessage({
-          content: `Generated image: ${imagePrompt || userMessage}`,
+          content: `Generating image: ${imagePrompt || userMessage}`,
           role: 'assistant',
-          type: 'image',
-          imageUrl
+          type: 'image-generating',
+          imagePrompt: imagePrompt || userMessage
         });
+        
+        try {
+          const imageUrl = await openai.generateImage(imagePrompt || userMessage);
+          
+          // Update with the actual image
+          addMessage({
+            content: `Generated image: ${imagePrompt || userMessage}`,
+            role: 'assistant',
+            type: 'image',
+            imageUrl
+          });
+        } catch (error) {
+          // Handle error by adding error message
+          addMessage({
+            content: `Sorry, I couldn't generate the image. ${error instanceof Error ? error.message : 'Please try again.'}`,
+            role: 'assistant',
+            type: 'text'
+          });
+        }
       } else if (selectedImages.length > 0) {
         // Handle image analysis with text
         const reader = new FileReader();

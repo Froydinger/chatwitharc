@@ -7,6 +7,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { ImageGenerationPlaceholder } from "@/components/ImageGenerationPlaceholder";
 
 interface MessageBubbleProps {
   message: Message;
@@ -124,6 +125,16 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           }`}
           onClick={handleMessageClick}
         >
+          {/* Image Generation Placeholder */}
+          {message.type === 'image-generating' && (
+            <ImageGenerationPlaceholder
+              prompt={message.imagePrompt || message.content}
+              onComplete={() => {
+                // This would be handled by the parent component
+              }}
+            />
+          )}
+
           {/* Image Preview */}
           {message.type === 'image' && (message.imageUrl || message.imageUrls) && (
             <motion.div
