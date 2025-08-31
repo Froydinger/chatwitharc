@@ -16,29 +16,26 @@ export function BottomNavigation() {
   const bubbleControls = useAnimation();
 
   // The 320px rail that contains BOTH the tabs and the bubble.
-  const railRef = useRef<HTMLDivElement | null>(null);
-  const tabRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const railRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Measure the live height of the input so we can expand the outer container smoothly.
-  const inputRowRef = useRef<HTMLDivElement | null>(null);
-  const [measuredInputH, setMeasuredInputH] = useState(44); // ~single-line default
+  const BUBBLE = 80; // w-20
 
-  const BUBBLE = 64; // w-16 h-16
-
-  // Compute bubble x relative to the rail using offsetLeft.
+  // Compute bubble x relative to the rail using offsetLeft (no viewport math).
   const getBubblePosition = () => {
-    const idx = navigationItems.findIndex((i) => i.id === currentTab);
+    const idx = navigationItems.findIndex(i => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
     const rail = railRef.current;
 
     if (!tabEl || !rail) {
+      // Fallback: cells are now 106px wide in 320px container
       const CELL = 106.67;
-      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: 0 };
+      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -8 };
     }
 
     const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
-    const xWithinRail = tabCenterX - BUBBLE / 2;
-    return { x: xWithinRail, y: 0 };
+    const xWithinRail = tabCenterX - BUBBLE / 2; // rail is the offset parent
+    return { x: xWithinRail, y: -8 };
   };
 
   useEffect(() => {
@@ -59,34 +56,21 @@ export function BottomNavigation() {
     setNow();
     const t = setTimeout(setNow, 60);
     const onResize = () => setNow();
-    window.addEventListener("resize", onResize);
     return () => {
       clearTimeout(t);
       window.removeEventListener("resize", onResize);
     };
   }, []);
 
-  // Observe the ChatInput height (works whether input is <input> or <textarea>)
-  useEffect(() => {
-    if (!inputRowRef.current) return;
-    const el = inputRowRef.current;
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const h = Math.round(entry.contentRect.height);
-        if (h > 0) setMeasuredInputH(h);
-      }
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [inputRowRef.current]);
-
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
+    // Snap to closest tab horizontally.
     let best = 0;
     let dist = Infinity;
     tabRefs.current.forEach((el, i) => {
       if (!el) return;
-      const d = Math.abs(info.point.x - (el.getBoundingClientRect().left + el.offsetWidth / 2));
+      const center = el.offsetLeft + el.offsetWidth / 2;
+      const d = Math.abs((info.point.x - (el.getBoundingClientRect().left + el.offsetWidth / 2)));
       if (d < dist) {
         dist = d;
         best = i;
@@ -94,19 +78,6 @@ export function BottomNavigation() {
     });
     setCurrentTab(navigationItems[best].id);
   };
-
-  const isChat = currentTab === "chat";
-
-  // --- Layout tuning ---
-  // Base open height that felt right before multiline; add a small extra proportional to growth.
-  // This gently stretches the outer container as the input grows (e.g., 2–3 lines),
-  // preserving the perceived top padding.
-  const BASE_OPEN_MAX = 140;
-  const singleLineApprox = 44; // baseline row height
-  const growth = Math.max(0, measuredInputH - singleLineApprox);
-  // scale the growth down so we only "breathe" a little (keeps the look tight)
-  const extraForContainer = Math.min(36, Math.round(growth * 0.6));
-  const openMaxHeight = BASE_OPEN_MAX + extraForContainer;
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 flex justify-center">
@@ -118,11 +89,11 @@ export function BottomNavigation() {
       >
         {/* Glass container */}
         <motion.div
-          layout // <- animate size changes smoothly
           className="relative flex flex-col items-center"
           animate={{
-            paddingTop: "0.125rem",
-            paddingBottom: "0.25rem",
+            // Move content up slightly when chat is active to create more space above the tabs
+            paddingTop: currentTab === "chat" ? "1rem" : "0.75rem",
+            paddingBottom: "0.75rem",
           }}
           transition={{ duration: 0.25, ease: "easeOut" }}
           style={{
@@ -139,72 +110,83 @@ export function BottomNavigation() {
             `,
             minWidth: 320,
             width: 320,
+            // Expose the bubble blue as a CSS variable for focus outlines
+            // Matches the bubble aesthetic
+            ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
           }}
         >
-          {/* Scoped overrides */}
+          {/* Scoped focus style override so the input highlight uses the bubble blue, not purple */}
           <style>{`
-            /* Input focus = bubble blue */
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
             .chat-input-scope textarea:focus,
             .chat-input-scope textarea:focus-visible {
-              outline-color: hsl(200, 100%, 60%) !important;
-              box-shadow: 0 0 0 3px color-mix(in oklab, hsl(200, 100%, 60%) 35%, transparent) !important;
-              border-color: hsl(200, 100%, 60%) !important;
+              outline-color: var(--bubble-blue) !important;
+              box-shadow: 0 0 0 3px color-mix(in oklab, var(--bubble-blue) 35%, transparent) !important;
+              border-color: var(--bubble-blue) !important;
+            }
+
+            /* Lower the existing paperclip (leftmost attach button) a bit for alignment */
+            .chat-input-scope button:first-of-type {
+              transform: translateY(4px);
             }
           `}</style>
 
-          {/* Chat input row — allow overflow so the focus ring never clips */}
-          <motion.div
-            layout // <- smooth height changes of this wrapper too
-            initial={false}
-            animate={{
-              maxHeight: isChat ? openMaxHeight : 0,
-              opacity: isChat ? 1 : 0,
-              y: isChat ? 2 : 8,            // keep row slightly lower per your layout
-              marginBottom: isChat ? 8 : 0,  // tight gap to bubble interface
-            }}
-            transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
-            className="w-full px-6 chat-input-scope"
-            style={{ overflow: "visible", willChange: "max-height, opacity, transform, margin-bottom" }}
-            ref={inputRowRef}
-          >
-            <ChatInput />
-          </motion.div>
+          {/* Chat input */}
+          {currentTab === "chat" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              // Increase margin-bottom a bit to add space above the tab bar,
+              // while the reduced paddingTop keeps overall height in check.
+              className="w-full px-6 mb-8 chat-input-scope"
+            >
+              <ChatInput />
+            </motion.div>
+          )}
 
-          {/* Rail: bubble and 3 tab cells (icon only) */}
+          {/* Rail: this contains BOTH the bubble (absolute) and the 3 tab cells */}
           <div className="relative z-20" style={{ width: 320, height: 64 }}>
+            {/* Tabs grid (becomes the offset parent for the bubble) */}
             <div
               ref={railRef}
-              className="absolute inset-0 flex justify-between items-center px-6"
+              className="absolute inset-0 flex justify-between items-center px-4"
               style={{ width: 320, height: 64 }}
             >
               {navigationItems.map((item, index) => {
                 const Icon = item.icon;
-                const active = currentTab === item.id;
+                const isActive = currentTab === item.id;
                 return (
                   <div
                     key={item.id}
                     ref={(el) => (tabRefs.current[index] = el)}
-                    className="flex items-center justify-center cursor-pointer select-none"
-                    style={{ width: 64, height: 64 }}
+                    className="flex flex-col items-center justify-center cursor-pointer select-none px-4 py-2"
                     onClick={() => setCurrentTab(item.id)}
-                    aria-label={item.label}
-                    title={item.label}
                   >
                     <Icon
-                      className={`h-6 w-6 transition-colors duration-300 ${
-                        active
+                      className={`h-6 w-6 mb-1 transition-colors duration-300 ${
+                        isActive
                           ? "text-primary-foreground drop-shadow-lg"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     />
+                    <span
+                      className={`text-xs font-medium transition-colors duration-300 ${
+                        isActive
+                          ? "text-primary-foreground drop-shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {item.label}
+                    </span>
                   </div>
                 );
               })}
             </div>
 
-            {/* Bubble */}
+            {/* Bubble now absolutely positioned INSIDE the rail */}
             <motion.div
               drag="x"
               dragMomentum
@@ -216,29 +198,29 @@ export function BottomNavigation() {
               initial={getBubblePosition()}
               whileHover={{ scale: 1.05, transition: { type: "spring", damping: 10, stiffness: 400 } }}
               whileDrag={{
-                scale: 1.25,
+                scale: 1.3,
                 zIndex: 1000,
                 filter:
-                  "drop-shadow(0 0 30px hsla(200, 100%, 60%, 0.8)) drop-shadow(0 0 60px hsla(200, 100%, 40%, 0.5))",
-                transition: { type: "spring", damping: 6, stiffness: 280 },
+                  "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
+                transition: { type: "spring", damping: 5, stiffness: 300 },
               }}
-              className="absolute left-0 top-0 -translate-y-3 w-16 h-16 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
+              className="absolute left-0 top-0 -translate-y-8 w-20 h-20 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
               style={{
                 background:
-                  "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.25) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
+                  "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.2) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
                 backdropFilter: "blur(20px)",
                 border: "2px solid hsla(200, 100%, 70%, 0.7)",
                 boxShadow: `
-                  0 0 30px hsla(200, 100%, 60%, 0.4),
-                  0 6px 24px hsla(200, 100%, 50%, 0.25),
+                  0 0 40px hsla(200, 100%, 60%, 0.5),
+                  0 8px 32px hsla(200, 100%, 50%, 0.3),
                   inset 0 2px 0 hsla(200, 100%, 90%, 0.6),
                   inset 0 -2px 0 hsla(200, 100%, 30%, 0.4)
                 `,
               }}
             >
               <div className="absolute inset-1 rounded-full overflow-hidden">
-                <div className="absolute top-1 left-1.5 w-5 h-0.5 bg-white opacity-70 blur-sm rounded-full" />
-                <div className="absolute bottom-1.5 right-1 w-3 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
+                <div className="absolute top-1 left-2 w-6 h-0.5 bg-white opacity-70 blur-sm rounded-full" />
+                <div className="absolute bottom-2 right-1 w-4 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
               </div>
             </motion.div>
           </div>
