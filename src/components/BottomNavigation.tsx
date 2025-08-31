@@ -91,7 +91,6 @@ export function BottomNavigation() {
         <motion.div
           className="relative flex flex-col items-center"
           animate={{
-            // Keep panel height the same as previous pass
             paddingTop: "0.125rem",
             paddingBottom: "0.25rem",
           }}
@@ -124,39 +123,34 @@ export function BottomNavigation() {
               border-color: hsl(200, 100%, 60%) !important;
             }
 
-            /* === Replace paperclip with image icon + plus badge, and lower it 3px ===
-               Targets a reasonable set of attach buttons without needing to touch ChatInput code.
-               If your ChatInput uses different selectors, add them to the first rule's list. */
-            .chat-input-scope button[aria-label="Attach"],
-            .chat-input-scope button[title="Attach"],
-            .chat-input-scope .attach-btn {
+            /* Replace paperclip on the LEFTMOST button with image+ badge, and align */
+            .chat-input-scope .ci-row button:first-of-type,
+            .chat-input-scope > div button:first-of-type,
+            .chat-input-scope button:first-of-type {
               position: relative;
               display: inline-flex;
               align-items: center;
               justify-content: center;
-              transform: translateY(3px); /* lower a bit for perfect alignment */
+              transform: translateY(3px); /* lower a bit */
             }
-            /* Hide the original paperclip SVG */
-            .chat-input-scope button[aria-label="Attach"] svg,
-            .chat-input-scope button[title="Attach"] svg,
-            .chat-input-scope .attach-btn svg {
-              display: none !important;
+            .chat-input-scope .ci-row button:first-of-type svg,
+            .chat-input-scope > div button:first-of-type svg,
+            .chat-input-scope button:first-of-type svg {
+              display: none !important; /* hide paperclip */
             }
-            /* Draw a small image/picture icon via mask so it inherits currentColor */
-            .chat-input-scope button[aria-label="Attach"]::before,
-            .chat-input-scope button[title="Attach"]::before,
-            .chat-input-scope .attach-btn::before {
+            .chat-input-scope .ci-row button:first-of-type::before,
+            .chat-input-scope > div button:first-of-type::before,
+            .chat-input-scope button:first-of-type::before {
               content: "";
               width: 18px;
               height: 18px;
               background: currentColor;
-              -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z" stroke="%23000" stroke-width="2"/><path d="M7 16l3.5-3.5a1 1 0 0 1 1.5 0L16 16l2-2 3 3" stroke="%23000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="9" r="1.5" fill="%23000"/></svg>') no-repeat center / contain;
-                      mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z" stroke="%23000" stroke-width="2"/><path d="M7 16l3.5-3.5a1 1 0 0 1 1.5 0L16 16l2-2 3 3" stroke="%23000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="9" r="1.5" fill="%23000"/></svg>') no-repeat center / contain;
+              -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" ry="3" fill="%23000" stroke="%23000" stroke-width="2"/><path d="M7 16l3.6-3.6a1 1 0 0 1 1.4 0L16 16l2-2 3 3" fill="none" stroke="%23000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="9" r="1.6" fill="%23000"/></svg>') no-repeat center / contain;
+                      mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" ry="3" fill="%23000" stroke="%23000" stroke-width="2"/><path d="M7 16l3.6-3.6a1 1 0 0 1 1.4 0L16 16l2-2 3 3" fill="none" stroke="%23000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="9" r="1.6" fill="%23000"/></svg>') no-repeat center / contain;
             }
-            /* Add the small "+" badge in the bottom-right corner */
-            .chat-input-scope button[aria-label="Attach"]::after,
-            .chat-input-scope button[title="Attach"]::after,
-            .chat-input-scope .attach-btn::after {
+            .chat-input-scope .ci-row button:first-of-type::after,
+            .chat-input-scope > div button:first-of-type::after,
+            .chat-input-scope button:first-of-type::after {
               content: "";
               position: absolute;
               right: -2px;
@@ -169,20 +163,23 @@ export function BottomNavigation() {
             }
           `}</style>
 
-          {/* Chat input row — closer to bubble bar (unchanged from last pass) */}
+          {/* Chat input row — allow overflow so the focus ring never clips */}
           <motion.div
             initial={false}
             animate={{
-              maxHeight: isChat ? 140 : 0,
+              maxHeight: isChat ? 160 : 0,   // give the input room when focused
               opacity: isChat ? 1 : 0,
-              y: isChat ? 2 : 8,            // keep the input row slightly lower
-              marginBottom: isChat ? 8 : 0, // tight gap to bubble interface
+              y: isChat ? 2 : 8,             // keep row slightly lower per your layout
+              marginBottom: isChat ? 8 : 0,  // tight gap to bubble interface
             }}
             transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
             className="w-full px-6 chat-input-scope"
-            style={{ overflow: "hidden", willChange: "max-height, opacity, transform, margin-bottom" }}
+            style={{ overflow: "visible", willChange: "max-height, opacity, transform, margin-bottom" }}
           >
-            <ChatInput />
+            {/* Add a wrapper class if ChatInput doesn't already have one; harmless otherwise */}
+            <div className="ci-row">
+              <ChatInput />
+            </div>
           </motion.div>
 
           {/* Rail: bubble and 3 tab cells (icon only) */}
