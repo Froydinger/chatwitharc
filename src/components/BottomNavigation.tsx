@@ -15,28 +15,24 @@ export function BottomNavigation() {
   const [isDragging, setIsDragging] = useState(false);
   const bubbleControls = useAnimation();
 
-  // The 320px rail that contains BOTH the tabs and the bubble.
+  // Rail and tab refs
   const railRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Bubble slightly smaller
-  const BUBBLE = 72; // px
+  // Slightly smaller bubble
+  const BUBBLE = 72;
 
-  // Compute bubble x relative to the rail using offsetLeft
+  // Position helper
   const getBubblePosition = () => {
     const idx = navigationItems.findIndex(i => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
-    const rail = railRef.current;
 
-    if (!tabEl || !rail) {
-      // Fallback cell calc inside 320 container
+    if (!tabEl) {
       const CELL = 106.67;
-      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -8 };
+      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -4 }; // lowered a hair
     }
-
     const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
-    const xWithinRail = tabCenterX - BUBBLE / 2;
-    return { x: xWithinRail, y: -8 };
+    return { x: tabCenterX - BUBBLE / 2, y: -4 }; // lowered a hair
   };
 
   useEffect(() => {
@@ -57,6 +53,7 @@ export function BottomNavigation() {
     setNow();
     const t = setTimeout(setNow, 60);
     const onResize = () => setNow();
+    window.addEventListener("resize", onResize);
     return () => {
       clearTimeout(t);
       window.removeEventListener("resize", onResize);
@@ -65,12 +62,13 @@ export function BottomNavigation() {
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
-    // Snap to closest tab horizontally.
+    // Snap to closest tab
     let best = 0;
     let dist = Infinity;
     tabRefs.current.forEach((el, i) => {
       if (!el) return;
-      const d = Math.abs(info.point.x - (el.getBoundingClientRect().left + el.offsetWidth / 2));
+      const center = el.getBoundingClientRect().left + el.offsetWidth / 2;
+      const d = Math.abs(info.point.x - center);
       if (d < dist) {
         dist = d;
         best = i;
@@ -112,7 +110,7 @@ export function BottomNavigation() {
             ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
           }}
         >
-          {/* Scoped focus color and a tiny paperclip nudge */}
+          {/* Scoped styles for input focus and paperclip alignment */}
           <style>{`
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
@@ -122,10 +120,13 @@ export function BottomNavigation() {
               box-shadow: 0 0 0 3px color-mix(in oklab, var(--bubble-blue) 35%, transparent) !important;
               border-color: var(--bubble-blue) !important;
             }
-            /* Nudge paperclip down a bit. Targets a common pattern safely. */
-            .chat-input-scope button[aria-label="Attach"],
-            .chat-input-scope [data-attach="true"] {
-              transform: translateY(2px);
+            /* Lower the paperclip a bit and ensure centering with the input */
+            .chat-input-scope [aria-label="Attach"],
+            .chat-input-scope [data-attach="true"],
+            .chat-input-scope .attach-button {
+              display: inline-flex;
+              align-items: center;
+              transform: translateY(5px);
             }
           `}</style>
 
@@ -142,9 +143,8 @@ export function BottomNavigation() {
             </motion.div>
           )}
 
-          {/* Rail: this contains BOTH the bubble and the 3 tab cells */}
+          {/* Tabs and bubble rail */}
           <div className="relative z-20" style={{ width: 320, height: 64 }}>
-            {/* Tabs grid */}
             <div
               ref={railRef}
               className="absolute inset-0 flex justify-between items-center px-4"
@@ -167,13 +167,13 @@ export function BottomNavigation() {
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     />
-                    {/* Titles removed */}
+                    {/* labels removed */}
                   </div>
                 );
               })}
             </div>
 
-            {/* Bubble absolutely positioned INSIDE the rail */}
+            {/* Bubble */}
             <motion.div
               drag="x"
               dragMomentum
@@ -191,7 +191,8 @@ export function BottomNavigation() {
                   "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
                 transition: { type: "spring", damping: 5, stiffness: 300 },
               }}
-              className="absolute left-0 top-0 -translate-y-8 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto w-[72px] h-[72px]"
+              // removed -translate-y-8; we now control Y purely via motion
+              className="absolute left-0 top-0 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto w-[72px] h-[72px]"
               style={{
                 background:
                   "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.2) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
