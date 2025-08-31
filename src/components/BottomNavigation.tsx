@@ -93,7 +93,7 @@ export function BottomNavigation() {
           className="relative flex flex-col items-center"
           animate={{
             paddingTop: currentTab === "chat" ? "1.5rem" : "0.75rem",
-            paddingBottom: currentTab === "chat" ? "0.5rem" : "1.25rem",
+            paddingBottom: "0.75rem",
           }}
           transition={{ duration: 0.25, ease: "easeOut" }}
           style={{
