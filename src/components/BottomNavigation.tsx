@@ -25,9 +25,7 @@ export function BottomNavigation() {
   const PAD_TOP_EXPANDED = 16;
   const PAD_BOTTOM = 12;
   const CONTAINER_WIDTH = 320;
-
-  // give the input a little more air above the rail
-  const GAP_ABOVE_RAIL = 14;
+  const GAP_ABOVE_RAIL = 8;
 
   // measure natural input height
   const [inputHeight, setInputHeight] = useState(0);
@@ -143,7 +141,7 @@ export function BottomNavigation() {
               border-color: var(--bubble-blue) !important;
             }
 
-            /* Remove any left attachment or prefix */
+            /* --- REMOVE ANY LEFT ATTACH/PREFIX --- */
             .chat-input-scope [aria-label*="attach" i],
             .chat-input-scope [title*="attach" i],
             .chat-input-scope [data-attach],
@@ -165,6 +163,8 @@ export function BottomNavigation() {
               pointer-events: none !important;
               visibility: hidden !important;
             }
+
+            /* Fallback: if ANY element sits immediately before the field, remove it */
             .chat-input-scope :where(button,a,div,span,svg)[role="button"]:has(+ :where(input,textarea,[contenteditable="true"])),
             .chat-input-scope :where(button,a,div,span,svg):has(+ :where(input,textarea,[contenteditable="true"])) {
               display: none !important;
@@ -173,7 +173,25 @@ export function BottomNavigation() {
               padding: 0 !important;
             }
 
-            /* Left aligned layout, no centering */
+            /* If a grid reserved a left column, collapse it to 0 */
+            .chat-input-scope :where(.grid,[class*="grid"]) {
+              grid-template-columns: 1fr auto !important;
+            }
+
+            /* --- HARD LEFT/RIGHT GUTTERS, SHIFT GROUP LEFT --- */
+            .chat-input-scope {
+              display: flex !important;
+              align-items: center !important;
+              justify-content: flex-start !important;
+              gap: 8px !important;
+              padding-left: 10px !important;
+              padding-right: 10px !important;
+              width: 100% !important;
+              box-sizing: border-box !important;
+              margin: 0 !important;
+            }
+
+            /* Normalize row to "input | send" with no centering */
             .chat-input-scope form,
             .chat-input-scope .row,
             .chat-input-scope .input-row,
@@ -185,18 +203,12 @@ export function BottomNavigation() {
               justify-content: flex-start !important;
               gap: 8px !important;
               width: 100% !important;
-              padding-left: 0 !important;
-              padding-right: 0 !important;
+              padding: 0 !important;
               margin: 0 !important;
+              flex: 1 1 auto !important;
             }
 
-            /* Stretch input wrapper to container edges */
-            .chat-input-scope {
-              padding-left: 0 !important;
-              padding-right: 0 !important;
-              width: 100% !important;
-            }
-
+            /* Grow the field to fill space; kill phantom paddings on wrappers */
             .chat-input-scope .pill,
             .chat-input-scope [class*="pill" i],
             .chat-input-scope .input-wrapper,
@@ -212,13 +224,26 @@ export function BottomNavigation() {
               min-width: 0 !important;
               margin: 0 !important;
               padding-left: 0 !important;
+              padding-right: 0 !important;
+              box-sizing: border-box !important;
             }
-            .chat-input-scope *[style*="max-width"] { max-width: none !important; }
+
+            /* Nuke utility/inline paddings that keep a phantom left column */
+            .chat-input-scope [class^="pl-"],
+            .chat-input-scope [class*=" pl-"],
+            .chat-input-scope [class*="px-"],
+            .chat-input-scope *[style*="padding-left"],
+            .chat-input-scope *[style*="padding-right"] {
+              padding-left: 0 !important;
+              padding-right: 0 !important;
+            }
             .chat-input-scope [class^="ml-"],
             .chat-input-scope [class*=" ml-"],
-            .chat-input-scope *[style*="margin-left"] { margin-left: 0 !important; }
+            .chat-input-scope *[style*="margin-left"] {
+              margin-left: 0 !important;
+            }
 
-            /* Input element: 16px to avoid iOS zoom, light left pad for placeholder */
+            /* Input element: 16px for iOS; tiny internal left pad for placeholder */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               font-size: 16px !important;
               line-height: 1.4;
@@ -227,16 +252,16 @@ export function BottomNavigation() {
               max-width: none !important;
               min-width: 0 !important;
               margin: 0 !important;
-              padding-left: 10px !important;
+              padding-left: 10px !important; /* placeholder breathing room */
               text-indent: 0 !important;
+              box-sizing: border-box !important;
             }
 
-            /* Send button hugs the right edge */
+            /* Send button respects the right gutter (container padding handles spacing) */
             .chat-input-scope [aria-label*="send" i],
             .chat-input-scope button[type="submit"],
             .chat-input-scope button[class*="send" i] {
-              margin-left: 8px !important;
-              margin-right: 0 !important;
+              margin: 0 !important;
               flex: 0 0 auto !important;
               align-self: center !important;
             }
@@ -261,17 +286,17 @@ export function BottomNavigation() {
             }}
             style={{ overflow: "hidden", pointerEvents: expanded ? "auto" : "none" }}
           >
-            {/* Measured content, full width, left aligned */}
+            {/* Measured content with strict 10px gutters */}
             <div
               ref={measureRef}
               className="w-full chat-input-scope"
-              style={{ paddingBottom: GAP_ABOVE_RAIL, paddingLeft: 0, paddingRight: 0 }}
+              style={{ paddingBottom: GAP_ABOVE_RAIL, paddingLeft: 10, paddingRight: 10 }}
             >
               <ChatInput />
             </div>
           </motion.div>
 
-          {/* Rail footer */}
+          {/* Rail footer: fixed height, never moves */}
           <div style={{ height: TAB_RAIL_HEIGHT, position: "relative" }}>
             <div
               ref={railRef}
