@@ -48,7 +48,7 @@ export function BottomNavigation() {
 
   // Bubble position helper
   const getBubblePosition = () => {
-    const idx = navigationItems.findIndex((i) => i.id === currentTab);
+    const idx = navigationItems.findIndex(i => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
     if (!tabEl) {
       const CELL = CONTAINER_WIDTH / navigationItems.length;
@@ -107,7 +107,7 @@ export function BottomNavigation() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
-        {/* Glass container */}
+        {/* Glass container: flex column, rail is a fixed-height footer */}
         <div
           className="relative flex flex-col"
           style={{
@@ -124,14 +124,14 @@ export function BottomNavigation() {
               inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
               inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
             `,
-            paddingTop: expanded ? PAD_TOP_EXPANDED : PAD_TOP_COLLAPSED,
+            paddingTop: topPad,
             paddingBottom: PAD_BOTTOM,
             ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
             willChange: "transform",
           }}
         >
           <style>{`
-            /* Focus polish */
+            /* Focus visuals */
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
             .chat-input-scope textarea:focus,
@@ -141,7 +141,8 @@ export function BottomNavigation() {
               border-color: var(--bubble-blue) !important;
             }
 
-            /* ---- Nuke paperclip & any left adornment ---- */
+            /* --- REMOVE ANY LEFT ATTACH/PREFIX --- */
+            /* Known labels/icons */
             .chat-input-scope [aria-label*="attach" i],
             .chat-input-scope [title*="attach" i],
             .chat-input-scope [data-attach],
@@ -149,11 +150,10 @@ export function BottomNavigation() {
             .chat-input-scope svg[class*="paperclip" i],
             .chat-input-scope .attach,
             .chat-input-scope .attachment,
-            .chat-input-scope [class*="prefix"],
-            .chat-input-scope [data-slot="prefix"],
-            .chat-input-scope .input-prefix,
             .chat-input-scope .leading,
-            .chat-input-scope .leading-icon {
+            .chat-input-scope .leading-icon,
+            .chat-input-scope .input-prefix,
+            .chat-input-scope [data-slot="prefix"] {
               display: none !important;
               width: 0 !important;
               margin: 0 !important;
@@ -161,7 +161,7 @@ export function BottomNavigation() {
               pointer-events: none !important;
               visibility: hidden !important;
             }
-            /* Fallback: if *anything* sits immediately before the field, hide it */
+            /* Fallback: if ANY element sits immediately before the input, hide it */
             .chat-input-scope :where(button,a,div,span,svg)[role="button"]:has(+ :where(input,textarea,[contenteditable="true"])),
             .chat-input-scope :where(button,a,div,span,svg):has(+ :where(input,textarea,[contenteditable="true"])) {
               display: none !important;
@@ -170,71 +170,44 @@ export function BottomNavigation() {
               padding: 0 !important;
             }
 
-            /* ---- Exact layout: 10px gutters; input stretches LEFT->RIGHT ---- */
-            .chat-input-scope { 
-              padding-inline: 10px !important;
-              width: 100% !important;
+            /* --- EXACT 10px GUTTERS --- */
+            .chat-input-scope {
+              padding-left: 10px !important;
+              padding-right: 10px !important;
             }
 
-            /* Make the immediate ChatInput root stretch and be a flex row */
-            .chat-input-scope > * {
-              display: flex !important;
-              align-items: center;
-              gap: 8px;
-              width: 100% !important;
-              max-width: 100% !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-
-            /* Kill phantom grid columns and center alignment */
-            .chat-input-scope * {
-              max-width: 100% !important;
-              box-sizing: border-box;
-            }
-            .chat-input-scope [style*="grid"],
+            /* Normalize row to "input | send" with no left column */
+            .chat-input-scope form,
             .chat-input-scope .row,
             .chat-input-scope .input-row,
             .chat-input-scope .wrapper,
             .chat-input-scope .controls,
-            .chat-input-scope .toolbar,
-            .chat-input-scope form {
+            .chat-input-scope .toolbar {
               display: flex !important;
-              align-items: center !important;
-              justify-content: space-between !important;
+              align-items: center;
               gap: 8px;
               width: 100% !important;
+              padding-left: 0 !important; /* gutters handled by .chat-input-scope */
+              padding-right: 0 !important;
               margin: 0 !important;
-              padding: 0 !important;
               grid-template-columns: unset !important;
             }
 
-            /* Any ancestor that CONTAINS the field must grow */
-            .chat-input-scope *:has(:where(input,textarea,[contenteditable="true"])) {
-              display: flex !important;
-              flex: 1 1 100% !important;
-              width: 100% !important;
-              max-width: 100% !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-
-            /* The field itself fills all space between left gutter and send */
+            /* Grow the field to fill space between gutters and send */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               font-size: 16px !important;   /* iOS anti-zoom */
               line-height: 1.4;
-              flex: 1 1 100% !important;
+              flex: 1 1 auto !important;
               width: 100% !important;
+              max-width: 100% !important;
               min-width: 0 !important;
               margin: 0 !important;
-              padding-left: 12px !important; /* comfortable typing space */
             }
 
-            /* Send button sits at the right gutter */
+            /* Send button hugs the right gutter */
             .chat-input-scope [aria-label*="send" i],
             .chat-input-scope button[type="submit"],
             .chat-input-scope button[class*="send" i] {
-              flex: 0 0 auto !important;
               margin-right: 0 !important;
             }
           `}</style>
@@ -258,17 +231,17 @@ export function BottomNavigation() {
             }}
             style={{ overflow: "hidden", pointerEvents: expanded ? "auto" : "none" }}
           >
-            {/* Strict 10px gutters container */}
+            {/* Measured content with strict 10px gutters */}
             <div
               ref={measureRef}
-              className="chat-input-scope"
-              style={{ paddingBottom: GAP_ABOVE_RAIL, width: "100%" }}
+              className="w-full chat-input-scope"
+              style={{ paddingBottom: GAP_ABOVE_RAIL, paddingLeft: 10, paddingRight: 10 }}
             >
               <ChatInput />
             </div>
           </motion.div>
 
-          {/* Rail footer */}
+          {/* Rail footer: fixed height, never moves */}
           <div style={{ height: TAB_RAIL_HEIGHT, position: "relative" }}>
             <div
               ref={railRef}
