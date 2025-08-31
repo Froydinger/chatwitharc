@@ -54,7 +54,9 @@ export function BottomNavigation() {
       const CELL = CONTAINER_WIDTH / navigationItems.length;
       return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -4 };
     }
-    const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
+    const tabCenterX = tabEl.offsetLeft + el.offsetWidth / 2;
+    // @ts-ignore
+    const el = tabEl;
     return { x: tabCenterX - BUBBLE / 2, y: -4 };
   };
 
@@ -131,7 +133,7 @@ export function BottomNavigation() {
           }}
         >
           <style>{`
-            /* Focus styling stays the same */
+            /* Keep existing focus styling */
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
             .chat-input-scope textarea:focus,
@@ -141,21 +143,52 @@ export function BottomNavigation() {
               border-color: var(--bubble-blue) !important;
             }
 
-            /* Remove attachment button entirely */
-            .chat-input-scope [aria-label="Attach"],
-            .chat-input-scope [data-attach="true"],
-            .chat-input-scope .attach-button {
+            /* HARD REMOVE attachment button (paperclip) regardless of markup */
+            .chat-input-scope [aria-label*="attach" i],
+            .chat-input-scope [title*="attach" i],
+            .chat-input-scope [data-attach],
+            .chat-input-scope .attach,
+            .chat-input-scope .attachment,
+            .chat-input-scope button[class*="attach" i],
+            .chat-input-scope svg[class*="paperclip" i],
+            .chat-input-scope svg[aria-label*="paperclip" i],
+            .chat-input-scope [data-icon="paperclip"],
+            .chat-input-scope [data-testid="attach-button"] {
               display: none !important;
+              visibility: hidden !important;
+              pointer-events: none !important;
+              width: 0 !important;
+              max-width: 0 !important;
             }
 
-            /* Make the text inputs fill the freed space and avoid iOS zoom */
+            /* Stretch the text field to occupy freed space without touching other UI */
+            .chat-input-scope,
+            .chat-input-scope * {
+              /* Prefer flex growth where possible */
+              --_grow: 1;
+            }
             .chat-input-scope input,
             .chat-input-scope textarea,
             .chat-input-scope [contenteditable="true"] {
-              font-size: 16px !important;
+              font-size: 16px !important; /* prevent iOS zoom */
               line-height: 1.4;
-              width: 100%;
-              max-width: 100%;
+              width: 100% !important;
+              max-width: 100% !important;
+              flex: 1 1 auto !important;
+              min-width: 0;
+            }
+
+            /* If the input sits inside a row with buttons, force that row to flex so input can grow */
+            .chat-input-scope .row,
+            .chat-input-scope .input-row,
+            .chat-input-scope .toolbar,
+            .chat-input-scope .controls,
+            .chat-input-scope .actions,
+            .chat-input-scope form,
+            .chat-input-scope .wrapper {
+              display: flex !important;
+              align-items: center;
+              gap: 8px;
             }
           `}</style>
 
@@ -182,7 +215,11 @@ export function BottomNavigation() {
             }}
           >
             {/* Measured content */}
-            <div ref={measureRef} className="w-full px-6 chat-input-scope" style={{ paddingBottom: GAP_ABOVE_RAIL }}>
+            <div
+              ref={measureRef}
+              className="w-full px-6 chat-input-scope"
+              style={{ paddingBottom: GAP_ABOVE_RAIL }}
+            >
               <ChatInput />
             </div>
           </motion.div>
