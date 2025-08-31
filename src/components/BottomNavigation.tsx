@@ -100,7 +100,7 @@ export function BottomNavigation() {
             background:
               "linear-gradient(135deg, hsla(240, 15%, 12%, 0.3) 0%, hsla(240, 20%, 15%, 0.4) 100%)",
             backdropFilter: "blur(20px)",
-            borderRadius: "2rem",
+            borderRadius: "3rem",
             border: "1px solid hsla(240, 25%, 25%, 0.3)",
             boxShadow: `
               0 0 40px hsla(200, 100%, 70%, 0.2),
