@@ -25,7 +25,7 @@ export function BottomNavigation() {
   const PAD_TOP_EXPANDED = 16;
   const PAD_BOTTOM = 12;
   const CONTAINER_WIDTH = 320;
-  const GAP_ABOVE_RAIL = 8;
+  const GAP_ABOVE_RAIL = 2; // raise the row slightly closer to the rail
 
   // measure natural input height
   const [inputHeight, setInputHeight] = useState(0);
@@ -141,7 +141,7 @@ export function BottomNavigation() {
               border-color: var(--bubble-blue) !important;
             }
 
-            /* --- STRIP ANY LEFT ICON/PREFIX COLUMN --- */
+            /* Remove any left icon/prefix column */
             .chat-input-scope [aria-label*="attach" i],
             .chat-input-scope [title*="attach" i],
             .chat-input-scope [data-attach],
@@ -164,35 +164,7 @@ export function BottomNavigation() {
               visibility: hidden !important;
             }
 
-            /* If a grid reserved a left column, collapse it to zero */
-            .chat-input-scope :where(.grid,[class*="grid"]) {
-              grid-template-columns: 1fr auto !important;
-            }
-
-            /* --- EXACT 10px GUTTERS ON THE OUTER SCOPE --- */
-            .chat-input-scope {
-              padding-left: 10px !important;
-              padding-right: 10px !important;
-            }
-
-            /* Normalize any internal row to "input | send" with no centering */
-            .chat-input-scope form,
-            .chat-input-scope .row,
-            .chat-input-scope .input-row,
-            .chat-input-scope .wrapper,
-            .chat-input-scope .controls,
-            .chat-input-scope .toolbar {
-              display: flex !important;
-              align-items: center !important;
-              justify-content: flex-start !important;
-              gap: 8px !important;
-              width: 100% !important;
-              padding-left: 0 !important;
-              padding-right: 0 !important;
-              margin: 0 !important;
-            }
-
-            /* Kill centering and margins that cap the pill width */
+            /* Kill centering and auto margins that cap the pill */
             .chat-input-scope :where(.justify-center,[class*="justify-center"]) { justify-content: flex-start !important; }
             .chat-input-scope :where(.mx-auto,[style*="margin-left: auto"],[style*="margin-right: auto"]) {
               margin-left: 0 !important; margin-right: 0 !important;
@@ -201,28 +173,30 @@ export function BottomNavigation() {
             .chat-input-scope [class*=" ml-"],
             .chat-input-scope *[style*="margin-left"] { margin-left: 0 !important; }
 
-            /* Make the pill container and the field actually stretch */
-            .chat-input-scope .pill,
-            .chat-input-scope [class*="pill" i],
-            .chat-input-scope .input-wrapper,
-            .chat-input-scope [class*="input-wrapper" i],
-            .chat-input-scope .field,
-            .chat-input-scope [class*="field" i],
-            .chat-input-scope .textbox,
-            .chat-input-scope [role="textbox"] {
-              flex: 1 1 auto !important;
-              align-self: stretch !important;
+            /* === Outer scope has NO gutters now === */
+            .chat-input-scope { padding-left: 0 !important; padding-right: 0 !important; }
+
+            /* Pill row provides symmetric padding so pill == send inset */
+            .pill-frame {
+              display: flex !important;
+              align-items: center !important;
+              gap: 8px !important;
               width: 100% !important;
-              max-width: none !important;
-              min-width: 0 !important;
+              padding-left: 10px !important;  /* left inset */
+              padding-right: 10px !important; /* right inset for send */
               margin: 0 !important;
-              padding-left: 0 !important;
             }
 
-            /* The input element itself */
-            .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
-              font-size: 16px !important; /* iOS anti-zoom */
-              line-height: 1.4;
+            /* Force the pill container and field to stretch */
+            .pill-frame .pill,
+            .pill-frame [class*="pill" i],
+            .pill-frame .input-wrapper,
+            .pill-frame [class*="input-wrapper" i],
+            .pill-frame .field,
+            .pill-frame [class*="field" i],
+            .pill-frame .textbox,
+            .pill-frame [role="textbox"],
+            .pill-frame :where(input, textarea, [contenteditable="true"]) {
               flex: 1 1 auto !important;
               width: 100% !important;
               max-width: none !important;
@@ -232,10 +206,10 @@ export function BottomNavigation() {
               text-indent: 0 !important;
             }
 
-            /* Keep send button pinned to right gutter */
-            .chat-input-scope [aria-label*="send" i],
-            .chat-input-scope button[type="submit"],
-            .chat-input-scope button[class*="send" i] {
+            /* Keep send pinned to right inset from pill-frame */
+            .pill-frame [aria-label*="send" i],
+            .pill-frame button[type="submit"],
+            .pill-frame button[class*="send" i] {
               margin-left: 8px !important;
               margin-right: 0 !important;
               flex: 0 0 auto !important;
@@ -262,11 +236,11 @@ export function BottomNavigation() {
             }}
             style={{ overflow: "hidden", pointerEvents: expanded ? "auto" : "none" }}
           >
-            {/* Measured content with strict 10px gutters */}
+            {/* Measured content (ref on the padded row) */}
             <div
               ref={measureRef}
-              className="chat-input-scope flex items-center w-full"
-              style={{ paddingBottom: GAP_ABOVE_RAIL, paddingLeft: 10, paddingRight: 10 }}
+              className="pill-frame"
+              style={{ paddingBottom: GAP_ABOVE_RAIL }}
             >
               <div className="flex-1 min-w-0">
                 <ChatInput />
