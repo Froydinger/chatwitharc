@@ -141,17 +141,19 @@ export function BottomNavigation() {
               border-color: var(--bubble-blue) !important;
             }
 
-            /* Remove attachment/prefix completely */
+            /* --- REMOVE ANY LEFT ATTACH/PREFIX --- */
+            /* Known labels/icons */
             .chat-input-scope [aria-label*="attach" i],
             .chat-input-scope [title*="attach" i],
             .chat-input-scope [data-attach],
+            .chat-input-scope [data-icon="paperclip"],
+            .chat-input-scope svg[class*="paperclip" i],
             .chat-input-scope .attach,
             .chat-input-scope .attachment,
-            .chat-input-scope [class*="prefix"],
-            .chat-input-scope [data-slot="prefix"],
-            .chat-input-scope .input-prefix,
             .chat-input-scope .leading,
-            .chat-input-scope .leading-icon {
+            .chat-input-scope .leading-icon,
+            .chat-input-scope .input-prefix,
+            .chat-input-scope [data-slot="prefix"] {
               display: none !important;
               width: 0 !important;
               margin: 0 !important;
@@ -159,14 +161,22 @@ export function BottomNavigation() {
               pointer-events: none !important;
               visibility: hidden !important;
             }
+            /* Fallback: if ANY element sits immediately before the input, hide it */
+            .chat-input-scope :where(button,a,div,span,svg)[role="button"]:has(+ :where(input,textarea,[contenteditable="true"])),
+            .chat-input-scope :where(button,a,div,span,svg):has(+ :where(input,textarea,[contenteditable="true"])) {
+              display: none !important;
+              width: 0 !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
 
-            /* Force exact 10px gutters on the input area */
+            /* --- EXACT 10px GUTTERS --- */
             .chat-input-scope {
               padding-left: 10px !important;
               padding-right: 10px !important;
             }
 
-            /* Normalize the row to input | send with no extra columns */
+            /* Normalize row to "input | send" with no left column */
             .chat-input-scope form,
             .chat-input-scope .row,
             .chat-input-scope .input-row,
@@ -180,9 +190,10 @@ export function BottomNavigation() {
               padding-left: 0 !important; /* gutters handled by .chat-input-scope */
               padding-right: 0 !important;
               margin: 0 !important;
+              grid-template-columns: unset !important;
             }
 
-            /* Field fills everything between gutters and send */
+            /* Grow the field to fill space between gutters and send */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               font-size: 16px !important;   /* iOS anti-zoom */
               line-height: 1.4;
@@ -193,7 +204,7 @@ export function BottomNavigation() {
               margin: 0 !important;
             }
 
-            /* Send button pinned to the right gutter (no extra margin) */
+            /* Send button hugs the right gutter */
             .chat-input-scope [aria-label*="send" i],
             .chat-input-scope button[type="submit"],
             .chat-input-scope button[class*="send" i] {
@@ -218,12 +229,9 @@ export function BottomNavigation() {
               y: { type: "spring", stiffness: 260, damping: 22 },
               clipPath: { duration: 0.22, ease: "easeOut" },
             }}
-            style={{
-              overflow: "hidden",
-              pointerEvents: expanded ? "auto" : "none",
-            }}
+            style={{ overflow: "hidden", pointerEvents: expanded ? "auto" : "none" }}
           >
-            {/* Measured content container — exact 10px gutters */}
+            {/* Measured content with strict 10px gutters */}
             <div
               ref={measureRef}
               className="w-full chat-input-scope"
