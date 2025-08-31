@@ -14,22 +14,32 @@ export function BottomNavigation() {
   const { currentTab, setCurrentTab } = useArcStore();
   const [isDragging, setIsDragging] = useState(false);
   const bubbleControls = useAnimation();
-  const bubbleWrapperRef = useRef<HTMLDivElement>(null);
+
+  // The 288px rail that contains the three tabs AND the bubble
+  const railRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  const BUBBLE = 80;   // w-20
+  const CELL = 96;     // w-24
+
+  // --- Correct: measure relative to the rail the bubble is absolutely positioned in
   const getBubblePosition = () => {
     const idx = navigationItems.findIndex(i => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
-    const wrap = bubbleWrapperRef.current;
-    if (!tabEl || !wrap) {
-      // fallback centers on 96px cells
-      const cell = 96, bubble = 80;
-      return { x: idx * cell + (cell - bubble) / 2, y: -8 };
+    const rail = railRef.current;
+
+    // Fallback if DOM not ready
+    if (!tabEl || !rail) {
+      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: -8 };
     }
-    const wr = wrap.getBoundingClientRect();
-    const tr = tabEl.getBoundingClientRect();
-    const centerX = tr.left + tr.width / 2 - wr.left;
-    return { x: centerX - 40, y: -8 }; // 40 = bubble half width
+
+    const railRect = rail.getBoundingClientRect();
+    const tabRect  = tabEl.getBoundingClientRect();
+
+    const tabCenterX = tabRect.left + tabRect.width / 2;
+    const xWithinRail = tabCenterX - railRect.left - BUBBLE / 2;
+
+    return { x: xWithinRail, y: -8 };
   };
 
   useEffect(() => {
@@ -74,6 +84,7 @@ export function BottomNavigation() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
+        {/* Glass container */}
         <motion.div
           className="relative flex flex-col items-center"
           animate={{
@@ -93,10 +104,11 @@ export function BottomNavigation() {
               inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
               inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
             `,
-            minWidth: "288px",
+            minWidth: 288,
             width: "auto",
           }}
         >
+          {/* Chat input */}
           {currentTab === "chat" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -109,95 +121,86 @@ export function BottomNavigation() {
             </motion.div>
           )}
 
-          {/* Bubble positioning rail. No padding. No gap. */}
+          {/* Rail: EXACT 288px, no padding, bubble positioned inside this */}
           <div
-            ref={bubbleWrapperRef}
-            className="absolute inset-0 pointer-events-none z-30"
-            style={{
-              top: currentTab === "chat" ? "6rem" : "0.75rem",
-              left: 0,
-              right: 0,
-              bottom: "0.75rem",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "end",
-            }}
-          >
-            <div className="relative" style={{ width: 288, height: 64 }}>
-              <motion.div
-                drag="x"
-                dragMomentum
-                dragElastic={0.4}
-                dragConstraints={bubbleWrapperRef}
-                onDragStart={() => setIsDragging(true)}
-                onDragEnd={handleDragEnd}
-                animate={bubbleControls}
-                initial={getBubblePosition()}
-                whileHover={{ scale: 1.05, transition: { type: "spring", damping: 10, stiffness: 400 } }}
-                whileDrag={{
-                  scale: 1.3,
-                  zIndex: 1000,
-                  filter:
-                    "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
-                  transition: { type: "spring", damping: 5, stiffness: 300 },
-                }}
-                className="absolute w-20 h-20 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
-                style={{
-                  background:
-                    "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.2) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
-                  backdropFilter: "blur(20px)",
-                  border: "2px solid hsla(200, 100%, 70%, 0.7)",
-                  boxShadow: `
-                    0 0 40px hsla(200, 100%, 60%, 0.5),
-                    0 8px 32px hsla(200, 100%, 50%, 0.3),
-                    inset 0 2px 0 hsla(200, 100%, 90%, 0.6),
-                    inset 0 -2px 0 hsla(200, 100%, 30%, 0.4)
-                  `,
-                }}
-              >
-                <div className="absolute inset-1 rounded-full overflow-hidden">
-                  <div className="absolute top-1 left-2 w-6 h-0.5 bg-white opacity-70 blur-sm rounded-full" />
-                  <div className="absolute bottom-2 right-1 w-4 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
-                </div>
-              </motion.div>
-            </div>
-          </div>
-
-          {/* Tab row. Zero padding. Exact cells. */}
-          <div
-            className="relative z-20 grid grid-cols-3 place-items-center p-0 m-0 gap-0"
+            className="relative z-20"
             style={{ width: 288 }}
           >
-            {navigationItems.map((item, index) => {
-              const Icon = item.icon;
-              const isActive = currentTab === item.id;
+            {/* Bubble (constrained to the same rail it’s positioned in) */}
+            <motion.div
+              drag="x"
+              dragMomentum
+              dragElastic={0.4}
+              dragConstraints={railRef}
+              onDragStart={() => setIsDragging(true)}
+              onDragEnd={handleDragEnd}
+              animate={bubbleControls}
+              initial={getBubblePosition()}
+              whileHover={{ scale: 1.05, transition: { type: "spring", damping: 10, stiffness: 400 } }}
+              whileDrag={{
+                scale: 1.3,
+                zIndex: 1000,
+                filter:
+                  "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
+                transition: { type: "spring", damping: 5, stiffness: 300 },
+              }}
+              className="absolute -top-8 left-0 w-20 h-20 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
+              style={{
+                background:
+                  "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.2) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
+                backdropFilter: "blur(20px)",
+                border: "2px solid hsla(200, 100%, 70%, 0.7)",
+                boxShadow: `
+                  0 0 40px hsla(200, 100%, 60%, 0.5),
+                  0 8px 32px hsla(200, 100%, 50%, 0.3),
+                  inset 0 2px 0 hsla(200, 100%, 90%, 0.6),
+                  inset 0 -2px 0 hsla(200, 100%, 30%, 0.4)
+                `,
+              }}
+            >
+              <div className="absolute inset-1 rounded-full overflow-hidden">
+                <div className="absolute top-1 left-2 w-6 h-0.5 bg-white opacity-70 blur-sm rounded-full" />
+                <div className="absolute bottom-2 right-1 w-4 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
+              </div>
+            </motion.div>
 
-              return (
-                <div
-                  key={item.id}
-                  ref={(el) => (tabRefs.current[index] = el)}
-                  className="w-24 h-16 inline-flex flex-col items-center justify-center cursor-pointer select-none"
-                  onClick={() => setCurrentTab(item.id)}
-                >
-                  <Icon
-                    className={`h-6 w-6 mb-1 transition-colors duration-300 ${
-                      isActive
-                        ? "text-primary-foreground drop-shadow-lg"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  />
-                  <span
-                    className={`text-xs font-medium transition-colors duration-300 ${
-                      isActive
-                        ? "text-primary-foreground drop-shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
+            {/* Tabs: grid with 3 fixed cells, NO padding/gap */}
+            <div
+              ref={railRef}
+              className="grid grid-cols-3 gap-0 p-0"
+              style={{ width: 288, height: 64 }}
+            >
+              {navigationItems.map((item, index) => {
+                const Icon = item.icon;
+                const isActive = currentTab === item.id;
+
+                return (
+                  <div
+                    key={item.id}
+                    ref={(el) => (tabRefs.current[index] = el)}
+                    className="w-24 h-16 inline-flex flex-col items-center justify-center cursor-pointer select-none"
+                    onClick={() => setCurrentTab(item.id)}
                   >
-                    {item.label}
-                  </span>
-                </div>
-              );
-            })}
+                    <Icon
+                      className={`h-6 w-6 mb-1 transition-colors duration-300 ${
+                        isActive
+                          ? "text-primary-foreground drop-shadow-lg"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    />
+                    <span
+                      className={`text-xs font-medium transition-colors duration-300 ${
+                        isActive
+                          ? "text-primary-foreground drop-shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </motion.div>
       </motion.div>
