@@ -131,6 +131,7 @@ export function BottomNavigation() {
           }}
         >
           <style>{`
+            /* Focus styling stays the same */
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
             .chat-input-scope textarea:focus,
@@ -139,12 +140,22 @@ export function BottomNavigation() {
               box-shadow: 0 0 0 3px color-mix(in oklab, var(--bubble-blue) 35%, transparent) !important;
               border-color: var(--bubble-blue) !important;
             }
+
+            /* Remove attachment button entirely */
             .chat-input-scope [aria-label="Attach"],
             .chat-input-scope [data-attach="true"],
             .chat-input-scope .attach-button {
-              display: inline-flex;
-              align-items: center;
-              transform: translateY(5px);
+              display: none !important;
+            }
+
+            /* Make the text inputs fill the freed space and avoid iOS zoom */
+            .chat-input-scope input,
+            .chat-input-scope textarea,
+            .chat-input-scope [contenteditable="true"] {
+              font-size: 16px !important;
+              line-height: 1.4;
+              width: 100%;
+              max-width: 100%;
             }
           `}</style>
 
