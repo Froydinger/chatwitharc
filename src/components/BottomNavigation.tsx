@@ -141,7 +141,7 @@ export function BottomNavigation() {
               border-color: var(--bubble-blue) !important;
             }
 
-            /* --- REMOVE ANY LEFT ATTACH/PREFIX --- */
+            /* --- STRIP ANY LEFT ICON/PREFIX COLUMN --- */
             .chat-input-scope [aria-label*="attach" i],
             .chat-input-scope [title*="attach" i],
             .chat-input-scope [data-attach],
@@ -164,22 +164,18 @@ export function BottomNavigation() {
               visibility: hidden !important;
             }
 
-            /* Fallback: hide any element immediately before the field */
-            .chat-input-scope :where(button,a,div,span,svg)[role="button"]:has(+ :where(input,textarea,[contenteditable="true"])),
-            .chat-input-scope :where(button,a,div,span,svg):has(+ :where(input,textarea,[contenteditable="true"])) {
-              display: none !important;
-              width: 0 !important;
-              margin: 0 !important;
-              padding: 0 !important;
+            /* If a grid reserved a left column, collapse it to zero */
+            .chat-input-scope :where(.grid,[class*="grid"]) {
+              grid-template-columns: 1fr auto !important;
             }
 
-            /* --- EXACT 10px GUTTERS --- */
+            /* --- EXACT 10px GUTTERS ON THE OUTER SCOPE --- */
             .chat-input-scope {
               padding-left: 10px !important;
               padding-right: 10px !important;
             }
 
-            /* Normalize internal row to "input | send" */
+            /* Normalize any internal row to "input | send" with no centering */
             .chat-input-scope form,
             .chat-input-scope .row,
             .chat-input-scope .input-row,
@@ -188,22 +184,24 @@ export function BottomNavigation() {
             .chat-input-scope .toolbar {
               display: flex !important;
               align-items: center !important;
+              justify-content: flex-start !important;
               gap: 8px !important;
               width: 100% !important;
               padding-left: 0 !important;
               padding-right: 0 !important;
               margin: 0 !important;
-              grid-template-columns: 1fr auto !important;
             }
 
-            /* Kill centering & auto margins that keep the pill short/centered */
+            /* Kill centering and margins that cap the pill width */
             .chat-input-scope :where(.justify-center,[class*="justify-center"]) { justify-content: flex-start !important; }
             .chat-input-scope :where(.mx-auto,[style*="margin-left: auto"],[style*="margin-right: auto"]) {
               margin-left: 0 !important; margin-right: 0 !important;
             }
-            .chat-input-scope :where(div,form)[style*="justify-content: center"] { justify-content: flex-start !important; }
+            .chat-input-scope [class^="ml-"],
+            .chat-input-scope [class*=" ml-"],
+            .chat-input-scope *[style*="margin-left"] { margin-left: 0 !important; }
 
-            /* Force the pill container and the field to stretch full width */
+            /* Make the pill container and the field actually stretch */
             .chat-input-scope .pill,
             .chat-input-scope [class*="pill" i],
             .chat-input-scope .input-wrapper,
@@ -211,9 +209,9 @@ export function BottomNavigation() {
             .chat-input-scope .field,
             .chat-input-scope [class*="field" i],
             .chat-input-scope .textbox,
-            .chat-input-scope [role="textbox"],
-            .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
+            .chat-input-scope [role="textbox"] {
               flex: 1 1 auto !important;
+              align-self: stretch !important;
               width: 100% !important;
               max-width: none !important;
               min-width: 0 !important;
@@ -221,10 +219,20 @@ export function BottomNavigation() {
               padding-left: 0 !important;
             }
 
-            /* Make any immediate child wrappers stretch instead of sizing to content */
-            .chat-input-scope > * { flex: 1 1 auto !important; min-width: 0 !important; }
+            /* The input element itself */
+            .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
+              font-size: 16px !important; /* iOS anti-zoom */
+              line-height: 1.4;
+              flex: 1 1 auto !important;
+              width: 100% !important;
+              max-width: none !important;
+              min-width: 0 !important;
+              margin: 0 !important;
+              padding-left: 0 !important;
+              text-indent: 0 !important;
+            }
 
-            /* Keep send on the right gutter */
+            /* Keep send button pinned to right gutter */
             .chat-input-scope [aria-label*="send" i],
             .chat-input-scope button[type="submit"],
             .chat-input-scope button[class*="send" i] {
