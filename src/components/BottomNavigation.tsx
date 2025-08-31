@@ -48,7 +48,7 @@ export function BottomNavigation() {
 
   // Bubble position helper
   const getBubblePosition = () => {
-    const idx = navigationItems.findIndex((i) => i.id === currentTab);
+    const idx = navigationItems.findIndex(i => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
     if (!tabEl) {
       const CELL = CONTAINER_WIDTH / navigationItems.length;
@@ -131,7 +131,7 @@ export function BottomNavigation() {
           }}
         >
           <style>{`
-            /* Focus look */
+            /* Focus visuals */
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
             .chat-input-scope textarea:focus,
@@ -141,7 +141,7 @@ export function BottomNavigation() {
               border-color: var(--bubble-blue) !important;
             }
 
-            /* Remove the attachment button completely */
+            /* 1) Remove attachment/paperclip controls */
             .chat-input-scope [aria-label*="attach" i],
             .chat-input-scope [title*="attach" i],
             .chat-input-scope [data-attach],
@@ -158,32 +158,47 @@ export function BottomNavigation() {
               max-width: 0 !important;
             }
 
-            /* Row normalization:
-               If a row contains the text field and a send button, force a strict 2-item layout:
-               [INPUT grows from LEFT] [SEND right].
-               This kills any phantom first column left by grid layouts. */
-            .chat-input-scope :is(form,div,section,footer,header,main,nav)
-              :has(> :where(input,textarea,[contenteditable="true"]) + [aria-label*="send" i]),
-            .chat-input-scope :is(form,div,section,footer,header,main,nav)
-              :has(> :where(input,textarea,[contenteditable="true"]) + button[type="submit"]),
-            .chat-input-scope :is(form,div,section,footer,header,main,nav)
-              :has(> :where(input,textarea,[contenteditable="true"]) + button) {
+            /* 2) Kill any LEFT prefix/adornment slot that reserves space */
+            .chat-input-scope [class*="prefix"],
+            .chat-input-scope [data-slot="prefix"],
+            .chat-input-scope .input-prefix,
+            .chat-input-scope .startAdornment,
+            .chat-input-scope .adornment-start,
+            .chat-input-scope .leading,
+            .chat-input-scope .leading-icon {
+              display: none !important;
+              width: 0 !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+
+            /* 3) Normalize the row to "input | send" so input hugs LEFT */
+            .chat-input-scope form,
+            .chat-input-scope .row,
+            .chat-input-scope .input-row,
+            .chat-input-scope .wrapper,
+            .chat-input-scope .controls,
+            .chat-input-scope .toolbar {
               display: flex !important;
               align-items: center;
               justify-content: space-between !important;
               gap: 8px;
-              padding-left: 0 !important;   /* remove reserved attach padding */
+              padding-left: 0 !important;
               margin-left: 0 !important;
               width: 100% !important;
+              box-sizing: border-box;
             }
 
-            /* Ensure no leftover first column from grid templates */
-            .chat-input-scope :is(form,div,section)
-              :has(> :where(input,textarea,[contenteditable="true"])) {
-              grid-template-columns: unset !important;
+            /* stretch any direct wrapper around the field */
+            .chat-input-scope *:has(> :where(input,textarea,[contenteditable="true"])) {
+              flex: 1 1 100% !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              padding-left: 0 !important;
+              margin-left: 0 !important;
             }
 
-            /* Make the field fill the row from the LEFT edge */
+            /* 4) The field itself */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               font-size: 16px !important;   /* iOS anti-zoom */
               line-height: 1.4;
@@ -193,13 +208,6 @@ export function BottomNavigation() {
               min-width: 0 !important;
               margin-left: 0 !important;
               padding-left: 0.5rem;         /* small inner padding */
-            }
-
-            /* If the field is wrapped once more, make that wrapper grow too */
-            .chat-input-scope *:has(> :where(input,textarea,[contenteditable="true"])) {
-              flex: 1 1 100% !important;
-              width: 100% !important;
-              max-width: 100% !important;
             }
           `}</style>
 
