@@ -19,6 +19,10 @@ export function BottomNavigation() {
   const railRef = useRef<HTMLDivElement | null>(null);
   const tabRefs = useRef<Array<HTMLDivElement | null>>([]);
 
+  // Measure the live height of the input so we can expand the outer container smoothly.
+  const inputRowRef = useRef<HTMLDivElement | null>(null);
+  const [measuredInputH, setMeasuredInputH] = useState(44); // ~single-line default
+
   const BUBBLE = 64; // w-16 h-16
 
   // Compute bubble x relative to the rail using offsetLeft.
@@ -62,6 +66,20 @@ export function BottomNavigation() {
     };
   }, []);
 
+  // Observe the ChatInput height (works whether input is <input> or <textarea>)
+  useEffect(() => {
+    if (!inputRowRef.current) return;
+    const el = inputRowRef.current;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const h = Math.round(entry.contentRect.height);
+        if (h > 0) setMeasuredInputH(h);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [inputRowRef.current]);
+
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
     let best = 0;
@@ -79,6 +97,17 @@ export function BottomNavigation() {
 
   const isChat = currentTab === "chat";
 
+  // --- Layout tuning ---
+  // Base open height that felt right before multiline; add a small extra proportional to growth.
+  // This gently stretches the outer container as the input grows (e.g., 2–3 lines),
+  // preserving the perceived top padding.
+  const BASE_OPEN_MAX = 140;
+  const singleLineApprox = 44; // baseline row height
+  const growth = Math.max(0, measuredInputH - singleLineApprox);
+  // scale the growth down so we only "breathe" a little (keeps the look tight)
+  const extraForContainer = Math.min(36, Math.round(growth * 0.6));
+  const openMaxHeight = BASE_OPEN_MAX + extraForContainer;
+
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 flex justify-center">
       <motion.div
@@ -89,6 +118,7 @@ export function BottomNavigation() {
       >
         {/* Glass container */}
         <motion.div
+          layout // <- animate size changes smoothly
           className="relative flex flex-col items-center"
           animate={{
             paddingTop: "0.125rem",
@@ -122,64 +152,24 @@ export function BottomNavigation() {
               box-shadow: 0 0 0 3px color-mix(in oklab, hsl(200, 100%, 60%) 35%, transparent) !important;
               border-color: hsl(200, 100%, 60%) !important;
             }
-
-            /* Replace paperclip on the LEFTMOST button with image+ badge, and align */
-            .chat-input-scope .ci-row button:first-of-type,
-            .chat-input-scope > div button:first-of-type,
-            .chat-input-scope button:first-of-type {
-              position: relative;
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              transform: translateY(3px); /* lower a bit */
-            }
-            .chat-input-scope .ci-row button:first-of-type svg,
-            .chat-input-scope > div button:first-of-type svg,
-            .chat-input-scope button:first-of-type svg {
-              display: none !important; /* hide paperclip */
-            }
-            .chat-input-scope .ci-row button:first-of-type::before,
-            .chat-input-scope > div button:first-of-type::before,
-            .chat-input-scope button:first-of-type::before {
-              content: "";
-              width: 18px;
-              height: 18px;
-              background: currentColor;
-              -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" ry="3" fill="%23000" stroke="%23000" stroke-width="2"/><path d="M7 16l3.6-3.6a1 1 0 0 1 1.4 0L16 16l2-2 3 3" fill="none" stroke="%23000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="9" r="1.6" fill="%23000"/></svg>') no-repeat center / contain;
-                      mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" ry="3" fill="%23000" stroke="%23000" stroke-width="2"/><path d="M7 16l3.6-3.6a1 1 0 0 1 1.4 0L16 16l2-2 3 3" fill="none" stroke="%23000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="9" r="1.6" fill="%23000"/></svg>') no-repeat center / contain;
-            }
-            .chat-input-scope .ci-row button:first-of-type::after,
-            .chat-input-scope > div button:first-of-type::after,
-            .chat-input-scope button:first-of-type::after {
-              content: "";
-              position: absolute;
-              right: -2px;
-              bottom: -2px;
-              width: 12px;
-              height: 12px;
-              background: currentColor;
-              -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M7 3h2v4h4v2H9v4H7V9H3V7h4V3z" fill="%23000"/></svg>') no-repeat center / contain;
-                      mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M7 3h2v4h4v2H9v4H7V9H3V7h4V3z" fill="%23000"/></svg>') no-repeat center / contain;
-            }
           `}</style>
 
           {/* Chat input row — allow overflow so the focus ring never clips */}
           <motion.div
+            layout // <- smooth height changes of this wrapper too
             initial={false}
             animate={{
-              maxHeight: isChat ? 160 : 0,   // give the input room when focused
+              maxHeight: isChat ? openMaxHeight : 0,
               opacity: isChat ? 1 : 0,
-              y: isChat ? 2 : 8,             // keep row slightly lower per your layout
+              y: isChat ? 2 : 8,            // keep row slightly lower per your layout
               marginBottom: isChat ? 8 : 0,  // tight gap to bubble interface
             }}
             transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
             className="w-full px-6 chat-input-scope"
             style={{ overflow: "visible", willChange: "max-height, opacity, transform, margin-bottom" }}
+            ref={inputRowRef}
           >
-            {/* Add a wrapper class if ChatInput doesn't already have one; harmless otherwise */}
-            <div className="ci-row">
-              <ChatInput />
-            </div>
+            <ChatInput />
           </motion.div>
 
           {/* Rail: bubble and 3 tab cells (icon only) */}
