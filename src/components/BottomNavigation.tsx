@@ -25,7 +25,7 @@ export function BottomNavigation() {
   const PAD_TOP_EXPANDED = 16;
   const PAD_BOTTOM = 12;
   const CONTAINER_WIDTH = 320;
-  const GAP_ABOVE_RAIL = 8;
+  const GAP_ABOVE_RAIL = 2; // slight raise
 
   // measure natural input height
   const [inputHeight, setInputHeight] = useState(0);
@@ -43,12 +43,65 @@ export function BottomNavigation() {
     };
   }, []);
 
+  // hard-remove any attach/left-prefix nodes inside ChatInput
+  useEffect(() => {
+    const root = measureRef.current;
+    if (!root) return;
+
+    const killAttach = (scope: ParentNode) => {
+      const killers = scope.querySelectorAll(
+        [
+          '[aria-label*="attach" i]',
+          '[title*="attach" i]',
+          '[data-attach]',
+          '[data-icon="paperclip"]',
+          'svg[class*="paperclip" i]',
+          '.attach',
+          '.attachment',
+          '.leading',
+          '.leading-icon',
+          '.input-prefix',
+          '[data-slot="prefix"]',
+          '.start',
+          '.left',
+          '.adornment',
+        ].join(",")
+      );
+      killers.forEach((n) => (n as HTMLElement).remove());
+
+      // remove empty wrappers left behind as first child before the field
+      const wrappers = scope.querySelectorAll(
+        '.pill-frame > *:first-child, .pill-frame form > *:first-child'
+      );
+      wrappers.forEach((el) => {
+        const next = el.nextElementSibling as HTMLElement | null;
+        const isField =
+          next &&
+          (next.matches('input,textarea,[contenteditable="true"]') ||
+            next.querySelector?.('input,textarea,[contenteditable="true"]'));
+        // if this first child isn't the field and has no size, nuke it
+        const rect = (el as HTMLElement).getBoundingClientRect();
+        if (!isField && rect.width < 4) (el as HTMLElement).remove();
+      });
+    };
+
+    killAttach(root);
+
+    const mo = new MutationObserver((muts) => {
+      for (const m of muts) {
+        if (m.addedNodes.length) killAttach(root);
+      }
+    });
+    mo.observe(root, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, []);
+
   const expanded = currentTab === "chat";
   const topPad = expanded ? PAD_TOP_EXPANDED : PAD_TOP_COLLAPSED;
 
   // Bubble position helper
   const getBubblePosition = () => {
-    const idx = navigationItems.findIndex(i => i.id === currentTab);
+    const idx = navigationItems.findIndex((i) => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
     if (!tabEl) {
       const CELL = CONTAINER_WIDTH / navigationItems.length;
@@ -131,98 +184,39 @@ export function BottomNavigation() {
           }}
         >
           <style>{`
-            /* Focus visuals */
-            .chat-input-scope input:focus,
-            .chat-input-scope input:focus-visible,
-            .chat-input-scope textarea:focus,
-            .chat-input-scope textarea:focus-visible {
-              outline-color: var(--bubble-blue) !important;
-              box-shadow: 0 0 0 3px color-mix(in oklab, var(--bubble-blue) 35%, transparent) !important;
-              border-color: var(--bubble-blue) !important;
-            }
+            /* === No container gutters; pill row owns its insets === */
+            .chat-input-scope { padding-left: 0 !important; padding-right: 0 !important; }
 
-            /* --- STRIP ANY LEFT ICON/PREFIX COLUMN --- */
-            .chat-input-scope [aria-label*="attach" i],
-            .chat-input-scope [title*="attach" i],
-            .chat-input-scope [data-attach],
-            .chat-input-scope [data-icon="paperclip"],
-            .chat-input-scope svg[class*="paperclip" i],
-            .chat-input-scope .attach,
-            .chat-input-scope .attachment,
-            .chat-input-scope .leading,
-            .chat-input-scope .leading-icon,
-            .chat-input-scope .input-prefix,
-            .chat-input-scope [data-slot="prefix"],
-            .chat-input-scope .start,
-            .chat-input-scope .left,
-            .chat-input-scope .adornment {
-              display: none !important;
-              width: 0 !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              pointer-events: none !important;
-              visibility: hidden !important;
-            }
-
-            /* If a grid reserved a left column, collapse it to zero */
-            .chat-input-scope :where(.grid,[class*="grid"]) {
-              grid-template-columns: 1fr auto !important;
-            }
-
-            /* --- EXACT 10px GUTTERS ON THE OUTER SCOPE --- */
-            .chat-input-scope {
-              padding-left: 10px !important;
-              padding-right: 10px !important;
-            }
-
-            /* Normalize any internal row to "input | send" with no centering */
-            .chat-input-scope form,
-            .chat-input-scope .row,
-            .chat-input-scope .input-row,
-            .chat-input-scope .wrapper,
-            .chat-input-scope .controls,
-            .chat-input-scope .toolbar {
+            /* Pill row provides symmetric 10px insets */
+            .pill-frame {
               display: flex !important;
               align-items: center !important;
-              justify-content: flex-start !important;
               gap: 8px !important;
               width: 100% !important;
-              padding-left: 0 !important;
-              padding-right: 0 !important;
+              padding-left: 10px !important;
+              padding-right: 10px !important;
               margin: 0 !important;
             }
 
-            /* Kill centering and margins that cap the pill width */
-            .chat-input-scope :where(.justify-center,[class*="justify-center"]) { justify-content: flex-start !important; }
-            .chat-input-scope :where(.mx-auto,[style*="margin-left: auto"],[style*="margin-right: auto"]) {
+            /* Kill centering/margins that cap the pill */
+            .pill-frame :where(.justify-center,[class*="justify-center"]) { justify-content: flex-start !important; }
+            .pill-frame :where(.mx-auto,[style*="margin-left: auto"],[style*="margin-right: auto"]) {
               margin-left: 0 !important; margin-right: 0 !important;
             }
-            .chat-input-scope [class^="ml-"],
-            .chat-input-scope [class*=" ml-"],
-            .chat-input-scope *[style*="margin-left"] { margin-left: 0 !important; }
-
-            /* Make the pill container and the field actually stretch */
-            .chat-input-scope .pill,
-            .chat-input-scope [class*="pill" i],
-            .chat-input-scope .input-wrapper,
-            .chat-input-scope [class*="input-wrapper" i],
-            .chat-input-scope .field,
-            .chat-input-scope [class*="field" i],
-            .chat-input-scope .textbox,
-            .chat-input-scope [role="textbox"] {
-              flex: 1 1 auto !important;
-              align-self: stretch !important;
-              width: 100% !important;
-              max-width: none !important;
-              min-width: 0 !important;
-              margin: 0 !important;
-              padding-left: 0 !important;
+            .pill-frame [class^="ml-"], .pill-frame [class*=" ml-"], .pill-frame *[style*="margin-left"] {
+              margin-left: 0 !important;
             }
 
-            /* The input element itself */
-            .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
-              font-size: 16px !important; /* iOS anti-zoom */
-              line-height: 1.4;
+            /* Make pill + input stretch from left inset to send button */
+            .pill-frame .pill,
+            .pill-frame [class*="pill" i],
+            .pill-frame .input-wrapper,
+            .pill-frame [class*="input-wrapper" i],
+            .pill-frame .field,
+            .pill-frame [class*="field" i],
+            .pill-frame .textbox,
+            .pill-frame [role="textbox"],
+            .pill-frame :where(input, textarea, [contenteditable="true"]) {
               flex: 1 1 auto !important;
               width: 100% !important;
               max-width: none !important;
@@ -230,12 +224,14 @@ export function BottomNavigation() {
               margin: 0 !important;
               padding-left: 0 !important;
               text-indent: 0 !important;
+              font-size: 16px !important; /* iOS anti-zoom */
+              line-height: 1.4;
             }
 
-            /* Keep send button pinned to right gutter */
-            .chat-input-scope [aria-label*="send" i],
-            .chat-input-scope button[type="submit"],
-            .chat-input-scope button[class*="send" i] {
+            /* Keep send pinned to right inset */
+            .pill-frame [aria-label*="send" i],
+            .pill-frame button[type="submit"],
+            .pill-frame button[class*="send" i] {
               margin-left: 8px !important;
               margin-right: 0 !important;
               flex: 0 0 auto !important;
@@ -262,11 +258,11 @@ export function BottomNavigation() {
             }}
             style={{ overflow: "hidden", pointerEvents: expanded ? "auto" : "none" }}
           >
-            {/* Measured content with strict 10px gutters */}
+            {/* Measured content (ref on the padded row) */}
             <div
               ref={measureRef}
-              className="chat-input-scope flex items-center w-full"
-              style={{ paddingBottom: GAP_ABOVE_RAIL, paddingLeft: 10, paddingRight: 10 }}
+              className="chat-input-scope pill-frame"
+              style={{ paddingBottom: GAP_ABOVE_RAIL }}
             >
               <div className="flex-1 min-w-0">
                 <ChatInput />
