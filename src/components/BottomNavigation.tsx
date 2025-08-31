@@ -163,8 +163,7 @@ export function BottomNavigation() {
               pointer-events: none !important;
               visibility: hidden !important;
             }
-
-            /* Fallback: if ANY element sits immediately before the field, remove it */
+            /* Also hide any element immediately before the field */
             .chat-input-scope :where(button,a,div,span,svg)[role="button"]:has(+ :where(input,textarea,[contenteditable="true"])),
             .chat-input-scope :where(button,a,div,span,svg):has(+ :where(input,textarea,[contenteditable="true"])) {
               display: none !important;
@@ -173,7 +172,7 @@ export function BottomNavigation() {
               padding: 0 !important;
             }
 
-            /* If a grid reserved a left column, collapse it to 0 */
+            /* If a grid reserved a left column, collapse it */
             .chat-input-scope :where(.grid,[class*="grid"]) {
               grid-template-columns: 1fr auto !important;
             }
@@ -184,7 +183,7 @@ export function BottomNavigation() {
               padding-right: 10px !important;
             }
 
-            /* Normalize row to "input | send" with no centering */
+            /* Normalize to "input | send", no centering */
             .chat-input-scope form,
             .chat-input-scope .row,
             .chat-input-scope .input-row,
@@ -201,7 +200,7 @@ export function BottomNavigation() {
               margin: 0 !important;
             }
 
-            /* Grow the field to fill space between gutters and send */
+            /* Force the pill wrapper to truly stretch */
             .chat-input-scope .pill,
             .chat-input-scope [class*="pill" i],
             .chat-input-scope .input-wrapper,
@@ -218,20 +217,26 @@ export function BottomNavigation() {
               margin: 0 !important;
               padding-left: 0 !important;
             }
+            /* Nuke stray max-widths/margins that keep it short */
+            .chat-input-scope *[style*="max-width"] { max-width: none !important; }
+            .chat-input-scope [class^="ml-"],
+            .chat-input-scope [class*=" ml-"],
+            .chat-input-scope *[style*="margin-left"] { margin-left: 0 !important; }
 
-            /* Input element: add a small internal left pad for placeholder */
+            /* Input element: guarantee 16px to avoid iOS zoom + small left pad for placeholder */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
+              font-size: 16px !important;   /* <= required for mobile */
               line-height: 1.4;
               flex: 1 1 auto !important;
               width: 100% !important;
               max-width: none !important;
               min-width: 0 !important;
               margin: 0 !important;
-              padding-left: 8px !important;  /* <-- small left padding for placeholder text */
+              padding-left: 10px !important; /* slight internal left pad for placeholder */
               text-indent: 0 !important;
             }
 
-            /* Keep send button hugging the right gutter */
+            /* Send button hugs right gutter */
             .chat-input-scope [aria-label*="send" i],
             .chat-input-scope button[type="submit"],
             .chat-input-scope button[class*="send" i] {
