@@ -17,7 +17,7 @@ export function BottomNavigation() {
 
   // The 320px rail that contains BOTH the tabs and the bubble.
   const railRef = useRef<HTMLDivElement>(null);
-  const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const tabRefs = useRef<(HTMLDivElement | null)[]>([];
 
   const BUBBLE = 64; // w-16 h-16
 
@@ -91,7 +91,7 @@ export function BottomNavigation() {
         <motion.div
           className="relative flex flex-col items-center"
           animate={{
-            // Compact overall height
+            // Keep panel height the same as previous pass
             paddingTop: "0.125rem",
             paddingBottom: "0.25rem",
           }}
@@ -125,15 +125,14 @@ export function BottomNavigation() {
             }
           `}</style>
 
-          {/* Chat input area kept mounted, smoothly expands/collapses.
-              Slight raise and tighter gap for better alignment with icons. */}
+          {/* Chat input row — moved closer to bubble bar */}
           <motion.div
             initial={false}
             animate={{
               maxHeight: isChat ? 140 : 0,
               opacity: isChat ? 1 : 0,
-              y: isChat ? -3 : 8,
-              marginBottom: isChat ? 16 : 0,
+              y: isChat ? 2 : 8,            // move the whole input row slightly DOWN
+              marginBottom: isChat ? 8 : 0, // tighter gap to bubble interface
             }}
             transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
             className="w-full px-6 chat-input-scope"
