@@ -130,10 +130,10 @@ export function BottomNavigation() {
           <motion.div
             initial={false}
             animate={{
-              maxHeight: isChat ? 140 : 0,   // a touch shorter
+              maxHeight: isChat ? 140 : 0,
               opacity: isChat ? 1 : 0,
-              y: isChat ? -3 : 8,            // raise input a hair when open
-              marginBottom: isChat ? 16 : 0, // tighter gap to bubble interface
+              y: isChat ? -3 : 8,
+              marginBottom: isChat ? 16 : 0,
             }}
             transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
             className="w-full px-6 chat-input-scope"
@@ -142,12 +142,11 @@ export function BottomNavigation() {
             <ChatInput />
           </motion.div>
 
-          {/* Rail: this contains BOTH the bubble (absolute) and the 3 tab cells */}
+          {/* Rail: bubble and 3 tab cells (icon only) */}
           <div className="relative z-20" style={{ width: 320, height: 64 }}>
-            {/* Tabs grid (becomes the offset parent for the bubble) */}
             <div
               ref={railRef}
-              className="absolute inset-0 flex justify-between items-center px-4"
+              className="absolute inset-0 flex justify-between items-center px-6"
               style={{ width: 320, height: 64 }}
             >
               {navigationItems.map((item, index) => {
@@ -157,31 +156,25 @@ export function BottomNavigation() {
                   <div
                     key={item.id}
                     ref={(el) => (tabRefs.current[index] = el)}
-                    className="flex flex-col items-center justify-center cursor-pointer select-none px-4 py-2"
+                    className="flex items-center justify-center cursor-pointer select-none"
+                    style={{ width: 64, height: 64 }}
                     onClick={() => setCurrentTab(item.id)}
+                    aria-label={item.label}
+                    title={item.label}
                   >
                     <Icon
-                      className={`h-6 w-6 mb-1 transition-colors duration-300 ${
+                      className={`h-6 w-6 transition-colors duration-300 ${
                         active
                           ? "text-primary-foreground drop-shadow-lg"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     />
-                    <span
-                      className={`text-xs font-medium transition-colors duration-300 ${
-                        active
-                          ? "text-primary-foreground drop-shadow-sm"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {item.label}
-                    </span>
                   </div>
                 );
               })}
             </div>
 
-            {/* Bubble — lowered slightly to meet the tightened input gap */}
+            {/* Bubble */}
             <motion.div
               drag="x"
               dragMomentum
