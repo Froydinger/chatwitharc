@@ -18,6 +18,7 @@ export function BottomNavigation() {
   const railRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
   const measureRef = useRef<HTMLDivElement>(null);
+  const scopeRef = useRef<HTMLDivElement>(null);
 
   const BUBBLE = 72;
   const TAB_RAIL_HEIGHT = 64;
@@ -27,6 +28,7 @@ export function BottomNavigation() {
   const CONTAINER_WIDTH = 320;
   const GAP_ABOVE_RAIL = 8;
 
+  // measure natural input height
   const [inputHeight, setInputHeight] = useState(0);
   useLayoutEffect(() => {
     const el = measureRef.current;
@@ -45,6 +47,52 @@ export function BottomNavigation() {
   const expanded = currentTab === "chat";
   const topPad = expanded ? PAD_TOP_EXPANDED : PAD_TOP_COLLAPSED;
 
+  // Remove paperclip and any wrapper cells that reserve space
+  useEffect(() => {
+    const root = scopeRef.current;
+    if (!root) return;
+
+    const removeClips = () => {
+      const selectors = [
+        '[aria-label*="attach" i]',
+        '[title*="attach" i]',
+        '[data-attach]',
+        '[data-icon="paperclip"]',
+        'svg[class*="paperclip" i]',
+        '.attach',
+        '.attachment',
+        '.leading',
+        '.leading-icon',
+        '.input-prefix',
+        '[data-slot="prefix"]',
+        '.start',
+        '.left',
+        '.adornment',
+      ].join(",");
+
+      // remove obvious clip nodes
+      root.querySelectorAll(selectors).forEach(n => n.remove());
+
+      // if there is any element directly before the field, remove that too
+      root.querySelectorAll('input,textarea,[contenteditable="true"]').forEach(field => {
+        const prev = field.previousElementSibling as HTMLElement | null;
+        if (prev) prev.remove();
+        // if parent is a 3-col grid like [prefix|field|send], collapse parent to 2 cols
+        const parent = field.parentElement as HTMLElement | null;
+        if (parent && getComputedStyle(parent).display.includes("grid")) {
+          parent.style.gridTemplateColumns = "minmax(0,1fr) auto";
+        }
+      });
+    };
+
+    removeClips();
+
+    const mo = new MutationObserver(() => removeClips());
+    mo.observe(root, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, []);
+
+  // Bubble position helper
   const getBubblePosition = () => {
     const idx = navigationItems.findIndex(i => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
@@ -105,6 +153,7 @@ export function BottomNavigation() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
+        {/* Glass container: flex column, rail is a fixed-height footer */}
         <div
           className="relative flex flex-col"
           style={{
@@ -124,55 +173,100 @@ export function BottomNavigation() {
             paddingTop: topPad,
             paddingBottom: PAD_BOTTOM,
             ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
+            willChange: "transform",
           }}
         >
           <style>{`
+            /* Focus visuals */
+            .chat-input-scope input:focus,
+            .chat-input-scope input:focus-visible,
+            .chat-input-scope textarea:focus,
+            .chat-input-scope textarea:focus-visible {
+              outline-color: var(--bubble-blue) !important;
+              box-shadow: 0 0 0 3px color-mix(in oklab, var(--bubble-blue) 35%, transparent) !important;
+              border-color: var(--bubble-blue) !important;
+            }
+
+            /* exact 10px gutters in the scope container */
             .chat-input-scope {
               display: flex !important;
               align-items: center !important;
               justify-content: flex-start !important;
               gap: 8px !important;
-              width: 100% !important;
               padding-left: 10px !important;
               padding-right: 10px !important;
-              box-sizing: border-box !important;
-              margin: 0 !important;
-            }
-
-            /* Kill ONLY external offsets */
-            .chat-input-scope .pill,
-            .chat-input-scope [class*="pill"],
-            .chat-input-scope .input-wrapper,
-            .chat-input-scope [class*="input-wrapper"],
-            .chat-input-scope .field,
-            .chat-input-scope [class*="field"] {
-              flex: 1 1 auto !important;
               width: 100% !important;
+              box-sizing: border-box !important;
               margin: 0 !important;
-              padding: 0 !important; /* external padding gone */
+            }
+
+            /* normalize inner rows */
+            .chat-input-scope form,
+            .chat-input-scope .row,
+            .chat-input-scope .input-row,
+            .chat-input-scope .wrapper,
+            .chat-input-scope .controls,
+            .chat-input-scope .toolbar {
+              display: flex !important;
+              align-items: center !important;
+              justify-content: flex-start !important;
+              gap: 8px !important;
+              width: 100% !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              flex: 1 1 auto !important;
+            }
+
+            /* grow the field and remove only EXTERNAL offsets on wrappers */
+            .chat-input-scope .pill,
+            .chat-input-scope [class*="pill" i],
+            .chat-input-scope .input-wrapper,
+            .chat-input-scope [class*="input-wrapper" i],
+            .chat-input-scope .field,
+            .chat-input-scope [class*="field" i],
+            .chat-input-scope .textbox,
+            .chat-input-scope [role="textbox"] {
+              flex: 1 1 auto !important;
+              align-self: stretch !important;
+              width: 100% !important;
+              max-width: none !important;
+              min-width: 0 !important;
+              margin-left: 0 !important;
+              padding-left: 0 !important;
               box-sizing: border-box !important;
             }
 
-            /* Keep placeholder padding inside input itself */
+            /* nuke utility offsets that create phantom left gaps */
+            .chat-input-scope [class^="pl-"],
+            .chat-input-scope [class*=" pl-"],
+            .chat-input-scope *[style*="padding-left"] { padding-left: 0 !important; }
+            .chat-input-scope [class^="ml-"],
+            .chat-input-scope [class*=" ml-"],
+            .chat-input-scope *[style*="margin-left"] { margin-left: 0 !important; }
+
+            /* keep internal placeholder padding and 16px font */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               font-size: 16px !important;
               line-height: 1.4;
               flex: 1 1 auto !important;
               width: 100% !important;
               margin: 0 !important;
-              padding-left: 10px !important; /* <-- internal for placeholder */
+              padding-left: 10px !important; /* internal */
+              text-indent: 0 !important;
               box-sizing: border-box !important;
             }
 
+            /* send button sits against the right gutter provided by scope padding */
             .chat-input-scope [aria-label*="send" i],
             .chat-input-scope button[type="submit"],
             .chat-input-scope button[class*="send" i] {
-              flex: 0 0 auto !important;
               margin: 0 !important;
+              flex: 0 0 auto !important;
               align-self: center !important;
             }
           `}</style>
 
+          {/* Animated input slot */}
           <motion.div
             initial={false}
             animate={{
@@ -191,15 +285,19 @@ export function BottomNavigation() {
             }}
             style={{ overflow: "hidden", pointerEvents: expanded ? "auto" : "none" }}
           >
+            {/* Measured content with strict 10px gutters */}
             <div
               ref={measureRef}
-              className="w-full chat-input-scope"
+              className="w-full"
               style={{ paddingBottom: GAP_ABOVE_RAIL }}
             >
-              <ChatInput />
+              <div ref={scopeRef} className="chat-input-scope">
+                <ChatInput />
+              </div>
             </div>
           </motion.div>
 
+          {/* Rail footer: fixed height, never moves */}
           <div style={{ height: TAB_RAIL_HEIGHT, position: "relative" }}>
             <div
               ref={railRef}
@@ -228,6 +326,7 @@ export function BottomNavigation() {
               })}
             </div>
 
+            {/* Bubble */}
             <motion.div
               drag="x"
               dragMomentum
@@ -237,16 +336,33 @@ export function BottomNavigation() {
               onDragEnd={handleDragEnd}
               animate={bubbleControls}
               initial={getBubblePosition()}
-              whileHover={{ scale: 1.05 }}
-              whileDrag={{ scale: 1.3, zIndex: 1000 }}
+              whileHover={{ scale: 1.05, transition: { type: "spring", damping: 10, stiffness: 400 } }}
+              whileDrag={{
+                scale: 1.3,
+                zIndex: 1000,
+                filter:
+                  "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
+                transition: { type: "spring", damping: 5, stiffness: 300 },
+              }}
               className="absolute left-0 top-0 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto w-[72px] h-[72px]"
               style={{
                 background:
-                  "radial-gradient(circle at center, hsla(200,100%,80%,0.2) 0%, hsla(200,100%,80%,0.3) 40%, hsla(200,100%,50%,0.6) 100%)",
+                  "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.2) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
                 backdropFilter: "blur(20px)",
-                border: "2px solid hsla(200,100%,70%,0.7)",
+                border: "2px solid hsla(200, 100%, 70%, 0.7)",
+                boxShadow: `
+                  0 0 40px hsla(200, 100%, 60%, 0.5),
+                  0 8px 32px hsla(200, 100%, 50%, 0.3),
+                  inset 0 2px 0 hsla(200, 100%, 90%, 0.6),
+                  inset 0 -2px 0 hsla(200, 100%, 30%, 0.4)
+                `,
               }}
-            />
+            >
+              <div className="absolute inset-1 rounded-full overflow-hidden">
+                <div className="absolute top-1 left-2 w-6 h-0.5 bg-white opacity-70 blur-sm rounded-full" />
+                <div className="absolute bottom-2 right-1 w-4 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
+              </div>
+            </motion.div>
           </div>
         </div>
       </motion.div>
