@@ -21,7 +21,7 @@ export class OpenAIService {
   async sendMessage(messages: OpenAIMessage[], profile?: { display_name?: string | null; context_info?: string | null }): Promise<string> {
     try {
       // Add Arc's personality as system message with user personalization
-      let systemPrompt = "reply in only 1-2 sentences generally, dynamically giving longer responsese when appropriate. speak as a friend, not an instructor or bot. You are ArcAI, a helpful AI assistant with a friendly and engaging personality.";
+      let systemPrompt = "do not mention users context unless they mention something related to it, opening prompt should be short and sweet unless user says otherwise in their first chat. reply in only 1-2 sentences generally, dynamically giving longer responsese when appropriate. speak as a friend, not an instructor or bot. You are ArcAI, a helpful AI assistant with a friendly and engaging personality.";
       
       if (profile?.display_name) {
         systemPrompt += ` The user's name is ${profile.display_name}.`;
