@@ -5,106 +5,85 @@ import { useRef, useState, useEffect } from "react";
 import { ChatInput } from "@/components/ChatInput";
 
 const navigationItems = [
-  { id: 'chat', icon: MessageCircle, label: 'Chat' },
-  { id: 'history', icon: History, label: 'History' },
-  { id: 'settings', icon: Settings, label: 'Settings' }
+  { id: "chat", icon: MessageCircle, label: "Chat" },
+  { id: "history", icon: History, label: "History" },
+  { id: "settings", icon: Settings, label: "Settings" },
 ] as const;
 
 export function BottomNavigation() {
   const { currentTab, setCurrentTab } = useArcStore();
   const [isDragging, setIsDragging] = useState(false);
   const bubbleControls = useAnimation();
-  const containerRef = useRef<HTMLDivElement>(null);
   const bubbleWrapperRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
-  
+
   const getBubblePosition = () => {
-    const activeIndex = navigationItems.findIndex(item => item.id === currentTab);
-    const activeTabRef = tabRefs.current[activeIndex];
-    
-    if (!activeTabRef || !bubbleWrapperRef.current) {
-      const tabWidth = 96; // w-24
-      const bubbleWidth = 80; // w-20
-      const x = (activeIndex * tabWidth) + (tabWidth - bubbleWidth) / 2;
-      return { x, y: -8 };
+    const idx = navigationItems.findIndex(i => i.id === currentTab);
+    const tabEl = tabRefs.current[idx];
+    const wrap = bubbleWrapperRef.current;
+    if (!tabEl || !wrap) {
+      // fallback centers on 96px cells
+      const cell = 96, bubble = 80;
+      return { x: idx * cell + (cell - bubble) / 2, y: -8 };
     }
-    
-    const wrapperRect = bubbleWrapperRef.current.getBoundingClientRect();
-    const tabRect = activeTabRef.getBoundingClientRect();
-    const tabCenterX = tabRect.left + tabRect.width / 2 - wrapperRect.left;
-    const bubbleX = tabCenterX - 40; // half of 80
-    
-    return { x: bubbleX, y: -8 };
+    const wr = wrap.getBoundingClientRect();
+    const tr = tabEl.getBoundingClientRect();
+    const centerX = tr.left + tr.width / 2 - wr.left;
+    return { x: centerX - 40, y: -8 }; // 40 = bubble half width
   };
 
   useEffect(() => {
-    const position = getBubblePosition();
-    if (!isDragging) {
-      bubbleControls.start({
-        x: position.x,
-        y: position.y,
-        transition: {
-          type: "spring",
-          damping: 12,
-          stiffness: 300,
-          mass: 0.6,
-          duration: 0.4
-        }
-      });
-    }
+    if (isDragging) return;
+    const p = getBubblePosition();
+    bubbleControls.start({
+      x: p.x, y: p.y,
+      transition: { type: "spring", damping: 12, stiffness: 300, mass: 0.6, duration: 0.35 }
+    });
   }, [currentTab, isDragging, bubbleControls]);
 
   useEffect(() => {
-    const setPosition = () => {
-      const position = getBubblePosition();
-      bubbleControls.set({ x: position.x, y: position.y });
+    const setNow = () => {
+      const p = getBubblePosition();
+      bubbleControls.set({ x: p.x, y: p.y });
     };
-    setPosition();
-    const timer = setTimeout(setPosition, 50);
-    const handleResize = () => setPosition();
-    window.addEventListener('resize', handleResize);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []); 
+    setNow();
+    const t = setTimeout(setNow, 60);
+    const onResize = () => setNow();
+    window.addEventListener("resize", onResize);
+    return () => { clearTimeout(t); window.removeEventListener("resize", onResize); };
+  }, []);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
-    let closestTabIndex = 0;
-    let minDistance = Infinity;
-    tabRefs.current.forEach((tabRef, index) => {
-      if (tabRef) {
-        const r = tabRef.getBoundingClientRect();
-        const center = r.left + r.width / 2;
-        const d = Math.abs(info.point.x - center);
-        if (d < minDistance) {
-          minDistance = d;
-          closestTabIndex = index;
-        }
-      }
+    let best = 0, dist = Infinity;
+    tabRefs.current.forEach((el, i) => {
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const c = r.left + r.width / 2;
+      const d = Math.abs(info.point.x - c);
+      if (d < dist) { dist = d; best = i; }
     });
-    setCurrentTab(navigationItems[closestTabIndex].id);
+    setCurrentTab(navigationItems[best].id);
   };
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 flex justify-center">
       <motion.div
-        ref={containerRef}
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
-        <motion.div 
+        <motion.div
           className="relative flex flex-col items-center"
           animate={{
-            paddingTop: currentTab === 'chat' ? '1.5rem' : '0.75rem',
-            paddingBottom: '0.75rem'
+            paddingTop: currentTab === "chat" ? "1.5rem" : "0.75rem",
+            paddingBottom: "0.75rem",
           }}
           transition={{ duration: 0.25, ease: "easeOut" }}
           style={{
-            background: "linear-gradient(135deg, hsla(240, 15%, 12%, 0.3) 0%, hsla(240, 20%, 15%, 0.4) 100%)",
+            background:
+              "linear-gradient(135deg, hsla(240, 15%, 12%, 0.3) 0%, hsla(240, 20%, 15%, 0.4) 100%)",
             backdropFilter: "blur(20px)",
             borderRadius: "2rem",
             border: "1px solid hsla(240, 25%, 25%, 0.3)",
@@ -114,11 +93,11 @@ export function BottomNavigation() {
               inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
               inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
             `,
-            minWidth: '288px',
-            width: 'auto'
+            minWidth: "288px",
+            width: "auto",
           }}
         >
-          {currentTab === 'chat' && (
+          {currentTab === "chat" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -129,25 +108,25 @@ export function BottomNavigation() {
               <ChatInput />
             </motion.div>
           )}
-          
-          {/* Bubble wrapper aligned to tab rail */}
-          <div 
+
+          {/* Bubble positioning rail. No padding. No gap. */}
+          <div
             ref={bubbleWrapperRef}
             className="absolute inset-0 pointer-events-none z-30"
-            style={{ 
-              top: currentTab === 'chat' ? '6rem' : '0.75rem',
+            style={{
+              top: currentTab === "chat" ? "6rem" : "0.75rem",
               left: 0,
               right: 0,
-              bottom: '0.75rem',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'end'
+              bottom: "0.75rem",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "end",
             }}
           >
-            <div className="relative" style={{ width: '288px', height: '64px' }}>
+            <div className="relative" style={{ width: 288, height: 64 }}>
               <motion.div
                 drag="x"
-                dragMomentum={true}
+                dragMomentum
                 dragElastic={0.4}
                 dragConstraints={bubbleWrapperRef}
                 onDragStart={() => setIsDragging(true)}
@@ -155,15 +134,17 @@ export function BottomNavigation() {
                 animate={bubbleControls}
                 initial={getBubblePosition()}
                 whileHover={{ scale: 1.05, transition: { type: "spring", damping: 10, stiffness: 400 } }}
-                whileDrag={{ 
-                  scale: 1.3, 
+                whileDrag={{
+                  scale: 1.3,
                   zIndex: 1000,
-                  filter: "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
-                  transition: { type: "spring", damping: 5, stiffness: 300 }
+                  filter:
+                    "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
+                  transition: { type: "spring", damping: 5, stiffness: 300 },
                 }}
                 className="absolute w-20 h-20 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
                 style={{
-                  background: "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.2) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
+                  background:
+                    "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.2) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
                   backdropFilter: "blur(20px)",
                   border: "2px solid hsla(200, 100%, 70%, 0.7)",
                   boxShadow: `
@@ -171,7 +152,7 @@ export function BottomNavigation() {
                     0 8px 32px hsla(200, 100%, 50%, 0.3),
                     inset 0 2px 0 hsla(200, 100%, 90%, 0.6),
                     inset 0 -2px 0 hsla(200, 100%, 30%, 0.4)
-                  `
+                  `,
                 }}
               >
                 <div className="absolute inset-1 rounded-full overflow-hidden">
@@ -182,43 +163,39 @@ export function BottomNavigation() {
             </div>
           </div>
 
-          {/* Tab Items — removed px-6 and forced even distribution */}
+          {/* Tab row. Zero padding. Exact cells. */}
           <div
-            className="flex items-center justify-between relative z-20"
-            style={{ width: '288px' }}
+            className="relative z-20 grid grid-cols-3 place-items-center p-0 m-0 gap-0"
+            style={{ width: 288 }}
           >
             {navigationItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = currentTab === item.id;
-              
+
               return (
-                <motion.div
+                <div
                   key={item.id}
                   ref={(el) => (tabRefs.current[index] = el)}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.2, delay: 0.1 + index * 0.05, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="w-24 h-16 inline-flex flex-col items-center justify-center cursor-pointer select-none"
+                  onClick={() => setCurrentTab(item.id)}
                 >
-                  <motion.div
-                    className="w-24 h-16 flex flex-col items-center justify-center cursor-pointer"
-                    whileHover={{ scale: 1.05, transition: { type: "spring", damping: 20, stiffness: 400 } }}
-                    whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
-                    onClick={() => setCurrentTab(item.id)}
+                  <Icon
+                    className={`h-6 w-6 mb-1 transition-colors duration-300 ${
+                      isActive
+                        ? "text-primary-foreground drop-shadow-lg"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  />
+                  <span
+                    className={`text-xs font-medium transition-colors duration-300 ${
+                      isActive
+                        ? "text-primary-foreground drop-shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                   >
-                    <Icon 
-                      className={`h-6 w-6 mb-1 transition-colors duration-300 ${
-                        isActive ? "text-primary-foreground drop-shadow-lg" : "text-muted-foreground hover:text-foreground"
-                      }`} 
-                    />
-                    <span 
-                      className={`text-xs font-medium transition-colors duration-300 ${
-                        isActive ? "text-primary-foreground drop-shadow-sm" : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                  </motion.div>
-                </motion.div>
+                    {item.label}
+                  </span>
+                </div>
               );
             })}
           </div>
