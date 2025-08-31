@@ -112,8 +112,9 @@ export function BottomNavigation() {
             width: 320,
           }}
         >
-          {/* Focus color override to match bubble blue (no CSS var trick) */}
+          {/* Scoped overrides */}
           <style>{`
+            /* Input focus = bubble blue */
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
             .chat-input-scope textarea:focus,
@@ -122,16 +123,60 @@ export function BottomNavigation() {
               box-shadow: 0 0 0 3px color-mix(in oklab, hsl(200, 100%, 60%) 35%, transparent) !important;
               border-color: hsl(200, 100%, 60%) !important;
             }
+
+            /* === Replace paperclip with image icon + plus badge, and lower it 3px ===
+               Targets a reasonable set of attach buttons without needing to touch ChatInput code.
+               If your ChatInput uses different selectors, add them to the first rule's list. */
+            .chat-input-scope button[aria-label="Attach"],
+            .chat-input-scope button[title="Attach"],
+            .chat-input-scope .attach-btn {
+              position: relative;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              transform: translateY(3px); /* lower a bit for perfect alignment */
+            }
+            /* Hide the original paperclip SVG */
+            .chat-input-scope button[aria-label="Attach"] svg,
+            .chat-input-scope button[title="Attach"] svg,
+            .chat-input-scope .attach-btn svg {
+              display: none !important;
+            }
+            /* Draw a small image/picture icon via mask so it inherits currentColor */
+            .chat-input-scope button[aria-label="Attach"]::before,
+            .chat-input-scope button[title="Attach"]::before,
+            .chat-input-scope .attach-btn::before {
+              content: "";
+              width: 18px;
+              height: 18px;
+              background: currentColor;
+              -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z" stroke="%23000" stroke-width="2"/><path d="M7 16l3.5-3.5a1 1 0 0 1 1.5 0L16 16l2-2 3 3" stroke="%23000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="9" r="1.5" fill="%23000"/></svg>') no-repeat center / contain;
+                      mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z" stroke="%23000" stroke-width="2"/><path d="M7 16l3.5-3.5a1 1 0 0 1 1.5 0L16 16l2-2 3 3" stroke="%23000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="9" r="1.5" fill="%23000"/></svg>') no-repeat center / contain;
+            }
+            /* Add the small "+" badge in the bottom-right corner */
+            .chat-input-scope button[aria-label="Attach"]::after,
+            .chat-input-scope button[title="Attach"]::after,
+            .chat-input-scope .attach-btn::after {
+              content: "";
+              position: absolute;
+              right: -2px;
+              bottom: -2px;
+              width: 12px;
+              height: 12px;
+              background: currentColor;
+              -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M7 3h2v4h4v2H9v4H7V9H3V7h4V3z" fill="%23000"/></svg>') no-repeat center / contain;
+                      mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M7 3h2v4h4v2H9v4H7V9H3V7h4V3z" fill="%23000"/></svg>') no-repeat center / contain;
+            }
           `}</style>
 
-          {/* Chat input row — moved closer to bubble bar */}
+          {/* Chat input row — closer to bubble bar (unchanged from last pass) */}
           <motion.div
             initial={false}
             animate={{
               maxHeight: isChat ? 140 : 0,
               opacity: isChat ? 1 : 0,
-              y: isChat ? 2 : 8,            // move the whole input row slightly DOWN
-              marginBottom: isChat ? 8 : 0, // tighter gap to bubble interface
+              y: isChat ? 2 : 8,            // keep the input row slightly lower
+              marginBottom: isChat ? 8 : 0, // tight gap to bubble interface
             }}
             transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
             className="w-full px-6 chat-input-scope"
