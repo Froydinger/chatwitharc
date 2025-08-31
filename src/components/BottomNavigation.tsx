@@ -15,25 +15,24 @@ export function BottomNavigation() {
   const [isDragging, setIsDragging] = useState(false);
   const bubbleControls = useAnimation();
 
-  // Refs
   const railRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const inputWrapRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
 
-  // Sizes
   const BUBBLE = 72;
   const TAB_RAIL_HEIGHT = 64;
-  const PAD_COLLAPSED = 12; // 0.75rem
-  const PAD_EXPANDED = 16;  // 1rem
+  const PAD_TOP_COLLAPSED = 12;
+  const PAD_TOP_EXPANDED = 16;
+  const PAD_BOTTOM = 12;
   const CONTAINER_WIDTH = 320;
-  const GAP_ABOVE_RAIL = 8; // space between input and rail when expanded
+  const GAP_ABOVE_RAIL = 8;
 
-  // Measure input
+  // measure natural input height
   const [inputHeight, setInputHeight] = useState(0);
   useLayoutEffect(() => {
-    const el = inputWrapRef.current;
+    const el = measureRef.current;
     if (!el) return;
-    const measure = () => setInputHeight(el.scrollHeight || 0);
+    const measure = () => setInputHeight(Math.ceil(el.scrollHeight || 0));
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
@@ -45,20 +44,11 @@ export function BottomNavigation() {
   }, []);
 
   const expanded = currentTab === "chat";
+  const topPad = expanded ? PAD_TOP_EXPANDED : PAD_TOP_COLLAPSED;
 
-  // Accurate container height with no hidden extras in collapsed state
-  const TOP_PAD = expanded ? PAD_EXPANDED : PAD_COLLAPSED;
-  const BOTTOM_PAD = PAD_COLLAPSED;
-
-  const containerHeight =
-    TOP_PAD +
-    BOTTOM_PAD +
-    TAB_RAIL_HEIGHT +
-    (expanded ? inputHeight + GAP_ABOVE_RAIL : 0);
-
-  // Bubble position
+  // Bubble position helper
   const getBubblePosition = () => {
-    const idx = navigationItems.findIndex((i) => i.id === currentTab);
+    const idx = navigationItems.findIndex(i => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
     if (!tabEl) {
       const CELL = CONTAINER_WIDTH / navigationItems.length;
@@ -117,18 +107,12 @@ export function BottomNavigation() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
-        {/* Glass container */}
-        <motion.div
-          className="relative flex flex-col items-center"
-          animate={{
-            height: containerHeight,
-            paddingTop: TOP_PAD,
-            paddingBottom: BOTTOM_PAD,
-          }}
-          initial={false}
-          transition={{ type: "spring", stiffness: 180, damping: 22 }}
+        {/* Glass container: flex column, rail is a fixed-height footer */}
+        <div
+          className="relative flex flex-col"
           style={{
-            overflow: "hidden",
+            width: CONTAINER_WIDTH,
+            minWidth: CONTAINER_WIDTH,
             background:
               "linear-gradient(135deg, hsla(240, 15%, 12%, 0.3) 0%, hsla(240, 20%, 15%, 0.4) 100%)",
             backdropFilter: "blur(20px)",
@@ -140,9 +124,10 @@ export function BottomNavigation() {
               inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
               inset 0 -1px 0 hsla(200, 100%, 30%, 0.2)
             `,
-            minWidth: CONTAINER_WIDTH,
-            width: CONTAINER_WIDTH,
+            paddingTop: topPad,
+            paddingBottom: PAD_BOTTOM,
             ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
+            willChange: "transform",
           }}
         >
           <style>{`
@@ -163,31 +148,36 @@ export function BottomNavigation() {
             }
           `}</style>
 
-          {/* Input wrapper measured for height; no extra margins when collapsed */}
-          <div
-            ref={inputWrapRef}
-            className="w-full px-6 chat-input-scope"
-            style={{ marginBottom: expanded ? GAP_ABOVE_RAIL : 0 }}
+          {/* Animated input slot */}
+          <motion.div
+            initial={false}
+            animate={{
+              maxHeight: expanded ? inputHeight + GAP_ABOVE_RAIL : 0,
+              opacity: expanded ? 1 : 0,
+              clipPath: expanded
+                ? "inset(0% 0% 0% 0% round 24px)"
+                : "inset(0% 0% 100% 0% round 24px)",
+              y: expanded ? 0 : 4,
+            }}
+            transition={{
+              maxHeight: { type: "spring", stiffness: 220, damping: 26 },
+              opacity: { duration: 0.18, ease: "easeOut" },
+              y: { type: "spring", stiffness: 260, damping: 22 },
+              clipPath: { duration: 0.22, ease: "easeOut" },
+            }}
+            style={{
+              overflow: "hidden",
+              pointerEvents: expanded ? "auto" : "none",
+            }}
           >
-            <motion.div
-              initial={false}
-              animate={{
-                opacity: expanded ? 1 : 0,
-                y: expanded ? 0 : 12,
-                pointerEvents: expanded ? "auto" : "none",
-                filter: expanded ? "none" : "blur(1px)",
-              }}
-              transition={{
-                opacity: { duration: 0.18, ease: "easeOut" },
-                y: { type: "spring", stiffness: 260, damping: 22 },
-              }}
-            >
+            {/* Measured content */}
+            <div ref={measureRef} className="w-full px-6 chat-input-scope" style={{ paddingBottom: GAP_ABOVE_RAIL }}>
               <ChatInput />
-            </motion.div>
-          </div>
+            </div>
+          </motion.div>
 
-          {/* Tabs and bubble rail */}
-          <div className="relative z-20" style={{ width: CONTAINER_WIDTH, height: TAB_RAIL_HEIGHT }}>
+          {/* Rail footer: fixed height, never moves */}
+          <div style={{ height: TAB_RAIL_HEIGHT, position: "relative" }}>
             <div
               ref={railRef}
               className="absolute inset-0 flex justify-between items-center px-4"
@@ -253,7 +243,7 @@ export function BottomNavigation() {
               </div>
             </motion.div>
           </div>
-        </motion.div>
+        </div>
       </motion.div>
     </div>
   );
