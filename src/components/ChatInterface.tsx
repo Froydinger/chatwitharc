@@ -19,7 +19,7 @@ export function ChatInterface() {
   const [dragOver, setDragOver] = useState(false);
   const [activeGlowIndex, setActiveGlowIndex] = useState(0);
   const [prevGlowIndex, setPrevGlowIndex] = useState<number | null>(null);
-  const [botGreet, setBotGreet] = useState(false); // avatar greet animation
+  const [botGreet, setBotGreet] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -45,8 +45,7 @@ export function ChatInterface() {
     () => [
       {
         label: "Wellness check",
-        msg:
-`Hi, I’d like to do a short wellness check. 
+        msg: `Hi, I’d like to do a short wellness check. 
 Start by asking me to rate my mood from 1–10. 
 Then ask me for one word that describes how I feel. 
 Then ask me what I think contributed to that mood. 
@@ -55,8 +54,7 @@ If anything is unclear, follow up with me with one concise question.`
       },
       {
         label: "Companion chat",
-        msg:
-`Can you act as a supportive companion? 
+        msg: `Can you act as a supportive companion? 
 Begin with one validating sentence about how hard days can feel. 
 Then ask me one open question about my day. 
 Keep replies under three sentences unless I ask for more. 
@@ -65,16 +63,14 @@ If you’re missing context, follow up with me with one clarifying question.`
       },
       {
         label: "Creative spark",
-        msg:
-`Help me brainstorm one creative idea. 
+        msg: `Help me brainstorm one creative idea. 
 Give me a title, three bullet points describing the idea, and one next step I could take today. 
 After that, ask me if I’d like a second variant. 
 If you’re missing details like topic, medium, or audience, follow up with me first.`
       },
       {
         label: "Quick vent",
-        msg:
-`I want to vent. 
+        msg: `I want to vent. 
 Please let me type freely; when I say I’m done: 
 • Acknowledge in one sentence 
 • Summarize in one sentence 
@@ -84,8 +80,7 @@ If my message is unclear, follow up with one clarifying question.`
       },
       {
         label: "Focus sprint",
-        msg:
-`Guide me through a 15-minute focus sprint. 
+        msg: `Guide me through a 15-minute focus sprint. 
 Step 1: Help me define a single finish line in one sentence. 
 Step 2: Post a timer message. 
 Step 3: Give me a three-step plan. 
@@ -94,16 +89,14 @@ If details are missing, follow up with me with one scoping question.`
       },
       {
         label: "Gratitude ×3",
-        msg:
-`Prompt me to share three things I’m grateful for, one at a time. 
+        msg: `Prompt me to share three things I’m grateful for, one at a time. 
 After each, reflect the theme back in one warm sentence. 
 Keep it brief but encouraging. 
 If I stall, follow up with one example and one nudge question.`
       },
       {
         label: "Idea sketch",
-        msg:
-`Help me make a quick idea sketch. 
+        msg: `Help me make a quick idea sketch. 
 Provide: 
 1) Title 
 2) Who it helps 
@@ -115,8 +108,7 @@ If domain or audience is missing, follow up with me.`
       },
       {
         label: "Reframe it",
-        msg:
-`Let’s do a cognitive reframe. 
+        msg: `Let’s do a cognitive reframe. 
 First, ask me to share one stressful thought. 
 Next, ask for evidence supporting it and evidence against it. 
 Then give me one balanced replacement thought in plain language. 
@@ -124,16 +116,14 @@ If my thought is too broad, follow up with one clarifying question.`
       },
       {
         label: "Tiny habit",
-        msg:
-`Suggest a tiny habit I can do in under two minutes. 
+        msg: `Suggest a tiny habit I can do in under two minutes. 
 Present it as cue → action → reward. 
 Offer me two options (A and B) and ask me to pick one. 
 If context like morning/evening or home/work matters, follow up with me first.`
       },
       {
         label: "Mood check",
-        msg:
-`I’d like a quick mood check. 
+        msg: `I’d like a quick mood check. 
 Ask me to rate my mood from 1–10 and my energy from 1–10. 
 Then suggest one regulation tool I can use today and one small win I could aim for. 
 If the scores point to different strategies, follow up with me to confirm preference (calming vs. energizing).`
@@ -199,9 +189,6 @@ If the scores point to different strategies, follow up with me to confirm prefer
 
   return (
     <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-1">
-      {/* styles omitted for brevity (same as before: pills, glow, header, greet) */}
-      {/* Header gradient + header content */}
-      {/* Messages container */}
       <GlassCard 
         variant="bubble" 
         glow
