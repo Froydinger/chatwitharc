@@ -28,7 +28,7 @@ export function BottomNavigation() {
   const CONTAINER_WIDTH = 320;
   const GAP_ABOVE_RAIL = 8;
 
-  // --- rotating placeholders (same styling/position; smooth fade only)
+  // --- rotating placeholders (slower, full fade out then fade in)
   const placeholders = [
     "Ask me anything…",
     "What's on your mind?",
@@ -38,7 +38,6 @@ export function BottomNavigation() {
   ];
   const phIndexRef = useRef(0);
 
-  // Install placeholder, then loop: fade out -> swap -> fade in
   useEffect(() => {
     const getField = () =>
       scopeRef.current?.querySelector("input,textarea") as
@@ -51,27 +50,50 @@ export function BottomNavigation() {
       if (f) f.placeholder = text;
     };
 
-    // initial placeholder (no layout change)
     setPlaceholder(placeholders[phIndexRef.current]);
 
     const id = setInterval(() => {
       const f = getField();
       if (!f) return;
 
-      // fade out current placeholder
+      // fade out
       (f as HTMLElement).style.setProperty("--ph-opacity", "0");
 
-      // after fade-out, swap text and fade back in
+      // wait for fade-out, then swap + fade in
       setTimeout(() => {
         phIndexRef.current = (phIndexRef.current + 1) % placeholders.length;
         setPlaceholder(placeholders[phIndexRef.current]);
         (f as HTMLElement).style.setProperty("--ph-opacity", "1");
-      }, 250); // match CSS transition duration
-    }, 4000); // overall loop timing
+      }, 600); // slower fade duration
+    }, 6000); // slower overall loop
 
     return () => clearInterval(id);
   }, []);
 
+  // ---------- ANDROID PWA FIX: lock to "chat" while input focused ----------
+  const [isInputFocused, setIsInputFocused] = useState(false);
+
+  useEffect(() => {
+    const root = scopeRef.current;
+    if (!root) return;
+
+    const onFocusIn = () => {
+      setIsInputFocused(true);
+      // Ensure the app is on "chat" when the user starts typing (prevents jump to history)
+      if (currentTab !== "chat") setCurrentTab("chat");
+    };
+    const onFocusOut = () => setIsInputFocused(false);
+
+    root.addEventListener("focusin", onFocusIn);
+    root.addEventListener("focusout", onFocusOut);
+    return () => {
+      root.removeEventListener("focusin", onFocusIn);
+      root.removeEventListener("focusout", onFocusOut);
+    };
+  }, [currentTab, setCurrentTab]);
+  // ------------------------------------------------------------------------
+
+  // measure natural input height
   const [inputHeight, setInputHeight] = useState(0);
   useLayoutEffect(() => {
     const el = measureRef.current;
@@ -90,6 +112,7 @@ export function BottomNavigation() {
   const expanded = currentTab === "chat";
   const topPad = expanded ? PAD_TOP_EXPANDED : PAD_TOP_COLLAPSED;
 
+  // Remove paperclip and any wrapper cells that reserve space
   useEffect(() => {
     const root = scopeRef.current;
     if (!root) return;
@@ -112,9 +135,9 @@ export function BottomNavigation() {
         '.adornment',
       ].join(",");
 
-      root.querySelectorAll(selectors).forEach((n) => n.remove());
+      root.querySelectorAll(selectors).forEach(n => n.remove());
 
-      root.querySelectorAll('input,textarea,[contenteditable="true"]').forEach((field) => {
+      root.querySelectorAll('input,textarea,[contenteditable="true"]').forEach(field => {
         const prev = field.previousElementSibling as HTMLElement | null;
         if (prev) prev.remove();
         const parent = field.parentElement as HTMLElement | null;
@@ -131,8 +154,9 @@ export function BottomNavigation() {
     return () => mo.disconnect();
   }, []);
 
+  // Bubble position helper
   const getBubblePosition = () => {
-    const idx = navigationItems.findIndex((i) => i.id === currentTab);
+    const idx = navigationItems.findIndex(i => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
     if (!tabEl) {
       const CELL = CONTAINER_WIDTH / navigationItems.length;
@@ -169,6 +193,12 @@ export function BottomNavigation() {
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
+    // If input is focused (IME open), don't allow a tab change from drag heuristics.
+    if (isInputFocused) {
+      const p = getBubblePosition();
+      bubbleControls.start({ x: p.x, y: p.y });
+      return;
+    }
     let best = 0;
     let dist = Infinity;
     tabRefs.current.forEach((el, i) => {
@@ -236,6 +266,16 @@ export function BottomNavigation() {
               border-color: var(--neon-blue) !important;
               box-shadow:
                 0 0 0 3px color-mix(in oklab, var(--neon-blue) 40%, transparent) !important;
+            }
+
+            .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
+              --ph-opacity: 1;
+            }
+
+            .chat-input-scope input::placeholder,
+            .chat-input-scope textarea::placeholder {
+              opacity: var(--ph-opacity, 1) !important;
+              transition: opacity 600ms ease !important; /* slower fade */
             }
 
             .chat-input-scope {
@@ -315,17 +355,6 @@ export function BottomNavigation() {
               top: -2px !important;
               border-color: var(--neon-blue) !important;
               background: transparent !important;
-
-              /* Placeholder fade (no size/position changes) */
-              --ph-opacity: 1;
-              transition: color 0s linear 0s; /* guard against UA changing color on placeholder */
-            }
-
-            /* Smooth opacity control for placeholder text only */
-            .chat-input-scope input::placeholder,
-            .chat-input-scope textarea::placeholder {
-              opacity: var(--ph-opacity, 1) !important;
-              transition: opacity 250ms ease !important;
             }
 
             /* SEND BUTTON OFFSET: moved down 1px and right 5px (unchanged) */
@@ -342,6 +371,7 @@ export function BottomNavigation() {
             }
           `}</style>
 
+          {/* Animated input slot */}
           <motion.div
             initial={false}
             animate={{
@@ -360,6 +390,7 @@ export function BottomNavigation() {
             }}
             style={{ overflow: "hidden", pointerEvents: expanded ? "auto" : "none" }}
           >
+            {/* Measured content with strict 10px gutters */}
             <div
               ref={measureRef}
               className="w-full"
@@ -371,6 +402,7 @@ export function BottomNavigation() {
             </div>
           </motion.div>
 
+          {/* Rail footer: fixed height, never moves */}
           <div style={{ height: TAB_RAIL_HEIGHT, position: "relative" }}>
             <div
               ref={railRef}
@@ -385,7 +417,11 @@ export function BottomNavigation() {
                     key={item.id}
                     ref={(el) => (tabRefs.current[index] = el)}
                     className="flex flex-col items-center justify-center cursor-pointer select-none px-4 py-2"
-                    onClick={() => setCurrentTab(item.id)}
+                    onClick={() => {
+                      // Block accidental tab switches while IME is open/focused
+                      if (isInputFocused) return;
+                      setCurrentTab(item.id);
+                    }}
                   >
                     <Icon
                       className={`h-6 w-6 transition-colors duration-300 ${
@@ -399,6 +435,7 @@ export function BottomNavigation() {
               })}
             </div>
 
+            {/* Bubble */}
             <motion.div
               drag="x"
               dragMomentum
