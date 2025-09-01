@@ -1,24 +1,11 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Image, Plus, SlidersHorizontal } from "lucide-react";
+import { Image, Plus } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
-import { OpenAIService } from "@/services/openai";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { MessageBubble } from "@/components/MessageBubble";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-
-/**
- * Goals in this version:
- * - One-screen, no-scroll welcome on phone and desktop by default.
- * - Keep your original smooth header fade + stacked blur.
- * - Neon pills with thin 1px neon-blue outline, glow that breathes and moves to the next pill.
- * - Smoother animations overall.
- * - Denser cluster with responsive gap/padding using CSS variables and clamp().
- * - A tiny "Density" control in header to cycle Comfy → Cozy → Compact without code changes.
- * - When messages exist, add bottom spacer so last bubble never hides under the input.
- * - Header layout: logo + title on one line, subtitle sits to the right on wide screens and drops under on small screens.
- */
 
 export function ChatInterface() {
   const { 
@@ -31,13 +18,8 @@ export function ChatInterface() {
 
   const [dragOver, setDragOver] = useState(false);
 
-  // active glow indexes to cross-fade color between pills
   const [activeGlowIndex, setActiveGlowIndex] = useState(0);
   const [prevGlowIndex, setPrevGlowIndex] = useState<number | null>(null);
-
-  // Density control: comfy → cozy → compact
-  const densityLevels = ["comfy", "cozy", "compact"] as const;
-  const [density, setDensity] = useState<typeof densityLevels[number]>("cozy");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -45,21 +27,19 @@ export function ChatInterface() {
   const { toast } = useToast();
   const { profile } = useAuth();
 
-  // Neon palette that the glow cycles through
   const neonPalette = useMemo(
     () => [
-      "#17E5FF", // neon blue
-      "#FF2B2B", // neon red
-      "#2BFF7A", // neon green
-      "#FF3CF3", // neon pink
-      "#FF8A00", // neon orange
-      "#8A7BFF", // neon violet
-      "#00FFC2", // mint
+      "#17E5FF",
+      "#FF2B2B",
+      "#2BFF7A",
+      "#FF3CF3",
+      "#FF8A00",
+      "#8A7BFF",
+      "#00FFC2",
     ],
     []
   );
 
-  // Prompts: short labels, explicit step-by-step messages to overcome "keep it short" instruction
   const quickPrompts = useMemo(
     () => [
       {
@@ -116,25 +96,21 @@ export function ChatInterface() {
     []
   );
 
-  // Move the breathing glow from one pill to the next and change color
   useEffect(() => {
     const interval = setInterval(() => {
       setPrevGlowIndex(activeGlowIndex);
       setActiveGlowIndex((i) => (i + 1) % quickPrompts.length);
-      // clear prev index after crossfade
       setTimeout(() => setPrevGlowIndex(null), 700);
-    }, 2100); // slower, smoother cycle
+    }, 2100);
     return () => clearInterval(interval);
   }, [activeGlowIndex, quickPrompts.length]);
 
-  // Smooth scroll behavior
   useEffect(() => {
     if (messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
-  }, [messages]);
+  }, [messages, isLoading]); // include isLoading so the indicator scrolls into view under last message
 
-  // Reset scroll on new chat
   useEffect(() => {
     if (messages.length === 0 && messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({ top: 0, behavior: "instant" });
@@ -144,7 +120,6 @@ export function ChatInterface() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    // file handling here if needed
   };
 
   const handleNewChat = () => {
@@ -158,73 +133,12 @@ export function ChatInterface() {
     toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
   };
 
-  // Height spacer so bottom message never hides behind the input bar
-  const bottomSpacerPx = 104; // tune to your input bar height
-
-  // Cycle density helper
-  const cycleDensity = () => {
-    const idx = densityLevels.indexOf(density);
-    setDensity(densityLevels[(idx + 1) % densityLevels.length]);
-  };
+  const bottomSpacerPx = 104;
 
   return (
-    <div
-      className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-1"
-      data-density={density}
-    >
-      {/* Local styles: responsive density variables, header fade, pill glow, softer motions */}
+    <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-1">
       <style>
         {`
-          /* Density presets: tweak gaps, pill size, and cluster width without code changes */
-          :root {
-            --cluster-gap: 24px;
-            --cluster-gap-sm: 16px;
-            --pill-x: 12px;
-            --pill-y: 8px;
-            --pill-font: 12px;
-            --cluster-max: 48rem; /* controls when cluster wraps; 48rem ≈ 768px */
-            --header-pad: 8px;
-            --logo-size: 28px;
-            --title-size: 16px;
-            --subtitle-size: 12px;
-          }
-          [data-density="comfy"] {
-            --cluster-gap: clamp(18px, 2.2dvh, 28px);
-            --cluster-gap-sm: clamp(12px, 1.6dvh, 18px);
-            --pill-x: clamp(12px, 1.4dvh, 14px);
-            --pill-y: clamp(8px, 1.0dvh, 10px);
-            --pill-font: clamp(12px, 0.88rem, 14px);
-            --cluster-max: 52rem;
-            --header-pad: 10px;
-            --logo-size: 30px;
-            --title-size: 17px;
-            --subtitle-size: 12px;
-          }
-          [data-density="cozy"] {
-            --cluster-gap: clamp(14px, 1.8dvh, 22px);
-            --cluster-gap-sm: clamp(10px, 1.2dvh, 16px);
-            --pill-x: clamp(10px, 1.2dvh, 12px);
-            --pill-y: clamp(7px, 0.9dvh, 9px);
-            --pill-font: clamp(12px, 0.84rem, 13px);
-            --cluster-max: 44rem;
-            --header-pad: 8px;
-            --logo-size: 28px;
-            --title-size: 16px;
-            --subtitle-size: 11px;
-          }
-          [data-density="compact"] {
-            --cluster-gap: clamp(8px, 1.2dvh, 14px);
-            --cluster-gap-sm: clamp(6px, 0.8dvh, 12px);
-            --pill-x: clamp(8px, 1.0dvh, 10px);
-            --pill-y: clamp(6px, 0.8dvh, 8px);
-            --pill-font: clamp(11px, 0.8rem, 12px);
-            --cluster-max: 38rem;
-            --header-pad: 6px;
-            --logo-size: 26px;
-            --title-size: 15px;
-            --subtitle-size: 11px;
-          }
-
           .no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
           .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 
@@ -241,17 +155,16 @@ export function ChatInterface() {
 
           .pill {
             border-radius: 9999px;
-            padding: var(--pill-y) var(--pill-x);
-            font-size: var(--pill-font);
+            padding: 6px 10px;
+            font-size: 12px;
             line-height: 1;
             white-space: nowrap;
             color: hsl(var(--foreground));
             background: rgba(255,255,255,0.03);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(23,229,255,0.5); /* 1px neon-blue outline at 50% */
+            border: 1px solid rgba(23,229,255,0.5);
             transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, filter 420ms ease, opacity 420ms ease;
-            will-change: transform, filter, opacity;
           }
           .pill:hover { transform: translateY(-1px); }
 
@@ -260,7 +173,6 @@ export function ChatInterface() {
             display: inline-flex;
             border-radius: 9999px;
             transition: opacity 600ms ease;
-            will-change: filter, opacity;
           }
           .glow-wrap.active {
             --glow: var(--glow-color);
@@ -271,12 +183,12 @@ export function ChatInterface() {
             --glow: var(--glow-color);
             --glow-soft: color-mix(in oklab, var(--glow) 50%, transparent);
             animation: breathe 2s ease-in-out infinite;
-            opacity: 0.0; /* cross-fade handled inline */
+            opacity: 0.0;
           }
         `}
       </style>
 
-      {/* Gradient Header Mask — original smooth fade + stacked blurs */}
+      {/* Header gradient + blur (original smooth fade) */}
       <div className="fixed top-0 left-0 right-0 z-30 h-32 pointer-events-none">
         <div 
           className="w-full h-full"
@@ -301,37 +213,21 @@ export function ChatInterface() {
         />
       </div>
 
-      {/* Header content: logo + title left, density + new chat right.
-          Subtitle sits inline on wide, wraps under on small for height savings. */}
+      {/* Header content */}
       <div className="fixed top-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
         <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl pointer-events-auto">
-          <div className="flex items-center justify-between px-2 py-[var(--header-pad)]">
-            <div className="flex items-center min-w-0 gap-2">
+          <div className="flex items-center justify-between px-2 py-2">
+            <div className="flex items-center gap-2">
               <img
                 src="/lovable-uploads/10805bee-4d5c-4640-a77f-d2ea5cd05436.png"
                 alt="ArcAI"
-                style={{ width: "var(--logo-size)", height: "var(--logo-size)" }}
+                className="h-7 w-7"
               />
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="text-foreground font-semibold" style={{ fontSize: "var(--title-size)" }}>
-                  ArcAI
-                </span>
-                <span className="text-muted-foreground truncate" style={{ fontSize: "var(--subtitle-size)" }}>
-                  Creative wellness assistant
-                </span>
-              </div>
+              <span className="text-foreground font-semibold text-sm sm:text-base">
+                ArcAI
+              </span>
             </div>
             <div className="flex items-center gap-1">
-              <GlassButton
-                variant="bubble"
-                size="icon"
-                aria-label="Cycle density"
-                className="h-8 w-8"
-                onClick={cycleDensity}
-                title={`Density: ${density}`}
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-              </GlassButton>
               <GlassButton
                 variant="bubble"
                 size="icon"
@@ -357,10 +253,9 @@ export function ChatInterface() {
       >
         <div ref={messagesContainerRef} className="h-full overflow-y-auto no-scrollbar scroll-smooth relative">
           <div className="px-3 sm:px-4 pt-20 w-full max-w-full">
-            {/* Empty state with pill cluster that fits one screen on phone and desktop */}
+            {/* Empty state */}
             {messages.length === 0 ? (
               <div className="text-center">
-                {/* Header mini row for welcome can stack without adding height */}
                 <div className="flex items-center justify-center gap-2 mb-1" style={{ animation: "fadeInUp 420ms ease both" }}>
                   <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-8 w-8" />
                   <h3 className="text-sm sm:text-base font-semibold text-foreground">
@@ -371,17 +266,8 @@ export function ChatInterface() {
                   Tap a prompt to begin.
                 </p>
 
-                {/* Cluster: dense, clean, fits one screen using clamp() and a max width cap */}
-                <div className="mx-auto" style={{ maxWidth: "var(--cluster-max)" }}>
-                  <div
-                    className="flex flex-wrap items-center justify-center"
-                    style={{
-                      gap: "var(--cluster-gap)",
-                      rowGap: "var(--cluster-gap-sm)",
-                      paddingTop: "clamp(8px, 1.6dvh, 16px)",
-                      paddingBottom: "clamp(8px, 1.6dvh, 16px)"
-                    }}
-                  >
+                <div className="mx-auto max-w-3xl">
+                  <div className="flex flex-wrap items-center justify-center gap-4 py-4">
                     {quickPrompts.map((p, idx) => {
                       const isActive = idx === activeGlowIndex;
                       const isPrev = prevGlowIndex === idx;
@@ -413,41 +299,57 @@ export function ChatInterface() {
                   </div>
                 </div>
 
-                {/* No extra bottom padding so it stays one page */}
+                {/* If the model starts responding before first render of a user message */}
+                {isLoading && (
+                  <div className="flex justify-center pt-2">
+                    <div className="glass rounded-2xl px-3 py-2 max-w-xs" style={{ animation: "fadeInUp 300ms ease both" }}>
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1">
+                          {[0, 1, 2].map((i) => (
+                            <div key={i} className="w-2 h-2 bg-primary-glow rounded-full animate-pulse" />
+                          ))}
+                        </div>
+                        <span className="text-xs text-muted-foreground">Thinking...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <>
-                <div className="space-y-4 pb-6">
+                {/* Messages */}
+                <div className="space-y-4">
                   {messages.map((message) => (
                     <MessageBubble key={message.id} message={message} onEdit={() => {}} />
                   ))}
                 </div>
-                {/* Spacer so last message never sits under the input bar */}
+
+                {/* Centered thinking indicator directly under the last message */}
+                {isLoading && (
+                  <div className="flex justify-center mt-3">
+                    <div className="glass rounded-2xl px-3 py-2 max-w-xs" style={{ animation: "fadeInUp 300ms ease both" }}>
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1">
+                          {[0, 1, 2].map((i) => (
+                            <div key={i} className="w-2 h-2 bg-primary-glow rounded-full animate-pulse" />
+                          ))}
+                        </div>
+                        <span className="text-xs text-muted-foreground">Thinking...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Spacer so last content never hides under the input bar */}
                 <div style={{ height: bottomSpacerPx }} />
+
+                {/* Anchor for smooth scroll to bottom incl. loader */}
+                <div ref={messagesEndRef} />
               </>
             )}
-
-            {/* Loading bubble */}
-            {isLoading && (
-              <div className="flex justify-start pb-3">
-                <div className="glass rounded-2xl px-3 py-2 max-w-xs" style={{ animation: "fadeInUp 360ms ease both" }}>
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
-                      {[0, 1, 2].map((i) => (
-                        <div key={i} className="w-2 h-2 bg-primary-glow rounded-full animate-pulse" />
-                      ))}
-                    </div>
-                    <span className="text-xs text-muted-foreground">Thinking...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} className="pb-2" />
           </div>
         </div>
 
-        {/* Drag overlay */}
         {dragOver && (
           <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary-glow rounded-[var(--radius)] flex items-center justify-center">
             <div className="text-center" style={{ animation: "fadeInUp 300ms ease both" }}>
