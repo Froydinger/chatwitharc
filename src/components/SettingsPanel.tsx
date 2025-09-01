@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Trash2, User, LogOut, AlertTriangle, Camera } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
@@ -35,7 +35,39 @@ export function SettingsPanel() {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  
+
+  // Local draft + dirty state for Context box (no saving until "Save" pressed)
+  const [contextDraft, setContextDraft] = useState("");
+  const [contextDirty, setContextDirty] = useState(false);
+
+  // Keep local draft in sync with profile, but don't overwrite if the user is editing
+  useEffect(() => {
+    if (!contextDirty) {
+      setContextDraft(profile?.context_info || "");
+    }
+  }, [profile?.context_info, contextDirty]);
+
+  const handleSaveContext = async () => {
+    try {
+      await updateProfile({ context_info: contextDraft });
+      setContextDirty(false);
+      toast({
+        title: "Saved",
+        description: "Your context was updated."
+      });
+    } catch (e) {
+      toast({
+        title: "Save failed",
+        description: "Could not save your context. Try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleResetContext = () => {
+    setContextDraft(profile?.context_info || "");
+    setContextDirty(false);
+  };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -178,13 +210,43 @@ export function SettingsPanel() {
           label: "Context & Preferences", 
           description: "Tell Arc about yourself and your needs",
           action: (
-            <Textarea
-              value={profile?.context_info || ""}
-              onChange={(e) => updateProfile({ context_info: e.target.value })}
-              placeholder="I'm interested in... I prefer... I'm working on..."
-              className="w-full glass border-glass-border text-sm min-h-[80px] resize-none"
-              disabled={updating}
-            />
+            <div className="w-full">
+              <Textarea
+                value={contextDraft}
+                onChange={(e) => {
+                  setContextDraft(e.target.value);
+                  setContextDirty(true);
+                }}
+                placeholder="I'm interested in... I prefer... I'm working on..."
+                className="w-full glass border-glass-border text-sm min-h-[80px] resize-none"
+                disabled={updating}
+              />
+              <div className="mt-2 flex items-center gap-2">
+                <GlassButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSaveContext}
+                  disabled={updating || !contextDirty}
+                  className="px-3 py-1"
+                >
+                  Save
+                </GlassButton>
+                <GlassButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetContext}
+                  disabled={updating || !contextDirty}
+                  className="px-3 py-1"
+                >
+                  Reset
+                </GlassButton>
+                {contextDirty && (
+                  <span className="text-xs text-muted-foreground">
+                    Unsaved changes
+                  </span>
+                )}
+              </div>
+            </div>
           ),
           fullWidth: true
         }
@@ -299,6 +361,7 @@ export function SettingsPanel() {
                 size="icon"
                 className="absolute -bottom-2 -right-2 w-8 h-8"
                 onClick={() => document.getElementById('avatar-upload')?.click()}
+                disabled={isUploading}
               >
                 <Camera className="w-4 h-4" />
               </GlassButton>
@@ -315,20 +378,15 @@ export function SettingsPanel() {
         </GlassCard>
       </div>
       
-      <div
-        className="text-center mb-8"
-      >
+      <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-foreground mb-2">Settings</h2>
         <p className="text-muted-foreground">Customize your ArcAI experience</p>
       </div>
 
-      {settings.map((section, sectionIndex) => {
+      {settings.map((section) => {
         const Icon = section.icon;
-        
         return (
-          <div
-            key={section.title}
-          >
+          <div key={section.title}>
             <GlassCard variant="bubble" glow className="p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="glass rounded-lg p-2">
@@ -340,7 +398,7 @@ export function SettingsPanel() {
               </div>
 
               <div className="space-y-4">
-                {section.items.map((item, itemIndex) => (
+                {section.items.map((item) => (
                   <div
                     key={item.label}
                     className={`glass rounded-lg p-4 ${
