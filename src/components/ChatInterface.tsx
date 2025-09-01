@@ -21,8 +21,8 @@ export function ChatInterface() {
   const [activeGlowIndex, setActiveGlowIndex] = useState(0);
   const [prevGlowIndex, setPrevGlowIndex] = useState<number | null>(null);
 
-  // Robot avatar nod state
-  const [botNod, setBotNod] = useState(false);
+  // Avatar greet animation trigger (fade + slight rotate + pop)
+  const [botGreet, setBotGreet] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -85,14 +85,17 @@ export function ChatInterface() {
     }
   }, [currentSessionId, messages.length]);
 
-  // Trigger robot avatar nod when a new assistant message arrives
+  // Trigger avatar greet when a new assistant message arrives
   useEffect(() => {
     if (messages.length === 0) return;
     const last = messages[messages.length - 1];
     if (last.role === "assistant") {
-      setBotNod(true);
-      const t = setTimeout(() => setBotNod(false), 900);
-      return () => clearTimeout(t);
+      setBotGreet(false); // restart animation if triggered in quick succession
+      // next tick to reflow and allow animation to retrigger
+      requestAnimationFrame(() => {
+        setBotGreet(true);
+        setTimeout(() => setBotGreet(false), 900);
+      });
     }
   }, [messages]);
 
@@ -133,21 +136,31 @@ export function ChatInterface() {
             100% { filter: drop-shadow(0 0 0 var(--glow)) drop-shadow(0 0 0 var(--glow-soft)); }
           }
 
-          /* Robot avatar nod */
-          @keyframes nod {
-            0%   { transform: rotate(0deg); }
-            20%  { transform: rotate(8deg); }
-            40%  { transform: rotate(-6deg); }
-            60%  { transform: rotate(4deg); }
-            80%  { transform: rotate(-2deg); }
-            100% { transform: rotate(0deg); }
+          /* Avatar greet: fade in, slight rotate right, tiny pop, then settle */
+          @keyframes helloPop {
+            0% {
+              opacity: 0;
+              transform: rotate(0deg) translateY(0) scale(1);
+            }
+            25% {
+              opacity: 1;
+              transform: rotate(8deg) translateY(-2px) scale(1.06);
+            }
+            60% {
+              opacity: 1;
+              transform: rotate(-2deg) translateY(0) scale(1.02);
+            }
+            100% {
+              opacity: 1;
+              transform: rotate(0deg) translateY(0) scale(1);
+            }
           }
-          .robot-nod {
+          .avatar-greet {
             transform-origin: 50% 80%;
-            animation: nod 0.9s ease-in-out 1;
+            animation: helloPop 0.9s ease-in-out 1;
           }
           @media (prefers-reduced-motion: reduce) {
-            .robot-nod { animation: none; }
+            .avatar-greet { animation: none !important; }
           }
 
           .pill {
@@ -218,7 +231,7 @@ export function ChatInterface() {
               <img
                 src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
                 alt="ArcAI"
-                className={`h-7 w-7 ${botNod ? "robot-nod" : ""}`}
+                className={`h-7 w-7 ${botGreet ? "avatar-greet" : ""}`}
               />
               <span className="text-foreground font-semibold text-sm sm:text-base">
                 ArcAI
@@ -255,7 +268,7 @@ export function ChatInterface() {
                   <img
                     src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
                     alt="ArcAI"
-                    className={`h-20 w-20 ${botNod ? "robot-nod" : ""}`}
+                    className={`h-20 w-20 ${botGreet ? "avatar-greet" : ""}`}
                   />
                 </div>
                 <h3 className="text-base sm:text-lg font-semibold text-foreground">
@@ -265,7 +278,7 @@ export function ChatInterface() {
                   Tap a prompt to begin.
                 </p>
 
-                {/* PROMPTS (restored) */}
+                {/* PROMPTS */}
                 <div className="mx-auto max-w-3xl">
                   <div className="flex flex-wrap items-center justify-center gap-4 py-4">
                     {quickPrompts.map((p, idx) => {
