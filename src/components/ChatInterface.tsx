@@ -21,6 +21,9 @@ export function ChatInterface() {
   const [activeGlowIndex, setActiveGlowIndex] = useState(0);
   const [prevGlowIndex, setPrevGlowIndex] = useState<number | null>(null);
 
+  // NEW: robot avatar nod state
+  const [botNod, setBotNod] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -56,6 +59,7 @@ export function ChatInterface() {
     []
   );
 
+  // Cycle the breathing glow across pills
   useEffect(() => {
     const interval = setInterval(() => {
       setPrevGlowIndex(activeGlowIndex);
@@ -65,17 +69,30 @@ export function ChatInterface() {
     return () => clearInterval(interval);
   }, [activeGlowIndex, quickPrompts.length]);
 
+  // Smooth scroll on new content
   useEffect(() => {
     if (messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }, [messages, isLoading]);
 
+  // Reset scroll on new chat
   useEffect(() => {
     if (messages.length === 0 && messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({ top: 0, behavior: "instant" });
     }
   }, [currentSessionId, messages.length]);
+
+  // NEW: Trigger robot avatar nod when a new assistant message arrives
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (last.role === "assistant") {
+      setBotNod(true);
+      const t = setTimeout(() => setBotNod(false), 900); // nod duration
+      return () => clearTimeout(t);
+    }
+  }, [messages]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -93,7 +110,7 @@ export function ChatInterface() {
     toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
   };
 
-  // Increased spacer: originally 104 → 140 → 160, now add ~20px more → 180
+  // Spacer so nothing is cut off under the input bar (per your last tweak: 180px)
   const bottomSpacerPx = 180;
 
   return (
@@ -112,6 +129,23 @@ export function ChatInterface() {
             0%   { filter: drop-shadow(0 0 0 var(--glow)) drop-shadow(0 0 0 var(--glow-soft)); }
             50%  { filter: drop-shadow(0 0 12px var(--glow)) drop-shadow(0 0 26px var(--glow-soft)); }
             100% { filter: drop-shadow(0 0 0 var(--glow)) drop-shadow(0 0 0 var(--glow-soft)); }
+          }
+
+          /* NEW: subtle nod animation for the robot avatar */
+          @keyframes nod {
+            0%   { transform: rotate(0deg); }
+            20%  { transform: rotate(8deg); }
+            40%  { transform: rotate(-6deg); }
+            60%  { transform: rotate(4deg); }
+            80%  { transform: rotate(-2deg); }
+            100% { transform: rotate(0deg); }
+          }
+          .robot-nod {
+            transform-origin: 50% 80%;
+            animation: nod 0.9s ease-in-out 1;
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .robot-nod { animation: none; }
           }
 
           .pill {
@@ -149,7 +183,7 @@ export function ChatInterface() {
         `}
       </style>
 
-      {/* Header gradient */}
+      {/* Header gradient (original smooth fade) */}
       <div className="fixed top-0 left-0 right-0 z-30 h-32 pointer-events-none">
         <div 
           className="w-full h-full"
@@ -179,10 +213,11 @@ export function ChatInterface() {
         <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl pointer-events-auto">
           <div className="flex items-center justify-between px-2 py-2">
             <div className="flex items-center gap-2">
+              {/* Header robot avatar nods on assistant messages */}
               <img
                 src="/lovable-uploads/10805bee-4d5c-4640-a77f-d2ea5cd05436.png"
                 alt="ArcAI"
-                className="h-7 w-7"
+                className={`h-7 w-7 ${botNod ? "robot-nod" : ""}`}
               />
               <span className="text-foreground font-semibold text-sm sm:text-base">
                 ArcAI
@@ -214,8 +249,13 @@ export function ChatInterface() {
           <div className="px-3 sm:px-4 pt-20 w-full max-w-full">
             {messages.length === 0 ? (
               <div className="text-center">
+                {/* Welcome robot avatar also nods when the first assistant reply arrives */}
                 <div className="flex items-center justify-center gap-2 mb-1" style={{ animation: "fadeInUp 420ms ease both" }}>
-                  <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-8 w-8" />
+                  <img
+                    src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
+                    alt="ArcAI"
+                    className={`h-8 w-8 ${botNod ? "robot-nod" : ""}`}
+                  />
                   <h3 className="text-sm sm:text-base font-semibold text-foreground">
                     Welcome to ArcAI
                   </h3>
@@ -280,6 +320,7 @@ export function ChatInterface() {
                   ))}
                 </div>
 
+                {/* Centered thinking indicator directly under the last message */}
                 {isLoading && (
                   <div className="flex justify-center mt-3">
                     <div className="glass rounded-2xl px-3 py-2 max-w-xs" style={{ animation: "fadeInUp 300ms ease both" }}>
@@ -295,7 +336,7 @@ export function ChatInterface() {
                   </div>
                 )}
 
-                {/* Spacer to keep bottom clear of input bar */}
+                {/* Spacer so messages + loader never get cut off by the input bar */}
                 <div style={{ height: bottomSpacerPx }} />
                 <div ref={messagesEndRef} />
               </>
