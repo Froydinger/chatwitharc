@@ -20,7 +20,8 @@ export function BottomNavigation() {
   const measureRef = useRef<HTMLDivElement>(null);
   const scopeRef = useRef<HTMLDivElement>(null);
 
-  const BUBBLE = 72;
+  // ↓ smaller by ~5 for more room; centering logic uses this value
+  const BUBBLE = 67;
   const TAB_RAIL_HEIGHT = 64;
   const PAD_TOP_COLLAPSED = 12;
   const PAD_TOP_EXPANDED = 16;
@@ -244,7 +245,7 @@ export function BottomNavigation() {
             .chat-input-scope [class*=" ml-"],
             .chat-input-scope *[style*="margin-left"] { margin-left: 0 !important; }
 
-            /* keep internal placeholder padding and 16px font; bump field up 1px for perfect vertical alignment */
+            /* keep internal placeholder padding and 16px font; bump field up slightly more */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               font-size: 16px !important;
               line-height: 1.4;
@@ -255,7 +256,7 @@ export function BottomNavigation() {
               text-indent: 0 !important;
               box-sizing: border-box !important;
               position: relative !important;
-              top: -1px !important; /* <-- tiny upward nudge */
+              top: -2px !important; /* tiny extra upward nudge */
             }
 
             /* send button sits against the right gutter provided by scope padding */
@@ -346,8 +347,10 @@ export function BottomNavigation() {
                   "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
                 transition: { type: "spring", damping: 5, stiffness: 300 },
               }}
-              className="absolute left-0 top-0 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto w-[72px] h-[72px]"
+              className="absolute left-0 top-0 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
               style={{
+                width: BUBBLE,
+                height: BUBBLE,
                 background:
                   "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.2) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
                 backdropFilter: "blur(20px)",
