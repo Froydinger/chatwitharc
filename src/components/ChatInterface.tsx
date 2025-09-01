@@ -93,8 +93,8 @@ export function ChatInterface() {
     toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
   };
 
-  // Increased spacer to prevent cutoff under input bar
-  const bottomSpacerPx = 140;
+  // Increased spacer: originally 104 → 140, now +20px → 160
+  const bottomSpacerPx = 160;
 
   return (
     <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-1">
@@ -295,7 +295,7 @@ export function ChatInterface() {
                   </div>
                 )}
 
-                {/* Increased spacer so messages + loader don't get cut off by input */}
+                {/* Spacer to keep bottom clear of input bar */}
                 <div style={{ height: bottomSpacerPx }} />
                 <div ref={messagesEndRef} />
               </>
