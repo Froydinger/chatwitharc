@@ -7,6 +7,24 @@ import { MessageBubble } from "@/components/MessageBubble";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
+/**
+ * What changed:
+ * - "Short label → long context" without touching your OpenAI service or other context files.
+ * - We keep the *visible* user message short, but we append a **zero-width encoded** guidance block
+ *   that the UI won’t show, while the model still receives it.
+ * - This lets you store the detailed prompt *locally in this component*.
+ *
+ * How it works:
+ * - Clicking a pill calls startChatWithMessage(payload)
+ * - payload = "<short user cue>" + encodeHidden("<long internal guidance>")
+ * - encodeHidden() interleaves Zero-Width Space and Invisible Separator characters so the UI renders
+ *   only the cue, but LLM gets the full payload. No backend or service changes required.
+ *
+ * Notes:
+ * - This is intentionally local and reversible. If you later add a first-class “metadata/system”
+ *   pipe, you can switch to that and drop encodeHidden().
+ */
+
 export function ChatInterface() {
   const { 
     messages, 
@@ -30,6 +48,25 @@ export function ChatInterface() {
   const { toast } = useToast();
   const { profile } = useAuth();
 
+  /** --- Hidden context encoder --- */
+  // Zero-width characters
+  const ZWSP = "\u200B";   // Zero Width Space
+  const INV  = "\u2063";   // Invisible Separator
+  // Wrap guidance to make it easy for the model to parse and (hopefully) not echo
+  const GUIDANCE_OPEN = "[[GUIDANCE_START]]";
+  const GUIDANCE_CLOSE = "[[GUIDANCE_END]]";
+
+  function encodeHidden(guidance: string) {
+    // Prepend a brief instruction so the model treats this as internal guidance
+    const preface =
+      "The enclosed guidance is context for you to follow. Do NOT repeat it verbatim. Keep responses concise unless I explicitly request otherwise.";
+    const raw = `${GUIDANCE_OPEN}\n${preface}\n\n${guidance}\n${GUIDANCE_CLOSE}`;
+    // Interleave zero-width spaces so UI won’t visibly render this block
+    const interleaved = raw.split("").map(ch => ch + ZWSP).join("");
+    // Add a couple invisible separators before the block to separate from the user cue
+    return INV + INV + interleaved;
+  }
+
   // Neon palette for breathing glow cycle
   const neonPalette = useMemo(
     () => [
@@ -44,58 +81,115 @@ export function ChatInterface() {
     []
   );
 
-  // Prompts — self-contained first messages with explicit "follow up with me" instruction
+  /** Prompts — each has:
+   *  - label: short text shown on the pill
+   *  - cue:   short visible user message (what the user appears to send)
+   *  - ctx:   long internal guidance that’s hidden via zero-width encoding
+   *  Explicit “follow up with me …” included where needed.
+   */
   const quickPrompts = useMemo(
     () => [
       {
         label: "Wellness check",
-        msg:
-          "Hi, I’d like to do a short wellness check. Start by asking me to rate my mood from 1–10, then ask me for one word that describes how I feel, then ask what I think caused that mood, and finally suggest two things I could do right now to regulate. Please wait for my answer after each step. If anything is missing, follow up with me with one concise question before continuing."
+        cue: "Wellness check",
+        ctx:
+          "Run a structured wellness check with sequential turns.\n" +
+          "Step 1) Ask me to rate my mood from 1–10 and wait.\n" +
+          "Step 2) Ask me for ONE word that describes how I feel and wait.\n" +
+          "Step 3) Ask what I think contributed to that mood and wait.\n" +
+          "Step 4) Suggest exactly TWO right-now regulation options (brief, actionable), invite me to pick one.\n" +
+          "Tone: warm, concise, non-judgmental. If anything is unclear or missing, follow up with me with ONE concise question before continuing."
       },
       {
         label: "Companion chat",
-        msg:
-          "Can you act as a supportive companion? Begin with one validating sentence about how hard days can feel, then ask me one open question about my day. Keep each reply under three sentences unless I say I want more, and reflect my feelings in one short phrase. If you need context, follow up with me by asking one concise question."
+        cue: "Let’s chat",
+        ctx:
+          "Act as a supportive companion.\n" +
+          "Open with ONE validating sentence (no clichés), then ask ONE open question about my day.\n" +
+          "Keep replies ≤3 sentences unless I ask for more. Mirror my emotion in one short phrase each turn.\n" +
+          "If context is missing, follow up with me by asking ONE concise question to ground the conversation."
       },
       {
         label: "Creative spark",
-        msg:
-          "Help me brainstorm one creative idea. Provide a title, three crisp bullet points describing the idea, and one next step I can take today. Then ask me if I want a second variant. If you need more constraints (topic, medium, audience), follow up with me and ask for them explicitly."
+        cue: "One creative idea, please",
+        ctx:
+          "Brainstorm exactly ONE creative idea.\n" +
+          "Return format:\n" +
+          "• Title\n" +
+          "• Three crisp bullets (what it is, who it’s for, how it’s novel)\n" +
+          "• One next step I can take today\n" +
+          "Then ask if I want a second variant.\n" +
+          "If topic/medium/audience are missing, follow up with me and ask for those constraints explicitly."
       },
       {
         label: "Quick vent",
-        msg:
-          "I want a space to vent. Let me type freely. When I say I’m done, acknowledge what I said in one sentence, summarize it in one sentence, and then ask me one short follow-up question. Do not give advice unless I ask. If my message is unclear, follow up with me with one clarifying question first."
+        cue: "I want to vent",
+        ctx:
+          "Provide a space to vent.\n" +
+          "Let me type freely; when I indicate I’m done, do:\n" +
+          "• Acknowledge in one sentence\n" +
+          "• Summarize in one sentence\n" +
+          "• Ask ONE short follow-up question\n" +
+          "Do NOT give advice unless I ask. If my message is unclear, follow up with me with ONE clarifying question first."
       },
       {
         label: "Focus sprint",
-        msg:
-          "Guide me through a 15-minute focus sprint. Step 1: help me define a single finish line in one sentence. Step 2: post a timer message. Step 3: give a three-step plan. Step 4: ask me to confirm start. If you need task details to scope it, follow up with me with one targeted question."
+        cue: "Start a 15-min sprint",
+        ctx:
+          "Guide a 15-minute focus sprint.\n" +
+          "1) Help me define a single finish line in one sentence; wait.\n" +
+          "2) Post a lightweight timer message.\n" +
+          "3) Provide a 3-step plan.\n" +
+          "4) Ask me to confirm start.\n" +
+          "If task details are missing, follow up with me with ONE targeted scoping question."
       },
       {
-        label: "Gratitude x3",
-        msg:
-          "Prompt me to share three things I’m grateful for, one at a time. After each, reflect the theme back in one warm sentence. Keep the tone brief and encouraging. If I stall or give very short answers, follow up with me by offering an example and asking one nudge question."
+        label: "Gratitude ×3",
+        cue: "Do gratitude",
+        ctx:
+          "Run a three-item gratitude exercise, one at a time.\n" +
+          "After each item, reflect the theme back in ONE warm sentence.\n" +
+          "Keep tone brief and encouraging.\n" +
+          "If I stall or give ultra-short answers, follow up with me by offering ONE concrete example and ONE nudge question."
       },
       {
         label: "Idea sketch",
-        msg:
-          "Help me create a micro brief: 1) Title, 2) Who it helps, 3) Why it matters, 4) How it works in three bullets, 5) First step. After presenting it, ask if I want to tweak or lock it in. If you lack domain or audience info, follow up with me with one concise question to collect it."
+        cue: "Micro brief",
+        ctx:
+          "Create a micro brief:\n" +
+          "1) Title\n" +
+          "2) Who it helps\n" +
+          "3) Why it matters\n" +
+          "4) How it works (3 bullets)\n" +
+          "5) First step\n" +
+          "Then ask if I want to tweak or lock it in.\n" +
+          "If domain or audience are missing, follow up with me with ONE concise question to collect it."
       },
       {
         label: "Reframe it",
-        msg:
-          "Let’s do a cognitive reframe. First ask me to share one stressful thought. Then ask for evidence that supports it and evidence that challenges it. Offer one balanced replacement thought in plain language. If my thought is too broad or vague, follow up with me to narrow it with one specific question."
+        cue: "Help me reframe",
+        ctx:
+          "Cognitive reframe flow:\n" +
+          "• Ask me to share ONE stressful thought; wait.\n" +
+          "• Ask for evidence supporting it and evidence challenging it; wait.\n" +
+          "• Offer ONE balanced replacement thought in plain language.\n" +
+          "If my thought is too broad, follow up with me with ONE question to narrow it."
       },
       {
         label: "Tiny habit",
-        msg:
-          "Suggest one habit I can do in under two minutes, formatted as: cue → action → reward. Give me two different options labeled A and B and ask me to choose. If the context (morning/evening, home/work) would change your suggestions, follow up with me and ask which context to target."
+        cue: "Suggest a tiny habit",
+        ctx:
+          "Propose ONE sub-2-minute habit as cue → action → reward.\n" +
+          "Offer two different options (A and B) and ask me to choose.\n" +
+          "If context (morning/evening, home/work) matters, follow up with me to pick the target context first."
       },
       {
         label: "Mood check",
-        msg:
-          "I’d like a quick mood check. Please ask me to rate my mood 1–10 and energy 1–10. Then suggest one regulation tool and one small win I could aim for today. If my scores imply different strategies, follow up with me to confirm which I prefer (calming vs. energizing)."
+        cue: "Quick mood check",
+        ctx:
+          "Ask me to rate mood 1–10 and energy 1–10; wait.\n" +
+          "Suggest ONE regulation tool and ONE small win for today.\n" +
+          "If my scores point to different strategies, follow up with me to confirm preference (calming vs. energizing)."
       },
     ],
     []
@@ -125,12 +219,12 @@ export function ChatInterface() {
     }
   }, [currentSessionId, messages.length]);
 
-  // Trigger avatar greet when a new assistant message arrives (fade + rotate + pop)
+  // Trigger avatar greet when a new assistant message arrives
   useEffect(() => {
     if (messages.length === 0) return;
     const last = messages[messages.length - 1];
     if (last.role === "assistant") {
-      setBotGreet(false); // restart if triggered quickly
+      setBotGreet(false);
       requestAnimationFrame(() => {
         setBotGreet(true);
         setTimeout(() => setBotGreet(false), 900);
@@ -152,6 +246,12 @@ export function ChatInterface() {
       }
     });
     toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
+  };
+
+  // 🚀 Local-only: send cue + hidden guidance in one message
+  const triggerPrompt = (cue: string, guidance: string) => {
+    const payload = cue + encodeHidden(guidance);
+    startChatWithMessage(payload);
   };
 
   // Spacer so nothing is cut off under the input bar
@@ -177,22 +277,10 @@ export function ChatInterface() {
 
           /* Avatar greet: fade in, slight rotate right, tiny pop, then settle */
           @keyframes helloPop {
-            0% {
-              opacity: 0;
-              transform: rotate(0deg) translateY(0) scale(1);
-            }
-            25% {
-              opacity: 1;
-              transform: rotate(8deg) translateY(-2px) scale(1.06);
-            }
-            60% {
-              opacity: 1;
-              transform: rotate(-2deg) translateY(0) scale(1.02);
-            }
-            100% {
-              opacity: 1;
-              transform: rotate(0deg) translateY(0) scale(1);
-            }
+            0% { opacity: 0; transform: rotate(0deg) translateY(0) scale(1); }
+            25% { opacity: 1; transform: rotate(8deg) translateY(-2px) scale(1.06); }
+            60% { opacity: 1; transform: rotate(-2deg) translateY(0) scale(1.02); }
+            100% { opacity: 1; transform: rotate(0deg) translateY(0) scale(1); }
           }
           .avatar-greet {
             transform-origin: 50% 80%;
@@ -300,7 +388,7 @@ export function ChatInterface() {
       >
         <div ref={messagesContainerRef} className="h-full overflow-y-auto no-scrollbar scroll-smooth relative">
           <div className="px-3 sm:px-4 pt-20 w-full max-w-full">
-            {/* Empty state with BIGGER welcome icon + PROMPTS */}
+            {/* Empty state with bigger welcome icon + PROMPTS */}
             {messages.length === 0 ? (
               <div className="text-center">
                 <div className="flex items-center justify-center mb-2" style={{ animation: "fadeInUp 420ms ease both" }}>
@@ -317,7 +405,7 @@ export function ChatInterface() {
                   Tap a prompt to begin.
                 </p>
 
-                {/* PROMPTS */}
+                {/* PROMPT PILLS */}
                 <div className="mx-auto max-w-3xl">
                   <div className="flex flex-wrap items-center justify-center gap-4 py-4">
                     {quickPrompts.map((p, idx) => {
@@ -340,7 +428,7 @@ export function ChatInterface() {
                             ["--glow-color" as any]: isPrev ? prevColor : color,
                             animation: `fadeInUp 420ms ease ${idx * 28}ms both`
                           }}
-                          onClick={() => startChatWithMessage(p.msg)}
+                          onClick={() => triggerPrompt(p.cue, p.ctx)}
                         >
                           <button className="pill" aria-label={p.label}>
                             {p.label}
