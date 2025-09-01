@@ -44,19 +44,59 @@ export function ChatInterface() {
     []
   );
 
-  // Prompts — concise labels, explicit step-by-step messages
+  // Prompts — self-contained first messages with explicit "follow up with me" instruction
   const quickPrompts = useMemo(
     () => [
-      { label: "Wellness check", msg: "Run a wellness check. Step 1 ask for mood 1-10. Step 2 ask for one word. Step 3 ask for one trigger. Step 4 offer two regulation options. Keep compact. Wait for my reply after each step." },
-      { label: "Companion chat", msg: "Be a supportive companion. Start with one validating sentence. Ask one open question. Keep under 3 sentences unless I say continue. Reflect my feeling in one phrase." },
-      { label: "Creative spark", msg: "Brainstorm one idea. Give a title, three bullets, and one next step. Ask if I want a second variant. Keep specific and concise." },
-      { label: "Quick vent", msg: "Let me vent for 2 minutes. Acknowledge in one sentence. Summarize in one sentence. Ask one follow-up. No advice unless I ask." },
-      { label: "Focus sprint", msg: "Guide a 15 minute sprint. Step 1 define a single finish line in one sentence. Step 2 set a timer message. Step 3 give a three-step plan. Step 4 ask to start." },
-      { label: "Gratitude x3", msg: "Prompt three gratitude items one at a time. After each, reflect a short theme in one sentence. Keep warm and brief." },
-      { label: "Idea sketch", msg: "Make a micro brief: Title. Who it helps. Why it matters. How it works in 3 bullets. First step. Then ask me to tweak or lock in." },
-      { label: "Reframe it", msg: "Cognitive reframe. Ask me to state a stressful thought. Ask for evidence for and against. Offer one balanced replacement thought. Keep tight." },
-      { label: "Tiny habit", msg: "Suggest one habit under 2 minutes using cue, action, reward. Offer two options and ask me to pick A or B." },
-      { label: "Mood check", msg: "Do a quick mood check. Step 1 mood 1-10. Step 2 energy 1-10. Step 3 suggest one regulation tool and one tiny win for today." },
+      {
+        label: "Wellness check",
+        msg:
+          "Hi, I’d like to do a short wellness check. Start by asking me to rate my mood from 1–10, then ask me for one word that describes how I feel, then ask what I think caused that mood, and finally suggest two things I could do right now to regulate. Please wait for my answer after each step. If anything is missing, follow up with me with one concise question before continuing."
+      },
+      {
+        label: "Companion chat",
+        msg:
+          "Can you act as a supportive companion? Begin with one validating sentence about how hard days can feel, then ask me one open question about my day. Keep each reply under three sentences unless I say I want more, and reflect my feelings in one short phrase. If you need context, follow up with me by asking one concise question."
+      },
+      {
+        label: "Creative spark",
+        msg:
+          "Help me brainstorm one creative idea. Provide a title, three crisp bullet points describing the idea, and one next step I can take today. Then ask me if I want a second variant. If you need more constraints (topic, medium, audience), follow up with me and ask for them explicitly."
+      },
+      {
+        label: "Quick vent",
+        msg:
+          "I want a space to vent. Let me type freely. When I say I’m done, acknowledge what I said in one sentence, summarize it in one sentence, and then ask me one short follow-up question. Do not give advice unless I ask. If my message is unclear, follow up with me with one clarifying question first."
+      },
+      {
+        label: "Focus sprint",
+        msg:
+          "Guide me through a 15-minute focus sprint. Step 1: help me define a single finish line in one sentence. Step 2: post a timer message. Step 3: give a three-step plan. Step 4: ask me to confirm start. If you need task details to scope it, follow up with me with one targeted question."
+      },
+      {
+        label: "Gratitude x3",
+        msg:
+          "Prompt me to share three things I’m grateful for, one at a time. After each, reflect the theme back in one warm sentence. Keep the tone brief and encouraging. If I stall or give very short answers, follow up with me by offering an example and asking one nudge question."
+      },
+      {
+        label: "Idea sketch",
+        msg:
+          "Help me create a micro brief: 1) Title, 2) Who it helps, 3) Why it matters, 4) How it works in three bullets, 5) First step. After presenting it, ask if I want to tweak or lock it in. If you lack domain or audience info, follow up with me with one concise question to collect it."
+      },
+      {
+        label: "Reframe it",
+        msg:
+          "Let’s do a cognitive reframe. First ask me to share one stressful thought. Then ask for evidence that supports it and evidence that challenges it. Offer one balanced replacement thought in plain language. If my thought is too broad or vague, follow up with me to narrow it with one specific question."
+      },
+      {
+        label: "Tiny habit",
+        msg:
+          "Suggest one habit I can do in under two minutes, formatted as: cue → action → reward. Give me two different options labeled A and B and ask me to choose. If the context (morning/evening, home/work) would change your suggestions, follow up with me and ask which context to target."
+      },
+      {
+        label: "Mood check",
+        msg:
+          "I’d like a quick mood check. Please ask me to rate my mood 1–10 and energy 1–10. Then suggest one regulation tool and one small win I could aim for today. If my scores imply different strategies, follow up with me to confirm which I prefer (calming vs. energizing)."
+      },
     ],
     []
   );
@@ -85,13 +125,12 @@ export function ChatInterface() {
     }
   }, [currentSessionId, messages.length]);
 
-  // Trigger avatar greet when a new assistant message arrives
+  // Trigger avatar greet when a new assistant message arrives (fade + rotate + pop)
   useEffect(() => {
     if (messages.length === 0) return;
     const last = messages[messages.length - 1];
     if (last.role === "assistant") {
-      setBotGreet(false); // restart animation if triggered in quick succession
-      // next tick to reflow and allow animation to retrigger
+      setBotGreet(false); // restart if triggered quickly
       requestAnimationFrame(() => {
         setBotGreet(true);
         setTimeout(() => setBotGreet(false), 900);
@@ -223,7 +262,7 @@ export function ChatInterface() {
         />
       </div>
 
-      {/* Header content — use the same icon as welcome icon */}
+      {/* Header content — using the same icon as the welcome icon */}
       <div className="fixed top-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
         <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl pointer-events-auto">
           <div className="flex items-center justify-between px-2 py-2">
