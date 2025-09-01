@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Image, Plus } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { OpenAIService } from "@/services/openai";
@@ -18,13 +18,56 @@ export function ChatInterface() {
     currentSessionId,
     startChatWithMessage 
   } = useArcStore();
+
   const [dragOver, setDragOver] = useState(false);
+  const [activePulseIndex, setActivePulseIndex] = useState(0);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
   const { toast } = useToast();
   const { profile } = useAuth();
 
-  // Scroll to show latest user message when new message is added
+  // Neon palette rotates each pulse
+  const neonPalette = useMemo(
+    () => [
+      "#17E5FF", // neon blue
+      "#FF2B2B", // neon red
+      "#2BFF7A", // neon green
+      "#FF3CF3", // neon pink
+      "#FF8A00", // neon orange
+      "#8A7BFF", // neon violet
+      "#00FFC2", // mint
+    ],
+    []
+  );
+
+  // Compact single page neon pills data (top 3 included here)
+  const quickPrompts = useMemo(
+    () => [
+      { label: "Wellness check", msg: "I'd like a mental wellness check-in. How are you feeling today and what's on your mind?" },
+      { label: "Friendly companion", msg: "I need someone to talk to today. Can you be a supportive companion?" },
+      { label: "Creative spark", msg: "Let's get creative! Help me brainstorm some ideas or work on a creative project." },
+      { label: "Quick vent", msg: "I want to vent for 2 minutes. Just listen and reflect back key feelings." },
+      { label: "Focus sprint", msg: "Guide me through a 15 minute focus sprint with a timer and one goal." },
+      { label: "Gratitude x3", msg: "Give me three gratitude prompts and wait for my answers one by one." },
+      { label: "Idea sketch", msg: "Help me sketch one idea with a title, 3 bullets, and next step." },
+      { label: "Reframe it", msg: "Help me reframe a stressful thought using CBT style questions." },
+      { label: "Tiny habit", msg: "Suggest one tiny habit I can do daily in under 2 minutes." },
+      { label: "Mood check", msg: "Do a quick mood check using 1 to 10, then suggest one regulation tool." },
+    ],
+    []
+  );
+
+  // Pulse one item at a time for emphasis
+  useEffect(() => {
+    const id = setInterval(() => {
+      setActivePulseIndex((i) => (i + 1) % quickPrompts.length);
+    }, 1600);
+    return () => clearInterval(id);
+  }, [quickPrompts.length]);
+
+  // Scroll behavior
   useEffect(() => {
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
@@ -70,31 +113,86 @@ export function ChatInterface() {
     });
   };
 
+  // Height spacer so bottom message never hides behind input bar
+  const bottomSpacerPx = 88; // adjust to your input bar height
+
   return (
     <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-1">
-      {/* Gradient Header Mask with reduced height */}
-      <div className="fixed top-0 left-0 right-0 z-30 h-20 pointer-events-none">
+      {/* Local styles for neon pills and pulse ring */}
+      <style>
+        {`
+          .no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
+          .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+
+          @keyframes neonPulse {
+            0% { transform: translateZ(0) scale(1); filter: drop-shadow(0 0 0 var(--ring)); }
+            50% { transform: translateZ(0) scale(1.03); filter: drop-shadow(0 0 10px var(--ring)); }
+            100% { transform: translateZ(0) scale(1); filter: drop-shadow(0 0 0 var(--ring)); }
+          }
+
+          @keyframes sweepBorder {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+          }
+
+          .neon-pill {
+            position: relative;
+            border-radius: 9999px;
+            padding: 8px 12px;
+            font-size: 12px;
+            line-height: 1;
+            white-space: nowrap;
+            color: hsl(var(--foreground));
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease;
+          }
+
+          .neon-pill:hover { transform: translateY(-1px); }
+
+          /* Animated ring wrapper */
+          .neon-ring {
+            --ring: #17E5FF;
+            border-radius: 9999px;
+            padding: 2px; /* ring thickness */
+            background: radial-gradient(120% 120% at 50% 50%, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 60%),
+                        linear-gradient(90deg, var(--ring), transparent, var(--ring));
+            background-size: 200% 200%;
+          }
+
+          .neon-ring.active {
+            animation: sweepBorder 1.2s linear infinite, neonPulse 1.2s ease-in-out infinite;
+          }
+
+          /* Glow applied to the pill core when active */
+          .neon-core.active {
+            box-shadow:
+              0 0 10px var(--ring),
+              0 0 24px color-mix(in oklab, var(--ring) 60%, transparent),
+              inset 0 0 6px rgba(255,255,255,0.12);
+            border-color: color-mix(in oklab, var(--ring) 25%, rgba(255,255,255,0.08));
+          }
+        `}
+      </style>
+
+      {/* Compact gradient header */}
+      <div className="fixed top-0 left-0 right-0 z-30 h-16 pointer-events-none">
         <div 
           className="w-full h-full"
           style={{
             background: `linear-gradient(to bottom, 
               hsl(var(--background)) 0%, 
-              hsl(var(--background) / 0.98) 12%,
-              hsl(var(--background) / 0.9) 24%,
-              hsl(var(--background) / 0.75) 45%,
-              hsl(var(--background) / 0.45) 70%,
+              hsl(var(--background) / 0.9) 40%,
               transparent 100%)`,
             backdropFilter: "blur(6px)",
             WebkitBackdropFilter: "blur(6px)",
-            maskImage: `linear-gradient(to bottom, 
-              black 0%, 
-              rgba(0,0,0,0.7) 50%,
-              transparent 100%)`
           }}
         />
       </div>
 
-      {/* Floating Header Content with tighter padding */}
+      {/* Header content */}
       <div className="fixed top-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
         <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-2 pointer-events-auto">
           <img src="/lovable-uploads/10805bee-4d5c-4640-a77f-d2ea5cd05436.png" alt="ArcAI" className="h-7 w-7" />
@@ -109,165 +207,58 @@ export function ChatInterface() {
         </div>
       </div>
 
-      {/* Messages Container with reduced outer padding */}
+      {/* Messages Container */}
       <GlassCard 
         variant="bubble" 
         glow
         className={`flex-1 mx-2 mb-2 overflow-hidden ${dragOver ? "border-primary-glow border-2" : ""}`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
       >
         <div
           ref={messagesContainerRef}
-          className="h-full overflow-y-auto space-y-3 scroll-smooth relative"
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-          }}
+          className="h-full overflow-y-auto no-scrollbar scroll-smooth relative"
         >
-          <style>
-            {`
-              .h-full.overflow-y-auto::-webkit-scrollbar {
-                width: 0px;
-                background: transparent;
-              }
-            `}
-          </style>
+          <div className="px-3 sm:px-4 pt-14 w-full max-w-full">
+            {/* Empty state: single-page compact with neon pills */}
+            {messages.length === 0 ? (
+              <div className="text-center">
+                <div className="flex justify-center mb-2">
+                  <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-10 w-10" />
+                </div>
+                <h3 className="text-base font-semibold text-foreground mb-1">Welcome to ArcAI</h3>
+                <p className="text-xs text-muted-foreground mb-3">Tap a prompt to begin.</p>
 
-          <div className="px-3 sm:px-4 pt-16 pb-20 space-y-3 w-full max-w-full">
-            <div>
-              {messages.length === 0 ? (
-                <div className="text-center py-6">
-                  <div className="flex justify-center mb-3">
-                    <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-12 w-12" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground mb-1">
-                    Welcome to ArcAI
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Start a conversation or jump into a task.
-                  </p>
-
-                  {/* Quick start cards with tighter spacing */}
-                  <div className="grid grid-cols-1 gap-2 max-w-md mx-auto mb-3">
-                    <button
-                      onClick={() => startChatWithMessage("I'd like a mental wellness check-in. How are you feeling today and what's on your mind?")}
-                      className="glass p-3 rounded-xl text-left"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                          <span className="text-green-400 text-base">🧘</span>
+                {/* Neon pill grid, single screen, minimal padding */}
+                <div className="max-w-xl mx-auto">
+                  <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-10 py-4">
+                    {quickPrompts.map((p, idx) => {
+                      const isActive = idx === activePulseIndex;
+                      const ringColor = neonPalette[activePulseIndex % neonPalette.length];
+                      return (
+                        <div
+                          key={idx}
+                          className={`neon-ring ${isActive ? "active" : ""}`}
+                          style={{ ["--ring" as any]: ringColor }}
+                          onClick={() => startChatWithMessage(p.msg)}
+                        >
+                          <button
+                            className={`neon-pill neon-core ${isActive ? "active" : ""}`}
+                            aria-label={p.label}
+                          >
+                            {p.label}
+                          </button>
                         </div>
-                        <div>
-                          <h4 className="font-medium text-foreground text-sm">Mental Wellness Check-in</h4>
-                          <p className="text-xs text-muted-foreground">Reflect on feelings and thoughts</p>
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => startChatWithMessage("I need someone to talk to today. Can you be a supportive companion?")}
-                      className="glass p-3 rounded-xl text-left"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                          <span className="text-blue-400 text-base">💙</span>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-foreground text-sm">Friendly Companion</h4>
-                          <p className="text-xs text-muted-foreground">Supportive AI friend</p>
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => startChatWithMessage("Let's get creative! Help me brainstorm some ideas or work on a creative project.")}
-                      className="glass p-3 rounded-xl text-left"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
-                          <span className="text-purple-400 text-base">🎨</span>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-foreground text-sm">Creative Inspiration</h4>
-                          <p className="text-xs text-muted-foreground">Spark ideas fast</p>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-
-                  {/* New compact pill prompts: 7 more, small formation */}
-                  <div className="max-w-md mx-auto">
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                      <button
-                        onClick={() => startChatWithMessage("I want to vent for 2 minutes. Just listen and reflect back key feelings.")}
-                        className="glass rounded-full px-3 py-2 text-xs"
-                      >
-                        Quick vent
-                      </button>
-                      <button
-                        onClick={() => startChatWithMessage("Guide me through a 15 minute focus sprint with a timer and one goal.")}
-                        className="glass rounded-full px-3 py-2 text-xs"
-                      >
-                        Focus sprint
-                      </button>
-                      <button
-                        onClick={() => startChatWithMessage("Give me three gratitude prompts and wait for my answers one by one.")}
-                        className="glass rounded-full px-3 py-2 text-xs"
-                      >
-                        Gratitude x3
-                      </button>
-                      <button
-                        onClick={() => startChatWithMessage("Help me sketch one idea with a title, 3 bullets, and next step.")}
-                        className="glass rounded-full px-3 py-2 text-xs"
-                      >
-                        Idea sketch
-                      </button>
-                      <button
-                        onClick={() => startChatWithMessage("Help me reframe a stressful thought using CBT style questions.")}
-                        className="glass rounded-full px-3 py-2 text-xs"
-                      >
-                        Reframe it
-                      </button>
-                      <button
-                        onClick={() => startChatWithMessage("Suggest one tiny habit I can do daily in under 2 minutes.")}
-                        className="glass rounded-full px-3 py-2 text-xs"
-                      >
-                        Tiny habit
-                      </button>
-                      <button
-                        onClick={() => startChatWithMessage("Do a quick mood check using 1 to 10, then suggest one regulation tool.")}
-                        className="glass rounded-full px-3 py-2 text-xs"
-                      >
-                        Mood check
-                      </button>
-                      <button
-                        onClick={() => startChatWithMessage("Help me plan a single task for today with a clear finish line.")}
-                        className="glass rounded-full px-3 py-2 text-xs"
-                      >
-                        One task
-                      </button>
-                      <button
-                        onClick={() => startChatWithMessage("Give me a 5 line journaling prompt with a playful tone.")}
-                        className="glass rounded-full px-3 py-2 text-xs"
-                      >
-                        5 line journal
-                      </button>
-                      <button
-                        onClick={() => startChatWithMessage("Guide a 3 minute wind down to prep for better sleep tonight.")}
-                        className="glass rounded-full px-3 py-2 text-xs"
-                      >
-                        Wind down
-                      </button>
-                    </div>
+                      );
+                    })}
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-4">
+                <div className="pb-8" />
+              </div>
+            ) : (
+              <>
+                <div className="space-y-4 pb-6">
                   {messages.map((message) => (
                     <MessageBubble 
                       key={message.id} 
@@ -276,35 +267,37 @@ export function ChatInterface() {
                     />
                   ))}
                 </div>
-              )}
+                {/* Spacer so last message never sits under the input bar */}
+                <div style={{ height: bottomSpacerPx }} />
+              </>
+            )}
 
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="glass rounded-2xl px-3 py-2 max-w-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1">
-                        {[0, 1, 2].map((i) => (
-                          <div
-                            key={i}
-                            className="w-2 h-2 bg-primary-glow rounded-full animate-pulse"
-                          />
-                        ))}
-                      </div>
-                      <span className="text-xs text-muted-foreground">Thinking...</span>
+            {/* Loading bubble */}
+            {isLoading && (
+              <div className="flex justify-start pb-3">
+                <div className="glass rounded-2xl px-3 py-2 max-w-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      {[0, 1, 2].map((i) => (
+                        <div
+                          key={i}
+                          className="w-2 h-2 bg-primary-glow rounded-full animate-pulse"
+                        />
+                      ))}
                     </div>
+                    <span className="text-xs text-muted-foreground">Thinking...</span>
                   </div>
                 </div>
-              )}
-            </div>
-            <div ref={messagesEndRef} />
+              </div>
+            )}
+
+            <div ref={messagesEndRef} className="pb-2" />
           </div>
         </div>
 
         {/* Drag overlay */}
         {dragOver && (
-          <div
-            className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary-glow rounded-[var(--radius)] flex items-center justify-center"
-          >
+          <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary-glow rounded-[var(--radius)] flex items-center justify-center">
             <div className="text-center">
               <Image className="h-10 w-10 text-primary-glow mx-auto mb-2" />
               <p className="text-primary-foreground font-medium text-sm">Drop images here</p>
