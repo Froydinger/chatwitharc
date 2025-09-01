@@ -70,19 +70,38 @@ export function BottomNavigation() {
     return () => clearInterval(id);
   }, []);
 
-  // ---------- ANDROID PWA FIX: lock to "chat" while input focused ----------
+  // ---------- ANDROID PWA FIXES ----------
   const [isInputFocused, setIsInputFocused] = useState(false);
 
+  // Helper: compute bubble position for a given tab id (not just currentTab)
+  const getBubblePositionFor = (tabId: typeof navigationItems[number]["id"]) => {
+    const idx = navigationItems.findIndex(i => i.id === tabId);
+    const tabEl = tabRefs.current[idx];
+    if (!tabEl) {
+      const CELL = CONTAINER_WIDTH / navigationItems.length;
+      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: 0 };
+    }
+    const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
+    return { x: tabCenterX - BUBBLE / 2, y: 0 };
+  };
+
+  // Lock tab & bubble to "chat" while input is focused (IME open)
   useEffect(() => {
     const root = scopeRef.current;
     if (!root) return;
 
     const onFocusIn = () => {
       setIsInputFocused(true);
-      // Ensure the app is on "chat" when the user starts typing (prevents jump to history)
       if (currentTab !== "chat") setCurrentTab("chat");
+      const p = getBubblePositionFor("chat");
+      bubbleControls.set({ x: p.x, y: p.y });
     };
-    const onFocusOut = () => setIsInputFocused(false);
+    const onFocusOut = () => {
+      setIsInputFocused(false);
+      // Re-sync bubble to whatever tab is active when focus leaves.
+      const p = getBubblePositionFor(currentTab);
+      bubbleControls.start({ x: p.x, y: p.y });
+    };
 
     root.addEventListener("focusin", onFocusIn);
     root.addEventListener("focusout", onFocusOut);
@@ -90,8 +109,38 @@ export function BottomNavigation() {
       root.removeEventListener("focusin", onFocusIn);
       root.removeEventListener("focusout", onFocusOut);
     };
-  }, [currentTab, setCurrentTab]);
-  // ------------------------------------------------------------------------
+  }, [currentTab, setCurrentTab, bubbleControls]);
+
+  // On Android, the visual viewport resizes when the keyboard shows/hides.
+  // Re-pin the bubble to "chat" during those resizes if focused.
+  useEffect(() => {
+    const isAndroid =
+      typeof navigator !== "undefined" &&
+      /Android/i.test(navigator.userAgent || "");
+
+    if (!isAndroid || !("visualViewport" in window)) return;
+
+    const vv = window.visualViewport!;
+    const onVVChange = () => {
+      if (!isInputFocused) return;
+      const p = getBubblePositionFor("chat");
+      bubbleControls.set({ x: p.x, y: p.y });
+    };
+
+    vv.addEventListener("resize", onVVChange);
+    vv.addEventListener("scroll", onVVChange);
+    return () => {
+      vv.removeEventListener("resize", onVVChange);
+      vv.removeEventListener("scroll", onVVChange);
+    };
+  }, [isInputFocused, bubbleControls]);
+
+  // Block nav clicks while IME is open (prevents accidental jumps)
+  const onNavItemClick = (id: typeof navigationItems[number]["id"]) => {
+    if (isInputFocused) return;
+    setCurrentTab(id);
+  };
+  // --------------------------------------
 
   // measure natural input height
   const [inputHeight, setInputHeight] = useState(0);
@@ -154,17 +203,9 @@ export function BottomNavigation() {
     return () => mo.disconnect();
   }, []);
 
-  // Bubble position helper
-  const getBubblePosition = () => {
-    const idx = navigationItems.findIndex(i => i.id === currentTab);
-    const tabEl = tabRefs.current[idx];
-    if (!tabEl) {
-      const CELL = CONTAINER_WIDTH / navigationItems.length;
-      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: 0 };
-    }
-    const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
-    return { x: tabCenterX - BUBBLE / 2, y: 0 };
-  };
+  // Bubble position based on active tab, but pinned to chat while focused
+  const getBubblePosition = () =>
+    isInputFocused ? getBubblePositionFor("chat") : getBubblePositionFor(currentTab);
 
   useEffect(() => {
     if (isDragging) return;
@@ -174,7 +215,7 @@ export function BottomNavigation() {
       y: p.y,
       transition: { type: "spring", damping: 14, stiffness: 260, mass: 0.7 },
     });
-  }, [currentTab, isDragging, bubbleControls]);
+  }, [currentTab, isDragging, isInputFocused, bubbleControls]);
 
   useEffect(() => {
     const setNow = () => {
@@ -189,13 +230,13 @@ export function BottomNavigation() {
       clearTimeout(t);
       window.removeEventListener("resize", onResize);
     };
-  }, []);
+  }, [isInputFocused]);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
-    // If input is focused (IME open), don't allow a tab change from drag heuristics.
     if (isInputFocused) {
-      const p = getBubblePosition();
+      // While IME is open, ignore drag selection and snap back to chat
+      const p = getBubblePositionFor("chat");
       bubbleControls.start({ x: p.x, y: p.y });
       return;
     }
@@ -221,6 +262,7 @@ export function BottomNavigation() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
+        {/* Glass container: flex column, rail is a fixed-height footer */}
         <div
           className="relative flex flex-col"
           style={{
@@ -417,11 +459,7 @@ export function BottomNavigation() {
                     key={item.id}
                     ref={(el) => (tabRefs.current[index] = el)}
                     className="flex flex-col items-center justify-center cursor-pointer select-none px-4 py-2"
-                    onClick={() => {
-                      // Block accidental tab switches while IME is open/focused
-                      if (isInputFocused) return;
-                      setCurrentTab(item.id);
-                    }}
+                    onClick={() => onNavItemClick(item.id)}
                   >
                     <Icon
                       className={`h-6 w-6 transition-colors duration-300 ${
@@ -437,7 +475,7 @@ export function BottomNavigation() {
 
             {/* Bubble */}
             <motion.div
-              drag="x"
+              drag={isInputFocused ? false : "x"}
               dragMomentum
               dragElastic={0.4}
               dragConstraints={railRef}
