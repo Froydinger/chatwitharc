@@ -42,56 +42,16 @@ export function ChatInterface() {
 
   const quickPrompts = useMemo(
     () => [
-      {
-        label: "Wellness check",
-        msg:
-          "Run a wellness check. Step 1 ask for mood 1-10. Step 2 ask for one word. Step 3 ask for one trigger. Step 4 offer two regulation options. Keep compact. Wait for my reply after each step."
-      },
-      {
-        label: "Companion chat",
-        msg:
-          "Be a supportive companion. Start with one validating sentence. Ask one open question. Keep under 3 sentences unless I say continue. Reflect my feeling in one phrase."
-      },
-      {
-        label: "Creative spark",
-        msg:
-          "Brainstorm one idea. Give a title, three bullets, and one next step. Ask if I want a second variant. Keep specific and concise."
-      },
-      {
-        label: "Quick vent",
-        msg:
-          "Let me vent for 2 minutes. Acknowledge in one sentence. Summarize in one sentence. Ask one follow-up. No advice unless I ask."
-      },
-      {
-        label: "Focus sprint",
-        msg:
-          "Guide a 15 minute sprint. Step 1 define a single finish line in one sentence. Step 2 set a timer message. Step 3 give a three-step plan. Step 4 ask to start."
-      },
-      {
-        label: "Gratitude x3",
-        msg:
-          "Prompt three gratitude items one at a time. After each, reflect a short theme in one sentence. Keep warm and brief."
-      },
-      {
-        label: "Idea sketch",
-        msg:
-          "Make a micro brief: Title. Who it helps. Why it matters. How it works in 3 bullets. First step. Then ask me to tweak or lock in."
-      },
-      {
-        label: "Reframe it",
-        msg:
-          "Cognitive reframe. Ask me to state a stressful thought. Ask for evidence for and against. Offer one balanced replacement thought. Keep tight."
-      },
-      {
-        label: "Tiny habit",
-        msg:
-          "Suggest one habit under 2 minutes using cue, action, reward. Offer two options and ask me to pick A or B."
-      },
-      {
-        label: "Mood check",
-        msg:
-          "Do a quick mood check. Step 1 mood 1-10. Step 2 energy 1-10. Step 3 suggest one regulation tool and one tiny win for today."
-      },
+      { label: "Wellness check", msg: "Run a wellness check. Step 1 ask for mood 1-10. Step 2 ask for one word. Step 3 ask for one trigger. Step 4 offer two regulation options. Keep compact. Wait for my reply after each step." },
+      { label: "Companion chat", msg: "Be a supportive companion. Start with one validating sentence. Ask one open question. Keep under 3 sentences unless I say continue. Reflect my feeling in one phrase." },
+      { label: "Creative spark", msg: "Brainstorm one idea. Give a title, three bullets, and one next step. Ask if I want a second variant. Keep specific and concise." },
+      { label: "Quick vent", msg: "Let me vent for 2 minutes. Acknowledge in one sentence. Summarize in one sentence. Ask one follow-up. No advice unless I ask." },
+      { label: "Focus sprint", msg: "Guide a 15 minute sprint. Step 1 define a single finish line in one sentence. Step 2 set a timer message. Step 3 give a three-step plan. Step 4 ask to start." },
+      { label: "Gratitude x3", msg: "Prompt three gratitude items one at a time. After each, reflect a short theme in one sentence. Keep warm and brief." },
+      { label: "Idea sketch", msg: "Make a micro brief: Title. Who it helps. Why it matters. How it works in 3 bullets. First step. Then ask me to tweak or lock in." },
+      { label: "Reframe it", msg: "Cognitive reframe. Ask me to state a stressful thought. Ask for evidence for and against. Offer one balanced replacement thought. Keep tight." },
+      { label: "Tiny habit", msg: "Suggest one habit under 2 minutes using cue, action, reward. Offer two options and ask me to pick A or B." },
+      { label: "Mood check", msg: "Do a quick mood check. Step 1 mood 1-10. Step 2 energy 1-10. Step 3 suggest one regulation tool and one tiny win for today." },
     ],
     []
   );
@@ -109,7 +69,7 @@ export function ChatInterface() {
     if (messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
-  }, [messages, isLoading]); // include isLoading so the indicator scrolls into view under last message
+  }, [messages, isLoading]);
 
   useEffect(() => {
     if (messages.length === 0 && messagesContainerRef.current) {
@@ -133,7 +93,8 @@ export function ChatInterface() {
     toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
   };
 
-  const bottomSpacerPx = 104;
+  // Increased spacer to prevent cutoff under input bar
+  const bottomSpacerPx = 140;
 
   return (
     <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-1">
@@ -188,7 +149,7 @@ export function ChatInterface() {
         `}
       </style>
 
-      {/* Header gradient + blur (original smooth fade) */}
+      {/* Header gradient */}
       <div className="fixed top-0 left-0 right-0 z-30 h-32 pointer-events-none">
         <div 
           className="w-full h-full"
@@ -227,17 +188,15 @@ export function ChatInterface() {
                 ArcAI
               </span>
             </div>
-            <div className="flex items-center gap-1">
-              <GlassButton
-                variant="bubble"
-                size="icon"
-                aria-label="New chat"
-                onClick={handleNewChat}
-                className="h-8 w-8"
-              >
-                <Plus className="h-4 w-4" />
-              </GlassButton>
-            </div>
+            <GlassButton
+              variant="bubble"
+              size="icon"
+              aria-label="New chat"
+              onClick={handleNewChat}
+              className="h-8 w-8"
+            >
+              <Plus className="h-4 w-4" />
+            </GlassButton>
           </div>
         </div>
       </div>
@@ -253,7 +212,6 @@ export function ChatInterface() {
       >
         <div ref={messagesContainerRef} className="h-full overflow-y-auto no-scrollbar scroll-smooth relative">
           <div className="px-3 sm:px-4 pt-20 w-full max-w-full">
-            {/* Empty state */}
             {messages.length === 0 ? (
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-1" style={{ animation: "fadeInUp 420ms ease both" }}>
@@ -299,7 +257,6 @@ export function ChatInterface() {
                   </div>
                 </div>
 
-                {/* If the model starts responding before first render of a user message */}
                 {isLoading && (
                   <div className="flex justify-center pt-2">
                     <div className="glass rounded-2xl px-3 py-2 max-w-xs" style={{ animation: "fadeInUp 300ms ease both" }}>
@@ -317,14 +274,12 @@ export function ChatInterface() {
               </div>
             ) : (
               <>
-                {/* Messages */}
                 <div className="space-y-4">
                   {messages.map((message) => (
                     <MessageBubble key={message.id} message={message} onEdit={() => {}} />
                   ))}
                 </div>
 
-                {/* Centered thinking indicator directly under the last message */}
                 {isLoading && (
                   <div className="flex justify-center mt-3">
                     <div className="glass rounded-2xl px-3 py-2 max-w-xs" style={{ animation: "fadeInUp 300ms ease both" }}>
@@ -340,10 +295,8 @@ export function ChatInterface() {
                   </div>
                 )}
 
-                {/* Spacer so last content never hides under the input bar */}
+                {/* Increased spacer so messages + loader don't get cut off by input */}
                 <div style={{ height: bottomSpacerPx }} />
-
-                {/* Anchor for smooth scroll to bottom incl. loader */}
                 <div ref={messagesEndRef} />
               </>
             )}
