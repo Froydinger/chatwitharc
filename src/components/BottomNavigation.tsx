@@ -28,7 +28,8 @@ export function BottomNavigation() {
   const CONTAINER_WIDTH = 320;
   const GAP_ABOVE_RAIL = 8;
 
-  // --- rotating placeholders (full fade out then in; no crossfade/ghost)
+  // --- rotating placeholders (slower, full fade out then fade in, no crossfade/ghost)
+  // Only cycling lines (no static default).
   const placeholders = [
     "What's on your mind?",
     "Type a thought or idea…",
@@ -59,6 +60,7 @@ export function BottomNavigation() {
     const killDefaultGhosts = () => {
       const root = scopeRef.current;
       if (!root) return;
+      // Hide any framework-rendered placeholder clones/text so nothing "peeks"
       root.querySelectorAll('[data-placeholder], .placeholder, .Placeholder').forEach((el) => {
         const n = el as HTMLElement;
         n.style.visibility = "hidden";
@@ -66,9 +68,11 @@ export function BottomNavigation() {
       });
     };
 
+    // Initialize first value, remove any ghosts
     killDefaultGhosts();
     setPlaceholder(placeholders[phIndexRef.current]);
 
+    // Guard against re-renders restoring a default placeholder
     if (!phObserverRef.current) {
       const obs = new MutationObserver(() => {
         const f = getField();
@@ -84,24 +88,30 @@ export function BottomNavigation() {
       phObserverRef.current = obs;
     }
 
+    // Cycle with a HARD swap between fades to prevent overlap/crossfade.
     const startCycle = () => {
       const f = getField();
       if (!f) return;
 
+      // Fade OUT current text
       (f as HTMLElement).style.setProperty("--ph-opacity", "0");
 
+      // After fade-out completes, clear placeholder for one frame to kill any UA cache/ghost,
+      // then set new text and fade IN. This prevents the "blip" overlap on long strings.
       window.setTimeout(() => {
-        f.placeholder = "";
+        f.placeholder = ""; // hard clear so nothing remains during the swap
+        // force a paint before we set the next text
         requestAnimationFrame(() => {
           phIndexRef.current = (phIndexRef.current + 1) % placeholders.length;
           const next = placeholders[phIndexRef.current];
           currentPHRef.current = next;
           f.placeholder = next;
+          // give the browser a tick so opacity transition runs from 0 -> 1
           requestAnimationFrame(() => {
             (f as HTMLElement).style.setProperty("--ph-opacity", "1");
           });
         });
-      }, 600);
+      }, 600); // matches CSS fade duration
     };
 
     phIntervalRef.current = window.setInterval(startCycle, 6000) as unknown as number;
@@ -118,9 +128,10 @@ export function BottomNavigation() {
     };
   }, []);
 
-  // ---------- ANDROID PWA / RESIZE BUBBLE PIN FIX ----------
+  // ---------- ANDROID PWA FIXES ----------
   const [isInputFocused, setIsInputFocused] = useState(false);
 
+  // Helper: compute bubble position for a given tab id (not just currentTab)
   const getBubblePositionFor = (tabId: typeof navigationItems[number]["id"]) => {
     const idx = navigationItems.findIndex(i => i.id === tabId);
     const tabEl = tabRefs.current[idx];
@@ -132,26 +143,7 @@ export function BottomNavigation() {
     return { x: tabCenterX - BUBBLE / 2, y: 0 };
   };
 
-  const getBubblePosition = () =>
-    isInputFocused ? getBubblePositionFor("chat") : getBubblePositionFor(currentTab);
-
-  // Helper: double-RAF sync to avoid "snap-left" during layout/viewport changes
-  const syncBubbleNow = (tabId?: typeof navigationItems[number]["id"]) => {
-    const p = tabId ? getBubblePositionFor(tabId) : getBubblePosition();
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        bubbleControls.set({ x: p.x, y: p.y });
-      });
-    });
-  };
-
-  // On mount and whenever tab changes (no animation on first paint)
-  useEffect(() => {
-    syncBubbleNow();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Lock to chat while focused; use double-RAF so it doesn't stick left on Android
+  // Lock tab & bubble to "chat" while input is focused (IME open)
   useEffect(() => {
     const root = scopeRef.current;
     if (!root) return;
@@ -159,11 +151,14 @@ export function BottomNavigation() {
     const onFocusIn = () => {
       setIsInputFocused(true);
       if (currentTab !== "chat") setCurrentTab("chat");
-      syncBubbleNow("chat");
+      const p = getBubblePositionFor("chat");
+      bubbleControls.set({ x: p.x, y: p.y });
     };
     const onFocusOut = () => {
       setIsInputFocused(false);
-      syncBubbleNow(currentTab);
+      // Re-sync bubble to whatever tab is active when focus leaves.
+      const p = getBubblePositionFor(currentTab);
+      bubbleControls.start({ x: p.x, y: p.y });
     };
 
     root.addEventListener("focusin", onFocusIn);
@@ -174,54 +169,36 @@ export function BottomNavigation() {
     };
   }, [currentTab, setCurrentTab, bubbleControls]);
 
-  // Visual viewport changes (Android keyboard, rotations)
+  // On Android, the visual viewport resizes when the keyboard shows/hides.
+  // Re-pin the bubble to "chat" during those resizes if focused.
   useEffect(() => {
     const isAndroid =
-      typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent || "");
-    const vv = "visualViewport" in window ? (window.visualViewport as VisualViewport) : null;
+      typeof navigator !== "undefined" &&
+      /Android/i.test(navigator.userAgent || "");
 
-    const handleVV = () => {
-      if (isInputFocused) syncBubbleNow("chat");
-      else syncBubbleNow();
+    if (!isAndroid || !("visualViewport" in window)) return;
+
+    const vv = window.visualViewport!;
+    const onVVChange = () => {
+      if (!isInputFocused) return;
+      const p = getBubblePositionFor("chat");
+      bubbleControls.set({ x: p.x, y: p.y });
     };
 
-    const handleResize = () => handleVV();
-    const handleScroll = () => handleVV();
-
-    if (vv && isAndroid) {
-      vv.addEventListener("resize", handleResize);
-      vv.addEventListener("scroll", handleScroll);
-    }
-
-    // Also listen to classic resize/orientation/visibility changes
-    const handleWinResize = () => handleVV();
-    const handleOrient = () => handleVV();
-    const handleVis = () => handleVV();
-
-    window.addEventListener("resize", handleWinResize);
-    window.addEventListener("orientationchange", handleOrient);
-    document.addEventListener("visibilitychange", handleVis);
-
+    vv.addEventListener("resize", onVVChange);
+    vv.addEventListener("scroll", onVVChange);
     return () => {
-      if (vv && isAndroid) {
-        vv.removeEventListener("resize", handleResize);
-        vv.removeEventListener("scroll", handleScroll);
-      }
-      window.removeEventListener("resize", handleWinResize);
-      window.removeEventListener("orientationchange", handleOrient);
-      document.removeEventListener("visibilitychange", handleVis);
+      vv.removeEventListener("resize", onVVChange);
+      vv.removeEventListener("scroll", onVVChange);
     };
-  }, [isInputFocused]);
+  }, [isInputFocused, bubbleControls]);
 
-  // Also re-sync on tab changes and when not dragging
-  useEffect(() => {
-    if (isDragging) return;
-    bubbleControls.start({
-      ...getBubblePosition(),
-      transition: { type: "spring", damping: 14, stiffness: 260, mass: 0.7 },
-    });
-  }, [currentTab, isDragging, isInputFocused, bubbleControls]);
-  // ----------------------------------------------------------
+  // Block nav clicks while IME is open (prevents accidental jumps)
+  const onNavItemClick = (id: typeof navigationItems[number]["id"]) => {
+    if (isInputFocused) return;
+    setCurrentTab(id);
+  };
+  // --------------------------------------
 
   // measure natural input height
   const [inputHeight, setInputHeight] = useState(0);
@@ -284,15 +261,41 @@ export function BottomNavigation() {
     return () => mo.disconnect();
   }, []);
 
-  const onNavItemClick = (id: typeof navigationItems[number]["id"]) => {
-    if (isInputFocused) return;
-    setCurrentTab(id);
-  };
+  // Bubble position based on active tab, but pinned to chat while focused
+  const getBubblePosition = () =>
+    isInputFocused ? getBubblePositionFor("chat") : getBubblePositionFor(currentTab);
+
+  useEffect(() => {
+    if (isDragging) return;
+    const p = getBubblePosition();
+    bubbleControls.start({
+      x: p.x,
+      y: p.y,
+      transition: { type: "spring", damping: 14, stiffness: 260, mass: 0.7 },
+    });
+  }, [currentTab, isDragging, isInputFocused, bubbleControls]);
+
+  useEffect(() => {
+    const setNow = () => {
+      const p = getBubblePosition();
+      bubbleControls.set({ x: p.x, y: p.y });
+    };
+    setNow();
+    const t = setTimeout(setNow, 60);
+    const onResize = () => setNow();
+    window.addEventListener("resize", onResize);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [isInputFocused]);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
     if (isInputFocused) {
-      syncBubbleNow("chat");
+      // While IME is open, ignore drag selection and snap back to chat
+      const p = getBubblePositionFor("chat");
+      bubbleControls.start({ x: p.x, y: p.y });
       return;
     }
     let best = 0;
@@ -372,7 +375,7 @@ export function BottomNavigation() {
             .chat-input-scope input::placeholder,
             .chat-input-scope textarea::placeholder {
               opacity: var(--ph-opacity, 1) !important;
-              transition: opacity 600ms ease !important;
+              transition: opacity 600ms ease !important; /* must match JS timeouts */
               will-change: opacity !important;
             }
 
@@ -455,7 +458,7 @@ export function BottomNavigation() {
               background: transparent !important;
             }
 
-            /* SEND BUTTON OFFSET (unchanged) */
+            /* SEND BUTTON OFFSET: moved down 1px and right 5px (unchanged) */
             .chat-input-scope [aria-label*="send" i],
             .chat-input-scope button[type="submit"],
             .chat-input-scope button[class*="send" i] {
@@ -464,8 +467,8 @@ export function BottomNavigation() {
               align-self: center !important;
               position: relative !important;
               z-index: 1 !important;
-              top: 1px !important;
-              left: 5px !important;
+              top: 1px !important;   /* down 1px */
+              left: 5px !important;  /* right 5px */
             }
           `}</style>
 
@@ -538,7 +541,7 @@ export function BottomNavigation() {
               onDragStart={() => setIsDragging(true)}
               onDragEnd={handleDragEnd}
               animate={bubbleControls}
-              initial={false} {/* important: we set position via syncBubbleNow to avoid left-snap */}
+              initial={getBubblePosition()}
               whileHover={{ scale: 1.05, transition: { type: "spring", damping: 10, stiffness: 400 } }}
               whileDrag={{
                 scale: 1.3,
