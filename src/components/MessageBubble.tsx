@@ -1,255 +1,295 @@
-import { useState, useRef, useEffect } from "react";
-import { Image, Plus } from "lucide-react";
+import { forwardRef, useState } from "react";
+import { motion } from "framer-motion";
+import { User, Copy, Edit2, Check } from "lucide-react";
+import { Message } from "@/store/useArcStore";
 import { useArcStore } from "@/store/useArcStore";
-import { OpenAIService } from "@/services/openai";
-import { GlassCard } from "@/components/ui/glass-card";
+import { useProfile } from "@/hooks/useProfile";
 import { GlassButton } from "@/components/ui/glass-button";
-import { MessageBubble } from "@/components/MessageBubble";
-import { useAuth } from "@/hooks/useAuth";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { ImageGenerationPlaceholder } from "@/components/ImageGenerationPlaceholder";
 
-export function ChatInterface() {
-  const { 
-    messages, 
-    addMessage, 
-    isLoading, 
-    setLoading, 
-    createNewSession,
-    currentSessionId,
-    startChatWithMessage 
-  } = useArcStore();
-  const [dragOver, setDragOver] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
-  const { profile } = useAuth();
+interface MessageBubbleProps {
+  message: Message;
+  onEdit?: (messageId: string, newContent: string) => void;
+}
 
-  // Scroll to show latest user message when new message is added
-  useEffect(() => {
-    if (messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage.role === "user") {
-        setTimeout(() => {
-          if (messagesContainerRef.current) {
-            const container = messagesContainerRef.current;
-            const scrollHeight = container.scrollHeight;
-            const clientHeight = container.clientHeight;
-            container.scrollTop = scrollHeight - clientHeight - 100;
-          }
-        }, 100);
-      } else {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
+  ({ message, onEdit }, ref) => {
+    const { editMessage } = useArcStore();
+    const { profile } = useProfile();
+    const { toast } = useToast();
+    const [isEditing, setIsEditing] = useState(false);
+    const [editContent, setEditContent] = useState(message.content);
+    const [showActions, setShowActions] = useState(false);
+    const isUser = message.role === "user";
+
+    const handleCopy = async () => {
+      try {
+        await navigator.clipboard.writeText(message.content);
+        toast({
+          title: "Copied!",
+          description: "Message copied to clipboard",
+        });
+        setShowActions(false);
+      } catch (error) {
+        toast({
+          title: "Copy failed",
+          description: "Could not copy message to clipboard",
+          variant: "destructive",
+        });
       }
-    }
-  }, [messages]);
+    };
 
-  // Reset scroll on new chat
-  useEffect(() => {
-    if (messages.length === 0 && messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({ top: 0, behavior: "instant" });
-    }
-  }, [currentSessionId, messages.length]);
+    const handleEdit = () => {
+      setIsEditing(true);
+      setShowActions(false);
+    };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    // Handle file drops if needed
-  };
-
-  const handleNewChat = () => {
-    createNewSession();
-    requestAnimationFrame(() => {
-      if (messagesContainerRef.current) {
-        messagesContainerRef.current.scrollTo({ top: 0, behavior: "instant" });
-        messagesContainerRef.current.scrollTop = 0;
+    const handleSaveEdit = () => {
+      if (editContent.trim() && editContent !== message.content) {
+        editMessage(message.id, editContent.trim());
+        onEdit?.(message.id, editContent.trim());
       }
-    });
-    toast({
-      title: "New Chat Started",
-      description: "Ready for a fresh conversation!"
-    });
-  };
+      setIsEditing(false);
+    };
 
-  return (
-    <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-2">
-      {/* Gradient Header Mask */}
-      <div className="fixed top-0 left-0 right-0 z-30 h-32 pointer-events-none">
-        <div 
-          className="w-full h-full"
-          style={{
-            background: `linear-gradient(to bottom, 
-              hsl(var(--background)) 0%, 
-              hsl(var(--background) / 0.98) 15%,
-              hsl(var(--background) / 0.92) 30%,
-              hsl(var(--background) / 0.8) 45%,
-              hsl(var(--background) / 0.6) 60%,
-              hsl(var(--background) / 0.3) 75%,
-              hsl(var(--background) / 0.1) 90%,
-              transparent 100%)`,
-            backdropFilter: "blur(0px) blur(5px) blur(10px) blur(15px) blur(20px)",
-            WebkitBackdropFilter: "blur(0px) blur(5px) blur(10px) blur(15px) blur(20px)",
-            maskImage: `linear-gradient(to bottom, 
-              black 0%, 
-              rgba(0,0,0,0.8) 40%,
-              rgba(0,0,0,0.4) 70%,
-              transparent 100%)`
-          }}
-        />
-      </div>
+    const handleCancelEdit = () => {
+      setEditContent(message.content);
+      setIsEditing(false);
+    };
 
-      {/* Floating Header Content */}
-      <div className="fixed top-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
-        <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-4 pointer-events-auto">
-          <img src="/lovable-uploads/10805bee-4d5c-4640-a77f-d2ea5cd05436.png" alt="ArcAI" className="h-8 w-8" />
-          <GlassButton
-            variant="bubble"
-            size="icon"
-            onClick={handleNewChat}
-          >
-            <Plus className="h-5 w-5" />
-          </GlassButton>
-        </div>
-      </div>
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSaveEdit();
+      } else if (e.key === "Escape") {
+        handleCancelEdit();
+      }
+    };
 
-      {/* Messages Container */}
-      <GlassCard 
-        variant="bubble" 
-        glow
-        className={`flex-1 mx-4 mb-4 overflow-hidden ${
-          dragOver ? "border-primary-glow border-2" : ""
-        }`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
+    const handleMessageClick = () => {
+      if (!isEditing) {
+        setShowActions(!showActions);
+      }
+    };
+
+    return (
+      <motion.div
+        ref={ref}
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className={`flex ${isUser ? "justify-end" : "justify-start"} group`}
       >
         <div
-          ref={messagesContainerRef}
-          className="h-full overflow-y-auto space-y-4 scroll-smooth relative"
-          style={{
-            scrollbarWidth: "none",   // Firefox
-            msOverflowStyle: "none",  // IE/Edge
-          }}
+          className={`flex items-start gap-3 max-w-[80%] ${
+            isUser ? "flex-row-reverse" : "flex-row"
+          }`}
         >
-          <style>
-            {`
-              /* Hide scrollbar in Webkit browsers */
-              .h-full.overflow-y-auto::-webkit-scrollbar {
-                width: 0px;
-                background: transparent;
-              }
-            `}
-          </style>
-
-          <div className="px-4 sm:px-6 pt-28 pb-40 space-y-4 w-full max-w-full">
-            <div>
-              {messages.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="flex justify-center mb-4">
-                    <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-16 w-16" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-foreground mb-2">
-                    Welcome to ArcAI
-                  </h3>
-                  <p className="text-muted-foreground mb-8">
-                    Start a conversation, or work on something new!
-                  </p>
-
-                  <div className="grid grid-cols-1 gap-3 max-w-md mx-auto pb-40">
-                    <button
-                      onClick={() => startChatWithMessage("I'd like a mental wellness check-in. How are you feeling today and what's on your mind?")}
-                      className="glass p-4 rounded-xl text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                          <span className="text-green-400 text-lg">🧘</span>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-foreground">Mental Wellness Check-in</h4>
-                          <p className="text-sm text-muted-foreground">Reflect on your feelings and thoughts</p>
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => startChatWithMessage("I need someone to talk to today. Can you be a supportive companion?")}
-                      className="glass p-4 rounded-xl text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                          <span className="text-blue-400 text-lg">💙</span>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-foreground">Friendly Companion</h4>
-                          <p className="text-sm text-muted-foreground">Chat with a supportive AI friend</p>
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => startChatWithMessage("Let's get creative! Help me brainstorm some ideas or work on a creative project.")}
-                      className="glass p-4 rounded-xl text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-                          <span className="text-purple-400 text-lg">🎨</span>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-foreground">Creative Inspiration</h4>
-                          <p className="text-sm text-muted-foreground">Explore ideas and spark creativity</p>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
+          {/* Avatar */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.1, type: "spring", damping: 15 }}
+            className={`flex-shrink-0 w-8 h-8 rounded-full glass flex items-center justify-center ${
+              isUser ? "bg-primary/20" : "bg-glass/50"
+            }`}
+          >
+            {isUser ? (
+              profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt="User"
+                  className="w-8 h-8 rounded-full object-cover"
+                />
               ) : (
-                <div className="space-y-6">
-                  {messages.map((message) => (
-                    <MessageBubble 
-                      key={message.id} 
-                      message={message} 
-                      onEdit={() => {}} 
+                <User className="h-4 w-4 text-primary-glow" />
+              )
+            ) : (
+              <div
+                className="w-8 h-8 rounded-full bg-cover bg-center bg-no-repeat"
+                style={{
+                  backgroundImage: `url('/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png')`,
+                }}
+              />
+            )}
+          </motion.div>
+
+          {/* Message Content */}
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.2 }}
+            className={`relative glass rounded-2xl px-4 py-3 cursor-pointer ${
+              isUser
+                ? "bg-primary/20 border-primary/30"
+                : "bg-glass/50 border-glass-border/50"
+            }`}
+            onClick={handleMessageClick}
+          >
+            {/* Image Generation Placeholder */}
+            {message.type === "image-generating" && (
+              <ImageGenerationPlaceholder
+                prompt={message.imagePrompt || message.content}
+                onComplete={() => {
+                  // Handled by parent
+                }}
+              />
+            )}
+
+            {/* Image Preview */}
+            {message.type === "image" &&
+              (message.imageUrl || message.imageUrls) && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3, duration: 0.3 }}
+                  className="mb-2"
+                >
+                  {message.imageUrls && message.imageUrls.length > 0 ? (
+                    <div
+                      className={`grid gap-2 ${
+                        message.imageUrls.length === 1
+                          ? "grid-cols-1"
+                          : message.imageUrls.length === 2
+                          ? "grid-cols-2"
+                          : message.imageUrls.length === 3
+                          ? "grid-cols-2"
+                          : "grid-cols-2"
+                      }`}
+                    >
+                      {message.imageUrls.map((url, index) => (
+                        <div
+                          key={index}
+                          className={
+                            message.imageUrls!.length === 3 && index === 0
+                              ? "col-span-2"
+                              : ""
+                          }
+                        >
+                          <img
+                            src={url}
+                            alt={`Image ${index + 1}`}
+                            className="w-full h-auto max-h-48 rounded-lg object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    message.imageUrl && (
+                      <img
+                        src={message.imageUrl}
+                        alt="Uploaded"
+                        className="max-w-full h-auto max-h-48 rounded-lg object-cover"
+                      />
+                    )
+                  )}
+                </motion.div>
+              )}
+
+            {/* Text Content */}
+            {isEditing ? (
+              <div className="space-y-2">
+                <Input
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  className="glass border-0 bg-glass/30 text-foreground"
+                  autoFocus
+                />
+                <div className="flex gap-2 justify-end">
+                  <GlassButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelEdit}
+                  >
+                    Cancel
+                  </GlassButton>
+                  <GlassButton
+                    variant="glow"
+                    size="sm"
+                    onClick={handleSaveEdit}
+                  >
+                    <Check className="h-3 w-3 mr-1" />
+                    Save
+                  </GlassButton>
+                </div>
+              </div>
+            ) : (
+              <p className="text-foreground whitespace-pre-wrap break-words">
+                {message.content}
+              </p>
+            )}
+
+            {/* Action Buttons */}
+            {!isEditing && showActions && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2 }}
+                className="absolute top-3 right-3 flex gap-1"
+              >
+                <GlassButton
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCopy();
+                  }}
+                  className="h-6 w-6 bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg"
+                >
+                  <Copy className="h-3 w-3" />
+                </GlassButton>
+                {isUser && (
+                  <GlassButton
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit();
+                    }}
+                    className="h-6 w-6 bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg"
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </GlassButton>
+                )}
+              </motion.div>
+            )}
+
+            {/* Voice Indicator */}
+            {message.type === "voice" && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center gap-1 mt-2 text-xs text-muted-foreground"
+              >
+                <div className="flex gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <motion.div
+                      key={i}
+                      className="w-1 h-3 bg-primary-glow rounded-full"
+                      animate={{
+                        scaleY: [1, 0.5, 1],
+                      }}
+                      transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                        delay: i * 0.1,
+                      }}
                     />
                   ))}
                 </div>
-              )}
-
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="glass rounded-2xl px-4 py-3 max-w-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1">
-                        {[0, 1, 2].map((i) => (
-                          <div
-                            key={i}
-                            className="w-2 h-2 bg-primary-glow rounded-full animate-pulse"
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-muted-foreground">Thinking...</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div ref={messagesEndRef} />
-          </div>
+                <span>Voice message</span>
+              </motion.div>
+            )}
+          </motion.div>
         </div>
+      </motion.div>
+    );
+  }
+);
 
-        {/* Drag overlay */}
-        {dragOver && (
-          <div
-            className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary-glow rounded-[var(--radius)] flex items-center justify-center"
-          >
-            <div className="text-center">
-              <Image className="h-12 w-12 text-primary-glow mx-auto mb-2" />
-              <p className="text-primary-foreground font-medium">Drop images here</p>
-            </div>
-          </div>
-        )}
-      </GlassCard>
-    </div>
-  );
-}
+MessageBubble.displayName = "MessageBubble";
