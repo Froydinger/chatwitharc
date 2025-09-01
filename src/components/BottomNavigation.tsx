@@ -60,7 +60,6 @@ export function BottomNavigation() {
     const killDefaultGhosts = () => {
       const root = scopeRef.current;
       if (!root) return;
-      // Hide any framework-rendered placeholder clones/text so nothing "peeks"
       root.querySelectorAll('[data-placeholder], .placeholder, .Placeholder').forEach((el) => {
         const n = el as HTMLElement;
         n.style.visibility = "hidden";
@@ -68,11 +67,9 @@ export function BottomNavigation() {
       });
     };
 
-    // Initialize first value, remove any ghosts
     killDefaultGhosts();
     setPlaceholder(placeholders[phIndexRef.current]);
 
-    // Guard against re-renders restoring a default placeholder
     if (!phObserverRef.current) {
       const obs = new MutationObserver(() => {
         const f = getField();
@@ -88,30 +85,22 @@ export function BottomNavigation() {
       phObserverRef.current = obs;
     }
 
-    // Cycle with a HARD swap between fades to prevent overlap/crossfade.
     const startCycle = () => {
       const f = getField();
       if (!f) return;
-
-      // Fade OUT current text
       (f as HTMLElement).style.setProperty("--ph-opacity", "0");
-
-      // After fade-out completes, clear placeholder for one frame to kill any UA cache/ghost,
-      // then set new text and fade IN. This prevents the "blip" overlap on long strings.
       window.setTimeout(() => {
-        f.placeholder = ""; // hard clear so nothing remains during the swap
-        // force a paint before we set the next text
+        f.placeholder = "";
         requestAnimationFrame(() => {
           phIndexRef.current = (phIndexRef.current + 1) % placeholders.length;
           const next = placeholders[phIndexRef.current];
           currentPHRef.current = next;
           f.placeholder = next;
-          // give the browser a tick so opacity transition runs from 0 -> 1
           requestAnimationFrame(() => {
             (f as HTMLElement).style.setProperty("--ph-opacity", "1");
           });
         });
-      }, 600); // matches CSS fade duration
+      }, 600);
     };
 
     phIntervalRef.current = window.setInterval(startCycle, 6000) as unknown as number;
@@ -133,7 +122,7 @@ export function BottomNavigation() {
 
   // Helper: compute bubble position for a given tab id (not just currentTab)
   const getBubblePositionFor = (tabId: typeof navigationItems[number]["id"]) => {
-    const idx = navigationItems.findIndex(i => i.id === tabId);
+    const idx = navigationItems.findIndex((i) => i.id === tabId);
     const tabEl = tabRefs.current[idx];
     if (!tabEl) {
       const CELL = CONTAINER_WIDTH / navigationItems.length;
@@ -156,7 +145,6 @@ export function BottomNavigation() {
     };
     const onFocusOut = () => {
       setIsInputFocused(false);
-      // Re-sync bubble to whatever tab is active when focus leaves.
       const p = getBubblePositionFor(currentTab);
       bubbleControls.start({ x: p.x, y: p.y });
     };
@@ -193,11 +181,35 @@ export function BottomNavigation() {
     };
   }, [isInputFocused, bubbleControls]);
 
-  // Block nav clicks while IME is open (prevents accidental jumps)
-  const onNavItemClick = (id: typeof navigationItems[number]["id"]) => {
-    if (isInputFocused) return;
-    setCurrentTab(id);
-  };
+  // Recompute bubble when the rail itself changes size,
+  // or on orientation/visibility changes that can reorder layout.
+  useEffect(() => {
+    const setNow = () => {
+      const p = isInputFocused ? getBubblePositionFor("chat") : getBubblePositionFor(currentTab);
+      bubbleControls.set({ x: p.x, y: p.y });
+    };
+
+    // Observe the rail's box size
+    const ro = new ResizeObserver(setNow);
+    if (railRef.current) ro.observe(railRef.current);
+
+    const onResize = () => setNow();
+    const onVis = () => setNow();
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    document.addEventListener("visibilitychange", onVis);
+
+    // one more pass after layout settles on mount
+    const raf = requestAnimationFrame(setNow);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+      document.removeEventListener("visibilitychange", onVis);
+      cancelAnimationFrame(raf);
+    };
+  }, [currentTab, isInputFocused, bubbleControls]);
   // --------------------------------------
 
   // measure natural input height
@@ -242,9 +254,9 @@ export function BottomNavigation() {
         '.adornment',
       ].join(",");
 
-      root.querySelectorAll(selectors).forEach(n => n.remove());
+      root.querySelectorAll(selectors).forEach((n) => n.remove());
 
-      root.querySelectorAll('input,textarea,[contenteditable="true"]').forEach(field => {
+      root.querySelectorAll('input,textarea,[contenteditable="true"]').forEach((field) => {
         const prev = field.previousElementSibling as HTMLElement | null;
         if (prev) prev.remove();
         const parent = field.parentElement as HTMLElement | null;
@@ -275,6 +287,7 @@ export function BottomNavigation() {
     });
   }, [currentTab, isDragging, isInputFocused, bubbleControls]);
 
+  // Ensure we snap correctly right after any resize (extra safety)
   useEffect(() => {
     const setNow = () => {
       const p = getBubblePosition();
@@ -290,25 +303,38 @@ export function BottomNavigation() {
     };
   }, [isInputFocused]);
 
+  const onNavItemClick = (id: typeof navigationItems[number]["id"]) => {
+    if (isInputFocused) return;
+    setCurrentTab(id);
+  };
+
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
     if (isInputFocused) {
-      // While IME is open, ignore drag selection and snap back to chat
       const p = getBubblePositionFor("chat");
       bubbleControls.start({ x: p.x, y: p.y });
       return;
     }
+
+    // Compare in the SAME coordinate space (viewport coords)
+    const rail = railRef.current;
+    if (!rail) return;
+    const railBox = rail.getBoundingClientRect();
+    const dropXViewport = info.point.x; // viewport coords from Framer
     let best = 0;
-    let dist = Infinity;
+    let bestDist = Infinity;
+
     tabRefs.current.forEach((el, i) => {
       if (!el) return;
-      const center = el.getBoundingClientRect().left + el.offsetWidth / 2;
-      const d = Math.abs(info.point.x - center);
-      if (d < dist) {
-        dist = d;
+      const b = el.getBoundingClientRect();
+      const centerViewport = b.left + b.width / 2;
+      const d = Math.abs(centerViewport - dropXViewport);
+      if (d < bestDist) {
+        bestDist = d;
         best = i;
       }
     });
+
     setCurrentTab(navigationItems[best].id);
   };
 
@@ -375,7 +401,7 @@ export function BottomNavigation() {
             .chat-input-scope input::placeholder,
             .chat-input-scope textarea::placeholder {
               opacity: var(--ph-opacity, 1) !important;
-              transition: opacity 600ms ease !important; /* must match JS timeouts */
+              transition: opacity 600ms ease !important;
               will-change: opacity !important;
             }
 
@@ -467,8 +493,8 @@ export function BottomNavigation() {
               align-self: center !important;
               position: relative !important;
               z-index: 1 !important;
-              top: 1px !important;   /* down 1px */
-              left: 5px !important;  /* right 5px */
+              top: 1px !important;
+              left: 5px !important;
             }
           `}</style>
 
