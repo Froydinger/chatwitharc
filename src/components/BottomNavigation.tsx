@@ -28,8 +28,7 @@ export function BottomNavigation() {
   const CONTAINER_WIDTH = 320;
   const GAP_ABOVE_RAIL = 8;
 
-  // --- rotating placeholders (slower, full fade out then fade in, no crossfade/ghost)
-  // Only cycling lines (no static default).
+  // rotating placeholders (unchanged behavior)
   const placeholders = [
     "What's on your mind?",
     "Type a thought or idea…",
@@ -117,22 +116,32 @@ export function BottomNavigation() {
     };
   }, []);
 
-  // ---------- ANDROID PWA FIXES ----------
+  // ---------- INPUT/IME FOCUS STATE ----------
   const [isInputFocused, setIsInputFocused] = useState(false);
 
-  // Helper: compute bubble position for a given tab id (not just currentTab)
+  // Robust geometry: compute bubble center using viewport rects
   const getBubblePositionFor = (tabId: typeof navigationItems[number]["id"]) => {
     const idx = navigationItems.findIndex((i) => i.id === tabId);
+    const rail = railRef.current;
     const tabEl = tabRefs.current[idx];
+
+    if (!rail) return { x: 0, y: 0 };
+
+    const railRect = rail.getBoundingClientRect();
+
     if (!tabEl) {
-      const CELL = CONTAINER_WIDTH / navigationItems.length;
-      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: 0 };
+      const cell = railRect.width / navigationItems.length;
+      const center = cell * idx + cell / 2;
+      return { x: center - BUBBLE / 2, y: 0 };
     }
-    const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
-    return { x: tabCenterX - BUBBLE / 2, y: 0 };
+
+    const tabRect = tabEl.getBoundingClientRect();
+    const tabCenterViewport = tabRect.left + tabRect.width / 2;
+    const centerWithinRail = tabCenterViewport - railRect.left; // rail-local X
+    return { x: Math.round(centerWithinRail - BUBBLE / 2), y: 0 };
   };
 
-  // Lock tab & bubble to "chat" while input is focused (IME open)
+  // Snap to chat when input focuses (prevents left-sticking during IME)
   useEffect(() => {
     const root = scopeRef.current;
     if (!root) return;
@@ -157,60 +166,49 @@ export function BottomNavigation() {
     };
   }, [currentTab, setCurrentTab, bubbleControls]);
 
-  // On Android, the visual viewport resizes when the keyboard shows/hides.
-  // Re-pin the bubble to "chat" during those resizes if focused.
+  // Re-pin when visual viewport changes (keyboard, zoom, bars, rotation)
   useEffect(() => {
-    const isAndroid =
-      typeof navigator !== "undefined" &&
-      /Android/i.test(navigator.userAgent || "");
-
-    if (!isAndroid || !("visualViewport" in window)) return;
-
-    const vv = window.visualViewport!;
-    const onVVChange = () => {
-      if (!isInputFocused) return;
-      const p = getBubblePositionFor("chat");
-      bubbleControls.set({ x: p.x, y: p.y });
+    let raf = 0;
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const p = isInputFocused ? getBubblePositionFor("chat") : getBubblePositionFor(currentTab);
+        bubbleControls.set({ x: p.x, y: p.y });
+      });
     };
 
-    vv.addEventListener("resize", onVVChange);
-    vv.addEventListener("scroll", onVVChange);
-    return () => {
-      vv.removeEventListener("resize", onVVChange);
-      vv.removeEventListener("scroll", onVVChange);
-    };
-  }, [isInputFocused, bubbleControls]);
+    const onResize = schedule;
+    const onVis = schedule;
 
-  // Recompute bubble when the rail itself changes size,
-  // or on orientation/visibility changes that can reorder layout.
-  useEffect(() => {
-    const setNow = () => {
-      const p = isInputFocused ? getBubblePositionFor("chat") : getBubblePositionFor(currentTab);
-      bubbleControls.set({ x: p.x, y: p.y });
-    };
-
-    // Observe the rail's box size
-    const ro = new ResizeObserver(setNow);
+    const ro = new ResizeObserver(schedule);
     if (railRef.current) ro.observe(railRef.current);
 
-    const onResize = () => setNow();
-    const onVis = () => setNow();
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
     document.addEventListener("visibilitychange", onVis);
 
-    // one more pass after layout settles on mount
-    const raf = requestAnimationFrame(setNow);
+    // Listen to visualViewport on ALL platforms for safety
+    const vv = (window as any).visualViewport as VisualViewport | undefined;
+    if (vv) {
+      vv.addEventListener("resize", onResize);
+      vv.addEventListener("scroll", onResize);
+    }
+
+    // one more pass after mount/layout
+    schedule();
 
     return () => {
       ro.disconnect();
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onResize);
       document.removeEventListener("visibilitychange", onVis);
+      if (vv) {
+        vv.removeEventListener("resize", onResize);
+        vv.removeEventListener("scroll", onResize);
+      }
       cancelAnimationFrame(raf);
     };
   }, [currentTab, isInputFocused, bubbleControls]);
-  // --------------------------------------
 
   // measure natural input height
   const [inputHeight, setInputHeight] = useState(0);
@@ -287,22 +285,6 @@ export function BottomNavigation() {
     });
   }, [currentTab, isDragging, isInputFocused, bubbleControls]);
 
-  // Ensure we snap correctly right after any resize (extra safety)
-  useEffect(() => {
-    const setNow = () => {
-      const p = getBubblePosition();
-      bubbleControls.set({ x: p.x, y: p.y });
-    };
-    setNow();
-    const t = setTimeout(setNow, 60);
-    const onResize = () => setNow();
-    window.addEventListener("resize", onResize);
-    return () => {
-      clearTimeout(t);
-      window.removeEventListener("resize", onResize);
-    };
-  }, [isInputFocused]);
-
   const onNavItemClick = (id: typeof navigationItems[number]["id"]) => {
     if (isInputFocused) return;
     setCurrentTab(id);
@@ -316,19 +298,15 @@ export function BottomNavigation() {
       return;
     }
 
-    // Compare in the SAME coordinate space (viewport coords)
-    const rail = railRef.current;
-    if (!rail) return;
-    const railBox = rail.getBoundingClientRect();
-    const dropXViewport = info.point.x; // viewport coords from Framer
+    const dropXViewport = info.point.x; // viewport coordinate
     let best = 0;
     let bestDist = Infinity;
 
     tabRefs.current.forEach((el, i) => {
       if (!el) return;
       const b = el.getBoundingClientRect();
-      const centerViewport = b.left + b.width / 2;
-      const d = Math.abs(centerViewport - dropXViewport);
+      const center = b.left + b.width / 2;
+      const d = Math.abs(center - dropXViewport);
       if (d < bestDist) {
         bestDist = d;
         best = i;
@@ -346,7 +324,7 @@ export function BottomNavigation() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
-        {/* Glass container: flex column, rail is a fixed-height footer */}
+        {/* Glass container */}
         <div
           className="relative flex flex-col"
           style={{
@@ -374,14 +352,12 @@ export function BottomNavigation() {
               0%, 100% { opacity: 0.20; }
               50%        { opacity: 0.10; }
             }
-
             .chat-input-scope input,
             .chat-input-scope textarea,
             .chat-input-scope [contenteditable="true"] {
               caret-color: var(--neon-blue) !important;
               accent-color: var(--neon-blue) !important;
             }
-
             .chat-input-scope input:focus,
             .chat-input-scope input:focus-visible,
             .chat-input-scope textarea:focus,
@@ -393,18 +369,13 @@ export function BottomNavigation() {
               box-shadow:
                 0 0 0 3px color-mix(in oklab, var(--neon-blue) 40%, transparent) !important;
             }
-
-            .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
-              --ph-opacity: 1;
-            }
-
+            .chat-input-scope :where(input, textarea, [contenteditable="true"]) { --ph-opacity: 1; }
             .chat-input-scope input::placeholder,
             .chat-input-scope textarea::placeholder {
               opacity: var(--ph-opacity, 1) !important;
               transition: opacity 600ms ease !important;
               will-change: opacity !important;
             }
-
             .chat-input-scope {
               display: flex !important;
               align-items: center !important;
@@ -416,7 +387,6 @@ export function BottomNavigation() {
               box-sizing: border-box !important;
               margin: 0 !important;
             }
-
             .chat-input-scope form,
             .chat-input-scope .row,
             .chat-input-scope .input-row,
@@ -432,7 +402,6 @@ export function BottomNavigation() {
               margin: 0 !important;
               flex: 1 1 auto !important;
             }
-
             .chat-input-scope .pill,
             .chat-input-scope .input-wrapper,
             .chat-input-scope .field,
@@ -451,7 +420,6 @@ export function BottomNavigation() {
               overflow: visible !important;
               border-color: var(--neon-blue) !important;
             }
-
             .chat-input-scope .pill::before,
             .chat-input-scope .input-wrapper::before,
             .chat-input-scope .field::before,
@@ -467,7 +435,6 @@ export function BottomNavigation() {
               z-index: 0 !important;
               animation: neonAuraOpacity 3.2s ease-in-out infinite;
             }
-
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               position: relative !important;
               z-index: 1 !important;
@@ -483,8 +450,6 @@ export function BottomNavigation() {
               border-color: var(--neon-blue) !important;
               background: transparent !important;
             }
-
-            /* SEND BUTTON OFFSET: moved down 1px and right 5px (unchanged) */
             .chat-input-scope [aria-label*="send" i],
             .chat-input-scope button[type="submit"],
             .chat-input-scope button[class*="send" i] {
@@ -517,7 +482,6 @@ export function BottomNavigation() {
             }}
             style={{ overflow: "hidden", pointerEvents: expanded ? "auto" : "none" }}
           >
-            {/* Measured content with strict 10px gutters */}
             <div
               ref={measureRef}
               className="w-full"
@@ -529,7 +493,7 @@ export function BottomNavigation() {
             </div>
           </motion.div>
 
-          {/* Rail footer: fixed height, never moves */}
+          {/* Rail footer */}
           <div style={{ height: TAB_RAIL_HEIGHT, position: "relative" }}>
             <div
               ref={railRef}
