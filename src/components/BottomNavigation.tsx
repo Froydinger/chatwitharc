@@ -96,7 +96,7 @@ export function BottomNavigation() {
     const tabEl = tabRefs.current[idx];
     if (!tabEl) {
       const CELL = CONTAINER_WIDTH / navigationItems.length;
-      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: 0 }; // slight upward adjust from prior 1
+      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: 0 }; // current vertical offset
     }
     const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
     return { x: tabCenterX - BUBBLE / 2, y: 0 };
@@ -176,18 +176,10 @@ export function BottomNavigation() {
           }}
         >
           <style>{`
-            /* Neon pulse for the whole input bar (very subtle ~10% opacity) */
-            @keyframes neonPulse {
-              0%, 100% {
-                box-shadow:
-                  0 0 0 0 hsla(200, 100%, 60%, 0.10),
-                  0 0 24px hsla(200, 100%, 60%, 0.10);
-              }
-              50% {
-                box-shadow:
-                  0 0 0 0 hsla(200, 100%, 60%, 0.00),
-                  0 0 24px hsla(200, 100%, 60%, 0.00);
-              }
+            /* Soft neon aura that fills the WHOLE input container (not just outline) */
+            @keyframes neonAuraOpacity {
+              0%, 100% { opacity: 0.20; }  /* ~20% */
+              50%        { opacity: 0.10; }  /* gentle breathe */
             }
 
             /* Focus/active visuals forced to neon blue (no purple) */
@@ -240,7 +232,8 @@ export function BottomNavigation() {
               flex: 1 1 auto !important;
             }
 
-            /* grow the field and remove only EXTERNAL offsets on wrappers */
+            /* grow the field and remove only EXTERNAL offsets on wrappers
+               Also install a pseudo-element that fills the background with a neon-blue glow */
             .chat-input-scope .pill,
             .chat-input-scope [class*="pill" i],
             .chat-input-scope .input-wrapper,
@@ -258,9 +251,49 @@ export function BottomNavigation() {
               padding-left: 0 !important;
               box-sizing: border-box !important;
 
-              /* subtle neon blue glow animation around the bar */
-              animation: neonPulse 3.2s ease-in-out infinite;
+              position: relative !important;       /* host for aura */
+              border-radius: 16px !important;      /* keep a soft shape for glow mask */
+              overflow: visible !important;        /* allow blur to show */
               border-color: var(--neon-blue) !important;
+            }
+
+            /* The aura: fills the entire input container with subtle neon-blue glow
+               Uses opacity pulsing between 10% and 20% */
+            .chat-input-scope .pill::before,
+            .chat-input-scope [class*="pill" i]::before,
+            .chat-input-scope .input-wrapper::before,
+            .chat-input-scope [class*="input-wrapper" i]::before,
+            .chat-input-scope .field::before,
+            .chat-input-scope [class*="field" i]::before,
+            .chat-input-scope .textbox::before,
+            .chat-input-scope [role="textbox"]::before {
+              content: "" !important;
+              position: absolute !important;
+              inset: -2px !important;                     /* tiny bleed for a soft edge */
+              border-radius: inherit !important;
+              background: hsla(200, 100%, 60%, 0.20) !important;  /* ~20% fill */
+              filter: blur(12px) !important;              /* soft glow */
+              pointer-events: none !important;
+              z-index: 0 !important;
+              animation: neonAuraOpacity 3.2s ease-in-out infinite;
+            }
+
+            /* keep the field content above the aura */
+            .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
+              position: relative !important;
+              z-index: 1 !important;
+
+              font-size: 16px !important;
+              line-height: 1.4;
+              flex: 1 1 auto !important;
+              width: 100% !important;
+              margin: 0 !important;
+              padding-left: 10px !important; /* internal */
+              text-indent: 0 !important;
+              box-sizing: border-box !important;
+              top: -2px !important; /* tiny alignment nudge */
+              border-color: var(--neon-blue) !important;
+              background: transparent !important; /* so the aura reads under it */
             }
 
             /* nuke utility offsets that create phantom left gaps */
@@ -271,21 +304,6 @@ export function BottomNavigation() {
             .chat-input-scope [class*=" ml-"],
             .chat-input-scope *[style*="margin-left"] { margin-left: 0 !important; }
 
-            /* keep internal placeholder padding and 16px font; keep the tiny upward nudge */
-            .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
-              font-size: 16px !important;
-              line-height: 1.4;
-              flex: 1 1 auto !important;
-              width: 100% !important;
-              margin: 0 !important;
-              padding-left: 10px !important; /* internal */
-              text-indent: 0 !important;
-              box-sizing: border-box !important;
-              position: relative !important;
-              top: -2px !important;
-              border-color: var(--neon-blue) !important;
-            }
-
             /* send button sits against the right gutter provided by scope padding */
             .chat-input-scope [aria-label*="send" i],
             .chat-input-scope button[type="submit"],
@@ -293,6 +311,8 @@ export function BottomNavigation() {
               margin: 0 !important;
               flex: 0 0 auto !important;
               align-self: center !important;
+              position: relative !important;
+              z-index: 1 !important; /* above the glow */
             }
           `}</style>
 
