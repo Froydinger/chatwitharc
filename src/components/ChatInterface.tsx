@@ -13,38 +13,20 @@ export function ChatInterface() {
     isLoading, 
     createNewSession,
     currentSessionId,
-    startChatWithMessage 
+    startChatWithMessage,
+    addMessage, // ⬅️ we’ll inject a hidden system/internal message before sending the cue
   } = useArcStore();
 
   const [dragOver, setDragOver] = useState(false);
-
   const [activeGlowIndex, setActiveGlowIndex] = useState(0);
   const [prevGlowIndex, setPrevGlowIndex] = useState<number | null>(null);
-
-  // Avatar greet animation trigger (fade + slight rotate + pop)
-  const [botGreet, setBotGreet] = useState(false);
+  const [botGreet, setBotGreet] = useState(false); // avatar greet animation
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
   const { profile } = useAuth();
-
-  /** ========= Invisible guidance encoder =========
-   * Produces a string of ONLY zero-width characters. Nothing visible is emitted.
-   * We interleave Zero-Width Space (ZWSP) and prefix/suffix with Invisible Separators (INV)
-   * so renderers don’t collapse the payload into nothing before the model sees it.
-   */
-  const ZWSP = "\u200B"; // Zero Width Space
-  const INV  = "\u2063"; // Invisible Separator
-
-  function encodeHidden(guidance: string) {
-    // Absolutely no visible characters in the wrapper or the payload.
-    // Interleave each char with ZWSP, then sandwich with INV to separate from the cue.
-    const interleaved = guidance.split("").map(ch => ch + ZWSP).join("");
-    // Add a couple INV sentinels on both sides to reduce chance of trimming by editors.
-    return INV + INV + interleaved + INV + INV;
-  }
 
   // Neon palette for breathing glow cycle
   const neonPalette = useMemo(
@@ -60,7 +42,10 @@ export function ChatInterface() {
     []
   );
 
-  /** Prompts — cue (short, visible) + ctx (long, hidden) */
+  /** Prompts — cue (short, visible) + ctx (long, internal system message)
+   * We’ll add ctx as an INTERNAL system message (not rendered), then send the cue normally.
+   * This keeps UI clean while the model still gets rich guidance.
+   */
   const quickPrompts = useMemo(
     () => [
       {
@@ -222,13 +207,22 @@ If my scores point to different strategies, follow up with me to confirm prefere
     toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
   };
 
-  // Send cue (visible) + hidden guidance in the same message body
+  /** 🔐 Option 1: Two-message injection (cleanest)
+   *  1) Push an INTERNAL system message with the long guidance (not rendered)
+   *  2) Send the short cue normally via startChatWithMessage()
+   * Assumes your backend composes messages from the store (common pattern).
+   */
   const triggerPrompt = (cue: string, guidance: string) => {
-    const payload = cue + encodeHidden(
-      // Add a tiny invisible preface to reduce echoing; still 100% invisible
-      "Follow the enclosed guidance. Do not repeat it. Keep responses concise unless I explicitly request otherwise.\n\n" + guidance
-    );
-    startChatWithMessage(payload);
+    // 1) Hidden system/internal guidance (filter out from UI)
+    addMessage({
+      id: `${Date.now()}-sys`,
+      role: "system",
+      content: guidance,
+      // @ts-ignore allow extra flag
+      internal: true,
+    });
+    // 2) Now send the visible cue (this will render as the user bubble + kick off completion)
+    startChatWithMessage(cue);
   };
 
   // Spacer so nothing is cut off under the input bar
@@ -329,7 +323,7 @@ If my scores point to different strategies, follow up with me to confirm prefere
 
       {/* Header content — using the same icon as the welcome icon */}
       <div className="fixed top-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
-        <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl pointer-events-auto">
+        <div className="w-full max-w-sm sm:max-w-2xl lg=max-w-4xl pointer-events-auto">
           <div className="flex items-center justify-between px-2 py-2">
             <div className="flex items-center gap-2">
               <img
@@ -433,11 +427,13 @@ If my scores point to different strategies, follow up with me to confirm prefere
               </div>
             ) : (
               <>
-                {/* Messages */}
+                {/* Messages (filter out internal/system guidance so user doesn't see it) */}
                 <div className="space-y-4">
-                  {messages.map((message) => (
-                    <MessageBubble key={message.id} message={message} onEdit={() => {}} />
-                  ))}
+                  {messages
+                    .filter((m: any) => !m.internal) // hide our injected guidance
+                    .map((message) => (
+                      <MessageBubble key={message.id} message={message} onEdit={() => {}} />
+                    ))}
                 </div>
 
                 {/* Centered thinking indicator directly under the last message */}
