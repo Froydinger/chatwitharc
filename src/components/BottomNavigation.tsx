@@ -28,8 +28,8 @@ export function BottomNavigation() {
   const CONTAINER_WIDTH = 320;
   const GAP_ABOVE_RAIL = 8;
 
-  // --- rotating placeholders (slower, full fade out then fade in)
-  // Only cycling lines. Removed any static "Ask me anything…" default.
+  // --- rotating placeholders (slower, full fade out then fade in, no crossfade/ghost)
+  // Only cycling lines (no static default).
   const placeholders = [
     "What's on your mind?",
     "Type a thought or idea…",
@@ -57,27 +57,26 @@ export function BottomNavigation() {
       currentPHRef.current = text;
     };
 
-    // Some components render ghost placeholder elements.
-    // Nuke any non-attribute placeholder clones so nothing "peeks" behind.
     const killDefaultGhosts = () => {
       const root = scopeRef.current;
       if (!root) return;
+      // Hide any framework-rendered placeholder clones/text so nothing "peeks"
       root.querySelectorAll('[data-placeholder], .placeholder, .Placeholder').forEach((el) => {
-        (el as HTMLElement).style.visibility = "hidden";
-        (el as HTMLElement).textContent = "";
+        const n = el as HTMLElement;
+        n.style.visibility = "hidden";
+        n.textContent = "";
       });
     };
 
-    // Initialize: force our first placeholder and hide any ghosts.
+    // Initialize first value, remove any ghosts
     killDefaultGhosts();
     setPlaceholder(placeholders[phIndexRef.current]);
 
-    // Watch for re-renders that try to restore a default placeholder.
+    // Guard against re-renders restoring a default placeholder
     if (!phObserverRef.current) {
       const obs = new MutationObserver(() => {
         const f = getField();
         if (!f) return;
-        // If something reset the placeholder to a different value, put ours back.
         if (f.placeholder !== currentPHRef.current) {
           f.placeholder = currentPHRef.current;
         }
@@ -89,24 +88,32 @@ export function BottomNavigation() {
       phObserverRef.current = obs;
     }
 
-    // Cycling logic: full fade OUT, swap text, then fade IN. No crossfade.
+    // Cycle with a HARD swap between fades to prevent overlap/crossfade.
     const startCycle = () => {
       const f = getField();
       if (!f) return;
 
-      // fade out
+      // Fade OUT current text
       (f as HTMLElement).style.setProperty("--ph-opacity", "0");
 
-      // wait for fade-out, then swap + fade in
+      // After fade-out completes, clear placeholder for one frame to kill any UA cache/ghost,
+      // then set new text and fade IN. This prevents the "blip" overlap on long strings.
       window.setTimeout(() => {
-        phIndexRef.current = (phIndexRef.current + 1) % placeholders.length;
-        const next = placeholders[phIndexRef.current];
-        setPlaceholder(next);
-        (f as HTMLElement).style.setProperty("--ph-opacity", "1");
-      }, 600); // fade duration must match CSS below
+        f.placeholder = ""; // hard clear so nothing remains during the swap
+        // force a paint before we set the next text
+        requestAnimationFrame(() => {
+          phIndexRef.current = (phIndexRef.current + 1) % placeholders.length;
+          const next = placeholders[phIndexRef.current];
+          currentPHRef.current = next;
+          f.placeholder = next;
+          // give the browser a tick so opacity transition runs from 0 -> 1
+          requestAnimationFrame(() => {
+            (f as HTMLElement).style.setProperty("--ph-opacity", "1");
+          });
+        });
+      }, 600); // matches CSS fade duration
     };
 
-    // Kick off interval loop
     phIntervalRef.current = window.setInterval(startCycle, 6000) as unknown as number;
 
     return () => {
@@ -368,7 +375,8 @@ export function BottomNavigation() {
             .chat-input-scope input::placeholder,
             .chat-input-scope textarea::placeholder {
               opacity: var(--ph-opacity, 1) !important;
-              transition: opacity 600ms ease !important; /* slower fade; matches JS */
+              transition: opacity 600ms ease !important; /* must match JS timeouts */
+              will-change: opacity !important;
             }
 
             .chat-input-scope {
