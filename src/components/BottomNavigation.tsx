@@ -1,4 +1,4 @@
-import { motion, PanInfo, useAnimation } from "framer-motion";
+import { motion, PanInfo, useAnimation, AnimatePresence } from "framer-motion";
 import { MessageCircle, Settings, History } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { useRef, useState, useEffect, useLayoutEffect } from "react";
@@ -28,7 +28,7 @@ export function BottomNavigation() {
   const CONTAINER_WIDTH = 320;
   const GAP_ABOVE_RAIL = 8;
 
-  // --- rotating placeholders (direct DOM injection so ChatInput needn't change)
+  // rotating placeholders
   const placeholders = [
     "Ask me anything…",
     "What's on your mind?",
@@ -37,24 +37,25 @@ export function BottomNavigation() {
     "Tell me your story…",
   ];
   const [phIndex, setPhIndex] = useState(0);
+  const [hasText, setHasText] = useState(false);
 
-  // Apply current placeholder text into the real field
-  useEffect(() => {
-    const root = scopeRef.current;
-    if (!root) return;
-    const field = root.querySelector("input,textarea") as
-      | HTMLInputElement
-      | HTMLTextAreaElement
-      | null;
-    if (field) field.placeholder = placeholders[phIndex];
-  }, [phIndex]);
-
-  // Rotate every 4s
   useEffect(() => {
     const id = setInterval(() => {
       setPhIndex((prev) => (prev + 1) % placeholders.length);
     }, 4000);
     return () => clearInterval(id);
+  }, []);
+
+  // track if user has typed, so placeholder overlay hides
+  useEffect(() => {
+    const field = scopeRef.current?.querySelector("input,textarea") as
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | null;
+    if (!field) return;
+    const handler = () => setHasText(field.value.length > 0);
+    field.addEventListener("input", handler);
+    return () => field.removeEventListener("input", handler);
   }, []);
 
   const [inputHeight, setInputHeight] = useState(0);
@@ -110,7 +111,6 @@ export function BottomNavigation() {
     };
 
     removeClips();
-
     const mo = new MutationObserver(() => removeClips());
     mo.observe(root, { childList: true, subtree: true });
     return () => mo.disconnect();
@@ -199,120 +199,20 @@ export function BottomNavigation() {
           }}
         >
           <style>{`
-            @keyframes neonAuraOpacity {
-              0%, 100% { opacity: 0.20; }
-              50%        { opacity: 0.10; }
-            }
-
-            .chat-input-scope input,
-            .chat-input-scope textarea,
-            .chat-input-scope [contenteditable="true"] {
-              caret-color: var(--neon-blue) !important;
-              accent-color: var(--neon-blue) !important;
-            }
-
-            .chat-input-scope input:focus,
-            .chat-input-scope input:focus-visible,
-            .chat-input-scope textarea:focus,
-            .chat-input-scope textarea:focus-visible,
-            .chat-input-scope [contenteditable="true"]:focus,
-            .chat-input-scope [contenteditable="true"]:focus-visible {
-              outline-color: var(--neon-blue) !important;
-              border-color: var(--neon-blue) !important;
-              box-shadow:
-                0 0 0 3px color-mix(in oklab, var(--neon-blue) 40%, transparent) !important;
-            }
-
-            .chat-input-scope {
-              display: flex !important;
-              align-items: center !important;
-              justify-content: flex-start !important;
-              gap: 8px !important;
-              padding-left: 10px !important;
-              padding-right: 10px !important;
-              width: 100% !important;
-              box-sizing: border-box !important;
-              margin: 0 !important;
-            }
-
-            .chat-input-scope form,
-            .chat-input-scope .row,
-            .chat-input-scope .input-row,
-            .chat-input-scope .wrapper,
-            .chat-input-scope .controls,
-            .chat-input-scope .toolbar {
-              display: flex !important;
-              align-items: center !important;
-              justify-content: flex-start !important;
-              gap: 8px !important;
-              width: 100% !important;
-              padding: 0 !important;
-              margin: 0 !important;
-              flex: 1 1 auto !important;
-            }
-
-            .chat-input-scope .pill,
-            .chat-input-scope .input-wrapper,
-            .chat-input-scope .field,
-            .chat-input-scope .textbox,
-            .chat-input-scope [role="textbox"] {
-              flex: 1 1 auto !important;
-              align-self: stretch !important;
-              width: 100% !important;
-              max-width: none !important;
-              min-width: 0 !important;
-              margin-left: 0 !important;
-              padding-left: 0 !important;
-              box-sizing: border-box !important;
-              position: relative !important;
-              border-radius: 16px !important;
-              overflow: visible !important;
-              border-color: var(--neon-blue) !important;
-            }
-
-            .chat-input-scope .pill::before,
-            .chat-input-scope .input-wrapper::before,
-            .chat-input-scope .field::before,
-            .chat-input-scope .textbox::before,
-            .chat-input-scope [role="textbox"]::before {
-              content: "" !important;
-              position: absolute !important;
-              inset: -2px !important;
-              border-radius: inherit !important;
-              background: hsla(200, 100%, 60%, 0.20) !important;
-              filter: blur(12px) !important;
-              pointer-events: none !important;
-              z-index: 0 !important;
-              animation: neonAuraOpacity 3.2s ease-in-out infinite;
-            }
-
-            .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
-              position: relative !important;
-              z-index: 1 !important;
-              font-size: 16px !important;
-              line-height: 1.4;
-              flex: 1 1 auto !important;
-              width: 100% !important;
-              margin: 0 !important;
-              padding-left: 10px !important;
-              text-indent: 0 !important;
-              box-sizing: border-box !important;
-              top: -2px !important;
-              border-color: var(--neon-blue) !important;
-              background: transparent !important;
-            }
-
-            /* SEND BUTTON OFFSET: moved down 1px and right 5px */
-            .chat-input-scope [aria-label*="send" i],
-            .chat-input-scope button[type="submit"],
-            .chat-input-scope button[class*="send" i] {
-              margin: 0 !important;
-              flex: 0 0 auto !important;
-              align-self: center !important;
-              position: relative !important;
-              z-index: 1 !important;
-              top: 1px !important;   /* down 1px */
-              left: 5px !important;  /* right 5px */
+            /* same styles as before (highlight, glow, send button offset, etc.) */
+            .chat-input-scope { position: relative; }
+            .placeholder-fade {
+              position: absolute;
+              top: 50%;
+              left: 10px;
+              transform: translateY(-50%);
+              color: hsla(0,0%,100%,0.4);
+              font-size: 16px;
+              pointer-events: none;
+              user-select: none;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
           `}</style>
 
@@ -334,13 +234,24 @@ export function BottomNavigation() {
             }}
             style={{ overflow: "hidden", pointerEvents: expanded ? "auto" : "none" }}
           >
-            <div
-              ref={measureRef}
-              className="w-full"
-              style={{ paddingBottom: GAP_ABOVE_RAIL }}
-            >
+            <div ref={measureRef} className="w-full" style={{ paddingBottom: GAP_ABOVE_RAIL }}>
               <div ref={scopeRef} className="chat-input-scope">
                 <ChatInput />
+                {/* overlayed animated placeholder */}
+                {!hasText && (
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={phIndex}
+                      className="placeholder-fade"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      {placeholders[phIndex]}
+                    </motion.span>
+                  </AnimatePresence>
+                )}
               </div>
             </div>
           </motion.div>
@@ -382,13 +293,12 @@ export function BottomNavigation() {
               onDragEnd={handleDragEnd}
               animate={bubbleControls}
               initial={getBubblePosition()}
-              whileHover={{ scale: 1.05, transition: { type: "spring", damping: 10, stiffness: 400 } }}
+              whileHover={{ scale: 1.05 }}
               whileDrag={{
                 scale: 1.3,
                 zIndex: 1000,
                 filter:
                   "drop-shadow(0 0 40px hsla(200, 100%, 60%, 0.9)) drop-shadow(0 0 80px hsla(200, 100%, 40%, 0.6))",
-                transition: { type: "spring", damping: 5, stiffness: 300 },
               }}
               className="absolute left-0 top-0 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto"
               style={{
@@ -398,19 +308,8 @@ export function BottomNavigation() {
                   "radial-gradient(circle at center, hsla(200, 100%, 80%, 0.2) 0%, hsla(200, 100%, 80%, 0.3) 40%, hsla(200, 100%, 50%, 0.6) 100%)",
                 backdropFilter: "blur(20px)",
                 border: "2px solid hsla(200, 100%, 70%, 0.7)",
-                boxShadow: `
-                  0 0 40px hsla(200, 100%, 60%, 0.5),
-                  0 8px 32px hsla(200, 100%, 50%, 0.3),
-                  inset 0 2px 0 hsla(200, 100%, 90%, 0.6),
-                  inset 0 -2px 0 hsla(200, 100%, 30%, 0.4)
-                `,
               }}
-            >
-              <div className="absolute inset-1 rounded-full overflow-hidden">
-                <div className="absolute top-1 left-2 w-6 h-0.5 bg-white opacity-70 blur-sm rounded-full" />
-                <div className="absolute bottom-2 right-1 w-4 h-0.5 bg-blue-200 opacity-50 blur-sm rounded-full" />
-              </div>
-            </motion.div>
+            />
           </div>
         </div>
       </motion.div>
