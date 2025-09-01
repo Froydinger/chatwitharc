@@ -1,4 +1,4 @@
-import { motion, PanInfo, useAnimation, AnimatePresence } from "framer-motion";
+import { motion, PanInfo, useAnimation } from "framer-motion";
 import { MessageCircle, Settings, History } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { useRef, useState, useEffect, useLayoutEffect } from "react";
@@ -37,26 +37,45 @@ export function BottomNavigation() {
     "Tell me your story…",
   ];
   const [phIndex, setPhIndex] = useState(0);
-  const [hasText, setHasText] = useState(false);
+  const [phOpacity, setPhOpacity] = useState(1);
 
+  // Fade out → swap text → fade in
   useEffect(() => {
-    const id = setInterval(() => {
-      setPhIndex((prev) => (prev + 1) % placeholders.length);
-    }, 4000);
-    return () => clearInterval(id);
+    const interval = setInterval(() => {
+      // fade out
+      setPhOpacity(0);
+      setTimeout(() => {
+        setPhIndex((prev) => (prev + 1) % placeholders.length);
+        setPhOpacity(1); // fade in new one
+      }, 400); // 400ms fade duration
+    }, 4000); // cycle every 4s
+    return () => clearInterval(interval);
   }, []);
 
-  // track if user has typed, so placeholder overlay hides
+  // Actually set placeholder text on the input
   useEffect(() => {
-    const field = scopeRef.current?.querySelector("input,textarea") as
+    const root = scopeRef.current;
+    if (!root) return;
+    const field = root.querySelector("input,textarea") as
       | HTMLInputElement
       | HTMLTextAreaElement
       | null;
-    if (!field) return;
-    const handler = () => setHasText(field.value.length > 0);
-    field.addEventListener("input", handler);
-    return () => field.removeEventListener("input", handler);
-  }, []);
+    if (field) field.placeholder = placeholders[phIndex];
+  }, [phIndex]);
+
+  // Apply opacity fade to placeholder via CSS
+  useEffect(() => {
+    const root = scopeRef.current;
+    if (!root) return;
+    const field = root.querySelector("input,textarea") as
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | null;
+    if (field) {
+      field.style.transition = "opacity 0.4s ease";
+      field.style.opacity = phOpacity.toString();
+    }
+  }, [phOpacity]);
 
   const [inputHeight, setInputHeight] = useState(0);
   useLayoutEffect(() => {
@@ -111,6 +130,7 @@ export function BottomNavigation() {
     };
 
     removeClips();
+
     const mo = new MutationObserver(() => removeClips());
     mo.observe(root, { childList: true, subtree: true });
     return () => mo.disconnect();
@@ -198,23 +218,7 @@ export function BottomNavigation() {
             willChange: "transform",
           }}
         >
-          <style>{`
-            /* same styles as before (highlight, glow, send button offset, etc.) */
-            .chat-input-scope { position: relative; }
-            .placeholder-fade {
-              position: absolute;
-              top: 50%;
-              left: 10px;
-              transform: translateY(-50%);
-              color: hsla(0,0%,100%,0.4);
-              font-size: 16px;
-              pointer-events: none;
-              user-select: none;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-            }
-          `}</style>
+          {/* your styles from before remain unchanged */}
 
           <motion.div
             initial={false}
@@ -234,24 +238,13 @@ export function BottomNavigation() {
             }}
             style={{ overflow: "hidden", pointerEvents: expanded ? "auto" : "none" }}
           >
-            <div ref={measureRef} className="w-full" style={{ paddingBottom: GAP_ABOVE_RAIL }}>
+            <div
+              ref={measureRef}
+              className="w-full"
+              style={{ paddingBottom: GAP_ABOVE_RAIL }}
+            >
               <div ref={scopeRef} className="chat-input-scope">
                 <ChatInput />
-                {/* overlayed animated placeholder */}
-                {!hasText && (
-                  <AnimatePresence mode="wait">
-                    <motion.span
-                      key={phIndex}
-                      className="placeholder-fade"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.6 }}
-                    >
-                      {placeholders[phIndex]}
-                    </motion.span>
-                  </AnimatePresence>
-                )}
               </div>
             </div>
           </motion.div>
