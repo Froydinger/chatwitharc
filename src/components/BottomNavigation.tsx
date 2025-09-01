@@ -244,7 +244,7 @@ export function BottomNavigation() {
             .chat-input-scope [class*=" ml-"],
             .chat-input-scope *[style*="margin-left"] { margin-left: 0 !important; }
 
-            /* keep internal placeholder padding and 16px font */
+            /* keep internal placeholder padding and 16px font; bump field up 1px for perfect vertical alignment */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               font-size: 16px !important;
               line-height: 1.4;
@@ -254,6 +254,8 @@ export function BottomNavigation() {
               padding-left: 10px !important; /* internal */
               text-indent: 0 !important;
               box-sizing: border-box !important;
+              position: relative !important;
+              top: -1px !important; /* <-- tiny upward nudge */
             }
 
             /* send button sits against the right gutter provided by scope padding */
