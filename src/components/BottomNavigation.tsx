@@ -45,26 +45,70 @@ export function BottomNavigation() {
         | HTMLTextAreaElement
         | null;
 
+    // Hide any framework "fake placeholder" elements that were showing behind our real placeholder
+    const hideGhostPlaceholders = () => {
+      const root = scopeRef.current;
+      if (!root) return;
+
+      // Common patterns: utility classes, data-* placeholders, floating-label clones, etc.
+      const ghostSelectors = [
+        '.placeholder',
+        '[class*="placeholder"]',
+        '[data-placeholder]',
+        '[aria-placeholder]',
+        '[aria-label="Ask me anything"]',
+        '[aria-label="Ask me anything…"]',
+        '[aria-label*="placeholder" i]',
+        '[role="presentation"][data-ui="placeholder"]',
+        '.floating-label',
+        '.input-placeholder',
+        '.field-placeholder',
+      ].join(",");
+
+      root.querySelectorAll<HTMLElement>(ghostSelectors).forEach((el) => {
+        el.style.display = "none";
+        el.style.visibility = "hidden";
+        el.style.opacity = "0";
+        el.style.pointerEvents = "none";
+      });
+
+      // Also clear any default placeholder attribute set by upstream code before we apply ours
+      const f = getField();
+      if (f) {
+        f.setAttribute("data-cycling-ph-initialized", "true");
+        // Blank it first to prevent any chance of cross-fade between two strings
+        f.placeholder = "";
+      }
+    };
+
     const setPlaceholder = (text: string) => {
       const f = getField();
       if (f) f.placeholder = text;
     };
 
+    // Initial run: kill ghosts, then set our first placeholder
+    hideGhostPlaceholders();
     setPlaceholder(placeholders[phIndexRef.current]);
 
+    // Fade loop: full fade-out, swap, fade-in
     const id = setInterval(() => {
       const f = getField();
       if (!f) return;
 
-      // fade out
+      // Make sure no ghosts reappeared (DOM mutations from framework)
+      hideGhostPlaceholders();
+
+      // 1) fade out current placeholder text
       (f as HTMLElement).style.setProperty("--ph-opacity", "0");
 
-      // wait for fade-out, then swap + fade in
+      // 2) after fade-out completes, swap text and fade back in
       setTimeout(() => {
         phIndexRef.current = (phIndexRef.current + 1) % placeholders.length;
+        // Clear first to avoid any perceptible overlap on some browsers
+        f.placeholder = "";
         setPlaceholder(placeholders[phIndexRef.current]);
         (f as HTMLElement).style.setProperty("--ph-opacity", "1");
-      }, 600); // slower fade duration
+      }, 600); // matches CSS transition duration below
     }, 6000); // slower overall loop
 
     return () => clearInterval(id);
@@ -120,7 +164,7 @@ export function BottomNavigation() {
 
     if (!isAndroid || !("visualViewport" in window)) return;
 
-    const vv = window.visualViewport!;
+    const vv = (window as any).visualViewport as VisualViewport;
     const onVVChange = () => {
       if (!isInputFocused) return;
       const p = getBubblePositionFor("chat");
@@ -310,14 +354,28 @@ export function BottomNavigation() {
                 0 0 0 3px color-mix(in oklab, var(--neon-blue) 40%, transparent) !important;
             }
 
+            /* SINGLE source of placeholder truth: we animate the UA placeholder only */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               --ph-opacity: 1;
             }
-
             .chat-input-scope input::placeholder,
             .chat-input-scope textarea::placeholder {
               opacity: var(--ph-opacity, 1) !important;
               transition: opacity 600ms ease !important; /* slower fade */
+            }
+            /* Kill any framework "fake placeholder" visuals */
+            .chat-input-scope .placeholder,
+            .chat-input-scope [class*="placeholder"],
+            .chat-input-scope [data-placeholder],
+            .chat-input-scope [aria-placeholder],
+            .chat-input-scope [role="presentation"][data-ui="placeholder"],
+            .chat-input-scope .floating-label,
+            .chat-input-scope .input-placeholder,
+            .chat-input-scope .field-placeholder {
+              display: none !important;
+              visibility: hidden !important;
+              opacity: 0 !important;
+              pointer-events: none !important;
             }
 
             .chat-input-scope {
