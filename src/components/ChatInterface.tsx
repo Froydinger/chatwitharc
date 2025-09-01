@@ -104,7 +104,7 @@ export function ChatInterface() {
       {/* Floating Header Content */}
       <div className="fixed top-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
         <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-4 pointer-events-auto">
-          <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-8 w-8" />
+          <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-8 w-8" />
           <GlassButton
             variant="bubble"
             size="icon"
@@ -136,7 +136,7 @@ export function ChatInterface() {
               {messages.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="flex justify-center mb-4">
-                    <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-16 w-16" />
+                    <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-16 w-16" />
                   </div>
                   <h3 className="text-xl font-semibold text-foreground mb-2">
                     Welcome to ArcAI

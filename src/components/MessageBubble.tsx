@@ -109,7 +109,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             )
           ) : (
             <div className="w-8 h-8 rounded-full bg-cover bg-center bg-no-repeat" 
-                 style={{backgroundImage: `url('/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png')`}} />
+                 style={{backgroundImage: `url('/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png')`}} />
           )}
         </motion.div>
 

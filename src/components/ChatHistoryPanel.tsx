@@ -114,7 +114,7 @@ export function ChatHistoryPanel() {
                 onClick={handleNewChat}
                 size="lg"
               >
-                <img src="/lovable-uploads/307f07e3-5431-499e-90f8-7b51837059a7.png" alt="ArcAI" className="h-5 w-5 mr-2" />
+                <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-5 w-5 mr-2" />
                 Create First Chat
               </GlassButton>
             </GlassCard>
