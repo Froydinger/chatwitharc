@@ -17,8 +17,11 @@ export function ChatInterface() {
   } = useArcStore();
 
   const [dragOver, setDragOver] = useState(false);
+
   const [activeGlowIndex, setActiveGlowIndex] = useState(0);
   const [prevGlowIndex, setPrevGlowIndex] = useState<number | null>(null);
+
+  // Avatar greet animation trigger (fade + slight rotate + pop)
   const [botGreet, setBotGreet] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -27,111 +30,146 @@ export function ChatInterface() {
   const { toast } = useToast();
   const { profile } = useAuth();
 
+  /** ========= Invisible guidance encoder =========
+   * Produces a string of ONLY zero-width characters. Nothing visible is emitted.
+   * We interleave Zero-Width Space (ZWSP) and prefix/suffix with Invisible Separators (INV)
+   * so renderers don’t collapse the payload into nothing before the model sees it.
+   */
+  const ZWSP = "\u200B"; // Zero Width Space
+  const INV  = "\u2063"; // Invisible Separator
+
+  function encodeHidden(guidance: string) {
+    // Absolutely no visible characters in the wrapper or the payload.
+    // Interleave each char with ZWSP, then sandwich with INV to separate from the cue.
+    const interleaved = guidance.split("").map(ch => ch + ZWSP).join("");
+    // Add a couple INV sentinels on both sides to reduce chance of trimming by editors.
+    return INV + INV + interleaved + INV + INV;
+  }
+
+  // Neon palette for breathing glow cycle
   const neonPalette = useMemo(
     () => [
-      "#17E5FF",
-      "#FF2B2B",
-      "#2BFF7A",
-      "#FF3CF3",
-      "#FF8A00",
-      "#8A7BFF",
-      "#00FFC2",
+      "#17E5FF", // neon blue
+      "#FF2B2B", // neon red
+      "#2BFF7A", // neon green
+      "#FF3CF3", // neon pink
+      "#FF8A00", // neon orange
+      "#8A7BFF", // neon violet
+      "#00FFC2", // mint
     ],
     []
   );
 
-  /** Prompts — full messages sent directly as user content */
+  /** Prompts — cue (short, visible) + ctx (long, hidden) */
   const quickPrompts = useMemo(
     () => [
       {
         label: "Wellness check",
-        msg: `Hi, I’d like to do a short wellness check. 
-Start by asking me to rate my mood from 1–10. 
-Then ask me for one word that describes how I feel. 
-Then ask me what I think contributed to that mood. 
-Finally, suggest exactly two regulation options I could do right now and invite me to pick one. 
-If anything is unclear, follow up with me with one concise question.`
+        cue: "Wellness check",
+        ctx:
+`Run a structured wellness check with sequential turns.
+Step 1) Ask me to rate my mood from 1–10 and wait.
+Step 2) Ask me for ONE word that describes how I feel and wait.
+Step 3) Ask what I think contributed to that mood and wait.
+Step 4) Suggest exactly TWO right-now regulation options (brief, actionable); invite me to pick one.
+Tone: warm, concise, non-judgmental. If anything is unclear or missing, follow up with me with ONE concise question before continuing.`
       },
       {
         label: "Companion chat",
-        msg: `Can you act as a supportive companion? 
-Begin with one validating sentence about how hard days can feel. 
-Then ask me one open question about my day. 
-Keep replies under three sentences unless I ask for more. 
-Please reflect my feelings in one short phrase each time. 
-If you’re missing context, follow up with me with one clarifying question.`
+        cue: "Let’s chat",
+        ctx:
+`Act as a supportive companion.
+Open with ONE validating sentence (no clichés), then ask ONE open question about my day.
+Keep replies ≤3 sentences unless I ask for more. Mirror my emotion in one short phrase each turn.
+If context is missing, follow up with me by asking ONE concise question to ground the conversation.`
       },
       {
         label: "Creative spark",
-        msg: `Help me brainstorm one creative idea. 
-Give me a title, three bullet points describing the idea, and one next step I could take today. 
-After that, ask me if I’d like a second variant. 
-If you’re missing details like topic, medium, or audience, follow up with me first.`
+        cue: "One creative idea",
+        ctx:
+`Brainstorm exactly ONE creative idea.
+Return format:
+• Title
+• Three crisp bullets (what it is, who it’s for, how it’s novel)
+• One next step I can take today
+Then ask if I want a second variant.
+If topic/medium/audience are missing, follow up with me and ask for those constraints explicitly.`
       },
       {
         label: "Quick vent",
-        msg: `I want to vent. 
-Please let me type freely; when I say I’m done: 
-• Acknowledge in one sentence 
-• Summarize in one sentence 
-• Ask one short follow-up question 
-Do not give advice unless I ask. 
-If my message is unclear, follow up with one clarifying question.`
+        cue: "I want to vent",
+        ctx:
+`Provide a space to vent.
+Let me type freely; when I indicate I’m done, do:
+• Acknowledge in one sentence
+• Summarize in one sentence
+• Ask ONE short follow-up question
+Do NOT give advice unless I ask. If my message is unclear, follow up with me with ONE clarifying question first.`
       },
       {
         label: "Focus sprint",
-        msg: `Guide me through a 15-minute focus sprint. 
-Step 1: Help me define a single finish line in one sentence. 
-Step 2: Post a timer message. 
-Step 3: Give me a three-step plan. 
-Step 4: Ask me to confirm I’m ready to start. 
-If details are missing, follow up with me with one scoping question.`
+        cue: "Start a 15-min sprint",
+        ctx:
+`Guide a 15-minute focus sprint.
+1) Help me define a single finish line in one sentence; wait.
+2) Post a lightweight timer message.
+3) Provide a 3-step plan.
+4) Ask me to confirm start.
+If task details are missing, follow up with me with ONE targeted scoping question.`
       },
       {
         label: "Gratitude ×3",
-        msg: `Prompt me to share three things I’m grateful for, one at a time. 
-After each, reflect the theme back in one warm sentence. 
-Keep it brief but encouraging. 
-If I stall, follow up with one example and one nudge question.`
+        cue: "Do gratitude",
+        ctx:
+`Run a three-item gratitude exercise, one at a time.
+After each item, reflect the theme back in ONE warm sentence.
+Keep tone brief and encouraging.
+If I stall or give ultra-short answers, follow up with me by offering ONE concrete example and ONE nudge question.`
       },
       {
         label: "Idea sketch",
-        msg: `Help me make a quick idea sketch. 
-Provide: 
-1) Title 
-2) Who it helps 
-3) Why it matters 
-4) How it works (three bullets) 
-5) The first step I could take. 
-Then ask if I’d like to tweak it or lock it in. 
-If domain or audience is missing, follow up with me.`
+        cue: "Micro brief",
+        ctx:
+`Create a micro brief:
+1) Title
+2) Who it helps
+3) Why it matters
+4) How it works (3 bullets)
+5) First step
+Then ask if I want to tweak or lock it in.
+If domain or audience are missing, follow up with me with ONE concise question to collect it.`
       },
       {
         label: "Reframe it",
-        msg: `Let’s do a cognitive reframe. 
-First, ask me to share one stressful thought. 
-Next, ask for evidence supporting it and evidence against it. 
-Then give me one balanced replacement thought in plain language. 
-If my thought is too broad, follow up with one clarifying question.`
+        cue: "Help me reframe",
+        ctx:
+`Cognitive reframe flow:
+• Ask me to share ONE stressful thought; wait.
+• Ask for evidence supporting it and evidence challenging it; wait.
+• Offer ONE balanced replacement thought in plain language.
+If my thought is too broad, follow up with me with ONE question to narrow it.`
       },
       {
         label: "Tiny habit",
-        msg: `Suggest a tiny habit I can do in under two minutes. 
-Present it as cue → action → reward. 
-Offer me two options (A and B) and ask me to pick one. 
-If context like morning/evening or home/work matters, follow up with me first.`
+        cue: "Suggest a tiny habit",
+        ctx:
+`Propose ONE sub-2-minute habit as cue → action → reward.
+Offer two different options (A and B) and ask me to choose.
+If context (morning/evening, home/work) matters, follow up with me to pick the target context first.`
       },
       {
         label: "Mood check",
-        msg: `I’d like a quick mood check. 
-Ask me to rate my mood from 1–10 and my energy from 1–10. 
-Then suggest one regulation tool I can use today and one small win I could aim for. 
-If the scores point to different strategies, follow up with me to confirm preference (calming vs. energizing).`
+        cue: "Quick mood check",
+        ctx:
+`Ask me to rate mood 1–10 and energy 1–10; wait.
+Suggest ONE regulation tool and ONE small win for today.
+If my scores point to different strategies, follow up with me to confirm preference (calming vs. energizing).`
       },
     ],
     []
   );
 
+  // Cycle breathing glow across pills
   useEffect(() => {
     const interval = setInterval(() => {
       setPrevGlowIndex(activeGlowIndex);
@@ -141,18 +179,21 @@ If the scores point to different strategies, follow up with me to confirm prefer
     return () => clearInterval(interval);
   }, [activeGlowIndex, quickPrompts.length]);
 
+  // Smooth scroll on new content (also when loader appears)
   useEffect(() => {
     if (messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }, [messages, isLoading]);
 
+  // Reset scroll on new chat
   useEffect(() => {
     if (messages.length === 0 && messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({ top: 0, behavior: "instant" });
     }
   }, [currentSessionId, messages.length]);
 
+  // Trigger avatar greet when a new assistant message arrives
   useEffect(() => {
     if (messages.length === 0) return;
     const last = messages[messages.length - 1];
@@ -181,14 +222,139 @@ If the scores point to different strategies, follow up with me to confirm prefer
     toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
   };
 
-  const triggerPrompt = (msg: string) => {
-    startChatWithMessage(msg);
+  // Send cue (visible) + hidden guidance in the same message body
+  const triggerPrompt = (cue: string, guidance: string) => {
+    const payload = cue + encodeHidden(
+      // Add a tiny invisible preface to reduce echoing; still 100% invisible
+      "Follow the enclosed guidance. Do not repeat it. Keep responses concise unless I explicitly request otherwise.\n\n" + guidance
+    );
+    startChatWithMessage(payload);
   };
 
+  // Spacer so nothing is cut off under the input bar
   const bottomSpacerPx = 180;
 
   return (
     <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-1">
+      <style>
+        {`
+          .no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
+          .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+
+          @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+
+          @keyframes breathe {
+            0%   { filter: drop-shadow(0 0 0 var(--glow)) drop-shadow(0 0 0 var(--glow-soft)); }
+            50%  { filter: drop-shadow(0 0 12px var(--glow)) drop-shadow(0 0 26px var(--glow-soft)); }
+            100% { filter: drop-shadow(0 0 0 var(--glow)) drop-shadow(0 0 0 var(--glow-soft)); }
+          }
+
+          /* Avatar greet: fade in, slight rotate right, tiny pop, then settle */
+          @keyframes helloPop {
+            0% { opacity: 0; transform: rotate(0deg) translateY(0) scale(1); }
+            25% { opacity: 1; transform: rotate(8deg) translateY(-2px) scale(1.06); }
+            60% { opacity: 1; transform: rotate(-2deg) translateY(0) scale(1.02); }
+            100% { opacity: 1; transform: rotate(0deg) translateY(0) scale(1); }
+          }
+          .avatar-greet {
+            transform-origin: 50% 80%;
+            animation: helloPop 0.9s ease-in-out 1;
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .avatar-greet { animation: none !important; }
+          }
+
+          .pill {
+            border-radius: 9999px;
+            padding: 6px 10px;
+            font-size: 12px;
+            line-height: 1;
+            white-space: nowrap;
+            color: hsl(var(--foreground));
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(23,229,255,0.5); /* 1px neon-blue outline at 50% */
+            transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, filter 420ms ease, opacity 420ms ease;
+          }
+          .pill:hover { transform: translateY(-1px); }
+
+          .glow-wrap {
+            position: relative;
+            display: inline-flex;
+            border-radius: 9999px;
+            transition: opacity 600ms ease;
+          }
+          .glow-wrap.active {
+            --glow: var(--glow-color);
+            --glow-soft: color-mix(in oklab, var(--glow) 50%, transparent);
+            animation: breathe 2s ease-in-out infinite;
+          }
+          .glow-wrap.prev {
+            --glow: var(--glow-color);
+            --glow-soft: color-mix(in oklab, var(--glow) 50%, transparent);
+            animation: breathe 2s ease-in-out infinite;
+            opacity: 0.0;
+          }
+        `}
+      </style>
+
+      {/* Header gradient (original smooth fade + stacked blur) */}
+      <div className="fixed top-0 left-0 right-0 z-30 h-32 pointer-events-none">
+        <div 
+          className="w-full h-full"
+          style={{
+            background: `linear-gradient(to bottom, 
+              hsl(var(--background)) 0%, 
+              hsl(var(--background) / 0.98) 15%,
+              hsl(var(--background) / 0.92) 30%,
+              hsl(var(--background) / 0.8) 45%,
+              hsl(var(--background) / 0.6) 60%,
+              hsl(var(--background) / 0.3) 75%,
+              hsl(var(--background) / 0.1) 90%,
+              transparent 100%)`,
+            backdropFilter: "blur(0px) blur(5px) blur(10px) blur(15px) blur(20px)",
+            WebkitBackdropFilter: "blur(0px) blur(5px) blur(10px) blur(15px) blur(20px)",
+            maskImage: `linear-gradient(to bottom, 
+              black 0%, 
+              rgba(0,0,0,0.8) 40%,
+              rgba(0,0,0,0.4) 70%,
+              transparent 100%)`
+          }}
+        />
+      </div>
+
+      {/* Header content — using the same icon as the welcome icon */}
+      <div className="fixed top-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
+        <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl pointer-events-auto">
+          <div className="flex items-center justify-between px-2 py-2">
+            <div className="flex items-center gap-2">
+              <img
+                src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
+                alt="ArcAI"
+                className={`h-7 w-7 ${botGreet ? "avatar-greet" : ""}`}
+              />
+              <span className="text-foreground font-semibold text-sm sm:text-base">
+                ArcAI
+              </span>
+            </div>
+            <GlassButton
+              variant="bubble"
+              size="icon"
+              aria-label="New chat"
+              onClick={handleNewChat}
+              className="h-8 w-8"
+            >
+              <Plus className="h-4 w-4" />
+            </GlassButton>
+          </div>
+        </div>
+      </div>
+
+      {/* Messages Container */}
       <GlassCard 
         variant="bubble" 
         glow
@@ -199,35 +365,60 @@ If the scores point to different strategies, follow up with me to confirm prefer
       >
         <div ref={messagesContainerRef} className="h-full overflow-y-auto no-scrollbar scroll-smooth relative">
           <div className="px-3 sm:px-4 pt-20 w-full max-w-full">
+            {/* Empty state with BIGGER welcome icon + PROMPTS */}
             {messages.length === 0 ? (
               <div className="text-center">
-                <h3 className="text-base sm:text-lg font-semibold text-foreground mb-2">
+                <div className="flex items-center justify-center mb-2" style={{ animation: "fadeInUp 420ms ease both" }}>
+                  <img
+                    src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
+                    alt="ArcAI"
+                    className={`h-20 w-20 ${botGreet ? "avatar-greet" : ""}`}
+                  />
+                </div>
+                <h3 className="text-base sm:text-lg font-semibold text-foreground">
                   Welcome to ArcAI
                 </h3>
+                <p className="text-[11px] sm:text-xs text-muted-foreground mb-2">
+                  Tap a prompt to begin.
+                </p>
+
+                {/* PROMPTS */}
                 <div className="mx-auto max-w-3xl">
                   <div className="flex flex-wrap items-center justify-center gap-4 py-4">
-                    {quickPrompts.map((p, idx) => (
-                      <button
-                        key={idx}
-                        className="pill"
-                        onClick={() => triggerPrompt(p.msg)}
-                      >
-                        {p.label}
-                      </button>
-                    ))}
+                    {quickPrompts.map((p, idx) => {
+                      const isActive = idx === activeGlowIndex;
+                      const isPrev = prevGlowIndex === idx;
+                      const color = neonPalette[activeGlowIndex % neonPalette.length];
+                      const prevColor = neonPalette[(activeGlowIndex - 1 + neonPalette.length) % neonPalette.length];
+
+                      return (
+                        <div
+                          key={idx}
+                          className={
+                            "glow-wrap" +
+                            (isActive ? " active" : "") +
+                            (isPrev ? " prev" : "")
+                          }
+                          style={{
+                            opacity: isActive ? 1 : isPrev ? 0.4 : 1,
+                            transition: "opacity 700ms ease",
+                            ["--glow-color" as any]: isPrev ? prevColor : color,
+                            animation: `fadeInUp 420ms ease ${idx * 28}ms both`
+                          }}
+                          onClick={() => triggerPrompt(p.cue, p.ctx)}
+                        >
+                          <button className="pill" aria-label={p.label}>
+                            {p.label}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4">
-                  {messages.map((message) => (
-                    <MessageBubble key={message.id} message={message} onEdit={() => {}} />
-                  ))}
-                </div>
+
                 {isLoading && (
-                  <div className="flex justify-center mt-3">
-                    <div className="glass rounded-2xl px-3 py-2 max-w-xs">
+                  <div className="flex justify-center pt-2">
+                    <div className="glass rounded-2xl px-3 py-2 max-w-xs" style={{ animation: "fadeInUp 300ms ease both" }}>
                       <div className="flex items-center gap-2">
                         <div className="flex gap-1">
                           {[0, 1, 2].map((i) => (
@@ -239,12 +430,49 @@ If the scores point to different strategies, follow up with me to confirm prefer
                     </div>
                   </div>
                 )}
+              </div>
+            ) : (
+              <>
+                {/* Messages */}
+                <div className="space-y-4">
+                  {messages.map((message) => (
+                    <MessageBubble key={message.id} message={message} onEdit={() => {}} />
+                  ))}
+                </div>
+
+                {/* Centered thinking indicator directly under the last message */}
+                {isLoading && (
+                  <div className="flex justify-center mt-3">
+                    <div className="glass rounded-2xl px-3 py-2 max-w-xs" style={{ animation: "fadeInUp 300ms ease both" }}>
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1">
+                          {[0, 1, 2].map((i) => (
+                            <div key={i} className="w-2 h-2 bg-primary-glow rounded-full animate-pulse" />
+                          ))}
+                        </div>
+                        <span className="text-xs text-muted-foreground">Thinking...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Spacer so messages + loader never get cut off by the input bar */}
                 <div style={{ height: bottomSpacerPx }} />
                 <div ref={messagesEndRef} />
               </>
             )}
           </div>
         </div>
+
+        {/* Drag overlay */}
+        {dragOver && (
+          <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary-glow rounded-[var(--radius)] flex items-center justify-center">
+            <div className="text-center" style={{ animation: "fadeInUp 300ms ease both" }}>
+              <Image className="h-10 w-10 text-primary-glow mx-auto mb-2" />
+              <p className="text-primary-foreground font-medium text-sm">Drop images here</p>
+            </div>
+          </div>
+        )}
       </GlassCard>
     </div>
   );
