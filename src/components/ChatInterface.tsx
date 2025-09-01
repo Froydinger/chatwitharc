@@ -34,9 +34,9 @@ export function ChatInterface() {
             const container = messagesContainerRef.current;
             const scrollHeight = container.scrollHeight;
             const clientHeight = container.clientHeight;
-            container.scrollTop = scrollHeight - clientHeight - 100;
+            container.scrollTop = scrollHeight - clientHeight - 60;
           }
-        }, 100);
+        }, 60);
       } else {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }
@@ -71,53 +71,49 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-2">
-      {/* Gradient Header Mask */}
-      <div className="fixed top-0 left-0 right-0 z-30 h-32 pointer-events-none">
+    <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-1">
+      {/* Gradient Header Mask with reduced height */}
+      <div className="fixed top-0 left-0 right-0 z-30 h-20 pointer-events-none">
         <div 
           className="w-full h-full"
           style={{
             background: `linear-gradient(to bottom, 
               hsl(var(--background)) 0%, 
-              hsl(var(--background) / 0.98) 15%,
-              hsl(var(--background) / 0.92) 30%,
-              hsl(var(--background) / 0.8) 45%,
-              hsl(var(--background) / 0.6) 60%,
-              hsl(var(--background) / 0.3) 75%,
-              hsl(var(--background) / 0.1) 90%,
+              hsl(var(--background) / 0.98) 12%,
+              hsl(var(--background) / 0.9) 24%,
+              hsl(var(--background) / 0.75) 45%,
+              hsl(var(--background) / 0.45) 70%,
               transparent 100%)`,
-            backdropFilter: "blur(0px) blur(5px) blur(10px) blur(15px) blur(20px)",
-            WebkitBackdropFilter: "blur(0px) blur(5px) blur(10px) blur(15px) blur(20px)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
             maskImage: `linear-gradient(to bottom, 
               black 0%, 
-              rgba(0,0,0,0.8) 40%,
-              rgba(0,0,0,0.4) 70%,
+              rgba(0,0,0,0.7) 50%,
               transparent 100%)`
           }}
         />
       </div>
 
-      {/* Floating Header Content */}
+      {/* Floating Header Content with tighter padding */}
       <div className="fixed top-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
-        <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-4 pointer-events-auto">
-          <img src="/lovable-uploads/10805bee-4d5c-4640-a77f-d2ea5cd05436.png" alt="ArcAI" className="h-8 w-8" />
+        <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-2 pointer-events-auto">
+          <img src="/lovable-uploads/10805bee-4d5c-4640-a77f-d2ea5cd05436.png" alt="ArcAI" className="h-7 w-7" />
           <GlassButton
             variant="bubble"
             size="icon"
             onClick={handleNewChat}
+            className="h-9 w-9"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
           </GlassButton>
         </div>
       </div>
 
-      {/* Messages Container */}
+      {/* Messages Container with reduced outer padding */}
       <GlassCard 
         variant="bubble" 
         glow
-        className={`flex-1 mx-4 mb-4 overflow-hidden ${
-          dragOver ? "border-primary-glow border-2" : ""
-        }`}
+        className={`flex-1 mx-2 mb-2 overflow-hidden ${dragOver ? "border-primary-glow border-2" : ""}`}
         onDragOver={(e) => {
           e.preventDefault();
           setDragOver(true);
@@ -127,15 +123,14 @@ export function ChatInterface() {
       >
         <div
           ref={messagesContainerRef}
-          className="h-full overflow-y-auto space-y-4 scroll-smooth relative"
+          className="h-full overflow-y-auto space-y-3 scroll-smooth relative"
           style={{
-            scrollbarWidth: "none",   // Firefox
-            msOverflowStyle: "none",  // IE/Edge
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
           }}
         >
           <style>
             {`
-              /* Hide scrollbar in Webkit browsers */
               .h-full.overflow-y-auto::-webkit-scrollbar {
                 width: 0px;
                 background: transparent;
@@ -143,69 +138,136 @@ export function ChatInterface() {
             `}
           </style>
 
-          <div className="px-4 sm:px-6 pt-28 pb-40 space-y-4 w-full max-w-full">
+          <div className="px-3 sm:px-4 pt-16 pb-20 space-y-3 w-full max-w-full">
             <div>
               {messages.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="flex justify-center mb-4">
-                    <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-16 w-16" />
+                <div className="text-center py-6">
+                  <div className="flex justify-center mb-3">
+                    <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-12 w-12" />
                   </div>
-                  <h3 className="text-xl font-semibold text-foreground mb-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-1">
                     Welcome to ArcAI
                   </h3>
-                  <p className="text-muted-foreground mb-8">
-                    Start a conversation, or work on something new!
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Start a conversation or jump into a task.
                   </p>
 
-                  <div className="grid grid-cols-1 gap-3 max-w-md mx-auto pb-40">
+                  {/* Quick start cards with tighter spacing */}
+                  <div className="grid grid-cols-1 gap-2 max-w-md mx-auto mb-3">
                     <button
                       onClick={() => startChatWithMessage("I'd like a mental wellness check-in. How are you feeling today and what's on your mind?")}
-                      className="glass p-4 rounded-xl text-left"
+                      className="glass p-3 rounded-xl text-left"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                          <span className="text-green-400 text-lg">🧘</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <span className="text-green-400 text-base">🧘</span>
                         </div>
                         <div>
-                          <h4 className="font-medium text-foreground">Mental Wellness Check-in</h4>
-                          <p className="text-sm text-muted-foreground">Reflect on your feelings and thoughts</p>
+                          <h4 className="font-medium text-foreground text-sm">Mental Wellness Check-in</h4>
+                          <p className="text-xs text-muted-foreground">Reflect on feelings and thoughts</p>
                         </div>
                       </div>
                     </button>
 
                     <button
                       onClick={() => startChatWithMessage("I need someone to talk to today. Can you be a supportive companion?")}
-                      className="glass p-4 rounded-xl text-left"
+                      className="glass p-3 rounded-xl text-left"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                          <span className="text-blue-400 text-lg">💙</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                          <span className="text-blue-400 text-base">💙</span>
                         </div>
                         <div>
-                          <h4 className="font-medium text-foreground">Friendly Companion</h4>
-                          <p className="text-sm text-muted-foreground">Chat with a supportive AI friend</p>
+                          <h4 className="font-medium text-foreground text-sm">Friendly Companion</h4>
+                          <p className="text-xs text-muted-foreground">Supportive AI friend</p>
                         </div>
                       </div>
                     </button>
 
                     <button
                       onClick={() => startChatWithMessage("Let's get creative! Help me brainstorm some ideas or work on a creative project.")}
-                      className="glass p-4 rounded-xl text-left"
+                      className="glass p-3 rounded-xl text-left"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-                          <span className="text-purple-400 text-lg">🎨</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
+                          <span className="text-purple-400 text-base">🎨</span>
                         </div>
                         <div>
-                          <h4 className="font-medium text-foreground">Creative Inspiration</h4>
-                          <p className="text-sm text-muted-foreground">Explore ideas and spark creativity</p>
+                          <h4 className="font-medium text-foreground text-sm">Creative Inspiration</h4>
+                          <p className="text-xs text-muted-foreground">Spark ideas fast</p>
                         </div>
                       </div>
                     </button>
                   </div>
+
+                  {/* New compact pill prompts: 7 more, small formation */}
+                  <div className="max-w-md mx-auto">
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        onClick={() => startChatWithMessage("I want to vent for 2 minutes. Just listen and reflect back key feelings.")}
+                        className="glass rounded-full px-3 py-2 text-xs"
+                      >
+                        Quick vent
+                      </button>
+                      <button
+                        onClick={() => startChatWithMessage("Guide me through a 15 minute focus sprint with a timer and one goal.")}
+                        className="glass rounded-full px-3 py-2 text-xs"
+                      >
+                        Focus sprint
+                      </button>
+                      <button
+                        onClick={() => startChatWithMessage("Give me three gratitude prompts and wait for my answers one by one.")}
+                        className="glass rounded-full px-3 py-2 text-xs"
+                      >
+                        Gratitude x3
+                      </button>
+                      <button
+                        onClick={() => startChatWithMessage("Help me sketch one idea with a title, 3 bullets, and next step.")}
+                        className="glass rounded-full px-3 py-2 text-xs"
+                      >
+                        Idea sketch
+                      </button>
+                      <button
+                        onClick={() => startChatWithMessage("Help me reframe a stressful thought using CBT style questions.")}
+                        className="glass rounded-full px-3 py-2 text-xs"
+                      >
+                        Reframe it
+                      </button>
+                      <button
+                        onClick={() => startChatWithMessage("Suggest one tiny habit I can do daily in under 2 minutes.")}
+                        className="glass rounded-full px-3 py-2 text-xs"
+                      >
+                        Tiny habit
+                      </button>
+                      <button
+                        onClick={() => startChatWithMessage("Do a quick mood check using 1 to 10, then suggest one regulation tool.")}
+                        className="glass rounded-full px-3 py-2 text-xs"
+                      >
+                        Mood check
+                      </button>
+                      <button
+                        onClick={() => startChatWithMessage("Help me plan a single task for today with a clear finish line.")}
+                        className="glass rounded-full px-3 py-2 text-xs"
+                      >
+                        One task
+                      </button>
+                      <button
+                        onClick={() => startChatWithMessage("Give me a 5 line journaling prompt with a playful tone.")}
+                        className="glass rounded-full px-3 py-2 text-xs"
+                      >
+                        5 line journal
+                      </button>
+                      <button
+                        onClick={() => startChatWithMessage("Guide a 3 minute wind down to prep for better sleep tonight.")}
+                        className="glass rounded-full px-3 py-2 text-xs"
+                      >
+                        Wind down
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {messages.map((message) => (
                     <MessageBubble 
                       key={message.id} 
@@ -218,7 +280,7 @@ export function ChatInterface() {
 
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="glass rounded-2xl px-4 py-3 max-w-xs">
+                  <div className="glass rounded-2xl px-3 py-2 max-w-xs">
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">
                         {[0, 1, 2].map((i) => (
@@ -228,7 +290,7 @@ export function ChatInterface() {
                           />
                         ))}
                       </div>
-                      <span className="text-sm text-muted-foreground">Thinking...</span>
+                      <span className="text-xs text-muted-foreground">Thinking...</span>
                     </div>
                   </div>
                 </div>
@@ -244,8 +306,8 @@ export function ChatInterface() {
             className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary-glow rounded-[var(--radius)] flex items-center justify-center"
           >
             <div className="text-center">
-              <Image className="h-12 w-12 text-primary-glow mx-auto mb-2" />
-              <p className="text-primary-foreground font-medium">Drop images here</p>
+              <Image className="h-10 w-10 text-primary-glow mx-auto mb-2" />
+              <p className="text-primary-foreground font-medium text-sm">Drop images here</p>
             </div>
           </div>
         )}
