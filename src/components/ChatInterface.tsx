@@ -28,25 +28,22 @@ export function ChatInterface() {
   useEffect(() => {
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage.role === 'user') {
-        // For user messages, scroll so the message is visible but user can still scroll up
+      if (lastMessage.role === "user") {
         setTimeout(() => {
           if (messagesContainerRef.current) {
             const container = messagesContainerRef.current;
             const scrollHeight = container.scrollHeight;
             const clientHeight = container.clientHeight;
-            // Scroll to show the message but leave some space to see previous messages
             container.scrollTop = scrollHeight - clientHeight - 100;
           }
         }, 100);
       } else {
-        // For AI responses, scroll to bottom
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }
     }
   }, [messages]);
 
-  // Scroll to top when starting new chat - more aggressive approach
+  // Reset scroll on new chat
   useEffect(() => {
     if (messages.length === 0 && messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({ top: 0, behavior: "instant" });
@@ -61,7 +58,6 @@ export function ChatInterface() {
 
   const handleNewChat = () => {
     createNewSession();
-    // Immediate scroll to top with multiple approaches
     requestAnimationFrame(() => {
       if (messagesContainerRef.current) {
         messagesContainerRef.current.scrollTo({ top: 0, behavior: "instant" });
@@ -76,7 +72,7 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-2">
-      {/* Gradient Header Mask - Smooth fade */}
+      {/* Gradient Header Mask */}
       <div className="fixed top-0 left-0 right-0 z-30 h-32 pointer-events-none">
         <div 
           className="w-full h-full"
@@ -90,8 +86,8 @@ export function ChatInterface() {
               hsl(var(--background) / 0.3) 75%,
               hsl(var(--background) / 0.1) 90%,
               transparent 100%)`,
-            backdropFilter: 'blur(0px) blur(5px) blur(10px) blur(15px) blur(20px)',
-            WebkitBackdropFilter: 'blur(0px) blur(5px) blur(10px) blur(15px) blur(20px)',
+            backdropFilter: "blur(0px) blur(5px) blur(10px) blur(15px) blur(20px)",
+            WebkitBackdropFilter: "blur(0px) blur(5px) blur(10px) blur(15px) blur(20px)",
             maskImage: `linear-gradient(to bottom, 
               black 0%, 
               rgba(0,0,0,0.8) 40%,
@@ -120,7 +116,7 @@ export function ChatInterface() {
         variant="bubble" 
         glow
         className={`flex-1 mx-4 mb-4 overflow-hidden ${
-          dragOver ? 'border-primary-glow border-2' : ''
+          dragOver ? "border-primary-glow border-2" : ""
         }`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -129,9 +125,25 @@ export function ChatInterface() {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
       >
-        <div ref={messagesContainerRef} className="h-full overflow-y-auto space-y-4 scroll-smooth relative">
-          {/* Content area with top padding for header clearance and bottom padding for input clearance */}
-          <div className="px-4 sm:px-6 pt-28 pb-40 space-y-4">
+        <div
+          ref={messagesContainerRef}
+          className="h-full overflow-y-auto space-y-4 scroll-smooth relative"
+          style={{
+            scrollbarWidth: "none",   // Firefox
+            msOverflowStyle: "none",  // IE/Edge
+          }}
+        >
+          <style>
+            {`
+              /* Hide scrollbar in Webkit browsers */
+              .h-full.overflow-y-auto::-webkit-scrollbar {
+                width: 0px;
+                background: transparent;
+              }
+            `}
+          </style>
+
+          <div className="px-4 sm:px-6 pt-28 pb-40 space-y-4 w-full max-w-full">
             <div>
               {messages.length === 0 ? (
                 <div className="text-center py-12">
@@ -144,8 +156,7 @@ export function ChatInterface() {
                   <p className="text-muted-foreground mb-8">
                     Start a conversation, or work on something new!
                   </p>
-                  
-                  {/* Quick Start Options - with bottom padding */}
+
                   <div className="grid grid-cols-1 gap-3 max-w-md mx-auto pb-40">
                     <button
                       onClick={() => startChatWithMessage("I'd like a mental wellness check-in. How are you feeling today and what's on your mind?")}
@@ -161,7 +172,7 @@ export function ChatInterface() {
                         </div>
                       </div>
                     </button>
-                    
+
                     <button
                       onClick={() => startChatWithMessage("I need someone to talk to today. Can you be a supportive companion?")}
                       className="glass p-4 rounded-xl text-left"
@@ -176,7 +187,7 @@ export function ChatInterface() {
                         </div>
                       </div>
                     </button>
-                    
+
                     <button
                       onClick={() => startChatWithMessage("Let's get creative! Help me brainstorm some ideas or work on a creative project.")}
                       className="glass p-4 rounded-xl text-left"
@@ -199,12 +210,12 @@ export function ChatInterface() {
                     <MessageBubble 
                       key={message.id} 
                       message={message} 
-                      onEdit={() => {}} // Removed edit functionality for now
+                      onEdit={() => {}} 
                     />
                   ))}
                 </div>
               )}
-              
+
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="glass rounded-2xl px-4 py-3 max-w-xs">
