@@ -5,7 +5,7 @@ import { useRef, useState, useEffect, useLayoutEffect } from "react";
 import { ChatInput } from "@/components/ChatInput";
 
 const navigationItems = [
-  // swapped positions: history first, then chat, then settings
+  // history first, then chat (functionality attached to the right tabs)
   { id: "history", icon: History, label: "History" },
   { id: "chat", icon: MessageCircle, label: "Chat" },
   { id: "settings", icon: Settings, label: "Settings" },
@@ -21,7 +21,7 @@ export function BottomNavigation() {
   const measureRef = useRef<HTMLDivElement>(null);
   const scopeRef = useRef<HTMLDivElement>(null);
 
-  const BUBBLE = 67; // shrunk bubble size
+  const BUBBLE = 67;
   const TAB_RAIL_HEIGHT = 64;
   const PAD_TOP_COLLAPSED = 12;
   const PAD_TOP_EXPANDED = 16;
@@ -29,6 +29,7 @@ export function BottomNavigation() {
   const CONTAINER_WIDTH = 320;
   const GAP_ABOVE_RAIL = 8;
 
+  // measure natural input height
   const [inputHeight, setInputHeight] = useState(0);
   useLayoutEffect(() => {
     const el = measureRef.current;
@@ -47,6 +48,7 @@ export function BottomNavigation() {
   const expanded = currentTab === "chat";
   const topPad = expanded ? PAD_TOP_EXPANDED : PAD_TOP_COLLAPSED;
 
+  // Remove paperclip and any wrapper cells that reserve space
   useEffect(() => {
     const root = scopeRef.current;
     if (!root) return;
@@ -88,15 +90,16 @@ export function BottomNavigation() {
     return () => mo.disconnect();
   }, []);
 
+  // Bubble position helper
   const getBubblePosition = () => {
     const idx = navigationItems.findIndex(i => i.id === currentTab);
     const tabEl = tabRefs.current[idx];
     if (!tabEl) {
       const CELL = CONTAINER_WIDTH / navigationItems.length;
-      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: 0 }; // was 1, moved up by 1px
+      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: 0 }; // slight upward adjust from prior 1
     }
     const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
-    return { x: tabCenterX - BUBBLE / 2, y: 0 }; // was 1, moved up by 1px
+    return { x: tabCenterX - BUBBLE / 2, y: 0 };
   };
 
   useEffect(() => {
@@ -148,6 +151,7 @@ export function BottomNavigation() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
+        {/* Glass container: flex column, rail is a fixed-height footer */}
         <div
           className="relative flex flex-col"
           style={{
@@ -166,25 +170,133 @@ export function BottomNavigation() {
             `,
             paddingTop: topPad,
             paddingBottom: PAD_BOTTOM,
-            ["--bubble-blue" as any]: "hsl(200, 100%, 60%)",
+            ["--bubble-blue" as any]: "hsl(200, 100%, 60%)", // base neon blue
+            ["--neon-blue" as any]: "hsl(200, 100%, 60%)",
             willChange: "transform",
           }}
         >
           <style>{`
+            /* Neon pulse for the whole input bar (very subtle ~10% opacity) */
+            @keyframes neonPulse {
+              0%, 100% {
+                box-shadow:
+                  0 0 0 0 hsla(200, 100%, 60%, 0.10),
+                  0 0 24px hsla(200, 100%, 60%, 0.10);
+              }
+              50% {
+                box-shadow:
+                  0 0 0 0 hsla(200, 100%, 60%, 0.00),
+                  0 0 24px hsla(200, 100%, 60%, 0.00);
+              }
+            }
+
+            /* Focus/active visuals forced to neon blue (no purple) */
+            .chat-input-scope input,
+            .chat-input-scope textarea,
+            .chat-input-scope [contenteditable="true"] {
+              caret-color: var(--neon-blue) !important;
+              accent-color: var(--neon-blue) !important;
+            }
+
+            .chat-input-scope input:focus,
+            .chat-input-scope input:focus-visible,
+            .chat-input-scope textarea:focus,
+            .chat-input-scope textarea:focus-visible,
+            .chat-input-scope [contenteditable="true"]:focus,
+            .chat-input-scope [contenteditable="true"]:focus-visible {
+              outline-color: var(--neon-blue) !important;
+              border-color: var(--neon-blue) !important;
+              box-shadow:
+                0 0 0 3px color-mix(in oklab, var(--neon-blue) 40%, transparent) !important;
+            }
+
+            /* exact 10px gutters in the scope container */
+            .chat-input-scope {
+              display: flex !important;
+              align-items: center !important;
+              justify-content: flex-start !important;
+              gap: 8px !important;
+              padding-left: 10px !important;
+              padding-right: 10px !important;
+              width: 100% !important;
+              box-sizing: border-box !important;
+              margin: 0 !important;
+            }
+
+            /* normalize inner rows */
+            .chat-input-scope form,
+            .chat-input-scope .row,
+            .chat-input-scope .input-row,
+            .chat-input-scope .wrapper,
+            .chat-input-scope .controls,
+            .chat-input-scope .toolbar {
+              display: flex !important;
+              align-items: center !important;
+              justify-content: flex-start !important;
+              gap: 8px !important;
+              width: 100% !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              flex: 1 1 auto !important;
+            }
+
+            /* grow the field and remove only EXTERNAL offsets on wrappers */
+            .chat-input-scope .pill,
+            .chat-input-scope [class*="pill" i],
+            .chat-input-scope .input-wrapper,
+            .chat-input-scope [class*="input-wrapper" i],
+            .chat-input-scope .field,
+            .chat-input-scope [class*="field" i],
+            .chat-input-scope .textbox,
+            .chat-input-scope [role="textbox"] {
+              flex: 1 1 auto !important;
+              align-self: stretch !important;
+              width: 100% !important;
+              max-width: none !important;
+              min-width: 0 !important;
+              margin-left: 0 !important;
+              padding-left: 0 !important;
+              box-sizing: border-box !important;
+
+              /* subtle neon blue glow animation around the bar */
+              animation: neonPulse 3.2s ease-in-out infinite;
+              border-color: var(--neon-blue) !important;
+            }
+
+            /* nuke utility offsets that create phantom left gaps */
+            .chat-input-scope [class^="pl-"],
+            .chat-input-scope [class*=" pl-"],
+            .chat-input-scope *[style*="padding-left"] { padding-left: 0 !important; }
+            .chat-input-scope [class^="ml-"],
+            .chat-input-scope [class*=" ml-"],
+            .chat-input-scope *[style*="margin-left"] { margin-left: 0 !important; }
+
+            /* keep internal placeholder padding and 16px font; keep the tiny upward nudge */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               font-size: 16px !important;
               line-height: 1.4;
               flex: 1 1 auto !important;
               width: 100% !important;
               margin: 0 !important;
-              padding-left: 10px !important;
+              padding-left: 10px !important; /* internal */
               text-indent: 0 !important;
               box-sizing: border-box !important;
               position: relative !important;
               top: -2px !important;
+              border-color: var(--neon-blue) !important;
+            }
+
+            /* send button sits against the right gutter provided by scope padding */
+            .chat-input-scope [aria-label*="send" i],
+            .chat-input-scope button[type="submit"],
+            .chat-input-scope button[class*="send" i] {
+              margin: 0 !important;
+              flex: 0 0 auto !important;
+              align-self: center !important;
             }
           `}</style>
 
+          {/* Animated input slot */}
           <motion.div
             initial={false}
             animate={{
@@ -203,6 +315,7 @@ export function BottomNavigation() {
             }}
             style={{ overflow: "hidden", pointerEvents: expanded ? "auto" : "none" }}
           >
+            {/* Measured content with strict 10px gutters */}
             <div
               ref={measureRef}
               className="w-full"
@@ -214,6 +327,7 @@ export function BottomNavigation() {
             </div>
           </motion.div>
 
+          {/* Rail footer: fixed height, never moves */}
           <div style={{ height: TAB_RAIL_HEIGHT, position: "relative" }}>
             <div
               ref={railRef}
@@ -242,6 +356,7 @@ export function BottomNavigation() {
               })}
             </div>
 
+            {/* Bubble */}
             <motion.div
               drag="x"
               dragMomentum
