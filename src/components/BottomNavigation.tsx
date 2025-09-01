@@ -28,7 +28,7 @@ export function BottomNavigation() {
   const CONTAINER_WIDTH = 320;
   const GAP_ABOVE_RAIL = 8;
 
-  // rotating placeholders (unchanged behavior)
+  // ---------------- Placeholder cycling (unchanged visuals) ----------------
   const placeholders = [
     "What's on your mind?",
     "Type a thought or idea…",
@@ -73,9 +73,7 @@ export function BottomNavigation() {
       const obs = new MutationObserver(() => {
         const f = getField();
         if (!f) return;
-        if (f.placeholder !== currentPHRef.current) {
-          f.placeholder = currentPHRef.current;
-        }
+        if (f.placeholder !== currentPHRef.current) f.placeholder = currentPHRef.current;
         killDefaultGhosts();
       });
       if (scopeRef.current) {
@@ -105,43 +103,39 @@ export function BottomNavigation() {
     phIntervalRef.current = window.setInterval(startCycle, 6000) as unknown as number;
 
     return () => {
-      if (phIntervalRef.current) {
-        clearInterval(phIntervalRef.current);
-        phIntervalRef.current = null;
-      }
-      if (phObserverRef.current) {
-        phObserverRef.current.disconnect();
-        phObserverRef.current = null;
-      }
+      if (phIntervalRef.current) clearInterval(phIntervalRef.current);
+      phIntervalRef.current = null;
+      if (phObserverRef.current) phObserverRef.current.disconnect();
+      phObserverRef.current = null;
     };
   }, []);
 
-  // ---------- INPUT/IME FOCUS STATE ----------
-  const [isInputFocused, setIsInputFocused] = useState(false);
-
-  // Robust geometry: compute bubble center using viewport rects
-  const getBubblePositionFor = (tabId: typeof navigationItems[number]["id"]) => {
+  // ---------------- Bubble geometry helpers ----------------
+  const rectBubbleXForTab = (tabId: typeof navigationItems[number]["id"]) => {
     const idx = navigationItems.findIndex((i) => i.id === tabId);
     const rail = railRef.current;
-    const tabEl = tabRefs.current[idx];
-
-    if (!rail) return { x: 0, y: 0 };
+    if (!rail) return 0;
 
     const railRect = rail.getBoundingClientRect();
+    const tabEl = tabRefs.current[idx];
 
     if (!tabEl) {
       const cell = railRect.width / navigationItems.length;
       const center = cell * idx + cell / 2;
-      return { x: center - BUBBLE / 2, y: 0 };
+      return Math.round(center - BUBBLE / 2);
     }
 
-    const tabRect = tabEl.getBoundingClientRect();
-    const tabCenterViewport = tabRect.left + tabRect.width / 2;
-    const centerWithinRail = tabCenterViewport - railRect.left; // rail-local X
-    return { x: Math.round(centerWithinRail - BUBBLE / 2), y: 0 };
+    const r = tabEl.getBoundingClientRect();
+    const centerWithinRail = (r.left + r.width / 2) - railRect.left;
+    return Math.round(centerWithinRail - BUBBLE / 2);
   };
 
-  // Snap to chat when input focuses (prevents left-sticking during IME)
+  // ---------------- Absolute freeze during Android IME ----------------
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [freezeBubble, setFreezeBubble] = useState(false);
+  const frozenXRef = useRef<number>(0);
+
+  // On focus: lock to chat and FREEZE at exact x, no animation.
   useEffect(() => {
     const root = scopeRef.current;
     if (!root) return;
@@ -149,13 +143,24 @@ export function BottomNavigation() {
     const onFocusIn = () => {
       setIsInputFocused(true);
       if (currentTab !== "chat") setCurrentTab("chat");
-      const p = getBubblePositionFor("chat");
-      bubbleControls.set({ x: p.x, y: p.y });
+      const x = rectBubbleXForTab("chat");
+      frozenXRef.current = x;
+      setFreezeBubble(true);
+      bubbleControls.set({ x }); // no animation
     };
+
     const onFocusOut = () => {
       setIsInputFocused(false);
-      const p = getBubblePositionFor(currentTab);
-      bubbleControls.start({ x: p.x, y: p.y });
+      // Unfreeze after a tiny delay to let viewport settle
+      const x = rectBubbleXForTab(currentTab);
+      frozenXRef.current = x;
+      bubbleControls.set({ x }); // still no animation
+      setTimeout(() => {
+        setFreezeBubble(false);
+        // One measured, animated settle back to active tab
+        const nx = rectBubbleXForTab(currentTab);
+        bubbleControls.start({ x: nx, transition: { type: "spring", damping: 14, stiffness: 260, mass: 0.7 } });
+      }, 80);
     };
 
     root.addEventListener("focusin", onFocusIn);
@@ -166,36 +171,36 @@ export function BottomNavigation() {
     };
   }, [currentTab, setCurrentTab, bubbleControls]);
 
-  // Re-pin when visual viewport changes (keyboard, zoom, bars, rotation)
+  // While frozen, ignore ALL visualViewport and resize changes.
   useEffect(() => {
     let raf = 0;
-    const schedule = () => {
+    const syncWhileUnfrozen = () => {
+      if (freezeBubble) return;
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
-        const p = isInputFocused ? getBubblePositionFor("chat") : getBubblePositionFor(currentTab);
-        bubbleControls.set({ x: p.x, y: p.y });
+        const x = rectBubbleXForTab(isInputFocused ? "chat" : currentTab);
+        bubbleControls.set({ x }); // use set() to avoid spring on resize
       });
     };
 
-    const onResize = schedule;
-    const onVis = schedule;
-
-    const ro = new ResizeObserver(schedule);
+    const ro = new ResizeObserver(syncWhileUnfrozen);
     if (railRef.current) ro.observe(railRef.current);
+
+    const onResize = syncWhileUnfrozen;
+    const onVis = syncWhileUnfrozen;
 
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
     document.addEventListener("visibilitychange", onVis);
 
-    // Listen to visualViewport on ALL platforms for safety
     const vv = (window as any).visualViewport as VisualViewport | undefined;
     if (vv) {
       vv.addEventListener("resize", onResize);
       vv.addEventListener("scroll", onResize);
     }
 
-    // one more pass after mount/layout
-    schedule();
+    // initial snap
+    syncWhileUnfrozen();
 
     return () => {
       ro.disconnect();
@@ -208,7 +213,7 @@ export function BottomNavigation() {
       }
       cancelAnimationFrame(raf);
     };
-  }, [currentTab, isInputFocused, bubbleControls]);
+  }, [currentTab, isInputFocused, freezeBubble, bubbleControls]);
 
   // measure natural input height
   const [inputHeight, setInputHeight] = useState(0);
@@ -229,11 +234,10 @@ export function BottomNavigation() {
   const expanded = currentTab === "chat";
   const topPad = expanded ? PAD_TOP_EXPANDED : PAD_TOP_COLLAPSED;
 
-  // Remove paperclip and any wrapper cells that reserve space
+  // Remove paperclip and any wrapper cells that reserve space (unchanged)
   useEffect(() => {
     const root = scopeRef.current;
     if (!root) return;
-
     const removeClips = () => {
       const selectors = [
         '[aria-label*="attach" i]',
@@ -251,9 +255,7 @@ export function BottomNavigation() {
         '.left',
         '.adornment',
       ].join(",");
-
       root.querySelectorAll(selectors).forEach((n) => n.remove());
-
       root.querySelectorAll('input,textarea,[contenteditable="true"]').forEach((field) => {
         const prev = field.previousElementSibling as HTMLElement | null;
         if (prev) prev.remove();
@@ -263,45 +265,37 @@ export function BottomNavigation() {
         }
       });
     };
-
     removeClips();
-
     const mo = new MutationObserver(() => removeClips());
     mo.observe(root, { childList: true, subtree: true });
     return () => mo.disconnect();
   }, []);
 
-  // Bubble position based on active tab, but pinned to chat while focused
-  const getBubblePosition = () =>
-    isInputFocused ? getBubblePositionFor("chat") : getBubblePositionFor(currentTab);
-
+  // Animate to tab (only when not frozen)
   useEffect(() => {
-    if (isDragging) return;
-    const p = getBubblePosition();
+    if (isDragging || freezeBubble) return;
+    const x = rectBubbleXForTab(isInputFocused ? "chat" : currentTab);
     bubbleControls.start({
-      x: p.x,
-      y: p.y,
+      x,
       transition: { type: "spring", damping: 14, stiffness: 260, mass: 0.7 },
     });
-  }, [currentTab, isDragging, isInputFocused, bubbleControls]);
+  }, [currentTab, isDragging, isInputFocused, freezeBubble, bubbleControls]);
 
   const onNavItemClick = (id: typeof navigationItems[number]["id"]) => {
-    if (isInputFocused) return;
+    if (isInputFocused) return; // block nav while keyboard up
     setCurrentTab(id);
   };
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
-    if (isInputFocused) {
-      const p = getBubblePositionFor("chat");
-      bubbleControls.start({ x: p.x, y: p.y });
+    if (isInputFocused || freezeBubble) {
+      // snap back to locked x with no animation
+      bubbleControls.set({ x: frozenXRef.current });
       return;
     }
-
-    const dropXViewport = info.point.x; // viewport coordinate
+    const dropXViewport = info.point.x;
     let best = 0;
     let bestDist = Infinity;
-
     tabRefs.current.forEach((el, i) => {
       if (!el) return;
       const b = el.getBoundingClientRect();
@@ -312,7 +306,6 @@ export function BottomNavigation() {
         best = i;
       }
     });
-
     setCurrentTab(navigationItems[best].id);
   };
 
@@ -324,7 +317,6 @@ export function BottomNavigation() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
       >
-        {/* Glass container */}
         <div
           className="relative flex flex-col"
           style={{
@@ -348,119 +340,34 @@ export function BottomNavigation() {
           }}
         >
           <style>{`
-            @keyframes neonAuraOpacity {
-              0%, 100% { opacity: 0.20; }
-              50%        { opacity: 0.10; }
-            }
+            @keyframes neonAuraOpacity { 0%, 100% { opacity: .20; } 50% { opacity: .10; } }
             .chat-input-scope input,
             .chat-input-scope textarea,
-            .chat-input-scope [contenteditable="true"] {
-              caret-color: var(--neon-blue) !important;
-              accent-color: var(--neon-blue) !important;
-            }
+            .chat-input-scope [contenteditable="true"] { caret-color: var(--neon-blue)!important; accent-color: var(--neon-blue)!important; }
             .chat-input-scope input:focus,
-            .chat-input-scope input:focus-visible,
             .chat-input-scope textarea:focus,
-            .chat-input-scope textarea:focus-visible,
-            .chat-input-scope [contenteditable="true"]:focus,
-            .chat-input-scope [contenteditable="true"]:focus-visible {
-              outline-color: var(--neon-blue) !important;
-              border-color: var(--neon-blue) !important;
-              box-shadow:
-                0 0 0 3px color-mix(in oklab, var(--neon-blue) 40%, transparent) !important;
+            .chat-input-scope [contenteditable="true"]:focus {
+              outline-color: var(--neon-blue)!important; border-color: var(--neon-blue)!important;
+              box-shadow: 0 0 0 3px color-mix(in oklab, var(--neon-blue) 40%, transparent)!important;
             }
-            .chat-input-scope :where(input, textarea, [contenteditable="true"]) { --ph-opacity: 1; }
-            .chat-input-scope input::placeholder,
-            .chat-input-scope textarea::placeholder {
-              opacity: var(--ph-opacity, 1) !important;
-              transition: opacity 600ms ease !important;
-              will-change: opacity !important;
+            .chat-input-scope :where(input,textarea,[contenteditable="true"]) { --ph-opacity: 1; }
+            .chat-input-scope input::placeholder, .chat-input-scope textarea::placeholder {
+              opacity: var(--ph-opacity,1)!important; transition: opacity 600ms ease!important; will-change: opacity!important;
             }
-            .chat-input-scope {
-              display: flex !important;
-              align-items: center !important;
-              justify-content: flex-start !important;
-              gap: 8px !important;
-              padding-left: 10px !important;
-              padding-right: 10px !important;
-              width: 100% !important;
-              box-sizing: border-box !important;
-              margin: 0 !important;
+            .chat-input-scope { display:flex!important; align-items:center!important; justify-content:flex-start!important; gap:8px!important; padding-left:10px!important; padding-right:10px!important; width:100%!important; box-sizing:border-box!important; margin:0!important; }
+            .chat-input-scope form, .chat-input-scope .row, .chat-input-scope .input-row, .chat-input-scope .wrapper, .chat-input-scope .controls, .chat-input-scope .toolbar { display:flex!important; align-items:center!important; justify-content:flex-start!important; gap:8px!important; width:100%!important; padding:0!important; margin:0!important; flex:1 1 auto!important; }
+            .chat-input-scope .pill, .chat-input-scope .input-wrapper, .chat-input-scope .field, .chat-input-scope .textbox, .chat-input-scope [role="textbox"] {
+              flex:1 1 auto!important; align-self:stretch!important; width:100%!important; max-width:none!important; min-width:0!important; margin-left:0!important; padding-left:0!important; box-sizing:border-box!important; position:relative!important; border-radius:16px!important; overflow:visible!important; border-color:var(--neon-blue)!important;
             }
-            .chat-input-scope form,
-            .chat-input-scope .row,
-            .chat-input-scope .input-row,
-            .chat-input-scope .wrapper,
-            .chat-input-scope .controls,
-            .chat-input-scope .toolbar {
-              display: flex !important;
-              align-items: center !important;
-              justify-content: flex-start !important;
-              gap: 8px !important;
-              width: 100% !important;
-              padding: 0 !important;
-              margin: 0 !important;
-              flex: 1 1 auto !important;
+            .chat-input-scope .pill::before, .chat-input-scope .input-wrapper::before, .chat-input-scope .field::before, .chat-input-scope .textbox::before, .chat-input-scope [role="textbox"]::before {
+              content:""!important; position:absolute!important; inset:-2px!important; border-radius:inherit!important; background:hsla(200,100%,60%,.20)!important; filter:blur(12px)!important; pointer-events:none!important; z-index:0!important; animation: neonAuraOpacity 3.2s ease-in-out infinite;
             }
-            .chat-input-scope .pill,
-            .chat-input-scope .input-wrapper,
-            .chat-input-scope .field,
-            .chat-input-scope .textbox,
-            .chat-input-scope [role="textbox"] {
-              flex: 1 1 auto !important;
-              align-self: stretch !important;
-              width: 100% !important;
-              max-width: none !important;
-              min-width: 0 !important;
-              margin-left: 0 !important;
-              padding-left: 0 !important;
-              box-sizing: border-box !important;
-              position: relative !important;
-              border-radius: 16px !important;
-              overflow: visible !important;
-              border-color: var(--neon-blue) !important;
-            }
-            .chat-input-scope .pill::before,
-            .chat-input-scope .input-wrapper::before,
-            .chat-input-scope .field::before,
-            .chat-input-scope .textbox::before,
-            .chat-input-scope [role="textbox"]::before {
-              content: "" !important;
-              position: absolute !important;
-              inset: -2px !important;
-              border-radius: inherit !important;
-              background: hsla(200, 100%, 60%, 0.20) !important;
-              filter: blur(12px) !important;
-              pointer-events: none !important;
-              z-index: 0 !important;
-              animation: neonAuraOpacity 3.2s ease-in-out infinite;
-            }
-            .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
-              position: relative !important;
-              z-index: 1 !important;
-              font-size: 16px !important;
-              line-height: 1.4;
-              flex: 1 1 auto !important;
-              width: 100% !important;
-              margin: 0 !important;
-              padding-left: 10px !important;
-              text-indent: 0 !important;
-              box-sizing: border-box !important;
-              top: -2px !important;
-              border-color: var(--neon-blue) !important;
-              background: transparent !important;
+            .chat-input-scope :where(input,textarea,[contenteditable="true"]) {
+              position:relative!important; z-index:1!important; font-size:16px!important; line-height:1.4; flex:1 1 auto!important; width:100%!important; margin:0!important; padding-left:10px!important; text-indent:0!important; box-sizing:border-box!important; top:-2px!important; border-color:var(--neon-blue)!important; background:transparent!important;
             }
             .chat-input-scope [aria-label*="send" i],
             .chat-input-scope button[type="submit"],
-            .chat-input-scope button[class*="send" i] {
-              margin: 0 !important;
-              flex: 0 0 auto !important;
-              align-self: center !important;
-              position: relative !important;
-              z-index: 1 !important;
-              top: 1px !important;
-              left: 5px !important;
-            }
+            .chat-input-scope button[class*="send" i] { margin:0!important; flex:0 0 auto!important; align-self:center!important; position:relative!important; z-index:1!important; top:1px!important; left:5px!important; }
           `}</style>
 
           {/* Animated input slot */}
@@ -482,11 +389,7 @@ export function BottomNavigation() {
             }}
             style={{ overflow: "hidden", pointerEvents: expanded ? "auto" : "none" }}
           >
-            <div
-              ref={measureRef}
-              className="w-full"
-              style={{ paddingBottom: GAP_ABOVE_RAIL }}
-            >
+            <div ref={measureRef} className="w-full" style={{ paddingBottom: GAP_ABOVE_RAIL }}>
               <div ref={scopeRef} className="chat-input-scope">
                 <ChatInput />
               </div>
@@ -531,7 +434,8 @@ export function BottomNavigation() {
               onDragStart={() => setIsDragging(true)}
               onDragEnd={handleDragEnd}
               animate={bubbleControls}
-              initial={getBubblePosition()}
+              // keep initial snap deterministic
+              initial={{ x: rectBubbleXForTab(currentTab), y: 0 }}
               whileHover={{ scale: 1.05, transition: { type: "spring", damping: 10, stiffness: 400 } }}
               whileDrag={{
                 scale: 1.3,
