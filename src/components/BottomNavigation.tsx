@@ -28,7 +28,7 @@ export function BottomNavigation() {
   const CONTAINER_WIDTH = 320;
   const GAP_ABOVE_RAIL = 8;
 
-  // rotating placeholders
+  // --- rotating placeholders (direct DOM injection so ChatInput needn't change)
   const placeholders = [
     "Ask me anything…",
     "What's on your mind?",
@@ -38,6 +38,18 @@ export function BottomNavigation() {
   ];
   const [phIndex, setPhIndex] = useState(0);
 
+  // Apply current placeholder text into the real field
+  useEffect(() => {
+    const root = scopeRef.current;
+    if (!root) return;
+    const field = root.querySelector("input,textarea") as
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | null;
+    if (field) field.placeholder = placeholders[phIndex];
+  }, [phIndex]);
+
+  // Rotate every 4s
   useEffect(() => {
     const id = setInterval(() => {
       setPhIndex((prev) => (prev + 1) % placeholders.length);
@@ -290,6 +302,7 @@ export function BottomNavigation() {
               background: transparent !important;
             }
 
+            /* SEND BUTTON OFFSET: moved down 1px and right 5px */
             .chat-input-scope [aria-label*="send" i],
             .chat-input-scope button[type="submit"],
             .chat-input-scope button[class*="send" i] {
@@ -298,8 +311,8 @@ export function BottomNavigation() {
               align-self: center !important;
               position: relative !important;
               z-index: 1 !important;
-              top: 1px !important;
-              left: 5px !important;
+              top: 1px !important;   /* down 1px */
+              left: 5px !important;  /* right 5px */
             }
           `}</style>
 
@@ -327,7 +340,7 @@ export function BottomNavigation() {
               style={{ paddingBottom: GAP_ABOVE_RAIL }}
             >
               <div ref={scopeRef} className="chat-input-scope">
-                <ChatInput placeholder={placeholders[phIndex]} />
+                <ChatInput />
               </div>
             </div>
           </motion.div>
