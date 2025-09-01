@@ -29,14 +29,17 @@ export function BottomNavigation() {
   const GAP_ABOVE_RAIL = 8;
 
   // --- rotating placeholders (slower, full fade out then fade in)
+  // Only cycling lines. Removed any static "Ask me anything…" default.
   const placeholders = [
-    "Ask me anything…",
     "What's on your mind?",
     "Type a thought or idea…",
     "Need advice? Start typing…",
     "Tell me your story…",
   ];
   const phIndexRef = useRef(0);
+  const currentPHRef = useRef(placeholders[0]);
+  const phIntervalRef = useRef<number | null>(null);
+  const phObserverRef = useRef<MutationObserver | null>(null);
 
   useEffect(() => {
     const getField = () =>
@@ -45,73 +48,77 @@ export function BottomNavigation() {
         | HTMLTextAreaElement
         | null;
 
-    // Hide any framework "fake placeholder" elements that were showing behind our real placeholder
-    const hideGhostPlaceholders = () => {
-      const root = scopeRef.current;
-      if (!root) return;
-
-      // Common patterns: utility classes, data-* placeholders, floating-label clones, etc.
-      const ghostSelectors = [
-        '.placeholder',
-        '[class*="placeholder"]',
-        '[data-placeholder]',
-        '[aria-placeholder]',
-        '[aria-label="Ask me anything"]',
-        '[aria-label="Ask me anything…"]',
-        '[aria-label*="placeholder" i]',
-        '[role="presentation"][data-ui="placeholder"]',
-        '.floating-label',
-        '.input-placeholder',
-        '.field-placeholder',
-      ].join(",");
-
-      root.querySelectorAll<HTMLElement>(ghostSelectors).forEach((el) => {
-        el.style.display = "none";
-        el.style.visibility = "hidden";
-        el.style.opacity = "0";
-        el.style.pointerEvents = "none";
-      });
-
-      // Also clear any default placeholder attribute set by upstream code before we apply ours
-      const f = getField();
-      if (f) {
-        f.setAttribute("data-cycling-ph-initialized", "true");
-        // Blank it first to prevent any chance of cross-fade between two strings
-        f.placeholder = "";
-      }
-    };
-
     const setPlaceholder = (text: string) => {
       const f = getField();
-      if (f) f.placeholder = text;
+      if (f) {
+        f.placeholder = text;
+        (f as HTMLElement).style.setProperty("--ph-opacity", "1");
+      }
+      currentPHRef.current = text;
     };
 
-    // Initial run: kill ghosts, then set our first placeholder
-    hideGhostPlaceholders();
+    // Some components render ghost placeholder elements.
+    // Nuke any non-attribute placeholder clones so nothing "peeks" behind.
+    const killDefaultGhosts = () => {
+      const root = scopeRef.current;
+      if (!root) return;
+      root.querySelectorAll('[data-placeholder], .placeholder, .Placeholder').forEach((el) => {
+        (el as HTMLElement).style.visibility = "hidden";
+        (el as HTMLElement).textContent = "";
+      });
+    };
+
+    // Initialize: force our first placeholder and hide any ghosts.
+    killDefaultGhosts();
     setPlaceholder(placeholders[phIndexRef.current]);
 
-    // Fade loop: full fade-out, swap, fade-in
-    const id = setInterval(() => {
+    // Watch for re-renders that try to restore a default placeholder.
+    if (!phObserverRef.current) {
+      const obs = new MutationObserver(() => {
+        const f = getField();
+        if (!f) return;
+        // If something reset the placeholder to a different value, put ours back.
+        if (f.placeholder !== currentPHRef.current) {
+          f.placeholder = currentPHRef.current;
+        }
+        killDefaultGhosts();
+      });
+      if (scopeRef.current) {
+        obs.observe(scopeRef.current, { childList: true, subtree: true, attributes: true });
+      }
+      phObserverRef.current = obs;
+    }
+
+    // Cycling logic: full fade OUT, swap text, then fade IN. No crossfade.
+    const startCycle = () => {
       const f = getField();
       if (!f) return;
 
-      // Make sure no ghosts reappeared (DOM mutations from framework)
-      hideGhostPlaceholders();
-
-      // 1) fade out current placeholder text
+      // fade out
       (f as HTMLElement).style.setProperty("--ph-opacity", "0");
 
-      // 2) after fade-out completes, swap text and fade back in
-      setTimeout(() => {
+      // wait for fade-out, then swap + fade in
+      window.setTimeout(() => {
         phIndexRef.current = (phIndexRef.current + 1) % placeholders.length;
-        // Clear first to avoid any perceptible overlap on some browsers
-        f.placeholder = "";
-        setPlaceholder(placeholders[phIndexRef.current]);
+        const next = placeholders[phIndexRef.current];
+        setPlaceholder(next);
         (f as HTMLElement).style.setProperty("--ph-opacity", "1");
-      }, 600); // matches CSS transition duration below
-    }, 6000); // slower overall loop
+      }, 600); // fade duration must match CSS below
+    };
 
-    return () => clearInterval(id);
+    // Kick off interval loop
+    phIntervalRef.current = window.setInterval(startCycle, 6000) as unknown as number;
+
+    return () => {
+      if (phIntervalRef.current) {
+        clearInterval(phIntervalRef.current);
+        phIntervalRef.current = null;
+      }
+      if (phObserverRef.current) {
+        phObserverRef.current.disconnect();
+        phObserverRef.current = null;
+      }
+    };
   }, []);
 
   // ---------- ANDROID PWA FIXES ----------
@@ -164,7 +171,7 @@ export function BottomNavigation() {
 
     if (!isAndroid || !("visualViewport" in window)) return;
 
-    const vv = (window as any).visualViewport as VisualViewport;
+    const vv = window.visualViewport!;
     const onVVChange = () => {
       if (!isInputFocused) return;
       const p = getBubblePositionFor("chat");
@@ -354,28 +361,14 @@ export function BottomNavigation() {
                 0 0 0 3px color-mix(in oklab, var(--neon-blue) 40%, transparent) !important;
             }
 
-            /* SINGLE source of placeholder truth: we animate the UA placeholder only */
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               --ph-opacity: 1;
             }
+
             .chat-input-scope input::placeholder,
             .chat-input-scope textarea::placeholder {
               opacity: var(--ph-opacity, 1) !important;
-              transition: opacity 600ms ease !important; /* slower fade */
-            }
-            /* Kill any framework "fake placeholder" visuals */
-            .chat-input-scope .placeholder,
-            .chat-input-scope [class*="placeholder"],
-            .chat-input-scope [data-placeholder],
-            .chat-input-scope [aria-placeholder],
-            .chat-input-scope [role="presentation"][data-ui="placeholder"],
-            .chat-input-scope .floating-label,
-            .chat-input-scope .input-placeholder,
-            .chat-input-scope .field-placeholder {
-              display: none !important;
-              visibility: hidden !important;
-              opacity: 0 !important;
-              pointer-events: none !important;
+              transition: opacity 600ms ease !important; /* slower fade; matches JS */
             }
 
             .chat-input-scope {
