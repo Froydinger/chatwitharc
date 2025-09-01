@@ -104,7 +104,7 @@ export function ChatInterface() {
       {/* Floating Header Content */}
       <div className="fixed top-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
         <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-4 pointer-events-auto">
-          <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-8 w-8" />
+          <img src="/lovable-uploads/10805bee-4d5c-4640-a77f-d2ea5cd05436.png" alt="ArcAI" className="h-8 w-8" />
           <GlassButton
             variant="bubble"
             size="icon"
