@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Image, Plus } from "lucide-react";
+import { Image, Plus, SlidersHorizontal } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { OpenAIService } from "@/services/openai";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -7,6 +7,18 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { MessageBubble } from "@/components/MessageBubble";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+
+/**
+ * Goals in this version:
+ * - One-screen, no-scroll welcome on phone and desktop by default.
+ * - Keep your original smooth header fade + stacked blur.
+ * - Neon pills with thin 1px neon-blue outline, glow that breathes and moves to the next pill.
+ * - Smoother animations overall.
+ * - Denser cluster with responsive gap/padding using CSS variables and clamp().
+ * - A tiny "Density" control in header to cycle Comfy → Cozy → Compact without code changes.
+ * - When messages exist, add bottom spacer so last bubble never hides under the input.
+ * - Header layout: logo + title on one line, subtitle sits to the right on wide screens and drops under on small screens.
+ */
 
 export function ChatInterface() {
   const { 
@@ -22,6 +34,10 @@ export function ChatInterface() {
   // active glow indexes to cross-fade color between pills
   const [activeGlowIndex, setActiveGlowIndex] = useState(0);
   const [prevGlowIndex, setPrevGlowIndex] = useState<number | null>(null);
+
+  // Density control: comfy → cozy → compact
+  const densityLevels = ["comfy", "cozy", "compact"] as const;
+  const [density, setDensity] = useState<typeof densityLevels[number]>("cozy");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -43,48 +59,48 @@ export function ChatInterface() {
     []
   );
 
-  // Prompts: keep labels short, make messages explicit and step-by-step
+  // Prompts: short labels, explicit step-by-step messages to overcome "keep it short" instruction
   const quickPrompts = useMemo(
     () => [
       {
         label: "Wellness check",
         msg:
-          "Run a short wellness check. Step 1: ask mood 1-10. Step 2: ask one word to describe it. Step 3: ask one trigger. Step 4: offer two regulation options. Keep it compact. Wait for my reply after each step."
+          "Run a wellness check. Step 1 ask for mood 1-10. Step 2 ask for one word. Step 3 ask for one trigger. Step 4 offer two regulation options. Keep compact. Wait for my reply after each step."
       },
       {
         label: "Companion chat",
         msg:
-          "Be a supportive companion. Start with one validating sentence. Then ask one open question. Keep replies under 3 sentences unless I say continue. Reflect key feelings back."
+          "Be a supportive companion. Start with one validating sentence. Ask one open question. Keep under 3 sentences unless I say continue. Reflect my feeling in one phrase."
       },
       {
         label: "Creative spark",
         msg:
-          "Brainstorm one idea. Give a title, three bullet points, and one next step. Then ask if I want a second variant. Be specific and concise."
+          "Brainstorm one idea. Give a title, three bullets, and one next step. Ask if I want a second variant. Keep specific and concise."
       },
       {
         label: "Quick vent",
         msg:
-          "Let me vent for 2 minutes. Acknowledge, summarize in one sentence, and ask one follow-up. No advice until I ask."
+          "Let me vent for 2 minutes. Acknowledge in one sentence. Summarize in one sentence. Ask one follow-up. No advice unless I ask."
       },
       {
         label: "Focus sprint",
         msg:
-          "Guide a 15 minute focus sprint. Step 1: help define a single finish line in one sentence. Step 2: set a timer message. Step 3: give a three-step plan. Step 4: ask for start confirmation."
+          "Guide a 15 minute sprint. Step 1 define a single finish line in one sentence. Step 2 set a timer message. Step 3 give a three-step plan. Step 4 ask to start."
       },
       {
         label: "Gratitude x3",
         msg:
-          "Prompt three gratitude items one at a time. After each, reflect a short theme in 1 sentence. Keep it warm and brief."
+          "Prompt three gratitude items one at a time. After each, reflect a short theme in one sentence. Keep warm and brief."
       },
       {
         label: "Idea sketch",
         msg:
-          "Capture one idea in a micro brief: Title, Who it helps, Why it matters, How it works in 3 bullets, First step. Then ask for a tweak or lock-in."
+          "Make a micro brief: Title. Who it helps. Why it matters. How it works in 3 bullets. First step. Then ask me to tweak or lock in."
       },
       {
         label: "Reframe it",
         msg:
-          "Cognitive reframe. Ask me to state a stressful thought. Then ask for evidence for and against. Offer one balanced replacement thought. Keep it tight."
+          "Cognitive reframe. Ask me to state a stressful thought. Ask for evidence for and against. Offer one balanced replacement thought. Keep tight."
       },
       {
         label: "Tiny habit",
@@ -94,7 +110,7 @@ export function ChatInterface() {
       {
         label: "Mood check",
         msg:
-          "Do a quick mood check. Step 1: ask mood 1-10. Step 2: ask energy 1-10. Step 3: suggest one regulation tool and one tiny win for today."
+          "Do a quick mood check. Step 1 mood 1-10. Step 2 energy 1-10. Step 3 suggest one regulation tool and one tiny win for today."
       },
     ],
     []
@@ -106,8 +122,8 @@ export function ChatInterface() {
       setPrevGlowIndex(activeGlowIndex);
       setActiveGlowIndex((i) => (i + 1) % quickPrompts.length);
       // clear prev index after crossfade
-      setTimeout(() => setPrevGlowIndex(null), 600);
-    }, 2000); // slower, smoother cycle
+      setTimeout(() => setPrevGlowIndex(null), 700);
+    }, 2100); // slower, smoother cycle
     return () => clearInterval(interval);
   }, [activeGlowIndex, quickPrompts.length]);
 
@@ -145,11 +161,70 @@ export function ChatInterface() {
   // Height spacer so bottom message never hides behind the input bar
   const bottomSpacerPx = 104; // tune to your input bar height
 
+  // Cycle density helper
+  const cycleDensity = () => {
+    const idx = densityLevels.indexOf(density);
+    setDensity(densityLevels[(idx + 1) % densityLevels.length]);
+  };
+
   return (
-    <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-1">
-      {/* Local styles for clean cluster, thin outline, smoother breathing glow, and softer fades */}
+    <div
+      className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-1"
+      data-density={density}
+    >
+      {/* Local styles: responsive density variables, header fade, pill glow, softer motions */}
       <style>
         {`
+          /* Density presets: tweak gaps, pill size, and cluster width without code changes */
+          :root {
+            --cluster-gap: 24px;
+            --cluster-gap-sm: 16px;
+            --pill-x: 12px;
+            --pill-y: 8px;
+            --pill-font: 12px;
+            --cluster-max: 48rem; /* controls when cluster wraps; 48rem ≈ 768px */
+            --header-pad: 8px;
+            --logo-size: 28px;
+            --title-size: 16px;
+            --subtitle-size: 12px;
+          }
+          [data-density="comfy"] {
+            --cluster-gap: clamp(18px, 2.2dvh, 28px);
+            --cluster-gap-sm: clamp(12px, 1.6dvh, 18px);
+            --pill-x: clamp(12px, 1.4dvh, 14px);
+            --pill-y: clamp(8px, 1.0dvh, 10px);
+            --pill-font: clamp(12px, 0.88rem, 14px);
+            --cluster-max: 52rem;
+            --header-pad: 10px;
+            --logo-size: 30px;
+            --title-size: 17px;
+            --subtitle-size: 12px;
+          }
+          [data-density="cozy"] {
+            --cluster-gap: clamp(14px, 1.8dvh, 22px);
+            --cluster-gap-sm: clamp(10px, 1.2dvh, 16px);
+            --pill-x: clamp(10px, 1.2dvh, 12px);
+            --pill-y: clamp(7px, 0.9dvh, 9px);
+            --pill-font: clamp(12px, 0.84rem, 13px);
+            --cluster-max: 44rem;
+            --header-pad: 8px;
+            --logo-size: 28px;
+            --title-size: 16px;
+            --subtitle-size: 11px;
+          }
+          [data-density="compact"] {
+            --cluster-gap: clamp(8px, 1.2dvh, 14px);
+            --cluster-gap-sm: clamp(6px, 0.8dvh, 12px);
+            --pill-x: clamp(8px, 1.0dvh, 10px);
+            --pill-y: clamp(6px, 0.8dvh, 8px);
+            --pill-font: clamp(11px, 0.8rem, 12px);
+            --cluster-max: 38rem;
+            --header-pad: 6px;
+            --logo-size: 26px;
+            --title-size: 15px;
+            --subtitle-size: 11px;
+          }
+
           .no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
           .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 
@@ -166,8 +241,8 @@ export function ChatInterface() {
 
           .pill {
             border-radius: 9999px;
-            padding: 8px 12px;
-            font-size: 12px;
+            padding: var(--pill-y) var(--pill-x);
+            font-size: var(--pill-font);
             line-height: 1;
             white-space: nowrap;
             color: hsl(var(--foreground));
@@ -201,7 +276,7 @@ export function ChatInterface() {
         `}
       </style>
 
-      {/* Gradient Header Mask — restored smooth fade + stacked blurs exactly like original */}
+      {/* Gradient Header Mask — original smooth fade + stacked blurs */}
       <div className="fixed top-0 left-0 right-0 z-30 h-32 pointer-events-none">
         <div 
           className="w-full h-full"
@@ -226,13 +301,48 @@ export function ChatInterface() {
         />
       </div>
 
-      {/* Header content */}
+      {/* Header content: logo + title left, density + new chat right.
+          Subtitle sits inline on wide, wraps under on small for height savings. */}
       <div className="fixed top-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
-        <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl flex justify-between items-center p-2 pointer-events-auto">
-          <img src="/lovable-uploads/10805bee-4d5c-4640-a77f-d2ea5cd05436.png" alt="ArcAI" className="h-7 w-7" />
-          <GlassButton variant="bubble" size="icon" onClick={handleNewChat} className="h-9 w-9">
-            <Plus className="h-4 w-4" />
-          </GlassButton>
+        <div className="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl pointer-events-auto">
+          <div className="flex items-center justify-between px-2 py-[var(--header-pad)]">
+            <div className="flex items-center min-w-0 gap-2">
+              <img
+                src="/lovable-uploads/10805bee-4d5c-4640-a77f-d2ea5cd05436.png"
+                alt="ArcAI"
+                style={{ width: "var(--logo-size)", height: "var(--logo-size)" }}
+              />
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span className="text-foreground font-semibold" style={{ fontSize: "var(--title-size)" }}>
+                  ArcAI
+                </span>
+                <span className="text-muted-foreground truncate" style={{ fontSize: "var(--subtitle-size)" }}>
+                  Creative wellness assistant
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <GlassButton
+                variant="bubble"
+                size="icon"
+                aria-label="Cycle density"
+                className="h-8 w-8"
+                onClick={cycleDensity}
+                title={`Density: ${density}`}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+              </GlassButton>
+              <GlassButton
+                variant="bubble"
+                size="icon"
+                aria-label="New chat"
+                onClick={handleNewChat}
+                className="h-8 w-8"
+              >
+                <Plus className="h-4 w-4" />
+              </GlassButton>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -247,22 +357,31 @@ export function ChatInterface() {
       >
         <div ref={messagesContainerRef} className="h-full overflow-y-auto no-scrollbar scroll-smooth relative">
           <div className="px-3 sm:px-4 pt-20 w-full max-w-full">
-            {/* Empty state with pill cluster */}
+            {/* Empty state with pill cluster that fits one screen on phone and desktop */}
             {messages.length === 0 ? (
               <div className="text-center">
-                <div className="flex justify-center mb-2" style={{ animation: "fadeInUp 420ms ease both" }}>
-                  <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-10 w-10" />
+                {/* Header mini row for welcome can stack without adding height */}
+                <div className="flex items-center justify-center gap-2 mb-1" style={{ animation: "fadeInUp 420ms ease both" }}>
+                  <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-8 w-8" />
+                  <h3 className="text-sm sm:text-base font-semibold text-foreground">
+                    Welcome to ArcAI
+                  </h3>
                 </div>
-                <h3 className="text-base font-semibold text-foreground mb-1" style={{ animation: "fadeInUp 420ms ease 40ms both" }}>
-                  Welcome to ArcAI
-                </h3>
-                <p className="text-xs text-muted-foreground mb-2" style={{ animation: "fadeInUp 420ms ease 70ms both" }}>
+                <p className="text-[11px] sm:text-xs text-muted-foreground mb-2" style={{ animation: "fadeInUp 420ms ease 40ms both" }}>
                   Tap a prompt to begin.
                 </p>
 
-                {/* Cluster: tight, clean, one-screen */}
-                <div className="max-w-xl mx-auto">
-                  <div className="flex flex-wrap items-center justify-center gap-6 py-4">
+                {/* Cluster: dense, clean, fits one screen using clamp() and a max width cap */}
+                <div className="mx-auto" style={{ maxWidth: "var(--cluster-max)" }}>
+                  <div
+                    className="flex flex-wrap items-center justify-center"
+                    style={{
+                      gap: "var(--cluster-gap)",
+                      rowGap: "var(--cluster-gap-sm)",
+                      paddingTop: "clamp(8px, 1.6dvh, 16px)",
+                      paddingBottom: "clamp(8px, 1.6dvh, 16px)"
+                    }}
+                  >
                     {quickPrompts.map((p, idx) => {
                       const isActive = idx === activeGlowIndex;
                       const isPrev = prevGlowIndex === idx;
@@ -278,10 +397,10 @@ export function ChatInterface() {
                             (isPrev ? " prev" : "")
                           }
                           style={{
-                            opacity: isActive ? 1 : isPrev ? 0.35 : 1,
-                            transition: "opacity 600ms ease",
+                            opacity: isActive ? 1 : isPrev ? 0.4 : 1,
+                            transition: "opacity 700ms ease",
                             ["--glow-color" as any]: isPrev ? prevColor : color,
-                            animation: `fadeInUp 420ms ease ${idx * 35}ms both`
+                            animation: `fadeInUp 420ms ease ${idx * 28}ms both`
                           }}
                           onClick={() => startChatWithMessage(p.msg)}
                         >
@@ -294,8 +413,7 @@ export function ChatInterface() {
                   </div>
                 </div>
 
-                {/* tiny bottom pad so cluster breathes without scroll */}
-                <div className="pb-6" />
+                {/* No extra bottom padding so it stays one page */}
               </div>
             ) : (
               <>
