@@ -303,47 +303,26 @@ export function ChatInput() {
       )}
 
       {/* Input Row */}
-      <div className="flex items-end gap-3">
-        <div className="flex gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFileSelect}
-            className="hidden"
+      <div className="flex items-end gap-4 px-4">
+        <div className="flex-1">
+          <Textarea
+            ref={textareaRef}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder={selectedImages.length > 0 ? "Add a message with your images..." : "Ask me anything..."}
+            disabled={isLoading}
+            className="glass border-0 bg-glass/30 text-foreground placeholder:text-muted-foreground resize-none min-h-[40px] max-h-[72px] leading-6 whitespace-nowrap overflow-hidden"
+            rows={1}
           />
-          
-          <GlassButton
-            variant="ghost"
-            size="icon"
-            onClick={() => fileInputRef.current?.click()}
-            className="shrink-0"
-            disabled={selectedImages.length >= 4}
-          >
-            <Paperclip className="h-4 w-4" />
-          </GlassButton>
         </div>
-
-          <div className="flex-1">
-            <Textarea
-              ref={textareaRef}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder={selectedImages.length > 0 ? "Add a message with your images..." : "Ask me anything..."}
-              disabled={isLoading}
-              className="glass border-0 bg-glass/30 text-foreground placeholder:text-muted-foreground resize-none min-h-[40px] max-h-[72px] leading-6 whitespace-nowrap overflow-hidden"
-              rows={1}
-            />
-          </div>
 
         <GlassButton
           variant={inputValue.trim() ? "default" : "ghost"}
           size="icon"
           onClick={handleSend}
           disabled={isLoading}
-          className={`shrink-0 transition-all duration-200 translate-y-1 ${
+          className={`shrink-0 transition-all duration-200 ${
             inputValue.trim() 
               ? 'bg-primary/30 text-primary-foreground hover:bg-primary/40 shadow-lg' 
               : ''

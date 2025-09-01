@@ -130,8 +130,8 @@ export function ChatInterface() {
         onDrop={handleDrop}
       >
         <div ref={messagesContainerRef} className="h-full overflow-y-auto space-y-4 scroll-smooth relative">
-          {/* Content area with top padding for header clearance */}
-          <div className="px-4 sm:px-6 pt-28 pb-32 space-y-4">
+          {/* Content area with top padding for header clearance and bottom padding for input clearance */}
+          <div className="px-4 sm:px-6 pt-28 pb-40 space-y-4">
             <div>
               {messages.length === 0 ? (
                 <div className="text-center py-12">
