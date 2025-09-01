@@ -93,10 +93,10 @@ export function BottomNavigation() {
     const tabEl = tabRefs.current[idx];
     if (!tabEl) {
       const CELL = CONTAINER_WIDTH / navigationItems.length;
-      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: 1 }; // moved down 5px (was -4)
+      return { x: idx * CELL + (CELL - BUBBLE) / 2, y: 0 }; // was 1, moved up by 1px
     }
     const tabCenterX = tabEl.offsetLeft + tabEl.offsetWidth / 2;
-    return { x: tabCenterX - BUBBLE / 2, y: 1 }; // moved down 5px (was -4)
+    return { x: tabCenterX - BUBBLE / 2, y: 0 }; // was 1, moved up by 1px
   };
 
   useEffect(() => {
@@ -171,63 +171,6 @@ export function BottomNavigation() {
           }}
         >
           <style>{`
-            .chat-input-scope input:focus,
-            .chat-input-scope input:focus-visible,
-            .chat-input-scope textarea:focus,
-            .chat-input-scope textarea:focus-visible {
-              outline-color: var(--bubble-blue) !important;
-              box-shadow: 0 0 0 3px color-mix(in oklab, var(--bubble-blue) 35%, transparent) !important;
-              border-color: var(--bubble-blue) !important;
-            }
-            .chat-input-scope {
-              display: flex !important;
-              align-items: center !important;
-              justify-content: flex-start !important;
-              gap: 8px !important;
-              padding-left: 10px !important;
-              padding-right: 10px !important;
-              width: 100% !important;
-              box-sizing: border-box !important;
-              margin: 0 !important;
-            }
-            .chat-input-scope form,
-            .chat-input-scope .row,
-            .chat-input-scope .input-row,
-            .chat-input-scope .wrapper,
-            .chat-input-scope .controls,
-            .chat-input-scope .toolbar {
-              display: flex !important;
-              align-items: center !important;
-              justify-content: flex-start !important;
-              gap: 8px !important;
-              width: 100% !important;
-              padding: 0 !important;
-              margin: 0 !important;
-              flex: 1 1 auto !important;
-            }
-            .chat-input-scope .pill,
-            .chat-input-scope [class*="pill" i],
-            .chat-input-scope .input-wrapper,
-            .chat-input-scope [class*="input-wrapper" i],
-            .chat-input-scope .field,
-            .chat-input-scope [class*="field" i],
-            .chat-input-scope .textbox,
-            .chat-input-scope [role="textbox"] {
-              flex: 1 1 auto !important;
-              align-self: stretch !important;
-              width: 100% !important;
-              max-width: none !important;
-              min-width: 0 !important;
-              margin-left: 0 !important;
-              padding-left: 0 !important;
-              box-sizing: border-box !important;
-            }
-            .chat-input-scope [class^="pl-"],
-            .chat-input-scope [class*=" pl-"],
-            .chat-input-scope *[style*="padding-left"] { padding-left: 0 !important; }
-            .chat-input-scope [class^="ml-"],
-            .chat-input-scope [class*=" ml-"],
-            .chat-input-scope *[style*="margin-left"] { margin-left: 0 !important; }
             .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
               font-size: 16px !important;
               line-height: 1.4;
@@ -239,13 +182,6 @@ export function BottomNavigation() {
               box-sizing: border-box !important;
               position: relative !important;
               top: -2px !important;
-            }
-            .chat-input-scope [aria-label*="send" i],
-            .chat-input-scope button[type="submit"],
-            .chat-input-scope button[class*="send" i] {
-              margin: 0 !important;
-              flex: 0 0 auto !important;
-              align-self: center !important;
             }
           `}</style>
 
