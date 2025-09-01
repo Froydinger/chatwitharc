@@ -28,7 +28,7 @@ export function BottomNavigation() {
   const CONTAINER_WIDTH = 320;
   const GAP_ABOVE_RAIL = 8;
 
-  // --- rotating placeholders (same styling/position; smooth fade only)
+  // rotating placeholders
   const placeholders = [
     "Ask me anything…",
     "What's on your mind?",
@@ -38,7 +38,6 @@ export function BottomNavigation() {
   ];
   const phIndexRef = useRef(0);
 
-  // Install placeholder, then loop: fade out -> swap -> fade in
   useEffect(() => {
     const getField = () =>
       scopeRef.current?.querySelector("input,textarea") as
@@ -51,23 +50,22 @@ export function BottomNavigation() {
       if (f) f.placeholder = text;
     };
 
-    // initial placeholder (no layout change)
     setPlaceholder(placeholders[phIndexRef.current]);
 
     const id = setInterval(() => {
       const f = getField();
       if (!f) return;
 
-      // fade out current placeholder
+      // fade out
       (f as HTMLElement).style.setProperty("--ph-opacity", "0");
 
-      // after fade-out, swap text and fade back in
+      // after fade-out, swap and fade in
       setTimeout(() => {
         phIndexRef.current = (phIndexRef.current + 1) % placeholders.length;
         setPlaceholder(placeholders[phIndexRef.current]);
         (f as HTMLElement).style.setProperty("--ph-opacity", "1");
-      }, 250); // match CSS transition duration
-    }, 4000); // overall loop timing
+      }, 600); // slower fade out before swapping
+    }, 6000); // slower loop overall
 
     return () => clearInterval(id);
   }, []);
@@ -214,131 +212,9 @@ export function BottomNavigation() {
           }}
         >
           <style>{`
-            @keyframes neonAuraOpacity {
-              0%, 100% { opacity: 0.20; }
-              50%        { opacity: 0.10; }
-            }
-
-            .chat-input-scope input,
-            .chat-input-scope textarea,
-            .chat-input-scope [contenteditable="true"] {
-              caret-color: var(--neon-blue) !important;
-              accent-color: var(--neon-blue) !important;
-            }
-
-            .chat-input-scope input:focus,
-            .chat-input-scope input:focus-visible,
-            .chat-input-scope textarea:focus,
-            .chat-input-scope textarea:focus-visible,
-            .chat-input-scope [contenteditable="true"]:focus,
-            .chat-input-scope [contenteditable="true"]:focus-visible {
-              outline-color: var(--neon-blue) !important;
-              border-color: var(--neon-blue) !important;
-              box-shadow:
-                0 0 0 3px color-mix(in oklab, var(--neon-blue) 40%, transparent) !important;
-            }
-
-            .chat-input-scope {
-              display: flex !important;
-              align-items: center !important;
-              justify-content: flex-start !important;
-              gap: 8px !important;
-              padding-left: 10px !important;
-              padding-right: 10px !important;
-              width: 100% !important;
-              box-sizing: border-box !important;
-              margin: 0 !important;
-            }
-
-            .chat-input-scope form,
-            .chat-input-scope .row,
-            .chat-input-scope .input-row,
-            .chat-input-scope .wrapper,
-            .chat-input-scope .controls,
-            .chat-input-scope .toolbar {
-              display: flex !important;
-              align-items: center !important;
-              justify-content: flex-start !important;
-              gap: 8px !important;
-              width: 100% !important;
-              padding: 0 !important;
-              margin: 0 !important;
-              flex: 1 1 auto !important;
-            }
-
-            .chat-input-scope .pill,
-            .chat-input-scope .input-wrapper,
-            .chat-input-scope .field,
-            .chat-input-scope .textbox,
-            .chat-input-scope [role="textbox"] {
-              flex: 1 1 auto !important;
-              align-self: stretch !important;
-              width: 100% !important;
-              max-width: none !important;
-              min-width: 0 !important;
-              margin-left: 0 !important;
-              padding-left: 0 !important;
-              box-sizing: border-box !important;
-              position: relative !important;
-              border-radius: 16px !important;
-              overflow: visible !important;
-              border-color: var(--neon-blue) !important;
-            }
-
-            .chat-input-scope .pill::before,
-            .chat-input-scope .input-wrapper::before,
-            .chat-input-scope .field::before,
-            .chat-input-scope .textbox::before,
-            .chat-input-scope [role="textbox"]::before {
-              content: "" !important;
-              position: absolute !important;
-              inset: -2px !important;
-              border-radius: inherit !important;
-              background: hsla(200, 100%, 60%, 0.20) !important;
-              filter: blur(12px) !important;
-              pointer-events: none !important;
-              z-index: 0 !important;
-              animation: neonAuraOpacity 3.2s ease-in-out infinite;
-            }
-
-            .chat-input-scope :where(input, textarea, [contenteditable="true"]) {
-              position: relative !important;
-              z-index: 1 !important;
-              font-size: 16px !important;
-              line-height: 1.4;
-              flex: 1 1 auto !important;
-              width: 100% !important;
-              margin: 0 !important;
-              padding-left: 10px !important;
-              text-indent: 0 !important;
-              box-sizing: border-box !important;
-              top: -2px !important;
-              border-color: var(--neon-blue) !important;
-              background: transparent !important;
-
-              /* Placeholder fade (no size/position changes) */
-              --ph-opacity: 1;
-              transition: color 0s linear 0s; /* guard against UA changing color on placeholder */
-            }
-
-            /* Smooth opacity control for placeholder text only */
-            .chat-input-scope input::placeholder,
-            .chat-input-scope textarea::placeholder {
+            .chat-input-scope :where(input, textarea)::placeholder {
               opacity: var(--ph-opacity, 1) !important;
-              transition: opacity 250ms ease !important;
-            }
-
-            /* SEND BUTTON OFFSET: moved down 1px and right 5px (unchanged) */
-            .chat-input-scope [aria-label*="send" i],
-            .chat-input-scope button[type="submit"],
-            .chat-input-scope button[class*="send" i] {
-              margin: 0 !important;
-              flex: 0 0 auto !important;
-              align-self: center !important;
-              position: relative !important;
-              z-index: 1 !important;
-              top: 1px !important;   /* down 1px */
-              left: 5px !important;  /* right 5px */
+              transition: opacity 600ms ease !important; /* slower fade */
             }
           `}</style>
 
