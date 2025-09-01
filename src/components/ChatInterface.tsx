@@ -93,8 +93,8 @@ export function ChatInterface() {
     toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
   };
 
-  // Increased spacer: originally 104 → 140, now +20px → 160
-  const bottomSpacerPx = 160;
+  // Increased spacer: originally 104 → 140 → 160, now add ~20px more → 180
+  const bottomSpacerPx = 180;
 
   return (
     <div className="flex flex-col h-full w-full max-w-sm sm:max-w-2xl lg:max-w-4xl mx-auto relative pb-1">
