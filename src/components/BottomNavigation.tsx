@@ -1,13 +1,14 @@
 import { motion, PanInfo, useAnimation } from "framer-motion";
-import { MessageCircle, Settings, History } from "lucide-react";
+import { MessageCircle, Mic, Wrench } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { useRef, useState, useEffect, useLayoutEffect } from "react";
 import { ChatInput } from "@/components/ChatInput";
+import { VoiceInterface } from "@/components/VoiceInterface";
 
 const navigationItems = [
-  { id: "history", icon: History, label: "History" },
+  { id: "tools", icon: Wrench, label: "Tools" },
   { id: "chat", icon: MessageCircle, label: "Chat" },
-  { id: "settings", icon: Settings, label: "Settings" },
+  { id: "voice", icon: Mic, label: "Voice" },
 ] as const;
 
 export function BottomNavigation() {

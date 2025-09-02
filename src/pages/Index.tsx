@@ -5,8 +5,7 @@ import { useChatSync } from "@/hooks/useChatSync";
 import { NamePrompt } from "@/components/NamePrompt";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { ChatInterface } from "@/components/ChatInterface";
-import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
-import { SettingsPanel } from "@/components/SettingsPanel";
+import { ToolsPanel } from "@/components/ToolsPanel";
 import { VoiceInterface } from "@/components/VoiceInterface";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
@@ -57,10 +56,10 @@ export function Index() {
     switch (currentTab) {
       case 'chat':
         return <ChatInterface />;
-      case 'history':
-        return <ChatHistoryPanel />;
-      case 'settings':
-        return <SettingsPanel />;
+      case 'tools':
+        return <ToolsPanel />;
+      case 'voice':
+        return <VoiceInterface />;
       default:
         return <ChatInterface />;
     }

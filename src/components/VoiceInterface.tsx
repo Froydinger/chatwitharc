@@ -1,172 +1,173 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
-import { useArcStore } from "@/store/useArcStore";
-import { GlassCard } from "@/components/ui/glass-card";
-import { GlassButton } from "@/components/ui/glass-button";
+import React, { useEffect, useRef, useState } from 'react';
+import { Mic, MicOff, Wrench } from 'lucide-react';
+import { GlassCard } from '@/components/ui/glass-card';
+import { GlassButton } from '@/components/ui/glass-button';
+import { useToast } from '@/hooks/use-toast';
+import { useArcStore } from '@/store/useArcStore';
 
-export function VoiceInterface() {
-  const { selectedVoice, isLoading, addMessage } = useArcStore();
-  const [isRecording, setIsRecording] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [audioLevel, setAudioLevel] = useState(0);
+export const VoiceInterface: React.FC = () => {
+  const { toast } = useToast();
+  const { setCurrentTab } = useArcStore();
+  const [isListening, setIsListening] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
 
-  // Simulate audio level for visual feedback
   useEffect(() => {
-    if (!isRecording) return;
-    
-    const interval = setInterval(() => {
-      setAudioLevel(Math.random() * 100);
-    }, 100);
-    
-    return () => clearInterval(interval);
-  }, [isRecording]);
-
-  const toggleRecording = () => {
-    if (isRecording) {
-      setIsRecording(false);
-      setAudioLevel(0);
+    // Initialize speech recognition
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognitionInstance = new SpeechRecognition();
       
-      // Simulate processing voice input
-      addMessage({
-        content: "Voice message recorded (demo)",
-        role: 'user',
-        type: 'voice'
-      });
+      recognitionInstance.continuous = true;
+      recognitionInstance.interimResults = true;
+      recognitionInstance.lang = 'en-US';
       
-      // Simulate AI voice response
-      setTimeout(() => {
-        setIsSpeaking(true);
-        addMessage({
-          content: "This is a demo voice response from ArcAI. The OpenAI Realtime API will enable seamless voice conversations with Cedar and Marin voices.",
-          role: 'assistant',
-          type: 'voice'
-        });
+      recognitionInstance.onresult = (event: any) => {
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
         
-        setTimeout(() => {
-          setIsSpeaking(false);
-        }, 3000);
-      }, 1500);
+        if (finalTranscript) {
+          console.log('Speech recognized:', finalTranscript);
+          // Here you would send the transcript to your chat
+          toast({
+            title: "Speech Recognized",
+            description: finalTranscript,
+          });
+        }
+      };
+      
+      recognitionInstance.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        toast({
+          title: "Speech Recognition Error",
+          description: event.error,
+          variant: "destructive",
+        });
+      };
+      
+      recognitionInstance.onend = () => {
+        setIsListening(false);
+      };
+      
+      setRecognition(recognitionInstance);
+    }
+  }, [toast]);
+
+  const toggleListening = () => {
+    if (!recognition) {
+      toast({
+        title: "Not Supported",
+        description: "Speech recognition is not supported in this browser",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isListening) {
+      recognition.stop();
+      setIsListening(false);
     } else {
-      setIsRecording(true);
+      recognition.start();
+      setIsListening(true);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full max-h-[70vh] w-full max-w-2xl mx-auto space-y-8">
-      {/* Voice Visualizer */}
-      <GlassCard variant="bubble" glow float className="p-8">
-        <div className="text-center space-y-6">
-          <motion.div
-            animate={isRecording ? { scale: [1, 1.1, 1] } : {}}
-            transition={{ duration: 1, repeat: Infinity }}
-            className="relative mx-auto w-32 h-32"
-          >
-            {/* Outer Ring - Recording Indicator */}
-            <motion.div
-              animate={isRecording ? {
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.6, 0.3]
-              } : {}}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="absolute inset-0 rounded-full border-4 border-primary-glow"
-            />
-            
-            {/* Inner Circle - Audio Level */}
-            <motion.div
-              animate={{
-                scale: isRecording ? 1 + (audioLevel / 100) * 0.3 : 1
-              }}
-              className="absolute inset-4 rounded-full glass-strong flex items-center justify-center"
-            >
-              {isRecording ? (
-                <Mic className="h-12 w-12 text-primary-glow" />
-              ) : isSpeaking ? (
-                <Volume2 className="h-12 w-12 text-success" />
-              ) : (
-                <MicOff className="h-12 w-12 text-muted-foreground" />
-              )}
-            </motion.div>
-
-            {/* Audio Bars */}
-            {isRecording && (
-              <div className="absolute -inset-8 flex items-center justify-center">
-                {[...Array(8)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="w-1 bg-primary-glow rounded-full mx-1"
-                    animate={{
-                      height: [8, 16 + (audioLevel / 100) * 24, 8],
-                    }}
-                    transition={{
-                      duration: 0.5,
-                      repeat: Infinity,
-                      delay: i * 0.1,
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </motion.div>
-
-          <div className="space-y-2">
-            <h3 className="text-xl font-semibold text-foreground">
-              {isRecording ? "Listening..." : 
-               isSpeaking ? "Speaking..." : 
-               "Voice Mode"}
-            </h3>
-            <p className="text-muted-foreground">
-              {isRecording ? "Say something to ArcAI" : 
-               isSpeaking ? "Playing response" :
-               "Tap to start voice conversation"}
-            </p>
+    <div className="w-full max-w-6xl mx-auto space-y-8 pb-20 pt-16 px-4 h-full overflow-y-auto">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <div className="flex items-center justify-center gap-3">
+          <div className="glass rounded-full p-3">
+            <Mic className="h-8 w-8 text-primary-glow" />
           </div>
+          <h2 className="text-3xl font-bold text-foreground">Voice Interface</h2>
         </div>
-      </GlassCard>
-
-      {/* Voice Controls */}
-      <div className="flex items-center gap-4">
-        <GlassButton
-          variant={isRecording ? "glow" : "bubble"}
-          size="bubble"
-          onClick={toggleRecording}
-          disabled={isLoading || isSpeaking}
-          className={`relative ${isRecording ? "animate-glow-pulse" : ""}`}
-        >
-          {isRecording ? (
-            <MicOff className="h-6 w-6" />
-          ) : (
-            <Mic className="h-6 w-6" />
-          )}
-        </GlassButton>
-
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground">
-            Voice: {selectedVoice === 'cedar' ? 'Cedar' : 'Marin'}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Realtime API Ready
-          </p>
-        </div>
+        <p className="text-muted-foreground text-base">
+          Use your voice to interact with ArcAI
+        </p>
       </div>
 
-      {/* Status Messages */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="text-center space-y-2"
-      >
-        <div className="glass rounded-lg px-4 py-2 inline-block">
-          <p className="text-sm text-muted-foreground">
-            🎙️ OpenAI Realtime API integration ready
-          </p>
-        </div>
-        <div className="glass rounded-lg px-4 py-2 inline-block">
-          <p className="text-sm text-muted-foreground">
-            🔊 Cedar & Marin voices supported
-          </p>
-        </div>
-      </motion.div>
+      {/* Voice Controls */}
+      <div className="max-w-md mx-auto">
+        <GlassCard variant="bubble" glow className="p-8 text-center">
+          <div className="space-y-6">
+            <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center transition-all duration-300 ${
+              isListening 
+                ? 'bg-primary/30 animate-pulse' 
+                : 'bg-glass/30'
+            }`}>
+              {isListening ? (
+                <MicOff className="h-12 w-12 text-primary-glow" />
+              ) : (
+                <Mic className="h-12 w-12 text-primary-glow" />
+              )}
+            </div>
+            
+            <div>
+              <h3 className="text-xl font-semibold text-foreground mb-2">
+                {isListening ? 'Listening...' : 'Ready to Listen'}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {isListening 
+                  ? 'Speak now and your words will be transcribed'
+                  : 'Click the microphone to start voice input'
+                }
+              </p>
+            </div>
+            
+            <GlassButton
+              variant={isListening ? "ghost" : "glow"}
+              size="lg"
+              onClick={toggleListening}
+              className={`w-full ${isListening ? 'text-destructive' : ''}`}
+            >
+              {isListening ? (
+                <>
+                  <MicOff className="h-4 w-4 mr-2" />
+                  Stop Listening
+                </>
+              ) : (
+                <>
+                  <Mic className="h-4 w-4 mr-2" />
+                  Start Listening
+                </>
+              )}
+            </GlassButton>
+          </div>
+        </GlassCard>
+      </div>
+
+      {/* Info Card */}
+      <div className="max-w-2xl mx-auto">
+        <GlassCard variant="bubble" className="p-6">
+          <div className="space-y-4">
+            <h4 className="text-lg font-semibold text-foreground">How it works</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>• Click "Start Listening" to activate voice recognition</li>
+              <li>• Speak clearly and wait for the transcription</li>
+              <li>• Your speech will be converted to text and sent to ArcAI</li>
+              <li>• Click "Stop Listening" when you're done speaking</li>
+            </ul>
+          </div>
+        </GlassCard>
+      </div>
+
+      {/* Quick Action */}
+      <div className="text-center">
+        <GlassButton
+          variant="ghost"
+          onClick={() => setCurrentTab('chat')}
+        >
+          <Wrench className="h-4 w-4 mr-2" />
+          Back to Chat
+        </GlassButton>
+      </div>
     </div>
   );
-}
+};
+
+export default VoiceInterface;
