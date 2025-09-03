@@ -84,7 +84,7 @@ export function AuthPage() {
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               className="flex justify-center mb-4"
             >
-              <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-16 w-16" />
+              <img src="/lovable-uploads/favicon-32x32.png" alt="ArcAI" className="h-16 w-16" />
             </motion.div>
             <h1 className="text-2xl font-bold text-foreground mb-2">Welcome to ArcAI</h1>
             <p className="text-muted-foreground">{isLogin ? "Sign in to continue" : "Create your account"}</p>

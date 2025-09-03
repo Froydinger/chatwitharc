@@ -147,7 +147,7 @@ export function ChatHistoryPanel() {
               </p>
               <GlassButton variant="glow" onClick={handleNewChat} size="lg">
                 <img
-                  src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
+                  src="/lovable-uploads/favicon-32x32.png"
                   alt="ArcAI"
                   className="h-5 w-5 mr-2"
                 />
