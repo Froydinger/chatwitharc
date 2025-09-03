@@ -40,8 +40,8 @@ export interface ArcState {
   clearCurrentMessages: () => void;
   
   // UI State
-  currentTab: 'chat' | 'tools' | 'voice';
-  setCurrentTab: (tab: 'chat' | 'tools' | 'voice') => void;
+  currentTab: 'chat' | 'history' | 'settings';
+  setCurrentTab: (tab: 'chat' | 'history' | 'settings') => void;
   isVoiceMode: boolean;
   setVoiceMode: (enabled: boolean) => void;
   isLoading: boolean;

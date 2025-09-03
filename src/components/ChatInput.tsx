@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Send } from "lucide-react";
+import { Send, Paperclip } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { OpenAIService } from "@/services/openai";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { RealtimeConnection, USE_REALTIME } from "@/utils/realtime";
 
 export function ChatInput() {
   const { 
@@ -17,11 +16,8 @@ export function ChatInput() {
   } = useArcStore();
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [streamingMessage, setStreamingMessage] = useState("");
-  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const realtimeRef = useRef<RealtimeConnection | null>(null);
   const { toast } = useToast();
   const { profile } = useAuth();
 
@@ -83,12 +79,6 @@ export function ChatInput() {
     }
   };
 
-  const getSystemPrompt = () => {
-    const basePrompt = "You are ArcAI, a helpful and supportive AI assistant.";
-    const userContext = profile?.context_info ? `\n\nUser context: ${profile.context_info}` : "";
-    return basePrompt + userContext;
-  };
-
   const handleSend = async () => {
     if ((!inputValue.trim() && selectedImages.length === 0) || isLoading) return;
 
@@ -111,60 +101,6 @@ export function ChatInput() {
     });
 
     setLoading(true);
-
-    // Use Realtime if enabled and no images
-    if (USE_REALTIME && selectedImages.length === 0) {
-      try {
-        if (!realtimeRef.current) {
-          // Initialize realtime connection
-          realtimeRef.current = new RealtimeConnection({
-            onMessage: (message) => {
-              if (message.content) {
-                setStreamingMessage(prev => prev + message.content);
-              }
-            },
-            onError: (error) => {
-              console.error('Realtime error:', error);
-              toast({
-                title: "Error",
-                description: error,
-                variant: "destructive"
-              });
-              setLoading(false);
-            },
-            onComplete: () => {
-              if (streamingMessage) {
-                addMessage({
-                  content: streamingMessage,
-                  role: 'assistant',
-                  type: 'text'
-                });
-                setStreamingMessage("");
-                setStreamingMessageId(null);
-              }
-              setLoading(false);
-            }
-          });
-          
-          await realtimeRef.current.connect(getSystemPrompt());
-        }
-
-        if (realtimeRef.current.isReady()) {
-          // Start streaming message
-          const messageId = Date.now().toString();
-          setStreamingMessageId(messageId);
-          setStreamingMessage("");
-          
-          realtimeRef.current.sendUserText(userMessage);
-        } else {
-          throw new Error('Realtime connection not ready');
-        }
-        return;
-      } catch (error) {
-        console.error('Realtime failed, falling back to HTTP:', error);
-        // Fall through to legacy HTTP flow
-      }
-    }
 
     try {
       const openai = new OpenAIService();
@@ -362,28 +298,6 @@ export function ChatInput() {
                 </button>
               </div>
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* Streaming Message Display */}
-      {streamingMessage && streamingMessageId && (
-        <div className="p-3 bg-glass/20 rounded-lg">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-glass/50 flex items-center justify-center">
-              <div
-                className="w-8 h-8 rounded-full bg-cover bg-center bg-no-repeat"
-                style={{
-                  backgroundImage: `url('/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png')`,
-                }}
-              />
-            </div>
-            <div className="flex-1 glass rounded-lg p-3">
-              <p className="text-foreground whitespace-pre-wrap break-words">
-                {streamingMessage}
-                <span className="animate-pulse">|</span>
-              </p>
-            </div>
           </div>
         </div>
       )}
