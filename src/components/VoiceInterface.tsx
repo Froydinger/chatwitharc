@@ -128,6 +128,8 @@ export const VoiceInterface: React.FC = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [hasPermission, setHasPermission] = useState(false);
+  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -135,6 +137,43 @@ export const VoiceInterface: React.FC = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+
+  // Check for existing microphone permission on mount
+  useEffect(() => {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        setHasPermission(true);
+        stream.getTracks().forEach(track => track.stop()); // Clean up test stream
+      })
+      .catch(() => {
+        setHasPermission(false);
+      });
+  }, []);
+
+  const requestMicrophonePermission = async () => {
+    if (hasPermission) return true;
+    
+    setIsRequestingPermission(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop()); // Clean up
+      setHasPermission(true);
+      setIsRequestingPermission(false);
+      toast({
+        title: "Microphone Access Granted",
+        description: "You can now start voice conversations",
+      });
+      return true;
+    } catch (error) {
+      setIsRequestingPermission(false);
+      toast({
+        title: "Microphone Access Denied",
+        description: "Please enable microphone access to use voice features",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
 
   const initializeAudio = async () => {
     try {
@@ -357,11 +396,14 @@ export const VoiceInterface: React.FC = () => {
     };
   }, []);
 
-  const toggleConnection = () => {
+  const toggleConnection = async () => {
     if (isConnected) {
       disconnect();
     } else {
-      connectToRealtime();
+      const hasAccess = await requestMicrophonePermission();
+      if (hasAccess) {
+        connectToRealtime();
+      }
     }
   };
 
@@ -406,13 +448,16 @@ export const VoiceInterface: React.FC = () => {
             
             <div>
               <h3 className="text-xl font-semibold text-foreground mb-2">
-                {!isConnected ? 'Disconnected' : 
+                {!hasPermission ? 'Microphone Access Needed' :
+                 !isConnected ? 'Ready to Connect' : 
                  isListening ? 'Listening...' : 
                  isSpeaking ? 'AI Speaking...' : 'Connected'}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {!isConnected 
-                  ? 'Connect to start voice conversation'
+                {!hasPermission 
+                  ? 'Grant microphone access to start voice conversations'
+                  : !isConnected 
+                  ? 'Connect to start voice conversation with AI'
                   : isListening 
                   ? 'Speak naturally for voice-to-voice conversation'
                   : isSpeaking
@@ -427,9 +472,19 @@ export const VoiceInterface: React.FC = () => {
               size="lg"
               onClick={toggleConnection}
               className={`w-full ${isConnected ? 'text-destructive' : ''}`}
-              disabled={isConnected && (isListening || isSpeaking)}
+              disabled={isRequestingPermission || (isConnected && (isListening || isSpeaking))}
             >
-              {isConnected ? (
+              {isRequestingPermission ? (
+                <>
+                  <Mic className="h-4 w-4 mr-2 animate-pulse" />
+                  Requesting Access...
+                </>
+              ) : !hasPermission ? (
+                <>
+                  <Mic className="h-4 w-4 mr-2" />
+                  Grant Microphone Access
+                </>
+              ) : isConnected ? (
                 <>
                   <MicOff className="h-4 w-4 mr-2" />
                   Disconnect
@@ -451,6 +506,7 @@ export const VoiceInterface: React.FC = () => {
           <div className="space-y-4">
             <h4 className="text-lg font-semibold text-foreground">Voice-to-Voice Chat</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>• Grant microphone access when prompted</li>
               <li>• Click "Start Voice Chat" to connect to realtime AI</li>
               <li>• Speak naturally - the AI will detect when you finish</li>
               <li>• The AI responds with voice automatically</li>

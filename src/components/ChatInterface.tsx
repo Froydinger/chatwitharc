@@ -333,7 +333,7 @@ If my scores point to different strategies, follow up with me to confirm prefere
           <div className="flex items-center justify-between px-2 py-2">
             <div className="flex items-center gap-2">
               <img
-                src="/lovable-uploads/favicon-32x32.png"
+                src="/lovable-uploads/4c226d03-6441-4d8a-a6ca-94383b0616e1.png"
                 alt="ArcAI"
                 className={`h-7 w-7 ${botGreet ? "avatar-greet" : ""}`}
               />
@@ -370,7 +370,7 @@ If my scores point to different strategies, follow up with me to confirm prefere
               <div className="text-center">
                 <div className="flex items-center justify-center mb-2" style={{ animation: "fadeInUp 420ms ease both" }}>
                   <img
-                    src="/lovable-uploads/favicon-32x32.png"
+                    src="/lovable-uploads/4c226d03-6441-4d8a-a6ca-94383b0616e1.png"
                     alt="ArcAI"
                     className={`h-20 w-20 ${botGreet ? "avatar-greet" : ""}`}
                   />
