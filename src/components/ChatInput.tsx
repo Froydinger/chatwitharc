@@ -6,6 +6,7 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export function ChatInput() {
   const { 
@@ -87,10 +88,37 @@ export function ChatInput() {
     const userMessage = inputValue.trim();
     setInputValue("");
 
-    // Handle multiple images
+    // Handle multiple images - upload to storage for persistence
     let imageUrls: string[] = [];
     if (selectedImages.length > 0) {
-      imageUrls = selectedImages.map(file => URL.createObjectURL(file));
+      try {
+        const uploadPromises = selectedImages.map(async (file) => {
+          const fileName = `user-upload-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
+          
+          const { data, error } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, file, {
+              contentType: file.type,
+              upsert: false
+            });
+
+          if (error) {
+            console.error('Error uploading image:', error);
+            return URL.createObjectURL(file); // Fallback to blob URL
+          }
+
+          const { data: publicUrlData } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(fileName);
+          return publicUrlData.publicUrl;
+        });
+
+        imageUrls = await Promise.all(uploadPromises);
+      } catch (error) {
+        console.error('Error uploading images:', error);
+        // Fallback to blob URLs
+        imageUrls = selectedImages.map(file => URL.createObjectURL(file));
+      }
       setSelectedImages([]);
     }
     
@@ -142,12 +170,41 @@ export function ChatInput() {
         try {
           const imageUrl = await openai.generateImage(imagePrompt || userMessage);
           
+          // Upload image to Supabase storage for persistence
+          let permanentImageUrl = imageUrl;
+          try {
+            // Convert the generated image URL to a blob and upload it
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            const fileName = `generated-${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
+            
+            const { data, error } = await supabase.storage
+              .from('avatars')
+              .upload(fileName, blob, {
+                contentType: 'image/png',
+                upsert: false
+              });
+
+            if (error) {
+              console.error('Error uploading image to storage:', error);
+            } else {
+              // Get the public URL
+              const { data: publicUrlData } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(fileName);
+              permanentImageUrl = publicUrlData.publicUrl;
+            }
+          } catch (uploadError) {
+            console.error('Error uploading generated image:', uploadError);
+            // Continue with original URL if upload fails
+          }
+          
           // Replace placeholder with actual image
           addMessage({
             content: `Generated image: ${imagePrompt || userMessage}`,
             role: 'assistant',
             type: 'image',
-            imageUrl
+            imageUrl: permanentImageUrl
           });
         } catch (error) {
           console.error('Image generation error:', error);
