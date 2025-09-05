@@ -11,6 +11,7 @@ export function ChatInterface() {
   const { 
     messages, 
     isLoading, 
+    isGeneratingImage,
     createNewSession,
     currentSessionId,
     startChatWithMessage 
@@ -416,7 +417,7 @@ If my scores point to different strategies, follow up with me to confirm prefere
                   </div>
                 </div>
 
-                {isLoading && (
+                {(isLoading || isGeneratingImage) && (
                   <div className="flex justify-center pt-2">
                     <div className="glass rounded-2xl px-3 py-2 max-w-xs" style={{ animation: "fadeInUp 300ms ease both" }}>
                       <div className="flex items-center gap-2">
@@ -425,7 +426,7 @@ If my scores point to different strategies, follow up with me to confirm prefere
                             <div key={i} className="w-2 h-2 bg-primary-glow rounded-full animate-pulse" />
                           ))}
                         </div>
-                        <span className="text-xs text-muted-foreground">Thinking...</span>
+                        <span className="text-xs text-muted-foreground">{isGeneratingImage ? 'Generating your image...' : 'Thinking...'}</span>
                       </div>
                     </div>
                   </div>
@@ -441,7 +442,7 @@ If my scores point to different strategies, follow up with me to confirm prefere
                 </div>
 
                 {/* Centered thinking indicator directly under the last message */}
-                {isLoading && (
+                {(isLoading || isGeneratingImage) && (
                   <div className="flex justify-center mt-3">
                     <div className="glass rounded-2xl px-3 py-2 max-w-xs" style={{ animation: "fadeInUp 300ms ease both" }}>
                       <div className="flex items-center gap-2">
@@ -450,7 +451,7 @@ If my scores point to different strategies, follow up with me to confirm prefere
                             <div key={i} className="w-2 h-2 bg-primary-glow rounded-full animate-pulse" />
                           ))}
                         </div>
-                        <span className="text-xs text-muted-foreground">Thinking...</span>
+                        <span className="text-xs text-muted-foreground">{isGeneratingImage ? 'Generating your image...' : 'Thinking...'}</span>
                       </div>
                     </div>
                   </div>

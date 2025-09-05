@@ -12,7 +12,9 @@ export function ChatInput() {
     messages, 
     addMessage, 
     isLoading, 
-    setLoading
+    isGeneratingImage,
+    setLoading,
+    setGeneratingImage
   } = useArcStore();
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -128,6 +130,7 @@ export function ChatInput() {
         }
         
         // Add placeholder message immediately
+        setGeneratingImage(true);
         const placeholderMessageId = Math.random().toString(36).substring(7);
         addMessage({
           content: `Generating image: ${imagePrompt || userMessage}`,
@@ -154,6 +157,8 @@ export function ChatInput() {
             role: 'assistant',
             type: 'text'
           });
+        } finally {
+          setGeneratingImage(false);
         }
       } else if (selectedImages.length > 0) {
         // Handle image analysis with text
