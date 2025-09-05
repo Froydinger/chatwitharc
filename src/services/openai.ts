@@ -70,9 +70,26 @@ export class OpenAIService {
 
   async generateImage(prompt: string): Promise<string> {
     try {
-      // For image generation, we'll need a separate edge function
-      // For now, return a helpful message
-      throw new Error("Image generation will be available soon through our secure API.");
+      console.log('Generating image with prompt:', prompt);
+      
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: { prompt }
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(`Image generation error: ${error.message}`);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (!data.success || !data.imageUrl) {
+        throw new Error('Failed to generate image');
+      }
+
+      return data.imageUrl;
     } catch (error) {
       console.error('Image generation error:', error);
       throw error;

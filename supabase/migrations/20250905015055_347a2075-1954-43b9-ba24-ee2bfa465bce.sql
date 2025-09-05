@@ -1,0 +1,2 @@
+-- Create edge function for image generation using OpenAI's gpt-image-1 model
+-- This will be handled by creating the function directly

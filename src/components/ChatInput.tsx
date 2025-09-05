@@ -128,6 +128,7 @@ export function ChatInput() {
         }
         
         // Add placeholder message immediately
+        const placeholderMessageId = Math.random().toString(36).substring(7);
         addMessage({
           content: `Generating image: ${imagePrompt || userMessage}`,
           role: 'assistant',
@@ -138,7 +139,7 @@ export function ChatInput() {
         try {
           const imageUrl = await openai.generateImage(imagePrompt || userMessage);
           
-          // Update with the actual image
+          // Replace placeholder with actual image
           addMessage({
             content: `Generated image: ${imagePrompt || userMessage}`,
             role: 'assistant',
@@ -146,7 +147,8 @@ export function ChatInput() {
             imageUrl
           });
         } catch (error) {
-          // Handle error by adding error message
+          console.error('Image generation error:', error);
+          // Replace placeholder with error message
           addMessage({
             content: `Sorry, I couldn't generate the image. ${error instanceof Error ? error.message : 'Please try again.'}`,
             role: 'assistant',

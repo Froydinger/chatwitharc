@@ -134,7 +134,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               <ImageGenerationPlaceholder
                 prompt={message.imagePrompt || message.content}
                 onComplete={() => {
-                  // Handled by parent
+                  // Handled by parent component
                 }}
               />
             )}
@@ -190,37 +190,39 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               )}
 
             {/* Text Content */}
-            {isEditing ? (
-              <div className="space-y-2">
-                <Input
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  className="glass border-0 bg-glass/30 text-foreground"
-                  autoFocus
-                />
-                <div className="flex gap-2 justify-end">
-                  <GlassButton
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCancelEdit}
-                  >
-                    Cancel
-                  </GlassButton>
-                  <GlassButton
-                    variant="glow"
-                    size="sm"
-                    onClick={handleSaveEdit}
-                  >
-                    <Check className="h-3 w-3 mr-1" />
-                    Save
-                  </GlassButton>
+            {message.type !== "image-generating" && (
+              isEditing ? (
+                <div className="space-y-2">
+                  <Input
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    className="glass border-0 bg-glass/30 text-foreground"
+                    autoFocus
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <GlassButton
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelEdit}
+                    >
+                      Cancel
+                    </GlassButton>
+                    <GlassButton
+                      variant="glow"
+                      size="sm"
+                      onClick={handleSaveEdit}
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      Save
+                    </GlassButton>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <p className="text-foreground whitespace-pre-wrap break-words">
-                {message.content}
-              </p>
+              ) : (
+                <p className="text-foreground whitespace-pre-wrap break-words">
+                  {message.content}
+                </p>
+              )
             )}
 
             {/* Action Buttons */}
