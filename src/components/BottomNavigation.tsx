@@ -142,10 +142,13 @@ export function BottomNavigation() {
   const animationIdRef = useRef<number>(0);
   const targetXRef = useRef<number>(0);
 
-  // Get bubble position with proper calculation
+  // Get bubble position with proper calculation and bounds checking
   const getBubblePosition = (forTab?: typeof navigationItems[number]["id"]) => {
     const targetTab = forTab || currentTab;
-    return rectBubbleXForTab(targetTab);
+    const position = rectBubbleXForTab(targetTab);
+    
+    // Ensure position is never negative (prevents left-side bug)
+    return Math.max(0, position);
   };
 
   // Smooth animation to target position
@@ -170,23 +173,47 @@ export function BottomNavigation() {
     }
   };
 
-  // Handle input focus/blur with smooth positioning
+  // Handle input focus/blur with smooth positioning and Android keyboard support
   useEffect(() => {
     const root = scopeRef.current;
     if (!root) return;
+
+    // Android keyboard detection
+    let initialViewportHeight = window.visualViewport?.height || window.innerHeight;
+    let keyboardVisible = false;
 
     const onFocusIn = () => {
       setIsInputFocused(true);
       if (currentTab !== "chat") {
         setCurrentTab("chat");
       }
-      // Smooth transition to chat tab position
-      const chatX = getBubblePosition("chat");
-      animateBubbleTo(chatX, false);
+      
+      // Android: Scroll into view and handle keyboard
+      if (/Android/i.test(navigator.userAgent)) {
+        // Small delay to ensure keyboard is opening
+        setTimeout(() => {
+          const element = root.querySelector('input, textarea') as HTMLElement;
+          if (element) {
+            element.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center',
+              inline: 'nearest'
+            });
+          }
+        }, 100);
+      }
+      
+      // Force recalculate position to prevent left-side bug
+      requestAnimationFrame(() => {
+        const chatX = getBubblePosition("chat");
+        animateBubbleTo(chatX, true); // Immediate positioning to prevent snap
+      });
     };
 
     const onFocusOut = () => {
       setIsInputFocused(false);
+      keyboardVisible = false;
+      
       // Smooth transition back to current tab
       requestAnimationFrame(() => {
         const targetX = getBubblePosition(currentTab);
@@ -194,13 +221,41 @@ export function BottomNavigation() {
       });
     };
 
+    // Visual viewport handler for Android keyboard
+    const handleViewportChange = () => {
+      if (!window.visualViewport) return;
+      
+      const currentHeight = window.visualViewport.height;
+      const heightDiff = initialViewportHeight - currentHeight;
+      
+      if (heightDiff > 150) { // Keyboard is likely open
+        keyboardVisible = true;
+        // Force bubble to stay in chat position
+        if (isInputFocused) {
+          const chatX = getBubblePosition("chat");
+          animateBubbleTo(chatX, true);
+        }
+      } else {
+        keyboardVisible = false;
+      }
+    };
+
     root.addEventListener("focusin", onFocusIn);
     root.addEventListener("focusout", onFocusOut);
+    
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+    }
+    
     return () => {
       root.removeEventListener("focusin", onFocusIn);
       root.removeEventListener("focusout", onFocusOut);
+      
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+      }
     };
-  }, [currentTab, setCurrentTab]);
+  }, [currentTab, setCurrentTab, isInputFocused]);
 
   // Handle resize events with debouncing
   useEffect(() => {
@@ -323,12 +378,24 @@ export function BottomNavigation() {
   };
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 flex justify-center">
+    <div 
+      className="fixed bottom-4 left-4 right-4 z-50 flex justify-center"
+      style={{
+        // Android: Ensure proper positioning with keyboard
+        paddingBottom: /Android/i.test(navigator.userAgent) && isInputFocused ? 'env(keyboard-inset-height, 0px)' : '0px'
+      }}
+    >
       <motion.div
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative"
+        style={{
+          // Prevent any left positioning issues
+          left: 'auto',
+          right: 'auto',
+          transform: 'none'
+        }}
       >
         <div
           className="relative flex flex-col"
