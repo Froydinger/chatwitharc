@@ -188,20 +188,22 @@ export function SettingsPanel() {
           label: "Your Name",
           description: "How Arc should address you",
           action: (
-            <Input
-              value={profile?.display_name || ""}
-              onChange={(e) => updateProfile({ display_name: e.target.value })}
-              placeholder="Enter your name"
-              className="w-40 glass border-glass-border text-sm"
-              disabled={updating}
-            />
+            <div className="w-full">
+              <Input
+                value={profile?.display_name || ""}
+                onChange={(e) => updateProfile({ display_name: e.target.value })}
+                placeholder="Enter your name"
+                className="w-full glass border-glass-border text-sm"
+                disabled={updating}
+              />
+            </div>
           )
         },
         {
           label: "Email Address",
           description: "Your account email",
           action: (
-            <div className="text-sm text-muted-foreground font-mono bg-glass/30 px-3 py-2 rounded-md">
+            <div className="text-xs sm:text-sm text-muted-foreground font-mono bg-glass/30 px-3 py-2 rounded-md break-all">
               {user?.email || "No email"}
             </div>
           )
@@ -248,7 +250,6 @@ export function SettingsPanel() {
               </div>
             </div>
           ),
-          fullWidth: true
         }
       ]
     },
@@ -337,7 +338,7 @@ export function SettingsPanel() {
   ];
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-6 pb-20 pt-16 px-4 h-full overflow-y-auto">
+    <div className="w-full max-w-2xl mx-auto space-y-4 sm:space-y-6 pb-20 pt-8 sm:pt-16 px-3 sm:px-4 h-full overflow-y-auto">
       {/* Profile Picture Upload */}
       <div className="max-w-md mx-auto">
         <GlassCard variant="bubble" className="p-6">
@@ -401,15 +402,13 @@ export function SettingsPanel() {
                 {section.items.map((item) => (
                   <div
                     key={item.label}
-                    className={`glass rounded-lg p-4 ${
-                      item.fullWidth ? 'space-y-3' : 'flex items-center justify-between'
-                    }`}
+                    className="glass rounded-lg p-4 space-y-3"
                   >
-                    <div className={item.fullWidth ? 'space-y-2' : 'flex-1'}>
-                      <p className="font-medium text-foreground">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                    <div className="space-y-2">
+                      <p className="font-medium text-foreground text-sm sm:text-base">{item.label}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{item.description}</p>
                     </div>
-                    <div className={item.fullWidth ? 'w-full' : 'ml-4'}>
+                    <div className="w-full">
                       {item.action}
                     </div>
                   </div>

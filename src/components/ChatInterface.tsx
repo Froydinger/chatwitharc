@@ -223,13 +223,9 @@ If my scores point to different strategies, follow up with me to confirm prefere
     toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
   };
 
-  // Send cue (visible) + hidden guidance in the same message body
-  const triggerPrompt = (cue: string, guidance: string) => {
-    const payload = cue + encodeHidden(
-      // Add a tiny invisible preface to reduce echoing; still 100% invisible
-      "Follow the enclosed guidance. Do not repeat it. Keep responses concise unless I explicitly request otherwise.\n\n" + guidance
-    );
-    startChatWithMessage(payload);
+  // Send prompt directly as user message
+  const triggerPrompt = (prompt: string) => {
+    startChatWithMessage(prompt);
   };
 
   // Spacer so nothing is cut off under the input bar
@@ -406,7 +402,7 @@ If my scores point to different strategies, follow up with me to confirm prefere
                             ["--glow-color" as any]: isPrev ? prevColor : color,
                             animation: `fadeInUp 420ms ease ${idx * 28}ms both`
                           }}
-                          onClick={() => triggerPrompt(p.cue, p.ctx)}
+                          onClick={() => triggerPrompt(p.ctx)}
                         >
                           <button className="pill" aria-label={p.label}>
                             {p.label}
