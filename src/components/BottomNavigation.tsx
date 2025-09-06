@@ -130,37 +130,68 @@ export function BottomNavigation() {
     return Math.round(centerWithinRail - BUBBLE / 2);
   };
 
-  // ---------------- Absolute freeze during Android IME ----------------
-  const [isInputFocused, setIsInputFocused] = useState(false);
-  const [freezeBubble, setFreezeBubble] = useState(false);
-  const frozenXRef = useRef<number>(0);
+  // ---------------- Initial bubble positioning ----------------
+  useEffect(() => {
+    // Set initial position without animation on mount
+    const initialX = rectBubbleXForTab(currentTab);
+    bubbleControls.set({ x: initialX });
+  }, []); // Only run on mount
 
-  // On focus: lock to chat and FREEZE at exact x, no animation.
+  // ---------------- Smooth bubble positioning with debounced updates ----------------
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const animationIdRef = useRef<number>(0);
+  const targetXRef = useRef<number>(0);
+
+  // Get bubble position with proper calculation
+  const getBubblePosition = (forTab?: typeof navigationItems[number]["id"]) => {
+    const targetTab = forTab || currentTab;
+    return rectBubbleXForTab(targetTab);
+  };
+
+  // Smooth animation to target position
+  const animateBubbleTo = (targetX: number, immediate = false) => {
+    cancelAnimationFrame(animationIdRef.current);
+    targetXRef.current = targetX;
+    
+    if (immediate) {
+      bubbleControls.set({ x: targetX });
+    } else {
+      bubbleControls.start({ 
+        x: targetX, 
+        transition: { 
+          type: "spring", 
+          damping: 20, 
+          stiffness: 300, 
+          mass: 0.8,
+          restSpeed: 0.01,
+          restDelta: 0.01
+        } 
+      });
+    }
+  };
+
+  // Handle input focus/blur with smooth positioning
   useEffect(() => {
     const root = scopeRef.current;
     if (!root) return;
 
     const onFocusIn = () => {
       setIsInputFocused(true);
-      if (currentTab !== "chat") setCurrentTab("chat");
-      const x = rectBubbleXForTab("chat");
-      frozenXRef.current = x;
-      setFreezeBubble(true);
-      bubbleControls.set({ x }); // no animation
+      if (currentTab !== "chat") {
+        setCurrentTab("chat");
+      }
+      // Smooth transition to chat tab position
+      const chatX = getBubblePosition("chat");
+      animateBubbleTo(chatX, false);
     };
 
     const onFocusOut = () => {
       setIsInputFocused(false);
-      // Unfreeze after a tiny delay to let viewport settle
-      const x = rectBubbleXForTab(currentTab);
-      frozenXRef.current = x;
-      bubbleControls.set({ x }); // still no animation
-      setTimeout(() => {
-        setFreezeBubble(false);
-        // One measured, animated settle back to active tab
-        const nx = rectBubbleXForTab(currentTab);
-        bubbleControls.start({ x: nx, transition: { type: "spring", damping: 14, stiffness: 260, mass: 0.7 } });
-      }, 80);
+      // Smooth transition back to current tab
+      requestAnimationFrame(() => {
+        const targetX = getBubblePosition(currentTab);
+        animateBubbleTo(targetX, false);
+      });
     };
 
     root.addEventListener("focusin", onFocusIn);
@@ -169,51 +200,34 @@ export function BottomNavigation() {
       root.removeEventListener("focusin", onFocusIn);
       root.removeEventListener("focusout", onFocusOut);
     };
-  }, [currentTab, setCurrentTab, bubbleControls]);
+  }, [currentTab, setCurrentTab]);
 
-  // While frozen, ignore ALL visualViewport and resize changes.
+  // Handle resize events with debouncing
   useEffect(() => {
-    let raf = 0;
-    const syncWhileUnfrozen = () => {
-      if (freezeBubble) return;
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const x = rectBubbleXForTab(isInputFocused ? "chat" : currentTab);
-        bubbleControls.set({ x }); // use set() to avoid spring on resize
-      });
+    let resizeTimer: number = 0;
+    
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        const targetTab = isInputFocused ? "chat" : currentTab;
+        const targetX = getBubblePosition(targetTab);
+        animateBubbleTo(targetX, true); // Immediate positioning on resize
+      }, 100);
     };
 
-    const ro = new ResizeObserver(syncWhileUnfrozen);
+    const ro = new ResizeObserver(handleResize);
     if (railRef.current) ro.observe(railRef.current);
 
-    const onResize = syncWhileUnfrozen;
-    const onVis = syncWhileUnfrozen;
-
-    window.addEventListener("resize", onResize);
-    window.addEventListener("orientationchange", onResize);
-    document.addEventListener("visibilitychange", onVis);
-
-    const vv = (window as any).visualViewport as VisualViewport | undefined;
-    if (vv) {
-      vv.addEventListener("resize", onResize);
-      vv.addEventListener("scroll", onResize);
-    }
-
-    // initial snap
-    syncWhileUnfrozen();
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
 
     return () => {
       ro.disconnect();
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("orientationchange", onResize);
-      document.removeEventListener("visibilitychange", onVis);
-      if (vv) {
-        vv.removeEventListener("resize", onResize);
-        vv.removeEventListener("scroll", onResize);
-      }
-      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+      clearTimeout(resizeTimer);
     };
-  }, [currentTab, isInputFocused, freezeBubble, bubbleControls]);
+  }, [currentTab, isInputFocused]);
 
   // measure natural input height
   const [inputHeight, setInputHeight] = useState(0);
@@ -271,15 +285,13 @@ export function BottomNavigation() {
     return () => mo.disconnect();
   }, []);
 
-  // Animate to tab (only when not frozen)
+  // Animate to tab (only when not dragging)
   useEffect(() => {
-    if (isDragging || freezeBubble) return;
-    const x = rectBubbleXForTab(isInputFocused ? "chat" : currentTab);
-    bubbleControls.start({
-      x,
-      transition: { type: "spring", damping: 14, stiffness: 260, mass: 0.7 },
-    });
-  }, [currentTab, isDragging, isInputFocused, freezeBubble, bubbleControls]);
+    if (isDragging) return;
+    const targetTab = isInputFocused ? "chat" : currentTab;
+    const targetX = getBubblePosition(targetTab);
+    animateBubbleTo(targetX, false);
+  }, [currentTab, isDragging, isInputFocused]);
 
   const onNavItemClick = (id: typeof navigationItems[number]["id"]) => {
     if (isInputFocused) return; // block nav while keyboard up
@@ -288,9 +300,10 @@ export function BottomNavigation() {
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
-    if (isInputFocused || freezeBubble) {
-      // snap back to locked x with no animation
-      bubbleControls.set({ x: frozenXRef.current });
+    if (isInputFocused) {
+      // snap back to chat position when input is focused
+      const chatX = getBubblePosition("chat");
+      animateBubbleTo(chatX, true);
       return;
     }
     const dropXViewport = info.point.x;
@@ -434,8 +447,8 @@ export function BottomNavigation() {
               onDragStart={() => setIsDragging(true)}
               onDragEnd={handleDragEnd}
               animate={bubbleControls}
-              // keep initial snap deterministic
-              initial={{ x: rectBubbleXForTab(currentTab), y: 0 }}
+              // stable initial positioning
+              initial={{ x: getBubblePosition(currentTab), y: 0 }}
               whileHover={{ scale: 1.05, transition: { type: "spring", damping: 10, stiffness: 400 } }}
               whileDrag={{
                 scale: 1.3,
