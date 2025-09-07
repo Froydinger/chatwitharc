@@ -165,8 +165,8 @@ export function MobileChatApp() {
             />
             <div>
               <h1 className="text-lg">
-  <span className="font-thin">Arc</span><span className="font-semibold">Ai</span>
-</h1>
+               <span className="font-thin">Arc</span><span className="font-semibold">Ai</span>
+              </h1>
               <p className="text-xs text-muted-foreground">AI Assistant</p>
             </div>
           </div>
