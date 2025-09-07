@@ -382,7 +382,7 @@ export function MobileChatApp() {
           border: 0 !important;
         }
 
-        /* Inputs: 16px (no iOS zoom). SHIFT text: down 5px, right 2px */
+        /* Inputs: 16px (no iOS zoom). SHIFT text: down 10px, right 2px */
         .glass-dock input,
         .glass-dock textarea{
           font-size: 16px !important;
@@ -393,7 +393,7 @@ export function MobileChatApp() {
           border: 0 !important;
           box-shadow: none !important;
           width: 100% !important;
-          padding: 5px 0 0 2px !important;         /* ↓5px  →2px */
+          padding: 10px 0 0 2px !important;        /* ↓10px  →2px */
           margin: 0 !important;
         }
         .glass-dock input::placeholder,
@@ -405,7 +405,7 @@ export function MobileChatApp() {
         /* Keep placeholder aligned with typed text (same offset) */
         .glass-dock input:placeholder-shown,
         .glass-dock textarea:placeholder-shown{
-          padding-top: 5px !important;             /* matches base */
+          padding-top: 10px !important;            /* matches base */
           padding-left: 2px !important;            /* matches base */
         }
 
