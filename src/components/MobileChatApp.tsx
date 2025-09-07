@@ -22,17 +22,13 @@ export function MobileChatApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
-  // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-
-  // Fixed input dock measurement
   const inputDockRef = useRef<HTMLDivElement>(null);
   const [inputHeight, setInputHeight] = useState<number>(96);
 
   const { toast } = useToast();
   const { profile } = useAuth();
 
-  // Quick Prompts for mobile
   const quickPrompts = [
     { label: "💭 Wellness Check", prompt: "Help me do a quick wellness check. Ask me about my mood and energy level, then give me personalized advice." },
     { label: "🎨 Creative Spark", prompt: "I need creative inspiration. Give me an interesting creative idea I can work on today." },
@@ -42,14 +38,12 @@ export function MobileChatApp() {
     { label: "🎯 Quick Advice", prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing." }
   ];
 
-  // Smooth scroll on new content
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isGeneratingImage]);
 
-  // Measure input dock height and account for safe area
   useEffect(() => {
     const update = () => {
       if (inputDockRef.current) {
@@ -90,7 +84,6 @@ export function MobileChatApp() {
     setShowSettings(false);
   };
 
-  // History panel
   if (showHistory) {
     return (
       <div className="min-h-screen bg-background">
@@ -122,7 +115,6 @@ export function MobileChatApp() {
     );
   }
 
-  // Settings panel
   if (showSettings) {
     return (
       <div className="min-h-screen bg-background">
@@ -151,7 +143,6 @@ export function MobileChatApp() {
     );
   }
 
-  // Main chat interface
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -183,7 +174,7 @@ export function MobileChatApp() {
         </div>
       </header>
 
-      {/* Scrollable messages layer. We pad the bottom by the measured input dock height plus safe area. */}
+      {/* Scrollable messages; padded by measured dock height */}
       <div 
         className={`relative flex-1 ${dragOver ? "bg-primary/5" : ""}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -197,10 +188,8 @@ export function MobileChatApp() {
             paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px))`
           }}
         >
-          {/* Empty state */}
           {messages.length === 0 ? (
             <div className="flex flex-col h-full">
-              {/* Welcome Section */}
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                 <div className="mb-8">
                   <img
@@ -216,7 +205,6 @@ export function MobileChatApp() {
                   </p>
                 </div>
 
-                {/* Quick Prompts */}
                 <div className="w-full max-w-sm space-y-3 mb-6">
                   {quickPrompts.map((prompt, idx) => (
                     <button
@@ -247,12 +235,10 @@ export function MobileChatApp() {
             </div>
           ) : (
             <div className="p-4 space-y-4">
-              {/* Messages */}
               {messages.map((message) => (
                 <MessageBubble key={message.id} message={message} onEdit={() => {}} />
               ))}
 
-              {/* Thinking indicator */}
               {(isLoading || isGeneratingImage) && (
                 <div className="flex justify-center">
                   <div className="surface px-4 py-3 rounded-lg">
@@ -273,16 +259,14 @@ export function MobileChatApp() {
           )}
         </div>
 
-        {/* Fixed glass input dock */}
+        {/* Fixed black-glass input dock */}
         <div
           ref={inputDockRef}
           className="fixed inset-x-0 bottom-0 z-50 pointer-events-none"
         >
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
-              {/* Outer shadow plate to lift the glass from the background */}
-              <div className="pointer-events-auto glass-dock">
-                {/* Keep your existing ChatInput. Its fields will be made transparent inside this dock. */}
+              <div className="pointer-events-auto glass-dock black">
                 <ChatInput />
               </div>
             </div>
@@ -290,64 +274,102 @@ export function MobileChatApp() {
         </div>
       </div>
 
-      {/* Scoped styles for the glass pill dock */}
+      {/* Scoped styles for the black glass pill and input/button overrides */}
       <style>{`
-        /* Clear glass pill with warped edge and light bending vibe */
-        .glass-dock {
+        /* Black glass pill with subtle warped highlights */
+        .glass-dock.black {
           position: relative;
           border-radius: 9999px;
           padding: 10px 12px;
           background:
-            radial-gradient(120% 200% at 20% 0%, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 60%, rgba(255,255,255,0.02)),
-            linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
-          backdrop-filter: blur(2px) saturate(120%);
-          -webkit-backdrop-filter: blur(2px) saturate(120%);
-          border: 1px solid rgba(255,255,255,0.28);
+            radial-gradient(120% 200% at 20% 0%, rgba(0,0,0,0.92), rgba(0,0,0,0.88) 60%, rgba(0,0,0,0.85)),
+            linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.00));
+          backdrop-filter: blur(6px) saturate(140%);
+          -webkit-backdrop-filter: blur(6px) saturate(140%);
+          border: 0;
           box-shadow:
-            0 10px 30px rgba(0,0,0,0.35),
-            inset 0 1px 0 rgba(255,255,255,0.35),
-            inset 0 -1px 0 rgba(255,255,255,0.10);
+            0 8px 26px rgba(0,0,0,0.55),
+            inset 0 0.5px 0 rgba(255,255,255,0.10),
+            inset 0 -0.5px 0 rgba(255,255,255,0.04);
           overflow: hidden;
         }
-        /* Caustic highlights and edge warp */
-        .glass-dock::before {
+        /* Very subtle specular edge, no visible 'border' */
+        .glass-dock.black::before {
           content: "";
           position: absolute;
           inset: 0;
           border-radius: inherit;
           background:
-            radial-gradient(40% 80% at 18% 8%, rgba(255,255,255,0.55), transparent 60%),
-            conic-gradient(from 180deg at 82% 0%, rgba(255,255,255,0.40), rgba(255,255,255,0.10) 25%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.05) 75%, rgba(255,255,255,0.40));
+            radial-gradient(40% 80% at 18% 8%, rgba(255,255,255,0.15), transparent 60%),
+            conic-gradient(from 180deg at 82% 0%, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.10));
           mix-blend-mode: overlay;
-          opacity: 0.35;
+          opacity: 0.25;
           pointer-events: none;
         }
-        /* Inner glow to sell thickness of glass */
-        .glass-dock::after {
+        .glass-dock.black::after {
           content: "";
           position: absolute;
           inset: 1px;
           border-radius: inherit;
-          background: linear-gradient(to bottom, rgba(255,255,255,0.16), rgba(255,255,255,0.03));
-          mask: radial-gradient(120% 200% at 0% 0%, rgba(0,0,0,0.55), transparent 60%);
+          background: linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0.00));
+          mask: radial-gradient(120% 200% at 0% 0%, rgba(0,0,0,0.65), transparent 60%);
           pointer-events: none;
         }
-        /* Make inner inputs transparent so the dock glass shows through */
-        .glass-dock input,
-        .glass-dock textarea,
-        .glass-dock .surface,
-        .glass-dock .card {
-          background-color: transparent !important;
+
+        /* Strip ALL visual chrome from inputs and buttons inside the dock */
+        .glass-dock.black input,
+        .glass-dock.black textarea,
+        .glass-dock.black select {
+          background: transparent !important;
+          border: 0 !important;
+          outline: none !important;
+          box-shadow: none !important;
+          color: rgba(255,255,255,0.96) !important;
+          caret-color: rgba(255,255,255,0.96) !important;
         }
-        .glass-dock input,
-        .glass-dock textarea {
-          border-color: transparent !important;
+        .glass-dock.black input::placeholder,
+        .glass-dock.black textarea::placeholder {
+          color: rgba(255,255,255,0.50) !important;
+        }
+        .glass-dock.black :is(input, textarea, button, select):focus,
+        .glass-dock.black :is(input, textarea, button, select):focus-visible {
+          outline: none !important;
           box-shadow: none !important;
         }
-        /* Keep placeholder and text readable on glass */
-        .glass-dock input::placeholder,
-        .glass-dock textarea::placeholder {
-          color: rgba(255,255,255,0.65);
+
+        /* Kill any background, border, or outline for action buttons, including Send */
+        .glass-dock.black button,
+        .glass-dock.black [role="button"] {
+          background: transparent !important;
+          border: 0 !important;
+          outline: none !important;
+          box-shadow: none !important;
+        }
+        .glass-dock.black button:hover,
+        .glass-dock.black [role="button"]:hover {
+          background: transparent !important;
+        }
+        .glass-dock.black button:active,
+        .glass-dock.black [role="button"]:active {
+          background: transparent !important;
+        }
+        .glass-dock.black button:disabled,
+        .glass-dock.black [role="button"][aria-disabled="true"] {
+          background: transparent !important;
+          opacity: 0.6;
+        }
+
+        /* Make icons readable without a chip behind them */
+        .glass-dock.black svg {
+          stroke: rgba(255,255,255,0.92) !important;
+        }
+
+        /* If your ChatInput adds any 'surface' or 'card' containers, make them transparent too */
+        .glass-dock.black .surface,
+        .glass-dock.black .card {
+          background: transparent !important;
+          border: 0 !important;
+          box-shadow: none !important;
         }
       `}</style>
     </div>
