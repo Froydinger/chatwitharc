@@ -69,10 +69,7 @@ export function MobileChatApp() {
     createNewSession();
     setShowHistory(false);
     setShowSettings(false);
-    toast({ 
-      title: "New Chat Started", 
-      description: "Ready for a fresh conversation!" 
-    });
+    toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -86,31 +83,18 @@ export function MobileChatApp() {
     setShowSettings(false);
   };
 
-  const triggerAttach = () => {
-    fileInputRef.current?.click();
-  };
+  const triggerAttach = () => fileInputRef.current?.click();
 
   const handleAttachChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      // Try a dedicated store action first, if your Zustand store exposes it
-      // @ts-ignore
-      const getState = (useArcStore as any)?.getState;
-      // @ts-ignore
-      const storeNow = typeof getState === "function" ? getState() : null;
-
-      if (storeNow && typeof storeNow.sendImageForAnalysis === "function") {
-        await storeNow.sendImageForAnalysis(file);
-        toast({ title: "Image attached", description: "Sent for analysis." });
-      } else {
-        // Fallback: send a blob URL in-chat so you see it
-        const url = URL.createObjectURL(file);
-        startChatWithMessage(`Analyze this image: ${url}`);
-        toast({ title: "Image attached", description: "No analyzer found, sent as message." });
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      }
+      // Minimal, non-blocking fallback so this file cannot break sending
+      const url = URL.createObjectURL(file);
+      startChatWithMessage(`Analyze this image: ${url}`);
+      toast({ title: "Image attached", description: "Sent as a message for analysis." });
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (err) {
       console.error(err);
       toast({ title: "Attach failed", description: "Could not attach image." });
@@ -124,15 +108,8 @@ export function MobileChatApp() {
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex h-16 items-center justify-between px-4">
-            <button
-              onClick={() => setShowHistory(false)}
-              className="flex items-center gap-3"
-            >
-              <img
-                src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
-                alt="ArcAI"
-                className="h-8 w-8"
-              />
+            <button onClick={() => setShowHistory(false)} className="flex items-center gap-3">
+              <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-8 w-8" />
               <div className="text-left">
                 <h1 className="text-lg font-semibold">Chat History</h1>
                 <p className="text-xs text-muted-foreground">Your conversations</p>
@@ -155,15 +132,8 @@ export function MobileChatApp() {
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex h-16 items-center justify-between px-4">
-            <button
-              onClick={() => setShowSettings(false)}
-              className="flex items-center gap-3"
-            >
-              <img
-                src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
-                alt="ArcAI"
-                className="h-8 w-8"
-              />
+            <button onClick={() => setShowSettings(false)} className="flex items-center gap-3">
+              <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-8 w-8" />
               <div className="text-left">
                 <h1 className="text-lg font-semibold">Settings</h1>
                 <p className="text-xs text-muted-foreground">Customize your experience</p>
@@ -184,17 +154,12 @@ export function MobileChatApp() {
       <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <img
-              src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
-              alt="ArcAI"
-              className="h-8 w-8"
-            />
+            <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-8 w-8" />
             <div>
               <h1 className="text-lg font-semibold">ArcAI</h1>
               <p className="text-xs text-muted-foreground">AI Assistant</p>
             </div>
           </div>
-          
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => setShowHistory(true)}>
               <History className="h-4 w-4" />
@@ -219,22 +184,14 @@ export function MobileChatApp() {
         <div
           ref={messagesContainerRef}
           className="absolute inset-0 overflow-y-auto"
-          style={{
-            paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px))`
-          }}
+          style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px))` }}
         >
           {messages.length === 0 ? (
             <div className="flex flex-col h-full">
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                 <div className="mb-8">
-                  <img
-                    src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
-                    alt="ArcAI"
-                    className="h-20 w-20 mx-auto mb-4"
-                  />
-                  <h2 className="text-2xl font-bold text-foreground mb-2">
-                    Welcome to ArcAI
-                  </h2>
+                  <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-20 w-20 mx-auto mb-4" />
+                  <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to ArcAI</h2>
                   <p className="text-muted-foreground text-sm max-w-sm">
                     Your intelligent AI assistant. Choose a quick prompt below or start typing to begin.
                   </p>
@@ -295,20 +252,12 @@ export function MobileChatApp() {
         </div>
 
         {/* Fixed black-glass input dock with paperclip */}
-        <div
-          ref={inputDockRef}
-          className="fixed inset-x-0 bottom-0 z-50 pointer-events-none"
-        >
+        <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
-              <div className="pointer-events-auto glass-dock black more-transparent">
-                {/* Paperclip attach, no background */}
-                <button
-                  type="button"
-                  aria-label="Attach image"
-                  className="attach-btn"
-                  onClick={triggerAttach}
-                >
+              <div className="pointer-events-auto glass-dock black ultra-clear">
+                {/* Paperclip attach */}
+                <button type="button" aria-label="Attach image" className="attach-btn" onClick={triggerAttach}>
                   <Paperclip className="h-5 w-5" />
                 </button>
                 <input
@@ -328,42 +277,28 @@ export function MobileChatApp() {
         </div>
       </div>
 
-      {/* Scoped styles: more transparent black glass with stronger edge bending */}
+      {/* Scoped styles: ultra-clear black glass. Zero chrome inside. */}
       <style>{`
         /* Base black glass pill */
         .glass-dock.black {
-          --glass-alpha-1: 0.58;         /* base transparency */
-          --glass-alpha-2: 0.48;         /* inner gradient */
-          --edge-ring: 12px;             /* thickness of edge refraction ring */
-          --specular: 0.22;              /* highlight intensity */
-          --shadow: 0.45;                /* drop shadow strength */
-
+          --alpha: 0.28;                 /* base glass darkness */
+          --edgeRing: 14px;              /* edge-bend width */
+          --edgeOpacity: 0.40;           /* edge spectral opacity */
+          --specular: 0.22;              /* top highlight */
           position: relative;
           border-radius: 9999px;
           padding: 10px 12px;
-          background:
-            radial-gradient(120% 200% at 20% 0%, rgba(0,0,0,var(--glass-alpha-1)), rgba(0,0,0,var(--glass-alpha-2)) 60%, rgba(0,0,0,0.42)),
-            linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
-          backdrop-filter: blur(10px) saturate(160%) contrast(110%);
-          -webkit-backdrop-filter: blur(10px) saturate(160%) contrast(110%);
+          background: rgba(0,0,0,var(--alpha));
+          backdrop-filter: blur(12px) saturate(170%) contrast(110%);
+          -webkit-backdrop-filter: blur(12px) saturate(170%) contrast(110%);
           border: 0;
-          box-shadow:
-            0 10px 30px rgba(0,0,0,var(--shadow)),
-            inset 0 0.5px 0 rgba(255,255,255,0.10),
-            inset 0 -0.5px 0 rgba(255,255,255,0.04);
+          box-shadow: 0 10px 28px rgba(0,0,0,0.42);
           overflow: hidden;
         }
+        /* even clearer preset */
+        .glass-dock.ultra-clear { --alpha: 0.18; --edgeRing: 16px; --edgeOpacity: 0.48; --specular: 0.28; }
 
-        /* More transparent preset */
-        .glass-dock.more-transparent {
-          --glass-alpha-1: 0.46;
-          --glass-alpha-2: 0.38;
-          --edge-ring: 14px;
-          --specular: 0.28;
-          --shadow: 0.38;
-        }
-
-        /* Specular sheen and subtle prism tint like the reference */
+        /* subtle highlight and prism tint like your reference */
         .glass-dock.black::before {
           content: "";
           position: absolute;
@@ -371,57 +306,60 @@ export function MobileChatApp() {
           border-radius: inherit;
           background:
             radial-gradient(40% 80% at 18% 8%, rgba(255,255,255,var(--specular)), transparent 60%),
-            conic-gradient(from 200deg at 85% 10%,
-              rgba(255, 170, 170, 0.10),
-              rgba(170, 200, 255, 0.10) 25%,
-              rgba(170, 255, 210, 0.08) 50%,
-              rgba(255, 210, 170, 0.08) 75%,
-              rgba(255, 170, 170, 0.10));
+            linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0));
           mix-blend-mode: overlay;
           pointer-events: none;
         }
 
-        /* Edge-bending ring: uses backdrop-filter only at the outer edge to 'refract' the background */
+        /* edge-only refraction ring */
         .glass-dock.black::after {
           content: "";
           position: absolute;
           inset: 0;
           border-radius: inherit;
-
-          /* Amplify what's behind only at the edges to fake lensing */
-          backdrop-filter: blur(16px) saturate(180%) brightness(1.08) contrast(1.22);
-          -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(1.08) contrast(1.22);
-
-          /* Mask to an edge ring */
-          padding: var(--edge-ring);
-          -webkit-mask: 
-            linear-gradient(#000 0 0) content-box, 
-            linear-gradient(#000 0 0);
+          backdrop-filter: blur(18px) saturate(185%) brightness(1.08) contrast(1.22);
+          -webkit-backdrop-filter: blur(18px) saturate(185%) brightness(1.08) contrast(1.22);
+          padding: var(--edgeRing);
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
           -webkit-mask-composite: xor;
                   mask-composite: exclude;
-
-          /* Very gentle spectral tint around the rim */
           background:
             conic-gradient(from 0deg,
-              rgba(255, 90, 0, 0.10),
-              rgba(255, 0, 180, 0.08),
-              rgba(0, 140, 255, 0.10),
-              rgba(0, 255, 160, 0.08),
-              rgba(255, 220, 0, 0.08),
-              rgba(255, 90, 0, 0.10));
+              rgba(255,80,0,var(--edgeOpacity)),
+              rgba(0,160,255,var(--edgeOpacity) * 0.8),
+              rgba(0,255,170,var(--edgeOpacity) * 0.7),
+              rgba(255,220,0,var(--edgeOpacity) * 0.7),
+              rgba(255,80,0,var(--edgeOpacity)));
           mix-blend-mode: screen;
           opacity: 0.35;
           pointer-events: none;
         }
 
-        /* Zero chrome for inputs and buttons in the dock */
-        .glass-dock.black input,
-        .glass-dock.black textarea,
-        .glass-dock.black select {
+        /* Nuke EVERY child background, border, ring, outline inside the dock */
+        .glass-dock.black * {
           background: transparent !important;
           border: 0 !important;
           outline: none !important;
           box-shadow: none !important;
+        }
+        .glass-dock.black *::before,
+        .glass-dock.black *::after {
+          background: transparent !important;
+          box-shadow: none !important;
+          border: 0 !important;
+        }
+        .glass-dock.black [class*="bg-"],
+        .glass-dock.black [class*="ring-"],
+        .glass-dock.black [class*="border"] {
+          background-color: transparent !important;
+          box-shadow: none !important;
+          border: 0 !important;
+        }
+
+        /* Inputs readable on dark glass */
+        .glass-dock.black input,
+        .glass-dock.black textarea,
+        .glass-dock.black select {
           color: rgba(255,255,255,0.96) !important;
           caret-color: rgba(255,255,255,0.96) !important;
         }
@@ -429,22 +367,15 @@ export function MobileChatApp() {
         .glass-dock.black textarea::placeholder {
           color: rgba(255,255,255,0.52) !important;
         }
-        .glass-dock.black :is(input, textarea, button, select):focus,
-        .glass-dock.black :is(input, textarea, button, select):focus-visible {
-          outline: none !important;
-          box-shadow: none !important;
-        }
 
-        /* Buttons, including Send and the paperclip, stay fully transparent */
+        /* Buttons and icons stay transparent, no chips */
         .glass-dock.black button,
         .glass-dock.black [role="button"] {
           background: transparent !important;
-          border: 0 !important;
-          outline: none !important;
-          box-shadow: none !important;
         }
         .glass-dock.black svg {
-          stroke: rgba(255,255,255,0.92) !important;
+          stroke: rgba(255,255,255,0.94) !important;
+          fill: none !important;
         }
 
         /* Attachment icon placement */
