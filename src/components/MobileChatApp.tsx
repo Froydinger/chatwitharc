@@ -40,12 +40,14 @@ export function MobileChatApp() {
     { label: "🎯 Quick Advice", prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing." }
   ];
 
+  // Smooth scroll on new content
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isGeneratingImage]);
 
+  // Measure dock height
   useEffect(() => {
     const update = () => {
       if (inputDockRef.current) {
@@ -54,10 +56,8 @@ export function MobileChatApp() {
       }
     };
     update();
-
     const ro = new ResizeObserver(update);
     if (inputDockRef.current) ro.observe(inputDockRef.current);
-
     window.addEventListener("resize", update);
     return () => {
       window.removeEventListener("resize", update);
@@ -85,10 +85,29 @@ export function MobileChatApp() {
 
   const triggerAttach = () => fileInputRef.current?.click();
 
+  // Set the placeholder text to "Ask anything" (works even if ChatInput controls it internally)
+  useEffect(() => {
+    const setPlaceholder = () => {
+      if (!inputDockRef.current) return;
+      const fields = inputDockRef.current.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+        '.glass-content input, .glass-content textarea'
+      );
+      fields.forEach(f => {
+        try {
+          f.setAttribute('placeholder', 'Ask anything');
+        } catch {}
+      });
+    };
+    setPlaceholder();
+    // Re-apply when messages list changes (in case ChatInput re-renders)
+    // and on a short timeout to catch hydration swaps
+    const t = setTimeout(setPlaceholder, 50);
+    return () => clearTimeout(t);
+  }, [messages]);
+
   const handleAttachChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     try {
       const url = URL.createObjectURL(file);
       startChatWithMessage(`Analyze this image: ${url}`);
@@ -102,6 +121,7 @@ export function MobileChatApp() {
     }
   };
 
+  // History panel
   if (showHistory) {
     return (
       <div className="min-h-screen bg-background">
@@ -126,6 +146,7 @@ export function MobileChatApp() {
     );
   }
 
+  // Settings panel
   if (showSettings) {
     return (
       <div className="min-h-screen bg-background">
@@ -147,6 +168,7 @@ export function MobileChatApp() {
     );
   }
 
+  // Main chat
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -173,7 +195,7 @@ export function MobileChatApp() {
         </div>
       </header>
 
-      {/* Scrollable messages; padded by measured dock height */}
+      {/* Messages */}
       <div 
         className={`relative flex-1 ${dragOver ? "bg-primary/5" : ""}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -195,7 +217,6 @@ export function MobileChatApp() {
                     Your intelligent AI assistant. Choose a quick prompt below or start typing to begin.
                   </p>
                 </div>
-
                 <div className="w-full max-w-sm space-y-3 mb-6">
                   {quickPrompts.map((prompt, idx) => (
                     <button
@@ -207,7 +228,6 @@ export function MobileChatApp() {
                     </button>
                   ))}
                 </div>
-
                 {(isLoading || isGeneratingImage) && (
                   <div className="surface px-4 py-3 rounded-lg">
                     <div className="flex items-center gap-3">
@@ -229,7 +249,6 @@ export function MobileChatApp() {
               {messages.map((message) => (
                 <MessageBubble key={message.id} message={message} onEdit={() => {}} />
               ))}
-
               {(isLoading || isGeneratingImage) && (
                 <div className="flex justify-center">
                   <div className="surface px-4 py-3 rounded-lg">
@@ -250,30 +269,31 @@ export function MobileChatApp() {
           )}
         </div>
 
-        {/* Fixed lens-dock with paperclip */}
+        {/* Fixed lens dock */}
         <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
-              <div className="pointer-events-auto glass-dock black lens-mode">
-                {/* Transparent lens layer that bends the scene */}
+              <div className="pointer-events-auto glass-dock black">
+                {/* live refraction layers */}
                 <div className="lens" aria-hidden="true"></div>
                 <div className="lens-rim" aria-hidden="true"></div>
                 <div className="lens-caustics" aria-hidden="true"></div>
 
-                {/* Paperclip attach */}
-                <button type="button" aria-label="Attach image" className="attach-btn" onClick={triggerAttach}>
-                  <Paperclip className="h-5 w-5" />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAttachChange}
-                />
-
-                <div className="with-attachment-padding">
-                  <ChatInput />
+                {/* content (stripped chrome) */}
+                <div className="glass-content">
+                  <button type="button" aria-label="Attach image" className="attach-btn" onClick={triggerAttach}>
+                    <Paperclip className="h-5 w-5" />
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAttachChange}
+                  />
+                  <div className="with-attachment-padding">
+                    <ChatInput />
+                  </div>
                 </div>
               </div>
             </div>
@@ -283,75 +303,63 @@ export function MobileChatApp() {
 
       {/* Styles */}
       <style>{`
-        /* Dock container: no fill; only drop shadow. */
+        /* Dock shell — no fill; just shadow and isolated blending */
         .glass-dock.black {
-          --ring: 18px;              /* rim thickness */
-          --rimOpacity: 0.38;        /* spectral rim intensity */
-          --shadow: 0.45;            /* drop shadow */
-          --blur: 18px;              /* refractive blur */
-          --sat: 185%;               /* saturation bump */
-          --bright: 1.06;            /* brightness bump */
-          --contrast: 1.20;          /* contrast bump */
-          --tint: 0.06;              /* subtle top highlight */
+          --ring: 18px;
+          --rimOpacity: 0.46;
+          --shadow: 0.50;
+          --blur: 22px;
+          --sat: 200%;
+          --bright: 1.08;
+          --contrast: 1.25;
+          --tint: 0.08;
           position: relative;
           border-radius: 9999px;
           padding: 10px 12px;
           background: transparent;
           border: 0;
-          filter: drop-shadow(0 10px 28px rgba(0,0,0,var(--shadow)));
+          filter: drop-shadow(0 12px 30px rgba(0,0,0,var(--shadow)));
           isolation: isolate;
           overflow: hidden;
         }
 
-        /* 1) LENS: fully transparent but with backdrop-filter across the whole pill.
-              The tiny alpha is to enable Safari's backdrop compositor without showing a fill. */
-        .glass-dock.black .lens {
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          background: rgba(0,0,0,0.001); /* effectively invisible */
+        /* LENS: full-pill refraction (the bend) */
+        .glass-dock.black .lens{
+          position:absolute; inset:0; border-radius:inherit;
+          background: rgba(0,0,0,0.001); /* triggers Safari backdrop without visible fill */
           backdrop-filter: blur(var(--blur)) saturate(var(--sat)) brightness(var(--bright)) contrast(var(--contrast));
           -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat)) brightness(var(--bright)) contrast(var(--contrast));
-          pointer-events: none;
+          z-index:0; pointer-events:none;
         }
 
-        /* 2) RIM: edge-only refraction and thin spectral tint, center masked out. */
-        .glass-dock.black .lens-rim {
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
+        /* RIM: edge-only spectral ring (center masked out) */
+        .glass-dock.black .lens-rim{
+          position:absolute; inset:0; border-radius:inherit; z-index:1; pointer-events:none;
           padding: var(--ring);
           -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-          -webkit-mask-composite: xor;
-                  mask-composite: exclude;
-
-          background:
-            conic-gradient(from 0deg,
-              rgba(255, 90, 0, var(--rimOpacity)),
-              rgba(0, 160, 255, calc(var(--rimOpacity) * 0.80)),
-              rgba(0, 255, 170, calc(var(--rimOpacity) * 0.70)),
-              rgba(255, 220, 0, calc(var(--rimOpacity) * 0.70)),
-              rgba(255, 90, 0, var(--rimOpacity)));
-          mix-blend-mode: screen;
-          pointer-events: none;
-          opacity: 0.35;
+          -webkit-mask-composite: xor; mask-composite: exclude;
+          background: conic-gradient(from 0deg,
+            rgba(255,90,0,var(--rimOpacity)),
+            rgba(0,160,255,calc(var(--rimOpacity)*.8)),
+            rgba(0,255,170,calc(var(--rimOpacity)*.7)),
+            rgba(255,220,0,calc(var(--rimOpacity)*.7)),
+            rgba(255,90,0,var(--rimOpacity)));
+          mix-blend-mode: screen; opacity:.38;
         }
 
-        /* 3) CAUSTICS: soft specular bands to sell curvature. */
-        .glass-dock.black .lens-caustics {
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
+        /* CAUSTICS: subtle curvature highlights */
+        .glass-dock.black .lens-caustics{
+          position:absolute; inset:0; border-radius:inherit; z-index:1; pointer-events:none;
           background:
             radial-gradient(90% 140% at 20% 0%, rgba(255,255,255,var(--tint)), transparent 60%),
-            radial-gradient(70% 140% at 80% 100%, rgba(255,255,255,calc(var(--tint) * 0.8)), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,calc(var(--tint) * 0.5)), rgba(255,255,255,0));
+            radial-gradient(70% 140% at 80% 100%, rgba(255,255,255,calc(var(--tint)*.9)), transparent 60%),
+            linear-gradient(180deg, rgba(255,255,255,calc(var(--tint)*.5)), rgba(255,255,255,0));
           mix-blend-mode: overlay;
-          pointer-events: none;
         }
 
-        /* Strip ALL chrome and accidental fills inside the dock, including backdrop-filters from children. */
-        .glass-dock.black * {
+        /* CONTENT: only here do we strip chrome */
+        .glass-dock.black .glass-content{ position:relative; z-index:2; }
+        .glass-dock.black .glass-content *{
           background: transparent !important;
           border: 0 !important;
           outline: none !important;
@@ -359,58 +367,41 @@ export function MobileChatApp() {
           backdrop-filter: none !important;
           -webkit-backdrop-filter: none !important;
         }
-        .glass-dock.black *::before,
-        .glass-dock.black *::after {
-          background: transparent !important;
-          border: 0 !important;
-          box-shadow: none !important;
-          backdrop-filter: none !important;
-          -webkit-backdrop-filter: none !important;
-        }
-        .glass-dock.black [class*="bg-"],
-        .glass-dock.black [class*="ring-"],
-        .glass-dock.black [class*="border"] {
+        .glass-dock.black .glass-content [class*="bg-"],
+        .glass-dock.black .glass-content [class*="ring-"],
+        .glass-dock.black .glass-content [class*="border"]{
           background-color: transparent !important;
           box-shadow: none !important;
           border: 0 !important;
         }
 
-        /* Readable inputs */
-        .glass-dock.black input,
-        .glass-dock.black textarea,
-        .glass-dock.black select {
+        /* Readability + placeholder tweaks */
+        .glass-dock.black .glass-content input,
+        .glass-dock.black .glass-content textarea{
           color: rgba(255,255,255,0.96) !important;
           caret-color: rgba(255,255,255,0.96) !important;
         }
-        .glass-dock.black input::placeholder,
-        .glass-dock.black textarea::placeholder {
+        .glass-dock.black .glass-content input::placeholder,
+        .glass-dock.black .glass-content textarea::placeholder{
           color: rgba(255,255,255,0.52) !important;
         }
-
-        /* Icons and buttons remain stroke-only */
-        .glass-dock.black button,
-        .glass-dock.black [role="button"] { background: transparent !important; }
-        .glass-dock.black svg { stroke: rgba(255,255,255,0.94) !important; fill: none !important; }
-
-        /* Paperclip positioning */
-        .attach-btn {
-          position: absolute;
-          left: 14px;
-          top: 50%;
-          transform: translateY(-50%);
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          height: 28px;
-          width: 28px;
-          padding: 0;
-          cursor: pointer;
+        /* Lower only when placeholder is visible */
+        .glass-dock.black .glass-content input:placeholder-shown,
+        .glass-dock.black .glass-content textarea:placeholder-shown{
+          padding-top: 5px !important;
         }
-        .attach-btn:hover svg { opacity: 0.85; }
-        .attach-btn:active svg { opacity: 0.7; }
 
-        /* Keep text clear of the paperclip */
-        .with-attachment-padding { padding-left: 38px; }
+        /* Buttons/icons stay stroke-only */
+        .glass-dock.black .glass-content button,
+        .glass-dock.black .glass-content [role="button"]{ background: transparent !important; }
+        .glass-dock.black .glass-content svg{ stroke: rgba(255,255,255,0.94) !important; fill: none !important; }
+
+        /* Paperclip & text padding */
+        .attach-btn{
+          position:absolute; left:14px; top:50%; transform:translateY(-50%);
+          height:28px; width:28px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+        }
+        .with-attachment-padding{ padding-left:38px; }
       `}</style>
     </div>
   );
