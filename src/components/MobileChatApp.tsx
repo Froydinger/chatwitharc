@@ -85,22 +85,18 @@ export function MobileChatApp() {
 
   const triggerAttach = () => fileInputRef.current?.click();
 
-  // Set the placeholder text to "Ask anything" (works even if ChatInput controls it internally)
+  // Force placeholder text + keep it after rerenders
   useEffect(() => {
     const setPlaceholder = () => {
       if (!inputDockRef.current) return;
       const fields = inputDockRef.current.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-        '.glass-content input, .glass-content textarea'
+        ".glass-content input, .glass-content textarea"
       );
-      fields.forEach(f => {
-        try {
-          f.setAttribute('placeholder', 'Ask anything');
-        } catch {}
+      fields.forEach((f) => {
+        try { f.setAttribute("placeholder", "Ask anything"); } catch {}
       });
     };
     setPlaceholder();
-    // Re-apply when messages list changes (in case ChatInput re-renders)
-    // and on a short timeout to catch hydration swaps
     const t = setTimeout(setPlaceholder, 50);
     return () => clearTimeout(t);
   }, [messages]);
@@ -121,7 +117,7 @@ export function MobileChatApp() {
     }
   };
 
-  // History panel
+  // History
   if (showHistory) {
     return (
       <div className="min-h-screen bg-background">
@@ -146,7 +142,7 @@ export function MobileChatApp() {
     );
   }
 
-  // Settings panel
+  // Settings
   if (showSettings) {
     return (
       <div className="min-h-screen bg-background">
@@ -217,7 +213,8 @@ export function MobileChatApp() {
                     Your intelligent AI assistant. Choose a quick prompt below or start typing to begin.
                   </p>
                 </div>
-                <div className="w-full max-w-sm space-y-3 mb-6">
+                {/* extra 40px under prompts */}
+                <div className="w-full max-w-sm space-y-3 mb-[40px]">
                   {quickPrompts.map((prompt, idx) => (
                     <button
                       key={idx}
@@ -269,17 +266,11 @@ export function MobileChatApp() {
           )}
         </div>
 
-        {/* Fixed lens dock */}
+        {/* Fixed simplified dock */}
         <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
-              <div className="pointer-events-auto glass-dock black">
-                {/* live refraction layers */}
-                <div className="lens" aria-hidden="true"></div>
-                <div className="lens-rim" aria-hidden="true"></div>
-                <div className="lens-caustics" aria-hidden="true"></div>
-
-                {/* content (stripped chrome) */}
+              <div className="pointer-events-auto glass-dock black simple">
                 <div className="glass-content">
                   <button type="button" aria-label="Attach image" className="attach-btn" onClick={triggerAttach}>
                     <Paperclip className="h-5 w-5" />
@@ -301,107 +292,78 @@ export function MobileChatApp() {
         </div>
       </div>
 
-      {/* Styles */}
+      {/* Styles: simple black frosted glass, no gradients, no layers */}
       <style>{`
-        /* Dock shell — no fill; just shadow and isolated blending */
-        .glass-dock.black {
-          --ring: 18px;
-          --rimOpacity: 0.46;
-          --shadow: 0.50;
-          --blur: 22px;
-          --sat: 200%;
-          --bright: 1.08;
-          --contrast: 1.25;
-          --tint: 0.08;
+        /* Dock: subtle frosted black pill */
+        .glass-dock.black.simple {
           position: relative;
           border-radius: 9999px;
           padding: 10px 12px;
-          background: transparent;
-          border: 0;
-          filter: drop-shadow(0 12px 30px rgba(0,0,0,var(--shadow)));
-          isolation: isolate;
+          background: rgba(0,0,0,0.45);            /* slight darkness */
+          backdrop-filter: blur(10px) saturate(120%);
+          -webkit-backdrop-filter: blur(10px) saturate(120%);
+          border: 0;                                 /* no visible border */
+          box-shadow: 0 12px 28px rgba(0,0,0,0.4),   /* soft lift */
+                      inset 0 1px 0 rgba(255,255,255,0.06),
+                      inset 0 -1px 0 rgba(255,255,255,0.03);
           overflow: hidden;
         }
 
-        /* LENS: full-pill refraction (the bend) */
-        .glass-dock.black .lens{
-          position:absolute; inset:0; border-radius:inherit;
-          background: rgba(0,0,0,0.001); /* triggers Safari backdrop without visible fill */
-          backdrop-filter: blur(var(--blur)) saturate(var(--sat)) brightness(var(--bright)) contrast(var(--contrast));
-          -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat)) brightness(var(--bright)) contrast(var(--contrast));
-          z-index:0; pointer-events:none;
-        }
-
-        /* RIM: edge-only spectral ring (center masked out) */
-        .glass-dock.black .lens-rim{
-          position:absolute; inset:0; border-radius:inherit; z-index:1; pointer-events:none;
-          padding: var(--ring);
-          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-          -webkit-mask-composite: xor; mask-composite: exclude;
-          background: conic-gradient(from 0deg,
-            rgba(255,90,0,var(--rimOpacity)),
-            rgba(0,160,255,calc(var(--rimOpacity)*.8)),
-            rgba(0,255,170,calc(var(--rimOpacity)*.7)),
-            rgba(255,220,0,calc(var(--rimOpacity)*.7)),
-            rgba(255,90,0,var(--rimOpacity)));
-          mix-blend-mode: screen; opacity:.38;
-        }
-
-        /* CAUSTICS: subtle curvature highlights */
-        .glass-dock.black .lens-caustics{
-          position:absolute; inset:0; border-radius:inherit; z-index:1; pointer-events:none;
-          background:
-            radial-gradient(90% 140% at 20% 0%, rgba(255,255,255,var(--tint)), transparent 60%),
-            radial-gradient(70% 140% at 80% 100%, rgba(255,255,255,calc(var(--tint)*.9)), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,calc(var(--tint)*.5)), rgba(255,255,255,0));
-          mix-blend-mode: overlay;
-        }
-
-        /* CONTENT: only here do we strip chrome */
-        .glass-dock.black .glass-content{ position:relative; z-index:2; }
-        .glass-dock.black .glass-content *{
+        /* Strip chrome only inside content (inputs/buttons) */
+        .glass-dock.black.simple .glass-content * {
           background: transparent !important;
           border: 0 !important;
           outline: none !important;
           box-shadow: none !important;
-          backdrop-filter: none !important;
-          -webkit-backdrop-filter: none !important;
         }
-        .glass-dock.black .glass-content [class*="bg-"],
-        .glass-dock.black .glass-content [class*="ring-"],
-        .glass-dock.black .glass-content [class*="border"]{
+        .glass-dock.black.simple .glass-content [class*="bg-"],
+        .glass-dock.black.simple .glass-content [class*="ring-"],
+        .glass-dock.black.simple .glass-content [class*="border"] {
           background-color: transparent !important;
-          box-shadow: none !important;
           border: 0 !important;
+          box-shadow: none !important;
         }
 
-        /* Readability + placeholder tweaks */
-        .glass-dock.black .glass-content input,
-        .glass-dock.black .glass-content textarea{
+        /* Inputs readable on dark glass */
+        .glass-dock.black.simple .glass-content input,
+        .glass-dock.black.simple .glass-content textarea {
           color: rgba(255,255,255,0.96) !important;
           caret-color: rgba(255,255,255,0.96) !important;
         }
-        .glass-dock.black .glass-content input::placeholder,
-        .glass-dock.black .glass-content textarea::placeholder{
-          color: rgba(255,255,255,0.52) !important;
+        .glass-dock.black.simple .glass-content input::placeholder,
+        .glass-dock.black.simple .glass-content textarea::placeholder {
+          color: rgba(255,255,255,0.55) !important;
         }
-        /* Lower only when placeholder is visible */
-        .glass-dock.black .glass-content input:placeholder-shown,
-        .glass-dock.black .glass-content textarea:placeholder-shown{
-          padding-top: 5px !important;
+        /* Lower placeholder ~5-6px when visible */
+        .glass-dock.black.simple .glass-content input:placeholder-shown,
+        .glass-dock.black.simple .glass-content textarea:placeholder-shown {
+          padding-top: 6px !important;
         }
 
-        /* Buttons/icons stay stroke-only */
-        .glass-dock.black .glass-content button,
-        .glass-dock.black .glass-content [role="button"]{ background: transparent !important; }
-        .glass-dock.black .glass-content svg{ stroke: rgba(255,255,255,0.94) !important; fill: none !important; }
-
-        /* Paperclip & text padding */
-        .attach-btn{
-          position:absolute; left:14px; top:50%; transform:translateY(-50%);
-          height:28px; width:28px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+        /* Buttons/icons are stroke-only; no hover chips */
+        .glass-dock.black.simple .glass-content button,
+        .glass-dock.black.simple .glass-content [role="button"] {
+          background: transparent !important;
         }
-        .with-attachment-padding{ padding-left:38px; }
+        .glass-dock.black.simple .glass-content svg {
+          stroke: rgba(255,255,255,0.94) !important;
+          fill: none !important;
+        }
+
+        /* Paperclip placement + input padding */
+        .attach-btn {
+          position: absolute;
+          left: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          height: 28px;
+          width: 28px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+        .with-attachment-padding { padding-left: 38px; }
       `}</style>
     </div>
   );
