@@ -29,6 +29,8 @@ export function MobileChatApp() {
   const inputDockRef = useRef<HTMLDivElement>(null);
   const [inputHeight, setInputHeight] = useState<number>(96);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { toast } = useToast();
   const { profile } = useAuth();
 
@@ -88,6 +90,29 @@ export function MobileChatApp() {
     startChatWithMessage(prompt);
     setShowHistory(false);
     setShowSettings(false);
+  };
+
+  // Image attach (invisible hotspot on left; doesn't change layout)
+  const triggerAttach = () => fileInputRef.current?.click();
+  const handleAttachChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const store: any = (useArcStore as any).getState?.();
+      if (store?.sendImageForAnalysis) {
+        await store.sendImageForAnalysis(file);
+      } else {
+        const url = URL.createObjectURL(file);
+        await startChatWithMessage(`Analyze this image: ${url}`);
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      }
+      toast({ title: "Image attached", description: "Sent for analysis." });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Attach failed", description: "Could not attach image." });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   // History panel
@@ -165,7 +190,7 @@ export function MobileChatApp() {
             />
             <div>
               <h1 className="text-lg font-semibold">ArcAI</h1>
-              <p className="text-xs text-muted-foreground">Ask, Reflect, Create.</p>
+              <p className="text-xs text-muted-foreground">AI Assistant</p>
             </div>
           </div>
           
@@ -209,10 +234,10 @@ export function MobileChatApp() {
                     className="h-20 w-20 mx-auto mb-4"
                   />
                   <h2 className="text-2xl font-bold text-foreground mb-2">
-                    Howdy!
+                    Welcome to ArcAI
                   </h2>
                   <p className="text-muted-foreground text-sm max-w-sm">
-                    What can we work on today? Choose a quick prompt below or start typing to begin.
+                    Your intelligent AI assistant. Choose a quick prompt below or start typing to begin.
                   </p>
                 </div>
 
@@ -280,9 +305,23 @@ export function MobileChatApp() {
         >
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
-              {/* Outer shadow plate to lift the glass from the background */}
+              {/* ONE black frosted glass pill */}
               <div className="pointer-events-auto glass-dock">
-                {/* Keep your existing ChatInput. Its fields will be made transparent inside this dock. */}
+                {/* Invisible left hotspot (does not move layout/icons) */}
+                <button
+                  type="button"
+                  aria-label="Attach image"
+                  className="attach-hotspot"
+                  onClick={triggerAttach}
+                />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAttachChange}
+                />
+                {/* Keep your ChatInput exactly as is */}
                 <ChatInput />
               </div>
             </div>
@@ -292,62 +331,75 @@ export function MobileChatApp() {
 
       {/* Scoped styles for the glass pill dock */}
       <style>{`
-        /* Clear glass pill with warped edge and light bending vibe */
-        .glass-dock {
+        /* ONE full-size black frosted pill (no color wash over the page) */
+        .glass-dock{
           position: relative;
           border-radius: 9999px;
           padding: 10px 12px;
-          background:
-            radial-gradient(120% 200% at 20% 0%, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 60%, rgba(255,255,255,0.02)),
-            linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
-          backdrop-filter: blur(2px) saturate(120%);
-          -webkit-backdrop-filter: blur(2px) saturate(120%);
-          border: 1px solid rgba(255,255,255,0.28);
-          box-shadow:
-            0 10px 30px rgba(0,0,0,0.35),
-            inset 0 1px 0 rgba(255,255,255,0.35),
-            inset 0 -1px 0 rgba(255,255,255,0.10);
+          background: transparent;                 /* don't tint surrounding UI */
+          border: 0;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+          isolation: isolate;
           overflow: hidden;
         }
-        /* Caustic highlights and edge warp */
-        .glass-dock::before {
+        .glass-dock::before{
           content: "";
           position: absolute;
-          inset: 0;
+          inset: 0;                                /* fill whole pill */
           border-radius: inherit;
-          background:
-            radial-gradient(40% 80% at 18% 8%, rgba(255,255,255,0.55), transparent 60%),
-            conic-gradient(from 180deg at 82% 0%, rgba(255,255,255,0.40), rgba(255,255,255,0.10) 25%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.05) 75%, rgba(255,255,255,0.40));
-          mix-blend-mode: overlay;
-          opacity: 0.35;
-          pointer-events: none;
+          background: rgba(0,0,0,0.46);
+          backdrop-filter: blur(10px) saturate(120%);
+          -webkit-backdrop-filter: blur(10px) saturate(120%);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.06),
+            inset 0 -1px 0 rgba(255,255,255,0.03);
+          z-index: 0;
         }
-        /* Inner glow to sell thickness of glass */
-        .glass-dock::after {
-          content: "";
-          position: absolute;
-          inset: 1px;
-          border-radius: inherit;
-          background: linear-gradient(to bottom, rgba(255,255,255,0.16), rgba(255,255,255,0.03));
-          mask: radial-gradient(120% 200% at 0% 0%, rgba(0,0,0,0.55), transparent 60%);
-          pointer-events: none;
-        }
-        /* Make inner inputs transparent so the dock glass shows through */
-        .glass-dock input,
-        .glass-dock textarea,
-        .glass-dock .surface,
-        .glass-dock .card {
-          background-color: transparent !important;
-        }
-        .glass-dock input,
-        .glass-dock textarea {
-          border-color: transparent !important;
+        .glass-dock > *{ position: relative; z-index: 1; }
+
+        /* Remove nested backgrounds/borders that create a second inner pill */
+        .glass-dock :is(.surface,.card,[class*="bg-"],[class*="ring-"],[class*="border"],[class*="shadow"]){
+          background: transparent !important;
           box-shadow: none !important;
+          border: 0 !important;
         }
-        /* Keep placeholder and text readable on glass */
+
+        /* Inputs: 16px (no iOS zoom). Placeholder ~6px lower ONLY when visible */
+        .glass-dock input,
+        .glass-dock textarea{
+          font-size: 16px !important;
+          line-height: 22px !important;
+          color: rgba(255,255,255,0.96) !important;
+          caret-color: rgba(255,255,255,0.96) !important;
+          background: transparent !important;
+          border: 0 !important;
+          box-shadow: none !important;
+          width: 100% !important;
+          padding: 0 !important;                   /* keeps typed text vertically centered */
+          margin: 0 !important;
+        }
         .glass-dock input::placeholder,
-        .glass-dock textarea::placeholder {
-          color: rgba(255,255,255,0.65);
+        .glass-dock textarea::placeholder{
+          font-size: 16px !important;
+          line-height: 22px !important;
+          color: rgba(255,255,255,0.62) !important;
+        }
+        .glass-dock input:placeholder-shown,
+        .glass-dock textarea:placeholder-shown{
+          padding-top: 6px !important;             /* lower placeholder */
+        }
+
+        /* Invisible image attach hotspot (left 44px) */
+        .attach-hotspot{
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 44px;
+          background: transparent;
+          border: 0;
+          outline: 0;
+          cursor: pointer;
         }
       `}</style>
     </div>
