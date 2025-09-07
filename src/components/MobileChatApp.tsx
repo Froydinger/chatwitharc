@@ -22,14 +22,17 @@ export function MobileChatApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
+  // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
+  // Fixed input dock measurement
   const inputDockRef = useRef<HTMLDivElement>(null);
   const [inputHeight, setInputHeight] = useState<number>(96);
 
   const { toast } = useToast();
   const { profile } = useAuth();
 
+  // Quick Prompts for mobile
   const quickPrompts = [
     { label: "💭 Wellness Check", prompt: "Help me do a quick wellness check. Ask me about my mood and energy level, then give me personalized advice." },
     { label: "🎨 Creative Spark", prompt: "I need creative inspiration. Give me an interesting creative idea I can work on today." },
@@ -39,13 +42,14 @@ export function MobileChatApp() {
     { label: "🎯 Quick Advice", prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing." }
   ];
 
+  // Smooth scroll on new content
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isGeneratingImage]);
 
-  // Measure input dock height
+  // Measure input dock height and account for safe area
   useEffect(() => {
     const update = () => {
       if (inputDockRef.current) {
@@ -54,8 +58,10 @@ export function MobileChatApp() {
       }
     };
     update();
+
     const ro = new ResizeObserver(update);
     if (inputDockRef.current) ro.observe(inputDockRef.current);
+
     window.addEventListener("resize", update);
     return () => {
       window.removeEventListener("resize", update);
@@ -67,7 +73,10 @@ export function MobileChatApp() {
     createNewSession();
     setShowHistory(false);
     setShowSettings(false);
-    toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
+    toast({ 
+      title: "New Chat Started", 
+      description: "Ready for a fresh conversation!" 
+    });
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -81,14 +90,40 @@ export function MobileChatApp() {
     setShowSettings(false);
   };
 
-  // Main UI
+  // Force placeholder text + mobile-safe font-size for inputs inside the dock
+  useEffect(() => {
+    const applyInputTweaks = () => {
+      if (!inputDockRef.current) return;
+      const fields = inputDockRef.current.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+        ".glass-dock input, .glass-dock textarea"
+      );
+      fields.forEach((f) => {
+        try {
+          f.setAttribute("placeholder", "Ask anything");
+          f.style.fontSize = "16px"; // prevent iOS zoom
+        } catch {}
+      });
+    };
+    applyInputTweaks();
+    const t = setTimeout(applyInputTweaks, 50);
+    return () => clearTimeout(t);
+  }, [messages]);
+
+  // History panel
   if (showHistory) {
     return (
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex h-16 items-center justify-between px-4">
-            <button onClick={() => setShowHistory(false)} className="flex items-center gap-3">
-              <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-8 w-8" />
+            <button
+              onClick={() => setShowHistory(false)}
+              className="flex items-center gap-3"
+            >
+              <img
+                src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
+                alt="ArcAI"
+                className="h-8 w-8"
+              />
               <div className="text-left">
                 <h1 className="text-lg font-semibold">Chat History</h1>
                 <p className="text-xs text-muted-foreground">Your conversations</p>
@@ -106,13 +141,21 @@ export function MobileChatApp() {
     );
   }
 
+  // Settings panel
   if (showSettings) {
     return (
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex h-16 items-center justify-between px-4">
-            <button onClick={() => setShowSettings(false)} className="flex items-center gap-3">
-              <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-8 w-8" />
+            <button
+              onClick={() => setShowSettings(false)}
+              className="flex items-center gap-3"
+            >
+              <img
+                src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
+                alt="ArcAI"
+                className="h-8 w-8"
+              />
               <div className="text-left">
                 <h1 className="text-lg font-semibold">Settings</h1>
                 <p className="text-xs text-muted-foreground">Customize your experience</p>
@@ -127,18 +170,24 @@ export function MobileChatApp() {
     );
   }
 
+  // Main chat interface
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-8 w-8" />
+            <img
+              src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
+              alt="ArcAI"
+              className="h-8 w-8"
+            />
             <div>
               <h1 className="text-lg font-semibold">ArcAI</h1>
               <p className="text-xs text-muted-foreground">AI Assistant</p>
             </div>
           </div>
+          
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => setShowHistory(true)}>
               <History className="h-4 w-4" />
@@ -153,8 +202,8 @@ export function MobileChatApp() {
         </div>
       </header>
 
-      {/* Messages layer (padded by measured dock height) */}
-      <div
+      {/* Scrollable messages layer. We pad the bottom by the measured input dock height plus safe area. */}
+      <div 
         className={`relative flex-1 ${dragOver ? "bg-primary/5" : ""}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
@@ -163,10 +212,154 @@ export function MobileChatApp() {
         <div
           ref={messagesContainerRef}
           className="absolute inset-0 overflow-y-auto"
-          style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px))` }}
+          style={{
+            paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px))`
+          }}
         >
+          {/* Empty state */}
           {messages.length === 0 ? (
             <div className="flex flex-col h-full">
+              {/* Welcome Section */}
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                 <div className="mb-8">
-                  <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-20 w
+                  <img
+                    src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
+                    alt="ArcAI"
+                    className="h-20 w-20 mx-auto mb-4"
+                  />
+                  <h2 className="text-2xl font-bold text-foreground mb-2">
+                    Welcome to ArcAI
+                  </h2>
+                  <p className="text-muted-foreground text-sm max-w-sm">
+                    Your intelligent AI assistant. Choose a quick prompt below or start typing to begin.
+                  </p>
+                </div>
+
+                {/* Quick Prompts */}
+                <div className="w-full max-w-sm space-y-3 mb-6">
+                  {quickPrompts.map((prompt, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => triggerPrompt(prompt.prompt)}
+                      className="w-full p-4 card text-left hover:bg-accent/50 transition-colors"
+                    >
+                      <span className="font-medium text-sm">{prompt.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {(isLoading || isGeneratingImage) && (
+                  <div className="surface px-4 py-3 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="flex gap-1">
+                        {[0, 1, 2].map((i) => (
+                          <div key={i} className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                        ))}
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {isGeneratingImage ? "Generating image..." : "AI is thinking..."}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 space-y-4">
+              {/* Messages */}
+              {messages.map((message) => (
+                <MessageBubble key={message.id} message={message} onEdit={() => {}} />
+              ))}
+
+              {/* Thinking indicator */}
+              {(isLoading || isGeneratingImage) && (
+                <div className="flex justify-center">
+                  <div className="surface px-4 py-3 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="flex gap-1">
+                        {[0, 1, 2].map((i) => (
+                          <div key={i} className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                        ))}
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {isGeneratingImage ? "Generating image..." : "AI is thinking..."}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Fixed glass input dock */}
+        <div
+          ref={inputDockRef}
+          className="fixed inset-x-0 bottom-0 z-50 pointer-events-none"
+        >
+          <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+            <div className="mx-auto max-w-screen-sm">
+              {/* ONE single bar only */}
+              <div className="pointer-events-auto glass-dock">
+                <ChatInput />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Scoped styles for the single glass pill input bar */}
+      <style>{`
+        /* ONE bar: no nested borders/backgrounds */
+        .glass-dock{
+          position: relative;
+          display: flex;
+          align-items: center;
+          border-radius: 9999px;
+          padding: 10px 12px;
+          background: rgba(0,0,0,0.46);              /* dark glass */
+          backdrop-filter: blur(10px) saturate(120%);
+          -webkit-backdrop-filter: blur(10px) saturate(120%);
+          border: 0;                                  /* kill border line */
+          box-shadow: 0 12px 28px rgba(0,0,0,0.40),
+                      inset 0 1px 0 rgba(255,255,255,0.06),
+                      inset 0 -1px 0 rgba(255,255,255,0.03);
+          overflow: hidden;
+        }
+
+        /* Nuke only offending fills/shadows INSIDE the dock that create the second box */
+        .glass-dock :is(.surface,.card,[class*="bg-"],[class*="ring-"],[class*="border"],[class*="shadow"]){
+          background: transparent !important;
+          box-shadow: none !important;
+          border-color: transparent !important;
+        }
+
+        /* Inputs: mobile-safe 16px, centered; placeholder lowered ~5px when shown */
+        .glass-dock input,
+        .glass-dock textarea{
+          font-size: 16px !important;                 /* prevent iOS zoom */
+          line-height: 22px !important;
+          color: rgba(255,255,255,0.96) !important;
+          caret-color: rgba(255,255,255,0.96) !important;
+          background: transparent !important;
+          border: 0 !important;
+          box-shadow: none !important;
+          width: 100% !important;
+          padding: 0 !important;                      /* baseline: true center */
+          margin: 0 !important;
+        }
+        .glass-dock input::placeholder,
+        .glass-dock textarea::placeholder{
+          color: rgba(255,255,255,0.58) !important;
+          font-size: 16px !important;
+          line-height: 22px !important;
+        }
+        /* Shimmy placeholder down ~5px without affecting typed text */
+        .glass-dock input:placeholder-shown,
+        .glass-dock textarea:placeholder-shown{
+          padding-top: 5px !important;
+        }
+      `}</style>
+    </div>
+  );
+}
