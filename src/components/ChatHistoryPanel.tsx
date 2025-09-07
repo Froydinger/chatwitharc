@@ -20,9 +20,30 @@ export function ChatHistoryPanel() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
+  /** Ensure the UI actually switches to the chat screen (not in background). */
+  const goToChat = () => {
+    try { setCurrentTab("chat"); } catch {}
+    try {
+      if (typeof window !== "undefined") {
+        // If we’re not already on the chat route, navigate there without a full reload first.
+        if (window.location.pathname !== "/") {
+          window.history.pushState({}, "", "/");
+          window.dispatchEvent(new Event("popstate"));
+        }
+        // Scroll to top to match prior behavior.
+        requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+      }
+    } catch {
+      // Fallback: hard navigate if SPA routing isn’t available.
+      if (typeof window !== "undefined" && window.location.pathname !== "/") {
+        window.location.assign("/");
+      }
+    }
+  };
+
   const handleNewChat = () => {
     createNewSession();
-    setCurrentTab("chat");
+    goToChat();
     toast({
       title: "New chat created",
       description: "Ready for a fresh conversation!"
@@ -31,7 +52,7 @@ export function ChatHistoryPanel() {
 
   const handleLoadSession = (sessionId: string) => {
     loadSession(sessionId);
-    setCurrentTab("chat");
+    goToChat();
   };
 
   const handleDeleteSession = async (sessionId: string, event: React.MouseEvent) => {
