@@ -86,11 +86,12 @@ export function MobileChatApp() {
 
   const triggerAttach = () => fileInputRef.current?.click();
 
+  // Force placeholder to "Ask anything"
   useEffect(() => {
     const setPlaceholder = () => {
       if (!inputDockRef.current) return;
       const fields = inputDockRef.current.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-        ".glass-content input, .glass-content textarea"
+        ".glass-dock.black.simple input, .glass-dock.black.simple textarea"
       );
       fields.forEach((f) => {
         try { f.setAttribute("placeholder", "Ask anything"); } catch {}
@@ -105,7 +106,6 @@ export function MobileChatApp() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      // Prefer real analyzer if the store provides it; otherwise fallback to URL message.
       const getState = (useArcStore as any).getState?.();
       if (getState?.sendImageForAnalysis) {
         await getState.sendImageForAnalysis(file);
@@ -273,21 +273,19 @@ export function MobileChatApp() {
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
               <div className="pointer-events-auto glass-dock black simple">
-                <div className="glass-content">
-                  <button type="button" aria-label="Attach image" className="attach-btn" onClick={triggerAttach}>
-                    <Paperclip className="h-5 w-5" />
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAttachChange}
-                  />
-                  <div className="with-attachment-padding">
-                    <ChatInput />
-                  </div>
-                </div>
+                {/* Paperclip (doesn't shift ChatInput) */}
+                <button type="button" aria-label="Attach image" className="attach-btn" onClick={triggerAttach}>
+                  <Paperclip className="h-5 w-5" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAttachChange}
+                />
+                {/* ChatInput unchanged so the send icon stays put */}
+                <ChatInput />
               </div>
             </div>
           </div>
@@ -299,7 +297,7 @@ export function MobileChatApp() {
         .glass-dock.black.simple {
           position: relative;
           border-radius: 9999px;
-          padding: 10px 12px;
+          padding: 10px 12px;                 /* unchanged so right send icon position doesn't shift */
           background: rgba(0,0,0,0.45);
           backdrop-filter: blur(10px) saturate(120%);
           -webkit-backdrop-filter: blur(10px) saturate(120%);
@@ -307,65 +305,45 @@ export function MobileChatApp() {
           box-shadow: 0 12px 28px rgba(0,0,0,0.4),
                       inset 0 1px 0 rgba(255,255,255,0.06),
                       inset 0 -1px 0 rgba(255,255,255,0.03);
+          display: flex;                       /* vertically center contents */
+          align-items: center;
           overflow: hidden;
         }
 
-        /* Kill any inner fills/filters that cause the inner rectangle */
-        .glass-dock.black.simple .glass-content *,
-        .glass-dock.black.simple .glass-content *::before,
-        .glass-dock.black.simple .glass-content *::after {
-          background: transparent !important;
-          background-color: transparent !important;
-          border: 0 !important;
-          outline: none !important;
+        /* Do NOT globally nuke styles; only remove fills that draw inner boxes */
+        .glass-dock.black.simple button,
+        .glass-dock.black.simple [role="button"] { background: transparent !important; box-shadow:none !important; border:0 !important; }
+        .glass-dock.black.simple svg { stroke: rgba(255,255,255,0.94) !important; fill: none !important; }
+
+        /* Target the actual text field(s) only */
+        .glass-dock.black.simple input,
+        .glass-dock.black.simple textarea {
+          font-size: 16px !important;
+          line-height: 22px !important;
+          color: rgba(255,255,255,0.96) !important;
+          caret-color: rgba(255,255,255,0.96) !important;
+          padding-top: 6px !important;         /* lower text to center visually */
+          padding-bottom: 4px !important;
+          text-indent: 28px !important;        /* space for paperclip without pushing send icon */
+          background: transparent !important;  /* kill inner rectangle */
           box-shadow: none !important;
-          filter: none !important;
-          backdrop-filter: none !important;
-          -webkit-backdrop-filter: none !important;
+          border: 0 !important;
         }
-        .glass-dock.black.simple .glass-content [class*="bg-"],
-        .glass-dock.black.simple .glass-content [class*="ring-"],
-        .glass-dock.black.simple .glass-content [class*="border"] {
-          background-color: transparent !important;
+        .glass-dock.black.simple input::placeholder,
+        .glass-dock.black.simple textarea::placeholder {
+          font-size: 16px !important;
+          line-height: 22px !important;
+          color: rgba(255,255,255,0.55) !important;
+        }
+
+        /* Some UI kits wrap the input in a bg container; neutralize just those */
+        .glass-dock.black.simple :is(.surface,.card,[class*="bg-"]) {
+          background: transparent !important;
           box-shadow: none !important;
           border: 0 !important;
         }
 
-        /* Vertically center input + enforce 16px type */
-        .glass-dock.black.simple .glass-content .with-attachment-padding{
-          display:flex;
-          align-items:center;           /* vertical centering */
-          min-height:44px;
-          padding-left:38px;            /* space for paperclip */
-          width:100%;
-        }
-        .glass-dock.black.simple .glass-content input,
-        .glass-dock.black.simple .glass-content textarea{
-          width:100% !important;
-          font-size:16px !important;
-          line-height:22px !important;
-          padding:0 !important;         /* no extra top/btm pad */
-          margin:0 !important;
-          color:rgba(255,255,255,0.96) !important;
-          caret-color:rgba(255,255,255,0.96) !important;
-        }
-        .glass-dock.black.simple .glass-content input::placeholder,
-        .glass-dock.black.simple .glass-content textarea::placeholder{
-          font-size:16px !important;
-          line-height:22px !important;
-          color:rgba(255,255,255,0.55) !important;
-        }
-
-        /* Icons */
-        .glass-dock.black.simple .glass-content button,
-        .glass-dock.black.simple .glass-content [role="button"] {
-          background: transparent !important;
-        }
-        .glass-dock.black.simple .glass-content svg {
-          stroke: rgba(255,255,255,0.94) !important;
-          fill: none !important;
-        }
-
+        /* Paperclip overlay - does not shift ChatInput width */
         .attach-btn {
           position: absolute;
           left: 14px;
@@ -377,8 +355,8 @@ export function MobileChatApp() {
           align-items: center;
           justify-content: center;
           cursor: pointer;
+          z-index: 2;
         }
-        .with-attachment-padding { padding-left: 38px; }
       `}</style>
     </div>
   );
