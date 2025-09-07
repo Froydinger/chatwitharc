@@ -376,7 +376,7 @@ export function ChatInput() {
             onKeyDown={handleKeyPress}
             placeholder={selectedImages.length > 0 ? "Add a message with your images..." : "Ask me anything..."}
             disabled={isLoading}
-            className="card border-border/40 bg-card/50 text-foreground placeholder:text-muted-foreground resize-none min-h-[48px] max-h-[144px] leading-6 overflow-hidden"
+            className="card border-border/40 bg-card/50 text-foreground placeholder:text-muted-foreground resize-none min-h-[48px] max-h-[144px] leading-6"
             rows={1}
           />
         </div>

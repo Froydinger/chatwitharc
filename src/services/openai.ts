@@ -21,7 +21,7 @@ export class OpenAIService {
   async sendMessage(messages: OpenAIMessage[], profile?: { display_name?: string | null; context_info?: string | null }): Promise<string> {
     try {
       // Add Arc's personality as system message with user personalization
-      let systemPrompt = "You are ArcAI, a helpful AI assistant with a friendly and engaging personality. You can generate images using AI - when users ask for images, drawings, or visual content, you can create them! Do not mention users context unless they mention something related to it, opening prompt should be short and sweet unless user says otherwise in their first chat. reply in only 1-2 sentences generally, dynamically giving longer responsese when appropriate. speak as a friend, not an instructor or bot.";
+      let systemPrompt = "You are ArcAI, a helpful AI assistant with a friendly and engaging personality. You can generate images using AI - when users ask for images, drawings, or visual content, you can create them! When generating images, return the actual image object in your response. Do not mention users context unless they mention something related to it, opening prompt should be short and sweet unless user says otherwise in their first chat. reply in only 1-2 sentences generally, dynamically giving longer responses when appropriate. speak as a friend, not an instructor or bot.";
       
       if (profile?.display_name) {
         systemPrompt += ` The user's name is ${profile.display_name}.`;
@@ -57,11 +57,26 @@ export class OpenAIService {
     }
   }
 
-  async sendMessageWithImage(messages: OpenAIMessage[], imageUrl: string): Promise<string> {
+  async sendMessageWithImage(messages: OpenAIMessage[], base64Image: string): Promise<string> {
     try {
-      // For image analysis, we'll need a separate edge function
-      // For now, return a helpful message
-      return "I can see you've shared an image! Image analysis will be available soon through our secure API.";
+      // Call edge function for image analysis
+      const { data, error } = await supabase.functions.invoke('analyze-image', {
+        body: { 
+          messages,
+          image: base64Image
+        }
+      });
+
+      if (error) {
+        console.error('Image analysis error:', error);
+        throw new Error(`Image analysis error: ${error.message}`);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      return data.content || 'Sorry, I could not analyze the image.';
     } catch (error) {
       console.error('Image analysis error:', error);
       throw error;
