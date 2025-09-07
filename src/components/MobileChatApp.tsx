@@ -1,3 +1,4 @@
+// src/pages/MobileChatApp.tsx
 import { useState, useRef, useEffect } from "react";
 import { Plus, Settings, History, Paperclip } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
@@ -104,10 +105,16 @@ export function MobileChatApp() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const url = URL.createObjectURL(file);
-      startChatWithMessage(`Analyze this image: ${url}`);
-      toast({ title: "Image attached", description: "Sent as a message for analysis." });
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      // Prefer real analyzer if the store provides it; otherwise fallback to URL message.
+      const getState = (useArcStore as any).getState?.();
+      if (getState?.sendImageForAnalysis) {
+        await getState.sendImageForAnalysis(file);
+      } else {
+        const url = URL.createObjectURL(file);
+        startChatWithMessage(`Analyze this image: ${url}`);
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      }
+      toast({ title: "Image attached", description: "Sent for analysis." });
     } catch (err) {
       console.error(err);
       toast({ title: "Attach failed", description: "Could not attach image." });
@@ -163,6 +170,7 @@ export function MobileChatApp() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
@@ -186,6 +194,7 @@ export function MobileChatApp() {
         </div>
       </header>
 
+      {/* Messages */}
       <div 
         className={`relative flex-1 ${dragOver ? "bg-primary/5" : ""}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -259,6 +268,7 @@ export function MobileChatApp() {
           )}
         </div>
 
+        {/* Fixed simplified frosted black dock */}
         <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
@@ -300,7 +310,7 @@ export function MobileChatApp() {
           overflow: hidden;
         }
 
-        /* Strip ALL inner chrome, backgrounds, and blurs that create the inner rectangle */
+        /* Kill any inner fills/filters that cause the inner rectangle */
         .glass-dock.black.simple .glass-content *,
         .glass-dock.black.simple .glass-content *::before,
         .glass-dock.black.simple .glass-content *::after {
@@ -321,23 +331,32 @@ export function MobileChatApp() {
           border: 0 !important;
         }
 
-        /* Input typography + vertical centering */
+        /* Vertically center input + enforce 16px type */
+        .glass-dock.black.simple .glass-content .with-attachment-padding{
+          display:flex;
+          align-items:center;           /* vertical centering */
+          min-height:44px;
+          padding-left:38px;            /* space for paperclip */
+          width:100%;
+        }
         .glass-dock.black.simple .glass-content input,
-        .glass-dock.black.simple .glass-content textarea {
-          color: rgba(255,255,255,0.96) !important;
-          caret-color: rgba(255,255,255,0.96) !important;
-          font-size: 16px !important;
-          line-height: 22px !important;
-          padding-top: 4px !important;  /* lowers text slightly to center visually */
+        .glass-dock.black.simple .glass-content textarea{
+          width:100% !important;
+          font-size:16px !important;
+          line-height:22px !important;
+          padding:0 !important;         /* no extra top/btm pad */
+          margin:0 !important;
+          color:rgba(255,255,255,0.96) !important;
+          caret-color:rgba(255,255,255,0.96) !important;
         }
         .glass-dock.black.simple .glass-content input::placeholder,
-        .glass-dock.black.simple .glass-content textarea::placeholder {
-          color: rgba(255,255,255,0.55) !important;
-          font-size: 16px !important;
-          line-height: 22px !important;
+        .glass-dock.black.simple .glass-content textarea::placeholder{
+          font-size:16px !important;
+          line-height:22px !important;
+          color:rgba(255,255,255,0.55) !important;
         }
 
-        /* Buttons/icons */
+        /* Icons */
         .glass-dock.black.simple .glass-content button,
         .glass-dock.black.simple .glass-content [role="button"] {
           background: transparent !important;
@@ -347,7 +366,6 @@ export function MobileChatApp() {
           fill: none !important;
         }
 
-        /* Paperclip position + input left padding */
         .attach-btn {
           position: absolute;
           left: 14px;
