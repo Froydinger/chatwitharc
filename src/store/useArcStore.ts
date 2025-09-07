@@ -42,6 +42,9 @@ export interface ArcState {
   // UI State
   currentTab: 'chat' | 'history' | 'settings';
   setCurrentTab: (tab: 'chat' | 'history' | 'settings') => void;
+  showHistory: boolean;
+  setShowHistory: (show: boolean) => void;
+
   isVoiceMode: boolean;
   setVoiceMode: (enabled: boolean) => void;
   isLoading: boolean;
@@ -336,12 +339,15 @@ export const useArcStore = create<ArcState>()(
       // UI
       currentTab: 'chat',
       setCurrentTab: (tab) => set({ currentTab: tab }),
+      showHistory: false,
+      setShowHistory: (show) => set({ showHistory: show }),
+
       isVoiceMode: false,
       setVoiceMode: (enabled) => set({ isVoiceMode: enabled }),
-  isLoading: false,
-  isGeneratingImage: false,
-  setLoading: (loading) => set({ isLoading: loading }),
-  setGeneratingImage: (generating) => set({ isGeneratingImage: generating }),
+      isLoading: false,
+      isGeneratingImage: false,
+      setLoading: (loading) => set({ isLoading: loading }),
+      setGeneratingImage: (generating) => set({ isGeneratingImage: generating }),
       
       // Quick Start
       startChatWithMessage: async (message) => {
