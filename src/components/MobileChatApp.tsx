@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Settings, History, Paperclip } from "lucide-react";
+import { Plus, Settings, History } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput } from "@/components/ChatInput";
@@ -23,10 +23,9 @@ export function MobileChatApp() {
   const [dragOver, setDragOver] = useState(false);
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
   const inputDockRef = useRef<HTMLDivElement>(null);
   const [inputHeight, setInputHeight] = useState<number>(96);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
   const { profile } = useAuth();
@@ -40,14 +39,13 @@ export function MobileChatApp() {
     { label: "🎯 Quick Advice", prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing." }
   ];
 
-  // Smooth scroll on new content
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isGeneratingImage]);
 
-  // Measure dock height
+  // Measure input dock height
   useEffect(() => {
     const update = () => {
       if (inputDockRef.current) {
@@ -83,41 +81,7 @@ export function MobileChatApp() {
     setShowSettings(false);
   };
 
-  const triggerAttach = () => fileInputRef.current?.click();
-
-  // Force placeholder text + keep it after rerenders
-  useEffect(() => {
-    const setPlaceholder = () => {
-      if (!inputDockRef.current) return;
-      const fields = inputDockRef.current.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-        ".glass-content input, .glass-content textarea"
-      );
-      fields.forEach((f) => {
-        try { f.setAttribute("placeholder", "Ask anything"); } catch {}
-      });
-    };
-    setPlaceholder();
-    const t = setTimeout(setPlaceholder, 50);
-    return () => clearTimeout(t);
-  }, [messages]);
-
-  const handleAttachChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const url = URL.createObjectURL(file);
-      startChatWithMessage(`Analyze this image: ${url}`);
-      toast({ title: "Image attached", description: "Sent as a message for analysis." });
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch (err) {
-      console.error(err);
-      toast({ title: "Attach failed", description: "Could not attach image." });
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  // History
+  // Main UI
   if (showHistory) {
     return (
       <div className="min-h-screen bg-background">
@@ -142,7 +106,6 @@ export function MobileChatApp() {
     );
   }
 
-  // Settings
   if (showSettings) {
     return (
       <div className="min-h-screen bg-background">
@@ -164,7 +127,6 @@ export function MobileChatApp() {
     );
   }
 
-  // Main chat
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -191,8 +153,8 @@ export function MobileChatApp() {
         </div>
       </header>
 
-      {/* Messages */}
-      <div 
+      {/* Messages layer (padded by measured dock height) */}
+      <div
         className={`relative flex-1 ${dragOver ? "bg-primary/5" : ""}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
@@ -207,164 +169,4 @@ export function MobileChatApp() {
             <div className="flex flex-col h-full">
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                 <div className="mb-8">
-                  <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-20 w-20 mx-auto mb-4" />
-                  <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to ArcAI</h2>
-                  <p className="text-muted-foreground text-sm max-w-sm">
-                    Your intelligent AI assistant. Choose a quick prompt below or start typing to begin.
-                  </p>
-                </div>
-                {/* extra 40px under prompts */}
-                <div className="w-full max-w-sm space-y-3 mb-[40px]">
-                  {quickPrompts.map((prompt, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => triggerPrompt(prompt.prompt)}
-                      className="w-full p-4 card text-left hover:bg-accent/50 transition-colors"
-                    >
-                      <span className="font-medium text-sm">{prompt.label}</span>
-                    </button>
-                  ))}
-                </div>
-                {(isLoading || isGeneratingImage) && (
-                  <div className="surface px-4 py-3 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="flex gap-1">
-                        {[0, 1, 2].map((i) => (
-                          <div key={i} className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                        ))}
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {isGeneratingImage ? "Generating image..." : "AI is thinking..."}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="p-4 space-y-4">
-              {messages.map((message) => (
-                <MessageBubble key={message.id} message={message} onEdit={() => {}} />
-              ))}
-              {(isLoading || isGeneratingImage) && (
-                <div className="flex justify-center">
-                  <div className="surface px-4 py-3 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="flex gap-1">
-                        {[0, 1, 2].map((i) => (
-                          <div key={i} className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                        ))}
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {isGeneratingImage ? "Generating image..." : "AI is thinking..."}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Fixed simplified dock */}
-        <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
-          <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
-            <div className="mx-auto max-w-screen-sm">
-              <div className="pointer-events-auto glass-dock black simple">
-                <div className="glass-content">
-                  <button type="button" aria-label="Attach image" className="attach-btn" onClick={triggerAttach}>
-                    <Paperclip className="h-5 w-5" />
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAttachChange}
-                  />
-                  <div className="with-attachment-padding">
-                    <ChatInput />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Styles: simple black frosted glass, no gradients, no layers */}
-      <style>{`
-        /* Dock: subtle frosted black pill */
-        .glass-dock.black.simple {
-          position: relative;
-          border-radius: 9999px;
-          padding: 10px 12px;
-          background: rgba(0,0,0,0.45);            /* slight darkness */
-          backdrop-filter: blur(10px) saturate(120%);
-          -webkit-backdrop-filter: blur(10px) saturate(120%);
-          border: 0;                                 /* no visible border */
-          box-shadow: 0 12px 28px rgba(0,0,0,0.4),   /* soft lift */
-                      inset 0 1px 0 rgba(255,255,255,0.06),
-                      inset 0 -1px 0 rgba(255,255,255,0.03);
-          overflow: hidden;
-        }
-
-        /* Strip chrome only inside content (inputs/buttons) */
-        .glass-dock.black.simple .glass-content * {
-          background: transparent !important;
-          border: 0 !important;
-          outline: none !important;
-          box-shadow: none !important;
-        }
-        .glass-dock.black.simple .glass-content [class*="bg-"],
-        .glass-dock.black.simple .glass-content [class*="ring-"],
-        .glass-dock.black.simple .glass-content [class*="border"] {
-          background-color: transparent !important;
-          border: 0 !important;
-          box-shadow: none !important;
-        }
-
-        /* Inputs readable on dark glass */
-        .glass-dock.black.simple .glass-content input,
-        .glass-dock.black.simple .glass-content textarea {
-          color: rgba(255,255,255,0.96) !important;
-          caret-color: rgba(255,255,255,0.96) !important;
-        }
-        .glass-dock.black.simple .glass-content input::placeholder,
-        .glass-dock.black.simple .glass-content textarea::placeholder {
-          color: rgba(255,255,255,0.55) !important;
-        }
-        /* Lower placeholder ~5-6px when visible */
-        .glass-dock.black.simple .glass-content input:placeholder-shown,
-        .glass-dock.black.simple .glass-content textarea:placeholder-shown {
-          padding-top: 6px !important;
-        }
-
-        /* Buttons/icons are stroke-only; no hover chips */
-        .glass-dock.black.simple .glass-content button,
-        .glass-dock.black.simple .glass-content [role="button"] {
-          background: transparent !important;
-        }
-        .glass-dock.black.simple .glass-content svg {
-          stroke: rgba(255,255,255,0.94) !important;
-          fill: none !important;
-        }
-
-        /* Paperclip placement + input padding */
-        .attach-btn {
-          position: absolute;
-          left: 14px;
-          top: 50%;
-          transform: translateY(-50%);
-          height: 28px;
-          width: 28px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-        }
-        .with-attachment-padding { padding-left: 38px; }
-      `}</style>
-    </div>
-  );
-}
+                  <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-20 w
