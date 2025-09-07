@@ -1,4 +1,3 @@
-// src/pages/MobileChatApp.tsx
 import { useState, useRef, useEffect } from "react";
 import { Plus, Settings, History, Paperclip } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
@@ -41,12 +40,14 @@ export function MobileChatApp() {
     { label: "🎯 Quick Advice", prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing." }
   ];
 
+  // Smooth scroll on new content
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isGeneratingImage]);
 
+  // Measure dock height
   useEffect(() => {
     const update = () => {
       if (inputDockRef.current) {
@@ -55,10 +56,8 @@ export function MobileChatApp() {
       }
     };
     update();
-
     const ro = new ResizeObserver(update);
     if (inputDockRef.current) ro.observe(inputDockRef.current);
-
     window.addEventListener("resize", update);
     return () => {
       window.removeEventListener("resize", update);
@@ -86,12 +85,12 @@ export function MobileChatApp() {
 
   const triggerAttach = () => fileInputRef.current?.click();
 
-  // Force placeholder to "Ask anything"
+  // Force placeholder text + keep it after rerenders
   useEffect(() => {
     const setPlaceholder = () => {
       if (!inputDockRef.current) return;
       const fields = inputDockRef.current.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-        ".glass-dock.black.simple input, .glass-dock.black.simple textarea"
+        ".glass-content input, .glass-content textarea"
       );
       fields.forEach((f) => {
         try { f.setAttribute("placeholder", "Ask anything"); } catch {}
@@ -106,15 +105,10 @@ export function MobileChatApp() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const getState = (useArcStore as any).getState?.();
-      if (getState?.sendImageForAnalysis) {
-        await getState.sendImageForAnalysis(file);
-      } else {
-        const url = URL.createObjectURL(file);
-        startChatWithMessage(`Analyze this image: ${url}`);
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      }
-      toast({ title: "Image attached", description: "Sent for analysis." });
+      const url = URL.createObjectURL(file);
+      startChatWithMessage(`Analyze this image: ${url}`);
+      toast({ title: "Image attached", description: "Sent as a message for analysis." });
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (err) {
       console.error(err);
       toast({ title: "Attach failed", description: "Could not attach image." });
@@ -123,6 +117,7 @@ export function MobileChatApp() {
     }
   };
 
+  // History
   if (showHistory) {
     return (
       <div className="min-h-screen bg-background">
@@ -147,6 +142,7 @@ export function MobileChatApp() {
     );
   }
 
+  // Settings
   if (showSettings) {
     return (
       <div className="min-h-screen bg-background">
@@ -168,6 +164,7 @@ export function MobileChatApp() {
     );
   }
 
+  // Main chat
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -216,6 +213,7 @@ export function MobileChatApp() {
                     Your intelligent AI assistant. Choose a quick prompt below or start typing to begin.
                   </p>
                 </div>
+                {/* extra 40px under prompts */}
                 <div className="w-full max-w-sm space-y-3 mb-[40px]">
                   {quickPrompts.map((prompt, idx) => (
                     <button
@@ -268,82 +266,91 @@ export function MobileChatApp() {
           )}
         </div>
 
-        {/* Fixed simplified frosted black dock */}
+        {/* Fixed simplified dock */}
         <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
               <div className="pointer-events-auto glass-dock black simple">
-                {/* Paperclip (doesn't shift ChatInput) */}
-                <button type="button" aria-label="Attach image" className="attach-btn" onClick={triggerAttach}>
-                  <Paperclip className="h-5 w-5" />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAttachChange}
-                />
-                {/* ChatInput unchanged so the send icon stays put */}
-                <ChatInput />
+                <div className="glass-content">
+                  <button type="button" aria-label="Attach image" className="attach-btn" onClick={triggerAttach}>
+                    <Paperclip className="h-5 w-5" />
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAttachChange}
+                  />
+                  <div className="with-attachment-padding">
+                    <ChatInput />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Styles: simple black frosted glass, no gradients, no layers */}
       <style>{`
-        /* Simple black frosted glass dock */
+        /* Dock: subtle frosted black pill */
         .glass-dock.black.simple {
           position: relative;
           border-radius: 9999px;
-          padding: 10px 12px;                 /* unchanged so right send icon position doesn't shift */
-          background: rgba(0,0,0,0.45);
+          padding: 10px 12px;
+          background: rgba(0,0,0,0.45);            /* slight darkness */
           backdrop-filter: blur(10px) saturate(120%);
           -webkit-backdrop-filter: blur(10px) saturate(120%);
-          border: 0;
-          box-shadow: 0 12px 28px rgba(0,0,0,0.4),
+          border: 0;                                 /* no visible border */
+          box-shadow: 0 12px 28px rgba(0,0,0,0.4),   /* soft lift */
                       inset 0 1px 0 rgba(255,255,255,0.06),
                       inset 0 -1px 0 rgba(255,255,255,0.03);
-          display: flex;                       /* vertically center contents */
-          align-items: center;
           overflow: hidden;
         }
 
-        /* Do NOT globally nuke styles; only remove fills that draw inner boxes */
-        .glass-dock.black.simple button,
-        .glass-dock.black.simple [role="button"] { background: transparent !important; box-shadow:none !important; border:0 !important; }
-        .glass-dock.black.simple svg { stroke: rgba(255,255,255,0.94) !important; fill: none !important; }
+        /* Strip chrome only inside content (inputs/buttons) */
+        .glass-dock.black.simple .glass-content * {
+          background: transparent !important;
+          border: 0 !important;
+          outline: none !important;
+          box-shadow: none !important;
+        }
+        .glass-dock.black.simple .glass-content [class*="bg-"],
+        .glass-dock.black.simple .glass-content [class*="ring-"],
+        .glass-dock.black.simple .glass-content [class*="border"] {
+          background-color: transparent !important;
+          border: 0 !important;
+          box-shadow: none !important;
+        }
 
-        /* Target the actual text field(s) only */
-        .glass-dock.black.simple input,
-        .glass-dock.black.simple textarea {
-          font-size: 16px !important;
-          line-height: 22px !important;
+        /* Inputs readable on dark glass */
+        .glass-dock.black.simple .glass-content input,
+        .glass-dock.black.simple .glass-content textarea {
           color: rgba(255,255,255,0.96) !important;
           caret-color: rgba(255,255,255,0.96) !important;
-          padding-top: 6px !important;         /* lower text to center visually */
-          padding-bottom: 4px !important;
-          text-indent: 28px !important;        /* space for paperclip without pushing send icon */
-          background: transparent !important;  /* kill inner rectangle */
-          box-shadow: none !important;
-          border: 0 !important;
         }
-        .glass-dock.black.simple input::placeholder,
-        .glass-dock.black.simple textarea::placeholder {
-          font-size: 16px !important;
-          line-height: 22px !important;
+        .glass-dock.black.simple .glass-content input::placeholder,
+        .glass-dock.black.simple .glass-content textarea::placeholder {
           color: rgba(255,255,255,0.55) !important;
         }
-
-        /* Some UI kits wrap the input in a bg container; neutralize just those */
-        .glass-dock.black.simple :is(.surface,.card,[class*="bg-"]) {
-          background: transparent !important;
-          box-shadow: none !important;
-          border: 0 !important;
+        /* Lower placeholder ~5-6px when visible */
+        .glass-dock.black.simple .glass-content input:placeholder-shown,
+        .glass-dock.black.simple .glass-content textarea:placeholder-shown {
+          padding-top: 6px !important;
         }
 
-        /* Paperclip overlay - does not shift ChatInput width */
+        /* Buttons/icons are stroke-only; no hover chips */
+        .glass-dock.black.simple .glass-content button,
+        .glass-dock.black.simple .glass-content [role="button"] {
+          background: transparent !important;
+        }
+        .glass-dock.black.simple .glass-content svg {
+          stroke: rgba(255,255,255,0.94) !important;
+          fill: none !important;
+        }
+
+        /* Paperclip placement + input padding */
         .attach-btn {
           position: absolute;
           left: 14px;
@@ -355,8 +362,8 @@ export function MobileChatApp() {
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          z-index: 2;
         }
+        .with-attachment-padding { padding-left: 38px; }
       `}</style>
     </div>
   );
