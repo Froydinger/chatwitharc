@@ -13,31 +13,21 @@ export function ChatHistoryPanel() {
     createNewSession, 
     loadSession, 
     deleteSession,
-    setCurrentTab 
+    setCurrentTab,
+    setShowHistory // <-- pulled from store to actually close the panel
   } = useArcStore();
 
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
-  /** Ensure the UI actually switches to the chat screen (not in background). */
+  /** Switch to chat view (not in background) and close history panel. */
   const goToChat = () => {
-    try { setCurrentTab("chat"); } catch {}
-    try {
-      if (typeof window !== "undefined") {
-        // If we’re not already on the chat route, navigate there without a full reload first.
-        if (window.location.pathname !== "/") {
-          window.history.pushState({}, "", "/");
-          window.dispatchEvent(new Event("popstate"));
-        }
-        // Scroll to top to match prior behavior.
-        requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
-      }
-    } catch {
-      // Fallback: hard navigate if SPA routing isn’t available.
-      if (typeof window !== "undefined" && window.location.pathname !== "/") {
-        window.location.assign("/");
-      }
+    try { setCurrentTab?.("chat"); } catch {}
+    try { setShowHistory?.(false); } catch {}
+    // Keep UX crisp: ensure viewport is at top.
+    if (typeof window !== "undefined") {
+      requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
     }
   };
 
