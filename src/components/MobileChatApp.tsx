@@ -44,12 +44,29 @@ export function MobileChatApp() {
     { label: "🎯 Quick Advice", prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing." }
   ];
 
-  // Smooth scroll on new content
+  // Helper: scroll to top (messages area + page)
+  const scrollToTop = () => {
+    try {
+      messagesContainerRef.current?.scrollTo({ top: 0, behavior: "auto" });
+      window.scrollTo({ top: 0, behavior: "auto" });
+    } catch {}
+  };
+
+  // Smooth scroll to bottom on new content (normal chat flow)
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isGeneratingImage]);
+
+  // Also ensure when chat is empty (new session), we’re at the top
+  useEffect(() => {
+    if (messages.length === 0) {
+      scrollToTop();
+      // one more rAF to beat layout thrash on some mobiles
+      requestAnimationFrame(scrollToTop);
+    }
+  }, [messages.length]);
 
   // Measure input dock height and account for safe area
   useEffect(() => {
@@ -75,6 +92,8 @@ export function MobileChatApp() {
     createNewSession();
     setShowHistory(false);
     setShowSettings(false);
+    scrollToTop();
+    requestAnimationFrame(scrollToTop);
     toast({ 
       title: "New Chat Started", 
       description: "Ready for a fresh conversation!" 
@@ -331,12 +350,12 @@ export function MobileChatApp() {
 
       {/* Scoped styles for the glass pill dock */}
       <style>{`
-        /* ONE full-size black frosted pill (no color wash over the page) */
+        /* ONE full-size black frosted pill */
         .glass-dock{
           position: relative;
           border-radius: 9999px;
           padding: 10px 12px;
-          background: transparent;                 /* don't tint surrounding UI */
+          background: transparent;                 /* no global color shift */
           border: 0;
           box-shadow: 0 10px 30px rgba(0,0,0,0.35);
           isolation: isolate;
