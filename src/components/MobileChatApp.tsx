@@ -90,7 +90,6 @@ export function MobileChatApp() {
     if (!file) return;
 
     try {
-      // Minimal, non-blocking fallback so this file cannot break sending
       const url = URL.createObjectURL(file);
       startChatWithMessage(`Analyze this image: ${url}`);
       toast({ title: "Image attached", description: "Sent as a message for analysis." });
@@ -255,7 +254,7 @@ export function MobileChatApp() {
         <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
-              <div className="pointer-events-auto glass-dock black ultra-clear">
+              <div className="pointer-events-auto glass-dock black edge-only">
                 {/* Paperclip attach */}
                 <button type="button" aria-label="Attach image" className="attach-btn" onClick={triggerAttach}>
                   <Paperclip className="h-5 w-5" />
@@ -277,76 +276,79 @@ export function MobileChatApp() {
         </div>
       </div>
 
-      {/* Scoped styles: ultra-clear black glass. Zero chrome inside. */}
+      {/* Scoped styles: center fully transparent, edge-only refraction + drop-shadow.
+          Also remove ALL child backgrounds AND backdrop-filters inside the dock. */}
       <style>{`
-        /* Base black glass pill */
         .glass-dock.black {
-          --alpha: 0.28;                 /* base glass darkness */
-          --edgeRing: 14px;              /* edge-bend width */
-          --edgeOpacity: 0.40;           /* edge spectral opacity */
-          --specular: 0.22;              /* top highlight */
+          --ring: 16px;             /* edge thickness */
+          --edgeOpacity: 0.42;      /* spectral rim */
+          --shadow: 0.45;           /* drop shadow */
           position: relative;
           border-radius: 9999px;
           padding: 10px 12px;
-          background: rgba(0,0,0,var(--alpha));
-          backdrop-filter: blur(12px) saturate(170%) contrast(110%);
-          -webkit-backdrop-filter: blur(12px) saturate(170%) contrast(110%);
+          background: transparent;  /* no base fill: center stays 100% clear */
           border: 0;
-          box-shadow: 0 10px 28px rgba(0,0,0,0.42);
+          filter: drop-shadow(0 10px 28px rgba(0,0,0,var(--shadow)));
+          isolation: isolate;       /* keep blends local to the dock */
           overflow: hidden;
         }
-        /* even clearer preset */
-        .glass-dock.ultra-clear { --alpha: 0.18; --edgeRing: 16px; --edgeOpacity: 0.48; --specular: 0.28; }
 
-        /* subtle highlight and prism tint like your reference */
+        /* subtle specular highlight without filling center */
         .glass-dock.black::before {
           content: "";
           position: absolute;
           inset: 0;
           border-radius: inherit;
           background:
-            radial-gradient(40% 80% at 18% 8%, rgba(255,255,255,var(--specular)), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0));
+            radial-gradient(40% 80% at 18% 8%, rgba(255,255,255,0.22), transparent 60%);
           mix-blend-mode: overlay;
           pointer-events: none;
         }
 
-        /* edge-only refraction ring */
-        .glass-dock.black::after {
+        /* edge-only refraction ring (center masked out) */
+        .glass-dock.black.edge-only::after {
           content: "";
           position: absolute;
           inset: 0;
           border-radius: inherit;
-          backdrop-filter: blur(18px) saturate(185%) brightness(1.08) contrast(1.22);
-          -webkit-backdrop-filter: blur(18px) saturate(185%) brightness(1.08) contrast(1.22);
-          padding: var(--edgeRing);
+
+          /* refract the background only at the rim */
+          backdrop-filter: blur(18px) saturate(185%) brightness(1.06) contrast(1.2);
+          -webkit-backdrop-filter: blur(18px) saturate(185%) brightness(1.06) contrast(1.2);
+
+          padding: var(--ring);
           -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
           -webkit-mask-composite: xor;
                   mask-composite: exclude;
+
           background:
             conic-gradient(from 0deg,
-              rgba(255,80,0,var(--edgeOpacity)),
-              rgba(0,160,255,var(--edgeOpacity) * 0.8),
-              rgba(0,255,170,var(--edgeOpacity) * 0.7),
-              rgba(255,220,0,var(--edgeOpacity) * 0.7),
-              rgba(255,80,0,var(--edgeOpacity)));
+              rgba(255,90,0,var(--edgeOpacity)),
+              rgba(0,160,255,calc(var(--edgeOpacity) * 0.8)),
+              rgba(0,255,170,calc(var(--edgeOpacity) * 0.7)),
+              rgba(255,220,0,calc(var(--edgeOpacity) * 0.7)),
+              rgba(255,90,0,var(--edgeOpacity)));
           mix-blend-mode: screen;
           opacity: 0.35;
           pointer-events: none;
         }
 
-        /* Nuke EVERY child background, border, ring, outline inside the dock */
+        /* Nuke ALL child chrome AND blurs that were causing inner rectangles */
         .glass-dock.black * {
           background: transparent !important;
           border: 0 !important;
           outline: none !important;
           box-shadow: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
         }
         .glass-dock.black *::before,
         .glass-dock.black *::after {
           background: transparent !important;
           box-shadow: none !important;
           border: 0 !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
         }
         .glass-dock.black [class*="bg-"],
         .glass-dock.black [class*="ring-"],
@@ -356,7 +358,7 @@ export function MobileChatApp() {
           border: 0 !important;
         }
 
-        /* Inputs readable on dark glass */
+        /* Inputs readable on dark scenes */
         .glass-dock.black input,
         .glass-dock.black textarea,
         .glass-dock.black select {
@@ -368,7 +370,7 @@ export function MobileChatApp() {
           color: rgba(255,255,255,0.52) !important;
         }
 
-        /* Buttons and icons stay transparent, no chips */
+        /* Icons and buttons stay transparent; only strokes visible */
         .glass-dock.black button,
         .glass-dock.black [role="button"] {
           background: transparent !important;
