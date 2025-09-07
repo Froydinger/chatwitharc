@@ -59,11 +59,10 @@ export function MobileChatApp() {
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isGeneratingImage]);
 
-  // Also ensure when chat is empty (new session), we’re at the top
+  // Ensure when chat is empty (new session), we’re at the top
   useEffect(() => {
     if (messages.length === 0) {
       scrollToTop();
-      // one more rAF to beat layout thrash on some mobiles
       requestAnimationFrame(scrollToTop);
     }
   }, [messages.length]);
@@ -209,7 +208,7 @@ export function MobileChatApp() {
             />
             <div>
               <h1 className="text-lg font-semibold">ArcAI</h1>
-              <p className="text-xs text-muted-foreground">AI Assistant</p>
+              <p className="text-xs text-muted-foreground">Ask, Reflect, Create.</p>
             </div>
           </div>
           
@@ -253,10 +252,10 @@ export function MobileChatApp() {
                     className="h-20 w-20 mx-auto mb-4"
                   />
                   <h2 className="text-2xl font-bold text-foreground mb-2">
-                    Welcome to ArcAI
+                    Howdy!
                   </h2>
                   <p className="text-muted-foreground text-sm max-w-sm">
-                    Your intelligent AI assistant. Choose a quick prompt below or start typing to begin.
+                    What can we work on today? Choose a quick prompt below or start typing to begin.
                   </p>
                 </div>
 
@@ -383,7 +382,7 @@ export function MobileChatApp() {
           border: 0 !important;
         }
 
-        /* Inputs: 16px (no iOS zoom). Placeholder ~6px lower ONLY when visible */
+        /* Inputs: 16px (no iOS zoom). SHIFT text: down 5px, right 2px */
         .glass-dock input,
         .glass-dock textarea{
           font-size: 16px !important;
@@ -394,7 +393,7 @@ export function MobileChatApp() {
           border: 0 !important;
           box-shadow: none !important;
           width: 100% !important;
-          padding: 0 !important;                   /* keeps typed text vertically centered */
+          padding: 5px 0 0 2px !important;         /* ↓5px  →2px */
           margin: 0 !important;
         }
         .glass-dock input::placeholder,
@@ -403,9 +402,11 @@ export function MobileChatApp() {
           line-height: 22px !important;
           color: rgba(255,255,255,0.62) !important;
         }
+        /* Keep placeholder aligned with typed text (same offset) */
         .glass-dock input:placeholder-shown,
         .glass-dock textarea:placeholder-shown{
-          padding-top: 6px !important;             /* lower placeholder */
+          padding-top: 5px !important;             /* matches base */
+          padding-left: 2px !important;            /* matches base */
         }
 
         /* Invisible image attach hotspot (left 44px) */
