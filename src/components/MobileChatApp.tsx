@@ -40,14 +40,12 @@ export function MobileChatApp() {
     { label: "🎯 Quick Advice", prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing." }
   ];
 
-  // Smooth scroll on new content
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isGeneratingImage]);
 
-  // Measure dock height
   useEffect(() => {
     const update = () => {
       if (inputDockRef.current) {
@@ -56,8 +54,10 @@ export function MobileChatApp() {
       }
     };
     update();
+
     const ro = new ResizeObserver(update);
     if (inputDockRef.current) ro.observe(inputDockRef.current);
+
     window.addEventListener("resize", update);
     return () => {
       window.removeEventListener("resize", update);
@@ -85,7 +85,6 @@ export function MobileChatApp() {
 
   const triggerAttach = () => fileInputRef.current?.click();
 
-  // Force placeholder text + keep it after rerenders
   useEffect(() => {
     const setPlaceholder = () => {
       if (!inputDockRef.current) return;
@@ -117,7 +116,6 @@ export function MobileChatApp() {
     }
   };
 
-  // History
   if (showHistory) {
     return (
       <div className="min-h-screen bg-background">
@@ -142,7 +140,6 @@ export function MobileChatApp() {
     );
   }
 
-  // Settings
   if (showSettings) {
     return (
       <div className="min-h-screen bg-background">
@@ -164,10 +161,8 @@ export function MobileChatApp() {
     );
   }
 
-  // Main chat
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
@@ -191,7 +186,6 @@ export function MobileChatApp() {
         </div>
       </header>
 
-      {/* Messages */}
       <div 
         className={`relative flex-1 ${dragOver ? "bg-primary/5" : ""}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -213,7 +207,6 @@ export function MobileChatApp() {
                     Your intelligent AI assistant. Choose a quick prompt below or start typing to begin.
                   </p>
                 </div>
-                {/* extra 40px under prompts */}
                 <div className="w-full max-w-sm space-y-3 mb-[40px]">
                   {quickPrompts.map((prompt, idx) => (
                     <button
@@ -266,7 +259,6 @@ export function MobileChatApp() {
           )}
         </div>
 
-        {/* Fixed simplified dock */}
         <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
@@ -292,55 +284,60 @@ export function MobileChatApp() {
         </div>
       </div>
 
-      {/* Styles: simple black frosted glass, no gradients, no layers */}
       <style>{`
-        /* Dock: subtle frosted black pill */
+        /* Simple black frosted glass dock */
         .glass-dock.black.simple {
           position: relative;
           border-radius: 9999px;
           padding: 10px 12px;
-          background: rgba(0,0,0,0.45);            /* slight darkness */
+          background: rgba(0,0,0,0.45);
           backdrop-filter: blur(10px) saturate(120%);
           -webkit-backdrop-filter: blur(10px) saturate(120%);
-          border: 0;                                 /* no visible border */
-          box-shadow: 0 12px 28px rgba(0,0,0,0.4),   /* soft lift */
+          border: 0;
+          box-shadow: 0 12px 28px rgba(0,0,0,0.4),
                       inset 0 1px 0 rgba(255,255,255,0.06),
                       inset 0 -1px 0 rgba(255,255,255,0.03);
           overflow: hidden;
         }
 
-        /* Strip chrome only inside content (inputs/buttons) */
-        .glass-dock.black.simple .glass-content * {
+        /* Strip ALL inner chrome, backgrounds, and blurs that create the inner rectangle */
+        .glass-dock.black.simple .glass-content *,
+        .glass-dock.black.simple .glass-content *::before,
+        .glass-dock.black.simple .glass-content *::after {
           background: transparent !important;
+          background-color: transparent !important;
           border: 0 !important;
           outline: none !important;
           box-shadow: none !important;
+          filter: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
         }
         .glass-dock.black.simple .glass-content [class*="bg-"],
         .glass-dock.black.simple .glass-content [class*="ring-"],
         .glass-dock.black.simple .glass-content [class*="border"] {
           background-color: transparent !important;
-          border: 0 !important;
           box-shadow: none !important;
+          border: 0 !important;
         }
 
-        /* Inputs readable on dark glass */
+        /* Input typography + vertical centering */
         .glass-dock.black.simple .glass-content input,
         .glass-dock.black.simple .glass-content textarea {
           color: rgba(255,255,255,0.96) !important;
           caret-color: rgba(255,255,255,0.96) !important;
+          font-size: 16px !important;
+          line-height: 22px !important;
+          padding-top: 4px !important;  /* lowers text slightly to center visually */
         }
         .glass-dock.black.simple .glass-content input::placeholder,
         .glass-dock.black.simple .glass-content textarea::placeholder {
           color: rgba(255,255,255,0.55) !important;
-        }
-        /* Lower placeholder ~5-6px when visible */
-        .glass-dock.black.simple .glass-content input:placeholder-shown,
-        .glass-dock.black.simple .glass-content textarea:placeholder-shown {
-          padding-top: 6px !important;
+          font-size: 16px !important;
+          line-height: 22px !important;
         }
 
-        /* Buttons/icons are stroke-only; no hover chips */
+        /* Buttons/icons */
         .glass-dock.black.simple .glass-content button,
         .glass-dock.black.simple .glass-content [role="button"] {
           background: transparent !important;
@@ -350,7 +347,7 @@ export function MobileChatApp() {
           fill: none !important;
         }
 
-        /* Paperclip placement + input padding */
+        /* Paperclip position + input left padding */
         .attach-btn {
           position: absolute;
           left: 14px;
