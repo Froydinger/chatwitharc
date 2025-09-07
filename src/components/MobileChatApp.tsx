@@ -368,7 +368,7 @@ export function MobileChatApp() {
           position: absolute;
           inset: 0;                                /* fill whole pill */
           border-radius: inherit;
-          background: rgba(0,0,0,0.46);
+          background: rgba(0,0,0,0.368);           /* 20% less opaque than 0.46 */
           backdrop-filter: blur(10px) saturate(120%);
           -webkit-backdrop-filter: blur(10px) saturate(120%);
           box-shadow:
