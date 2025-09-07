@@ -367,7 +367,7 @@ export function ChatInput() {
       )}
 
       {/* Input Row */}
-      <div className="flex items-end gap-4 px-4">
+      <div className="flex items-end gap-4">
         <div className="flex-1">
           <Textarea
             ref={textareaRef}
@@ -376,24 +376,22 @@ export function ChatInput() {
             onKeyDown={handleKeyPress}
             placeholder={selectedImages.length > 0 ? "Add a message with your images..." : "Ask me anything..."}
             disabled={isLoading}
-            className="glass border-0 bg-glass/30 text-foreground placeholder:text-muted-foreground resize-none min-h-[40px] max-h-[72px] leading-6 whitespace-nowrap overflow-hidden"
+            className="card border-border/40 bg-card/50 text-foreground placeholder:text-muted-foreground resize-none min-h-[48px] max-h-[144px] leading-6 overflow-hidden"
             rows={1}
           />
         </div>
 
-        <GlassButton
-          variant={inputValue.trim() ? "default" : "ghost"}
-          size="icon"
+        <button
           onClick={handleSend}
-          disabled={isLoading}
-          className={`shrink-0 transition-all duration-200 ${
-            inputValue.trim() 
-              ? 'bg-primary/30 text-primary-foreground hover:bg-primary/40 shadow-lg' 
-              : ''
+          disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
+          className={`shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-200 ${
+            inputValue.trim() || selectedImages.length > 0
+              ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg' 
+              : 'bg-muted text-muted-foreground cursor-not-allowed'
           }`}
         >
-          <Send className="h-4 w-4" />
-        </GlassButton>
+          <Send className="h-5 w-5" />
+        </button>
       </div>
     </div>
   );

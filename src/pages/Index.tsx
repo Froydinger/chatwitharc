@@ -3,11 +3,10 @@ import { useArcStore } from "@/store/useArcStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatSync } from "@/hooks/useChatSync";
 import { NamePrompt } from "@/components/NamePrompt";
-import { BottomNavigation } from "@/components/BottomNavigation";
+import { AppLayout } from "@/components/AppLayout";
 import { ChatInterface } from "@/components/ChatInterface";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
-import { VoiceInterface } from "@/components/VoiceInterface";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { AuthPage } from "@/components/AuthPage";
@@ -67,22 +66,17 @@ export function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="w-full h-full bg-gradient-to-br from-primary/5 via-background to-primary-glow/5" />
-      </div>
+    <AppLayout>
+      <div className="h-full flex flex-col">
+        {/* Background Pattern */}
+        <div className="fixed inset-0 pointer-events-none opacity-[0.02]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary))_0%,transparent_70%)]" />
+        </div>
 
-      {/* Main Container - accounts for bottom navigation */}
-      <div className="relative z-10 h-screen flex flex-col">
-        <main className="flex-1 overflow-hidden">
-          <div className="h-full">
-            {renderCurrentTab()}
-          </div>
-        </main>
-
-        {/* Bottom Navigation */}
-        <BottomNavigation />
+        {/* Content */}
+        <div className="relative flex-1 p-6">
+          {renderCurrentTab()}
+        </div>
       </div>
 
       {/* PWA Install Prompt */}
@@ -90,6 +84,6 @@ export function Index() {
       
       {/* Sync Status Indicator */}
       <SyncStatus />
-    </div>
+    </AppLayout>
   );
 }

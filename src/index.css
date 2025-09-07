@@ -8,56 +8,55 @@ All colors MUST be HSL for perfect glass effects.
 
 @layer base {
   :root {
-    /* Base Glass Background */
-    --background: 240 25% 8%;
-    --foreground: 240 10% 95%;
+    /* App-like Dark Background */
+    --background: 240 12% 6%;
+    --foreground: 240 5% 96%;
 
-    /* Glass Elements */
-    --glass: 240 15% 12%;
-    --glass-border: 240 25% 25%;
-    --glass-glow: 240 100% 70%;
-    --glass-overlay: 240 20% 15%;
+    /* Card & Surface Colors */
+    --card: 240 8% 12%;
+    --card-foreground: 240 5% 94%;
+    --surface: 240 6% 10%;
+    --surface-foreground: 240 4% 92%;
 
-    /* Primary Blue Glass Accent */
-    --primary: 200 100% 60%;
-    --primary-foreground: 240 10% 95%;
-    --primary-glow: 200 100% 70%;
+    /* Primary Brand Color */
+    --primary: 200 95% 55%;
+    --primary-foreground: 240 10% 98%;
+    --primary-glow: 200 90% 65%;
 
-    /* Secondary Blue Glass */
-    --secondary: 210 15% 18%;
-    --secondary-foreground: 240 10% 90%;
+    /* Secondary Colors */
+    --secondary: 240 6% 16%;
+    --secondary-foreground: 240 4% 88%;
 
-    /* Muted Blue Glass */
-    --muted: 215 12% 15%;
-    --muted-foreground: 215 8% 65%;
+    /* Muted Elements */
+    --muted: 240 4% 14%;
+    --muted-foreground: 240 3% 68%;
 
-    /* Accent Blue Glass */
-    --accent: 210 20% 20%;
-    --accent-foreground: 240 10% 95%;
+    /* Accent Colors */
+    --accent: 240 8% 18%;
+    --accent-foreground: 240 4% 94%;
 
-    /* States */
-    --destructive: 0 85% 65%;
-    --destructive-foreground: 240 10% 95%;
-    --success: 120 60% 60%;
-    --success-foreground: 240 10% 95%;
+    /* Status Colors */
+    --destructive: 0 80% 58%;
+    --destructive-foreground: 240 5% 96%;
+    --success: 142 76% 42%;
+    --success-foreground: 240 5% 96%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 240 5% 96%;
 
-    /* Interactive Elements */
-    --border: 240 25% 25%;
-    --input: 240 15% 12%;
-    --ring: 240 100% 70%;
+    /* UI Elements */
+    --border: 240 8% 20%;
+    --input: 240 8% 12%;
+    --ring: 200 95% 55%;
 
     /* Glass Effects */
-    --blur-sm: 4px;
-    --blur-md: 8px;
-    --blur-lg: 16px;
-    --blur-xl: 24px;
-    --opacity-glass: 0.1;
-    --opacity-glass-strong: 0.15;
+    --glass-bg: 240 8% 12%;
+    --glass-border: 240 10% 22%;
+    --glass-glow: 200 90% 65%;
     
-    /* Bubble Radius - Much more rounded for bouncy feel */
-    --radius: 2rem;
-    --radius-xl: 3rem;
-    --radius-bubble: 4rem;
+    /* Radius System */
+    --radius: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -145,154 +144,95 @@ All colors MUST be HSL for perfect glass effects.
     color: white !important;
   }
 
-  /* Enhanced Glass Utilities - More bouncy and fun */
+  /* App-like Glass Components */
   .glass {
     background: linear-gradient(135deg, 
-      hsla(var(--glass), 0.15) 0%,
-      hsla(var(--glass-overlay), 0.25) 100%);
-    backdrop-filter: blur(var(--blur-lg));
-    border: 1.5px solid hsla(var(--glass-border), 0.3);
+      hsla(var(--glass-bg), 0.8) 0%,
+      hsla(var(--glass-bg), 0.6) 100%);
+    backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid hsla(var(--glass-border), 0.4);
     border-radius: var(--radius);
   }
 
   .glass-strong {
     background: linear-gradient(135deg, 
-      hsla(var(--glass), 0.25) 0%,
-      hsla(var(--glass-overlay), 0.35) 100%);
-    backdrop-filter: blur(var(--blur-xl));
-    border: 2px solid hsla(var(--glass-border), 0.4);
+      hsla(var(--glass-bg), 0.9) 0%,
+      hsla(var(--glass-bg), 0.7) 100%);
+    backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid hsla(var(--glass-border), 0.5);
     border-radius: var(--radius);
   }
 
   .glass-glow {
     box-shadow: 
-      0 0 30px hsla(var(--primary-glow), 0.15),
-      0 8px 40px hsla(var(--primary), 0.15),
-      inset 0 1px 0 hsla(var(--foreground), 0.15);
+      0 4px 32px hsla(var(--glass-glow), 0.12),
+      0 2px 16px hsla(var(--glass-glow), 0.08),
+      inset 0 1px 0 hsla(var(--foreground), 0.1);
   }
 
-  .bubble {
-    @apply glass glass-glow;
-    border-radius: var(--radius-xl);
-  }
-
-  .bubble-nav {
-    @apply glass-strong;
-    border-radius: var(--radius-bubble);
-    padding: 1rem 2rem;
-    background: linear-gradient(135deg, 
-      hsla(var(--glass), 0.3) 0%,
-      hsla(var(--glass-overlay), 0.4) 100%);
-    box-shadow: 
-      0 0 40px hsla(var(--primary-glow), 0.2),
-      0 8px 32px hsla(var(--primary), 0.15),
-      inset 0 1px 0 hsla(200, 100%, 80%, 0.3),
-      inset 0 -1px 0 hsla(200, 100%, 30%, 0.2);
-    cursor: grab;
-  }
-  
-  .bubble-nav:active {
-    cursor: grabbing;
-  }
-
-  .bubble-nav-item {
+  .card {
     @apply glass;
-    border-radius: var(--radius-xl);
+    background: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border: 1px solid hsl(var(--border));
   }
 
-  .bubble-nav-item.active {
-    @apply glass-strong glass-glow;
-    background: linear-gradient(135deg, 
-      hsla(var(--primary), 0.2) 0%,
-      hsla(var(--primary-glow), 0.3) 100%);
+  .surface {
+    background: hsl(var(--surface));
+    color: hsl(var(--surface-foreground));
+    border-radius: var(--radius-lg);
   }
 
-  /* Enhanced Bouncy Animations */
-  @keyframes bubble-float {
-    0%, 100% { 
-      transform: translateY(0px) rotate(0deg) scale(1); 
+  /* App-like Animations */
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
     }
-    33% { 
-      transform: translateY(-6px) rotate(1deg) scale(1.02); 
-    }
-    66% { 
-      transform: translateY(3px) rotate(-1deg) scale(0.98); 
-    }
-  }
-
-  @keyframes bubble-bounce {
-    0%, 100% { 
-      transform: scale(1) translateY(0px); 
-    }
-    50% { 
-      transform: scale(1.05) translateY(-2px); 
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 
-  @keyframes ripple {
-    0% { 
-      transform: scale(1); 
-      opacity: 1; 
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
     }
-    100% { 
-      transform: scale(4); 
-      opacity: 0; 
-    }
-  }
-
-  @keyframes glow-pulse {
-    0%, 100% { 
-      box-shadow: 
-        0 0 30px hsla(var(--primary-glow), 0.15),
-        0 8px 40px hsla(var(--primary), 0.15);
-    }
-    50% { 
-      box-shadow: 
-        0 0 50px hsla(var(--primary-glow), 0.25),
-        0 12px 60px hsla(var(--primary), 0.2);
+    to {
+      opacity: 1;
+      transform: scale(1);
     }
   }
 
-  @keyframes bounce-in {
-    0% { 
-      transform: scale(0.3) rotate(-180deg); 
-      opacity: 0; 
+  @keyframes slide-up {
+    from {
+      transform: translateY(100%);
     }
-    50% { 
-      transform: scale(1.1) rotate(-90deg); 
-    }
-    100% { 
-      transform: scale(1) rotate(0deg); 
-      opacity: 1; 
+    to {
+      transform: translateY(0);
     }
   }
 
-  .animate-float {
-    animation: bubble-float 6s ease-in-out infinite;
+  .animate-fade-in-up {
+    animation: fade-in-up 0.4s ease-out;
   }
 
-  .animate-bounce-gentle {
-    /* Only on hover */
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out;
   }
 
-  .animate-glow-pulse {
-    animation: glow-pulse 3s ease-in-out infinite;
+  .animate-slide-up {
+    animation: slide-up 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
   }
 
-  .animate-bounce-in {
-    animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  /* Smooth transitions */
+  .transition-all {
+    transition: all 0.2s ease-out;
   }
 
-  /* Remove all haptic animations */
-  .haptic {
-    /* No transitions */
-  }
-
-  .haptic:active {
-    /* No transform */
-  }
-
-  .haptic:hover {
-    /* No transform */
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   }
 }
