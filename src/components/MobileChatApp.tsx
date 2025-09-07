@@ -165,7 +165,7 @@ export function MobileChatApp() {
             />
             <div>
               <h1 className="text-lg font-semibold">ArcAI</h1>
-              <p className="text-xs text-muted-foreground">AI Assistant</p>
+              <p className="text-xs text-muted-foreground">Ask, Reflect, Create.</p>
             </div>
           </div>
           
@@ -209,10 +209,10 @@ export function MobileChatApp() {
                     className="h-20 w-20 mx-auto mb-4"
                   />
                   <h2 className="text-2xl font-bold text-foreground mb-2">
-                    Welcome to ArcAI
+                    Howdy!
                   </h2>
                   <p className="text-muted-foreground text-sm max-w-sm">
-                    Your intelligent AI assistant. Choose a quick prompt below or start typing to begin.
+                    What can we work on today? Choose a quick prompt below or start typing to begin.
                   </p>
                 </div>
 
@@ -292,63 +292,62 @@ export function MobileChatApp() {
 
       {/* Scoped styles for the glass pill dock */}
       <style>{`
-        /* Make the dark inner pill fill the entire dock: one black frosted glass pill */
-        .glass-dock{
+        /* Clear glass pill with warped edge and light bending vibe */
+        .glass-dock {
           position: relative;
           border-radius: 9999px;
           padding: 10px 12px;
-          /* keep layout & alignment exactly the same */
-          background: transparent;                 /* no visible outer bg */
-          border: 0;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-          isolation: isolate;
+          background:
+            radial-gradient(120% 200% at 20% 0%, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 60%, rgba(255,255,255,0.02)),
+            linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+          backdrop-filter: blur(2px) saturate(120%);
+          -webkit-backdrop-filter: blur(2px) saturate(120%);
+          border: 1px solid rgba(255,255,255,0.28);
+          box-shadow:
+            0 10px 30px rgba(0,0,0,0.35),
+            inset 0 1px 0 rgba(255,255,255,0.35),
+            inset 0 -1px 0 rgba(255,255,255,0.10);
           overflow: hidden;
         }
-        .glass-dock::before{
-          content:"";
-          position:absolute;
-          inset:0;                                 /* full size = matches whole pill */
+        /* Caustic highlights and edge warp */
+        .glass-dock::before {
+          content: "";
+          position: absolute;
+          inset: 0;
           border-radius: inherit;
-          background: rgba(0,0,0,0.46);           /* black frosted */
-          backdrop-filter: blur(10px) saturate(120%);
-          -webkit-backdrop-filter: blur(10px) saturate(120%);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.06),
-            inset 0 -1px 0 rgba(255,255,255,0.03);
-          z-index:0;                               /* sits under content */
+          background:
+            radial-gradient(40% 80% at 18% 8%, rgba(255,255,255,0.55), transparent 60%),
+            conic-gradient(from 180deg at 82% 0%, rgba(255,255,255,0.40), rgba(255,255,255,0.10) 25%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.05) 75%, rgba(255,255,255,0.40));
+          mix-blend-mode: overlay;
+          opacity: 0.35;
+          pointer-events: none;
         }
-        .glass-dock > *{ position: relative; z-index: 1; }
-
-        /* Remove any nested backgrounds/borders that draw a smaller inner pill */
-        .glass-dock :is(.surface,.card,[class*="bg-"],[class*="ring-"],[class*="border"],[class*="shadow"]){
-          background: transparent !important;
-          box-shadow: none !important;
-          border: 0 !important;
+        /* Inner glow to sell thickness of glass */
+        .glass-dock::after {
+          content: "";
+          position: absolute;
+          inset: 1px;
+          border-radius: inherit;
+          background: linear-gradient(to bottom, rgba(255,255,255,0.16), rgba(255,255,255,0.03));
+          mask: radial-gradient(120% 200% at 0% 0%, rgba(0,0,0,0.55), transparent 60%);
+          pointer-events: none;
         }
-
-        /* Inputs: 16px to avoid mobile zoom; placeholder sits ~5px lower when visible */
+        /* Make inner inputs transparent so the dock glass shows through */
         .glass-dock input,
-        .glass-dock textarea{
-          font-size:16px !important;               /* prevent iOS zoom */
-          line-height:22px !important;
-          color:rgba(255,255,255,0.96) !important;
-          caret-color:rgba(255,255,255,0.96) !important;
-          background:transparent !important;
-          border:0 !important;
-          box-shadow:none !important;
-          width:100% !important;
-          padding:0 !important;                    /* typed text stays centered */
-          margin:0 !important;
+        .glass-dock textarea,
+        .glass-dock .surface,
+        .glass-dock .card {
+          background-color: transparent !important;
         }
+        .glass-dock input,
+        .glass-dock textarea {
+          border-color: transparent !important;
+          box-shadow: none !important;
+        }
+        /* Keep placeholder and text readable on glass */
         .glass-dock input::placeholder,
-        .glass-dock textarea::placeholder{
-          color:rgba(255,255,255,0.65) !important;
-          font-size:16px !important;
-          line-height:22px !important;
-        }
-        .glass-dock input:placeholder-shown,
-        .glass-dock textarea:placeholder-shown{
-          padding-top:5px !important;              /* shimmy placeholder down ~5px */
+        .glass-dock textarea::placeholder {
+          color: rgba(255,255,255,0.65);
         }
       `}</style>
     </div>
