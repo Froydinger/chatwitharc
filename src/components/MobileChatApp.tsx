@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Settings, History } from "lucide-react";
+import { Plus, Settings, History, Paperclip } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput } from "@/components/ChatInput";
@@ -25,6 +25,8 @@ export function MobileChatApp() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputDockRef = useRef<HTMLDivElement>(null);
   const [inputHeight, setInputHeight] = useState<number>(96);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
   const { profile } = useAuth();
@@ -82,6 +84,39 @@ export function MobileChatApp() {
     startChatWithMessage(prompt);
     setShowHistory(false);
     setShowSettings(false);
+  };
+
+  const triggerAttach = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAttachChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      // Try a dedicated store action first, if your Zustand store exposes it
+      // @ts-ignore
+      const getState = (useArcStore as any)?.getState;
+      // @ts-ignore
+      const storeNow = typeof getState === "function" ? getState() : null;
+
+      if (storeNow && typeof storeNow.sendImageForAnalysis === "function") {
+        await storeNow.sendImageForAnalysis(file);
+        toast({ title: "Image attached", description: "Sent for analysis." });
+      } else {
+        // Fallback: send a blob URL in-chat so you see it
+        const url = URL.createObjectURL(file);
+        startChatWithMessage(`Analyze this image: ${url}`);
+        toast({ title: "Image attached", description: "No analyzer found, sent as message." });
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      }
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Attach failed", description: "Could not attach image." });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   if (showHistory) {
@@ -259,64 +294,127 @@ export function MobileChatApp() {
           )}
         </div>
 
-        {/* Fixed black-glass input dock */}
+        {/* Fixed black-glass input dock with paperclip */}
         <div
           ref={inputDockRef}
           className="fixed inset-x-0 bottom-0 z-50 pointer-events-none"
         >
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
-              <div className="pointer-events-auto glass-dock black">
-                <ChatInput />
+              <div className="pointer-events-auto glass-dock black more-transparent">
+                {/* Paperclip attach, no background */}
+                <button
+                  type="button"
+                  aria-label="Attach image"
+                  className="attach-btn"
+                  onClick={triggerAttach}
+                >
+                  <Paperclip className="h-5 w-5" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAttachChange}
+                />
+
+                <div className="with-attachment-padding">
+                  <ChatInput />
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Scoped styles for the black glass pill and input/button overrides */}
+      {/* Scoped styles: more transparent black glass with stronger edge bending */}
       <style>{`
-        /* Black glass pill with subtle warped highlights */
+        /* Base black glass pill */
         .glass-dock.black {
+          --glass-alpha-1: 0.58;         /* base transparency */
+          --glass-alpha-2: 0.48;         /* inner gradient */
+          --edge-ring: 12px;             /* thickness of edge refraction ring */
+          --specular: 0.22;              /* highlight intensity */
+          --shadow: 0.45;                /* drop shadow strength */
+
           position: relative;
           border-radius: 9999px;
           padding: 10px 12px;
           background:
-            radial-gradient(120% 200% at 20% 0%, rgba(0,0,0,0.92), rgba(0,0,0,0.88) 60%, rgba(0,0,0,0.85)),
-            linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.00));
-          backdrop-filter: blur(6px) saturate(140%);
-          -webkit-backdrop-filter: blur(6px) saturate(140%);
+            radial-gradient(120% 200% at 20% 0%, rgba(0,0,0,var(--glass-alpha-1)), rgba(0,0,0,var(--glass-alpha-2)) 60%, rgba(0,0,0,0.42)),
+            linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+          backdrop-filter: blur(10px) saturate(160%) contrast(110%);
+          -webkit-backdrop-filter: blur(10px) saturate(160%) contrast(110%);
           border: 0;
           box-shadow:
-            0 8px 26px rgba(0,0,0,0.55),
+            0 10px 30px rgba(0,0,0,var(--shadow)),
             inset 0 0.5px 0 rgba(255,255,255,0.10),
             inset 0 -0.5px 0 rgba(255,255,255,0.04);
           overflow: hidden;
         }
-        /* Very subtle specular edge, no visible 'border' */
+
+        /* More transparent preset */
+        .glass-dock.more-transparent {
+          --glass-alpha-1: 0.46;
+          --glass-alpha-2: 0.38;
+          --edge-ring: 14px;
+          --specular: 0.28;
+          --shadow: 0.38;
+        }
+
+        /* Specular sheen and subtle prism tint like the reference */
         .glass-dock.black::before {
           content: "";
           position: absolute;
           inset: 0;
           border-radius: inherit;
           background:
-            radial-gradient(40% 80% at 18% 8%, rgba(255,255,255,0.15), transparent 60%),
-            conic-gradient(from 180deg at 82% 0%, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.10));
+            radial-gradient(40% 80% at 18% 8%, rgba(255,255,255,var(--specular)), transparent 60%),
+            conic-gradient(from 200deg at 85% 10%,
+              rgba(255, 170, 170, 0.10),
+              rgba(170, 200, 255, 0.10) 25%,
+              rgba(170, 255, 210, 0.08) 50%,
+              rgba(255, 210, 170, 0.08) 75%,
+              rgba(255, 170, 170, 0.10));
           mix-blend-mode: overlay;
-          opacity: 0.25;
-          pointer-events: none;
-        }
-        .glass-dock.black::after {
-          content: "";
-          position: absolute;
-          inset: 1px;
-          border-radius: inherit;
-          background: linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0.00));
-          mask: radial-gradient(120% 200% at 0% 0%, rgba(0,0,0,0.65), transparent 60%);
           pointer-events: none;
         }
 
-        /* Strip ALL visual chrome from inputs and buttons inside the dock */
+        /* Edge-bending ring: uses backdrop-filter only at the outer edge to 'refract' the background */
+        .glass-dock.black::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+
+          /* Amplify what's behind only at the edges to fake lensing */
+          backdrop-filter: blur(16px) saturate(180%) brightness(1.08) contrast(1.22);
+          -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(1.08) contrast(1.22);
+
+          /* Mask to an edge ring */
+          padding: var(--edge-ring);
+          -webkit-mask: 
+            linear-gradient(#000 0 0) content-box, 
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+                  mask-composite: exclude;
+
+          /* Very gentle spectral tint around the rim */
+          background:
+            conic-gradient(from 0deg,
+              rgba(255, 90, 0, 0.10),
+              rgba(255, 0, 180, 0.08),
+              rgba(0, 140, 255, 0.10),
+              rgba(0, 255, 160, 0.08),
+              rgba(255, 220, 0, 0.08),
+              rgba(255, 90, 0, 0.10));
+          mix-blend-mode: screen;
+          opacity: 0.35;
+          pointer-events: none;
+        }
+
+        /* Zero chrome for inputs and buttons in the dock */
         .glass-dock.black input,
         .glass-dock.black textarea,
         .glass-dock.black select {
@@ -329,7 +427,7 @@ export function MobileChatApp() {
         }
         .glass-dock.black input::placeholder,
         .glass-dock.black textarea::placeholder {
-          color: rgba(255,255,255,0.50) !important;
+          color: rgba(255,255,255,0.52) !important;
         }
         .glass-dock.black :is(input, textarea, button, select):focus,
         .glass-dock.black :is(input, textarea, button, select):focus-visible {
@@ -337,7 +435,7 @@ export function MobileChatApp() {
           box-shadow: none !important;
         }
 
-        /* Kill any background, border, or outline for action buttons, including Send */
+        /* Buttons, including Send and the paperclip, stay fully transparent */
         .glass-dock.black button,
         .glass-dock.black [role="button"] {
           background: transparent !important;
@@ -345,32 +443,30 @@ export function MobileChatApp() {
           outline: none !important;
           box-shadow: none !important;
         }
-        .glass-dock.black button:hover,
-        .glass-dock.black [role="button"]:hover {
-          background: transparent !important;
-        }
-        .glass-dock.black button:active,
-        .glass-dock.black [role="button"]:active {
-          background: transparent !important;
-        }
-        .glass-dock.black button:disabled,
-        .glass-dock.black [role="button"][aria-disabled="true"] {
-          background: transparent !important;
-          opacity: 0.6;
-        }
-
-        /* Make icons readable without a chip behind them */
         .glass-dock.black svg {
           stroke: rgba(255,255,255,0.92) !important;
         }
 
-        /* If your ChatInput adds any 'surface' or 'card' containers, make them transparent too */
-        .glass-dock.black .surface,
-        .glass-dock.black .card {
-          background: transparent !important;
-          border: 0 !important;
-          box-shadow: none !important;
+        /* Attachment icon placement */
+        .attach-btn {
+          position: absolute;
+          left: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          height: 28px;
+          width: 28px;
+          padding: 0;
+          margin: 0;
+          cursor: pointer;
         }
+        .attach-btn:hover svg { opacity: 0.85; }
+        .attach-btn:active svg { opacity: 0.7; }
+
+        /* Reserve space so input text never sits under the icon */
+        .with-attachment-padding { padding-left: 38px; }
       `}</style>
     </div>
   );
