@@ -22,6 +22,15 @@ export function MobileChatApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
+  // Listen for chat history close events
+  useEffect(() => {
+    const handleCloseHistory = () => {
+      setShowHistory(false);
+    };
+    window.addEventListener('arcai:closeHistory', handleCloseHistory);
+    return () => window.removeEventListener('arcai:closeHistory', handleCloseHistory);
+  }, []);
+
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 

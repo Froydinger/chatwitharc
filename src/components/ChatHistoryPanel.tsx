@@ -12,19 +12,17 @@ export function ChatHistoryPanel() {
     currentSessionId, 
     createNewSession, 
     loadSession, 
-    deleteSession,
-    setCurrentTab,
-    setShowHistory // <-- pulled from store to actually close the panel
+    deleteSession
   } = useArcStore();
 
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
-  /** Switch to chat view (not in background) and close history panel. */
+  /** Navigate back to chat - emit custom event for MobileChatApp to handle */
   const goToChat = () => {
-    try { setCurrentTab?.("chat"); } catch {}
-    try { setShowHistory?.(false); } catch {}
+    // Emit custom event to notify MobileChatApp to close history panel
+    window.dispatchEvent(new CustomEvent('arcai:closeHistory'));
     // Keep UX crisp: ensure viewport is at top.
     if (typeof window !== "undefined") {
       requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
