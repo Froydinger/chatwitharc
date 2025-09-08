@@ -15,7 +15,8 @@ export function MobileChatApp() {
     isLoading, 
     isGeneratingImage,
     createNewSession,
-    startChatWithMessage 
+    startChatWithMessage,
+    currentSessionId
   } = useArcStore();
 
   const [showHistory, setShowHistory] = useState(false);
@@ -51,11 +52,22 @@ export function MobileChatApp() {
     { label: "🎯 Quick Advice", prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing." }
   ];
 
-  // Helper: scroll to top (messages area + page)
+  // Robust "scroll to top" helper
   const scrollToTop = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
     try {
-      messagesContainerRef.current?.scrollTo({ top: 0, behavior: "auto" });
+      // force immediate jump to 0, then reinforce on the next frame
+      el.scrollTop = 0;
       window.scrollTo({ top: 0, behavior: "auto" });
+      requestAnimationFrame(() => {
+        el.scrollTop = 0;
+        window.scrollTo({ top: 0, behavior: "auto" });
+      });
+      // tiny timeout to beat iOS layout/keyboard ticks
+      setTimeout(() => {
+        el.scrollTop = 0;
+      }, 50);
     } catch {}
   };
 
@@ -73,6 +85,14 @@ export function MobileChatApp() {
       requestAnimationFrame(scrollToTop);
     }
   }, [messages.length]);
+
+  // Also force top whenever the session id changes (opening a brand new chat)
+  useEffect(() => {
+    if (currentSessionId) {
+      scrollToTop();
+      requestAnimationFrame(scrollToTop);
+    }
+  }, [currentSessionId]);
 
   // Measure input dock height and account for safe area
   useEffect(() => {
@@ -349,7 +369,6 @@ export function MobileChatApp() {
         }
         .glass-dock > *{ position: relative; z-index: 1; }
 
-        /* --- Nuke the inner rounded rectangle completely --- */
         /* Remove any nested backgrounds/borders/rings/shadows/backdrop effects */
         .glass-dock :is(.surface,.card,[class*="bg-"],[class*="ring-"],[class*="border"],[class*="shadow"],
                         .backdrop-blur,[class*="backdrop-"],[style*="backdrop-filter"]){
@@ -375,12 +394,11 @@ export function MobileChatApp() {
           color: rgba(255,255,255,0.96) !important;
           caret-color: rgba(255,255,255,0.96) !important;
 
-          /* True transparency on iOS Safari dark mode */
           appearance: none !important;
           -webkit-appearance: none !important;
           background: transparent !important;
           background-color: transparent !important;
-          color-scheme: dark;                     /* prevents UA from injecting a light bg */
+          color-scheme: dark;
 
           border: 0 !important;
           box-shadow: none !important;
@@ -389,7 +407,7 @@ export function MobileChatApp() {
           margin: 0 !important;
         }
 
-        /* Autofill yellow/gray wash removal (iOS/WebKit) */
+        /* Autofill wash removal */
         .glass-dock input:-webkit-autofill,
         .glass-dock textarea:-webkit-autofill{
           -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
