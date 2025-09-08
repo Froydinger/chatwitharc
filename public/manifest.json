@@ -1,7 +1,7 @@
 {
   "name": "ArcAI - Liquid Glass AI Chat",
   "short_name": "ArcAI",
-  "description": "Ask, Reflect, Create.",
+  "description": "Experience magical AI conversations with liquid glass aesthetics and realtime capabilities",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0f23",
@@ -9,16 +9,16 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/lovable-uploads/4c226d03-6441-4d8a-a6ca-94383b0616e1.png?v=2",
+      "src": "/lovable-uploads/4c226d03-6441-4d8a-a6ca-94383b0616e1.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable any"
     },
     {
-      "src": "/lovable-uploads/4c226d03-6441-4d8a-a6ca-94383b0616e1.png?v=2",
+      "src": "/lovable-uploads/4c226d03-6441-4d8a-a6ca-94383b0616e1.png", 
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable any"
     }
   ],
   "categories": ["productivity", "utilities", "social"],
