@@ -57,28 +57,26 @@ export function MobileChatApp() {
     const el = messagesContainerRef.current;
     if (!el) return;
     try {
-      // force immediate jump to 0, then reinforce on the next frame
       el.scrollTop = 0;
       window.scrollTo({ top: 0, behavior: "auto" });
       requestAnimationFrame(() => {
         el.scrollTop = 0;
         window.scrollTo({ top: 0, behavior: "auto" });
       });
-      // tiny timeout to beat iOS layout/keyboard ticks
       setTimeout(() => {
         el.scrollTop = 0;
       }, 50);
     } catch {}
   };
 
-  // Smooth scroll to bottom on new content (normal chat flow)
+  // Smooth scroll to bottom on new content
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isGeneratingImage]);
 
-  // Ensure when chat is empty (new session), we’re at the top
+  // When chat is empty, go to top
   useEffect(() => {
     if (messages.length === 0) {
       scrollToTop();
@@ -86,7 +84,7 @@ export function MobileChatApp() {
     }
   }, [messages.length]);
 
-  // Also force top whenever the session id changes (opening a brand new chat)
+  // On session change, go to top
   useEffect(() => {
     if (currentSessionId) {
       scrollToTop();
@@ -234,7 +232,7 @@ export function MobileChatApp() {
         </div>
       </header>
 
-      {/* Scrollable messages layer. We pad the bottom by the measured input dock height plus safe area. */}
+      {/* Scrollable messages layer with bottom padding equal to dock height */}
       <div 
         className={`relative flex-1 ${dragOver ? "bg-primary/5" : ""}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -341,14 +339,14 @@ export function MobileChatApp() {
         </div>
       </div>
 
-      {/* Scoped styles for the glass pill dock */}
+      {/* Scoped styles for the glass pill dock and small UI patches */}
       <style>{`
         /* ONE full-size black frosted pill */
         .glass-dock{
           position: relative;
           border-radius: 9999px;
           padding: 10px 12px;
-          background: transparent;                 /* no global color shift */
+          background: transparent;
           border: 0;
           box-shadow: 0 10px 30px rgba(0,0,0,0.35);
           isolation: isolate;
@@ -357,7 +355,7 @@ export function MobileChatApp() {
         .glass-dock::before{
           content: "";
           position: absolute;
-          inset: 0;                                /* fill whole pill */
+          inset: 0;
           border-radius: inherit;
           background: rgba(0,0,0,0.368);
           backdrop-filter: blur(10px) saturate(120%);
@@ -403,7 +401,7 @@ export function MobileChatApp() {
           border: 0 !important;
           box-shadow: none !important;
           width: 100% !important;
-          padding: 10px 0 0 2px !important;       /* ↓10px  →2px */
+          padding: 10px 0 0 2px !important;
           margin: 0 !important;
         }
 
@@ -423,11 +421,33 @@ export function MobileChatApp() {
           color: rgba(255,255,255,0.62) !important;
         }
 
-        /* Keep placeholder aligned with typed text (same offset) */
+        /* Keep placeholder aligned with typed text */
         .glass-dock input:placeholder-shown,
         .glass-dock textarea:placeholder-shown{
           padding-top: 10px !important;
           padding-left: 2px !important;
+        }
+
+        /* Tiny size tweak for any floating "sync" bubble/icon without moving it */
+        /* Catch common class/attr patterns so you don't have to rename anything */
+        .sync-bubble,
+        [data-sync-bubble],
+        [data-role="sync-bubble"],
+        .sync-indicator,
+        [data-sync],
+        [class*="sync-bubble"],
+        [class*="syncIndicator"],
+        [class*="sync-indicator"]{
+          transform: scale(0.9) !important;   /* slightly smaller */
+          transform-origin: center !important;
+        }
+        /* If the icon inside is oversized, trim it a hair as well */
+        .sync-bubble svg,
+        [data-sync-bubble] svg,
+        .sync-indicator svg,
+        [data-sync] svg{
+          width: 0.9em !important;
+          height: 0.9em !important;
         }
       `}</style>
     </div>
