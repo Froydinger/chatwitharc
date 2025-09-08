@@ -35,11 +35,15 @@ export function ChatInput() {
     }
   }, [inputValue]);
 
-  // Auto-respond to quick start messages
+  // Auto-respond to quick start messages (only for text messages without images)
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.role === 'user' && !isLoading && messages.filter(m => m.role === 'assistant').length === 0) {
-      // Only trigger auto-response if there are no assistant messages yet (first message of conversation)
+    if (lastMessage?.role === 'user' && 
+        lastMessage?.type === 'text' && 
+        !lastMessage?.imageUrls && 
+        !isLoading && 
+        messages.filter(m => m.role === 'assistant').length === 0) {
+      // Only trigger auto-response if there are no assistant messages yet AND no images
       setLoading(true);
       handleAIResponse(lastMessage.content);
     }
@@ -88,12 +92,15 @@ export function ChatInput() {
     const userMessage = inputValue.trim();
     setInputValue("");
 
-    // Handle multiple images - upload to storage for persistence
+    // Handle multiple images - upload to storage for persistence with user folder structure
     let imageUrls: string[] = [];
     if (selectedImages.length > 0) {
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
         const uploadPromises = selectedImages.map(async (file) => {
-          const fileName = `user-upload-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
+          const fileName = `${user.id}/user-upload-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
           
           const { data, error } = await supabase.storage
             .from('avatars')
@@ -170,13 +177,16 @@ export function ChatInput() {
         try {
           const imageUrl = await openai.generateImage(imagePrompt || userMessage);
           
-          // Upload image to Supabase storage for persistence
+          // Upload generated image to Supabase storage for persistence
           let permanentImageUrl = imageUrl;
           try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('Not authenticated');
+
             // Convert the generated image URL to a blob and upload it
             const response = await fetch(imageUrl);
             const blob = await response.blob();
-            const fileName = `generated-${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
+            const fileName = `${user.id}/generated-${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
             
             const { data, error } = await supabase.storage
               .from('avatars')
@@ -186,7 +196,7 @@ export function ChatInput() {
               });
 
             if (error) {
-              console.error('Error uploading image to storage:', error);
+              console.error('Error uploading generated image to storage:', error);
             } else {
               // Get the public URL
               const { data: publicUrlData } = supabase.storage
