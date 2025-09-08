@@ -339,7 +339,7 @@ export function MobileChatApp() {
           position: absolute;
           inset: 0;                                /* fill whole pill */
           border-radius: inherit;
-          background: rgba(0,0,0,0.368);           /* 20% less opaque than 0.46 */
+          background: rgba(0,0,0,0.368);
           backdrop-filter: blur(10px) saturate(120%);
           -webkit-backdrop-filter: blur(10px) saturate(120%);
           box-shadow:
@@ -349,40 +349,68 @@ export function MobileChatApp() {
         }
         .glass-dock > *{ position: relative; z-index: 1; }
 
-        /* Remove nested backgrounds/borders that create a second inner pill */
-        .glass-dock :is(.surface,.card,[class*="bg-"],[class*="ring-"],[class*="border"],[class*="shadow"]){
+        /* --- Nuke the inner rounded rectangle completely --- */
+        /* Remove any nested backgrounds/borders/rings/shadows/backdrop effects */
+        .glass-dock :is(.surface,.card,[class*="bg-"],[class*="ring-"],[class*="border"],[class*="shadow"],
+                        .backdrop-blur,[class*="backdrop-"],[style*="backdrop-filter"]){
+          background: transparent !important;
+          box-shadow: none !important;
+          border: 0 !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+
+        /* Common wrapper names seen in ChatInput UIs */
+        .glass-dock :is(.input-wrapper,.input-container,.chat-input,.field,form){
           background: transparent !important;
           box-shadow: none !important;
           border: 0 !important;
         }
 
-        /* Inputs: 16px (no iOS zoom). SHIFT text: down 10px, right 2px */
+        /* Inputs: keep 16px to avoid iOS zoom. Shift text: down 10px, right 2px */
         .glass-dock input,
         .glass-dock textarea{
           font-size: 16px !important;
           line-height: 22px !important;
           color: rgba(255,255,255,0.96) !important;
           caret-color: rgba(255,255,255,0.96) !important;
+
+          /* True transparency on iOS Safari dark mode */
+          appearance: none !important;
+          -webkit-appearance: none !important;
           background: transparent !important;
+          background-color: transparent !important;
+          color-scheme: dark;                     /* prevents UA from injecting a light bg */
+
           border: 0 !important;
           box-shadow: none !important;
           width: 100% !important;
-          padding: 10px 0 0 2px !important;        /* ↓10px  →2px */
+          padding: 10px 0 0 2px !important;       /* ↓10px  →2px */
           margin: 0 !important;
         }
+
+        /* Autofill yellow/gray wash removal (iOS/WebKit) */
+        .glass-dock input:-webkit-autofill,
+        .glass-dock textarea:-webkit-autofill{
+          -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+          -webkit-text-fill-color: rgba(255,255,255,0.96) !important;
+          transition: background-color 999999s ease-in-out 0s !important;
+          caret-color: rgba(255,255,255,0.96) !important;
+        }
+
         .glass-dock input::placeholder,
         .glass-dock textarea::placeholder{
           font-size: 16px !important;
           line-height: 22px !important;
           color: rgba(255,255,255,0.62) !important;
         }
+
         /* Keep placeholder aligned with typed text (same offset) */
         .glass-dock input:placeholder-shown,
         .glass-dock textarea:placeholder-shown{
-          padding-top: 10px !important;            /* matches base */
-          padding-left: 2px !important;            /* matches base */
+          padding-top: 10px !important;
+          padding-left: 2px !important;
         }
-
       `}</style>
     </div>
   );
