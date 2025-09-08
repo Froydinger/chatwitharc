@@ -38,8 +38,6 @@ export function MobileChatApp() {
   const inputDockRef = useRef<HTMLDivElement>(null);
   const [inputHeight, setInputHeight] = useState<number>(96);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const { toast } = useToast();
   const { profile } = useAuth();
 
@@ -119,28 +117,6 @@ export function MobileChatApp() {
     setShowSettings(false);
   };
 
-  // Image attach (invisible hotspot on left; doesn't change layout)
-  const triggerAttach = () => fileInputRef.current?.click();
-  const handleAttachChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const store: any = (useArcStore as any).getState?.();
-      if (store?.sendImageForAnalysis) {
-        await store.sendImageForAnalysis(file);
-      } else {
-        const url = URL.createObjectURL(file);
-        await startChatWithMessage(`Analyze this image: ${url}`);
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      }
-      toast({ title: "Image attached", description: "Sent for analysis." });
-    } catch (err) {
-      console.error(err);
-      toast({ title: "Attach failed", description: "Could not attach image." });
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
 
   // History panel
   if (showHistory) {
@@ -337,20 +313,6 @@ export function MobileChatApp() {
             <div className="mx-auto max-w-screen-sm">
               {/* ONE black frosted glass pill */}
               <div className="pointer-events-auto glass-dock">
-                {/* Invisible left hotspot (does not move layout/icons) */}
-                <button
-                  type="button"
-                  aria-label="Attach image"
-                  className="attach-hotspot"
-                  onClick={triggerAttach}
-                />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAttachChange}
-                />
                 {/* Keep your ChatInput exactly as is */}
                 <ChatInput />
               </div>
@@ -421,18 +383,6 @@ export function MobileChatApp() {
           padding-left: 2px !important;            /* matches base */
         }
 
-        /* Invisible image attach hotspot (left 44px) */
-        .attach-hotspot{
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 44px;
-          background: transparent;
-          border: 0;
-          outline: 0;
-          cursor: pointer;
-        }
       `}</style>
     </div>
   );

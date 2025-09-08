@@ -218,43 +218,53 @@ export function ChatInput() {
           setGeneratingImage(false);
         }
       } else if (selectedImages.length > 0) {
-        // Handle image analysis with text
-        const reader = new FileReader();
-        reader.onload = async () => {
-          try {
-            const base64 = reader.result as string;
-            const analysisPrompt = userMessage || 'What do you see in these images?';
-            
-            const response = await openai.sendMessageWithImage(
-              [{ role: 'user', content: analysisPrompt }],
-              base64
-            );
-            
-            addMessage({
-              content: response,
-              role: 'assistant',
-              type: 'text'
-            });
-          } catch (error) {
-            console.error('Image analysis error:', error);
-            toast({
-              title: "Error",
-              description: "Failed to analyze images",
-              variant: "destructive"
-            });
-            
-            addMessage({
-              content: "Sorry, I couldn't analyze these images. Please try again.",
-              role: 'assistant',
-              type: 'text'
-            });
-          } finally {
-            setLoading(false);
-          }
-        };
+        // Handle image analysis with text - prevent duplicate responses
+        if (isLoading) return;
         
-        reader.readAsDataURL(selectedImages[0]);
-        return; // Exit early since we handle the response in the file reader
+        try {
+          // Create base64 from first image for analysis
+          const file = selectedImages[0];
+          const reader = new FileReader();
+          
+          reader.onload = async () => {
+            try {
+              const base64 = reader.result as string;
+              const analysisPrompt = userMessage || 'What do you see in these images?';
+              
+              const response = await openai.sendMessageWithImage(
+                [{ role: 'user', content: analysisPrompt }],
+                base64
+              );
+              
+              addMessage({
+                content: response,
+                role: 'assistant',
+                type: 'text'
+              });
+            } catch (error) {
+              console.error('Image analysis error:', error);
+              toast({
+                title: "Error",
+                description: "Failed to analyze images",
+                variant: "destructive"
+              });
+              
+              addMessage({
+                content: "Sorry, I couldn't analyze these images. Please try again.",
+                role: 'assistant',
+                type: 'text'
+              });
+            } finally {
+              setLoading(false);
+            }
+          };
+          
+          reader.readAsDataURL(file);
+          return; // Exit early since we handle the response in the file reader
+        } catch (error) {
+          console.error('File reading error:', error);
+          setLoading(false);
+        }
       } else {
         // Regular text conversation
         const openaiMessages = messages
@@ -367,7 +377,16 @@ export function ChatInput() {
       )}
 
       {/* Input Row */}
-      <div className="flex items-end gap-4">
+      <div className="flex items-end gap-3">
+        {/* Paperclip Button */}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isLoading}
+          className="shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-200 bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/40"
+        >
+          <Paperclip className="h-5 w-5" />
+        </button>
+
         <div className="flex-1">
           <Textarea
             ref={textareaRef}
@@ -393,6 +412,16 @@ export function ChatInput() {
           <Send className="h-5 w-5" />
         </button>
       </div>
+
+      {/* Hidden File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleFileSelect}
+      />
     </div>
   );
 }
