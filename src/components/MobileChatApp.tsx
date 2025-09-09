@@ -205,7 +205,7 @@ export function MobileChatApp() {
         <div className="flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <img
-              src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
+              src="/lovable-uploads/2603b238-d3c3-4e16-a453-adb382d03cca.png"
               alt="ArcAI"
               className="h-8 w-8"
             />

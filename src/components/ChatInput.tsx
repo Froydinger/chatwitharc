@@ -355,7 +355,7 @@ export function ChatInput() {
       {/* Selected Images Preview */}
       {selectedImages.length > 0 && (
         <div className="p-3 bg-glass/20 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-center gap-4 mb-2">
             <span className="text-sm text-muted-foreground">
               Selected Images ({selectedImages.length}/4)
             </span>
