@@ -77,10 +77,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     return (
       <motion.div
         ref={ref}
-        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -20, scale: 0.95 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
         className={`flex ${isUser ? "justify-end" : "justify-start"} group`}
       >
         <div
@@ -90,9 +89,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
         >
           {/* Avatar */}
           <motion.div
-            initial={{ scale: 0 }}
+            initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.1, type: "spring", damping: 15 }}
+            transition={{ duration: 0.1 }}
             className={`flex-shrink-0 w-8 h-8 rounded-full glass flex items-center justify-center ${
               isUser ? "bg-primary/20" : "bg-glass/50"
             }`}
@@ -103,6 +102,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   src={profile.avatar_url}
                   alt="User"
                   className="w-8 h-8 rounded-full object-cover"
+                  loading="lazy"
+                  decoding="async"
                 />
               ) : (
                 <User className="h-4 w-4 text-primary-glow" />
@@ -119,9 +120,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
           {/* Message Content */}
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.2 }}
+            initial={{ opacity: 0.8 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.1 }}
             className={`relative glass rounded-2xl px-4 py-3 cursor-pointer ${
               isUser
                 ? "bg-primary/20 border-primary/30"
@@ -143,9 +144,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             {message.type === "image" &&
               (message.imageUrl || message.imageUrls) && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.3, duration: 0.3 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.1 }}
                   className="mb-2"
                 >
                   {message.imageUrls && message.imageUrls.length > 0 ? (
@@ -173,6 +174,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                             src={url}
                             alt={`Image ${index + 1}`}
                             className="w-full h-auto max-h-48 rounded-lg object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                         </div>
                       ))}
@@ -181,8 +184,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     message.imageUrl && (
                       <img
                         src={message.imageUrl}
-                        alt="Uploaded"
+                        alt="Generated image"
                         className="max-w-full h-auto max-h-48 rounded-lg object-cover"
+                        loading="lazy"
+                        decoding="async"
                       />
                     )
                   )}

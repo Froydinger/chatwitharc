@@ -26,9 +26,9 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-2025-08-07',
+        model: 'gpt-5-mini-2025-08-07', // Faster, more efficient version
         messages: messages,
-        max_completion_tokens: 2000,
+        max_completion_tokens: 800, // Reduced for faster responses
       }),
     });
 

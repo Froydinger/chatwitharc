@@ -43,11 +43,11 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4.1-mini-2025-04-14', // Faster vision model
         messages: [
           {
             role: 'system',
-            content: 'You are ArcAI, a helpful AI assistant. Analyze images thoroughly and provide detailed, helpful descriptions.'
+            content: 'You are ArcAI. Analyze images quickly and concisely. Be helpful but brief.'
           },
           ...messages.map((msg: any) => {
             if (msg.role === 'user' && image) {
@@ -62,7 +62,7 @@ serve(async (req) => {
             return msg;
           })
         ],
-        max_completion_tokens: 1500
+        max_completion_tokens: 600 // Reduced for faster responses
       }),
     });
 

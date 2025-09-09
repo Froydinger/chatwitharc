@@ -29,8 +29,9 @@ serve(async (req) => {
         prompt: prompt,
         n: 1,
         size: '1024x1024',
-        quality: 'high',
-        output_format: 'png'
+        quality: 'medium', // Faster generation
+        output_format: 'webp', // Smaller file size for faster loading
+        output_compression: 85 // Good balance of quality vs speed
       }),
     });
 
@@ -50,7 +51,7 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ 
-      imageUrl: `data:image/png;base64,${imageBase64}`,
+      imageUrl: `data:image/webp;base64,${imageBase64}`,
       success: true 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
