@@ -26,7 +26,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-nano-2025-08-07', // Fastest GPT-5 model
+        model: 'gpt-5-nano', // Correct model name format
         messages: messages,
         max_completion_tokens: 500, // Reduced for ultra-fast responses
       }),
