@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatEncryption } from '@/utils/encryption';
+import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from '@/utils/memoryDetection';
 
 export interface ChatSession {
   id: string;
@@ -35,7 +36,7 @@ export interface ArcState {
   
   // Current Chat State
   messages: Message[];
-  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
+  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => void;
   clearCurrentMessages: () => void;
   
@@ -233,13 +234,80 @@ export const useArcStore = create<ArcState>()(
       // Current Chat
       messages: [],
       
-      addMessage: (message) => {
+      addMessage: async (message) => {
         const newMessage = {
           ...message,
           id: Math.random().toString(36).substring(7),
           timestamp: new Date()
         };
         
+        // Check for memory commands in user messages
+        if (message.role === 'user' && message.type === 'text') {
+          const memoryItem = detectMemoryCommand(message.content);
+          if (memoryItem) {
+            try {
+              await addToMemoryBank(memoryItem);
+              // Add a confirmation message from the assistant
+              const confirmationMessage = {
+                id: Math.random().toString(36).substring(7),
+                content: formatMemoryConfirmation(memoryItem.content),
+                role: 'assistant' as const,
+                timestamp: new Date(),
+                type: 'text' as const
+              };
+              
+              set((state) => {
+                const updatedMessages = [...state.messages, newMessage, confirmationMessage];
+                
+                // Update current session with both messages
+                let updatedSessions = state.chatSessions;
+                let currentSessionId = state.currentSessionId;
+                let sessionToSave: ChatSession;
+                
+                if (!currentSessionId) {
+                  currentSessionId = crypto.randomUUID();
+                  sessionToSave = {
+                    id: currentSessionId,
+                    title: message.content.length > 30 ? message.content.substring(0, 30) + '...' : message.content,
+                    createdAt: new Date(),
+                    lastMessageAt: new Date(),
+                    messages: updatedMessages
+                  };
+                  updatedSessions = [sessionToSave, ...state.chatSessions];
+                } else {
+                  const existingSession = state.chatSessions.find(s => s.id === currentSessionId);
+                  sessionToSave = {
+                    id: currentSessionId,
+                    title: existingSession?.title === "New Chat" ? 
+                      (message.content.length > 30 ? message.content.substring(0, 30) + '...' : message.content) : 
+                      (existingSession?.title || "New Chat"),
+                    createdAt: existingSession?.createdAt || new Date(),
+                    lastMessageAt: new Date(),
+                    messages: updatedMessages
+                  };
+                  
+                  updatedSessions = state.chatSessions.map(session => 
+                    session.id === currentSessionId ? sessionToSave : session
+                  );
+                }
+                
+                // Save to Supabase asynchronously
+                get().saveChatToSupabase(sessionToSave);
+                
+                return {
+                  messages: updatedMessages,
+                  chatSessions: updatedSessions,
+                  currentSessionId
+                };
+              });
+              return; // Exit early, we've handled both messages
+            } catch (error) {
+              console.error('Failed to add to memory bank:', error);
+            }
+          }
+        }
+        
+        // Normal message handling if not a memory command
         set((state) => {
           const updatedMessages = [...state.messages, newMessage];
           
@@ -353,7 +421,7 @@ export const useArcStore = create<ArcState>()(
       startChatWithMessage: async (message) => {
         const state = get();
         // Add the user message
-        state.addMessage({
+        await state.addMessage({
           content: message,
           role: 'user',
           type: 'text'

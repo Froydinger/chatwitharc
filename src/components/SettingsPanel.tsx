@@ -39,6 +39,10 @@ export function SettingsPanel() {
   // Local draft + dirty state for Context box (no saving until "Save" pressed)
   const [contextDraft, setContextDraft] = useState("");
   const [contextDirty, setContextDirty] = useState(false);
+  
+  // Local draft + dirty state for Memory box
+  const [memoryDraft, setMemoryDraft] = useState("");
+  const [memoryDirty, setMemoryDirty] = useState(false);
 
   // Keep local draft in sync with profile, but don't overwrite if the user is editing
   useEffect(() => {
@@ -46,6 +50,12 @@ export function SettingsPanel() {
       setContextDraft(profile?.context_info || "");
     }
   }, [profile?.context_info, contextDirty]);
+
+  useEffect(() => {
+    if (!memoryDirty) {
+      setMemoryDraft(profile?.memory_info || "");
+    }
+  }, [profile?.memory_info, memoryDirty]);
 
   const handleSaveContext = async () => {
     try {
@@ -67,6 +77,46 @@ export function SettingsPanel() {
   const handleResetContext = () => {
     setContextDraft(profile?.context_info || "");
     setContextDirty(false);
+  };
+
+  const handleSaveMemory = async () => {
+    try {
+      await updateProfile({ memory_info: memoryDraft });
+      setMemoryDirty(false);
+      toast({
+        title: "Saved",
+        description: "Your memory was updated."
+      });
+    } catch (e) {
+      toast({
+        title: "Save failed",
+        description: "Could not save your memory. Try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleResetMemory = () => {
+    setMemoryDraft(profile?.memory_info || "");
+    setMemoryDirty(false);
+  };
+
+  const handleClearMemory = async () => {
+    try {
+      await updateProfile({ memory_info: "" });
+      setMemoryDraft("");
+      setMemoryDirty(false);
+      toast({
+        title: "Cleared",
+        description: "Your memory has been cleared."
+      });
+    } catch (e) {
+      toast({
+        title: "Clear failed",
+        description: "Could not clear your memory. Try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -243,6 +293,58 @@ export function SettingsPanel() {
                   Reset
                 </GlassButton>
                 {contextDirty && (
+                  <span className="text-xs text-muted-foreground">
+                    Unsaved changes
+                  </span>
+                )}
+              </div>
+            </div>
+          ),
+        },
+        {
+          label: "Memory Bank", 
+          description: "Information Arc remembers from your conversations",
+          action: (
+            <div className="w-full">
+              <Textarea
+                value={memoryDraft}
+                onChange={(e) => {
+                  setMemoryDraft(e.target.value);
+                  setMemoryDirty(true);
+                }}
+                placeholder="Arc will automatically add things here when you say 'remember this'..."
+                className="w-full glass border-glass-border text-sm min-h-[80px] resize-none"
+                disabled={updating}
+              />
+              <div className="mt-2 flex items-center gap-2">
+                <GlassButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSaveMemory}
+                  disabled={updating || !memoryDirty}
+                  className="px-3 py-1"
+                >
+                  Save
+                </GlassButton>
+                <GlassButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetMemory}
+                  disabled={updating || !memoryDirty}
+                  className="px-3 py-1"
+                >
+                  Reset
+                </GlassButton>
+                <GlassButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearMemory}
+                  disabled={updating}
+                  className="px-3 py-1 text-destructive hover:text-destructive"
+                >
+                  Clear All
+                </GlassButton>
+                {memoryDirty && (
                   <span className="text-xs text-muted-foreground">
                     Unsaved changes
                   </span>

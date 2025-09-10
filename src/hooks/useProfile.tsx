@@ -7,6 +7,7 @@ export interface Profile {
   user_id: string;
   display_name: string | null;
   context_info: string | null;
+  memory_info: string | null;
   avatar_url: string | null;
   created_at: string;
   updated_at: string;

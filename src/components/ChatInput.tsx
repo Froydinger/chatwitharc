@@ -63,7 +63,7 @@ export function ChatInput() {
 
       const response = await openai.sendMessage(openaiMessages, profile);
       
-      addMessage({
+      await addMessage({
         content: response,
         role: 'assistant',
         type: 'text'
@@ -76,7 +76,7 @@ export function ChatInput() {
         variant: "destructive"
       });
       
-      addMessage({
+      await addMessage({
         content: "Sorry, I encountered an error. Please try again.",
         role: 'assistant',
         type: 'text'
@@ -219,7 +219,7 @@ export function ChatInput() {
         } catch (error) {
           console.error('Image generation error:', error);
           // Replace placeholder with error message
-          addMessage({
+          await addMessage({
             content: `Sorry, I couldn't generate the image. ${error instanceof Error ? error.message : 'Please try again.'}`,
             role: 'assistant',
             type: 'text'
@@ -246,7 +246,7 @@ export function ChatInput() {
                 base64
               );
               
-              addMessage({
+              await addMessage({
                 content: response,
                 role: 'assistant',
                 type: 'text'
@@ -259,7 +259,7 @@ export function ChatInput() {
                 variant: "destructive"
               });
               
-              addMessage({
+              await addMessage({
                 content: "Sorry, I couldn't analyze these images. Please try again.",
                 role: 'assistant',
                 type: 'text'
@@ -291,7 +291,7 @@ export function ChatInput() {
 
         const response = await openai.sendMessage(openaiMessages, profile);
         
-        addMessage({
+        await addMessage({
           content: response,
           role: 'assistant',
           type: 'text'
@@ -305,7 +305,7 @@ export function ChatInput() {
         variant: "destructive"
       });
       
-      addMessage({
+      await addMessage({
         content: "Sorry, I encountered an error. Please try again.",
         role: 'assistant',
         type: 'text'

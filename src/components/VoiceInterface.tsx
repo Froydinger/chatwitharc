@@ -22,22 +22,22 @@ export function VoiceInterface() {
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  const toggleRecording = () => {
+  const toggleRecording = async () => {
     if (isRecording) {
       setIsRecording(false);
       setAudioLevel(0);
       
       // Simulate processing voice input
-      addMessage({
+      await addMessage({
         content: "Voice message recorded (demo)",
         role: 'user',
         type: 'voice'
       });
       
       // Simulate AI voice response
-      setTimeout(() => {
+      setTimeout(async () => {
         setIsSpeaking(true);
-        addMessage({
+        await addMessage({
           content: "This is a demo voice response from ArcAI. The OpenAI Realtime API will enable seamless voice conversations with Cedar and Marin voices.",
           role: 'assistant',
           type: 'voice'
