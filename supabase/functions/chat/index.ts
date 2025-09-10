@@ -28,7 +28,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-5-nano-2025-08-07', // Fastest model
         messages: messages,
-        max_completion_tokens: 1000, // Allow for reasoning + response tokens
+        max_completion_tokens: 4096, // Maximum tokens for GPT-5 nano
       }),
     });
 
