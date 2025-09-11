@@ -4,9 +4,10 @@ import { useArcStore } from "@/store/useArcStore";
 import { OpenAIService } from "@/services/openai";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
 
 export function ChatInput() {
   const { 
@@ -22,7 +23,7 @@ export function ChatInput() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { profile } = useAuth();
+  const { profile, refetch: refetchProfile } = useProfile();
 
   // Auto-resize textarea
   useEffect(() => {
@@ -49,11 +50,34 @@ export function ChatInput() {
     }
   }, [messages]);
 
+  // Extract implicit memory from the model's reply and save it
+  const parseAndSaveImplicitMemory = async (text: string) => {
+    const match = text.match(/\[MEMORY_SAVE\]([\s\S]*?)\[\/MEMORY_SAVE\]/i);
+    if (match && match[1]) {
+      const content = match[1].trim();
+      if (content.length >= 3) {
+        await addToMemoryBank({ content, timestamp: new Date() });
+      }
+      const cleaned = text.replace(match[0], '').trim();
+      return { cleaned, saved: content } as const;
+    }
+    return { cleaned: text, saved: null as string | null } as const;
+  };
+
   const handleAIResponse = async (userMessage: string) => {
     try {
       const openai = new OpenAIService();
+
+      // Detect explicit memory save requests
+      let explicitConfirmation = "";
+      const memoryItem = detectMemoryCommand(userMessage);
+      if (memoryItem) {
+        await addToMemoryBank(memoryItem);
+        explicitConfirmation = formatMemoryConfirmation(memoryItem.content);
+        await refetchProfile();
+      }
       
-      // Convert messages to OpenAI format
+      // Convert messages to OpenAI format (already includes the last user message)
       const openaiMessages = messages
         .filter(msg => msg.type === 'text')
         .map(msg => ({
@@ -61,10 +85,21 @@ export function ChatInput() {
           content: msg.content
         }));
 
-      const response = await openai.sendMessage(openaiMessages, profile);
+      const response = await openai.sendMessage(openaiMessages);
+
+      // Parse implicit memory instructions from the model
+      const { cleaned, saved } = await parseAndSaveImplicitMemory(response);
+
+      // Build a single assistant message combining confirmation and reply
+      let finalContent = cleaned;
+      if (explicitConfirmation) {
+        finalContent = explicitConfirmation + "\n\n" + finalContent;
+      } else if (saved) {
+        finalContent = formatMemoryConfirmation(saved) + "\n\n" + finalContent;
+      }
       
       await addMessage({
-        content: response,
+        content: finalContent,
         role: 'assistant',
         type: 'text'
       });
@@ -277,25 +312,33 @@ export function ChatInput() {
         }
       } else {
         // Regular text conversation
+        // Detect explicit memory before calling the model
+        let explicitConfirmation = "";
+        const memoryItem = detectMemoryCommand(userMessage);
+        if (memoryItem) {
+          await addToMemoryBank(memoryItem);
+          explicitConfirmation = formatMemoryConfirmation(memoryItem.content);
+          await refetchProfile();
+        }
+        
         const openaiMessages = messages
           .filter(msg => msg.type === 'text')
-          .map(msg => ({
-            role: msg.role,
-            content: msg.content
-          }));
+          .map(msg => ({ role: msg.role, content: msg.content }));
         
-        openaiMessages.push({
-          role: 'user',
-          content: userMessage
-        });
+        openaiMessages.push({ role: 'user', content: userMessage });
 
-        const response = await openai.sendMessage(openaiMessages, profile);
+        const response = await openai.sendMessage(openaiMessages);
+
+        // Handle implicit memory suggested by the model
+        const { cleaned, saved } = await parseAndSaveImplicitMemory(response);
+        let finalContent = cleaned;
+        if (explicitConfirmation) {
+          finalContent = explicitConfirmation + "\n\n" + finalContent;
+        } else if (saved) {
+          finalContent = formatMemoryConfirmation(saved) + "\n\n" + finalContent;
+        }
         
-        await addMessage({
-          content: response,
-          role: 'assistant',
-          type: 'text'
-        });
+        await addMessage({ content: finalContent, role: 'assistant', type: 'text' });
       }
     } catch (error) {
       console.error('Chat error:', error);
