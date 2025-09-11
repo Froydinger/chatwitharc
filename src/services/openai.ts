@@ -54,7 +54,7 @@ export class OpenAIService {
       }
 
       // Ask the model to propose memory saves when useful
-      systemPrompt += " If the user's message contains information that should be remembered for future context (preferences, personal details, schedules, constraints), include a single line exactly in the format: [MEMORY_SAVE] <short phrase to remember> [/MEMORY_SAVE] at the start of your reply. Only include this tag when truly useful.";
+      systemPrompt += " If the user's message contains information that should be remembered for future context (preferences, personal details, schedules, constraints), include a single line exactly in the format: [MEMORY_SAVE] <short natural-language sentence to remember> [/MEMORY_SAVE] at the start of your reply. Use plain language (no snake_case, no underscores, no labels). Example: 'My favorite food is my wife's spaghetti.' Only include this tag when truly useful.";
       
       const systemMessage: OpenAIMessage = {
         role: 'system',

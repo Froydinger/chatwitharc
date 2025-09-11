@@ -5,6 +5,26 @@ export interface MemoryItem {
   timestamp: Date;
 }
 
+// Sanitize memory text to natural language
+export function sanitizeMemoryText(text: string): string {
+  let t = text.trim();
+  // strip surrounding quotes or backticks
+  if ((t.startsWith("\"") && t.endsWith("\"")) || (t.startsWith("'") && t.endsWith("'")) || (t.startsWith('`') && t.endsWith('`'))) {
+    t = t.slice(1, -1);
+  }
+  // replace underscores/hyphens with spaces
+  t = t.replace(/[\-_]+/g, ' ');
+  // collapse multiple spaces
+  t = t.replace(/\s{2,}/g, ' ').trim();
+  // ensure it reads as a sentence when possible
+  if (!/[.!?]$/.test(t) && t.split(' ').length > 3) {
+    t = t + '.';
+  }
+  // limit to reasonable length
+  if (t.length > 200) t = t.slice(0, 200).trim() + '...';
+  return t;
+}
+
 /**
  * Detects if a message contains a "remember this" command and extracts the content
  */
@@ -32,7 +52,7 @@ export function detectMemoryCommand(message: string): MemoryItem | null {
           extractedContent.toLowerCase().includes('delete')) continue;
       
       return {
-        content: extractedContent,
+        content: sanitizeMemoryText(extractedContent),
         timestamp: new Date()
       };
     }
@@ -59,7 +79,20 @@ export async function addToMemoryBank(memoryItem: MemoryItem): Promise<void> {
     if (fetchError) throw fetchError;
 
     const existingMemory = profile?.memory_info || '';
-    const memoryEntry = `[${memoryItem.timestamp.toLocaleDateString()}] ${memoryItem.content}`;
+    const sanitized = sanitizeMemoryText(memoryItem.content);
+
+    // Build a normalized set of existing entries (without date prefixes) to avoid duplicates
+    const existingLines = existingMemory
+      .split('\n')
+      .map(l => l.replace(/^\[[^\]]+\]\s*/, '').trim().toLowerCase())
+      .filter(Boolean);
+
+    if (existingLines.includes(sanitized.toLowerCase())) {
+      console.log('Memory already exists, skipping:', sanitized);
+      return;
+    }
+
+    const memoryEntry = `[${memoryItem.timestamp.toLocaleDateString()}] ${sanitized}`;
     
     // Append new memory to existing memory
     const updatedMemory = existingMemory 
@@ -85,5 +118,6 @@ export async function addToMemoryBank(memoryItem: MemoryItem): Promise<void> {
  * Formats memory content for display in chat responses
  */
 export function formatMemoryConfirmation(content: string): string {
-  return `I'll remember: "${content}"`;
+  const cleaned = sanitizeMemoryText(content);
+  return `I'll remember: "${cleaned}"`;
 }
