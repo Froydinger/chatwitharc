@@ -384,6 +384,12 @@ export function MobileChatApp() {
           border: 0 !important;
         }
 
+        /* Allow ChatInput halo when active */
+        .glass-dock .chat-input-halo.halo-active{
+          box-shadow: 0 0 0 3px hsl(var(--primary)/0.5) !important;
+          border-radius: 9999px; /* pill */
+        }
+
         /* Inputs: keep 16px to avoid iOS zoom. Shift text: down 10px, right 2px */
         .glass-dock input,
         .glass-dock textarea{

@@ -431,7 +431,7 @@ export function ChatInput() {
       )}
 
       {/* Input Row */}
-      <div className={`flex items-end gap-3 rounded-full transition-all duration-300 ${isActive ? 'shadow-[0_0_0_3px_hsl(var(--primary)/0.5)]' : ''}`}>
+      <div className={`chat-input-halo flex items-end gap-3 rounded-full transition-all duration-300 ${isActive ? 'halo-active' : ''}`}>
         {/* Paperclip Button */}
         <button
           onClick={() => fileInputRef.current?.click()}
