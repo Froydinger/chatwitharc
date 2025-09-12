@@ -20,6 +20,7 @@ export function ChatInput() {
   } = useArcStore();
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [isActive, setIsActive] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -430,7 +431,7 @@ export function ChatInput() {
       )}
 
       {/* Input Row */}
-      <div className="flex items-end gap-3 transition-all duration-300 focus-within:shadow-[0_0_0_3px_hsl(var(--primary)/0.5)]">
+      <div className={`flex items-end gap-3 rounded-full transition-all duration-300 ${isActive ? 'shadow-[0_0_0_3px_hsl(var(--primary)/0.5)]' : ''}`}>
         {/* Paperclip Button */}
         <button
           onClick={() => fileInputRef.current?.click()}
@@ -446,6 +447,8 @@ export function ChatInput() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyPress}
+            onFocus={() => setIsActive(true)}
+            onBlur={() => setIsActive(false)}
             placeholder={selectedImages.length > 0 ? "Add a message with your images..." : "Ask me anything..."}
             disabled={isLoading}
             className="card border-border/40 bg-card/50 text-foreground placeholder:text-muted-foreground resize-none min-h-[48px] max-h-[144px] leading-6"
