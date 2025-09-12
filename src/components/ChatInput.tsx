@@ -430,7 +430,7 @@ export function ChatInput() {
       )}
 
       {/* Input Row */}
-      <div className="flex items-end gap-3 transition-all duration-300 focus-within:shadow-[0_0_40px_8px_hsl(var(--primary-glow)/0.55)] focus-within:ring-2 focus-within:ring-primary/50 focus-within:ring-offset-2 focus-within:ring-offset-background">
+      <div className="flex items-end gap-3 transition-all duration-300 focus-within:shadow-[0_0_0_3px_hsl(var(--primary)/0.5)]">
         {/* Paperclip Button */}
         <button
           onClick={() => fileInputRef.current?.click()}
