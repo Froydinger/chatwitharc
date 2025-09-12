@@ -384,9 +384,9 @@ export function MobileChatApp() {
           border: 0 !important;
         }
 
-        /* Allow ChatInput halo when active */
+        /* Allow ChatInput halo when active - soft blurry glow */
         .glass-dock .chat-input-halo.halo-active{
-          box-shadow: 0 0 0 3px hsl(var(--primary)/0.5) !important;
+          box-shadow: 0 0 20px 4px hsl(var(--primary)/0.4), 0 0 40px 8px hsl(var(--primary)/0.2) !important;
           border-radius: 9999px; /* pill */
         }
 
