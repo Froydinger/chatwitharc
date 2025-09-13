@@ -386,7 +386,7 @@ export function MobileChatApp() {
 
         /* Soft blurry glow on focus within (outside, not clipped) */
         .glass-dock:focus-within{
-          box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 24px 6px hsl(var(--primary)/0.35), 0 0 64px 16px hsl(var(--primary)/0.18) !important;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 16px 4px hsl(var(--primary)/0.3), 0 0 40px 10px hsl(var(--primary)/0.15) !important;
           border-radius: 9999px;
         }
 
