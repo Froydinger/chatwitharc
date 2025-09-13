@@ -350,7 +350,7 @@ export function MobileChatApp() {
           border: 0;
           box-shadow: 0 10px 30px rgba(0,0,0,0.35);
           isolation: isolate;
-          overflow: hidden;
+          overflow: visible;
         }
         .glass-dock::before{
           content: "";
@@ -384,54 +384,24 @@ export function MobileChatApp() {
           border: 0 !important;
         }
 
-        /* Allow ChatInput halo when active - soft blurry glow */
-        .glass-dock .chat-input-halo.halo-active{
-          box-shadow: 0 0 20px 4px hsl(var(--primary)/0.4), 0 0 40px 8px hsl(var(--primary)/0.2) !important;
-          border-radius: 9999px; /* pill */
+        /* Soft blurry glow on focus within (outside, not clipped) */
+        .glass-dock:focus-within{
+          box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 24px 6px hsl(var(--primary)/0.35), 0 0 64px 16px hsl(var(--primary)/0.18) !important;
+          border-radius: 9999px;
         }
 
-        /* Inputs: keep 16px to avoid iOS zoom. Shift text: down 10px, right 2px */
+        /* Input defaults: do not alter spacing; only prevent iOS zoom */
         .glass-dock input,
         .glass-dock textarea{
-          font-size: 16px !important;
-          line-height: 22px !important;
-          color: rgba(255,255,255,0.96) !important;
-          caret-color: rgba(255,255,255,0.96) !important;
-
-          appearance: none !important;
-          -webkit-appearance: none !important;
-          background: transparent !important;
-          background-color: transparent !important;
-          color-scheme: dark;
-
-          border: 0 !important;
-          box-shadow: none !important;
-          width: 100% !important;
-          padding: 10px 0 0 2px !important;
-          margin: 0 !important;
+          font-size: 16px !important; /* prevent iOS zoom */
         }
 
-        /* Autofill wash removal */
+        /* Autofill wash removal (no spacing changes) */
         .glass-dock input:-webkit-autofill,
         .glass-dock textarea:-webkit-autofill{
           -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
-          -webkit-text-fill-color: rgba(255,255,255,0.96) !important;
+          -webkit-text-fill-color: inherit !important;
           transition: background-color 999999s ease-in-out 0s !important;
-          caret-color: rgba(255,255,255,0.96) !important;
-        }
-
-        .glass-dock input::placeholder,
-        .glass-dock textarea::placeholder{
-          font-size: 16px !important;
-          line-height: 22px !important;
-          color: rgba(255,255,255,0.62) !important;
-        }
-
-        /* Keep placeholder aligned with typed text */
-        .glass-dock input:placeholder-shown,
-        .glass-dock textarea:placeholder-shown{
-          padding-top: 10px !important;
-          padding-left: 2px !important;
         }
 
         /* Tiny size tweak for any floating "sync" bubble/icon without moving it */
