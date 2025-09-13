@@ -1,127 +1,176 @@
-// Robust animation utilities to prevent glitches
+// Enhanced bouncy animation utilities with spring physics
 import { Variants } from "framer-motion";
 
-// Remove all initial transforms to prevent layout shifts and glitches
+// Bouncy fade in with spring effect
 export const fadeInVariants: Variants = {
   initial: {
-    opacity: 1, // Start fully visible to prevent flash
+    opacity: 0,
+    scale: 0.8,
   },
   animate: {
     opacity: 1,
+    scale: 1,
     transition: {
-      duration: 0,
-      ease: "linear",
+      duration: 0.6,
+      ease: [0.25, 0.46, 0.45, 0.94],
+      type: "spring",
+      stiffness: 400,
+      damping: 25,
     },
   },
 };
 
+// Rubber band slide up effect
 export const slideUpVariants: Variants = {
   initial: {
-    opacity: 1,
-    y: 0,
+    opacity: 0,
+    y: 60,
+    scale: 0.9,
   },
   animate: {
     opacity: 1,
     y: 0,
+    scale: 1,
     transition: {
-      duration: 0,
-      ease: "linear",
+      duration: 0.8,
+      type: "spring",
+      stiffness: 300,
+      damping: 20,
+      mass: 0.8,
     },
   },
 };
 
+// Staggered bouncy container
 export const staggerContainerVariants: Variants = {
   initial: {},
   animate: {
     transition: {
-      staggerChildren: 0,
-      delayChildren: 0,
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+      type: "spring",
     },
   },
 };
 
+// Playful bounce-in items
 export const staggerItemVariants: Variants = {
   initial: {
-    opacity: 1,
-    y: 0,
+    opacity: 0,
+    scale: 0.6,
+    rotate: -5,
   },
   animate: {
     opacity: 1,
-    y: 0,
+    scale: 1,
+    rotate: 0,
     transition: {
-      duration: 0,
-      ease: "linear",
+      duration: 0.7,
+      type: "spring",
+      stiffness: 500,
+      damping: 15,
     },
   },
 };
 
-// Simple variants with no transforms to prevent glitches
+// Welcome text with gentle bounce
 export const welcomeTextVariants: Variants = {
   initial: {
-    opacity: 1,
-    y: 0,
+    opacity: 0,
+    y: -30,
+    scale: 0.9,
   },
   animate: {
     opacity: 1,
     y: 0,
+    scale: 1,
     transition: {
-      duration: 0,
-      ease: "linear",
+      duration: 0.8,
+      type: "spring",
+      stiffness: 200,
+      damping: 25,
     },
   },
 };
 
+// Input bar with spring bounce
 export const inputBarVariants: Variants = {
   initial: {
-    opacity: 1,
-    y: 0,
+    opacity: 0,
+    y: 100,
+    scale: 0.95,
   },
   animate: {
     opacity: 1,
     y: 0,
+    scale: 1,
     transition: {
-      duration: 0,
-      ease: "linear",
+      duration: 0.9,
+      type: "spring",
+      stiffness: 180,
+      damping: 20,
+      mass: 1,
     },
   },
 };
 
+// Enhanced card with rubber band effect
 export const cardVariants: Variants = {
   initial: {
-    opacity: 1,
-    scale: 1,
+    opacity: 0,
+    scale: 0.8,
+    rotateY: -20,
   },
   animate: {
     opacity: 1,
     scale: 1,
+    rotateY: 0,
     transition: {
-      duration: 0,
-      ease: "linear",
+      duration: 0.7,
+      type: "spring",
+      stiffness: 300,
+      damping: 18,
+    },
+  },
+  hover: {
+    scale: 1.05,
+    rotateY: 5,
+    transition: {
+      duration: 0.3,
+      type: "spring",
+      stiffness: 400,
+      damping: 15,
     },
   },
 };
 
-// Animation configuration to prevent layout shifts
+// Spring animation configuration
 export const animationConfig = {
-  // Reduce motion for users with motion preferences
   respectMotionPreference: true,
-  // Use transform instead of layout properties
-  layoutId: undefined,
-  // Prevent animations completely
   transition: {
-    duration: 0,
+    type: "spring",
+    stiffness: 300,
+    damping: 25,
   },
 };
 
-// Helper to create consistent page animations (no animations)
+// Enhanced page variants with bounce
 export const createPageVariants = (delay: number = 0): Variants => ({
   initial: {
-    opacity: 1,
+    opacity: 0,
+    scale: 0.95,
+    y: 20,
   },
   animate: {
     opacity: 1,
+    scale: 1,
+    y: 0,
     transition: {
-      duration: 0,
+      duration: 0.6,
+      delay,
+      type: "spring",
+      stiffness: 250,
+      damping: 20,
     },
   },
 });
