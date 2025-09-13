@@ -8,6 +8,7 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ImageGenerationPlaceholder } from "@/components/ImageGenerationPlaceholder";
+import { SmoothImage } from "@/components/ui/smooth-image";
 
 interface MessageBubbleProps {
   message: Message;
@@ -98,12 +99,11 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           >
             {isUser ? (
               profile?.avatar_url ? (
-                <img
+                <SmoothImage
                   src={profile.avatar_url}
                   alt="User"
                   className="w-8 h-8 rounded-full object-cover"
-                  loading="lazy"
-                  decoding="async"
+                  fallback={<User className="h-4 w-4 text-primary-glow" />}
                 />
               ) : (
                 <User className="h-4 w-4 text-primary-glow" />
@@ -170,24 +170,22 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                               : ""
                           }
                         >
-                          <img
+                          <SmoothImage
                             src={url}
                             alt={`Image ${index + 1}`}
                             className="w-full h-auto max-h-48 rounded-lg object-cover"
-                            loading="lazy"
-                            decoding="async"
+                            loadingClassName="w-full h-48 rounded-lg"
                           />
                         </div>
                       ))}
                     </div>
                   ) : (
                     message.imageUrl && (
-                      <img
+                      <SmoothImage
                         src={message.imageUrl}
                         alt="Generated image"
                         className="max-w-full h-auto max-h-48 rounded-lg object-cover"
-                        loading="lazy"
-                        decoding="async"
+                        loadingClassName="w-full h-48 rounded-lg"
                       />
                     )
                   )}

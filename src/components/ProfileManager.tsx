@@ -9,6 +9,7 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SmoothImage } from "@/components/ui/smooth-image";
 
 export function ProfileManager() {
   const { user } = useAuth();
@@ -98,10 +99,15 @@ export function ProfileManager() {
           <div className="relative">
             <div className="w-24 h-24 rounded-full overflow-hidden bg-muted border-2 border-border">
               {profile?.avatar_url ? (
-                <img 
+                <SmoothImage
                   src={profile.avatar_url} 
                   alt="Profile" 
                   className="w-full h-full object-cover"
+                  fallback={
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                  }
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
