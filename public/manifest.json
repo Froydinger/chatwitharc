@@ -1,7 +1,7 @@
 {
-  "name": "ArcAI - Liquid Glass AI Chat",
+  "name": "ArcAI - Ask, Reflect, Create",
   "short_name": "ArcAI",
-  "description": "Experience magical AI conversations with liquid glass aesthetics and realtime capabilities",
+  "description": "Ask, Reflect, Create with advanced AI conversations and realtime voice capabilities",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0f23",
