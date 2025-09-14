@@ -138,34 +138,6 @@ export function MobileChatApp() {
 
 
 
-  // Settings panel
-  if (showSettings) {
-    return (
-      <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex h-16 items-center justify-between px-4">
-            <button
-              onClick={() => setShowSettings(false)}
-              className="flex items-center gap-3"
-            >
-              <img
-                src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
-                alt="ArcAI"
-                className="h-8 w-8"
-              />
-              <div className="text-left">
-                <h1 className="text-lg font-semibold">Settings</h1>
-                <p className="text-xs text-muted-foreground">Customize your experience</p>
-              </div>
-            </button>
-          </div>
-        </header>
-        <div className="p-4">
-          <SettingsPanel />
-        </div>
-      </div>
-    );
-  }
 
   // Main chat interface
   return (
@@ -402,6 +374,15 @@ export function MobileChatApp() {
         <DialogContent className="max-w-5xl w-[95vw] h-[85vh] p-0 gap-0 bg-glass/95 backdrop-blur-xl border-glass-border/60 shadow-2xl overflow-hidden">
           <div className="h-full overflow-y-auto">
             <ChatHistoryPanel />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings Dialog */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] p-0 gap-0 bg-glass/95 backdrop-blur-xl border-glass-border/60 shadow-2xl overflow-hidden">
+          <div className="h-full overflow-y-auto">
+            <SettingsPanel />
           </div>
         </DialogContent>
       </Dialog>
