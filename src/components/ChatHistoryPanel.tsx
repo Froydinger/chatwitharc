@@ -19,14 +19,10 @@ export function ChatHistoryPanel() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
-  /** Navigate back to chat - emit custom event for MobileChatApp to handle */
+  /** Navigate back to chat - close dialog */
   const goToChat = () => {
     // Emit custom event to notify MobileChatApp to close history panel
     window.dispatchEvent(new CustomEvent('arcai:closeHistory'));
-    // Keep UX crisp: ensure viewport is at top.
-    if (typeof window !== "undefined") {
-      requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
-    }
   };
 
   const handleNewChat = () => {
@@ -101,7 +97,7 @@ export function ChatHistoryPanel() {
   );
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-8 pb-20 pt-16 px-4 h-full overflow-y-auto">
+    <div className="w-full max-w-4xl mx-auto space-y-6 p-6 h-full overflow-y-auto">
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center gap-3">
@@ -141,7 +137,7 @@ export function ChatHistoryPanel() {
       </div>
 
       {/* Chat Sessions */}
-      <div className="space-y-10">
+      <div className="space-y-8">
         {Object.keys(groupedSessions).length === 0 ? (
           <div className="text-center py-16">
             <GlassCard variant="bubble" glow className="p-12 max-w-md mx-auto">
@@ -167,7 +163,7 @@ export function ChatHistoryPanel() {
         ) : (
           Object.entries(groupedSessions).map(([dateGroup, sessions]) => (
             <section key={dateGroup}>
-              <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-3 mb-5">
                 <div className="glass rounded-full p-2">
                   <Calendar className="h-5 w-5 text-primary-glow" />
                 </div>
@@ -175,7 +171,7 @@ export function ChatHistoryPanel() {
                 <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
               </div>
 
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {sessions.map((session) => (
                   <GlassCard
                     key={session.id}
@@ -237,12 +233,12 @@ export function ChatHistoryPanel() {
         )}
       </div>
 
-      {/* Stats */}
-      {chatSessions.length > 0 && (
-        <div>
-          <GlassCard variant="bubble" glow className="p-8">
-            <h3 className="text-xl font-semibold text-foreground mb-6 text-center">Chat statistics</h3>
-            <div className="grid grid-cols-3 gap-8 text-center">
+        {/* Stats */}
+        {chatSessions.length > 0 && (
+          <div>
+            <GlassCard variant="bubble" glow className="p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4 text-center">Chat statistics</h3>
+              <div className="grid grid-cols-3 gap-6 text-center">
               <div className="space-y-2">
                 <div className="glass rounded-full p-4 w-fit mx-auto">
                   <History className="h-6 w-6 text-primary-glow" />
