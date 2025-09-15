@@ -17,12 +17,13 @@ function getDaypartGreeting(d: Date = new Date()): "Good Morning" | "Good Aftern
   return "Good Evening";
 }
 
-/** Use the SAME head-only avatar (the one used in message bubbles) */
-const ASSISTANT_AVATAR = "/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png";
+/** Keep header logo as-is, but use the head-only avatar above prompts */
+const HEADER_LOGO = "/lovable-uploads/c65f38aa-5928-46e1-b224-9f6a2bacbf18.png";
+const HERO_AVATAR  = "/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png";
 
 /** Glow timings */
-const CYCLE_MS = 5200;              // keep overall cycle
-const HALF_CYCLE_MS = CYCLE_MS / 2; // pure crossfade: in for half, out for half
+const CYCLE_MS = 5200;
+const HALF_CYCLE_MS = CYCLE_MS / 2;
 
 export function MobileChatApp() {
   const { 
@@ -73,19 +74,19 @@ export function MobileChatApp() {
 
   /** Seamless prompt glow crossfade (ease in/out, no hold) */
   type Glow = { index: number; color: string };
-  const [activeGlow, setActiveGlow] = useState<Glow | null>(null); // currently fading in/out
-  const [armedGlow, setArmedGlow] = useState<Glow | null>(null);   // mounted at 0 for one frame before fade-in
-  const [prevGlow, setPrevGlow] = useState<Glow | null>(null);     // the one fading out now
-  const [decayIndex, setDecayIndex] = useState<number | null>(null); // begin fade-out of active half-way
+  const [activeGlow, setActiveGlow] = useState<Glow | null>(null);
+  const [armedGlow, setArmedGlow] = useState<Glow | null>(null);
+  const [prevGlow, setPrevGlow] = useState<Glow | null>(null);
+  const [decayIndex, setDecayIndex] = useState<number | null>(null);
 
   const glowPalette = [
-    "rgba(99,102,241,0.70)",   // indigo
-    "rgba(59,130,246,0.70)",   // blue
-    "rgba(16,185,129,0.70)",   // emerald
-    "rgba(20,184,166,0.70)",   // teal
-    "rgba(139,92,246,0.70)",   // violet
-    "rgba(236,72,153,0.70)",   // pink
-    "rgba(234,179,8,0.70)"     // amber
+    "rgba(99,102,241,0.70)",
+    "rgba(59,130,246,0.70)",
+    "rgba(16,185,129,0.70)",
+    "rgba(20,184,166,0.70)",
+    "rgba(139,92,246,0.70)",
+    "rgba(236,72,153,0.70)",
+    "rgba(234,179,8,0.70)"
   ];
 
   useEffect(() => {
@@ -96,10 +97,6 @@ export function MobileChatApp() {
       let decayTimeout: number | undefined;
 
       const cycle = () => {
-        theNext();
-      };
-
-      const theNext = () => {
         const nextIndex = Math.floor(Math.random() * quickPrompts.length);
         const nextColor = glowPalette[Math.floor(Math.random() * glowPalette.length)];
 
@@ -254,7 +251,7 @@ export function MobileChatApp() {
       <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <img src={ASSISTANT_AVATAR} alt="ArcAI" className="h-8 w-8" />
+            <img src={HEADER_LOGO} alt="ArcAI" className="h-8 w-8" />
             <div>
               <h1 className="text-lg">
                 <span className="font-thin">Arc</span><span className="font-semibold">Ai</span>
@@ -294,9 +291,9 @@ export function MobileChatApp() {
               {/* Welcome Section */}
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                 <div className="mb-8">
-                  {/* Use head-only assistant avatar here, lightly floating like buttons */}
+                  {/* Head-only assistant avatar above prompts */}
                   <img
-                    src={ASSISTANT_AVATAR}
+                    src={HERO_AVATAR}
                     alt="Arc assistant avatar"
                     className="assistant-hero-avatar ai-avatar h-20 w-20 mx-auto mb-4 floating-hero"
                   />
@@ -426,9 +423,9 @@ export function MobileChatApp() {
           transition: opacity var(--glow-dur, ${HALF_CYCLE_MS}ms) cubic-bezier(0.4, 0, 0.2, 1);
           animation: glow-pan-soft 9.5s ease-in-out infinite alternate;
         }
-        .prompt-glow--armed::after{ opacity: 0; }               /* mounted at 0 */
-        .prompt-glow--show::after{ opacity: var(--glow-max, 0.22); } /* long fade IN */
-        .prompt-glow--fadeout::after{ opacity: 0; }             /* long fade OUT */
+        .prompt-glow--armed::after{ opacity: 0; }
+        .prompt-glow--show::after{ opacity: var(--glow-max, 0.22); }
+        .prompt-glow--fadeout::after{ opacity: 0; }
 
         @keyframes glow-pan-soft{
           0%   { background-position: 26% 40%, 74% 60%; }
