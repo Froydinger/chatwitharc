@@ -9,47 +9,61 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-/** Try hard to get a first name from many common auth shapes */
-function extractFirstName(p: any): string {
-  if (!p) return "there";
-
-  const candidates = [
-    p.user?.firstName,
-    p.user?.given_name,
-    p.user?.givenName,
-    p.user?.name,
-    p.user?.fullName,
-    p.user?.displayName,
-    p.user?.username,
-    p.firstName,
-    p.given_name,
-    p.givenName,
-    p.preferred_name,
-    p.preferredName,
-    p.nickname,
-    p.name?.first,
-    p.name?.givenName,
-    p.name,
-    p.displayName,
-    p.username,
-    p.email,
-    p.user?.email,
-  ].filter(Boolean) as string[];
-
-  const raw = (candidates[0] || "").toString().trim();
-  if (!raw) return "there";
-
-  // If email, get local-part; otherwise first token
-  const token = raw.includes("@")
-    ? raw.split("@")[0]
-    : raw.split(/\s+/)[0];
-
-  const cleaned = token.replace(/[_.-]+/g, " ").trim().split(" ")[0] || "there";
-
-  // Capitalize first letter nicely
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+/** === Greeting helpers === */
+function normalizeFirstName(raw: any): string | null {
+  if (!raw) return null;
+  const str = String(raw).trim();
+  if (!str) return null;
+  const token = str.includes("@") ? str.split("@")[0] : str.split(/\s+/)[0];
+  const clean = token.replace(/[_.-]+/g, " ").trim().split(" ")[0];
+  if (!clean) return null;
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
 }
+function firstNameFromProfile(profile: any): string | null {
+  if (!profile) return null;
+  const cands = [
+    profile.user?.firstName, profile.user?.given_name, profile.user?.givenName,
+    profile.user?.name, profile.user?.fullName, profile.user?.displayName,
+    profile.user?.username, profile.firstName, profile.given_name, profile.givenName,
+    profile.preferred_name, profile.preferredName, profile.nickname,
+    profile.name?.first, profile.name?.givenName, profile.name, profile.displayName,
+    profile.username, profile.email, profile.user?.email,
+  ];
+  for (const c of cands) {
+    const n = normalizeFirstName(c);
+    if (n) return n;
+  }
+  return null;
+}
+function firstNameFromSupabaseUser(u: any): string | null {
+  if (!u) return null;
+  const md = u.user_metadata || {};
+  const id0 = Array.isArray(u.identities) ? u.identities[0]?.identity_data || {} : {};
+  const cands = [
+    md.full_name, md.name, md.given_name, md.first_name, md.preferred_name,
+    id0.full_name, id0.given_name, u.user_metadata?.user_name, u.email,
+  ];
+  for (const c of cands) {
+    const n = normalizeFirstName(c);
+    if (n) return n;
+  }
+  return null;
+}
+function getDaypartGreeting(d: Date = new Date()): "Good Morning"|"Good Afternoon"|"Good Evening" {
+  const h = d.getHours();
+  if (h >= 5 && h < 12) return "Good Morning";
+  if (h >= 12 && h < 18) return "Good Afternoon";
+  return "Good Evening";
+}
+
+/** Use the same image as the assistant avatar */
+const ASSISTANT_AVATAR = "/lovable-uploads/c65f38aa-5928-46e1-b224-9f6a2bacbf18.png";
+
+/** Fade timings for the prompt glow */
+const CYCLE_MS = 5200;          // overall cycle stays the same
+const HALF_CYCLE_MS = CYCLE_MS / 2; // we crossfade for half the cycle (no hold)
 
 export function MobileChatApp() {
   const { 
@@ -65,13 +79,6 @@ export function MobileChatApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
-  // Listen for chat history close events
-  useEffect(() => {
-    const handleCloseHistory = () => setShowHistory(false);
-    window.addEventListener('arcai:closeHistory', handleCloseHistory);
-    return () => window.removeEventListener('arcai:closeHistory', handleCloseHistory);
-  }, []);
-
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -82,8 +89,26 @@ export function MobileChatApp() {
   const { toast } = useToast();
   const { profile } = useAuth();
 
-  // Personalized greeting (updates whenever profile changes)
-  const firstName = extractFirstName(profile);
+  /** Personalized name + time-based greeting */
+  const [firstName, setFirstName] = useState("there");
+  const [greeting, setGreeting] = useState(getDaypartGreeting());
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const fromHook = firstNameFromProfile(profile);
+      if (!cancelled && fromHook) { setFirstName(fromHook); return; }
+      const { data } = await supabase.auth.getUser();
+      const fromSb = firstNameFromSupabaseUser(data?.user);
+      if (!cancelled && fromSb) { setFirstName(fromSb); return; }
+      if (!cancelled) setFirstName("there");
+    })();
+    return () => { cancelled = true; };
+  }, [profile]);
+  useEffect(() => {
+    setGreeting(getDaypartGreeting());
+    const id = setInterval(() => setGreeting(getDaypartGreeting()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   // Quick Prompts
   const quickPrompts = [
@@ -101,11 +126,12 @@ export function MobileChatApp() {
     { label: "🧘 Calm", prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise." }
   ];
 
-  // Prompt glow with proper fade-in AND fade-out (no blips)
+  /** Seamless prompt glow crossfade (ease in/out, no hold) */
   type Glow = { index: number; color: string };
-  const [activeGlow, setActiveGlow] = useState<Glow | null>(null); // currently glowing
-  const [armedGlow, setArmedGlow] = useState<Glow | null>(null);   // staged at opacity 0 for one frame
-  const [prevGlow, setPrevGlow] = useState<Glow | null>(null);     // previous glow fading out
+  const [activeGlow, setActiveGlow] = useState<Glow | null>(null); // currently fading in/out
+  const [armedGlow, setArmedGlow] = useState<Glow | null>(null);   // mounted at 0 for one frame before fade-in
+  const [prevGlow, setPrevGlow] = useState<Glow | null>(null);     // the one fading out now
+  const [decayIndex, setDecayIndex] = useState<number | null>(null); // start fading the active halfway through
 
   const glowPalette = [
     "rgba(99,102,241,0.70)",   // indigo
@@ -122,53 +148,54 @@ export function MobileChatApp() {
       let intervalId: number | undefined;
       let armTimeout: number | undefined;
       let clearPrevTimeout: number | undefined;
+      let decayTimeout: number | undefined;
 
       const cycle = () => {
         const nextIndex = Math.floor(Math.random() * quickPrompts.length);
         const nextColor = glowPalette[Math.floor(Math.random() * glowPalette.length)];
 
-        if (activeGlow) setPrevGlow(activeGlow);           // fade this one out
+        // Begin fading out the current active by marking it as previous.
+        if (activeGlow) setPrevGlow(activeGlow);
 
-        setArmedGlow({ index: nextIndex, color: nextColor }); // mount at 0 opacity
-
+        // Stage next at 0 opacity for one frame, then fade it in over HALF_CYCLE_MS.
+        setArmedGlow({ index: nextIndex, color: nextColor });
         armTimeout = window.setTimeout(() => {
-          setActiveGlow({ index: nextIndex, color: nextColor }); // fade in
+          setActiveGlow({ index: nextIndex, color: nextColor });
           setArmedGlow(null);
+
+          // After half cycle, start decaying the active (so no "hold")
+          setDecayIndex(null);
+          decayTimeout = window.setTimeout(() => setDecayIndex(nextIndex), HALF_CYCLE_MS - 40);
         }, 30);
 
-        clearPrevTimeout = window.setTimeout(() => setPrevGlow(null), 500); // let fade-out complete
+        // Remove the previous after its fade-out completes (half-cycle)
+        clearPrevTimeout = window.setTimeout(() => setPrevGlow(null), HALF_CYCLE_MS);
       };
 
       cycle();
-      intervalId = window.setInterval(cycle, 5200);
+      intervalId = window.setInterval(cycle, CYCLE_MS);
 
       return () => {
         if (intervalId) window.clearInterval(intervalId);
         if (armTimeout) window.clearTimeout(armTimeout);
         if (clearPrevTimeout) window.clearTimeout(clearPrevTimeout);
+        if (decayTimeout) window.clearTimeout(decayTimeout);
       };
     } else {
       setActiveGlow(null);
       setArmedGlow(null);
       setPrevGlow(null);
+      setDecayIndex(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length]);
 
-  // Robust "scroll to top" helper
-  const scrollToTop = () => {
-    const el = messagesContainerRef.current;
-    if (!el) return;
-    try {
-      el.scrollTop = 0;
-      window.scrollTo({ top: 0, behavior: "auto" });
-      requestAnimationFrame(() => {
-        el.scrollTop = 0;
-        window.scrollTo({ top: 0, behavior: "auto" });
-      });
-      setTimeout(() => { el.scrollTop = 0; }, 50);
-    } catch {}
-  };
+  // Listen for chat history close events
+  useEffect(() => {
+    const handleCloseHistory = () => setShowHistory(false);
+    window.addEventListener('arcai:closeHistory', handleCloseHistory);
+    return () => window.removeEventListener('arcai:closeHistory', handleCloseHistory);
+  }, []);
 
   // Smooth scroll to bottom on new content
   useEffect(() => {
@@ -180,24 +207,26 @@ export function MobileChatApp() {
   // When chat is empty, go to top
   useEffect(() => {
     if (messages.length === 0) {
-      scrollToTop();
-      requestAnimationFrame(scrollToTop);
+      const el = messagesContainerRef.current;
+      if (!el) return;
+      el.scrollTop = 0;
+      requestAnimationFrame(() => (el.scrollTop = 0));
     }
   }, [messages.length]);
 
   // On session change, go to top
   useEffect(() => {
     if (currentSessionId) {
-      scrollToTop();
-      requestAnimationFrame(scrollToTop);
+      const el = messagesContainerRef.current;
+      if (!el) return;
+      el.scrollTop = 0;
+      requestAnimationFrame(() => (el.scrollTop = 0));
     }
   }, [currentSessionId]);
 
   // Measure input dock height
   useEffect(() => {
-    const update = () => {
-      if (inputDockRef.current) setInputHeight(inputDockRef.current.offsetHeight);
-    };
+    const update = () => inputDockRef.current && setInputHeight(inputDockRef.current.offsetHeight);
     update();
     const ro = new ResizeObserver(update);
     if (inputDockRef.current) ro.observe(inputDockRef.current);
@@ -209,8 +238,11 @@ export function MobileChatApp() {
     createNewSession();
     setShowHistory(false);
     setShowSettings(false);
-    scrollToTop();
-    requestAnimationFrame(scrollToTop);
+    const el = messagesContainerRef.current;
+    if (el) {
+      el.scrollTop = 0;
+      requestAnimationFrame(() => (el.scrollTop = 0));
+    }
     toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
   };
 
@@ -285,7 +317,7 @@ export function MobileChatApp() {
         <div className="flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <img
-              src="/lovable-uploads/c65f38aa-5928-46e1-b224-9f6a2bacbf18.png"
+              src={ASSISTANT_AVATAR}
               alt="ArcAI"
               className="h-8 w-8"
             />
@@ -293,7 +325,6 @@ export function MobileChatApp() {
               <h1 className="text-lg">
                 <span className="font-thin">Arc</span><span className="font-semibold">Ai</span>
               </h1>
-              {/* subtitle intentionally removed */}
             </div>
           </div>
           
@@ -329,40 +360,49 @@ export function MobileChatApp() {
               {/* Welcome Section */}
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                 <div className="mb-8">
+                  {/* Use assistant avatar here, lightly floating like buttons */}
                   <img
-                    src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
-                    alt="ArcAI"
-                    className="h-20 w-20 mx-auto mb-4"
+                    src={ASSISTANT_AVATAR}
+                    alt="Arc assistant avatar"
+                    className="assistant-hero-avatar ai-avatar h-20 w-20 mx-auto mb-4 floating-hero"
                   />
                   <h2 className="text-2xl font-bold text-foreground mb-2">
-                    {`Howdy, ${firstName}!`}
+                    {`${greeting}, ${firstName}!`}
                   </h2>
                 </div>
 
                 {/* Quick Prompts - 2 Column Grid */}
                 <div className="w-full max-w-md grid grid-cols-2 gap-3 mb-20">
                   {quickPrompts.map((prompt, idx) => {
-                    const isActive = activeGlow?.index === idx;
+                    const isActive = activeGlow?.index === idx && decayIndex !== idx;
+                    const isDecayingActive = activeGlow?.index === idx && decayIndex === idx;
                     const isArmed = armedGlow?.index === idx;
-                    const isFading = prevGlow?.index === idx;
-                    const styleVar: any =
-                      isActive ? { ["--glow-color" as any]: activeGlow!.color }
-                      : isArmed ? { ["--glow-color" as any]: armedGlow!.color }
-                      : isFading ? { ["--glow-color" as any]: prevGlow!.color }
-                      : undefined;
+                    const isPrev = prevGlow?.index === idx;
+
+                    const colorVar: any =
+                      isActive ? { ["--glow-color" as any]: activeGlow!.color } :
+                      isDecayingActive ? { ["--glow-color" as any]: activeGlow!.color } :
+                      isArmed ? { ["--glow-color" as any]: armedGlow!.color } :
+                      isPrev ? { ["--glow-color" as any]: prevGlow!.color } :
+                      undefined;
 
                     return (
                       <button
                         key={idx}
                         onClick={() => triggerPrompt(prompt.prompt)}
-                        style={styleVar}
+                        style={colorVar}
                         className={[
                           "p-4 card text-center hover:bg-accent/50 transition-colors rounded-full border border-border/40",
                           "floating-prompt",
                           `floating-prompt-${idx}`,
-                          isActive ? "prompt-glow prompt-glow--show" : "",
+                          // armed starts at 0 opacity
                           isArmed ? "prompt-glow prompt-glow--armed" : "",
-                          isFading ? "prompt-glow prompt-glow--fadeout" : ""
+                          // active fades IN over HALF_CYCLE_MS
+                          isActive ? "prompt-glow prompt-glow--show" : "",
+                          // active then decays back to 0 for latter half (no hold)
+                          isDecayingActive ? "prompt-glow prompt-glow--fadeout" : "",
+                          // previous fades OUT while new fades IN
+                          isPrev ? "prompt-glow prompt-glow--fadeout" : "",
                         ].join(" ").trim()}
                       >
                         <span className="font-medium text-sm">{prompt.label}</span>
@@ -411,15 +451,19 @@ export function MobileChatApp() {
           transform: translateY(2px);
           will-change: opacity, transform;
         }
-        img.ai-avatar.is-loaded{
-          opacity: 1;
-          transform: translateY(0);
+        img.ai-avatar.is-loaded{ opacity: 1; transform: translateY(0); }
+
+        /* Very light floating for hero avatar */
+        .floating-hero{ animation: float-3 5.2s ease-in-out infinite; }
+        .assistant-hero-avatar{
+          border-radius: 24%;
+          box-shadow: 0 12px 30px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06) inset;
         }
 
         /* Floating animation keyframes for different movement patterns */
         @keyframes float-1 { 0%,100%{transform:translate(0,0) rotate(0)} 25%{transform:translate(1px,-1px) rotate(0.5deg)} 50%{transform:translate(-1px,-2px) rotate(-0.5deg)} 75%{transform:translate(-2px,1px) rotate(0.3deg)} }
         @keyframes float-2 { 0%,100%{transform:translate(0,0) rotate(0)} 33%{transform:translate(-1px,1px) rotate(-0.3deg)} 66%{transform:translate(2px,0) rotate(0.4deg)} }
-        @keyframes float-3 { 0%,100%{transform:translate(0,0) rotate(0)} 20%{transform:translate(1px,1px) rotate(0.2deg)} 40%{transform:translate(-1px,2px) rotate(-0.4deg)} 60%{transform:translate(2px,-1px) rotate(0.3deg)} 80%{transform:translate(-2px,0) rotate(-0.2deg)} }
+        @keyframes float-3 { 0%,100%{transform:translate(0px,0px) rotate(0)} 20%{transform:translate(1px,1px) rotate(0.2deg)} 40%{transform:translate(-1px,2px) rotate(-0.3deg)} 60%{transform:translate(2px,-1px) rotate(0.25deg)} 80%{transform:translate(-2px,0) rotate(-0.2deg)} }
         @keyframes float-4 { 0%,100%{transform:translate(0,0) rotate(0)} 50%{transform:translate(-1px,-1px) rotate(-0.3deg)} }
         @keyframes float-5 { 0%,100%{transform:translate(0,0) rotate(0)} 30%{transform:translate(2px,1px) rotate(0.4deg)} 70%{transform:translate(-1px,-2px) rotate(-0.2deg)} }
         @keyframes float-6 { 0%,100%{transform:translate(0,0) rotate(0)} 25%{transform:translate(-2px,0) rotate(-0.5deg)} 75%{transform:translate(1px,-1px) rotate(0.3deg)} }
@@ -439,7 +483,7 @@ export function MobileChatApp() {
 
         .floating-prompt:hover { animation-play-state: paused; }
 
-        /* Prompt glow states (smaller, softer, cross-fade) */
+        /* Seamless prompt glow: long ease-in/out, no hold. */
         .prompt-glow{ position: relative; z-index: 0; }
         .prompt-glow::after{
           content: ""; position: absolute; inset: -2px; border-radius: 9999px; pointer-events: none;
@@ -449,12 +493,12 @@ export function MobileChatApp() {
             radial-gradient(60px 30px at 70% 65%, var(--glow-color, rgba(99,102,241,0.7)), transparent 70%);
           background-repeat: no-repeat;
           background-size: 120px 60px, 120px 60px;
-          transition: opacity 380ms ease;
-          animation: glow-pan-soft 7.5s ease-in-out infinite alternate;
+          transition: opacity var(--glow-dur, ${HALF_CYCLE_MS}ms) cubic-bezier(0.4, 0, 0.2, 1);
+          animation: glow-pan-soft 9.5s ease-in-out infinite alternate;
         }
-        .prompt-glow--armed::after{ opacity: 0; }       /* mounted at 0 so next fade starts correctly */
-        .prompt-glow--show::after{ opacity: 0.22; }     /* fade in to here */
-        .prompt-glow--fadeout::after{ opacity: 0; }     /* fade out to zero */
+        .prompt-glow--armed::after{ opacity: 0; }               /* mounted at 0 */
+        .prompt-glow--show::after{ opacity: var(--glow-max, 0.22); } /* long fade IN */
+        .prompt-glow--fadeout::after{ opacity: 0; }             /* long fade OUT */
 
         @keyframes glow-pan-soft{
           0%   { background-position: 26% 40%, 74% 60%; }
@@ -555,7 +599,8 @@ export function MobileChatApp() {
         .glass-dock input:-webkit-autofill, .glass-dock textarea:-webkit-autofill{ -webkit-box-shadow: 0 0 0px 1000px transparent inset !important; -webkit-text-fill-color: inherit !important; transition: background-color 999999s ease-in-out 0s !important; }
 
         /* Tiny sync bubble sizing */
-        .sync-bubble, [data-sync-bubble], [data-role="sync-bubble"], .sync-indicator, [data-sync], [class*="sync-bubble"], [class*="syncIndicator"], [class*="sync-indicator"]{
+        .sync-bubble, [data-sync-bubble], [data-role="sync-bubble"], .sync-indicator, [data-sync],
+        [class*="sync-bubble"], [class*="syncIndicator"], [class*="sync-indicator"]{
           transform: scale(0.9) !important; transform-origin: center !important;
         }
         .sync-bubble svg, [data-sync-bubble] svg, .sync-indicator svg, [data-sync] svg{ width: 0.9em !important; height: 0.9em !important; }
