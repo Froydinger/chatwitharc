@@ -26,9 +26,7 @@ export function MobileChatApp() {
 
   // Listen for chat history close events
   useEffect(() => {
-    const handleCloseHistory = () => {
-      setShowHistory(false);
-    };
+    const handleCloseHistory = () => setShowHistory(false);
     window.addEventListener('arcai:closeHistory', handleCloseHistory);
     return () => window.removeEventListener('arcai:closeHistory', handleCloseHistory);
   }, []);
@@ -42,6 +40,15 @@ export function MobileChatApp() {
 
   const { toast } = useToast();
   const { profile } = useAuth();
+
+  // Personalized greeting
+  const rawName =
+    (profile as any)?.name ||
+    (profile as any)?.displayName ||
+    (profile as any)?.username ||
+    (profile as any)?.email ||
+    "";
+  const firstName = (rawName || "").split(/[ @]/)[0] || "there";
 
   // Quick Prompts
   const quickPrompts = [
@@ -59,54 +66,60 @@ export function MobileChatApp() {
     { label: "🧘 Calm", prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise." }
   ];
 
-  // Prompt glow with two step "arm then activate" to guarantee fade from opacity 0
-  const [activeGlowIndex, setActiveGlowIndex] = useState<number | null>(null);   // shown with opacity transition
-  const [armedGlowIndex, setArmedGlowIndex] = useState<number | null>(null);     // renders at opacity 0 for one frame
-  const [prevGlowIndex, setPrevGlowIndex] = useState<number | null>(null);       // fading out
-  const [glowColor, setGlowColor] = useState<string>("rgba(99,102,241,0.7)");
+  // Prompt glow with proper fade-in AND fade-out (no blips)
+  type Glow = { index: number; color: string };
+  const [activeGlow, setActiveGlow] = useState<Glow | null>(null); // currently glowing (fades in)
+  const [armedGlow, setArmedGlow] = useState<Glow | null>(null);   // staged at opacity 0 for one frame, then promoted to active
+  const [prevGlow, setPrevGlow] = useState<Glow | null>(null);     // previous glow fading out
 
   const glowPalette = [
-    "rgba(99,102,241,0.70)",
-    "rgba(59,130,246,0.70)",
-    "rgba(16,185,129,0.70)",
-    "rgba(20,184,166,0.70)",
-    "rgba(139,92,246,0.70)",
-    "rgba(236,72,153,0.70)",
-    "rgba(234,179,8,0.70)"
+    "rgba(99,102,241,0.70)",   // indigo
+    "rgba(59,130,246,0.70)",   // blue
+    "rgba(16,185,129,0.70)",   // emerald
+    "rgba(20,184,166,0.70)",   // teal
+    "rgba(139,92,246,0.70)",   // violet
+    "rgba(236,72,153,0.70)",   // pink
+    "rgba(234,179,8,0.70)"     // amber
   ];
 
   useEffect(() => {
     if (messages.length === 0) {
       let intervalId: number | undefined;
       let armTimeout: number | undefined;
-      let fadeTimeout: number | undefined;
+      let clearPrevTimeout: number | undefined;
 
-      const pick = () => {
-        const next = Math.floor(Math.random() * quickPrompts.length);
-        setPrevGlowIndex(activeGlowIndex);            // current will fade out
-        setArmedGlowIndex(next);                      // render new at opacity 0 first
-        setGlowColor(glowPalette[Math.floor(Math.random() * glowPalette.length)]);
-        // after a tick, promote to active so it fades from 0 -> target
+      const cycle = () => {
+        const nextIndex = Math.floor(Math.random() * quickPrompts.length);
+        const nextColor = glowPalette[Math.floor(Math.random() * glowPalette.length)];
+
+        // move current active to fading-out
+        if (activeGlow) setPrevGlow(activeGlow);
+
+        // stage the next glow at 0 opacity
+        setArmedGlow({ index: nextIndex, color: nextColor });
+
+        // after a tick, promote to active (so it fades from 0 -> target)
         armTimeout = window.setTimeout(() => {
-          setActiveGlowIndex(next);
-          setArmedGlowIndex(null);
+          setActiveGlow({ index: nextIndex, color: nextColor });
+          setArmedGlow(null);
         }, 30);
-        // clear the fading marker after transition completes
-        fadeTimeout = window.setTimeout(() => setPrevGlowIndex(null), 450);
+
+        // remove prev after CSS transition completes so it can fade OUT smoothly
+        clearPrevTimeout = window.setTimeout(() => setPrevGlow(null), 500);
       };
 
-      pick();
-      intervalId = window.setInterval(pick, 5200);
+      cycle();
+      intervalId = window.setInterval(cycle, 5200);
 
       return () => {
         if (intervalId) window.clearInterval(intervalId);
         if (armTimeout) window.clearTimeout(armTimeout);
-        if (fadeTimeout) window.clearTimeout(fadeTimeout);
+        if (clearPrevTimeout) window.clearTimeout(clearPrevTimeout);
       };
     } else {
-      setActiveGlowIndex(null);
-      setArmedGlowIndex(null);
-      setPrevGlowIndex(null);
+      setActiveGlow(null);
+      setArmedGlow(null);
+      setPrevGlow(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length]);
@@ -122,9 +135,7 @@ export function MobileChatApp() {
         el.scrollTop = 0;
         window.scrollTo({ top: 0, behavior: "auto" });
       });
-      setTimeout(() => {
-        el.scrollTop = 0;
-      }, 50);
+      setTimeout(() => { el.scrollTop = 0; }, 50);
     } catch {}
   };
 
@@ -151,24 +162,16 @@ export function MobileChatApp() {
     }
   }, [currentSessionId]);
 
-  // Measure input dock height and account for safe area
+  // Measure input dock height
   useEffect(() => {
     const update = () => {
-      if (inputDockRef.current) {
-        const h = inputDockRef.current.offsetHeight;
-        setInputHeight(h);
-      }
+      if (inputDockRef.current) setInputHeight(inputDockRef.current.offsetHeight);
     };
     update();
-
     const ro = new ResizeObserver(update);
     if (inputDockRef.current) ro.observe(inputDockRef.current);
-
     window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("resize", update);
-      ro.disconnect();
-    };
+    return () => { window.removeEventListener("resize", update); ro.disconnect(); };
   }, []);
 
   const handleNewChat = () => {
@@ -177,16 +180,10 @@ export function MobileChatApp() {
     setShowSettings(false);
     scrollToTop();
     requestAnimationFrame(scrollToTop);
-    toast({ 
-      title: "New Chat Started", 
-      description: "Ready for a fresh conversation!" 
-    });
+    toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-  };
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); setDragOver(false); };
 
   const triggerPrompt = (prompt: string) => {
     startChatWithMessage(prompt);
@@ -194,24 +191,17 @@ export function MobileChatApp() {
     setShowSettings(false);
   };
 
-  /**
-   * AI avatar progressive fade in after load
-   */
+  /** AI avatar progressive fade in after load */
   useEffect(() => {
     const root = messagesContainerRef.current ?? document.body;
-
     const tagCandidate = (img: HTMLImageElement) => {
       const alt = (img.getAttribute("alt") || "").toLowerCase();
       const likely =
         img.hasAttribute("data-ai-avatar") ||
         img.classList.contains("ai-avatar") ||
-        alt.includes("arc") ||
-        alt.includes("assistant") ||
-        alt.includes("arcai");
+        alt.includes("arc") || alt.includes("assistant") || alt.includes("arcai");
       if (likely) {
-        if (!img.classList.contains("ai-avatar")) {
-          img.classList.add("ai-avatar");
-        }
+        img.classList.add("ai-avatar");
         img.classList.remove("is-loaded");
         const markLoaded = () => img.classList.add("is-loaded");
         if (img.complete && img.naturalWidth > 0) markLoaded();
@@ -221,10 +211,8 @@ export function MobileChatApp() {
         }
       }
     };
-
     const scan = () => root.querySelectorAll("img").forEach((n) => tagCandidate(n as HTMLImageElement));
     scan();
-
     const mo = new MutationObserver((muts) => {
       for (const m of muts) {
         m.addedNodes.forEach((n) => {
@@ -237,18 +225,12 @@ export function MobileChatApp() {
     return () => mo.disconnect();
   }, []);
 
-  /**
-   * Thinking indicator: always mounted to avoid animation reset
-   */
+  /** Thinking indicator: always mounted to avoid animation reset */
   const showThinking = isLoading || isGeneratingImage;
 
   const ThinkingIndicator = () => (
     <div className="flex justify-center">
-      <div
-        className="thinking-shell"
-        data-show={showThinking ? "true" : "false"}
-        aria-live="polite"
-      >
+      <div className="thinking-shell" data-show={showThinking ? "true" : "false"} aria-live="polite">
         <div className="surface thinking-pill rounded-full">
           <div className="flex items-center gap-3">
             <div className="relative flex items-center justify-center">
@@ -280,7 +262,7 @@ export function MobileChatApp() {
               <h1 className="text-lg">
                 <span className="font-thin">Arc</span><span className="font-semibold">Ai</span>
               </h1>
-              <p className="text-xs text-muted-foreground">Ask, Reflect, Create.</p>
+              {/* subtitle removed by request */}
             </div>
           </div>
           
@@ -308,9 +290,7 @@ export function MobileChatApp() {
         <div
           ref={messagesContainerRef}
           className="absolute inset-0 overflow-y-auto"
-          style={{
-            paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 4rem)`
-          }}
+          style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 4rem)` }}
         >
           {/* Empty state */}
           {messages.length === 0 ? (
@@ -324,30 +304,36 @@ export function MobileChatApp() {
                     className="h-20 w-20 mx-auto mb-4"
                   />
                   <h2 className="text-2xl font-bold text-foreground mb-2">
-                    Howdy!
+                    {`Howdy, ${firstName}!`}
                   </h2>
-                  <p className="text-muted-foreground text-sm max-w-sm">
-                    What can we work on today? Choose a quick prompt below or start typing to begin.
-                  </p>
+                  {/* helper subtitle removed by request */}
                 </div>
 
                 {/* Quick Prompts - 2 Column Grid */}
                 <div className="w-full max-w-md grid grid-cols-2 gap-3 mb-20">
                   {quickPrompts.map((prompt, idx) => {
-                    const isActive = activeGlowIndex === idx;
-                    const isArmed = armedGlowIndex === idx;
-                    const isFading = prevGlowIndex === idx;
+                    const isActive = activeGlow?.index === idx;
+                    const isArmed = armedGlow?.index === idx;
+                    const isFading = prevGlow?.index === idx;
+                    const styleVar: any = isActive
+                      ? { ["--glow-color" as any]: activeGlow!.color }
+                      : isArmed
+                      ? { ["--glow-color" as any]: armedGlow!.color }
+                      : isFading
+                      ? { ["--glow-color" as any]: prevGlow!.color }
+                      : undefined;
+
                     return (
                       <button
                         key={idx}
                         onClick={() => triggerPrompt(prompt.prompt)}
-                        style={(isActive || isArmed) ? ({ ['--glow-color' as any]: glowColor } as any) : undefined}
+                        style={styleVar}
                         className={[
                           "p-4 card text-center hover:bg-accent/50 transition-colors rounded-full border border-border/40",
                           "floating-prompt",
                           `floating-prompt-${idx}`,
                           isActive ? "prompt-glow prompt-glow--show" : "",
-                          isArmed ? "prompt-glow" : "",
+                          isArmed ? "prompt-glow prompt-glow--armed" : "",
                           isFading ? "prompt-glow prompt-glow--fadeout" : ""
                         ].join(" ").trim()}
                       >
@@ -375,11 +361,8 @@ export function MobileChatApp() {
           )}
         </div>
 
-        {/* Fixed glass input dock */}
-        <div
-          ref={inputDockRef}
-          className="fixed inset-x-0 bottom-0 z-50 pointer-events-none"
-        >
+        {/* Fixed glass input dock (unchanged) */}
+        <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
               <div className="pointer-events-auto glass-dock">
@@ -405,25 +388,10 @@ export function MobileChatApp() {
           transform: translateY(0);
         }
 
-        /* Floating animation keyframes */
-        @keyframes float-1 {
-          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
-          25% { transform: translate(1px, -1px) rotate(0.5deg); }
-          50% { transform: translate(-1px, -2px) rotate(-0.5deg); }
-          75% { transform: translate(-2px, 1px) rotate(0.3deg); }
-        }
-        @keyframes float-2 {
-          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
-          33% { transform: translate(-1px, 1px) rotate(-0.3deg); }
-          66% { transform: translate(2px, 0px) rotate(0.4deg); }
-        }
-        @keyframes float-3 {
-          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
-          20% { transform: translate(1px, 1px) rotate(0.2deg); }
-          40% { transform: translate(-1px, 2px) rotate(-0.4deg); }
-          60% { transform: translate(2px, -1px) rotate(0.3deg); }
-          80% { transform: translate(-2px, 0px) rotate(-0.2deg); }
-        }
+        /* Floating animation keyframes for different movement patterns */
+        @keyframes float-1 { 0%,100%{transform:translate(0,0) rotate(0)} 25%{transform:translate(1px,-1px) rotate(0.5deg)} 50%{transform:translate(-1px,-2px) rotate(-0.5deg)} 75%{transform:translate(-2px,1px) rotate(0.3deg)} }
+        @keyframes float-2 { 0%,100%{transform:translate(0,0) rotate(0)} 33%{transform:translate(-1px,1px) rotate(-0.3deg)} 66%{transform:translate(2px,0) rotate(0.4deg)} }
+        @keyframes float-3 { 0%,100%{transform:translate(0,0) rotate(0)} 20%{transform:translate(1px,1px) rotate(0.2deg)} 40%{transform:translate(-1px,2px) rotate(-0.4deg)} 60%{transform:translate(2px,-1px) rotate(0.3deg)} 80%{transform:translate(-2px,0) rotate(-0.2deg)} }
         @keyframes float-4 { 0%,100%{transform:translate(0,0) rotate(0)} 50%{transform:translate(-1px,-1px) rotate(-0.3deg)} }
         @keyframes float-5 { 0%,100%{transform:translate(0,0) rotate(0)} 30%{transform:translate(2px,1px) rotate(0.4deg)} 70%{transform:translate(-1px,-2px) rotate(-0.2deg)} }
         @keyframes float-6 { 0%,100%{transform:translate(0,0) rotate(0)} 25%{transform:translate(-2px,0) rotate(-0.5deg)} 75%{transform:translate(1px,-1px) rotate(0.3deg)} }
@@ -443,7 +411,7 @@ export function MobileChatApp() {
 
         .floating-prompt:hover { animation-play-state: paused; }
 
-        /* Prompt glow states */
+        /* Prompt glow states (smaller, softer, cross-fade) */
         .prompt-glow{ position: relative; z-index: 0; }
         .prompt-glow::after{
           content: ""; position: absolute; inset: -2px; border-radius: 9999px; pointer-events: none;
@@ -456,8 +424,12 @@ export function MobileChatApp() {
           transition: opacity 380ms ease;
           animation: glow-pan-soft 7.5s ease-in-out infinite alternate;
         }
-        .prompt-glow--show::after{ opacity: 0.22; }     /* fade in from 0 */
-        .prompt-glow--fadeout::after{ opacity: 0; }     /* fade out to 0 */
+        /* armed = mounted at 0 specifically to ensure start-from-zero; visually same as base */
+        .prompt-glow--armed::after{ opacity: 0; }
+        /* active target opacity */
+        .prompt-glow--show::after{ opacity: 0.22; }
+        /* previous fading out */
+        .prompt-glow--fadeout::after{ opacity: 0; }
 
         @keyframes glow-pan-soft{
           0%   { background-position: 26% 40%, 74% 60%; }
@@ -465,15 +437,10 @@ export function MobileChatApp() {
         }
 
         /* Thinking indicator container */
-        .thinking-shell{
-          transition: opacity 220ms ease, transform 220ms ease;
-          opacity: 0; transform: translateY(3px);
-        }
-        .thinking-shell[data-show="true"]{
-          opacity: 1; transform: translateY(0);
-        }
+        .thinking-shell{ transition: opacity 220ms ease, transform 220ms ease; opacity: 0; transform: translateY(3px); }
+        .thinking-shell[data-show="true"]{ opacity: 1; transform: translateY(0); }
 
-        /* The pill and its glow */
+        /* The pill and its glow (clipped) */
         .thinking-pill{
           position: relative;
           padding: 10px 16px;
@@ -527,7 +494,7 @@ export function MobileChatApp() {
             inset 0 1px 0 rgba(255,255,255,0.04) !important;
         }
 
-        /* Input dock unchanged */
+        /* Input dock — unchanged */
         .glass-dock{
           position: relative;
           border-radius: 9999px;
@@ -555,36 +522,18 @@ export function MobileChatApp() {
 
         .glass-dock :is(.surface,.card,[class*="bg-"],[class*="ring-"],[class*="border"],[class*="shadow"],
                         .backdrop-blur,[class*="backdrop-"],[style*="backdrop-filter"]){
-          background: transparent !important;
-          box-shadow: none !important;
-          border: 0 !important;
-          backdrop-filter: none !important;
-          -webkit-backdrop-filter: none !important;
+          background: transparent !important; box-shadow: none !important; border: 0 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
         }
-        .glass-dock :is(.input-wrapper,.input-container,.chat-input,.field,form){
-          background: transparent !important;
-          box-shadow: none !important;
-          border: 0 !important;
-        }
-        .glass-dock:focus-within{
-          box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 16px 4px hsl(var(--primary)/0.3), 0 0 40px 10px hsl(var(--primary)/0.15) !important;
-          border-radius: 9999px;
-        }
+        .glass-dock :is(.input-wrapper,.input-container,.chat-input,.field,form){ background: transparent !important; box-shadow: none !important; border: 0 !important; }
+        .glass-dock:focus-within{ box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 16px 4px hsl(var(--primary)/0.3), 0 0 40px 10px hsl(var(--primary)/0.15) !important; border-radius: 9999px; }
         .glass-dock input, .glass-dock textarea{ font-size: 16px !important; }
-        .glass-dock input:-webkit-autofill, .glass-dock textarea:-webkit-autofill{
-          -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
-          -webkit-text-fill-color: inherit !important;
-          transition: background-color 999999s ease-in-out 0s !important;
-        }
+        .glass-dock input:-webkit-autofill, .glass-dock textarea:-webkit-autofill{ -webkit-box-shadow: 0 0 0px 1000px transparent inset !important; -webkit-text-fill-color: inherit !important; transition: background-color 999999s ease-in-out 0s !important; }
 
         /* Tiny sync bubble sizing */
-        .sync-bubble, [data-sync-bubble], [data-role="sync-bubble"], .sync-indicator, [data-sync],
-        [class*="sync-bubble"], [class*="syncIndicator"], [class*="sync-indicator"]{
+        .sync-bubble, [data-sync-bubble], [data-role="sync-bubble"], .sync-indicator, [data-sync], [class*="sync-bubble"], [class*="syncIndicator"], [class*="sync-indicator"]{
           transform: scale(0.9) !important; transform-origin: center !important;
         }
-        .sync-bubble svg, [data-sync-bubble] svg, .sync-indicator svg, [data-sync] svg{
-          width: 0.9em !important; height: 0.9em !important;
-        }
+        .sync-bubble svg, [data-sync-bubble] svg, .sync-indicator svg, [data-sync] svg{ width: 0.9em !important; height: 0.9em !important; }
       `}</style>
 
       {/* Chat History Dialog */}
