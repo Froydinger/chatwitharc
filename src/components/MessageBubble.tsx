@@ -128,11 +128,11 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               "hover:shadow-[0_10px_26px_-8px_rgba(0,0,0,0.45)]",
               isUser
                 ? "bg-primary/20 border-primary/30"
-                : "bg-black/30 dark:bg-white/5 border-glass-border/40",
+                : "bg-black/40 border-glass-border/40",
             ].join(" ")}
           >
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 rounded-[22px] pointer-events-none bg-gradient-to-b from-transparent via-transparent to-black/10 dark:to-white/10" />
+            {/* Gradient overlay: darker at bottom */}
+            <div className="absolute inset-0 rounded-[22px] pointer-events-none bg-gradient-to-b from-transparent to-black/20" />
 
             {/* Image Generation Placeholder */}
             {message.type === "image-generating" && (
