@@ -59,38 +59,57 @@ export function MobileChatApp() {
     { label: "🧘 Calm", prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise." }
   ];
 
-  // Subtle prompt glow (random, with cross-fade)
-  const [glowIndex, setGlowIndex] = useState<number | null>(null);
-  const [prevGlowIndex, setPrevGlowIndex] = useState<number | null>(null);
+  // Prompt glow with two step "arm then activate" to guarantee fade from opacity 0
+  const [activeGlowIndex, setActiveGlowIndex] = useState<number | null>(null);   // shown with opacity transition
+  const [armedGlowIndex, setArmedGlowIndex] = useState<number | null>(null);     // renders at opacity 0 for one frame
+  const [prevGlowIndex, setPrevGlowIndex] = useState<number | null>(null);       // fading out
   const [glowColor, setGlowColor] = useState<string>("rgba(99,102,241,0.7)");
+
   const glowPalette = [
-    "rgba(99,102,241,0.70)",   // indigo
-    "rgba(59,130,246,0.70)",   // blue
-    "rgba(16,185,129,0.70)",   // emerald
-    "rgba(20,184,166,0.70)",   // teal
-    "rgba(139,92,246,0.70)",   // violet
-    "rgba(236,72,153,0.70)",   // pink
-    "rgba(234,179,8,0.70)"     // amber
+    "rgba(99,102,241,0.70)",
+    "rgba(59,130,246,0.70)",
+    "rgba(16,185,129,0.70)",
+    "rgba(20,184,166,0.70)",
+    "rgba(139,92,246,0.70)",
+    "rgba(236,72,153,0.70)",
+    "rgba(234,179,8,0.70)"
   ];
 
   useEffect(() => {
     if (messages.length === 0) {
+      let intervalId: number | undefined;
+      let armTimeout: number | undefined;
+      let fadeTimeout: number | undefined;
+
       const pick = () => {
         const next = Math.floor(Math.random() * quickPrompts.length);
-        setPrevGlowIndex(glowIndex);
-        setGlowIndex(next);
+        setPrevGlowIndex(activeGlowIndex);            // current will fade out
+        setArmedGlowIndex(next);                      // render new at opacity 0 first
         setGlowColor(glowPalette[Math.floor(Math.random() * glowPalette.length)]);
-        // clear the fading-out marker after the css transition
-        setTimeout(() => setPrevGlowIndex(null), 420);
+        // after a tick, promote to active so it fades from 0 -> target
+        armTimeout = window.setTimeout(() => {
+          setActiveGlowIndex(next);
+          setArmedGlowIndex(null);
+        }, 30);
+        // clear the fading marker after transition completes
+        fadeTimeout = window.setTimeout(() => setPrevGlowIndex(null), 450);
       };
+
       pick();
-      const id = setInterval(pick, 5200); // slower cycle
-      return () => clearInterval(id);
+      intervalId = window.setInterval(pick, 5200);
+
+      return () => {
+        if (intervalId) window.clearInterval(intervalId);
+        if (armTimeout) window.clearTimeout(armTimeout);
+        if (fadeTimeout) window.clearTimeout(fadeTimeout);
+      };
     } else {
-      setGlowIndex(null);
+      setActiveGlowIndex(null);
+      setArmedGlowIndex(null);
       setPrevGlowIndex(null);
     }
-  }, [messages.length]); // eslint-disable-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length]);
 
   // Robust "scroll to top" helper
   const scrollToTop = () => {
@@ -219,8 +238,7 @@ export function MobileChatApp() {
   }, []);
 
   /**
-   * Thinking indicator: always mounted to avoid animation reset.
-   * We just toggle [data-show="true"] for opacity/visibility.
+   * Thinking indicator: always mounted to avoid animation reset
    */
   const showThinking = isLoading || isGeneratingImage;
 
@@ -231,7 +249,7 @@ export function MobileChatApp() {
         data-show={showThinking ? "true" : "false"}
         aria-live="polite"
       >
-        <div className="surface thinking-pill">
+        <div className="surface thinking-pill rounded-full">
           <div className="flex items-center gap-3">
             <div className="relative flex items-center justify-center">
               <Brain className="h-5 w-5 animate-bounce-slow" />
@@ -316,18 +334,20 @@ export function MobileChatApp() {
                 {/* Quick Prompts - 2 Column Grid */}
                 <div className="w-full max-w-md grid grid-cols-2 gap-3 mb-20">
                   {quickPrompts.map((prompt, idx) => {
-                    const isGlow = glowIndex === idx;
+                    const isActive = activeGlowIndex === idx;
+                    const isArmed = armedGlowIndex === idx;
                     const isFading = prevGlowIndex === idx;
                     return (
                       <button
                         key={idx}
                         onClick={() => triggerPrompt(prompt.prompt)}
-                        style={isGlow ? ({ ['--glow-color' as any]: glowColor } as any) : undefined}
+                        style={(isActive || isArmed) ? ({ ['--glow-color' as any]: glowColor } as any) : undefined}
                         className={[
                           "p-4 card text-center hover:bg-accent/50 transition-colors rounded-full border border-border/40",
                           "floating-prompt",
                           `floating-prompt-${idx}`,
-                          isGlow ? "prompt-glow prompt-glow--show" : "",
+                          isActive ? "prompt-glow prompt-glow--show" : "",
+                          isArmed ? "prompt-glow" : "",
                           isFading ? "prompt-glow prompt-glow--fadeout" : ""
                         ].join(" ").trim()}
                       >
@@ -340,7 +360,6 @@ export function MobileChatApp() {
                 {/* extra breathing room below prompts */}
                 <div className="pb-10" />
 
-                {/* thinking indicator (always mounted higher up as well, but we show another here for empty state) */}
                 <ThinkingIndicator />
               </div>
             </div>
@@ -351,7 +370,6 @@ export function MobileChatApp() {
                 <MessageBubble key={message.id} message={message} onEdit={() => {}} />
               ))}
 
-              {/* Thinking indicator */}
               <ThinkingIndicator />
             </div>
           )}
@@ -364,7 +382,6 @@ export function MobileChatApp() {
         >
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
-              {/* ONE black frosted glass pill */}
               <div className="pointer-events-auto glass-dock">
                 <ChatInput />
               </div>
@@ -388,7 +405,7 @@ export function MobileChatApp() {
           transform: translateY(0);
         }
 
-        /* Floating animation keyframes for different movement patterns */
+        /* Floating animation keyframes */
         @keyframes float-1 {
           0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
           25% { transform: translate(1px, -1px) rotate(0.5deg); }
@@ -407,20 +424,9 @@ export function MobileChatApp() {
           60% { transform: translate(2px, -1px) rotate(0.3deg); }
           80% { transform: translate(-2px, 0px) rotate(-0.2deg); }
         }
-        @keyframes float-4 {
-          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
-          50% { transform: translate(-1px, -1px) rotate(-0.3deg); }
-        }
-        @keyframes float-5 {
-          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
-          30% { transform: translate(2px, 1px) rotate(0.4deg); }
-          70% { transform: translate(-1px, -2px) rotate(-0.2deg); }
-        }
-        @keyframes float-6 {
-          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
-          25% { transform: translate(-2px, 0px) rotate(-0.5deg); }
-          75% { transform: translate(1px, -1px) rotate(0.3deg); }
-        }
+        @keyframes float-4 { 0%,100%{transform:translate(0,0) rotate(0)} 50%{transform:translate(-1px,-1px) rotate(-0.3deg)} }
+        @keyframes float-5 { 0%,100%{transform:translate(0,0) rotate(0)} 30%{transform:translate(2px,1px) rotate(0.4deg)} 70%{transform:translate(-1px,-2px) rotate(-0.2deg)} }
+        @keyframes float-6 { 0%,100%{transform:translate(0,0) rotate(0)} 25%{transform:translate(-2px,0) rotate(-0.5deg)} 75%{transform:translate(1px,-1px) rotate(0.3deg)} }
 
         .floating-prompt-0 { animation: float-1 4s ease-in-out infinite; }
         .floating-prompt-1 { animation: float-2 3.5s ease-in-out infinite 0.5s; }
@@ -437,11 +443,11 @@ export function MobileChatApp() {
 
         .floating-prompt:hover { animation-play-state: paused; }
 
-        /* Prompt subtle glow (smaller, softer, cross-fade) */
+        /* Prompt glow states */
         .prompt-glow{ position: relative; z-index: 0; }
         .prompt-glow::after{
           content: ""; position: absolute; inset: -2px; border-radius: 9999px; pointer-events: none;
-          opacity: 0; filter: blur(6px);
+          opacity: 0; filter: blur(6px); will-change: opacity;
           background:
             radial-gradient(60px 30px at 30% 35%, var(--glow-color, rgba(99,102,241,0.7)), transparent 70%),
             radial-gradient(60px 30px at 70% 65%, var(--glow-color, rgba(99,102,241,0.7)), transparent 70%);
@@ -450,15 +456,15 @@ export function MobileChatApp() {
           transition: opacity 380ms ease;
           animation: glow-pan-soft 7.5s ease-in-out infinite alternate;
         }
-        .prompt-glow--show::after{ opacity: 0.22; }     /* soft cap */
-        .prompt-glow--fadeout::after{ opacity: 0; }     /* cross-fade out */
+        .prompt-glow--show::after{ opacity: 0.22; }     /* fade in from 0 */
+        .prompt-glow--fadeout::after{ opacity: 0; }     /* fade out to 0 */
 
         @keyframes glow-pan-soft{
           0%   { background-position: 26% 40%, 74% 60%; }
           100% { background-position: 34% 30%, 66% 70%; }
         }
 
-        /* Thinking indicator container: always mounted */
+        /* Thinking indicator container */
         .thinking-shell{
           transition: opacity 220ms ease, transform 220ms ease;
           opacity: 0; transform: translateY(3px);
@@ -467,15 +473,14 @@ export function MobileChatApp() {
           opacity: 1; transform: translateY(0);
         }
 
-        /* The pill itself: clip glow to pill bounds */
+        /* The pill and its glow */
         .thinking-pill{
           position: relative;
           padding: 10px 16px;
           border-radius: 9999px;
-          overflow: hidden;             /* clip inner glows */
+          overflow: hidden;
           isolation: isolate;
         }
-        /* Multicolor field, very subtle and slow, stays inside pill */
         .thinking-pill::before{
           content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1;
           background:
@@ -486,7 +491,6 @@ export function MobileChatApp() {
           filter: blur(8px);
           animation: pill-pan 12s ease-in-out infinite alternate;
         }
-        /* Faint rotating halo within bounds */
         .thinking-pill::after{
           content: ""; position: absolute; inset: -12%; border-radius: inherit; z-index: -2;
           background: conic-gradient(from 0deg,
@@ -499,25 +503,16 @@ export function MobileChatApp() {
           animation: halo-slow 22s linear infinite;
           opacity: 0.85;
         }
-        @keyframes pill-pan{
-          0%   { transform: translate3d(-2px, 0, 0) scale(1.01); }
-          100% { transform: translate3d(2px, 0, 0)  scale(1.01); }
-        }
-        @keyframes halo-slow{ from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pill-pan{ 0%{ transform: translate3d(-2px,0,0) } 100%{ transform: translate3d(2px,0,0) } }
+        @keyframes halo-slow{ from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
 
-        /* Bounce + sparkle motion */
-        @keyframes bounce-slow {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-2px); }
-        }
+        /* Bounce + sparkle */
+        @keyframes bounce-slow { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-2px)} }
         .animate-bounce-slow{ animation: bounce-slow 1.2s ease-in-out infinite; }
-        @keyframes twinkle {
-          0%, 100% { transform: scale(0.9) rotate(0deg); opacity: 0.85; }
-          50% { transform: scale(1.05) rotate(8deg); opacity: 1; }
-        }
+        @keyframes twinkle { 0%,100%{transform:scale(0.9) rotate(0); opacity:0.85} 50%{transform:scale(1.05) rotate(8deg); opacity:1} }
         .animate-twinkle{ animation: twinkle 1.6s ease-in-out infinite; }
 
-        /* Slightly rounder, glassier message bubbles (subtle) */
+        /* Subtle glass bubbles */
         .chat-messages .surface,
         .chat-messages .card,
         .chat-messages [data-bubble],
@@ -532,7 +527,7 @@ export function MobileChatApp() {
             inset 0 1px 0 rgba(255,255,255,0.04) !important;
         }
 
-        /* Input dock — unchanged */
+        /* Input dock unchanged */
         .glass-dock{
           position: relative;
           border-radius: 9999px;
