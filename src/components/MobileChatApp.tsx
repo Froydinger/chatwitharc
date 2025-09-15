@@ -17,8 +17,8 @@ function getDaypartGreeting(d: Date = new Date()): "Good Morning" | "Good Aftern
   return "Good Evening";
 }
 
-/** Use the same image as the assistant avatar everywhere */
-const ASSISTANT_AVATAR = "/lovable-uploads/c65f38aa-5928-46e1-b224-9f6a2bacbf18.png";
+/** Use the SAME head-only avatar (the one used in message bubbles) */
+const ASSISTANT_AVATAR = "/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png";
 
 /** Glow timings */
 const CYCLE_MS = 5200;              // keep overall cycle
@@ -96,6 +96,10 @@ export function MobileChatApp() {
       let decayTimeout: number | undefined;
 
       const cycle = () => {
+        theNext();
+      };
+
+      const theNext = () => {
         const nextIndex = Math.floor(Math.random() * quickPrompts.length);
         const nextColor = glowPalette[Math.floor(Math.random() * glowPalette.length)];
 
@@ -290,7 +294,7 @@ export function MobileChatApp() {
               {/* Welcome Section */}
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                 <div className="mb-8">
-                  {/* Use assistant avatar here, lightly floating like buttons */}
+                  {/* Use head-only assistant avatar here, lightly floating like buttons */}
                   <img
                     src={ASSISTANT_AVATAR}
                     alt="Arc assistant avatar"
