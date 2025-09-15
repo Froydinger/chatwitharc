@@ -36,6 +36,10 @@ export function SettingsPanel() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Local draft + dirty state for Display Name (prevent save-per-keystroke)
+  const [displayNameDraft, setDisplayNameDraft] = useState("");
+  const [displayNameDirty, setDisplayNameDirty] = useState(false);
+
   // Local draft + dirty state for Context box (no saving until "Save" pressed)
   const [contextDraft, setContextDraft] = useState("");
   const [contextDirty, setContextDirty] = useState(false);
@@ -44,7 +48,14 @@ export function SettingsPanel() {
   const [memoryDraft, setMemoryDraft] = useState("");
   const [memoryDirty, setMemoryDirty] = useState(false);
 
-  // Keep local draft in sync with profile, but don't overwrite if the user is editing
+  // Keep display name draft in sync with profile unless user is editing
+  useEffect(() => {
+    if (!displayNameDirty) {
+      setDisplayNameDraft(profile?.display_name || "");
+    }
+  }, [profile?.display_name, displayNameDirty]);
+
+  // Keep local drafts in sync with profile, but don't overwrite if the user is editing
   useEffect(() => {
     if (!contextDirty) {
       setContextDraft(profile?.context_info || "");
@@ -56,6 +67,28 @@ export function SettingsPanel() {
       setMemoryDraft(profile?.memory_info || "");
     }
   }, [profile?.memory_info, memoryDirty]);
+
+  const handleSaveDisplayName = async () => {
+    try {
+      await updateProfile({ display_name: displayNameDraft.trim() });
+      setDisplayNameDirty(false);
+      toast({
+        title: "Saved",
+        description: "Your name was updated."
+      });
+    } catch (e) {
+      toast({
+        title: "Save failed",
+        description: "Could not save your name. Try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleResetDisplayName = () => {
+    setDisplayNameDraft(profile?.display_name || "");
+    setDisplayNameDirty(false);
+  };
 
   const handleSaveContext = async () => {
     try {
@@ -239,13 +272,43 @@ export function SettingsPanel() {
           description: "How Arc should address you",
           action: (
             <div className="w-full">
-              <Input
-                value={profile?.display_name || ""}
-                onChange={(e) => updateProfile({ display_name: e.target.value })}
-                placeholder="Enter your name"
-                className="w-full glass border-glass-border text-sm"
-                disabled={updating}
-              />
+              <div className="flex flex-col gap-2">
+                <Input
+                  value={displayNameDraft}
+                  onChange={(e) => {
+                    setDisplayNameDraft(e.target.value);
+                    setDisplayNameDirty(true);
+                  }}
+                  placeholder="Enter your name"
+                  className="w-full glass border-glass-border text-sm"
+                  disabled={updating}
+                />
+                <div className="mt-1 flex items-center gap-2">
+                  <GlassButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSaveDisplayName}
+                    disabled={updating || !displayNameDirty}
+                    className="px-3 py-1"
+                  >
+                    Save
+                  </GlassButton>
+                  <GlassButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleResetDisplayName}
+                    disabled={updating || !displayNameDirty}
+                    className="px-3 py-1"
+                  >
+                    Reset
+                  </GlassButton>
+                  {displayNameDirty && (
+                    <span className="text-xs text-muted-foreground">
+                      Unsaved changes
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           )
         },
