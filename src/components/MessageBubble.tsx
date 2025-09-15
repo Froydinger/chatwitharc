@@ -28,10 +28,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const handleCopy = async () => {
       try {
         await navigator.clipboard.writeText(message.content);
-        toast({
-          title: "Copied!",
-          description: "Message copied to clipboard",
-        });
+        toast({ title: "Copied!", description: "Message copied to clipboard" });
         setShowActions(false);
       } catch {
         toast({
@@ -93,7 +90,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.12 }}
             className={`flex-shrink-0 w-8 h-8 rounded-full glass flex items-center justify-center ${
-              isUser ? "bg-primary/20" : "bg-glass/50"
+              isUser ? "bg-primary/20" : "bg-glass/30"
             }`}
           >
             {isUser ? (
@@ -111,55 +108,30 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               <div
                 className="w-8 h-8 rounded-full bg-cover bg-center bg-no-repeat"
                 style={{
-                  backgroundImage: `url('/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png')`,
+                  backgroundImage:
+                    "url('/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png')",
                 }}
               />
             )}
           </motion.div>
 
-          {/* Message Content */}
+          {/* Message Bubble */}
           <motion.div
             initial={{ opacity: 0.9 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.12 }}
             onClick={handleMessageClick}
             className={[
-              // Base bubble shell
               "relative cursor-pointer px-4 py-3 rounded-[22px] border backdrop-blur-md",
               "shadow-[0_6px_20px_-6px_rgba(0,0,0,0.35)]",
-              "before:absolute before:inset-0 before:rounded-[22px] before:pointer-events-none",
-              "after:absolute after:rounded-full after:blur-md after:pointer-events-none",
-              // Theme: user vs assistant
-              isUser
-                ? [
-                    // Subtle color tint for user
-                    "bg-gradient-to-b from-primary/15 to-primary/10",
-                    "border-primary/30",
-                    "before:bg-[linear-gradient(180deg,rgba(255,255,255,0.18),rgba(255,255,255,0.02))]",
-                    "after:content-[''] after:-z-10 after:opacity-50",
-                    "after:w-16 after:h-16 after:right-2 after:bottom-2",
-                    "after:bg-primary/15",
-                  ].join(" ")
-                : [
-                    // Neutral glass for assistant
-                    "bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))]",
-                    "border-glass-border/50",
-                    "before:bg-[linear-gradient(180deg,rgba(255,255,255,0.22),rgba(255,255,255,0.04))]",
-                    "after:content-[''] after:-z-10 after:opacity-40",
-                    "after:w-16 after:h-16 after:left-2 after:bottom-2",
-                    "after:bg-white/10",
-                  ].join(" "),
-              // Hover polish
               "transition-[transform,box-shadow,background] duration-200",
               "hover:shadow-[0_10px_26px_-8px_rgba(0,0,0,0.45)]",
+              // 20%ish opacity glass. No top shine. No before/after layers.
+              isUser
+                ? "bg-primary/20 border-primary/30"
+                : "bg-white/20 dark:bg-white/10 border-glass-border/40",
             ].join(" ")}
           >
-            {/* Subtle inner highlight */}
-            <div className="pointer-events-none absolute inset-px rounded-[20px] ring-1 ring-white/10" />
-
-            {/* Shine strip */}
-            <div className="pointer-events-none absolute -top-1 left-4 right-4 h-[2px] rounded-full bg-white/30 opacity-40" />
-
             {/* Image Generation Placeholder */}
             {message.type === "image-generating" && (
               <ImageGenerationPlaceholder
@@ -255,7 +227,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             {!isEditing && (
               <motion.div
                 initial={false}
-                animate={{ opacity: showActions ? 1 : 0, scale: showActions ? 1 : 0.96 }}
+                animate={{
+                  opacity: showActions ? 1 : 0,
+                  scale: showActions ? 1 : 0.96,
+                }}
                 transition={{ duration: 0.18 }}
                 className="pointer-events-auto absolute -top-3 -right-3 hidden gap-1 group-hover:flex"
               >
