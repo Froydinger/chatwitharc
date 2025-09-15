@@ -219,7 +219,7 @@ export function MobileChatApp() {
                     <button
                       key={idx}
                       onClick={() => triggerPrompt(prompt.prompt)}
-                      className="p-4 card text-center hover:bg-accent/50 transition-colors rounded-full border border-border/40"
+                      className={`p-4 card text-center hover:bg-accent/50 transition-colors rounded-full border border-border/40 floating-prompt floating-prompt-${idx}`}
                     >
                       <span className="font-medium text-sm">{prompt.label}</span>
                     </button>
@@ -287,8 +287,66 @@ export function MobileChatApp() {
         </div>
       </div>
 
-      {/* Scoped styles for the glass pill dock and small UI patches */}
+      {/* Scoped styles for the glass pill dock and floating animations */}
       <style>{`
+        /* Floating animation keyframes for different movement patterns */
+        @keyframes float-1 {
+          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+          25% { transform: translate(1px, -1px) rotate(0.5deg); }
+          50% { transform: translate(-1px, -2px) rotate(-0.5deg); }
+          75% { transform: translate(-2px, 1px) rotate(0.3deg); }
+        }
+        
+        @keyframes float-2 {
+          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+          33% { transform: translate(-1px, 1px) rotate(-0.3deg); }
+          66% { transform: translate(2px, 0px) rotate(0.4deg); }
+        }
+        
+        @keyframes float-3 {
+          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+          20% { transform: translate(1px, 1px) rotate(0.2deg); }
+          40% { transform: translate(-1px, 2px) rotate(-0.4deg); }
+          60% { transform: translate(2px, -1px) rotate(0.3deg); }
+          80% { transform: translate(-2px, 0px) rotate(-0.2deg); }
+        }
+        
+        @keyframes float-4 {
+          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+          50% { transform: translate(-1px, -1px) rotate(-0.3deg); }
+        }
+        
+        @keyframes float-5 {
+          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+          30% { transform: translate(2px, 1px) rotate(0.4deg); }
+          70% { transform: translate(-1px, -2px) rotate(-0.2deg); }
+        }
+        
+        @keyframes float-6 {
+          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+          25% { transform: translate(-2px, 0px) rotate(-0.5deg); }
+          75% { transform: translate(1px, -1px) rotate(0.3deg); }
+        }
+
+        /* Apply different floating animations to each prompt */
+        .floating-prompt-0 { animation: float-1 4s ease-in-out infinite; }
+        .floating-prompt-1 { animation: float-2 3.5s ease-in-out infinite 0.5s; }
+        .floating-prompt-2 { animation: float-3 5s ease-in-out infinite 1s; }
+        .floating-prompt-3 { animation: float-4 3s ease-in-out infinite 1.5s; }
+        .floating-prompt-4 { animation: float-5 4.5s ease-in-out infinite 2s; }
+        .floating-prompt-5 { animation: float-6 3.8s ease-in-out infinite 2.5s; }
+        .floating-prompt-6 { animation: float-1 3.2s ease-in-out infinite 3s; }
+        .floating-prompt-7 { animation: float-2 4.2s ease-in-out infinite 3.5s; }
+        .floating-prompt-8 { animation: float-3 3.7s ease-in-out infinite 0.2s; }
+        .floating-prompt-9 { animation: float-4 4.8s ease-in-out infinite 0.8s; }
+        .floating-prompt-10 { animation: float-5 3.3s ease-in-out infinite 1.2s; }
+        .floating-prompt-11 { animation: float-6 4.1s ease-in-out infinite 1.8s; }
+
+        /* Pause animations on hover for better UX */
+        .floating-prompt:hover {
+          animation-play-state: paused;
+        }
+
         /* ONE full-size black frosted pill */
         .glass-dock{
           position: relative;
