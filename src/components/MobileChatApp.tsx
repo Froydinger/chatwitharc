@@ -17,7 +17,7 @@ function getDaypartGreeting(d: Date = new Date()): "Good Morning" | "Good Aftern
   return "Good Evening";
 }
 
-/** Keep header logo as-is, but use the head-only avatar above prompts */
+/** Keep header logo as-is; use head-only avatar above prompts */
 const HEADER_LOGO = "/lovable-uploads/c65f38aa-5928-46e1-b224-9f6a2bacbf18.png";
 const HERO_AVATAR  = "/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png";
 
@@ -291,7 +291,7 @@ export function MobileChatApp() {
               {/* Welcome Section */}
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                 <div className="mb-8">
-                  {/* Head-only assistant avatar above prompts */}
+                  {/* Head-only assistant avatar above prompts (no border) */}
                   <img
                     src={HERO_AVATAR}
                     alt="Arc assistant avatar"
@@ -380,11 +380,14 @@ export function MobileChatApp() {
         }
         img.ai-avatar.is-loaded{ opacity: 1; transform: translateY(0); }
 
-        /* Very light floating for hero avatar */
+        /* Very light floating for hero avatar — NO VISIBLE BORDER */
         .floating-hero{ animation: float-3 5.2s ease-in-out infinite; }
         .assistant-hero-avatar{
           border-radius: 24%;
-          box-shadow: 0 12px 30px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06) inset;
+          box-shadow: 0 12px 30px rgba(0,0,0,0.35); /* removed inset outline */
+          border: none !important;
+          outline: none !important;
+          background: transparent;
         }
 
         /* Floating animation keyframes for different movement patterns */
