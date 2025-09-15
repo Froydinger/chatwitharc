@@ -58,66 +58,18 @@ export function MobileChatApp() {
 
   // Quick Prompts
   const quickPrompts = [
-    {
-      label: "🎯 Focus",
-      prompt:
-        "Help me set up a focused work session. Guide me through planning a productive 25-minute sprint.",
-    },
-    {
-      label: "🎨 Create",
-      prompt:
-        "I need creative inspiration. Give me an interesting creative idea I can work on today.",
-    },
-    {
-      label: "💭 Check-in",
-      prompt:
-        "Help me do a quick wellness check. Ask me about my mood and energy level, then give me personalized advice.",
-    },
-    {
-      label: "💬 Chat",
-      prompt:
-        "I want to have a casual conversation. Ask me about my day and let's chat like friends.",
-    },
-    {
-      label: "🤝 Advice",
-      prompt:
-        "I have a situation I need advice on. Help me think through a decision or challenge I'm facing.",
-    },
-    {
-      label: "🙏 Gratitude",
-      prompt:
-        "Lead me through a quick gratitude exercise to help me appreciate the good things in my life.",
-    },
-    {
-      label: "📚 Learn",
-      prompt:
-        "Help me understand something new. I want to learn about a topic that interests me.",
-    },
-    {
-      label: "📋 Plan",
-      prompt:
-        "Help me organize my day or week. Guide me through creating a structured plan for my goals.",
-    },
-    {
-      label: "🪞 Reflect",
-      prompt:
-        "Lead me through a guided reflection session about my recent experiences and growth.",
-    },
-    {
-      label: "⚡ Motivate",
-      prompt:
-        "I need encouragement and motivation. Help me feel inspired and energized.",
-    },
-    {
-      label: "🤔 Decide",
-      prompt:
-        "Help me make a decision. I have options to consider and need guidance on choosing the best path.",
-    },
-    {
-      label: "🧘 Calm",
-      prompt:
-        "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise.",
-    },
+    { label: "🎯 Focus", prompt: "Help me set up a focused work session. Guide me through planning a productive 25-minute sprint." },
+    { label: "🎨 Create", prompt: "I need creative inspiration. Give me an interesting creative idea I can work on today." },
+    { label: "💭 Check-in", prompt: "Help me do a quick wellness check. Ask me about my mood and energy level, then give me personalized advice." },
+    { label: "💬 Chat", prompt: "I want to have a casual conversation. Ask me about my day and let's chat like friends." },
+    { label: "🤝 Advice", prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing." },
+    { label: "🙏 Gratitude", prompt: "Lead me through a quick gratitude exercise to help me appreciate the good things in my life." },
+    { label: "📚 Learn", prompt: "Help me understand something new. I want to learn about a topic that interests me." },
+    { label: "📋 Plan", prompt: "Help me organize my day or week. Guide me through creating a structured plan for my goals." },
+    { label: "🪞 Reflect", prompt: "Lead me through a guided reflection session about my recent experiences and growth." },
+    { label: "⚡ Motivate", prompt: "I need encouragement and motivation. Help me feel inspired and energized." },
+    { label: "🤔 Decide", prompt: "Help me make a decision. I have options to consider and need guidance on choosing the best path." },
+    { label: "🧘 Calm", prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise." }
   ];
 
   // Listen for chat history close events
@@ -250,29 +202,73 @@ export function MobileChatApp() {
     </div>
   );
 
-  /** Marquee Row (endless loop R→L). Duplicates content to create a seamless loop */
+  /** Marquee Row — seamless loop
+   *  We measure the width of ONE set of pills, then animate -that- width.
+   *  Track contains 3 identical sets so the visual never changes at the reset point.
+   */
   const MarqueeRow: React.FC<{
     items: typeof quickPrompts;
-    speed?: number; // seconds
+    duration?: number; // seconds for one loop of ONE set
+    reverse?: boolean;
     delay?: number; // seconds
-  }> = ({ items, speed = 28, delay = 0 }) => (
-    <div className="marquee" style={{ ["--delay" as any]: `${delay}s` }}>
+  }> = ({ items, duration = 28, reverse = false, delay = 0 }) => {
+    const setRef = useRef<HTMLDivElement>(null);
+    const trackRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      const update = () => {
+        const w = setRef.current?.getBoundingClientRect().width ?? 600;
+        trackRef.current?.style.setProperty("--loop-w", `${w}px`);
+      };
+      update();
+      const ro = new ResizeObserver(update);
+      if (setRef.current) ro.observe(setRef.current);
+      window.addEventListener("resize", update);
+      return () => {
+        ro.disconnect();
+        window.removeEventListener("resize", update);
+      };
+    }, [items]);
+
+    return (
       <div
-        className="marquee-track"
-        style={{ ["--duration" as any]: `${speed}s` }}
+        className="marquee"
+        style={
+          {
+            "--dir": reverse ? -1 : 1,
+            "--duration": `${duration}s`,
+            "--delay": `${delay}s`,
+          } as React.CSSProperties
+        }
       >
-        {[...items, ...items].map((p, i) => (
-          <button
-            key={`${p.label}-${i}`}
-            onClick={() => triggerPrompt(p.prompt)}
-            className="prompt-pill"
-          >
-            <span className="font-medium text-sm">{p.label}</span>
-          </button>
-        ))}
+        <div ref={trackRef} className="marquee-track">
+          {/* One measured set */}
+          <div ref={setRef} className="marquee-set">
+            {items.map((p, i) => (
+              <button key={`a-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
+                <span className="font-medium text-sm">{p.label}</span>
+              </button>
+            ))}
+          </div>
+          {/* Two clones to ensure seamless visual at reset */}
+          <div className="marquee-set" aria-hidden>
+            {items.map((p, i) => (
+              <button key={`b-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
+                <span className="font-medium text-sm">{p.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="marquee-set" aria-hidden>
+            {items.map((p, i) => (
+              <button key={`c-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
+                <span className="font-medium text-sm">{p.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Main chat interface
   return (
@@ -342,7 +338,6 @@ export function MobileChatApp() {
               {/* Welcome Section */}
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                 <div className="mb-8">
-                  {/* Head-only assistant avatar above prompts (no border) */}
                   <img
                     src={HERO_AVATAR}
                     alt="Arc assistant avatar"
@@ -353,17 +348,17 @@ export function MobileChatApp() {
                   </h2>
                 </div>
 
-                {/* Rolling wall of prompts — 2 rows, endless loop */}
+                {/* Rolling wall of prompts — 2 rows, seamless */}
                 <div className="w-full max-w-2xl flex flex-col gap-4 mb-16">
-                  <MarqueeRow items={quickPrompts.slice(0, 6)} speed={30} />
+                  <MarqueeRow items={quickPrompts.slice(0, 6)} duration={32} />
                   <MarqueeRow
                     items={quickPrompts.slice(6)}
-                    speed={34}
-                    delay={-17}
+                    duration={36}
+                    reverse
+                    delay={-18}
                   />
                 </div>
 
-                {/* extra breathing room below prompts */}
                 <div className="pb-8" />
 
                 <ThinkingIndicator />
@@ -371,15 +366,9 @@ export function MobileChatApp() {
             </div>
           ) : (
             <div className="p-4 space-y-4 chat-messages">
-              {/* Messages */}
               {messages.map((message) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  onEdit={() => {}}
-                />
+                <MessageBubble key={message.id} message={message} onEdit={() => {}} />
               ))}
-
               <ThinkingIndicator />
             </div>
           )}
@@ -422,7 +411,6 @@ export function MobileChatApp() {
           background: transparent;
         }
 
-        /* Floating animation keyframes for subtle drift (elsewhere reused) */
         @keyframes float-3 {
           0%,100%{transform:translate(0px,0px) rotate(0)}
           20%{transform:translate(1px,1px) rotate(0.2deg)}
@@ -436,21 +424,26 @@ export function MobileChatApp() {
           position: relative;
           overflow: hidden;
           padding: 2px 0;
-          /* fade edges */
-          -webkit-mask-image: linear-gradient(to right, transparent 0, black 10%, black 90%, transparent 100%);
-                  mask-image: linear-gradient(to right, transparent 0, black 10%, black 90%, transparent 100%);
+          -webkit-mask-image: linear-gradient(to right, transparent 0, black 8%, black 92%, transparent 100%);
+                  mask-image: linear-gradient(to right, transparent 0, black 8%, black 92%, transparent 100%);
         }
         .marquee-track{
           display: inline-flex;
           gap: 12px;
           white-space: nowrap;
           will-change: transform;
+          transform: translate3d(0,0,0);
+          backface-visibility: hidden;
           animation: marquee var(--duration, 28s) linear infinite;
           animation-delay: var(--delay, 0s);
         }
+        .marquee-set{
+          display: inline-flex;
+          gap: 12px;
+        }
         @keyframes marquee{
-          from { transform: translateX(0); }
-          to   { transform: translateX(-50%); } /* because content duplicated */
+          from { transform: translate3d(0,0,0); }
+          to   { transform: translate3d(calc(var(--dir,1) * -1 * var(--loop-w, 600px)),0,0); }
         }
 
         /* Prompt pill style (glassy) */
