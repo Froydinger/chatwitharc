@@ -235,7 +235,7 @@ export function MobileChatApp() {
                         ))}
                       </div>
                       <span className="text-sm text-muted-foreground">
-                        {isGeneratingImage ? "Generating image..." : "AI is thinking..."}
+                        {isGeneratingImage ? "Generating image..." : "Arc is thinking..."}
                       </span>
                     </div>
                   </div>
@@ -260,7 +260,7 @@ export function MobileChatApp() {
                         ))}
                       </div>
                       <span className="text-sm text-muted-foreground">
-                        {isGeneratingImage ? "Generating image..." : "AI is thinking..."}
+                        {isGeneratingImage ? "Generating image..." : "Arc is thinking..."}
                       </span>
                     </div>
                   </div>
