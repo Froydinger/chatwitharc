@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Settings, History } from "lucide-react";
+import { Plus, Settings, History, Brain, Sparkles } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput } from "@/components/ChatInput";
@@ -142,8 +142,88 @@ export function MobileChatApp() {
     setShowSettings(false);
   };
 
+  /**
+   * AI avatar progressive fade in
+   * Works if your avatar <img> has either:
+   *  - data-ai-avatar="true"
+   *  - class "ai-avatar"
+   *  - alt that includes "Arc", "assistant", or "ArcAI"
+   * If none of those, add one of them in MessageBubble to be explicit.
+   */
+  useEffect(() => {
+    const root = messagesContainerRef.current ?? document.body;
 
+    const tagCandidate = (img: HTMLImageElement) => {
+      const alt = (img.getAttribute("alt") || "").toLowerCase();
+      const likely =
+        img.hasAttribute("data-ai-avatar") ||
+        img.classList.contains("ai-avatar") ||
+        alt.includes("arc") ||
+        alt.includes("assistant") ||
+        alt.includes("arcai");
+      if (likely) {
+        if (!img.classList.contains("ai-avatar")) {
+          img.classList.add("ai-avatar");
+        }
+        // start hidden until fully loaded
+        img.classList.remove("is-loaded");
+        const markLoaded = () => {
+          img.classList.add("is-loaded");
+        };
+        if (img.complete && img.naturalWidth > 0) {
+          // already loaded from cache
+          markLoaded();
+        } else {
+          img.addEventListener("load", markLoaded, { once: true });
+          img.addEventListener("error", () => {
+            // on error, still reveal to avoid the hard pop
+            img.classList.add("is-loaded");
+          }, { once: true });
+        }
+      }
+    };
 
+    const scan = () => {
+      root.querySelectorAll("img").forEach((node) => {
+        tagCandidate(node as HTMLImageElement);
+      });
+    };
+
+    // initial scan
+    scan();
+
+    // watch for new avatars entering the DOM
+    const mo = new MutationObserver((muts) => {
+      for (const m of muts) {
+        m.addedNodes.forEach((n) => {
+          if (n instanceof HTMLImageElement) {
+            tagCandidate(n);
+          } else if (n instanceof HTMLElement) {
+            n.querySelectorAll("img").forEach((img) => tagCandidate(img as HTMLImageElement));
+          }
+        });
+      }
+    });
+    mo.observe(root, { childList: true, subtree: true });
+
+    return () => mo.disconnect();
+  }, []);
+
+  const ThinkingIndicator = () => (
+    <div className="flex justify-center">
+      <div className="surface px-4 py-3 rounded-lg relative thinking-glow">
+        <div className="flex items-center gap-3">
+          <div className="relative flex items-center justify-center">
+            <Brain className="h-5 w-5 animate-bounce-slow" />
+            <Sparkles className="h-3 w-3 absolute -top-1 -right-1 animate-twinkle" />
+          </div>
+          <span className="text-sm text-muted-foreground">
+            {isGeneratingImage ? "Generating image..." : "Arc is thinking..."}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 
   // Main chat interface
   return (
@@ -229,10 +309,9 @@ export function MobileChatApp() {
                 {(isLoading || isGeneratingImage) && (
                   <div className="surface px-4 py-3 rounded-lg">
                     <div className="flex items-center gap-3">
-                      <div className="flex gap-1">
-                        {[0, 1, 2].map((i) => (
-                          <div key={i} className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                        ))}
+                      <div className="relative flex items-center justify-center thinking-glow">
+                        <Brain className="h-5 w-5 animate-bounce-slow" />
+                        <Sparkles className="h-3 w-3 absolute -top-1 -right-1 animate-twinkle" />
                       </div>
                       <span className="text-sm text-muted-foreground">
                         {isGeneratingImage ? "Generating image..." : "Arc is thinking..."}
@@ -250,22 +329,7 @@ export function MobileChatApp() {
               ))}
 
               {/* Thinking indicator */}
-              {(isLoading || isGeneratingImage) && (
-                <div className="flex justify-center">
-                  <div className="surface px-4 py-3 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="flex gap-1">
-                        {[0, 1, 2].map((i) => (
-                          <div key={i} className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                        ))}
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {isGeneratingImage ? "Generating image..." : "Arc is thinking..."}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {(isLoading || isGeneratingImage) && <ThinkingIndicator />}
             </div>
           )}
         </div>
@@ -287,8 +351,21 @@ export function MobileChatApp() {
         </div>
       </div>
 
-      {/* Scoped styles for the glass pill dock and floating animations */}
+      {/* Scoped styles for the glass pill dock, floating animations, avatar fade, and thinking glow */}
       <style>{`
+        /* Avatar progressive reveal */
+        img.ai-avatar{
+          opacity: 0;
+          filter: saturate(1) contrast(1);
+          transition: opacity 260ms ease, transform 260ms ease;
+          transform: translateY(2px);
+          will-change: opacity, transform;
+        }
+        img.ai-avatar.is-loaded{
+          opacity: 1;
+          transform: translateY(0);
+        }
+
         /* Floating animation keyframes for different movement patterns */
         @keyframes float-1 {
           0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
@@ -328,7 +405,6 @@ export function MobileChatApp() {
           75% { transform: translate(1px, -1px) rotate(0.3deg); }
         }
 
-        /* Apply different floating animations to each prompt */
         .floating-prompt-0 { animation: float-1 4s ease-in-out infinite; }
         .floating-prompt-1 { animation: float-2 3.5s ease-in-out infinite 0.5s; }
         .floating-prompt-2 { animation: float-3 5s ease-in-out infinite 1s; }
@@ -342,9 +418,46 @@ export function MobileChatApp() {
         .floating-prompt-10 { animation: float-5 3.3s ease-in-out infinite 1.2s; }
         .floating-prompt-11 { animation: float-6 4.1s ease-in-out infinite 1.8s; }
 
-        /* Pause animations on hover for better UX */
         .floating-prompt:hover {
           animation-play-state: paused;
+        }
+
+        /* Subtle lively thinking glow */
+        .thinking-glow{
+          position: relative;
+        }
+        .thinking-glow::after{
+          content: "";
+          position: absolute;
+          inset: -8px;
+          border-radius: 12px;
+          pointer-events: none;
+          background: radial-gradient(120px 60px at 20% 30%, rgba(99,102,241,0.18), transparent 60%),
+                      radial-gradient(120px 60px at 80% 70%, rgba(16,185,129,0.16), transparent 60%),
+                      radial-gradient(120px 60px at 50% 10%, rgba(236,72,153,0.14), transparent 60%);
+          filter: blur(10px);
+          opacity: 0.9;
+          animation: glow-shift 3.2s ease-in-out infinite alternate;
+        }
+        @keyframes glow-shift{
+          0% { transform: translateY(0px); opacity: 0.85; }
+          100% { transform: translateY(1px); opacity: 1; }
+        }
+
+        /* Bounce and sparkle keyframes */
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-2px); }
+        }
+        .animate-bounce-slow{
+          animation: bounce-slow 1.2s ease-in-out infinite;
+        }
+        @keyframes twinkle {
+          0%, 100% { transform: scale(0.9) rotate(0deg); opacity: 0.8; }
+          50% { transform: scale(1.05) rotate(8deg); opacity: 1; }
+        }
+        .animate-twinkle{
+          animation: twinkle 1.4s ease-in-out infinite;
         }
 
         /* ONE full-size black frosted pill */
@@ -373,7 +486,6 @@ export function MobileChatApp() {
         }
         .glass-dock > *{ position: relative; z-index: 1; }
 
-        /* Remove any nested backgrounds/borders/rings/shadows/backdrop effects */
         .glass-dock :is(.surface,.card,[class*="bg-"],[class*="ring-"],[class*="border"],[class*="shadow"],
                         .backdrop-blur,[class*="backdrop-"],[style*="backdrop-filter"]){
           background: transparent !important;
@@ -383,26 +495,22 @@ export function MobileChatApp() {
           -webkit-backdrop-filter: none !important;
         }
 
-        /* Common wrapper names seen in ChatInput UIs */
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,.field,form){
           background: transparent !important;
           box-shadow: none !important;
           border: 0 !important;
         }
 
-        /* Soft blurry glow on focus within (outside, not clipped) */
         .glass-dock:focus-within{
           box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 16px 4px hsl(var(--primary)/0.3), 0 0 40px 10px hsl(var(--primary)/0.15) !important;
           border-radius: 9999px;
         }
 
-        /* Input defaults: do not alter spacing; only prevent iOS zoom */
         .glass-dock input,
         .glass-dock textarea{
-          font-size: 16px !important; /* prevent iOS zoom */
+          font-size: 16px !important;
         }
 
-        /* Autofill wash removal (no spacing changes) */
         .glass-dock input:-webkit-autofill,
         .glass-dock textarea:-webkit-autofill{
           -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
@@ -410,8 +518,6 @@ export function MobileChatApp() {
           transition: background-color 999999s ease-in-out 0s !important;
         }
 
-        /* Tiny size tweak for any floating "sync" bubble/icon without moving it */
-        /* Catch common class/attr patterns so you don't have to rename anything */
         .sync-bubble,
         [data-sync-bubble],
         [data-role="sync-bubble"],
@@ -420,10 +526,9 @@ export function MobileChatApp() {
         [class*="sync-bubble"],
         [class*="syncIndicator"],
         [class*="sync-indicator"]{
-          transform: scale(0.9) !important;   /* slightly smaller */
+          transform: scale(0.9) !important;
           transform-origin: center !important;
         }
-        /* If the icon inside is oversized, trim it a hair as well */
         .sync-bubble svg,
         [data-sync-bubble] svg,
         .sync-indicator svg,
