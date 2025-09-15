@@ -20,10 +20,8 @@ function getDaypartGreeting(
 }
 
 /** Keep header logo as-is; use the head-only avatar above prompts */
-const HEADER_LOGO =
-  "/lovable-uploads/c65f38aa-5928-46e1-b224-9f6a2bacbf18.png";
-const HERO_AVATAR =
-  "/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png";
+const HEADER_LOGO = "/lovable-uploads/c65f38aa-5928-46e1-b224-9f6a2bacbf18.png";
+const HERO_AVATAR  = "/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png";
 
 export function MobileChatApp() {
   const {
@@ -58,18 +56,18 @@ export function MobileChatApp() {
 
   // Quick Prompts
   const quickPrompts = [
-    { label: "🎯 Focus", prompt: "Help me set up a focused work session. Guide me through planning a productive 25-minute sprint." },
-    { label: "🎨 Create", prompt: "I need creative inspiration. Give me an interesting creative idea I can work on today." },
-    { label: "💭 Check-in", prompt: "Help me do a quick wellness check. Ask me about my mood and energy level, then give me personalized advice." },
-    { label: "💬 Chat", prompt: "I want to have a casual conversation. Ask me about my day and let's chat like friends." },
-    { label: "🤝 Advice", prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing." },
+    { label: "🎯 Focus",     prompt: "Help me set up a focused work session. Guide me through planning a productive 25-minute sprint." },
+    { label: "🎨 Create",    prompt: "I need creative inspiration. Give me an interesting creative idea I can work on today." },
+    { label: "💭 Check-in",  prompt: "Help me do a quick wellness check. Ask me about my mood and energy level, then give me personalized advice." },
+    { label: "💬 Chat",      prompt: "I want to have a casual conversation. Ask me about my day and let's chat like friends." },
+    { label: "🤝 Advice",    prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing." },
     { label: "🙏 Gratitude", prompt: "Lead me through a quick gratitude exercise to help me appreciate the good things in my life." },
-    { label: "📚 Learn", prompt: "Help me understand something new. I want to learn about a topic that interests me." },
-    { label: "📋 Plan", prompt: "Help me organize my day or week. Guide me through creating a structured plan for my goals." },
-    { label: "🪞 Reflect", prompt: "Lead me through a guided reflection session about my recent experiences and growth." },
-    { label: "⚡ Motivate", prompt: "I need encouragement and motivation. Help me feel inspired and energized." },
-    { label: "🤔 Decide", prompt: "Help me make a decision. I have options to consider and need guidance on choosing the best path." },
-    { label: "🧘 Calm", prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise." }
+    { label: "📚 Learn",     prompt: "Help me understand something new. I want to learn about a topic that interests me." },
+    { label: "📋 Plan",      prompt: "Help me organize my day or week. Guide me through creating a structured plan for my goals." },
+    { label: "🪞 Reflect",   prompt: "Lead me through a guided reflection session about my recent experiences and growth." },
+    { label: "⚡ Motivate",  prompt: "I need encouragement and motivation. Help me feel inspired and energized." },
+    { label: "🤔 Decide",    prompt: "Help me make a decision. I have options to consider and need guidance on choosing the best path." },
+    { label: "🧘 Calm",      prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise." }
   ];
 
   // Listen for chat history close events
@@ -119,10 +117,7 @@ export function MobileChatApp() {
       el.scrollTop = 0;
       requestAnimationFrame(() => (el.scrollTop = 0));
     }
-    toast({
-      title: "New Chat Started",
-      description: "Ready for a fresh conversation!",
-    });
+    toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -144,9 +139,7 @@ export function MobileChatApp() {
       const likely =
         img.hasAttribute("data-ai-avatar") ||
         img.classList.contains("ai-avatar") ||
-        alt.includes("arc") ||
-        alt.includes("assistant") ||
-        alt.includes("arcai");
+        alt.includes("arc") || alt.includes("assistant") || alt.includes("arcai");
       if (likely) {
         img.classList.add("ai-avatar");
         img.classList.remove("is-loaded");
@@ -158,19 +151,13 @@ export function MobileChatApp() {
         }
       }
     };
-    const scan = () =>
-      root.querySelectorAll("img").forEach((n) =>
-        tagCandidate(n as HTMLImageElement)
-      );
+    const scan = () => root.querySelectorAll("img").forEach((n) => tagCandidate(n as HTMLImageElement));
     scan();
     const mo = new MutationObserver((muts) => {
       for (const m of muts) {
         m.addedNodes.forEach((n) => {
           if (n instanceof HTMLImageElement) tagCandidate(n);
-          else if (n instanceof HTMLElement)
-            n.querySelectorAll("img").forEach((img) =>
-              tagCandidate(img as HTMLImageElement)
-            );
+          else if (n instanceof HTMLElement) n.querySelectorAll("img").forEach((img) => tagCandidate(img as HTMLImageElement));
         });
       }
     });
@@ -182,11 +169,7 @@ export function MobileChatApp() {
   const showThinking = isLoading || isGeneratingImage;
   const ThinkingIndicator = () => (
     <div className="flex justify-center">
-      <div
-        className="thinking-shell"
-        data-show={showThinking ? "true" : "false"}
-        aria-live="polite"
-      >
+      <div className="thinking-shell" data-show={showThinking ? "true" : "false"} aria-live="polite">
         <div className="surface thinking-pill rounded-full">
           <div className="flex items-center gap-3">
             <div className="relative flex items-center justify-center">
@@ -202,16 +185,16 @@ export function MobileChatApp() {
     </div>
   );
 
-  /** Marquee Row — seamless loop with crossfade at reset
-   *  We measure the width of ONE set of pills, animate that distance,
-   *  and overlay TWO tracks that are time-shifted by half a loop and
-   *  fade in/out at the edges to hide the reset.
+  /** Marquee Row — seamless loop with *gated* crossfade at reset.
+   *  Two tracks move the same distance (the width of ONE set). Track B is delayed by
+   *  half-duration. Opacity is controlled so only one track is visible at a time,
+   *  except for a brief overlap (45–55%) which hides the reset.
    */
   const MarqueeRow: React.FC<{
     items: typeof quickPrompts;
-    duration?: number; // seconds for one loop of ONE set
-    reverse?: boolean;
-    delay?: number; // seconds (optional global offset)
+    duration?: number;   // seconds for one loop of ONE set
+    reverse?: boolean;   // direction
+    delay?: number;      // global offset between rows
   }> = ({ items, duration = 30, reverse = false, delay = 0 }) => {
     const setRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -239,12 +222,15 @@ export function MobileChatApp() {
         style={
           {
             "--dir": reverse ? -1 : 1,
-            "--global-delay": `${delay}s`,
+            "--row-delay": `${delay}s`,
           } as React.CSSProperties
         }
       >
         {/* Track A */}
-        <div className="marquee-track" style={{ ["--delay" as any]: "calc(var(--global-delay) + 0s)" }}>
+        <div
+          className="marquee-track track-a"
+          style={{ ["--delay" as any]: "var(--row-delay)" }}
+        >
           <div ref={setRef} className="marquee-set">
             {items.map((p, i) => (
               <button key={`a-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
@@ -252,7 +238,7 @@ export function MobileChatApp() {
               </button>
             ))}
           </div>
-          {/* clones to keep visual full */}
+          {/* one clone so the viewport is always full */}
           <div className="marquee-set" aria-hidden>
             {items.map((p, i) => (
               <button key={`a2-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
@@ -260,17 +246,13 @@ export function MobileChatApp() {
               </button>
             ))}
           </div>
-          <div className="marquee-set" aria-hidden>
-            {items.map((p, i) => (
-              <button key={`a3-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
-                <span className="font-medium text-sm">{p.label}</span>
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* Track B — half-cycle offset, crossfades with A */}
-        <div className="marquee-track" style={{ ["--delay" as any]: "calc(var(--global-delay) + (var(--duration) / 2))" }}>
+        {/* Track B (half-cycle offset) */}
+        <div
+          className="marquee-track track-b"
+          style={{ ["--delay" as any]: `calc(var(--row-delay) + (var(--duration) / 2))` }}
+        >
           <div className="marquee-set" aria-hidden>
             {items.map((p, i) => (
               <button key={`b-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
@@ -281,13 +263,6 @@ export function MobileChatApp() {
           <div className="marquee-set" aria-hidden>
             {items.map((p, i) => (
               <button key={`b2-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
-                <span className="font-medium text-sm">{p.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="marquee-set" aria-hidden>
-            {items.map((p, i) => (
-              <button key={`b3-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
                 <span className="font-medium text-sm">{p.label}</span>
               </button>
             ))}
@@ -307,35 +282,19 @@ export function MobileChatApp() {
             <img src={HEADER_LOGO} alt="ArcAI" className="h-8 w-8" />
             <div>
               <h1 className="text-lg">
-                <span className="font-thin">Arc</span>
-                <span className="font-semibold">Ai</span>
+                <span className="font-thin">Arc</span><span className="font-semibold">Ai</span>
               </h1>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full"
-              onClick={() => setShowHistory(true)}
-            >
+            <Button variant="outline" size="icon" className="rounded-full" onClick={() => setShowHistory(true)}>
               <History className="h-4 w-4" />
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full"
-              onClick={() => setShowSettings(true)}
-            >
+            <Button variant="outline" size="icon" className="rounded-full" onClick={() => setShowSettings(true)}>
               <Settings className="h-4 w-4" />
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full"
-              onClick={handleNewChat}
-            >
+            <Button variant="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
               <Plus className="h-4 w-4" />
             </Button>
           </div>
@@ -345,19 +304,14 @@ export function MobileChatApp() {
       {/* Scrollable messages layer with bottom padding equal to dock height */}
       <div
         className={`relative flex-1 ${dragOver ? "bg-primary/5" : ""}`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
       >
         <div
           ref={messagesContainerRef}
           className="absolute inset-0 overflow-y-auto"
-          style={{
-            paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 4rem)`,
-          }}
+          style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 4rem)` }}
         >
           {/* Empty state */}
           {messages.length === 0 ? (
@@ -375,15 +329,10 @@ export function MobileChatApp() {
                   </h2>
                 </div>
 
-                {/* Rolling wall of prompts — 2 rows, seamless, crossfading */}
+                {/* Rolling wall of prompts — 2 rows, seamless with gated crossfade */}
                 <div className="w-full max-w-2xl flex flex-col gap-4 mb-16">
                   <MarqueeRow items={quickPrompts.slice(0, 6)} duration={32} />
-                  <MarqueeRow
-                    items={quickPrompts.slice(6)}
-                    duration={36}
-                    reverse
-                    delay={-4}
-                  />
+                  <MarqueeRow items={quickPrompts.slice(6)} duration={36} reverse delay={-6} />
                 </div>
 
                 <div className="pb-8" />
@@ -402,10 +351,7 @@ export function MobileChatApp() {
         </div>
 
         {/* Fixed glass input dock (unchanged) */}
-        <div
-          ref={inputDockRef}
-          className="fixed inset-x-0 bottom-0 z-50 pointer-events-none"
-        >
+        <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
               <div className="pointer-events-auto glass-dock">
@@ -437,7 +383,6 @@ export function MobileChatApp() {
           outline: none !important;
           background: transparent;
         }
-
         @keyframes float-3 {
           0%,100%{transform:translate(0px,0px) rotate(0)}
           20%{transform:translate(1px,1px) rotate(0.2deg)}
@@ -446,17 +391,19 @@ export function MobileChatApp() {
           80%{transform:translate(-2px,0) rotate(-0.2deg)}
         }
 
-        /* Marquee (rolling wall) with crossfade at reset */
+        /* Marquee container */
         .marquee{
           position: relative;
           overflow: hidden;
-          height: 48px; /* fits pills nicely */
+          min-height: 48px;
           display: grid;
-          /* subtle edge fade */
+          align-items: center;
+          /* fade edges */
           -webkit-mask-image: linear-gradient(to right, transparent 0, black 10%, black 90%, transparent 100%);
                   mask-image: linear-gradient(to right, transparent 0, black 10%, black 90%, transparent 100%);
-          pointer-events: none; /* container only; tracks/pills re-enable */
+          pointer-events: none; /* tracks enable it again */
         }
+
         .marquee-track{
           position: absolute;
           inset: 0;
@@ -468,28 +415,42 @@ export function MobileChatApp() {
           transform: translate3d(0,0,0);
           backface-visibility: hidden;
           pointer-events: auto;
-          /* Move & fade with same duration and per-track delay */
+          /* move one set width each cycle */
           animation:
-            marquee-move var(--duration, 30s) linear infinite var(--delay, 0s),
-            marquee-fade var(--duration, 30s) ease-in-out infinite var(--delay, 0s);
-        }
-        .marquee-set{
-          display: inline-flex;
-          gap: 12px;
+            marquee-move var(--duration, 30s) linear infinite var(--delay, 0s);
         }
 
-        /* Move exactly one measured set width (seamless) */
+        /* Track-specific fade gates (non-overlapping except around 50%) */
+        .track-a{
+          animation:
+            marquee-move var(--duration, 30s) linear infinite var(--delay, 0s),
+            marquee-fade-a var(--duration, 30s) ease-in-out infinite var(--delay, 0s);
+        }
+        .track-b{
+          animation:
+            marquee-move var(--duration, 30s) linear infinite var(--delay, 0s),
+            marquee-fade-b var(--duration, 30s) ease-in-out infinite var(--delay, 0s);
+        }
+
+        .marquee-set{ display: inline-flex; gap: 12px; }
+
         @keyframes marquee-move{
           from { transform: translate3d(0,0,0); }
           to   { transform: translate3d(calc(var(--dir,1) * -1 * var(--loop-w, 600px)),0,0); }
         }
 
-        /* Crossfade at the reset: quick ease in/out near 0%/100% */
-        @keyframes marquee-fade{
-          0%   { opacity: 0; }
-          6%   { opacity: 1; }
-          94%  { opacity: 1; }
+        /* A is visible first half, B second half. Short crossfade in the middle. */
+        @keyframes marquee-fade-a{
+          0%   { opacity: 1; }
+          45%  { opacity: 1; }
+          55%  { opacity: 0; }
           100% { opacity: 0; }
+        }
+        @keyframes marquee-fade-b{
+          0%   { opacity: 0; }
+          45%  { opacity: 0; }
+          55%  { opacity: 1; }
+          100% { opacity: 1; }
         }
 
         /* Prompt pill style (glassy) */
