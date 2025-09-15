@@ -43,7 +43,7 @@ export function MobileChatApp() {
   const { toast } = useToast();
   const { profile } = useAuth();
 
-  // Quick Prompts for mobile - 12 prompts in 2 columns with emojis
+  // Quick Prompts
   const quickPrompts = [
     { label: "🎯 Focus", prompt: "Help me set up a focused work session. Guide me through planning a productive 25-minute sprint." },
     { label: "🎨 Create", prompt: "I need creative inspiration. Give me an interesting creative idea I can work on today." },
@@ -59,35 +59,38 @@ export function MobileChatApp() {
     { label: "🧘 Calm", prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise." }
   ];
 
-  // Random glow for prompts on new chats
+  // Subtle prompt glow (random, with cross-fade)
   const [glowIndex, setGlowIndex] = useState<number | null>(null);
-  const [glowColor, setGlowColor] = useState<string>("rgba(99,102,241,0.9)"); // indigo as default
+  const [prevGlowIndex, setPrevGlowIndex] = useState<number | null>(null);
+  const [glowColor, setGlowColor] = useState<string>("rgba(99,102,241,0.7)");
   const glowPalette = [
-    "rgba(99,102,241,0.95)",   // indigo
-    "rgba(16,185,129,0.95)",   // emerald
-    "rgba(236,72,153,0.95)",   // pink
-    "rgba(234,179,8,0.95)",    // amber
-    "rgba(59,130,246,0.95)",   // blue
-    "rgba(20,184,166,0.95)",   // teal
-    "rgba(139,92,246,0.95)"    // violet
+    "rgba(99,102,241,0.70)",   // indigo
+    "rgba(59,130,246,0.70)",   // blue
+    "rgba(16,185,129,0.70)",   // emerald
+    "rgba(20,184,166,0.70)",   // teal
+    "rgba(139,92,246,0.70)",   // violet
+    "rgba(236,72,153,0.70)",   // pink
+    "rgba(234,179,8,0.70)"     // amber
   ];
 
   useEffect(() => {
-    // Only animate on empty/new chat
     if (messages.length === 0) {
-      // pick a random prompt to start
-      setGlowIndex(Math.floor(Math.random() * quickPrompts.length));
-      setGlowColor(glowPalette[Math.floor(Math.random() * glowPalette.length)]);
-
-      const id = setInterval(() => {
-        setGlowIndex(Math.floor(Math.random() * quickPrompts.length));
+      const pick = () => {
+        const next = Math.floor(Math.random() * quickPrompts.length);
+        setPrevGlowIndex(glowIndex);
+        setGlowIndex(next);
         setGlowColor(glowPalette[Math.floor(Math.random() * glowPalette.length)]);
-      }, 2200); // cycle every ~2.2s
+        // clear the fading-out marker after the css transition
+        setTimeout(() => setPrevGlowIndex(null), 420);
+      };
+      pick();
+      const id = setInterval(pick, 5200); // slower cycle
       return () => clearInterval(id);
     } else {
       setGlowIndex(null);
+      setPrevGlowIndex(null);
     }
-  }, [messages.length]);
+  }, [messages.length]); // eslint-disable-line
 
   // Robust "scroll to top" helper
   const scrollToTop = () => {
@@ -173,11 +176,7 @@ export function MobileChatApp() {
   };
 
   /**
-   * AI avatar progressive fade in
-   * Works if your avatar <img> has either:
-   *  - data-ai-avatar="true"
-   *  - class "ai-avatar"
-   *  - alt that includes "Arc", "assistant", or "ArcAI"
+   * AI avatar progressive fade in after load
    */
   useEffect(() => {
     const root = messagesContainerRef.current ?? document.body;
@@ -194,61 +193,54 @@ export function MobileChatApp() {
         if (!img.classList.contains("ai-avatar")) {
           img.classList.add("ai-avatar");
         }
-        // start hidden until fully loaded
         img.classList.remove("is-loaded");
-        const markLoaded = () => {
-          img.classList.add("is-loaded");
-        };
-        if (img.complete && img.naturalWidth > 0) {
-          // already loaded from cache
-          markLoaded();
-        } else {
+        const markLoaded = () => img.classList.add("is-loaded");
+        if (img.complete && img.naturalWidth > 0) markLoaded();
+        else {
           img.addEventListener("load", markLoaded, { once: true });
-          img.addEventListener("error", () => {
-            // on error, still reveal to avoid the hard pop
-            img.classList.add("is-loaded");
-          }, { once: true });
+          img.addEventListener("error", markLoaded, { once: true });
         }
       }
     };
 
-    const scan = () => {
-      root.querySelectorAll("img").forEach((node) => {
-        tagCandidate(node as HTMLImageElement);
-      });
-    };
-
-    // initial scan
+    const scan = () => root.querySelectorAll("img").forEach((n) => tagCandidate(n as HTMLImageElement));
     scan();
 
-    // watch for new avatars entering the DOM
     const mo = new MutationObserver((muts) => {
       for (const m of muts) {
         m.addedNodes.forEach((n) => {
-          if (n instanceof HTMLImageElement) {
-            tagCandidate(n);
-          } else if (n instanceof HTMLElement) {
-            n.querySelectorAll("img").forEach((img) => tagCandidate(img as HTMLImageElement));
-          }
+          if (n instanceof HTMLImageElement) tagCandidate(n);
+          else if (n instanceof HTMLElement) n.querySelectorAll("img").forEach((img) => tagCandidate(img as HTMLImageElement));
         });
       }
     });
     mo.observe(root, { childList: true, subtree: true });
-
     return () => mo.disconnect();
   }, []);
 
+  /**
+   * Thinking indicator: always mounted to avoid animation reset.
+   * We just toggle [data-show="true"] for opacity/visibility.
+   */
+  const showThinking = isLoading || isGeneratingImage;
+
   const ThinkingIndicator = () => (
     <div className="flex justify-center">
-      <div className="surface px-4 py-3 rounded-full relative thinking-glow">
-        <div className="flex items-center gap-3">
-          <div className="relative flex items-center justify-center">
-            <Brain className="h-5 w-5 animate-bounce-slow" />
-            <Sparkles className="h-3 w-3 absolute -top-1 -right-1 animate-twinkle" />
+      <div
+        className="thinking-shell"
+        data-show={showThinking ? "true" : "false"}
+        aria-live="polite"
+      >
+        <div className="surface thinking-pill">
+          <div className="flex items-center gap-3">
+            <div className="relative flex items-center justify-center">
+              <Brain className="h-5 w-5 animate-bounce-slow" />
+              <Sparkles className="h-3 w-3 absolute -top-1 -right-1 animate-twinkle" />
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {isGeneratingImage ? "Generating image..." : "Arc is thinking..."}
+            </span>
           </div>
-          <span className="text-sm text-muted-foreground">
-            {isGeneratingImage ? "Generating image..." : "Arc is thinking..."}
-          </span>
         </div>
       </div>
     </div>
@@ -267,7 +259,6 @@ export function MobileChatApp() {
               className="h-8 w-8"
             />
             <div>
-              {/* Brand: ArcAi (Arc ultra-thin, Ai semibold) */}
               <h1 className="text-lg">
                 <span className="font-thin">Arc</span><span className="font-semibold">Ai</span>
               </h1>
@@ -323,35 +314,34 @@ export function MobileChatApp() {
                 </div>
 
                 {/* Quick Prompts - 2 Column Grid */}
-                <div className="w-full max-w-md grid grid-cols-2 gap-3 mb-20"> {/* increased spacing under prompts */}
-                  {quickPrompts.map((prompt, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => triggerPrompt(prompt.prompt)}
-                      style={glowIndex === idx ? ({ ['--glow-color' as any]: glowColor } as any) : undefined}
-                      className={`p-4 card text-center hover:bg-accent/50 transition-colors rounded-full border border-border/40 floating-prompt floating-prompt-${idx} ${glowIndex === idx ? "prompt-glow" : ""}`}
-                    >
-                      <span className="font-medium text-sm">{prompt.label}</span>
-                    </button>
-                  ))}
+                <div className="w-full max-w-md grid grid-cols-2 gap-3 mb-20">
+                  {quickPrompts.map((prompt, idx) => {
+                    const isGlow = glowIndex === idx;
+                    const isFading = prevGlowIndex === idx;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => triggerPrompt(prompt.prompt)}
+                        style={isGlow ? ({ ['--glow-color' as any]: glowColor } as any) : undefined}
+                        className={[
+                          "p-4 card text-center hover:bg-accent/50 transition-colors rounded-full border border-border/40",
+                          "floating-prompt",
+                          `floating-prompt-${idx}`,
+                          isGlow ? "prompt-glow prompt-glow--show" : "",
+                          isFading ? "prompt-glow prompt-glow--fadeout" : ""
+                        ].join(" ").trim()}
+                      >
+                        <span className="font-medium text-sm">{prompt.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* extra breathing room below prompts */}
                 <div className="pb-10" />
 
-                {(isLoading || isGeneratingImage) && (
-                  <div className="surface px-4 py-3 rounded-full thinking-glow">
-                    <div className="flex items-center gap-3">
-                      <div className="relative flex items-center justify-center">
-                        <Brain className="h-5 w-5 animate-bounce-slow" />
-                        <Sparkles className="h-3 w-3 absolute -top-1 -right-1 animate-twinkle" />
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {isGeneratingImage ? "Generating image..." : "Arc is thinking..."}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                {/* thinking indicator (always mounted higher up as well, but we show another here for empty state) */}
+                <ThinkingIndicator />
               </div>
             </div>
           ) : (
@@ -362,7 +352,7 @@ export function MobileChatApp() {
               ))}
 
               {/* Thinking indicator */}
-              {(isLoading || isGeneratingImage) && <ThinkingIndicator />}
+              <ThinkingIndicator />
             </div>
           )}
         </div>
@@ -376,7 +366,6 @@ export function MobileChatApp() {
             <div className="mx-auto max-w-screen-sm">
               {/* ONE black frosted glass pill */}
               <div className="pointer-events-auto glass-dock">
-                {/* Keep your ChatInput exactly as is */}
                 <ChatInput />
               </div>
             </div>
@@ -384,7 +373,7 @@ export function MobileChatApp() {
         </div>
       </div>
 
-      {/* Scoped styles for the glass pill dock, floating animations, avatar fade, thinking glow, prompt glow, and message glass */}
+      {/* Scoped styles */}
       <style>{`
         /* Avatar progressive reveal */
         img.ai-avatar{
@@ -406,13 +395,11 @@ export function MobileChatApp() {
           50% { transform: translate(-1px, -2px) rotate(-0.5deg); }
           75% { transform: translate(-2px, 1px) rotate(0.3deg); }
         }
-        
         @keyframes float-2 {
           0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
           33% { transform: translate(-1px, 1px) rotate(-0.3deg); }
           66% { transform: translate(2px, 0px) rotate(0.4deg); }
         }
-        
         @keyframes float-3 {
           0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
           20% { transform: translate(1px, 1px) rotate(0.2deg); }
@@ -420,18 +407,15 @@ export function MobileChatApp() {
           60% { transform: translate(2px, -1px) rotate(0.3deg); }
           80% { transform: translate(-2px, 0px) rotate(-0.2deg); }
         }
-        
         @keyframes float-4 {
           0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
           50% { transform: translate(-1px, -1px) rotate(-0.3deg); }
         }
-        
         @keyframes float-5 {
           0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
           30% { transform: translate(2px, 1px) rotate(0.4deg); }
           70% { transform: translate(-1px, -2px) rotate(-0.2deg); }
         }
-        
         @keyframes float-6 {
           0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
           25% { transform: translate(-2px, 0px) rotate(-0.5deg); }
@@ -451,106 +435,104 @@ export function MobileChatApp() {
         .floating-prompt-10 { animation: float-5 3.3s ease-in-out infinite 1.2s; }
         .floating-prompt-11 { animation: float-6 4.1s ease-in-out infinite 1.8s; }
 
-        .floating-prompt:hover {
-          animation-play-state: paused;
-        }
+        .floating-prompt:hover { animation-play-state: paused; }
 
-        /* Prompt glow (new chat) */
-        @keyframes glow-breathe {
-          0%   { box-shadow: 0 0 0px rgba(0,0,0,0); transform: translateZ(0); }
-          50%  { box-shadow: 0 0 24px var(--glow-color), 0 0 48px color-mix(in srgb, var(--glow-color) 40%, transparent); }
-          100% { box-shadow: 0 0 0px rgba(0,0,0,0); }
-        }
-        .prompt-glow{
-          position: relative;
-          z-index: 0;
-          animation: glow-breathe 1.6s ease-in-out infinite;
-        }
+        /* Prompt subtle glow (smaller, softer, cross-fade) */
+        .prompt-glow{ position: relative; z-index: 0; }
         .prompt-glow::after{
-          content: "";
-          position: absolute;
-          inset: -3px;
-          border-radius: 9999px;
-          background: radial-gradient(120px 60px at 30% 30%, color-mix(in srgb, var(--glow-color) 45%, transparent), transparent 60%),
-                      radial-gradient(120px 60px at 70% 70%, color-mix(in srgb, var(--glow-color) 35%, transparent), transparent 60%);
-          filter: blur(10px);
-          z-index: -1;
-          animation: glow-pan 3.2s ease-in-out infinite alternate;
+          content: ""; position: absolute; inset: -2px; border-radius: 9999px; pointer-events: none;
+          opacity: 0; filter: blur(6px);
+          background:
+            radial-gradient(60px 30px at 30% 35%, var(--glow-color, rgba(99,102,241,0.7)), transparent 70%),
+            radial-gradient(60px 30px at 70% 65%, var(--glow-color, rgba(99,102,241,0.7)), transparent 70%);
+          background-repeat: no-repeat;
+          background-size: 120px 60px, 120px 60px;
+          transition: opacity 380ms ease;
+          animation: glow-pan-soft 7.5s ease-in-out infinite alternate;
+        }
+        .prompt-glow--show::after{ opacity: 0.22; }     /* soft cap */
+        .prompt-glow--fadeout::after{ opacity: 0; }     /* cross-fade out */
+
+        @keyframes glow-pan-soft{
+          0%   { background-position: 26% 40%, 74% 60%; }
+          100% { background-position: 34% 30%, 66% 70%; }
         }
 
-        /* Livelier multicolor moving glow for thinking pill */
-        .thinking-glow{
+        /* Thinking indicator container: always mounted */
+        .thinking-shell{
+          transition: opacity 220ms ease, transform 220ms ease;
+          opacity: 0; transform: translateY(3px);
+        }
+        .thinking-shell[data-show="true"]{
+          opacity: 1; transform: translateY(0);
+        }
+
+        /* The pill itself: clip glow to pill bounds */
+        .thinking-pill{
           position: relative;
+          padding: 10px 16px;
           border-radius: 9999px;
+          overflow: hidden;             /* clip inner glows */
+          isolation: isolate;
         }
-        .thinking-glow::before,
-        .thinking-glow::after{
-          content: "";
-          position: absolute;
-          inset: -10px;
-          border-radius: 9999px;
-          pointer-events: none;
-          z-index: -1;
-        }
-        /* Soft field of moving lights */
-        .thinking-glow::before{
+        /* Multicolor field, very subtle and slow, stays inside pill */
+        .thinking-pill::before{
+          content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1;
           background:
-            radial-gradient(140px 70px at 20% 30%, rgba(99,102,241,0.22), transparent 60%),
-            radial-gradient(140px 70px at 80% 70%, rgba(16,185,129,0.20), transparent 60%),
-            radial-gradient(140px 70px at 50% 10%, rgba(236,72,153,0.18), transparent 60%),
-            radial-gradient(140px 70px at 10% 85%, rgba(59,130,246,0.16), transparent 60%);
-          filter: blur(12px);
-          animation: glow-pan 4.2s ease-in-out infinite alternate;
+            radial-gradient(80px 40px at 20% 50%, rgba(99,102,241,0.18), transparent 70%),
+            radial-gradient(80px 40px at 80% 50%, rgba(16,185,129,0.16), transparent 70%),
+            radial-gradient(100px 50px at 50% 0%, rgba(236,72,153,0.14), transparent 70%);
+          background-repeat: no-repeat;
+          filter: blur(8px);
+          animation: pill-pan 12s ease-in-out infinite alternate;
         }
-        /* Subtle rotating halo */
-        .thinking-glow::after{
-          background:
-            conic-gradient(from 0deg, rgba(99,102,241,0.2), rgba(236,72,153,0.18), rgba(16,185,129,0.18), rgba(59,130,246,0.18), rgba(99,102,241,0.2));
-          filter: blur(16px);
-          animation: halo-spin 7.5s linear infinite;
+        /* Faint rotating halo within bounds */
+        .thinking-pill::after{
+          content: ""; position: absolute; inset: -12%; border-radius: inherit; z-index: -2;
+          background: conic-gradient(from 0deg,
+            rgba(99,102,241,0.12),
+            rgba(236,72,153,0.10),
+            rgba(16,185,129,0.10),
+            rgba(59,130,246,0.10),
+            rgba(99,102,241,0.12));
+          filter: blur(14px);
+          animation: halo-slow 22s linear infinite;
           opacity: 0.85;
         }
-        @keyframes glow-pan{
-          0%   { transform: translate3d(-3px, -2px, 0); opacity: 0.9; }
-          100% { transform: translate3d(3px, 2px, 0);  opacity: 1;  }
+        @keyframes pill-pan{
+          0%   { transform: translate3d(-2px, 0, 0) scale(1.01); }
+          100% { transform: translate3d(2px, 0, 0)  scale(1.01); }
         }
-        @keyframes halo-spin{
-          0%   { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
+        @keyframes halo-slow{ from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         /* Bounce + sparkle motion */
         @keyframes bounce-slow {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-2px); }
         }
-        .animate-bounce-slow{
-          animation: bounce-slow 1.2s ease-in-out infinite;
-        }
+        .animate-bounce-slow{ animation: bounce-slow 1.2s ease-in-out infinite; }
         @keyframes twinkle {
-          0%, 100% { transform: scale(0.9) rotate(0deg); opacity: 0.8; }
+          0%, 100% { transform: scale(0.9) rotate(0deg); opacity: 0.85; }
           50% { transform: scale(1.05) rotate(8deg); opacity: 1; }
         }
-        .animate-twinkle{
-          animation: twinkle 1.4s ease-in-out infinite;
-        }
+        .animate-twinkle{ animation: twinkle 1.6s ease-in-out infinite; }
 
-        /* Slightly rounder, glassier message bubbles (non-invasive) */
+        /* Slightly rounder, glassier message bubbles (subtle) */
         .chat-messages .surface,
         .chat-messages .card,
         .chat-messages [data-bubble],
         .chat-messages [class*="bubble"]{
           border-radius: 18px !important;
-          background: rgba(18,18,18,0.45) !important;
-          backdrop-filter: blur(10px) saturate(120%) !important;
-          -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
+          background: rgba(18,18,18,0.42) !important;
+          backdrop-filter: blur(8px) saturate(118%) !important;
+          -webkit-backdrop-filter: blur(8px) saturate(118%) !important;
           border: 1px solid rgba(255,255,255,0.06) !important;
           box-shadow:
-            0 2px 10px rgba(0,0,0,0.25),
+            0 2px 10px rgba(0,0,0,0.22),
             inset 0 1px 0 rgba(255,255,255,0.04) !important;
         }
 
-        /* ONE full-size black frosted pill for input dock – unchanged */
+        /* Input dock — unchanged */
         .glass-dock{
           position: relative;
           border-radius: 9999px;
@@ -584,47 +566,29 @@ export function MobileChatApp() {
           backdrop-filter: none !important;
           -webkit-backdrop-filter: none !important;
         }
-
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,.field,form){
           background: transparent !important;
           box-shadow: none !important;
           border: 0 !important;
         }
-
         .glass-dock:focus-within{
           box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 16px 4px hsl(var(--primary)/0.3), 0 0 40px 10px hsl(var(--primary)/0.15) !important;
           border-radius: 9999px;
         }
-
-        .glass-dock input,
-        .glass-dock textarea{
-          font-size: 16px !important; /* prevent iOS zoom */
-        }
-
-        .glass-dock input:-webkit-autofill,
-        .glass-dock textarea:-webkit-autofill{
+        .glass-dock input, .glass-dock textarea{ font-size: 16px !important; }
+        .glass-dock input:-webkit-autofill, .glass-dock textarea:-webkit-autofill{
           -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
           -webkit-text-fill-color: inherit !important;
           transition: background-color 999999s ease-in-out 0s !important;
         }
 
-        .sync-bubble,
-        [data-sync-bubble],
-        [data-role="sync-bubble"],
-        .sync-indicator,
-        [data-sync],
-        [class*="sync-bubble"],
-        [class*="syncIndicator"],
-        [class*="sync-indicator"]{
-          transform: scale(0.9) !important;
-          transform-origin: center !important;
+        /* Tiny sync bubble sizing */
+        .sync-bubble, [data-sync-bubble], [data-role="sync-bubble"], .sync-indicator, [data-sync],
+        [class*="sync-bubble"], [class*="syncIndicator"], [class*="sync-indicator"]{
+          transform: scale(0.9) !important; transform-origin: center !important;
         }
-        .sync-bubble svg,
-        [data-sync-bubble] svg,
-        .sync-indicator svg,
-        [data-sync] svg{
-          width: 0.9em !important;
-          height: 0.9em !important;
+        .sync-bubble svg, [data-sync-bubble] svg, .sync-indicator svg, [data-sync] svg{
+          width: 0.9em !important; height: 0.9em !important;
         }
       `}</style>
 
