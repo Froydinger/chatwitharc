@@ -24,13 +24,26 @@ export function MobileChatApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
+  // Listen for chat history close events
+  useEffect(() => {
+    const handleCloseHistory = () => {
+      setShowHistory(false);
+    };
+    window.addEventListener('arcai:closeHistory', handleCloseHistory);
+    return () => window.removeEventListener('arcai:closeHistory', handleCloseHistory);
+  }, []);
+
+  // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Fixed input dock measurement
   const inputDockRef = useRef<HTMLDivElement>(null);
   const [inputHeight, setInputHeight] = useState<number>(96);
 
   const { toast } = useToast();
   const { profile } = useAuth();
 
+  // Quick Prompts for mobile - 12 prompts in 2 columns with emojis
   const quickPrompts = [
     { label: "🎯 Focus", prompt: "Help me set up a focused work session. Guide me through planning a productive 25-minute sprint." },
     { label: "🎨 Create", prompt: "I need creative inspiration. Give me an interesting creative idea I can work on today." },
@@ -46,6 +59,37 @@ export function MobileChatApp() {
     { label: "🧘 Calm", prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise." }
   ];
 
+  // Random glow for prompts on new chats
+  const [glowIndex, setGlowIndex] = useState<number | null>(null);
+  const [glowColor, setGlowColor] = useState<string>("rgba(99,102,241,0.9)"); // indigo as default
+  const glowPalette = [
+    "rgba(99,102,241,0.95)",   // indigo
+    "rgba(16,185,129,0.95)",   // emerald
+    "rgba(236,72,153,0.95)",   // pink
+    "rgba(234,179,8,0.95)",    // amber
+    "rgba(59,130,246,0.95)",   // blue
+    "rgba(20,184,166,0.95)",   // teal
+    "rgba(139,92,246,0.95)"    // violet
+  ];
+
+  useEffect(() => {
+    // Only animate on empty/new chat
+    if (messages.length === 0) {
+      // pick a random prompt to start
+      setGlowIndex(Math.floor(Math.random() * quickPrompts.length));
+      setGlowColor(glowPalette[Math.floor(Math.random() * glowPalette.length)]);
+
+      const id = setInterval(() => {
+        setGlowIndex(Math.floor(Math.random() * quickPrompts.length));
+        setGlowColor(glowPalette[Math.floor(Math.random() * glowPalette.length)]);
+      }, 2200); // cycle every ~2.2s
+      return () => clearInterval(id);
+    } else {
+      setGlowIndex(null);
+    }
+  }, [messages.length]);
+
+  // Robust "scroll to top" helper
   const scrollToTop = () => {
     const el = messagesContainerRef.current;
     if (!el) return;
@@ -62,12 +106,14 @@ export function MobileChatApp() {
     } catch {}
   };
 
+  // Smooth scroll to bottom on new content
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isGeneratingImage]);
 
+  // When chat is empty, go to top
   useEffect(() => {
     if (messages.length === 0) {
       scrollToTop();
@@ -75,6 +121,7 @@ export function MobileChatApp() {
     }
   }, [messages.length]);
 
+  // On session change, go to top
   useEffect(() => {
     if (currentSessionId) {
       scrollToTop();
@@ -82,6 +129,7 @@ export function MobileChatApp() {
     }
   }, [currentSessionId]);
 
+  // Measure input dock height and account for safe area
   useEffect(() => {
     const update = () => {
       if (inputDockRef.current) {
@@ -124,9 +172,75 @@ export function MobileChatApp() {
     setShowSettings(false);
   };
 
+  /**
+   * AI avatar progressive fade in
+   * Works if your avatar <img> has either:
+   *  - data-ai-avatar="true"
+   *  - class "ai-avatar"
+   *  - alt that includes "Arc", "assistant", or "ArcAI"
+   */
+  useEffect(() => {
+    const root = messagesContainerRef.current ?? document.body;
+
+    const tagCandidate = (img: HTMLImageElement) => {
+      const alt = (img.getAttribute("alt") || "").toLowerCase();
+      const likely =
+        img.hasAttribute("data-ai-avatar") ||
+        img.classList.contains("ai-avatar") ||
+        alt.includes("arc") ||
+        alt.includes("assistant") ||
+        alt.includes("arcai");
+      if (likely) {
+        if (!img.classList.contains("ai-avatar")) {
+          img.classList.add("ai-avatar");
+        }
+        // start hidden until fully loaded
+        img.classList.remove("is-loaded");
+        const markLoaded = () => {
+          img.classList.add("is-loaded");
+        };
+        if (img.complete && img.naturalWidth > 0) {
+          // already loaded from cache
+          markLoaded();
+        } else {
+          img.addEventListener("load", markLoaded, { once: true });
+          img.addEventListener("error", () => {
+            // on error, still reveal to avoid the hard pop
+            img.classList.add("is-loaded");
+          }, { once: true });
+        }
+      }
+    };
+
+    const scan = () => {
+      root.querySelectorAll("img").forEach((node) => {
+        tagCandidate(node as HTMLImageElement);
+      });
+    };
+
+    // initial scan
+    scan();
+
+    // watch for new avatars entering the DOM
+    const mo = new MutationObserver((muts) => {
+      for (const m of muts) {
+        m.addedNodes.forEach((n) => {
+          if (n instanceof HTMLImageElement) {
+            tagCandidate(n);
+          } else if (n instanceof HTMLElement) {
+            n.querySelectorAll("img").forEach((img) => tagCandidate(img as HTMLImageElement));
+          }
+        });
+      }
+    });
+    mo.observe(root, { childList: true, subtree: true });
+
+    return () => mo.disconnect();
+  }, []);
+
   const ThinkingIndicator = () => (
     <div className="flex justify-center">
-      <div className="px-4 py-3 rounded-full relative thinking-glow bg-background/70 backdrop-blur-md border border-border/40">
+      <div className="surface px-4 py-3 rounded-full relative thinking-glow">
         <div className="flex items-center gap-3">
           <div className="relative flex items-center justify-center">
             <Brain className="h-5 w-5 animate-bounce-slow" />
@@ -140,10 +254,11 @@ export function MobileChatApp() {
     </div>
   );
 
+  // Main chat interface
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <img
@@ -152,6 +267,7 @@ export function MobileChatApp() {
               className="h-8 w-8"
             />
             <div>
+              {/* Brand: ArcAi (Arc ultra-thin, Ai semibold) */}
               <h1 className="text-lg">
                 <span className="font-thin">Arc</span><span className="font-semibold">Ai</span>
               </h1>
@@ -173,6 +289,7 @@ export function MobileChatApp() {
         </div>
       </header>
 
+      {/* Scrollable messages layer with bottom padding equal to dock height */}
       <div 
         className={`relative flex-1 ${dragOver ? "bg-primary/5" : ""}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -186,8 +303,10 @@ export function MobileChatApp() {
             paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 4rem)`
           }}
         >
+          {/* Empty state */}
           {messages.length === 0 ? (
             <div className="flex flex-col h-full">
+              {/* Welcome Section */}
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                 <div className="mb-8">
                   <img
@@ -203,41 +322,61 @@ export function MobileChatApp() {
                   </p>
                 </div>
 
-                <div className="w-full max-w-md grid grid-cols-2 gap-3 mb-20">
+                {/* Quick Prompts - 2 Column Grid */}
+                <div className="w-full max-w-md grid grid-cols-2 gap-3 mb-20"> {/* increased spacing under prompts */}
                   {quickPrompts.map((prompt, idx) => (
                     <button
                       key={idx}
                       onClick={() => triggerPrompt(prompt.prompt)}
-                      className={`p-4 card text-center hover:bg-accent/50 transition-colors rounded-full border border-border/40 floating-prompt floating-prompt-${idx}`}
+                      style={glowIndex === idx ? ({ ['--glow-color' as any]: glowColor } as any) : undefined}
+                      className={`p-4 card text-center hover:bg-accent/50 transition-colors rounded-full border border-border/40 floating-prompt floating-prompt-${idx} ${glowIndex === idx ? "prompt-glow" : ""}`}
                     >
                       <span className="font-medium text-sm">{prompt.label}</span>
                     </button>
                   ))}
                 </div>
 
-                {(isLoading || isGeneratingImage) && <ThinkingIndicator />}
+                {/* extra breathing room below prompts */}
+                <div className="pb-10" />
+
+                {(isLoading || isGeneratingImage) && (
+                  <div className="surface px-4 py-3 rounded-full thinking-glow">
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex items-center justify-center">
+                        <Brain className="h-5 w-5 animate-bounce-slow" />
+                        <Sparkles className="h-3 w-3 absolute -top-1 -right-1 animate-twinkle" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {isGeneratingImage ? "Generating image..." : "Arc is thinking..."}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 chat-messages">
+              {/* Messages */}
               {messages.map((message) => (
-                <div key={message.id} className="rounded-2xl bg-background/60 backdrop-blur-md border border-border/30 shadow-md p-3">
-                  <MessageBubble message={message} onEdit={() => {}} />
-                </div>
+                <MessageBubble key={message.id} message={message} onEdit={() => {}} />
               ))}
 
+              {/* Thinking indicator */}
               {(isLoading || isGeneratingImage) && <ThinkingIndicator />}
             </div>
           )}
         </div>
 
+        {/* Fixed glass input dock */}
         <div
           ref={inputDockRef}
           className="fixed inset-x-0 bottom-0 z-50 pointer-events-none"
         >
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
+              {/* ONE black frosted glass pill */}
               <div className="pointer-events-auto glass-dock">
+                {/* Keep your ChatInput exactly as is */}
                 <ChatInput />
               </div>
             </div>
@@ -245,56 +384,267 @@ export function MobileChatApp() {
         </div>
       </div>
 
+      {/* Scoped styles for the glass pill dock, floating animations, avatar fade, thinking glow, prompt glow, and message glass */}
       <style>{`
+        /* Avatar progressive reveal */
+        img.ai-avatar{
+          opacity: 0;
+          filter: saturate(1) contrast(1);
+          transition: opacity 260ms ease, transform 260ms ease;
+          transform: translateY(2px);
+          will-change: opacity, transform;
+        }
+        img.ai-avatar.is-loaded{
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        /* Floating animation keyframes for different movement patterns */
+        @keyframes float-1 {
+          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+          25% { transform: translate(1px, -1px) rotate(0.5deg); }
+          50% { transform: translate(-1px, -2px) rotate(-0.5deg); }
+          75% { transform: translate(-2px, 1px) rotate(0.3deg); }
+        }
+        
+        @keyframes float-2 {
+          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+          33% { transform: translate(-1px, 1px) rotate(-0.3deg); }
+          66% { transform: translate(2px, 0px) rotate(0.4deg); }
+        }
+        
+        @keyframes float-3 {
+          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+          20% { transform: translate(1px, 1px) rotate(0.2deg); }
+          40% { transform: translate(-1px, 2px) rotate(-0.4deg); }
+          60% { transform: translate(2px, -1px) rotate(0.3deg); }
+          80% { transform: translate(-2px, 0px) rotate(-0.2deg); }
+        }
+        
+        @keyframes float-4 {
+          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+          50% { transform: translate(-1px, -1px) rotate(-0.3deg); }
+        }
+        
+        @keyframes float-5 {
+          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+          30% { transform: translate(2px, 1px) rotate(0.4deg); }
+          70% { transform: translate(-1px, -2px) rotate(-0.2deg); }
+        }
+        
+        @keyframes float-6 {
+          0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+          25% { transform: translate(-2px, 0px) rotate(-0.5deg); }
+          75% { transform: translate(1px, -1px) rotate(0.3deg); }
+        }
+
+        .floating-prompt-0 { animation: float-1 4s ease-in-out infinite; }
+        .floating-prompt-1 { animation: float-2 3.5s ease-in-out infinite 0.5s; }
+        .floating-prompt-2 { animation: float-3 5s ease-in-out infinite 1s; }
+        .floating-prompt-3 { animation: float-4 3s ease-in-out infinite 1.5s; }
+        .floating-prompt-4 { animation: float-5 4.5s ease-in-out infinite 2s; }
+        .floating-prompt-5 { animation: float-6 3.8s ease-in-out infinite 2.5s; }
+        .floating-prompt-6 { animation: float-1 3.2s ease-in-out infinite 3s; }
+        .floating-prompt-7 { animation: float-2 4.2s ease-in-out infinite 3.5s; }
+        .floating-prompt-8 { animation: float-3 3.7s ease-in-out infinite 0.2s; }
+        .floating-prompt-9 { animation: float-4 4.8s ease-in-out infinite 0.8s; }
+        .floating-prompt-10 { animation: float-5 3.3s ease-in-out infinite 1.2s; }
+        .floating-prompt-11 { animation: float-6 4.1s ease-in-out infinite 1.8s; }
+
+        .floating-prompt:hover {
+          animation-play-state: paused;
+        }
+
+        /* Prompt glow (new chat) */
+        @keyframes glow-breathe {
+          0%   { box-shadow: 0 0 0px rgba(0,0,0,0); transform: translateZ(0); }
+          50%  { box-shadow: 0 0 24px var(--glow-color), 0 0 48px color-mix(in srgb, var(--glow-color) 40%, transparent); }
+          100% { box-shadow: 0 0 0px rgba(0,0,0,0); }
+        }
+        .prompt-glow{
+          position: relative;
+          z-index: 0;
+          animation: glow-breathe 1.6s ease-in-out infinite;
+        }
+        .prompt-glow::after{
+          content: "";
+          position: absolute;
+          inset: -3px;
+          border-radius: 9999px;
+          background: radial-gradient(120px 60px at 30% 30%, color-mix(in srgb, var(--glow-color) 45%, transparent), transparent 60%),
+                      radial-gradient(120px 60px at 70% 70%, color-mix(in srgb, var(--glow-color) 35%, transparent), transparent 60%);
+          filter: blur(10px);
+          z-index: -1;
+          animation: glow-pan 3.2s ease-in-out infinite alternate;
+        }
+
+        /* Livelier multicolor moving glow for thinking pill */
+        .thinking-glow{
+          position: relative;
+          border-radius: 9999px;
+        }
+        .thinking-glow::before,
         .thinking-glow::after{
           content: "";
           position: absolute;
-          inset: -12px;
+          inset: -10px;
           border-radius: 9999px;
           pointer-events: none;
-          background: conic-gradient(from 0deg, 
-            rgba(99,102,241,0.25), 
-            rgba(16,185,129,0.25), 
-            rgba(236,72,153,0.25), 
-            rgba(99,102,241,0.25));
-          filter: blur(14px);
-          animation: spinGlow 6s linear infinite;
+          z-index: -1;
         }
-        @keyframes spinGlow {
-          0% { transform: rotate(0deg); }
+        /* Soft field of moving lights */
+        .thinking-glow::before{
+          background:
+            radial-gradient(140px 70px at 20% 30%, rgba(99,102,241,0.22), transparent 60%),
+            radial-gradient(140px 70px at 80% 70%, rgba(16,185,129,0.20), transparent 60%),
+            radial-gradient(140px 70px at 50% 10%, rgba(236,72,153,0.18), transparent 60%),
+            radial-gradient(140px 70px at 10% 85%, rgba(59,130,246,0.16), transparent 60%);
+          filter: blur(12px);
+          animation: glow-pan 4.2s ease-in-out infinite alternate;
+        }
+        /* Subtle rotating halo */
+        .thinking-glow::after{
+          background:
+            conic-gradient(from 0deg, rgba(99,102,241,0.2), rgba(236,72,153,0.18), rgba(16,185,129,0.18), rgba(59,130,246,0.18), rgba(99,102,241,0.2));
+          filter: blur(16px);
+          animation: halo-spin 7.5s linear infinite;
+          opacity: 0.85;
+        }
+        @keyframes glow-pan{
+          0%   { transform: translate3d(-3px, -2px, 0); opacity: 0.9; }
+          100% { transform: translate3d(3px, 2px, 0);  opacity: 1;  }
+        }
+        @keyframes halo-spin{
+          0%   { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+
+        /* Bounce + sparkle motion */
         @keyframes bounce-slow {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-2px); }
         }
-        .animate-bounce-slow{ animation: bounce-slow 1.2s ease-in-out infinite; }
-        @keyframes twinkle {
-          0%, 100% { transform: scale(0.9); opacity: 0.8; }
-          50% { transform: scale(1.05); opacity: 1; }
+        .animate-bounce-slow{
+          animation: bounce-slow 1.2s ease-in-out infinite;
         }
-        .animate-twinkle{ animation: twinkle 1.4s ease-in-out infinite; }
+        @keyframes twinkle {
+          0%, 100% { transform: scale(0.9) rotate(0deg); opacity: 0.8; }
+          50% { transform: scale(1.05) rotate(8deg); opacity: 1; }
+        }
+        .animate-twinkle{
+          animation: twinkle 1.4s ease-in-out infinite;
+        }
 
+        /* Slightly rounder, glassier message bubbles (non-invasive) */
+        .chat-messages .surface,
+        .chat-messages .card,
+        .chat-messages [data-bubble],
+        .chat-messages [class*="bubble"]{
+          border-radius: 18px !important;
+          background: rgba(18,18,18,0.45) !important;
+          backdrop-filter: blur(10px) saturate(120%) !important;
+          -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
+          border: 1px solid rgba(255,255,255,0.06) !important;
+          box-shadow:
+            0 2px 10px rgba(0,0,0,0.25),
+            inset 0 1px 0 rgba(255,255,255,0.04) !important;
+        }
+
+        /* ONE full-size black frosted pill for input dock – unchanged */
         .glass-dock{
           position: relative;
           border-radius: 9999px;
           padding: 10px 12px;
           background: transparent;
+          border: 0;
           box-shadow: 0 10px 30px rgba(0,0,0,0.35);
           isolation: isolate;
+          overflow: visible;
         }
         .glass-dock::before{
           content: "";
           position: absolute;
           inset: 0;
           border-radius: inherit;
-          background: rgba(0,0,0,0.4);
+          background: rgba(0,0,0,0.368);
           backdrop-filter: blur(10px) saturate(120%);
           -webkit-backdrop-filter: blur(10px) saturate(120%);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.06),
+            inset 0 -1px 0 rgba(255,255,255,0.03);
           z-index: 0;
         }
         .glass-dock > *{ position: relative; z-index: 1; }
+
+        .glass-dock :is(.surface,.card,[class*="bg-"],[class*="ring-"],[class*="border"],[class*="shadow"],
+                        .backdrop-blur,[class*="backdrop-"],[style*="backdrop-filter"]){
+          background: transparent !important;
+          box-shadow: none !important;
+          border: 0 !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+
+        .glass-dock :is(.input-wrapper,.input-container,.chat-input,.field,form){
+          background: transparent !important;
+          box-shadow: none !important;
+          border: 0 !important;
+        }
+
+        .glass-dock:focus-within{
+          box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 16px 4px hsl(var(--primary)/0.3), 0 0 40px 10px hsl(var(--primary)/0.15) !important;
+          border-radius: 9999px;
+        }
+
+        .glass-dock input,
+        .glass-dock textarea{
+          font-size: 16px !important; /* prevent iOS zoom */
+        }
+
+        .glass-dock input:-webkit-autofill,
+        .glass-dock textarea:-webkit-autofill{
+          -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+          -webkit-text-fill-color: inherit !important;
+          transition: background-color 999999s ease-in-out 0s !important;
+        }
+
+        .sync-bubble,
+        [data-sync-bubble],
+        [data-role="sync-bubble"],
+        .sync-indicator,
+        [data-sync],
+        [class*="sync-bubble"],
+        [class*="syncIndicator"],
+        [class*="sync-indicator"]{
+          transform: scale(0.9) !important;
+          transform-origin: center !important;
+        }
+        .sync-bubble svg,
+        [data-sync-bubble] svg,
+        .sync-indicator svg,
+        [data-sync] svg{
+          width: 0.9em !important;
+          height: 0.9em !important;
+        }
       `}</style>
+
+      {/* Chat History Dialog */}
+      <Dialog open={showHistory} onOpenChange={setShowHistory}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[85vh] p-0 gap-0 bg-glass/95 backdrop-blur-xl border-glass-border/60 shadow-2xl overflow-hidden">
+          <div className="h-full overflow-y-auto">
+            <ChatHistoryPanel />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings Dialog */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] p-0 gap-0 bg-glass/95 backdrop-blur-xl border-glass-border/60 shadow-2xl overflow-hidden">
+          <div className="h-full overflow-y-auto">
+            <SettingsPanel />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
