@@ -185,16 +185,12 @@ export function MobileChatApp() {
     </div>
   );
 
-  /** Ping-pong Marquee — SIMPLE & ROBUST
-   *  Render three identical sets [A][B][C]. Start with B aligned at the left edge
-   *  (translateX(-setW)). Animate back and forth between 0 (A) and -2*setW (C).
-   *  This guarantees no blanks at edges and every prompt is visible at least once.
-   */
+  /** Ping-pong Marquee — slower */
   const MarqueePingPong: React.FC<{
     items: typeof quickPrompts;
     duration?: number; // seconds for a full center→edge→other edge cycle
     delay?: number;    // negative offsets allowed to desync rows
-  }> = ({ items, duration = 28, delay = 0 }) => {
+  }> = ({ items, duration = 60, delay = 0 }) => { // SLOW default
     const setRef = useRef<HTMLDivElement>(null);
     const trackRef = useRef<HTMLDivElement>(null);
 
@@ -304,10 +300,10 @@ export function MobileChatApp() {
                   </h2>
                 </div>
 
-                {/* Rolling wall of prompts — 2 rows, ping-pong, no blanks */}
+                {/* Rolling wall of prompts — 2 rows, ping-pong, slow */}
                 <div className="w-full max-w-2xl flex flex-col gap-6 mb-16">
-                  <MarqueePingPong items={quickPrompts.slice(0, 6)} duration={30} />
-                  <MarqueePingPong items={quickPrompts.slice(6)} duration={34} delay={-8} />
+                  <MarqueePingPong items={quickPrompts.slice(0, 6)} duration={68} />
+                  <MarqueePingPong items={quickPrompts.slice(6)} duration={80} delay={-12} />
                 </div>
 
                 <div className="pb-8" />
@@ -366,7 +362,7 @@ export function MobileChatApp() {
           80%{transform:translate(-2px,0) rotate(-0.2deg)}
         }
 
-        /* --- PING-PONG MARQUEE --- */
+        /* --- PING-PONG MARQUEE (SLOW) --- */
         .marquee-ping{
           position: relative;
           overflow: hidden;
@@ -380,16 +376,16 @@ export function MobileChatApp() {
           white-space: nowrap;
           will-change: transform;
           transform: translate3d(0,0,0);
-          /* Start centered on the middle set */
-          animation: pingpong var(--dur, 28s) ease-in-out infinite alternate;
+          /* Start centered on the middle set; use very gentle easing */
+          animation: pingpong var(--dur, 60s) cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
           animation-delay: var(--delay, 0s);
         }
         .marquee-ping-set{ display: inline-flex; gap: 12px; }
 
         @keyframes pingpong{
-          0%   { transform: translate3d(calc(-1 * var(--setW, 600px)), 0, 0); }     /* show middle set */
-          50%  { transform: translate3d(calc(-2 * var(--setW, 600px)), 0, 0); }     /* slide to right clone */
-          100% { transform: translate3d(0, 0, 0); }                                  /* slide to left clone */
+          0%   { transform: translate3d(calc(-1 * var(--setW, 600px)), 0, 0); }
+          50%  { transform: translate3d(calc(-2 * var(--setW, 600px)), 0, 0); }
+          100% { transform: translate3d(0, 0, 0); }
         }
 
         /* Prompt pill style (glassy) */
