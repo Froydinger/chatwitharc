@@ -10,6 +10,47 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
+/** Try hard to get a first name from many common auth shapes */
+function extractFirstName(p: any): string {
+  if (!p) return "there";
+
+  const candidates = [
+    p.user?.firstName,
+    p.user?.given_name,
+    p.user?.givenName,
+    p.user?.name,
+    p.user?.fullName,
+    p.user?.displayName,
+    p.user?.username,
+    p.firstName,
+    p.given_name,
+    p.givenName,
+    p.preferred_name,
+    p.preferredName,
+    p.nickname,
+    p.name?.first,
+    p.name?.givenName,
+    p.name,
+    p.displayName,
+    p.username,
+    p.email,
+    p.user?.email,
+  ].filter(Boolean) as string[];
+
+  const raw = (candidates[0] || "").toString().trim();
+  if (!raw) return "there";
+
+  // If email, get local-part; otherwise first token
+  const token = raw.includes("@")
+    ? raw.split("@")[0]
+    : raw.split(/\s+/)[0];
+
+  const cleaned = token.replace(/[_.-]+/g, " ").trim().split(" ")[0] || "there";
+
+  // Capitalize first letter nicely
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
+
 export function MobileChatApp() {
   const { 
     messages, 
@@ -41,14 +82,8 @@ export function MobileChatApp() {
   const { toast } = useToast();
   const { profile } = useAuth();
 
-  // Personalized greeting
-  const rawName =
-    (profile as any)?.name ||
-    (profile as any)?.displayName ||
-    (profile as any)?.username ||
-    (profile as any)?.email ||
-    "";
-  const firstName = (rawName || "").split(/[ @]/)[0] || "there";
+  // Personalized greeting (updates whenever profile changes)
+  const firstName = extractFirstName(profile);
 
   // Quick Prompts
   const quickPrompts = [
@@ -68,8 +103,8 @@ export function MobileChatApp() {
 
   // Prompt glow with proper fade-in AND fade-out (no blips)
   type Glow = { index: number; color: string };
-  const [activeGlow, setActiveGlow] = useState<Glow | null>(null); // currently glowing (fades in)
-  const [armedGlow, setArmedGlow] = useState<Glow | null>(null);   // staged at opacity 0 for one frame, then promoted to active
+  const [activeGlow, setActiveGlow] = useState<Glow | null>(null); // currently glowing
+  const [armedGlow, setArmedGlow] = useState<Glow | null>(null);   // staged at opacity 0 for one frame
   const [prevGlow, setPrevGlow] = useState<Glow | null>(null);     // previous glow fading out
 
   const glowPalette = [
@@ -92,20 +127,16 @@ export function MobileChatApp() {
         const nextIndex = Math.floor(Math.random() * quickPrompts.length);
         const nextColor = glowPalette[Math.floor(Math.random() * glowPalette.length)];
 
-        // move current active to fading-out
-        if (activeGlow) setPrevGlow(activeGlow);
+        if (activeGlow) setPrevGlow(activeGlow);           // fade this one out
 
-        // stage the next glow at 0 opacity
-        setArmedGlow({ index: nextIndex, color: nextColor });
+        setArmedGlow({ index: nextIndex, color: nextColor }); // mount at 0 opacity
 
-        // after a tick, promote to active (so it fades from 0 -> target)
         armTimeout = window.setTimeout(() => {
-          setActiveGlow({ index: nextIndex, color: nextColor });
+          setActiveGlow({ index: nextIndex, color: nextColor }); // fade in
           setArmedGlow(null);
         }, 30);
 
-        // remove prev after CSS transition completes so it can fade OUT smoothly
-        clearPrevTimeout = window.setTimeout(() => setPrevGlow(null), 500);
+        clearPrevTimeout = window.setTimeout(() => setPrevGlow(null), 500); // let fade-out complete
       };
 
       cycle();
@@ -262,7 +293,7 @@ export function MobileChatApp() {
               <h1 className="text-lg">
                 <span className="font-thin">Arc</span><span className="font-semibold">Ai</span>
               </h1>
-              {/* subtitle removed by request */}
+              {/* subtitle intentionally removed */}
             </div>
           </div>
           
@@ -306,7 +337,6 @@ export function MobileChatApp() {
                   <h2 className="text-2xl font-bold text-foreground mb-2">
                     {`Howdy, ${firstName}!`}
                   </h2>
-                  {/* helper subtitle removed by request */}
                 </div>
 
                 {/* Quick Prompts - 2 Column Grid */}
@@ -315,12 +345,10 @@ export function MobileChatApp() {
                     const isActive = activeGlow?.index === idx;
                     const isArmed = armedGlow?.index === idx;
                     const isFading = prevGlow?.index === idx;
-                    const styleVar: any = isActive
-                      ? { ["--glow-color" as any]: activeGlow!.color }
-                      : isArmed
-                      ? { ["--glow-color" as any]: armedGlow!.color }
-                      : isFading
-                      ? { ["--glow-color" as any]: prevGlow!.color }
+                    const styleVar: any =
+                      isActive ? { ["--glow-color" as any]: activeGlow!.color }
+                      : isArmed ? { ["--glow-color" as any]: armedGlow!.color }
+                      : isFading ? { ["--glow-color" as any]: prevGlow!.color }
                       : undefined;
 
                     return (
@@ -424,12 +452,9 @@ export function MobileChatApp() {
           transition: opacity 380ms ease;
           animation: glow-pan-soft 7.5s ease-in-out infinite alternate;
         }
-        /* armed = mounted at 0 specifically to ensure start-from-zero; visually same as base */
-        .prompt-glow--armed::after{ opacity: 0; }
-        /* active target opacity */
-        .prompt-glow--show::after{ opacity: 0.22; }
-        /* previous fading out */
-        .prompt-glow--fadeout::after{ opacity: 0; }
+        .prompt-glow--armed::after{ opacity: 0; }       /* mounted at 0 so next fade starts correctly */
+        .prompt-glow--show::after{ opacity: 0.22; }     /* fade in to here */
+        .prompt-glow--fadeout::after{ opacity: 0; }     /* fade out to zero */
 
         @keyframes glow-pan-soft{
           0%   { background-position: 26% 40%, 74% 60%; }
