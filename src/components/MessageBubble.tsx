@@ -33,7 +33,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           description: "Message copied to clipboard",
         });
         setShowActions(false);
-      } catch (error) {
+      } catch {
         toast({
           title: "Copy failed",
           description: "Could not copy message to clipboard",
@@ -48,9 +48,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     };
 
     const handleSaveEdit = () => {
-      if (editContent.trim() && editContent !== message.content) {
-        editMessage(message.id, editContent.trim());
-        onEdit?.(message.id, editContent.trim());
+      const next = editContent.trim();
+      if (next && next !== message.content) {
+        editMessage(message.id, next);
+        onEdit?.(message.id, next);
       }
       setIsEditing(false);
     };
@@ -70,9 +71,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     };
 
     const handleMessageClick = () => {
-      if (!isEditing) {
-        setShowActions(!showActions);
-      }
+      if (!isEditing) setShowActions((s) => !s);
     };
 
     return (
@@ -90,9 +89,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
         >
           {/* Avatar */}
           <motion.div
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.1 }}
+            initial={{ scale: 0.9, opacity: 0.9 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.12 }}
             className={`flex-shrink-0 w-8 h-8 rounded-full glass flex items-center justify-center ${
               isUser ? "bg-primary/20" : "bg-glass/50"
             }`}
@@ -120,23 +119,52 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
           {/* Message Content */}
           <motion.div
-            initial={{ opacity: 0.8 }}
+            initial={{ opacity: 0.9 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.1 }}
-            className={`relative glass rounded-2xl px-4 py-3 cursor-pointer ${
-              isUser
-                ? "bg-primary/20 border-primary/30"
-                : "bg-glass/50 border-glass-border/50"
-            }`}
+            transition={{ duration: 0.12 }}
             onClick={handleMessageClick}
+            className={[
+              // Base bubble shell
+              "relative cursor-pointer px-4 py-3 rounded-[22px] border backdrop-blur-md",
+              "shadow-[0_6px_20px_-6px_rgba(0,0,0,0.35)]",
+              "before:absolute before:inset-0 before:rounded-[22px] before:pointer-events-none",
+              "after:absolute after:rounded-full after:blur-md after:pointer-events-none",
+              // Theme: user vs assistant
+              isUser
+                ? [
+                    // Subtle color tint for user
+                    "bg-gradient-to-b from-primary/15 to-primary/10",
+                    "border-primary/30",
+                    "before:bg-[linear-gradient(180deg,rgba(255,255,255,0.18),rgba(255,255,255,0.02))]",
+                    "after:content-[''] after:-z-10 after:opacity-50",
+                    "after:w-16 after:h-16 after:right-2 after:bottom-2",
+                    "after:bg-primary/15",
+                  ].join(" ")
+                : [
+                    // Neutral glass for assistant
+                    "bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))]",
+                    "border-glass-border/50",
+                    "before:bg-[linear-gradient(180deg,rgba(255,255,255,0.22),rgba(255,255,255,0.04))]",
+                    "after:content-[''] after:-z-10 after:opacity-40",
+                    "after:w-16 after:h-16 after:left-2 after:bottom-2",
+                    "after:bg-white/10",
+                  ].join(" "),
+              // Hover polish
+              "transition-[transform,box-shadow,background] duration-200",
+              "hover:shadow-[0_10px_26px_-8px_rgba(0,0,0,0.45)]",
+            ].join(" ")}
           >
+            {/* Subtle inner highlight */}
+            <div className="pointer-events-none absolute inset-px rounded-[20px] ring-1 ring-white/10" />
+
+            {/* Shine strip */}
+            <div className="pointer-events-none absolute -top-1 left-4 right-4 h-[2px] rounded-full bg-white/30 opacity-40" />
+
             {/* Image Generation Placeholder */}
             {message.type === "image-generating" && (
               <ImageGenerationPlaceholder
                 prompt={message.imagePrompt || message.content}
-                onComplete={() => {
-                  // Handled by parent component
-                }}
+                onComplete={() => {}}
               />
             )}
 
@@ -146,7 +174,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.1 }}
+                  transition={{ duration: 0.12 }}
                   className="mb-2"
                 >
                   {message.imageUrls && message.imageUrls.length > 0 ? (
@@ -170,97 +198,93 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                               : ""
                           }
                         >
-                          <SmoothImage
-                            src={url}
-                            alt={`Image ${index + 1}`}
-                            className="w-full h-auto max-h-48 rounded-lg object-cover"
-                            loadingClassName="w-full h-48 rounded-lg"
-                          />
+                          <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden">
+                            <SmoothImage
+                              src={url}
+                              alt={`Image ${index + 1}`}
+                              className="w-full h-auto max-h-48 object-cover"
+                              loadingClassName="w-full h-48"
+                            />
+                          </div>
                         </div>
                       ))}
                     </div>
                   ) : (
                     message.imageUrl && (
-                      <SmoothImage
-                        src={message.imageUrl}
-                        alt="Generated image"
-                        className="max-w-full h-auto max-h-48 rounded-lg object-cover"
-                        loadingClassName="w-full h-48 rounded-lg"
-                      />
+                      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden">
+                        <SmoothImage
+                          src={message.imageUrl}
+                          alt="Generated image"
+                          className="max-w-full h-auto max-h-48 object-cover"
+                          loadingClassName="w-full h-48"
+                        />
+                      </div>
                     )
                   )}
                 </motion.div>
               )}
 
             {/* Text Content */}
-            {message.type !== "image-generating" && (
-              isEditing ? (
+            {message.type !== "image-generating" &&
+              (isEditing ? (
                 <div className="space-y-2">
                   <Input
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
                     onKeyDown={handleKeyPress}
-                    className="glass border-0 bg-glass/30 text-foreground"
+                    className="glass border-0 bg-white/10 text-foreground rounded-xl"
                     autoFocus
                   />
                   <div className="flex gap-2 justify-end">
-                    <GlassButton
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCancelEdit}
-                    >
+                    <GlassButton variant="ghost" size="sm" onClick={handleCancelEdit}>
                       Cancel
                     </GlassButton>
-                    <GlassButton
-                      variant="glow"
-                      size="sm"
-                      onClick={handleSaveEdit}
-                    >
+                    <GlassButton variant="glow" size="sm" onClick={handleSaveEdit}>
                       <Check className="h-3 w-3 mr-1" />
                       Save
                     </GlassButton>
                   </div>
                 </div>
               ) : (
-                <p className="text-foreground whitespace-pre-wrap break-words">
+                <p className="text-foreground whitespace-pre-wrap break-words leading-relaxed">
                   {message.content}
                 </p>
-              )
-            )}
+              ))}
 
             {/* Action Buttons */}
-            {!isEditing && showActions && (
+            {!isEditing && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.2 }}
-                className="absolute top-3 right-3 flex gap-1"
+                initial={false}
+                animate={{ opacity: showActions ? 1 : 0, scale: showActions ? 1 : 0.96 }}
+                transition={{ duration: 0.18 }}
+                className="pointer-events-auto absolute -top-3 -right-3 hidden gap-1 group-hover:flex"
               >
-                <GlassButton
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCopy();
-                  }}
-                  className="h-6 w-6 bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg"
-                >
-                  <Copy className="h-3 w-3" />
-                </GlassButton>
-                {isUser && (
+                <div className="rounded-full bg-background/70 backdrop-blur-md border border-border/50 shadow-lg p-1 flex gap-1">
                   <GlassButton
                     variant="ghost"
                     size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleEdit();
+                      handleCopy();
                     }}
-                    className="h-6 w-6 bg-background/80 backdrop-blur-sm border border-border/50 shadow-lg"
+                    className="h-6 w-6"
                   >
-                    <Edit2 className="h-3 w-3" />
+                    <Copy className="h-3 w-3" />
                   </GlassButton>
-                )}
+                  {isUser && (
+                    <GlassButton
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit();
+                      }}
+                      className="h-6 w-6"
+                    >
+                      <Edit2 className="h-3 w-3" />
+                    </GlassButton>
+                  )}
+                </div>
               </motion.div>
             )}
 
@@ -276,14 +300,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     <motion.div
                       key={i}
                       className="w-1 h-3 bg-primary-glow rounded-full"
-                      animate={{
-                        scaleY: [1, 0.5, 1],
-                      }}
-                      transition={{
-                        duration: 1,
-                        repeat: Infinity,
-                        delay: i * 0.1,
-                      }}
+                      animate={{ scaleY: [1, 0.5, 1] }}
+                      transition={{ duration: 1, repeat: Infinity, delay: i * 0.1 }}
                     />
                   ))}
                 </div>
