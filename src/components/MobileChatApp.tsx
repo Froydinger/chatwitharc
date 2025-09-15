@@ -202,23 +202,25 @@ export function MobileChatApp() {
     </div>
   );
 
-  /** Marquee Row — seamless loop
-   *  We measure the width of ONE set of pills, then animate -that- width.
-   *  Track contains 3 identical sets so the visual never changes at the reset point.
+  /** Marquee Row — seamless loop with crossfade at reset
+   *  We measure the width of ONE set of pills, animate that distance,
+   *  and overlay TWO tracks that are time-shifted by half a loop and
+   *  fade in/out at the edges to hide the reset.
    */
   const MarqueeRow: React.FC<{
     items: typeof quickPrompts;
     duration?: number; // seconds for one loop of ONE set
     reverse?: boolean;
-    delay?: number; // seconds
-  }> = ({ items, duration = 28, reverse = false, delay = 0 }) => {
+    delay?: number; // seconds (optional global offset)
+  }> = ({ items, duration = 30, reverse = false, delay = 0 }) => {
     const setRef = useRef<HTMLDivElement>(null);
-    const trackRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
       const update = () => {
         const w = setRef.current?.getBoundingClientRect().width ?? 600;
-        trackRef.current?.style.setProperty("--loop-w", `${w}px`);
+        containerRef.current?.style.setProperty("--loop-w", `${w}px`);
+        containerRef.current?.style.setProperty("--duration", `${duration}s`);
       };
       update();
       const ro = new ResizeObserver(update);
@@ -228,21 +230,21 @@ export function MobileChatApp() {
         ro.disconnect();
         window.removeEventListener("resize", update);
       };
-    }, [items]);
+    }, [items, duration]);
 
     return (
       <div
+        ref={containerRef}
         className="marquee"
         style={
           {
             "--dir": reverse ? -1 : 1,
-            "--duration": `${duration}s`,
-            "--delay": `${delay}s`,
+            "--global-delay": `${delay}s`,
           } as React.CSSProperties
         }
       >
-        <div ref={trackRef} className="marquee-track">
-          {/* One measured set */}
+        {/* Track A */}
+        <div className="marquee-track" style={{ ["--delay" as any]: "calc(var(--global-delay) + 0s)" }}>
           <div ref={setRef} className="marquee-set">
             {items.map((p, i) => (
               <button key={`a-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
@@ -250,7 +252,25 @@ export function MobileChatApp() {
               </button>
             ))}
           </div>
-          {/* Two clones to ensure seamless visual at reset */}
+          {/* clones to keep visual full */}
+          <div className="marquee-set" aria-hidden>
+            {items.map((p, i) => (
+              <button key={`a2-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
+                <span className="font-medium text-sm">{p.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="marquee-set" aria-hidden>
+            {items.map((p, i) => (
+              <button key={`a3-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
+                <span className="font-medium text-sm">{p.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Track B — half-cycle offset, crossfades with A */}
+        <div className="marquee-track" style={{ ["--delay" as any]: "calc(var(--global-delay) + (var(--duration) / 2))" }}>
           <div className="marquee-set" aria-hidden>
             {items.map((p, i) => (
               <button key={`b-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
@@ -260,7 +280,14 @@ export function MobileChatApp() {
           </div>
           <div className="marquee-set" aria-hidden>
             {items.map((p, i) => (
-              <button key={`c-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
+              <button key={`b2-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
+                <span className="font-medium text-sm">{p.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="marquee-set" aria-hidden>
+            {items.map((p, i) => (
+              <button key={`b3-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
                 <span className="font-medium text-sm">{p.label}</span>
               </button>
             ))}
@@ -348,14 +375,14 @@ export function MobileChatApp() {
                   </h2>
                 </div>
 
-                {/* Rolling wall of prompts — 2 rows, seamless */}
+                {/* Rolling wall of prompts — 2 rows, seamless, crossfading */}
                 <div className="w-full max-w-2xl flex flex-col gap-4 mb-16">
                   <MarqueeRow items={quickPrompts.slice(0, 6)} duration={32} />
                   <MarqueeRow
                     items={quickPrompts.slice(6)}
                     duration={36}
                     reverse
-                    delay={-18}
+                    delay={-4}
                   />
                 </div>
 
@@ -419,31 +446,50 @@ export function MobileChatApp() {
           80%{transform:translate(-2px,0) rotate(-0.2deg)}
         }
 
-        /* Marquee (rolling wall) */
+        /* Marquee (rolling wall) with crossfade at reset */
         .marquee{
           position: relative;
           overflow: hidden;
-          padding: 2px 0;
-          -webkit-mask-image: linear-gradient(to right, transparent 0, black 8%, black 92%, transparent 100%);
-                  mask-image: linear-gradient(to right, transparent 0, black 8%, black 92%, transparent 100%);
+          height: 48px; /* fits pills nicely */
+          display: grid;
+          /* subtle edge fade */
+          -webkit-mask-image: linear-gradient(to right, transparent 0, black 10%, black 90%, transparent 100%);
+                  mask-image: linear-gradient(to right, transparent 0, black 10%, black 90%, transparent 100%);
+          pointer-events: none; /* container only; tracks/pills re-enable */
         }
         .marquee-track{
+          position: absolute;
+          inset: 0;
           display: inline-flex;
+          align-items: center;
           gap: 12px;
           white-space: nowrap;
-          will-change: transform;
+          will-change: transform, opacity;
           transform: translate3d(0,0,0);
           backface-visibility: hidden;
-          animation: marquee var(--duration, 28s) linear infinite;
-          animation-delay: var(--delay, 0s);
+          pointer-events: auto;
+          /* Move & fade with same duration and per-track delay */
+          animation:
+            marquee-move var(--duration, 30s) linear infinite var(--delay, 0s),
+            marquee-fade var(--duration, 30s) ease-in-out infinite var(--delay, 0s);
         }
         .marquee-set{
           display: inline-flex;
           gap: 12px;
         }
-        @keyframes marquee{
+
+        /* Move exactly one measured set width (seamless) */
+        @keyframes marquee-move{
           from { transform: translate3d(0,0,0); }
           to   { transform: translate3d(calc(var(--dir,1) * -1 * var(--loop-w, 600px)),0,0); }
+        }
+
+        /* Crossfade at the reset: quick ease in/out near 0%/100% */
+        @keyframes marquee-fade{
+          0%   { opacity: 0; }
+          6%   { opacity: 1; }
+          94%  { opacity: 1; }
+          100% { opacity: 0; }
         }
 
         /* Prompt pill style (glassy) */
