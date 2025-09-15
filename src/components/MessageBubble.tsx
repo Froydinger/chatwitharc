@@ -122,16 +122,18 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             transition={{ duration: 0.12 }}
             onClick={handleMessageClick}
             className={[
-              "relative cursor-pointer px-4 py-3 rounded-[22px] border backdrop-blur-md",
+              "relative cursor-pointer px-4 py-3 rounded-[22px] border backdrop-blur-md overflow-hidden",
               "shadow-[0_6px_20px_-6px_rgba(0,0,0,0.35)]",
               "transition-[transform,box-shadow,background] duration-200",
               "hover:shadow-[0_10px_26px_-8px_rgba(0,0,0,0.45)]",
-              // 20%ish opacity glass. No top shine. No before/after layers.
               isUser
                 ? "bg-primary/20 border-primary/30"
-                : "bg-white/20 dark:bg-white/10 border-glass-border/40",
+                : "bg-black/30 dark:bg-white/5 border-glass-border/40",
             ].join(" ")}
           >
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 rounded-[22px] pointer-events-none bg-gradient-to-b from-transparent via-transparent to-black/10 dark:to-white/10" />
+
             {/* Image Generation Placeholder */}
             {message.type === "image-generating" && (
               <ImageGenerationPlaceholder
@@ -147,29 +149,18 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.12 }}
-                  className="mb-2"
+                  className="mb-2 relative z-10"
                 >
                   {message.imageUrls && message.imageUrls.length > 0 ? (
                     <div
                       className={`grid gap-2 ${
                         message.imageUrls.length === 1
                           ? "grid-cols-1"
-                          : message.imageUrls.length === 2
-                          ? "grid-cols-2"
-                          : message.imageUrls.length === 3
-                          ? "grid-cols-2"
                           : "grid-cols-2"
                       }`}
                     >
                       {message.imageUrls.map((url, index) => (
-                        <div
-                          key={index}
-                          className={
-                            message.imageUrls!.length === 3 && index === 0
-                              ? "col-span-2"
-                              : ""
-                          }
-                        >
+                        <div key={index}>
                           <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden">
                             <SmoothImage
                               src={url}
@@ -199,7 +190,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             {/* Text Content */}
             {message.type !== "image-generating" &&
               (isEditing ? (
-                <div className="space-y-2">
+                <div className="space-y-2 relative z-10">
                   <Input
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
@@ -218,7 +209,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   </div>
                 </div>
               ) : (
-                <p className="text-foreground whitespace-pre-wrap break-words leading-relaxed">
+                <p className="relative z-10 text-foreground whitespace-pre-wrap break-words leading-relaxed">
                   {message.content}
                 </p>
               ))}
@@ -232,7 +223,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   scale: showActions ? 1 : 0.96,
                 }}
                 transition={{ duration: 0.18 }}
-                className="pointer-events-auto absolute -top-3 -right-3 hidden gap-1 group-hover:flex"
+                className="pointer-events-auto absolute -top-3 -right-3 hidden gap-1 group-hover:flex z-20"
               >
                 <div className="rounded-full bg-background/70 backdrop-blur-md border border-border/50 shadow-lg p-1 flex gap-1">
                   <GlassButton
@@ -268,7 +259,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-1 mt-2 text-xs text-muted-foreground"
+                className="flex items-center gap-1 mt-2 text-xs text-muted-foreground relative z-10"
               >
                 <div className="flex gap-1">
                   {[0, 1, 2].map((i) => (
