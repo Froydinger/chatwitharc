@@ -43,14 +43,20 @@ export function MobileChatApp() {
   const { toast } = useToast();
   const { profile } = useAuth();
 
-  // Quick Prompts for mobile
+  // Quick Prompts for mobile - 12 prompts in 2 columns
   const quickPrompts = [
-    { label: "💭 Wellness Check", prompt: "Help me do a quick wellness check. Ask me about my mood and energy level, then give me personalized advice." },
-    { label: "🎨 Creative Spark", prompt: "I need creative inspiration. Give me an interesting creative idea I can work on today." },
-    { label: "🔥 Focus Sprint", prompt: "Help me set up a focused work session. Guide me through planning a productive 25-minute sprint." },
-    { label: "🙏 Gratitude Practice", prompt: "Lead me through a quick gratitude exercise to help me appreciate the good things in my life." },
-    { label: "💬 Just Chat", prompt: "I want to have a casual conversation. Ask me about my day and let's chat like friends." },
-    { label: "🎯 Quick Advice", prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing." }
+    { label: "Focus", prompt: "Help me set up a focused work session. Guide me through planning a productive 25-minute sprint." },
+    { label: "Create", prompt: "I need creative inspiration. Give me an interesting creative idea I can work on today." },
+    { label: "Check-in", prompt: "Help me do a quick wellness check. Ask me about my mood and energy level, then give me personalized advice." },
+    { label: "Chat", prompt: "I want to have a casual conversation. Ask me about my day and let's chat like friends." },
+    { label: "Advice", prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing." },
+    { label: "Gratitude", prompt: "Lead me through a quick gratitude exercise to help me appreciate the good things in my life." },
+    { label: "Learn", prompt: "Help me understand something new. I want to learn about a topic that interests me." },
+    { label: "Plan", prompt: "Help me organize my day or week. Guide me through creating a structured plan for my goals." },
+    { label: "Reflect", prompt: "Lead me through a guided reflection session about my recent experiences and growth." },
+    { label: "Motivate", prompt: "I need encouragement and motivation. Help me feel inspired and energized." },
+    { label: "Decide", prompt: "Help me make a decision. I have options to consider and need guidance on choosing the best path." },
+    { label: "Calm", prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise." }
   ];
 
   // Robust "scroll to top" helper
@@ -185,7 +191,7 @@ export function MobileChatApp() {
           ref={messagesContainerRef}
           className="absolute inset-0 overflow-y-auto"
           style={{
-            paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px))`
+            paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 2rem)`
           }}
         >
           {/* Empty state */}
@@ -207,13 +213,13 @@ export function MobileChatApp() {
                   </p>
                 </div>
 
-                {/* Quick Prompts */}
-                <div className="w-full max-w-sm space-y-3 mb-6">
+                {/* Quick Prompts - 2 Column Grid */}
+                <div className="w-full max-w-md grid grid-cols-2 gap-2 mb-8">
                   {quickPrompts.map((prompt, idx) => (
                     <button
                       key={idx}
                       onClick={() => triggerPrompt(prompt.prompt)}
-                      className="w-full p-4 card text-left hover:bg-accent/50 transition-colors"
+                      className="p-3 card text-center hover:bg-accent/50 transition-colors rounded-lg"
                     >
                       <span className="font-medium text-sm">{prompt.label}</span>
                     </button>
