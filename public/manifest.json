@@ -9,16 +9,22 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/lovable-uploads/2603b238-d3c3-4e16-a453-adb382d03cca.png",
+      "src": "https://froydinger.com/wp-content/uploads/2025/09/mac512.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any maskable" 
     },
     {
-      "src": "/lovable-uploads/2603b238-d3c3-4e16-a453-adb382d03cca.png", 
+      "src": "https://froydinger.com/wp-content/uploads/2025/09/mac512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any maskable" 
+    },
+    {
+      "src": "https://froydinger.com/wp-content/uploads/2025/09/appstore1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "categories": ["productivity", "utilities", "social"],
