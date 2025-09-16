@@ -2,7 +2,7 @@
   "name": "ArcAI - Ask, Reflect, Create",
   "short_name": "ArcAI",
   "description": "Ask, Reflect, Create with advanced AI conversations and realtime voice capabilities",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#0f0f23",
   "theme_color": "#6366f1",
@@ -10,21 +10,15 @@
   "icons": [
     {
       "src": "https://froydinger.com/wp-content/uploads/2025/09/mac512.png",
-      "sizes": "192x192",
+      "sizes": "512x512 180x180",
       "type": "image/png",
-      "purpose": "any maskable" 
-    },
-    {
-      "src": "https://froydinger.com/wp-content/uploads/2025/09/mac512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable" 
+      "purpose": "any maskable"
     },
     {
       "src": "https://froydinger.com/wp-content/uploads/2025/09/appstore1024.png",
-      "sizes": "1024x1024",
+      "sizes": "1024x1024 512x512 192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ],
   "categories": ["productivity", "utilities", "social"],
