@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Settings, History, Brain, Sparkles } from "lucide-react";
+import { Plus, Settings, History } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
+import { LofiPlayer } from "@/components/LofiPlayer";
+import { WelcomeSection } from "@/components/WelcomeSection";
+import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -165,83 +168,6 @@ export function MobileChatApp() {
     return () => mo.disconnect();
   }, []);
 
-  /** Thinking indicator */
-  const showThinking = isLoading || isGeneratingImage;
-  const ThinkingIndicator = () => (
-    <div className="flex justify-center">
-      <div className="thinking-shell" data-show={showThinking ? "true" : "false"} aria-live="polite">
-        <div className="surface thinking-pill rounded-full">
-          <div className="flex items-center gap-3">
-            <div className="relative flex items-center justify-center">
-              <Brain className="h-5 w-5 animate-bounce-slow" />
-              <Sparkles className="h-3 w-3 absolute -top-1 -right-1 animate-twinkle" />
-            </div>
-            <span className="text-sm text-muted-foreground">
-              {isGeneratingImage ? "Generating image..." : "Arc is thinking..."}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  /** Ping-pong Marquee — slower */
-  const MarqueePingPong: React.FC<{
-    items: typeof quickPrompts;
-    duration?: number; // seconds for a full center→edge→other edge cycle
-    delay?: number;    // negative offsets allowed to desync rows
-  }> = ({ items, duration = 60, delay = 0 }) => { // SLOW default
-    const setRef = useRef<HTMLDivElement>(null);
-    const trackRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-      const update = () => {
-        const w = setRef.current?.getBoundingClientRect().width ?? 600;
-        trackRef.current?.style.setProperty("--setW", `${Math.ceil(w)}px`);
-        trackRef.current?.style.setProperty("--dur", `${duration}s`);
-        trackRef.current?.style.setProperty("--delay", `${delay}s`);
-      };
-      update();
-      const ro = new ResizeObserver(update);
-      if (setRef.current) ro.observe(setRef.current);
-      window.addEventListener("resize", update);
-      return () => {
-        ro.disconnect();
-        window.removeEventListener("resize", update);
-      };
-    }, [items, duration, delay]);
-
-    return (
-      <div className="marquee-ping">
-        <div ref={trackRef} className="marquee-ping-track">
-          {/* LEFT CLONE (A) */}
-          <div className="marquee-ping-set" aria-hidden>
-            {items.map((p, i) => (
-              <button key={`L-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
-                <span className="font-medium text-sm">{p.label}</span>
-              </button>
-            ))}
-          </div>
-          {/* CENTER (B) — measured */}
-          <div ref={setRef} className="marquee-ping-set">
-            {items.map((p, i) => (
-              <button key={`C-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
-                <span className="font-medium text-sm">{p.label}</span>
-              </button>
-            ))}
-          </div>
-          {/* RIGHT CLONE (C) */}
-          <div className="marquee-ping-set" aria-hidden>
-            {items.map((p, i) => (
-              <button key={`R-${i}`} onClick={() => triggerPrompt(p.prompt)} className="prompt-pill">
-                <span className="font-medium text-sm">{p.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   // Main chat interface
   return (
@@ -259,6 +185,7 @@ export function MobileChatApp() {
           </div>
 
           <div className="flex items-center gap-2">
+            <LofiPlayer />
             <Button variant="outline" size="icon" className="rounded-full" onClick={() => setShowHistory(true)}>
               <History className="h-4 w-4" />
             </Button>
@@ -286,37 +213,20 @@ export function MobileChatApp() {
         >
           {/* Empty state */}
           {messages.length === 0 ? (
-            <div className="flex flex-col h-full">
-              {/* Welcome Section */}
-              <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                <div className="mb-8">
-                  <img
-                    src={HERO_AVATAR}
-                    alt="Arc assistant avatar"
-                    className="assistant-hero-avatar ai-avatar h-20 w-20 mx-auto mb-4 floating-hero"
-                  />
-                  <h2 className="text-2xl font-bold text-foreground mb-2">
-                    {greeting}!
-                  </h2>
-                </div>
-
-                {/* Rolling wall of prompts — 2 rows, ping-pong, slow */}
-                <div className="w-full max-w-2xl flex flex-col gap-6 mb-16">
-                  <MarqueePingPong items={quickPrompts.slice(0, 6)} duration={68} />
-                  <MarqueePingPong items={quickPrompts.slice(6)} duration={80} delay={-12} />
-                </div>
-
-                <div className="pb-8" />
-
-                <ThinkingIndicator />
-              </div>
-            </div>
+            <WelcomeSection
+              greeting={greeting}
+              heroAvatar={HERO_AVATAR}
+              quickPrompts={quickPrompts}
+              onTriggerPrompt={triggerPrompt}
+              isLoading={isLoading}
+              isGeneratingImage={isGeneratingImage}
+            />
           ) : (
             <div className="p-4 space-y-4 chat-messages">
               {messages.map((message) => (
                 <MessageBubble key={message.id} message={message} onEdit={() => {}} />
               ))}
-              <ThinkingIndicator />
+              <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
             </div>
           )}
         </div>

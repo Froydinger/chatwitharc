@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Trash2, User, LogOut, AlertTriangle, Camera } from "lucide-react";
+import { Trash2, User, LogOut, AlertTriangle, Camera, Wifi, WifiOff, Cloud, CloudOff } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,13 +28,15 @@ export function SettingsPanel() {
   const { 
     selectedVoice,
     setSelectedVoice, 
-    clearAllSessions
+    clearAllSessions,
+    lastSyncAt
   } = useArcStore();
   const { user } = useAuth();
   const { profile, updateProfile, updating } = useProfile();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   // Local draft + dirty state for Display Name (prevent save-per-keystroke)
   const [displayNameDraft, setDisplayNameDraft] = useState("");
@@ -47,6 +49,20 @@ export function SettingsPanel() {
   // Local draft + dirty state for Memory box
   const [memoryDraft, setMemoryDraft] = useState("");
   const [memoryDirty, setMemoryDirty] = useState(false);
+
+  // Online/offline detection for sync status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Keep display name draft in sync with profile unless user is editing
   useEffect(() => {
@@ -262,6 +278,43 @@ export function SettingsPanel() {
     }
   };
 
+  const getSyncStatus = () => {
+    if (!user) return { icon: CloudOff, color: "text-muted-foreground", text: "Not signed in" };
+    
+    if (!isOnline) {
+      return { 
+        icon: WifiOff, 
+        color: "text-destructive", 
+        text: "Offline" 
+      };
+    }
+    
+    if (!lastSyncAt) {
+      return { 
+        icon: CloudOff, 
+        color: "text-muted-foreground", 
+        text: "Syncing..." 
+      };
+    }
+
+    const timeSinceSync = Date.now() - lastSyncAt.getTime();
+    if (timeSinceSync < 5000) {
+      return { 
+        icon: Cloud, 
+        color: "text-green-400", 
+        text: "Synced" 
+      };
+    }
+
+    return { 
+      icon: Cloud, 
+      color: "text-primary-glow", 
+      text: "Auto-sync enabled" 
+    };
+  };
+
+  const { icon: SyncIcon, color: syncColor, text: syncText } = getSyncStatus();
+
   const settings = [
     {
       title: "Personal Information",
@@ -415,6 +468,22 @@ export function SettingsPanel() {
               </div>
             </div>
           ),
+        }
+      ]
+    },
+    {
+      title: "Sync Status",
+      icon: Cloud,
+      items: [
+        {
+          label: "Connection Status",
+          description: "Real-time sync status with cloud",
+          action: (
+            <div className="flex items-center gap-2 glass px-3 py-2 rounded-full text-sm">
+              <SyncIcon className={`h-4 w-4 ${syncColor}`} />
+              <span className={syncColor}>{syncText}</span>
+            </div>
+          )
         }
       ]
     },

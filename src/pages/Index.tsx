@@ -6,7 +6,6 @@ import { MobileChatApp } from "@/components/MobileChatApp";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { AuthPage } from "@/components/AuthPage";
-import { SyncStatus } from "@/components/SyncStatus";
 
 export function Index() {
   const { user, loading, needsOnboarding } = useAuth();
@@ -51,7 +50,6 @@ export function Index() {
     <>
       <MobileChatApp />
       <PWAInstallPrompt />
-      <SyncStatus />
     </>
   );
 }
