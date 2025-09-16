@@ -91,19 +91,18 @@ export function ChatInput() {
       // Parse implicit memory instructions from the model
       const { cleaned, saved } = await parseAndSaveImplicitMemory(response);
 
-      // Build a single assistant message combining confirmation and reply
-      let finalContent = cleaned;
-      if (explicitConfirmation) {
-        finalContent = explicitConfirmation + "\n\n" + finalContent;
-      } else if (saved) {
-        finalContent = formatMemoryConfirmation(saved) + "\n\n" + finalContent;
-      }
-      
+      // Send clean response without memory confirmations to maintain natural flow
       await addMessage({
-        content: finalContent,
+        content: cleaned,
         role: 'assistant',
         type: 'text'
       });
+      
+      // Handle explicit memory saves silently
+      if (explicitConfirmation && saved) {
+        // Memory was saved, but don't show confirmation to maintain conversational flow
+        await refetchProfile();
+      }
     } catch (error) {
       console.error('AI response error:', error);
       toast({
@@ -330,16 +329,16 @@ export function ChatInput() {
 
         const response = await openai.sendMessage(openaiMessages);
 
-        // Handle implicit memory suggested by the model
+        // Handle implicit memory suggested by the model  
         const { cleaned, saved } = await parseAndSaveImplicitMemory(response);
-        let finalContent = cleaned;
-        if (explicitConfirmation) {
-          finalContent = explicitConfirmation + "\n\n" + finalContent;
-        } else if (saved) {
-          finalContent = formatMemoryConfirmation(saved) + "\n\n" + finalContent;
-        }
         
-        await addMessage({ content: finalContent, role: 'assistant', type: 'text' });
+        // Send clean response without memory confirmations
+        await addMessage({ content: cleaned, role: 'assistant', type: 'text' });
+        
+        // Handle explicit memory saves silently 
+        if (explicitConfirmation && saved) {
+          await refetchProfile();
+        }
       }
     } catch (error) {
       console.error('Chat error:', error);
