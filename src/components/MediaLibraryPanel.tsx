@@ -12,8 +12,25 @@ interface GeneratedImage {
   prompt: string;
   sessionId: string;
   sessionTitle: string;
-  timestamp: Date;
+  timestamp: Date; // we will always coerce to a real Date
   messageId: string;
+}
+
+// Safely coerce unknown timestamp shapes to a Date
+function toDate(ts: unknown): Date | null {
+  if (ts instanceof Date) return ts;
+  if (typeof ts === "number") {
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof ts === "string") {
+    const parsed = Date.parse(ts);
+    if (!isNaN(parsed)) {
+      const d = new Date(parsed);
+      return isNaN(d.getTime()) ? null : d;
+    }
+  }
+  return null;
 }
 
 export function MediaLibraryPanel() {
@@ -24,46 +41,61 @@ export function MediaLibraryPanel() {
   // Extract all generated images from chat sessions
   const generatedImages = useMemo(() => {
     const images: GeneratedImage[] = [];
-    
-    chatSessions.forEach(session => {
-      session.messages.forEach(message => {
-        if (message.type === 'image' && message.imageUrl && message.role === 'assistant') {
+
+    chatSessions.forEach((session) => {
+      session.messages.forEach((message) => {
+        if (
+          message?.type === "image" &&
+          message?.imageUrl &&
+          message?.role === "assistant"
+        ) {
+          const coerced = toDate(message?.timestamp);
+          if (!coerced) return; // skip if timestamp is bad
+
+          const rawPrompt: string = typeof message?.content === "string" ? message.content : "";
+          const prompt = rawPrompt.startsWith("Generated image: ")
+            ? rawPrompt.replace("Generated image: ", "")
+            : rawPrompt;
+
           images.push({
             url: message.imageUrl,
-            prompt: message.content.replace('Generated image: ', ''),
+            prompt,
             sessionId: session.id,
-            sessionTitle: session.title,
-            timestamp: message.timestamp,
-            messageId: message.id
+            sessionTitle: session.title ?? "Untitled chat",
+            timestamp: coerced,
+            messageId: message.id,
           });
         }
       });
     });
-    
-    return images.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+    // Safe sort now that timestamps are real Dates
+    images.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return images;
   }, [chatSessions]);
 
   // Filter images based on search query
   const filteredImages = useMemo(() => {
     if (!searchQuery.trim()) return generatedImages;
-    
+
     const query = searchQuery.toLowerCase();
-    return generatedImages.filter(image => 
-      image.prompt.toLowerCase().includes(query) ||
-      image.sessionTitle.toLowerCase().includes(query)
+    return generatedImages.filter(
+      (image) =>
+        image.prompt.toLowerCase().includes(query) ||
+        image.sessionTitle.toLowerCase().includes(query)
     );
   }, [generatedImages, searchQuery]);
 
   // Group images by date
   const groupedImages = useMemo(() => {
     const groups: Record<string, GeneratedImage[]> = {};
-    
-    filteredImages.forEach(image => {
+
+    filteredImages.forEach((image) => {
       const dateKey = image.timestamp.toLocaleDateString();
       if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(image);
     });
-    
+
     return groups;
   }, [filteredImages]);
 
@@ -72,7 +104,7 @@ export function MediaLibraryPanel() {
       const response = await fetch(image.url);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `arcai-generated-${Date.now()}.png`;
       document.body.appendChild(a);
@@ -80,7 +112,7 @@ export function MediaLibraryPanel() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Failed to download image:', error);
+      console.error("Failed to download image:", error);
     }
   };
 
@@ -94,7 +126,7 @@ export function MediaLibraryPanel() {
           </div>
           <h2 className="text-3xl font-bold text-foreground">Media Library</h2>
         </div>
-        
+
         <p className="text-muted-foreground text-base">
           All your AI-generated images from conversations
         </p>
@@ -136,7 +168,9 @@ export function MediaLibraryPanel() {
                 <div className="glass rounded-full p-2">
                   <Calendar className="h-5 w-5 text-primary-glow" />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground">{dateGroup}</h3>
+                <h3 className="text-xl font-semibold text-foreground">
+                  {dateGroup}
+                </h3>
                 <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
               </div>
 
@@ -193,7 +227,7 @@ export function MediaLibraryPanel() {
               >
                 <X className="h-5 w-5" />
               </button>
-              
+
               <div className="aspect-auto max-h-[80vh] overflow-hidden rounded-lg">
                 <SmoothImage
                   src={selectedImage.url}
@@ -201,7 +235,7 @@ export function MediaLibraryPanel() {
                   className="w-full h-full object-contain"
                 />
               </div>
-              
+
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
                 <div className="flex items-end justify-between">
                   <div className="text-white space-y-2">
@@ -213,7 +247,7 @@ export function MediaLibraryPanel() {
                       {selectedImage.timestamp.toLocaleString()}
                     </p>
                   </div>
-                  
+
                   <GlassButton
                     variant="glow"
                     onClick={() => downloadImage(selectedImage)}
@@ -233,23 +267,41 @@ export function MediaLibraryPanel() {
       {generatedImages.length > 0 && (
         <div className="pt-8">
           <GlassCard variant="bubble" glow className="p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4 text-center">Media Statistics</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-4 text-center">
+              Media Statistics
+            </h3>
             <div className="grid grid-cols-2 gap-6 text-center">
               <div className="space-y-2">
                 <div className="glass rounded-full p-4 w-fit mx-auto">
                   <Image className="h-6 w-6 text-primary-glow" />
                 </div>
-                <p className="text-3xl font-bold text-primary-glow">{generatedImages.length}</p>
-                <p className="text-sm text-muted-foreground font-medium">Images Generated</p>
+                <p className="text-3xl font-bold text-primary-glow">
+                  {generatedImages.length}
+                </p>
+                <p className="text-sm text-muted-foreground font-medium">
+                  Images Generated
+                </p>
               </div>
               <div className="space-y-2">
                 <div className="glass rounded-full p-4 w-fit mx-auto">
                   <Calendar className="h-6 w-6 text-primary-glow" />
                 </div>
                 <p className="text-3xl font-bold text-primary-glow">
-                  {new Set(chatSessions.filter(s => s.messages.some(m => m.type === 'image' && m.role === 'assistant')).map(s => s.id)).size}
+                  {
+                    new Set(
+                      chatSessions
+                        .filter((s) =>
+                          s.messages.some(
+                            (m) => m?.type === "image" && m?.role === "assistant"
+                          )
+                        )
+                        .map((s) => s.id)
+                    ).size
+                  }
                 </p>
-                <p className="text-sm text-muted-foreground font-medium">Chats with Images</p>
+                <p className="text-sm text-muted-foreground font-medium">
+                  Chats with Images
+                </p>
               </div>
             </div>
           </GlassCard>
