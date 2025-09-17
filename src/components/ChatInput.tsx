@@ -13,6 +13,24 @@ import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "
 function checkForImageRequest(message: string): boolean {
   const lowerMsg = message.toLowerCase().trim();
   
+  // First check: If user is asking for a prompt/text, NOT an image
+  const promptRequestIndicators = [
+    /\b(?:make|write|create|give\s+me|provide)\s+(?:a\s+)?(?:prompt|description|text)\b/i,
+    /\bprompt\s+for\b/i,
+    /\bso\s+i\s+can\s+(?:paste|copy|use)\b/i,
+    /\b(?:another|other)\s+(?:bot|ai|tool|app|site|website|platform)\b/i,
+    /\b(?:copy|paste|share|send|use)\s+(?:it|this|that)\s+(?:in|to|with|for)\b/i,
+    /\b(?:write|describe|explain)\s+(?:what|how)\b/i,
+    /\bhelp\s+me\s+(?:write|describe|make|create)\b/i,
+    /\bgive\s+me\s+(?:ideas?|suggestions?|examples?)\b/i,
+    /\bwhat\s+(?:should|would)\s+i\s+(?:write|say|type|put)\b/i
+  ];
+  
+  // If they're asking for a prompt/text, return false (don't generate image)
+  if (promptRequestIndicators.some(pattern => pattern.test(lowerMsg))) {
+    return false;
+  }
+  
   // Direct generation keywords
   const directKeywords = [
     'generate', 'create', 'make', 'draw', 'paint', 'sketch', 'illustrate', 
@@ -77,6 +95,12 @@ function checkForImageRequest(message: string): boolean {
   
   // Location/setting descriptions that are often visual
   const hasLocationDescription = /\b(sunset|sunrise|beach|ocean|mountain|forest|city|skyline|garden|room|kitchen|bedroom|office|street|park|lake|river|castle|house|building|bridge|road|path|field|valley|desert|jungle|snow|winter|summer|spring|autumn|night|day|evening|morning)\b/i.test(lowerMsg);
+  
+  // Additional check: Make sure it's not just asking about image generation
+  const isAskingAboutImages = /\b(?:about|discuss|talk\s+about|explain|help\s+with|understand)\s+.*\b(?:image|picture|photo|visual)\b/i.test(lowerMsg);
+  if (isAskingAboutImages && !hasDirectKeyword) {
+    return false;
+  }
   
   // Combine all checks with smart weighting
   const score = 
