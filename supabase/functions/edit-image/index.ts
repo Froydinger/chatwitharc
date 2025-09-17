@@ -53,8 +53,7 @@ serve(async (req) => {
         prompt: enhancedPrompt,
         n: 1,
         size: '1024x1024',
-        quality: 'hd',
-        response_format: 'b64_json',
+        quality: 'high',
         output_format: 'webp'
       }),
     });
