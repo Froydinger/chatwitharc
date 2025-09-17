@@ -224,7 +224,20 @@ export function MobileChatApp() {
           ) : (
             <div className="p-4 space-y-4 chat-messages">
               {messages.map((message) => (
-                <MessageBubble key={message.id} message={message} onEdit={() => {}} />
+                <MessageBubble 
+                  key={message.id} 
+                  message={message} 
+                  onEdit={async (messageId: string, newContent: string) => {
+                    // When a message is edited, trigger a new AI response
+                    console.log('Message edited, triggering new response for:', newContent);
+                    
+                    // Get the ChatInput component to handle the response
+                    const chatInputEvent = new CustomEvent('processEditedMessage', {
+                      detail: { content: newContent, editedMessageId: messageId }
+                    });
+                    window.dispatchEvent(chatInputEvent);
+                  }} 
+                />
               ))}
               <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
             </div>

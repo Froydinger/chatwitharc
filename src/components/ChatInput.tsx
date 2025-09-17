@@ -11,11 +11,7 @@ import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "
 
 // Intelligent image request detection
 function checkForImageRequest(message: string): boolean {
-  console.log('=== IMAGE DETECTION START ===');
-  console.log('Input message:', message);
-  
   const lowerMsg = message.toLowerCase().trim();
-  console.log('Lowercase message:', lowerMsg);
   
   // First check: If user is asking for a prompt/text, NOT an image
   const promptRequestIndicators = [
@@ -227,6 +223,21 @@ export function ChatInput() {
       handleAIResponse(lastMessage.content);
     }
   }, [messages]);
+
+  // Listen for edited message events
+  useEffect(() => {
+    const handleEditedMessage = (event: CustomEvent) => {
+      const { content } = event.detail;
+      console.log('Processing edited message:', content);
+      handleAIResponse(content);
+    };
+
+    window.addEventListener('processEditedMessage', handleEditedMessage as EventListener);
+    
+    return () => {
+      window.removeEventListener('processEditedMessage', handleEditedMessage as EventListener);
+    };
+  }, []);
 
   // Extract implicit memory from the model's reply and save it
   const parseAndSaveImplicitMemory = async (text: string) => {
