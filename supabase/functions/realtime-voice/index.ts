@@ -82,16 +82,13 @@ serve(async (req) => {
         const sessionData = await sessionResponse.json();
         console.log("Session created successfully:", sessionData);
 
-        // Now connect to OpenAI using the session
+        // Now connect to OpenAI using the session token
         const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
-        console.log("Connecting to OpenAI WebSocket with session...");
+        console.log("Connecting to OpenAI WebSocket with session token...");
         
-        openAISocket = new WebSocket(wsUrl, [], {
-          headers: {
-            "Authorization": `Bearer ${sessionData.client_secret.value}`,
-            "OpenAI-Beta": "realtime=v1"
-          }
-        });
+        // For session-based auth, we need to use the session token as Authorization header
+        // but Deno WebSocket doesn't support headers, so we use a different approach
+        openAISocket = new WebSocket(wsUrl, [`Bearer ${sessionData.client_secret.value}`]);
 
         openAISocket.onopen = () => {
           console.log("Successfully connected to OpenAI Realtime API!");
