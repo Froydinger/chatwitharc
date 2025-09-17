@@ -419,6 +419,10 @@ export function ChatInput() {
 
     setLoading(true);
 
+    // Early detection of image edit requests to prevent ghost bubbles
+    const isUploadedImageEdit = imagesToProcess.length > 0 && userMessage && isImageEditRequest(userMessage);
+    const isImageGenerationRequest = !imagesToProcess.length && checkForImageRequest(userMessage);
+
     try {
       // Handle multiple images - upload to storage for persistence with user folder structure
       let imageUrls: string[] = [];
@@ -456,20 +460,110 @@ export function ChatInput() {
         }
       }
       
-      // Add user message with images  
-      addMessage({
-        content: userMessage || "Sent images",
-        role: 'user',
-        type: imagesToProcess.length > 0 ? 'image' : 'text',
-        imageUrls: imageUrls.length > 0 ? imageUrls : undefined
-      });
+      // Handle different types of requests based on early detection
+      if (isUploadedImageEdit) {
+        // This is an image edit request with uploaded images
+        // Add user message first
+        addMessage({
+          content: userMessage,
+          role: 'user',
+          type: 'image',
+          imageUrls: imageUrls
+        });
 
-      const openai = new OpenAIService();
-      
-      // Check if user is requesting image generation with intelligent detection
-      const isImageRequest = checkForImageRequest(userMessage);
+        // Add fancy loading placeholder for image editing
+        setGeneratingImage(true);
+        const placeholderMessage = {
+          content: `Editing image: ${userMessage}`,
+          role: 'assistant' as const,
+          type: 'image-generating' as const,
+          imagePrompt: userMessage
+        };
+        addMessage(placeholderMessage);
 
-      if (isImageRequest && imagesToProcess.length === 0) {
+        // Process the image edit
+        try {
+          const openai = new OpenAIService();
+          const file = imagesToProcess[0];
+          
+          // Upload the base image to get a URL
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('Not authenticated');
+          
+          const fileName = `${user.id}/base-for-edit-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
+          
+          const { data, error } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, file, {
+              contentType: file.type,
+              upsert: false
+            });
+            
+          if (error) throw error;
+          
+          const { data: publicUrlData } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(fileName);
+          const baseImageUrl = publicUrlData.publicUrl;
+          
+          // Generate edited image
+          const imageUrl = await openai.editImage(userMessage, baseImageUrl);
+          
+          // Upload edited image to storage for persistence
+          let permanentImageUrl = imageUrl;
+          try {
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            const editedFileName = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
+            
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('avatars')
+              .upload(editedFileName, blob, {
+                contentType: 'image/png',
+                upsert: false
+              });
+
+            if (!uploadError) {
+              const { data: publicUrlData } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(editedFileName);
+              permanentImageUrl = publicUrlData.publicUrl;
+            }
+          } catch (uploadError) {
+            console.error('Error uploading edited image:', uploadError);
+          }
+
+          // Replace placeholder with actual image
+          addMessage({
+            content: `Edited image: ${userMessage}`,
+            role: 'assistant',
+            type: 'image',
+            imageUrl: permanentImageUrl
+          });
+        } catch (error) {
+          console.error('Image editing error:', error);
+          // Replace placeholder with error message
+          await addMessage({
+            content: `Sorry, I couldn't edit the image. ${error instanceof Error ? error.message : 'Please try again.'}`,
+            role: 'assistant',
+            type: 'text'
+          });
+        } finally {
+          setGeneratingImage(false);
+        }
+      } else {
+        // Add user message for non-edit requests
+        addMessage({
+          content: userMessage || "Sent images",
+          role: 'user',
+          type: imagesToProcess.length > 0 ? 'image' : 'text',
+          imageUrls: imageUrls.length > 0 ? imageUrls : undefined
+        });
+
+        const openai = new OpenAIService();
+        
+        // Check if user is requesting image generation with intelligent detection
+        if (isImageGenerationRequest) {
         // Extract the image description intelligently
         let imagePrompt = extractImagePrompt(userMessage);
         
@@ -535,55 +629,8 @@ export function ChatInput() {
         } finally {
           setGeneratingImage(false);
         }
-      } else if (imagesToProcess.length > 0) {
-        // Check if this is an image edit request with uploaded images
-        const isEditRequest = isImageEditRequest(userMessage);
-        
-        if (isEditRequest && userMessage.trim()) {
-          // This is an image editing request with uploaded images
-          try {
-            // Use the first uploaded image as the base image
-            const file = imagesToProcess[0];
-            
-            // First upload the base image to get a URL
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Not authenticated');
-            
-            const fileName = `${user.id}/base-for-edit-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
-            
-            const { data, error } = await supabase.storage
-              .from('avatars')
-              .upload(fileName, file, {
-                contentType: file.type,
-                upsert: false
-              });
-              
-            if (error) throw error;
-            
-            const { data: publicUrlData } = supabase.storage
-              .from('avatars')
-              .getPublicUrl(fileName);
-            const baseImageUrl = publicUrlData.publicUrl;
-            
-            // Now call the image edit function
-            await handleImageEditRequest(userMessage, baseImageUrl, userMessage);
-            
-          } catch (error) {
-            console.error('Image editing with uploaded image error:', error);
-            toast({
-              title: "Error",
-              description: "Failed to edit the uploaded image",
-              variant: "destructive"
-            });
-            
-            await addMessage({
-              content: "Sorry, I couldn't edit the uploaded image. Please try again.",
-              role: 'assistant',
-              type: 'text'
-            });
-          }
-        } else {
-          // Handle regular image analysis with proper async flow
+        } else if (imagesToProcess.length > 0) {
+          // Handle regular image analysis
           try {
             // Convert first image to base64 for analysis
             const file = imagesToProcess[0];
@@ -621,37 +668,37 @@ export function ChatInput() {
               type: 'text'
             });
           }
-        }
-      } else {
-        // Regular text conversation
-        // Detect explicit memory before calling the model
-        let explicitConfirmation = "";
-        const memoryItem = detectMemoryCommand(userMessage);
-        if (memoryItem) {
-          const wasNewMemory = await addToMemoryBank(memoryItem);
-          if (wasNewMemory) {
-            explicitConfirmation = formatMemoryConfirmation(memoryItem.content);
+        } else {
+          // Regular text conversation
+          // Detect explicit memory before calling the model
+          let explicitConfirmation = "";
+          const memoryItem = detectMemoryCommand(userMessage);
+          if (memoryItem) {
+            const wasNewMemory = await addToMemoryBank(memoryItem);
+            if (wasNewMemory) {
+              explicitConfirmation = formatMemoryConfirmation(memoryItem.content);
+            }
+            await refetchProfile();
           }
-          await refetchProfile();
-        }
-        
-        const openaiMessages = messages
-          .filter(msg => msg.type === 'text')
-          .map(msg => ({ role: msg.role, content: msg.content }));
-        
-        openaiMessages.push({ role: 'user', content: userMessage });
+          
+          const openaiMessages = messages
+            .filter(msg => msg.type === 'text')
+            .map(msg => ({ role: msg.role, content: msg.content }));
+          
+          openaiMessages.push({ role: 'user', content: userMessage });
 
-        const response = await openai.sendMessage(openaiMessages);
+          const response = await openai.sendMessage(openaiMessages);
 
-        // Handle implicit memory suggested by the model  
-        const { cleaned, saved } = await parseAndSaveImplicitMemory(response);
-        
-        // Send clean response without memory confirmations
-        await addMessage({ content: cleaned, role: 'assistant', type: 'text' });
-        
-        // Handle explicit memory saves silently 
-        if (explicitConfirmation && saved) {
-          await refetchProfile();
+          // Handle implicit memory suggested by the model  
+          const { cleaned, saved } = await parseAndSaveImplicitMemory(response);
+          
+          // Send clean response without memory confirmations
+          await addMessage({ content: cleaned, role: 'assistant', type: 'text' });
+          
+          // Handle explicit memory saves silently 
+          if (explicitConfirmation && saved) {
+            await refetchProfile();
+          }
         }
       }
     } catch (error) {
