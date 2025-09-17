@@ -11,7 +11,11 @@ import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "
 
 // Intelligent image request detection
 function checkForImageRequest(message: string): boolean {
+  console.log('=== IMAGE DETECTION START ===');
+  console.log('Input message:', message);
+  
   const lowerMsg = message.toLowerCase().trim();
+  console.log('Lowercase message:', lowerMsg);
   
   // First check: If user is asking for a prompt/text, NOT an image
   const promptRequestIndicators = [
