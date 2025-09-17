@@ -233,26 +233,6 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   )
                 ))}
 
-              {/* Voice indicator */}
-              {message.type === "voice" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-center gap-1 mt-2 text-xs text-muted-foreground relative z-10"
-                >
-                  <div className="flex gap-1">
-                    {[0, 1, 2].map((i) => (
-                      <motion.div
-                        key={i}
-                        className="w-1 h-3 bg-primary-glow rounded-full"
-                        animate={{ scaleY: [1, 0.5, 1] }}
-                        transition={{ duration: 1, repeat: Infinity, delay: i * 0.1 }}
-                      />
-                    ))}
-                  </div>
-                  <span>Voice message</span>
-                </motion.div>
-              )}
             </div>
 
             {/* Action Buttons, now outside the clipped inner wrapper */}

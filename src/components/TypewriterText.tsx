@@ -6,7 +6,7 @@ interface TypewriterTextProps {
   className?: string;
 }
 
-export const TypewriterText = ({ text, speed = 30, className = "" }: TypewriterTextProps) => {
+export const TypewriterText = ({ text, speed = 15, className = "" }: TypewriterTextProps) => {
   const [displayedText, setDisplayedText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
 
