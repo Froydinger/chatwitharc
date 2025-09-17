@@ -115,106 +115,140 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             )}
           </motion.div>
 
-          {/* Message Bubble */}
+          {/* Bubble container */}
           <motion.div
             initial={{ opacity: 0.9 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.12 }}
             onClick={handleMessageClick}
             className={[
-              "relative cursor-pointer px-4 py-3 rounded-[22px] border backdrop-blur-md overflow-hidden",
+              // Outer wrapper is visible to allow action buttons to hang out
+              "relative cursor-pointer rounded-[22px] border backdrop-blur-md",
               "shadow-[0_6px_20px_-6px_rgba(0,0,0,0.35)]",
               "transition-[transform,box-shadow,background] duration-200",
               "hover:shadow-[0_10px_26px_-8px_rgba(0,0,0,0.45)]",
+              "overflow-visible", // key change
               isUser
                 ? "bg-primary/20 border-primary/30"
                 : "bg-black/40 border-glass-border/40",
             ].join(" ")}
           >
-            {/* Gradient overlay: darker at bottom */}
-            <div className="absolute inset-0 rounded-[22px] pointer-events-none bg-gradient-to-b from-transparent to-black/20" />
+            {/* Inner content clipper keeps visuals rounded while outer allows overflow */}
+            <div className="relative px-4 py-3 rounded-[22px] overflow-hidden">
+              {/* Gradient overlay: darker at bottom */}
+              <div className="absolute inset-0 rounded-[22px] pointer-events-none bg-gradient-to-b from-transparent to-black/20" />
 
-            {/* Image Generation Placeholder */}
-            {message.type === "image-generating" && (
-              <ImageGenerationPlaceholder
-                prompt={message.imagePrompt || message.content}
-                onComplete={() => {}}
-              />
-            )}
+              {/* Image Generating */}
+              {message.type === "image-generating" && (
+                <ImageGenerationPlaceholder
+                  prompt={message.imagePrompt || message.content}
+                  onComplete={() => {}}
+                />
+              )}
 
-            {/* Image Preview */}
-            {message.type === "image" &&
-              (message.imageUrl || message.imageUrls) && (
+              {/* Images */}
+              {message.type === "image" &&
+                (message.imageUrl || message.imageUrls) && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.12 }}
+                    className="mb-2 relative z-10"
+                  >
+                    {message.imageUrls && message.imageUrls.length > 0 ? (
+                      <div
+                        className={`grid gap-2 ${
+                          message.imageUrls.length === 1
+                            ? "grid-cols-1"
+                            : "grid-cols-2"
+                        }`}
+                      >
+                        {message.imageUrls.map((url, index) => (
+                          <div key={index}>
+                            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden">
+                              <SmoothImage
+                                src={url}
+                                alt={`Image ${index + 1}`}
+                                className="w-full h-auto max-h-48 object-cover"
+                                loadingClassName="w-full h-48"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      message.imageUrl && (
+                        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden">
+                          <SmoothImage
+                            src={message.imageUrl}
+                            alt="Generated image"
+                            className="max-w-full h-auto max-h-48 object-cover"
+                            loadingClassName="w-full h-48"
+                          />
+                        </div>
+                      )
+                    )}
+                  </motion.div>
+                )}
+
+              {/* Text */}
+              {message.type !== "image-generating" &&
+                (isEditing ? (
+                  <div className="space-y-2 relative z-10">
+                    <Input
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      onKeyDown={handleKeyPress}
+                      className="glass border-0 bg-white/10 text-foreground rounded-xl"
+                      autoFocus
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <GlassButton
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCancelEdit}
+                      >
+                        Cancel
+                      </GlassButton>
+                      <GlassButton
+                        variant="glow"
+                        size="sm"
+                        onClick={handleSaveEdit}
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Save
+                      </GlassButton>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="relative z-10 text-foreground whitespace-pre-wrap break-words leading-relaxed">
+                    {message.content}
+                  </p>
+                ))}
+
+              {/* Voice indicator */}
+              {message.type === "voice" && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.12 }}
-                  className="mb-2 relative z-10"
+                  className="flex items-center gap-1 mt-2 text-xs text-muted-foreground relative z-10"
                 >
-                  {message.imageUrls && message.imageUrls.length > 0 ? (
-                    <div
-                      className={`grid gap-2 ${
-                        message.imageUrls.length === 1
-                          ? "grid-cols-1"
-                          : "grid-cols-2"
-                      }`}
-                    >
-                      {message.imageUrls.map((url, index) => (
-                        <div key={index}>
-                          <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden">
-                            <SmoothImage
-                              src={url}
-                              alt={`Image ${index + 1}`}
-                              className="w-full h-auto max-h-48 object-cover"
-                              loadingClassName="w-full h-48"
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    message.imageUrl && (
-                      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden">
-                        <SmoothImage
-                          src={message.imageUrl}
-                          alt="Generated image"
-                          className="max-w-full h-auto max-h-48 object-cover"
-                          loadingClassName="w-full h-48"
-                        />
-                      </div>
-                    )
-                  )}
+                  <div className="flex gap-1">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        className="w-1 h-3 bg-primary-glow rounded-full"
+                        animate={{ scaleY: [1, 0.5, 1] }}
+                        transition={{ duration: 1, repeat: Infinity, delay: i * 0.1 }}
+                      />
+                    ))}
+                  </div>
+                  <span>Voice message</span>
                 </motion.div>
               )}
+            </div>
 
-            {/* Text Content */}
-            {message.type !== "image-generating" &&
-              (isEditing ? (
-                <div className="space-y-2 relative z-10">
-                  <Input
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    className="glass border-0 bg-white/10 text-foreground rounded-xl"
-                    autoFocus
-                  />
-                  <div className="flex gap-2 justify-end">
-                    <GlassButton variant="ghost" size="sm" onClick={handleCancelEdit}>
-                      Cancel
-                    </GlassButton>
-                    <GlassButton variant="glow" size="sm" onClick={handleSaveEdit}>
-                      <Check className="h-3 w-3 mr-1" />
-                      Save
-                    </GlassButton>
-                  </div>
-                </div>
-              ) : (
-                <p className="relative z-10 text-foreground whitespace-pre-wrap break-words leading-relaxed">
-                  {message.content}
-                </p>
-              ))}
-
-            {/* Action Buttons */}
+            {/* Action Buttons, now outside the clipped inner wrapper */}
             {!isEditing && (
               <motion.div
                 initial={false}
@@ -223,7 +257,13 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   scale: showActions ? 1 : 0.96,
                 }}
                 transition={{ duration: 0.18 }}
-                className="pointer-events-auto absolute -top-3 -right-3 hidden gap-1 group-hover:flex z-20"
+                className={[
+                  "pointer-events-auto absolute z-20",
+                  // hang off the bubble corner
+                  isUser ? "-top-3 -left-3" : "-top-3 -right-3",
+                  // show on hover as well
+                  "hidden group-hover:flex",
+                ].join(" ")}
               >
                 <div className="rounded-full bg-background/70 backdrop-blur-md border border-border/50 shadow-lg p-1 flex gap-1">
                   <GlassButton
@@ -251,27 +291,6 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     </GlassButton>
                   )}
                 </div>
-              </motion.div>
-            )}
-
-            {/* Voice Indicator */}
-            {message.type === "voice" && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center gap-1 mt-2 text-xs text-muted-foreground relative z-10"
-              >
-                <div className="flex gap-1">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="w-1 h-3 bg-primary-glow rounded-full"
-                      animate={{ scaleY: [1, 0.5, 1] }}
-                      transition={{ duration: 1, repeat: Infinity, delay: i * 0.1 }}
-                    />
-                  ))}
-                </div>
-                <span>Voice message</span>
               </motion.div>
             )}
           </motion.div>
