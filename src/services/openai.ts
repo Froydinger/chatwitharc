@@ -53,8 +53,8 @@ export class OpenAIService {
         systemPrompt += ` Remember these details: ${effectiveProfile.memory_info}`;
       }
 
-      // Ask the model to propose memory saves when useful (but don't mention it to users)
-      systemPrompt += " If the user shares important personal information worth remembering, include [MEMORY_SAVE] <brief natural sentence> [/MEMORY_SAVE] at the start of your response - this is invisible to users.";
+      // Ask the model to propose memory saves only for NEW user information (not recalled info)
+      systemPrompt += " If the user shares NEW important personal information worth remembering (not information you're recalling from existing memories), include [MEMORY_SAVE] <brief natural sentence> [/MEMORY_SAVE] at the start of your response - this is invisible to users. Do NOT save information you're already recalling from memory.";
       
       const systemMessage: OpenAIMessage = {
         role: 'system',
