@@ -23,10 +23,10 @@ serve(async (req) => {
     
     let openAISocket: WebSocket | null = null;
     
-    socket.onopen = () => {
+    socket.onopen = async () => {
       console.log("Client WebSocket connected successfully");
       
-      // Connect to OpenAI Realtime API
+      // Get OpenAI API key
       const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
       if (!openaiApiKey) {
         console.error("OPENAI_API_KEY not found in environment variables");
@@ -36,55 +36,71 @@ serve(async (req) => {
 
       console.log("OPENAI_API_KEY found, connecting to OpenAI...");
 
-      // Connect to OpenAI using proper WebSocket auth
-      const openaiUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
-      console.log("Connecting to OpenAI Realtime API with model gpt-4o-realtime-preview-2024-12-17");
-      
       try {
-        // Create WebSocket with proper headers
-        openAISocket = new WebSocket(openaiUrl, {
+        // Create a fetch request to get the WebSocket URL with proper auth
+        const authResponse = await fetch('https://api.openai.com/v1/realtime/sessions', {
+          method: 'POST',
           headers: {
             'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
             'OpenAI-Beta': 'realtime=v1'
-          }
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-realtime-preview-2024-12-17',
+            voice: 'alloy'
+          })
         });
 
-        openAISocket.onopen = () => {
-          console.log("Connected to OpenAI Realtime API - waiting for session.created event");
-        };
+        if (!authResponse.ok) {
+          const errorText = await authResponse.text();
+          console.error("OpenAI auth failed:", authResponse.status, errorText);
+          socket.close(1000, `OpenAI auth failed: ${authResponse.status}`);
+          return;
+        }
+
+        const authData = await authResponse.json();
+        console.log("OpenAI auth successful, got session data");
+
+        // Use the session URL to connect via WebSocket
+        if (authData.client_secret && authData.client_secret.value) {
+          const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
+          console.log("Connecting to OpenAI WebSocket...");
+          
+          openAISocket = new WebSocket(wsUrl, [`Bearer ${authData.client_secret.value}`, 'realtime']);
+        } else {
+          // Fallback to direct connection with API key
+          const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
+          console.log("Connecting to OpenAI WebSocket with direct auth...");
+          
+          openAISocket = new WebSocket(wsUrl);
+          
+          // Send auth after connection
+          openAISocket.onopen = () => {
+            console.log("Connected to OpenAI, sending auth...");
+            openAISocket?.send(JSON.stringify({
+              type: 'session.update',
+              session: {
+                modalities: ['text', 'audio'],
+                instructions: 'You are ArcAI, a helpful and engaging voice assistant.',
+                voice: 'alloy',
+                input_audio_format: 'pcm16',
+                output_audio_format: 'pcm16',
+                turn_detection: {
+                  type: 'server_vad',
+                  threshold: 0.5,
+                  prefix_padding_ms: 300,
+                  silence_duration_ms: 1000
+                }
+              }
+            }));
+          };
+        }
 
         openAISocket.onmessage = (event) => {
           const data = JSON.parse(event.data);
           console.log("Received from OpenAI:", data.type);
           
-          // Send session config after receiving session.created
-          if (data.type === 'session.created') {
-            console.log("Session created, sending session config");
-            const sessionConfig = {
-              type: "session.update",
-              session: {
-                modalities: ["text", "audio"],
-                instructions: "You are ArcAI, a helpful and engaging voice assistant. Speak naturally and conversationally. Be concise but friendly.",
-                voice: "alloy",
-                input_audio_format: "pcm16", 
-                output_audio_format: "pcm16",
-                input_audio_transcription: {
-                  model: "whisper-1"
-                },
-                turn_detection: {
-                  type: "server_vad",
-                  threshold: 0.5,
-                  prefix_padding_ms: 300,
-                  silence_duration_ms: 1000
-                },
-                temperature: 0.8,
-                max_response_output_tokens: "inf"
-              }
-            };
-            openAISocket?.send(JSON.stringify(sessionConfig));
-          }
-          
-          // Forward OpenAI messages to client
+          // Forward all messages to client
           if (socket.readyState === WebSocket.OPEN) {
             socket.send(event.data);
           }
@@ -92,23 +108,17 @@ serve(async (req) => {
         
         openAISocket.onerror = (error) => {
           console.error("OpenAI WebSocket error:", error);
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ 
-              type: "error", 
-              error: "OpenAI connection failed" 
-            }));
-          }
+          socket.close(1000, "OpenAI connection failed");
         };
 
         openAISocket.onclose = (event) => {
           console.log("OpenAI WebSocket closed:", event.code, event.reason);
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.close(event.code, event.reason);
-          }
+          socket.close(event.code || 1000, event.reason || "OpenAI connection closed");
         };
+
       } catch (error) {
-        console.error("Error creating OpenAI WebSocket:", error);
-        socket.close(1000, "Failed to connect to OpenAI");
+        console.error("Error connecting to OpenAI:", error);
+        socket.close(1000, `Failed to connect to OpenAI: ${error.message}`);
       }
     };
 
