@@ -9,6 +9,124 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
 
+// Intelligent image request detection
+function checkForImageRequest(message: string): boolean {
+  const lowerMsg = message.toLowerCase().trim();
+  
+  // Direct generation keywords
+  const directKeywords = [
+    'generate', 'create', 'make', 'draw', 'paint', 'sketch', 'illustrate', 
+    'design', 'render', 'produce', 'build', 'craft', 'show me', 'visualize',
+    'picture', 'image', 'photo', 'artwork', 'drawing', 'painting', 'graphic'
+  ];
+  
+  // Phrases that indicate image requests
+  const imageRequestPhrases = [
+    'i want to see', 'show me', 'can you show', 'what would.*look like',
+    'i need.*image', 'make.*picture', 'create.*visual', 'draw.*for me',
+    'generate.*picture', 'design.*logo', 'create.*illustration', 'make.*artwork',
+    'paint.*scene', 'sketch.*idea', 'visualize.*concept', 'render.*scene',
+    'create.*design', 'make.*graphic', 'draw.*character', 'illustrate.*story',
+    'design.*poster', 'create.*banner', 'make.*cover', 'draw.*diagram'
+  ];
+  
+  // Visual description patterns that suggest image generation
+  const visualDescriptionPatterns = [
+    /^(?:a|an)\s+.*(scene|landscape|portrait|character|building|room|garden|forest|beach|mountain|city|street|house|car|animal|person|face|logo|design|artwork|drawing|painting|illustration)/i,
+    /^(?:imagine|picture|envision)\s+/i,
+    /\b(looks?\s+like|appears?\s+like|resembles?)\b/i,
+    /\b(in\s+the\s+style\s+of|inspired\s+by|similar\s+to)\b/i,
+    /\b(photorealistic|cartoon|anime|realistic|abstract|minimalist|detailed)\b/i,
+    /\b(scene\s+with|landscape\s+with|portrait\s+of|character\s+with)\b/i,
+    /\b(color\s+scheme|warm\s+colors|cool\s+colors|bright|dark|moody|lighting)\b/i
+  ];
+  
+  // Question patterns that suggest wanting to see something
+  const questionPatterns = [
+    /^what\s+(?:would|does|might).+(?:look\s+like|appear)/i,
+    /^how\s+(?:would|does|might).+(?:look|appear)/i,
+    /^can\s+you\s+(?:show|draw|create|make|generate|paint|sketch|illustrate)/i,
+    /^could\s+you\s+(?:show|draw|create|make|generate|paint|sketch|illustrate)/i,
+    /^would\s+you\s+(?:show|draw|create|make|generate|paint|sketch|illustrate)/i
+  ];
+  
+  // Check direct keywords combined with visual terms
+  const hasDirectKeyword = directKeywords.some(keyword => lowerMsg.includes(keyword));
+  const hasVisualContext = /\b(of|with|showing|featuring|depicting|containing)\s+/i.test(lowerMsg);
+  
+  // Check phrase patterns
+  const hasImagePhrase = imageRequestPhrases.some(phrase => 
+    new RegExp(phrase, 'i').test(lowerMsg)
+  );
+  
+  // Check visual description patterns
+  const hasVisualDescription = visualDescriptionPatterns.some(pattern => 
+    pattern.test(lowerMsg)
+  );
+  
+  // Check question patterns
+  const hasQuestionPattern = questionPatterns.some(pattern => 
+    pattern.test(lowerMsg)
+  );
+  
+  // Artistic/creative context
+  const hasArtisticContext = /\b(art|artistic|creative|visual|aesthetic|beautiful|stunning|amazing|gorgeous|colorful|vibrant|dramatic|epic|fantasy|surreal|abstract|realistic|photorealistic|HD|4K|detailed|intricate)\b/i.test(lowerMsg);
+  
+  // Style or medium indicators
+  const hasStyleIndicators = /\b(watercolor|oil\s+painting|digital\s+art|pencil\s+sketch|charcoal|acrylic|pastel|ink|vector|3D|CGI|concept\s+art|fine\s+art|pop\s+art|street\s+art|graffiti)\b/i.test(lowerMsg);
+  
+  // Location/setting descriptions that are often visual
+  const hasLocationDescription = /\b(sunset|sunrise|beach|ocean|mountain|forest|city|skyline|garden|room|kitchen|bedroom|office|street|park|lake|river|castle|house|building|bridge|road|path|field|valley|desert|jungle|snow|winter|summer|spring|autumn|night|day|evening|morning)\b/i.test(lowerMsg);
+  
+  // Combine all checks with smart weighting
+  const score = 
+    (hasDirectKeyword && hasVisualContext ? 3 : 0) +
+    (hasImagePhrase ? 3 : 0) +  
+    (hasVisualDescription ? 2 : 0) +
+    (hasQuestionPattern ? 2 : 0) +
+    (hasDirectKeyword ? 1 : 0) +
+    (hasArtisticContext ? 1 : 0) +
+    (hasStyleIndicators ? 2 : 0) +
+    (hasLocationDescription ? 1 : 0);
+  
+  // Return true if score is 2 or higher (indicating strong image intent)
+  return score >= 2;
+}
+
+// Extract clean image prompt from user message
+function extractImagePrompt(message: string): string {
+  let prompt = message.trim();
+  
+  // Remove common image request prefixes
+  const prefixesToRemove = [
+    /^(?:please\s+)?(?:can\s+you\s+)?(?:could\s+you\s+)?(?:would\s+you\s+)?/i,
+    /^(?:generate|create|make|draw|paint|sketch|illustrate|design|show\s+me|visualize)\s+(?:a\s+|an\s+)?(?:picture\s+of\s+|image\s+of\s+|drawing\s+of\s+|painting\s+of\s+)?/i,
+    /^(?:draw|paint|create|make|generate|design)\s+(?:me\s+)?(?:a\s+|an\s+)?/i,
+    /^(?:i\s+want\s+to\s+see|show\s+me)\s+(?:a\s+|an\s+)?/i,
+    /^(?:what\s+(?:would|does)\s+.*\s+look\s+like\??\s*)/i,
+    /^(?:how\s+(?:would|does)\s+.*\s+(?:look|appear)\??\s*)/i
+  ];
+  
+  for (const prefix of prefixesToRemove) {
+    prompt = prompt.replace(prefix, '').trim();
+  }
+  
+  // If the prompt is too short after cleaning, use the original
+  if (prompt.length < 3) {
+    prompt = message.trim();
+  }
+  
+  // Ensure it starts with a descriptive phrase
+  if (!/^(?:a|an|the)\s+/i.test(prompt) && !/^[A-Z]/.test(prompt)) {
+    // Add "a" if it seems to be describing a singular thing
+    if (!/s\s*$/.test(prompt.split(' ')[0])) {
+      prompt = `a ${prompt}`;
+    }
+  }
+  
+  return prompt;
+}
+
 export function ChatInput() {
   const { 
     messages, 
@@ -180,27 +298,12 @@ export function ChatInput() {
 
       const openai = new OpenAIService();
       
-      // Check if user is requesting image generation
-      const imageKeywords = [
-        'generate image', 'create image', 'make image', 'draw', 'generate a picture', 
-        'create a picture', 'make a picture', 'show me', 'visualize', 'paint',
-        'sketch', 'illustrate', 'design', 'make me an image', 'can you draw',
-        'I want to see', 'picture of', 'image of', 'generate an image'
-      ];
-      
-      const isImageRequest = imageKeywords.some(keyword => 
-        userMessage.toLowerCase().includes(keyword.toLowerCase())
-      ) || /\b(draw|paint|sketch|illustrate|visualize|picture|image)\s+(?:me\s+)?(?:a\s+|an\s+|some\s+)?/i.test(userMessage);
+      // Check if user is requesting image generation with intelligent detection
+      const isImageRequest = checkForImageRequest(userMessage);
 
       if (isImageRequest && imagesToProcess.length === 0) {
-        // Extract the image description from the message
-        let imagePrompt = userMessage;
-        for (const keyword of imageKeywords) {
-          if (userMessage.toLowerCase().includes(keyword)) {
-            imagePrompt = userMessage.toLowerCase().replace(keyword, '').trim();
-            break;
-          }
-        }
+        // Extract the image description intelligently
+        let imagePrompt = extractImagePrompt(userMessage);
         
         // Add placeholder message immediately
         setGeneratingImage(true);
