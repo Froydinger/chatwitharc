@@ -39,7 +39,7 @@ export class OpenAIService {
       }
 
       // Add Arc's personality as system message with user personalization
-      let systemPrompt = "You are ArcAI, a helpful and conversational AI assistant. Be natural, brief, and to-the-point. Keep responses concise and conversational unless specifically asked for detailed explanations. Stay relaxed and human-like in your responses.";
+      let systemPrompt = "You are ArcAI, a helpful and conversational AI assistant. Be natural, brief, and direct. Give concise, focused responses. Avoid long lists of options or rambling explanations. Make clear recommendations instead of presenting endless choices. Keep it conversational and human-like, but prioritize brevity and clarity above all.";
       
       if (effectiveProfile?.display_name) {
         systemPrompt += ` The user's name is ${effectiveProfile.display_name}.`;

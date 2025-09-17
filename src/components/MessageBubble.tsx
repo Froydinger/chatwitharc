@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ImageGenerationPlaceholder } from "@/components/ImageGenerationPlaceholder";
 import { SmoothImage } from "@/components/ui/smooth-image";
+import { TypewriterText } from "@/components/TypewriterText";
 
 interface MessageBubbleProps {
   message: Message;
@@ -221,9 +222,15 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     </div>
                   </div>
                 ) : (
-                  <p className="relative z-10 text-foreground whitespace-pre-wrap break-words leading-relaxed">
-                    {message.content}
-                  </p>
+                  isUser ? (
+                    <p className="relative z-10 text-foreground whitespace-pre-wrap break-words leading-relaxed">
+                      {message.content}
+                    </p>
+                  ) : (
+                    <TypewriterText 
+                      text={message.content}
+                    />
+                  )
                 ))}
 
               {/* Voice indicator */}
