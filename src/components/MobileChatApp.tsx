@@ -181,15 +181,15 @@ export function MobileChatApp() {
                 <span className="font-thin">Arc</span><span className="font-semibold">Ai</span>
               </h1>
             </div>
+            <Button variant="outline" size="icon" className="rounded-full ml-2" onClick={() => setShowSettings(true)}>
+              <Settings className="h-4 w-4" />
+            </Button>
           </div>
 
           <div className="flex items-center gap-2">
             <MusicPlayer />
             <Button variant="outline" size="icon" className="rounded-full" onClick={() => setShowHistory(true)}>
               <History className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" className="rounded-full" onClick={() => setShowSettings(true)}>
-              <Settings className="h-4 w-4" />
             </Button>
             <Button variant="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
               <Plus className="h-4 w-4" />

@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ImageGenerationPlaceholder } from "@/components/ImageGenerationPlaceholder";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { TypewriterText } from "@/components/TypewriterText";
+import { ImageModal } from "@/components/ImageModal";
 
 interface MessageBubbleProps {
   message: Message;
@@ -24,6 +25,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [isEditing, setIsEditing] = useState(false);
     const [editContent, setEditContent] = useState(message.content);
     const [showActions, setShowActions] = useState(false);
+    const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
     const isUser = message.role === "user";
 
     const handleCopy = async () => {
@@ -166,7 +168,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                       >
                         {message.imageUrls.map((url, index) => (
                           <div key={index}>
-                            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden">
+                            <div 
+                              className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden cursor-pointer hover:border-white/20 transition-colors"
+                              onClick={() => setSelectedImageUrl(url)}
+                            >
                               <SmoothImage
                                 src={url}
                                 alt={`Image ${index + 1}`}
@@ -179,7 +184,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                       </div>
                     ) : (
                       message.imageUrl && (
-                        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden">
+                        <div 
+                          className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden cursor-pointer hover:border-white/20 transition-colors"
+                          onClick={() => setSelectedImageUrl(message.imageUrl!)}
+                        >
                           <SmoothImage
                             src={message.imageUrl}
                             alt="Generated image"
@@ -283,6 +291,14 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             )}
           </motion.div>
         </div>
+
+        {/* Image Modal */}
+        <ImageModal
+          isOpen={selectedImageUrl !== null}
+          onClose={() => setSelectedImageUrl(null)}
+          imageUrl={selectedImageUrl || ""}
+          alt="Image"
+        />
       </motion.div>
     );
   }
