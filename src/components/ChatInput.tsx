@@ -127,56 +127,57 @@ export function ChatInput() {
     if ((!inputValue.trim() && selectedImages.length === 0) || isLoading) return;
 
     const userMessage = inputValue.trim();
+    const imagesToProcess = [...selectedImages]; // Store images before clearing
     setInputValue("");
-
-    // Handle multiple images - upload to storage for persistence with user folder structure
-    let imageUrls: string[] = [];
-    if (selectedImages.length > 0) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Not authenticated');
-
-        const uploadPromises = selectedImages.map(async (file) => {
-          const fileName = `${user.id}/user-upload-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
-          
-          const { data, error } = await supabase.storage
-            .from('avatars')
-            .upload(fileName, file, {
-              contentType: file.type,
-              upsert: false
-            });
-
-          if (error) {
-            console.error('Error uploading image:', error);
-            return URL.createObjectURL(file); // Fallback to blob URL
-          }
-
-          const { data: publicUrlData } = supabase.storage
-            .from('avatars')
-            .getPublicUrl(fileName);
-          return publicUrlData.publicUrl;
-        });
-
-        imageUrls = await Promise.all(uploadPromises);
-      } catch (error) {
-        console.error('Error uploading images:', error);
-        // Fallback to blob URLs
-        imageUrls = selectedImages.map(file => URL.createObjectURL(file));
-      }
-      setSelectedImages([]);
-    }
-    
-    // Add user message with images
-    addMessage({
-      content: userMessage || "Sent images",
-      role: 'user',
-      type: selectedImages.length > 0 ? 'image' : 'text',
-      imageUrls: imageUrls.length > 0 ? imageUrls : undefined
-    });
+    setSelectedImages([]); // Clear immediately to prevent UI issues
 
     setLoading(true);
 
     try {
+      // Handle multiple images - upload to storage for persistence with user folder structure
+      let imageUrls: string[] = [];
+      if (imagesToProcess.length > 0) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('Not authenticated');
+
+          const uploadPromises = imagesToProcess.map(async (file) => {
+            const fileName = `${user.id}/user-upload-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
+            
+            const { data, error } = await supabase.storage
+              .from('avatars')
+              .upload(fileName, file, {
+                contentType: file.type,
+                upsert: false
+              });
+
+            if (error) {
+              console.error('Error uploading image:', error);
+              return URL.createObjectURL(file); // Fallback to blob URL
+            }
+
+            const { data: publicUrlData } = supabase.storage
+              .from('avatars')
+              .getPublicUrl(fileName);
+            return publicUrlData.publicUrl;
+          });
+
+          imageUrls = await Promise.all(uploadPromises);
+        } catch (error) {
+          console.error('Error uploading images:', error);
+          // Fallback to blob URLs
+          imageUrls = imagesToProcess.map(file => URL.createObjectURL(file));
+        }
+      }
+      
+      // Add user message with images
+      addMessage({
+        content: userMessage || "Sent images",
+        role: 'user',
+        type: imagesToProcess.length > 0 ? 'image' : 'text',
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined
+      });
+
       const openai = new OpenAIService();
       
       // Check if user is requesting image generation
@@ -191,7 +192,7 @@ export function ChatInput() {
         userMessage.toLowerCase().includes(keyword.toLowerCase())
       ) || /\b(draw|paint|sketch|illustrate|visualize|picture|image)\s+(?:me\s+)?(?:a\s+|an\s+|some\s+)?/i.test(userMessage);
 
-      if (isImageRequest && selectedImages.length === 0) {
+      if (isImageRequest && imagesToProcess.length === 0) {
         // Extract the image description from the message
         let imagePrompt = userMessage;
         for (const keyword of imageKeywords) {
@@ -203,7 +204,6 @@ export function ChatInput() {
         
         // Add placeholder message immediately
         setGeneratingImage(true);
-        const placeholderMessageId = Math.random().toString(36).substring(7);
         addMessage({
           content: `Generating image: ${imagePrompt || userMessage}`,
           role: 'assistant',
@@ -264,53 +264,44 @@ export function ChatInput() {
         } finally {
           setGeneratingImage(false);
         }
-      } else if (selectedImages.length > 0) {
-        // Handle image analysis with text - prevent duplicate responses
-        if (isLoading) return;
-        
+      } else if (imagesToProcess.length > 0) {
+        // Handle image analysis with proper async flow
         try {
-          // Create base64 from first image for analysis
-          const file = selectedImages[0];
-          const reader = new FileReader();
+          // Convert first image to base64 for analysis
+          const file = imagesToProcess[0];
+          const base64Promise = new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => reject(new Error('Failed to read image file'));
+            reader.readAsDataURL(file);
+          });
           
-          reader.onload = async () => {
-            try {
-              const base64 = reader.result as string;
-              const analysisPrompt = userMessage || 'What do you see in these images?';
-              
-              const response = await openai.sendMessageWithImage(
-                [{ role: 'user', content: analysisPrompt }],
-                base64
-              );
-              
-              await addMessage({
-                content: response,
-                role: 'assistant',
-                type: 'text'
-              });
-            } catch (error) {
-              console.error('Image analysis error:', error);
-              toast({
-                title: "Error",
-                description: "Failed to analyze images",
-                variant: "destructive"
-              });
-              
-              await addMessage({
-                content: "Sorry, I couldn't analyze these images. Please try again.",
-                role: 'assistant',
-                type: 'text'
-              });
-            } finally {
-              setLoading(false);
-            }
-          };
+          const base64 = await base64Promise;
+          const analysisPrompt = userMessage || 'What do you see in these images?';
           
-          reader.readAsDataURL(file);
-          return; // Exit early since we handle the response in the file reader
+          const response = await openai.sendMessageWithImage(
+            [{ role: 'user', content: analysisPrompt }],
+            base64
+          );
+          
+          await addMessage({
+            content: response,
+            role: 'assistant',
+            type: 'text'
+          });
         } catch (error) {
-          console.error('File reading error:', error);
-          setLoading(false);
+          console.error('Image analysis error:', error);
+          toast({
+            title: "Error",
+            description: "Failed to analyze images",
+            variant: "destructive"
+          });
+          
+          await addMessage({
+            content: "Sorry, I couldn't analyze these images. Please try again.",
+            role: 'assistant',
+            type: 'text'
+          });
         }
       } else {
         // Regular text conversation

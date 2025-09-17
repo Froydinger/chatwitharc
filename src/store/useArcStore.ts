@@ -187,6 +187,7 @@ export const useArcStore = create<ArcState>()(
       
       deleteSession: async (sessionId) => {
         const state = get();
+        const sessionToDelete = state.chatSessions.find(s => s.id === sessionId);
         const updatedSessions = state.chatSessions.filter(s => s.id !== sessionId);
         
         set((state) => ({
@@ -204,6 +205,28 @@ export const useArcStore = create<ArcState>()(
               .delete()
               .eq('id', sessionId)
               .eq('user_id', user.id);
+
+            // Clean up generated images from storage
+            if (sessionToDelete) {
+              const generatedImageUrls = sessionToDelete.messages
+                .filter(m => m.type === 'image' && m.role === 'assistant' && m.imageUrl)
+                .map(m => m.imageUrl!)
+                .filter(url => url.includes(user.id) && url.includes('generated-'));
+
+              for (const url of generatedImageUrls) {
+                try {
+                  const urlParts = url.split('/');
+                  const fileName = urlParts[urlParts.length - 1];
+                  const fullPath = `${user.id}/${fileName}`;
+                  
+                  await supabase.storage
+                    .from('avatars')
+                    .remove([fullPath]);
+                } catch (imageError) {
+                  console.error('Error deleting generated image:', imageError);
+                }
+              }
+            }
           }
         } catch (error) {
           console.error('Error deleting session from Supabase:', error);
