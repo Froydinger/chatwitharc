@@ -252,12 +252,12 @@ export class RealtimeVoiceChat {
       
       this.ws.onerror = (error) => {
         console.error("WebSocket error:", error);
-        this.onMessage({ type: 'connection.error', error });
+        this.onMessage({ type: 'connection.error', error: 'WebSocket connection failed' });
       };
       
       this.ws.onclose = (event) => {
-        console.log("WebSocket closed:", event);
-        this.onMessage({ type: 'connection.closed' });
+        console.log("WebSocket closed:", event.code, event.reason);
+        this.onMessage({ type: 'connection.closed', reason: event.reason || 'Connection closed' });
       };
       
     } catch (error) {

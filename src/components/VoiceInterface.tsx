@@ -30,11 +30,13 @@ export function VoiceInterface() {
       case 'connection.error':
         setIsConnected(false);
         setConnectionStatus('disconnected');
+        const errorMsg = typeof event.error === 'string' ? event.error : 'Failed to connect to voice service';
         toast({
           title: "Connection Error",
-          description: "Failed to connect to voice service",
+          description: errorMsg,
           variant: "destructive",
         });
+        console.error("Voice connection error:", event.error);
         break;
         
       case 'connection.closed':
@@ -42,6 +44,14 @@ export function VoiceInterface() {
         setConnectionStatus('disconnected');
         setIsRecording(false);
         setIsSpeaking(false);
+        if (event.reason) {
+          console.log("Connection closed with reason:", event.reason);
+          toast({
+            title: "Connection Closed",
+            description: event.reason,
+            variant: "destructive",
+          });
+        }
         break;
         
       case 'session.created':
