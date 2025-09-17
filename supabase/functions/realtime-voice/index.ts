@@ -33,12 +33,8 @@ serve(async (req) => {
     const openaiUrl = `wss://api.openai.com/v1/realtime?model=gpt-realtime`;
     console.log("Connecting to OpenAI:", openaiUrl);
     
-    openAISocket = new WebSocket(openaiUrl, [], {
-      headers: {
-        "Authorization": `Bearer ${openaiApiKey}`,
-        "OpenAI-Beta": "realtime=v1"
-      }
-    });
+    // For WebSocket connections to OpenAI, we need to pass auth via query params or use a different approach
+    openAISocket = new WebSocket(openaiUrl, [`Bearer ${openaiApiKey}`]);
 
     openAISocket.onopen = () => {
       console.log("Connected to OpenAI Realtime API");
