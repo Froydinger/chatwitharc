@@ -318,7 +318,7 @@ export function MobileChatApp() {
         .thinking-shell{ transition: opacity 220ms ease, transform 220ms ease; opacity: 0; transform: translateY(3px); }
         .thinking-shell[data-show="true"]{ opacity: 1; transform: translateY(0); }
 
-        /* The pill and its glow (clipped) */
+        /* The pill and its glow */
         .thinking-pill{
           position: relative;
           padding: 10px 16px;
@@ -404,16 +404,16 @@ export function MobileChatApp() {
         }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,.field,form){ background: transparent !important; box-shadow: none !important; border: 0 !important; }
 
-        /* Bump input text and placeholder down ~4px without changing overall dock look */
+        /* Nudge input text and placeholder down ~2px */
         .glass-dock input,
         .glass-dock textarea {
-          padding-top: calc(0.75rem + 4px) !important;  /* nudge down */
-          padding-bottom: calc(0.75rem - 4px) !important; /* keep height steady */
-          line-height: 1.35 !important; /* steadier baseline */
+          padding-top: calc(0.75rem + 2px) !important;
+          padding-bottom: calc(0.75rem - 2px) !important;
+          line-height: 1.35 !important;
         }
         .glass-dock input::placeholder,
         .glass-dock textarea::placeholder {
-          line-height: 1.35 !important; /* aligns placeholder to the new baseline */
+          line-height: 1.35 !important;
           opacity: 0.7;
         }
 
