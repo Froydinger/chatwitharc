@@ -92,6 +92,15 @@ function checkForImageRequest(message: string): boolean {
     pattern.test(lowerMsg)
   );
   
+  // Debug logging
+  console.log('Image detection debug:', {
+    message: lowerMsg,
+    hasModificationPattern,
+    hasDirectKeyword,
+    hasImagePhrase,
+    patterns: imageModificationPatterns.map(p => ({ pattern: p.toString(), matches: p.test(lowerMsg) }))
+  });
+  
   // Check visual description patterns
   const hasVisualDescription = visualDescriptionPatterns.some(pattern => 
     pattern.test(lowerMsg)
@@ -129,6 +138,12 @@ function checkForImageRequest(message: string): boolean {
     (hasStyleIndicators ? 2 : 0) +
     (hasLocationDescription ? 1 : 0);
   
+  console.log('Image detection final score:', {
+    score,
+    threshold: 2,
+    willGenerateImage: score >= 2
+  });
+
   // Return true if score is 2 or higher (indicating strong image intent)
   return score >= 2;
 }
