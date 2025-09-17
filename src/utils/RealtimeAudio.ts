@@ -207,11 +207,12 @@ export class RealtimeVoiceChat {
       
       // Stop the test stream (we'll recreate it when recording starts)
       stream.getTracks().forEach(track => track.stop());
-      console.log("Microphone permissions granted");
+      console.log("Microphone permissions granted - stream tracks stopped");
       
       // Initialize audio context
       this.audioContext = new AudioContext({ sampleRate: 24000 });
       this.audioQueue = new AudioQueue(this.audioContext);
+      console.log("Audio context initialized");
       
       // Connect to WebSocket - use Supabase edge function URL
       const host = window.location.hostname;
@@ -228,37 +229,60 @@ export class RealtimeVoiceChat {
       console.log("Connecting to WebSocket:", wsUrl);
       this.ws = new WebSocket(wsUrl);
       
-      this.ws.onopen = () => {
-        console.log("Connected to Realtime Voice API");
-        this.onMessage({ type: 'connection.opened' });
-      };
-      
-      this.ws.onmessage = async (event) => {
-        const data = JSON.parse(event.data);
-        console.log("Received message:", data);
+      // Set up connection promise to handle async connection
+      return new Promise((resolve, reject) => {
+        const connectionTimeout = setTimeout(() => {
+          console.error("Connection timeout after 10 seconds");
+          this.ws?.close();
+          reject(new Error("Connection timeout"));
+        }, 10000);
+
+        this.ws!.onopen = () => {
+          console.log("Connected to Realtime Voice API via edge function");
+          clearTimeout(connectionTimeout);
+          this.onMessage({ type: 'connection.opened' });
+          resolve(void 0);
+        };
         
-        this.onMessage(data);
-        
-        // Handle audio playback
-        if (data.type === 'response.audio.delta') {
-          const binaryString = atob(data.delta);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+        this.ws!.onmessage = async (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log("Received message:", data.type);
+            
+            this.onMessage(data);
+            
+            // Handle audio playback
+            if (data.type === 'response.audio.delta') {
+              const binaryString = atob(data.delta);
+              const bytes = new Uint8Array(binaryString.length);
+              for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+              }
+              await this.audioQueue?.addToQueue(bytes);
+            }
+          } catch (error) {
+            console.error("Error processing message:", error);
           }
-          await this.audioQueue?.addToQueue(bytes);
-        }
-      };
-      
-      this.ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        this.onMessage({ type: 'connection.error', error: 'WebSocket connection failed' });
-      };
-      
-      this.ws.onclose = (event) => {
-        console.log("WebSocket closed:", event.code, event.reason);
-        this.onMessage({ type: 'connection.closed', reason: event.reason || 'Connection closed' });
-      };
+        };
+        
+        this.ws!.onerror = (error) => {
+          console.error("WebSocket error:", error);
+          clearTimeout(connectionTimeout);
+          this.onMessage({ type: 'connection.error', error: 'WebSocket connection failed' });
+          reject(error);
+        };
+        
+        this.ws!.onclose = (event) => {
+          console.log("WebSocket closed:", event.code, event.reason);
+          clearTimeout(connectionTimeout);
+          this.onMessage({ type: 'connection.closed', reason: event.reason || 'Connection closed' });
+          
+          // Only reject if we haven't resolved yet (connection never established)
+          if (event.code !== 1000) {
+            reject(new Error(event.reason || 'Connection closed unexpectedly'));
+          }
+        };
+      });
       
     } catch (error) {
       console.error("Failed to connect:", error);
@@ -291,17 +315,9 @@ export class RealtimeVoiceChat {
     this.recorder?.stop();
     this.recorder = null;
     
-    // Commit the audio buffer (trigger processing)
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({
-        type: 'input_audio_buffer.commit'
-      }));
-      
-      // Create response
-      this.ws.send(JSON.stringify({
-        type: 'response.create'
-      }));
-    }
+    // With server VAD, we don't need to manually commit or create response
+    // The server will automatically detect when speech stops and process the audio
+    console.log("Recording stopped - server VAD will handle processing");
   }
 
   sendTextMessage(text: string) {
