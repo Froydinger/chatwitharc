@@ -30,14 +30,15 @@ serve(async (req) => {
       return;
     }
 
-    const openaiUrl = `wss://api.openai.com/v1/realtime?model=gpt-realtime`;
-    console.log("Connecting to OpenAI:", openaiUrl);
+    // Use query parameter for authentication (common WebSocket auth method)
+    const openaiUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01&authorization=Bearer%20${encodeURIComponent(openaiApiKey)}`;
+    console.log("Connecting to OpenAI Realtime API...");
     
-    // For WebSocket connections to OpenAI, we need to pass auth via query params or use a different approach
-    openAISocket = new WebSocket(openaiUrl, [`Bearer ${openaiApiKey}`]);
+    // Create simple WebSocket connection
+    openAISocket = new WebSocket(openaiUrl);
 
     openAISocket.onopen = () => {
-      console.log("Connected to OpenAI Realtime API");
+      console.log("Connected to OpenAI Realtime API - sending session config");
       
       // Send session configuration after connection
       const sessionConfig = {
@@ -45,8 +46,8 @@ serve(async (req) => {
         session: {
           modalities: ["text", "audio"],
           instructions: "You are ArcAI, a helpful and engaging voice assistant. Speak naturally and conversationally. Be concise but friendly.",
-          voice: "marin", // Default voice, can be changed
-          input_audio_format: "pcm16",
+          voice: "marin",
+          input_audio_format: "pcm16", 
           output_audio_format: "pcm16",
           input_audio_transcription: {
             model: "whisper-1"
