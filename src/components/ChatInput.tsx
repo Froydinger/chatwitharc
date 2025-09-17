@@ -283,12 +283,13 @@ export function ChatInput() {
       
       // Add placeholder message immediately
       setGeneratingImage(true);
-      addMessage({
+      const placeholderMessage = {
         content: `Editing image: ${editInstruction}`,
-        role: 'assistant',
-        type: 'image-generating',
+        role: 'assistant' as const,
+        type: 'image-generating' as const,
         imagePrompt: editInstruction
-      });
+      };
+      addMessage(placeholderMessage);
       
       try {
         // Use the new editImage method
@@ -455,18 +456,13 @@ export function ChatInput() {
         }
       }
       
-      // Check if this is an image edit request before adding user message
-      const isEditRequest = imagesToProcess.length > 0 && userMessage.trim() && isImageEditRequest(userMessage);
-      
-      // Add user message with images (but not for edit requests as they'll be handled differently)
-      if (!isEditRequest) {
-        addMessage({
-          content: userMessage || "Sent images",
-          role: 'user',
-          type: imagesToProcess.length > 0 ? 'image' : 'text',
-          imageUrls: imageUrls.length > 0 ? imageUrls : undefined
-        });
-      }
+      // Add user message with images  
+      addMessage({
+        content: userMessage || "Sent images",
+        role: 'user',
+        type: imagesToProcess.length > 0 ? 'image' : 'text',
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined
+      });
 
       const openai = new OpenAIService();
       
@@ -544,14 +540,6 @@ export function ChatInput() {
         const isEditRequest = isImageEditRequest(userMessage);
         
         if (isEditRequest && userMessage.trim()) {
-          // Add the user message with the uploaded image first
-          addMessage({
-            content: userMessage,
-            role: 'user',
-            type: 'image',
-            imageUrls: imageUrls
-          });
-          
           // This is an image editing request with uploaded images
           try {
             // Use the first uploaded image as the base image

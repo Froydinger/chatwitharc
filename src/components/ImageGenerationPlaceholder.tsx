@@ -9,26 +9,28 @@ interface ImageGenerationPlaceholderProps {
 
 export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerationPlaceholderProps) {
   const [progress, setProgress] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
-    const duration = 30000; // 30 seconds
-    const interval = 50; // Update every 50ms
+    if (isComplete) return;
+    
+    const duration = 45000; // 45 seconds max wait
+    const interval = 100; // Update every 100ms for smoother animation
     const increment = (interval / duration) * 100;
 
     const timer = setInterval(() => {
       setProgress((prev) => {
         const newProgress = prev + increment;
-        if (newProgress >= 100) {
-          clearInterval(timer);
-          onComplete?.();
-          return 100;
+        if (newProgress >= 95) {
+          // Slow down near the end but don't complete
+          return Math.min(99, prev + increment * 0.1);
         }
         return newProgress;
       });
     }, interval);
 
     return () => clearInterval(timer);
-  }, [onComplete]);
+  }, [isComplete]);
 
   return (
     <motion.div
@@ -69,20 +71,28 @@ export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerati
           }}
         />
 
-        {/* Content overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring" }}
-            className="w-16 h-16 rounded-full bg-primary/20 backdrop-blur-sm border border-primary/30 flex items-center justify-center mb-4"
-          >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full"
-            />
-          </motion.div>
+         {/* Content overlay */}
+         <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+           {/* Larger, more prominent loading spinner */}
+           <motion.div
+             initial={{ scale: 0 }}
+             animate={{ scale: 1 }}
+             transition={{ delay: 0.2, type: "spring" }}
+             className="w-20 h-20 rounded-full bg-primary/10 backdrop-blur-sm border border-primary/20 flex items-center justify-center mb-6 relative"
+           >
+             {/* Outer spinning ring */}
+             <motion.div
+               animate={{ rotate: 360 }}
+               transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+               className="absolute inset-1 border-2 border-transparent border-t-primary border-r-primary rounded-full"
+             />
+             {/* Inner spinning ring (opposite direction) */}
+             <motion.div
+               animate={{ rotate: -360 }}
+               transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+               className="w-10 h-10 border-2 border-transparent border-b-primary/70 border-l-primary/70 rounded-full"
+             />
+           </motion.div>
           
           <motion.h3
             initial={{ opacity: 0, y: 10 }}
