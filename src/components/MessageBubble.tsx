@@ -229,7 +229,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   ) : (
                     <TypewriterText 
                       text={message.content}
-                      shouldAnimate={Date.now() - message.timestamp.getTime() < 5000}
+                      shouldAnimate={Date.now() - (typeof message.timestamp === 'number' ? message.timestamp : message.timestamp.getTime()) < 5000}
                     />
                   )
                 ))}
