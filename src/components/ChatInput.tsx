@@ -9,6 +9,22 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
 
+// Image editing/modification keywords for uploaded images
+function isImageEditRequest(message: string): boolean {
+  const editKeywords = [
+    'edit this', 'modify this', 'change this', 'alter this', 'update this',
+    'make it', 'make this', 'turn this', 'convert this', 'transform this',
+    'add a', 'add some', 'put a', 'put some', 'give it', 'give this',
+    'remove the', 'remove this', 'take off', 'take away',
+    'make the', 'change the', 'turn the', 'with a', 'wearing a',
+    'in a', 'holding a', 'but with', 'except with', 'instead of',
+    'replace the', 'swap the', 'substitute', 'put on', 'add on'
+  ];
+  
+  const lowerMessage = message.toLowerCase();
+  return editKeywords.some(keyword => lowerMessage.includes(keyword));
+}
+
 // Intelligent image request detection
 function checkForImageRequest(message: string): boolean {
   const lowerMsg = message.toLowerCase().trim();
@@ -519,43 +535,91 @@ export function ChatInput() {
           setGeneratingImage(false);
         }
       } else if (imagesToProcess.length > 0) {
-        // Handle image analysis with proper async flow
-        try {
-          // Convert first image to base64 for analysis
-          const file = imagesToProcess[0];
-          const base64Promise = new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = () => reject(new Error('Failed to read image file'));
-            reader.readAsDataURL(file);
-          });
-          
-          const base64 = await base64Promise;
-          const analysisPrompt = userMessage || 'What do you see in these images?';
-          
-          const response = await openai.sendMessageWithImage(
-            [{ role: 'user', content: analysisPrompt }],
-            base64
-          );
-          
-          await addMessage({
-            content: response,
-            role: 'assistant',
-            type: 'text'
-          });
-        } catch (error) {
-          console.error('Image analysis error:', error);
-          toast({
-            title: "Error",
-            description: "Failed to analyze images",
-            variant: "destructive"
-          });
-          
-          await addMessage({
-            content: "Sorry, I couldn't analyze these images. Please try again.",
-            role: 'assistant',
-            type: 'text'
-          });
+        // Check if this is an image edit request with uploaded images
+        const isEditRequest = isImageEditRequest(userMessage);
+        
+        if (isEditRequest && userMessage.trim()) {
+          // This is an image editing request with uploaded images
+          try {
+            // Use the first uploaded image as the base image
+            const file = imagesToProcess[0];
+            
+            // First upload the base image to get a URL
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('Not authenticated');
+            
+            const fileName = `${user.id}/base-for-edit-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
+            
+            const { data, error } = await supabase.storage
+              .from('avatars')
+              .upload(fileName, file, {
+                contentType: file.type,
+                upsert: false
+              });
+              
+            if (error) throw error;
+            
+            const { data: publicUrlData } = supabase.storage
+              .from('avatars')
+              .getPublicUrl(fileName);
+            const baseImageUrl = publicUrlData.publicUrl;
+            
+            // Now call the image edit function
+            await handleImageEditRequest(userMessage, baseImageUrl, userMessage);
+            
+          } catch (error) {
+            console.error('Image editing with uploaded image error:', error);
+            toast({
+              title: "Error",
+              description: "Failed to edit the uploaded image",
+              variant: "destructive"
+            });
+            
+            await addMessage({
+              content: "Sorry, I couldn't edit the uploaded image. Please try again.",
+              role: 'assistant',
+              type: 'text'
+            });
+          }
+        } else {
+          // Handle regular image analysis with proper async flow
+          try {
+            // Convert first image to base64 for analysis
+            const file = imagesToProcess[0];
+            const base64Promise = new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = () => reject(new Error('Failed to read image file'));
+              reader.readAsDataURL(file);
+            });
+            
+            const base64 = await base64Promise;
+            const analysisPrompt = userMessage || 'What do you see in these images?';
+            
+            const response = await openai.sendMessageWithImage(
+              [{ role: 'user', content: analysisPrompt }],
+              base64
+            );
+            
+            await addMessage({
+              content: response,
+              role: 'assistant',
+              type: 'text'
+            });
+          } catch (error) {
+            console.error('Image analysis error:', error);
+            toast({
+              title: "Error",
+              description: "Failed to analyze images",
+              variant: "destructive"
+            });
+            
+            await addMessage({
+              content: "Sorry, I couldn't analyze these images. Please try again.",
+              role: 'assistant',
+              type: 'text'
+            });
+          }
         }
       } else {
         // Regular text conversation
