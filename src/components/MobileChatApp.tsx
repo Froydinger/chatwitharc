@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Settings, History } from "lucide-react";
+import { Plus, Settings, History, Mic } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput } from "@/components/ChatInput";
@@ -8,6 +8,7 @@ import { SettingsPanel } from "@/components/SettingsPanel";
 import { LofiPlayer } from "@/components/LofiPlayer";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
+import { VoiceInterface } from "@/components/VoiceInterface";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +35,8 @@ export function MobileChatApp() {
     createNewSession,
     startChatWithMessage,
     currentSessionId,
+    isVoiceMode,
+    toggleVoiceMode,
   } = useArcStore();
 
   const [showHistory, setShowHistory] = useState(false);
@@ -191,6 +194,14 @@ export function MobileChatApp() {
             <Button variant="outline" size="icon" className="rounded-full" onClick={() => setShowSettings(true)}>
               <Settings className="h-4 w-4" />
             </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className={`rounded-full ${isVoiceMode ? 'bg-primary text-primary-foreground' : ''}`}
+              onClick={toggleVoiceMode}
+            >
+              <Mic className="h-4 w-4" />
+            </Button>
             <Button variant="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
               <Plus className="h-4 w-4" />
             </Button>
@@ -205,41 +216,50 @@ export function MobileChatApp() {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
       >
-        <div
-          ref={messagesContainerRef}
-          className="absolute inset-0 overflow-y-auto"
-          style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 4rem)` }}
-        >
-          {/* Empty state */}
-          {messages.length === 0 ? (
-            <WelcomeSection
-              greeting={greeting}
-              heroAvatar={HERO_AVATAR}
-              quickPrompts={quickPrompts}
-              onTriggerPrompt={triggerPrompt}
-              isLoading={isLoading}
-              isGeneratingImage={isGeneratingImage}
-            />
-          ) : (
-            <div className="p-4 space-y-4 chat-messages">
-              {messages.map((message) => (
-                <MessageBubble key={message.id} message={message} onEdit={() => {}} />
-              ))}
-              <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
-            </div>
-          )}
-        </div>
+        {/* Voice Interface or Chat Messages */}
+        {isVoiceMode ? (
+          <div className="flex h-full items-center justify-center">
+            <VoiceInterface />
+          </div>
+        ) : (
+          <div
+            ref={messagesContainerRef}
+            className="absolute inset-0 overflow-y-auto"
+            style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 4rem)` }}
+          >
+            {/* Empty state */}
+            {messages.length === 0 ? (
+              <WelcomeSection
+                greeting={greeting}
+                heroAvatar={HERO_AVATAR}
+                quickPrompts={quickPrompts}
+                onTriggerPrompt={triggerPrompt}
+                isLoading={isLoading}
+                isGeneratingImage={isGeneratingImage}
+              />
+            ) : (
+              <div className="p-4 space-y-4 chat-messages">
+                {messages.map((message) => (
+                  <MessageBubble key={message.id} message={message} onEdit={() => {}} />
+                ))}
+                <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Fixed glass input dock */}
-        <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
-          <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
-            <div className="mx-auto max-w-screen-sm">
-              <div className="pointer-events-auto glass-dock">
-                <ChatInput />
+        {/* Fixed glass input dock - Only show in chat mode */}
+        {!isVoiceMode && (
+          <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
+            <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+              <div className="mx-auto max-w-screen-sm">
+                <div className="pointer-events-auto glass-dock">
+                  <ChatInput />
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Scoped styles */}

@@ -48,6 +48,7 @@ export interface ArcState {
 
   isVoiceMode: boolean;
   setVoiceMode: (enabled: boolean) => void;
+  toggleVoiceMode: () => void;
   isLoading: boolean;
   isGeneratingImage: boolean;
   setLoading: (loading: boolean) => void;
@@ -367,9 +368,15 @@ export const useArcStore = create<ArcState>()(
       setCurrentTab: (tab) => set({ currentTab: tab }),
       showHistory: false,
       setShowHistory: (show) => set({ showHistory: show }),
-
+      
+      // Voice Mode
       isVoiceMode: false,
       setVoiceMode: (enabled) => set({ isVoiceMode: enabled }),
+      toggleVoiceMode: () => set((state) => ({ 
+        isVoiceMode: !state.isVoiceMode,
+        showHistory: false // Close history when switching to voice mode
+      })),
+
       isLoading: false,
       isGeneratingImage: false,
       setLoading: (loading) => set({ isLoading: loading }),

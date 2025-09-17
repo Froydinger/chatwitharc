@@ -2,3 +2,6 @@ project_id = "jhgubbltjcpszuvlrkae"
 
 [functions.chat]
 verify_jwt = false
+
+[functions.realtime-voice]
+verify_jwt = false
