@@ -34,13 +34,75 @@ serve(async (req) => {
     console.log('Editing image with prompt:', prompt);
     console.log('Base image URL:', baseImageUrl);
 
-    // For now, we'll use the new gpt-image-1 model for image generation
-    // In a real implementation, you might want to download the base image and use it as input
-    // Since OpenAI's API doesn't directly support image-to-image editing via URL,
-    // we'll generate a new image with an enhanced prompt that references the style/content
-    const enhancedPrompt = baseImageUrl 
-      ? `Based on the style and composition of the reference image, ${prompt}. Maintain similar artistic style, lighting, and composition while making the requested changes.`
-      : prompt;
+    if (!baseImageUrl) {
+      return new Response(
+        JSON.stringify({ error: 'Base image URL is required for editing' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // First, download the base image and convert to base64
+    let baseImageBase64;
+    try {
+      const imageResponse = await fetch(baseImageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to fetch image: ${imageResponse.status}`);
+      }
+      const imageBuffer = await imageResponse.arrayBuffer();
+      baseImageBase64 = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+    } catch (error) {
+      console.error('Error downloading base image:', error);
+      return new Response(
+        JSON.stringify({ error: 'Failed to download base image' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    // First, analyze the image to understand what we're editing
+    const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        max_tokens: 300,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Describe this image in detail, focusing on the subject, pose, clothing, background, lighting, and artistic style. I want to edit it with this instruction: "${prompt}". Provide a detailed description that will help recreate this exact image with the requested modifications.`
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/webp;base64,${baseImageBase64}`
+                }
+              }
+            ]
+          }
+        ]
+      }),
+    });
+
+    if (!visionResponse.ok) {
+      const errorData = await visionResponse.text();
+      console.error('Vision API error:', visionResponse.status, errorData);
+      return new Response(
+        JSON.stringify({ error: 'Failed to analyze base image' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    const visionData = await visionResponse.json();
+    const imageDescription = visionData.choices[0].message.content;
+    console.log('Image analysis:', imageDescription);
+
+    // Now generate a new image based on the description and edit instruction
+    const enhancedPrompt = `${imageDescription}\n\nNow modify this image: ${prompt}. Keep everything else exactly the same - same pose, same background, same lighting, same artistic style. Only make the specific requested changes.`;
 
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
