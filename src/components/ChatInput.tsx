@@ -57,10 +57,10 @@ export function ChatInput() {
     if (match && match[1]) {
       const content = match[1].trim();
       if (content.length >= 3) {
-        await addToMemoryBank({ content, timestamp: new Date() });
+        const wasNewMemory = await addToMemoryBank({ content, timestamp: new Date() });
+        const cleaned = text.replace(match[0], '').trim();
+        return { cleaned, saved: wasNewMemory ? content : null } as const;
       }
-      const cleaned = text.replace(match[0], '').trim();
-      return { cleaned, saved: content } as const;
     }
     return { cleaned: text, saved: null as string | null } as const;
   };
@@ -73,8 +73,10 @@ export function ChatInput() {
       let explicitConfirmation = "";
       const memoryItem = detectMemoryCommand(userMessage);
       if (memoryItem) {
-        await addToMemoryBank(memoryItem);
-        explicitConfirmation = formatMemoryConfirmation(memoryItem.content);
+        const wasNewMemory = await addToMemoryBank(memoryItem);
+        if (wasNewMemory) {
+          explicitConfirmation = formatMemoryConfirmation(memoryItem.content);
+        }
         await refetchProfile();
       }
       
@@ -316,8 +318,10 @@ export function ChatInput() {
         let explicitConfirmation = "";
         const memoryItem = detectMemoryCommand(userMessage);
         if (memoryItem) {
-          await addToMemoryBank(memoryItem);
-          explicitConfirmation = formatMemoryConfirmation(memoryItem.content);
+          const wasNewMemory = await addToMemoryBank(memoryItem);
+          if (wasNewMemory) {
+            explicitConfirmation = formatMemoryConfirmation(memoryItem.content);
+          }
           await refetchProfile();
         }
         

@@ -63,8 +63,9 @@ export function detectMemoryCommand(message: string): MemoryItem | null {
 
 /**
  * Adds a memory item to the user's memory bank in their profile
+ * Returns true if a new memory was saved, false if it already existed
  */
-export async function addToMemoryBank(memoryItem: MemoryItem): Promise<void> {
+export async function addToMemoryBank(memoryItem: MemoryItem): Promise<boolean> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No user found');
@@ -89,7 +90,7 @@ export async function addToMemoryBank(memoryItem: MemoryItem): Promise<void> {
 
     if (existingLines.includes(sanitized.toLowerCase())) {
       console.log('Memory already exists, skipping:', sanitized);
-      return;
+      return false;
     }
 
     const memoryEntry = `[${memoryItem.timestamp.toLocaleDateString()}] ${sanitized}`;
@@ -108,6 +109,7 @@ export async function addToMemoryBank(memoryItem: MemoryItem): Promise<void> {
     if (updateError) throw updateError;
 
     console.log('Memory added successfully:', memoryEntry);
+    return true;
   } catch (error) {
     console.error('Error adding to memory bank:', error);
     throw error;
