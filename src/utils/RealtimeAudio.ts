@@ -197,8 +197,28 @@ export class RealtimeVoiceChat {
       this.audioContext = new AudioContext({ sampleRate: 24000 });
       this.audioQueue = new AudioQueue(this.audioContext);
       
-      // Connect to WebSocket
-      this.ws = new WebSocket(`wss://jhgubbltjcpszuvlrkae.functions.supabase.co/realtime-voice`);
+      // Connect to WebSocket - use dynamic URL from current location
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.hostname;
+      const isLocalhost = host === 'localhost' || host === '127.0.0.1';
+      
+      let wsUrl;
+      if (isLocalhost) {
+        wsUrl = `${protocol}//127.0.0.1:54321/functions/v1/realtime-voice`;
+      } else {
+        // For production, extract project ID from current URL
+        const projectMatch = window.location.hostname.match(/^([a-z0-9]+)-[a-z0-9]+-[a-z0-9]+\.lovableproject\.com$/);
+        if (projectMatch) {
+          // This is a Lovable preview URL, need to get actual Supabase project ID
+          wsUrl = `wss://jhgubbltjcpszuvlrkae.functions.supabase.co/realtime-voice`;
+        } else {
+          // Try to extract from current hostname if it's a supabase URL
+          wsUrl = `${protocol}//${host.replace(/\.lovableproject\.com$/, '.functions.supabase.co')}/realtime-voice`;
+        }
+      }
+      
+      console.log("Connecting to WebSocket:", wsUrl);
+      this.ws = new WebSocket(wsUrl);
       
       this.ws.onopen = () => {
         console.log("Connected to Realtime Voice API");

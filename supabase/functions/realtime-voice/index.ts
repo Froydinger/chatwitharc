@@ -30,45 +30,53 @@ serve(async (req) => {
       return;
     }
 
-    // Use query parameter for authentication (common WebSocket auth method)
-    const openaiUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01&authorization=Bearer%20${encodeURIComponent(openaiApiKey)}`;
-    console.log("Connecting to OpenAI Realtime API...");
+    // Connect to OpenAI using proper WebSocket auth
+    const openaiUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
+    console.log("Connecting to OpenAI Realtime API with model gpt-4o-realtime-preview-2024-12-17");
     
-    // Create simple WebSocket connection
-    openAISocket = new WebSocket(openaiUrl);
+    // Create WebSocket with proper headers
+    openAISocket = new WebSocket(openaiUrl, {
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'OpenAI-Beta': 'realtime=v1'
+      }
+    });
 
     openAISocket.onopen = () => {
-      console.log("Connected to OpenAI Realtime API - sending session config");
-      
-      // Send session configuration after connection
-      const sessionConfig = {
-        type: "session.update",
-        session: {
-          modalities: ["text", "audio"],
-          instructions: "You are ArcAI, a helpful and engaging voice assistant. Speak naturally and conversationally. Be concise but friendly.",
-          voice: "marin",
-          input_audio_format: "pcm16", 
-          output_audio_format: "pcm16",
-          input_audio_transcription: {
-            model: "whisper-1"
-          },
-          turn_detection: {
-            type: "server_vad",
-            threshold: 0.5,
-            prefix_padding_ms: 300,
-            silence_duration_ms: 1000
-          },
-          temperature: 0.8,
-          max_response_output_tokens: "inf"
-        }
-      };
-      
-      console.log("Sending session config:", sessionConfig);
-      openAISocket?.send(JSON.stringify(sessionConfig));
+      console.log("Connected to OpenAI Realtime API - waiting for session.created event");
     };
 
     openAISocket.onmessage = (event) => {
-      console.log("Received from OpenAI:", event.data);
+      const data = JSON.parse(event.data);
+      console.log("Received from OpenAI:", data.type);
+      
+      // Send session config after receiving session.created
+      if (data.type === 'session.created') {
+        console.log("Session created, sending session config");
+        const sessionConfig = {
+          type: "session.update",
+          session: {
+            modalities: ["text", "audio"],
+            instructions: "You are ArcAI, a helpful and engaging voice assistant. Speak naturally and conversationally. Be concise but friendly.",
+            voice: "alloy",
+            input_audio_format: "pcm16", 
+            output_audio_format: "pcm16",
+            input_audio_transcription: {
+              model: "whisper-1"
+            },
+            turn_detection: {
+              type: "server_vad",
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 1000
+            },
+            temperature: 0.8,
+            max_response_output_tokens: "inf"
+          }
+        };
+        openAISocket?.send(JSON.stringify(sessionConfig));
+      }
+      
       // Forward OpenAI messages to client
       if (socket.readyState === WebSocket.OPEN) {
         socket.send(event.data);

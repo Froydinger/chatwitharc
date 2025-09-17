@@ -60,6 +60,8 @@ export interface ArcState {
   // Voice Settings
   selectedVoice: 'cedar' | 'marin';
   setSelectedVoice: (voice: 'cedar' | 'marin') => void;
+  isContinuousVoiceMode: boolean;
+  setContinuousVoiceMode: (enabled: boolean) => void;
   
   // Supabase Sync
   syncFromSupabase: () => Promise<void>;
@@ -259,6 +261,18 @@ export const useArcStore = create<ArcState>()(
       messages: [],
       
       addMessage: async (message) => {
+        // Skip saving voice messages to chat history
+        if (message.type === 'voice') {
+          set((state) => ({
+            messages: [...state.messages, {
+              ...message,
+              id: Math.random().toString(36).substring(7),
+              timestamp: new Date()
+            }]
+          }));
+          return;
+        }
+
         const newMessage = {
           ...message,
           id: Math.random().toString(36).substring(7),
@@ -398,12 +412,15 @@ export const useArcStore = create<ArcState>()(
       // Voice
       selectedVoice: 'cedar',
       setSelectedVoice: (voice) => set({ selectedVoice: voice }),
+      isContinuousVoiceMode: true,
+      setContinuousVoiceMode: (enabled) => set({ isContinuousVoiceMode: enabled }),
       
     }),
     {
       name: 'arc-ai-storage',
       partialize: (state) => ({
         selectedVoice: state.selectedVoice,
+        isContinuousVoiceMode: state.isContinuousVoiceMode,
         // Don't persist chat sessions - they'll be loaded from Supabase
         currentSessionId: state.currentSessionId
       })

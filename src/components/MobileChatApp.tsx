@@ -5,7 +5,7 @@ import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
-import { LofiPlayer } from "@/components/LofiPlayer";
+import { MusicPlayer } from "@/components/MusicPlayer";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { VoiceInterface } from "@/components/VoiceInterface";
@@ -187,7 +187,7 @@ export function MobileChatApp() {
           </div>
 
           <div className="flex items-center gap-2">
-            <LofiPlayer />
+            <MusicPlayer />
             <Button variant="outline" size="icon" className="rounded-full" onClick={() => setShowHistory(true)}>
               <History className="h-4 w-4" />
             </Button>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Trash2, User, LogOut, AlertTriangle, Camera, Wifi, WifiOff, Cloud, CloudOff } from "lucide-react";
+import { Trash2, User, LogOut, AlertTriangle, Camera, Wifi, WifiOff, Cloud, CloudOff, Mic, Settings as SettingsIcon } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,7 +29,11 @@ export function SettingsPanel() {
     selectedVoice,
     setSelectedVoice, 
     clearAllSessions,
-    lastSyncAt
+    lastSyncAt,
+    isVoiceMode,
+    setVoiceMode,
+    isContinuousVoiceMode,
+    setContinuousVoiceMode
   } = useArcStore();
   const { user } = useAuth();
   const { profile, updateProfile, updating } = useProfile();
@@ -468,6 +472,59 @@ export function SettingsPanel() {
               </div>
             </div>
           ),
+        }
+      ]
+    },
+    {
+      title: "Voice Settings",
+      icon: Mic,
+      items: [
+        {
+          label: "Voice Mode",
+          description: "Enable voice conversations with AI",
+          action: (
+            <div className="flex items-center gap-2">
+              <GlassButton
+                variant={isVoiceMode ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setVoiceMode(!isVoiceMode)}
+                className="px-3 py-1"
+              >
+                {isVoiceMode ? "Enabled" : "Disabled"}
+              </GlassButton>
+            </div>
+          )
+        },
+        {
+          label: "Voice Selection",
+          description: "Choose your preferred AI voice",
+          action: (
+            <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+              <SelectTrigger className="w-32 glass border-glass-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="glass border-glass-border">
+                <SelectItem value="cedar">Cedar</SelectItem>
+                <SelectItem value="marin">Marin</SelectItem>
+              </SelectContent>
+            </Select>
+          )
+        },
+        {
+          label: "Continuous Mode",
+          description: "AI responds automatically when you stop speaking",
+          action: (
+            <div className="flex items-center gap-2">
+              <GlassButton
+                variant={isContinuousVoiceMode ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setContinuousVoiceMode(!isContinuousVoiceMode)}
+                className="px-3 py-1"
+              >
+                {isContinuousVoiceMode ? "Auto-Talk" : "Push-to-Talk"}
+              </GlassButton>
+            </div>
+          )
         }
       ]
     },
