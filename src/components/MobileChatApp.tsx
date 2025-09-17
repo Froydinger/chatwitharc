@@ -168,7 +168,6 @@ export function MobileChatApp() {
     return () => mo.disconnect();
   }, []);
 
-
   // Main chat interface
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -231,7 +230,7 @@ export function MobileChatApp() {
           )}
         </div>
 
-        {/* Fixed glass input dock (unchanged structure, adjusted text/placeholder offset) */}
+        {/* Fixed glass input dock */}
         <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
@@ -255,7 +254,7 @@ export function MobileChatApp() {
         }
         img.ai-avatar.is-loaded{ opacity: 1; transform: translateY(0); }
 
-        /* Very light floating for hero avatar — NO VISIBLE BORDER */
+        /* Very light floating for hero avatar */
         .floating-hero{ animation: float-3 5.2s ease-in-out infinite; }
         .assistant-hero-avatar{
           border-radius: 24%;
@@ -286,7 +285,6 @@ export function MobileChatApp() {
           white-space: nowrap;
           will-change: transform;
           transform: translate3d(0,0,0);
-          /* Start centered on the middle set; use very gentle easing */
           animation: pingpong var(--dur, 60s) cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
           animation-delay: var(--delay, 0s);
         }
@@ -298,7 +296,7 @@ export function MobileChatApp() {
           100% { transform: translate3d(0, 0, 0); }
         }
 
-        /* Prompt pill style (glassy) */
+        /* Prompt pill style */
         .prompt-pill{
           pointer-events: auto;
           padding: 12px 18px;
@@ -406,36 +404,28 @@ export function MobileChatApp() {
         }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,.field,form){ background: transparent !important; box-shadow: none !important; border: 0 !important; }
 
-        /* ↓↓↓ New: nudge input text and placeholder downward by ~4px */
+        /* Bump input text and placeholder down ~4px without changing overall dock look */
         .glass-dock input,
-        .glass-dock textarea{
-          font-size: 16px !important;
-          padding-top: 4px !important;      /* move caret/text down */
-          line-height: 1.25 !important;     /* keep vertical rhythm tidy */
+        .glass-dock textarea {
+          padding-top: calc(0.75rem + 4px) !important;  /* nudge down */
+          padding-bottom: calc(0.75rem - 4px) !important; /* keep height steady */
+          line-height: 1.35 !important; /* steadier baseline */
         }
         .glass-dock input::placeholder,
-        .glass-dock textarea::placeholder{
-          opacity: 0.7;                      /* keep your look */
-        }
-        /* Optional: if any UA ignores padding for placeholder, this helps */
-        .glass-dock input::placeholder,
-        .glass-dock textarea::placeholder{
-          position: relative;
-          top: 2px;                          /* visual nudge for placeholder */
+        .glass-dock textarea::placeholder {
+          line-height: 1.35 !important; /* aligns placeholder to the new baseline */
+          opacity: 0.7;
         }
 
+        .glass-dock:focus-within{
+          box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 16px 4px hsl(var(--primary)/0.3), 0 0 40px 10px hsl(var(--primary)/0.15) !important;
+          border-radius: 9999px;
+        }
+        .glass-dock input, .glass-dock textarea{ font-size: 16px !important; }
         .glass-dock input:-webkit-autofill, .glass-dock textarea:-webkit-autofill{
           -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
           -webkit-text-fill-color: inherit !important;
           transition: background-color 999999s ease-in-out 0s !important;
-        }
-
-        .glass-dock:focus-within{
-          box-shadow:
-            0 10px 30px rgba(0,0,0,0.35),
-            0 0 16px 4px hsl(var(--primary)/0.3),
-            0 0 40px 10px hsl(var(--primary)/0.15) !important;
-          border-radius: 9999px;
         }
       `}</style>
 
