@@ -87,15 +87,15 @@ export function MobileChatApp() {
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isGeneratingImage]);
 
-  // When chat is empty or session changes, go to top
+  // When chat is empty, go to top
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
-    if (messages.length === 0 || currentSessionId) {
+    if (messages.length === 0) {
       el.scrollTop = 0;
       requestAnimationFrame(() => (el.scrollTop = 0));
     }
-  }, [messages.length, currentSessionId]);
+  }, [messages.length]);
 
   // Measure input dock height
   useEffect(() => {
