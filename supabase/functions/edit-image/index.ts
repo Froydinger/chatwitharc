@@ -49,7 +49,13 @@ serve(async (req) => {
         throw new Error(`Failed to fetch image: ${imageResponse.status}`);
       }
       const imageBuffer = await imageResponse.arrayBuffer();
-      baseImageBase64 = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+      // Convert to base64 without stack overflow for large images
+      const uint8Array = new Uint8Array(imageBuffer);
+      let binaryString = '';
+      for (let i = 0; i < uint8Array.length; i++) {
+        binaryString += String.fromCharCode(uint8Array[i]);
+      }
+      baseImageBase64 = btoa(binaryString);
     } catch (error) {
       console.error('Error downloading base image:', error);
       return new Response(
