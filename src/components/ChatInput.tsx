@@ -48,6 +48,16 @@ function checkForImageRequest(message: string): boolean {
     'design.*poster', 'create.*banner', 'make.*cover', 'draw.*diagram'
   ];
   
+  // Patterns for image modification requests (iterating on existing images)
+  const imageModificationPatterns = [
+    /\b(?:give\s+it|make\s+it|change\s+it\s+to|turn\s+it)\s+.+(?:instead|rather|now)\b/i,
+    /\b(?:make\s+it|change\s+it\s+to|turn\s+it\s+into|give\s+it)\s+(?:more|less|darker|brighter|bigger|smaller)\b/i,
+    /\b(?:add|remove|change|modify|adjust|tweak)\s+(?:the|some|a)\s+.+(?:instead|to\s+it|on\s+it)\b/i,
+    /\b(?:with\s+a|but\s+with|except\s+with|instead\s+of)\s+.+(?:hue|color|tone|style|background)\b/i,
+    /\b(?:make\s+the|change\s+the|turn\s+the)\s+.+(?:purple|blue|red|green|yellow|orange|pink|black|white|gray|grey)\b/i,
+    /\b(?:more|less)\s+(?:vibrant|colorful|saturated|bright|dark|moody|dramatic|realistic|abstract)\b/i
+  ];
+  
   // Visual description patterns that suggest image generation
   const visualDescriptionPatterns = [
     /^(?:a|an)\s+.*(scene|landscape|portrait|character|building|room|garden|forest|beach|mountain|city|street|house|car|animal|person|face|logo|design|artwork|drawing|painting|illustration)/i,
@@ -77,6 +87,11 @@ function checkForImageRequest(message: string): boolean {
     new RegExp(phrase, 'i').test(lowerMsg)
   );
   
+  // Check image modification patterns (high priority)
+  const hasModificationPattern = imageModificationPatterns.some(pattern => 
+    pattern.test(lowerMsg)
+  );
+  
   // Check visual description patterns
   const hasVisualDescription = visualDescriptionPatterns.some(pattern => 
     pattern.test(lowerMsg)
@@ -104,6 +119,7 @@ function checkForImageRequest(message: string): boolean {
   
   // Combine all checks with smart weighting
   const score = 
+    (hasModificationPattern ? 4 : 0) +  // Highest priority for image modifications
     (hasDirectKeyword && hasVisualContext ? 3 : 0) +
     (hasImagePhrase ? 3 : 0) +  
     (hasVisualDescription ? 2 : 0) +
