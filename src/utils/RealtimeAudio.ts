@@ -193,6 +193,22 @@ export class RealtimeVoiceChat {
     try {
       console.log("Connecting to Realtime Voice API...");
       
+      // Request microphone permission immediately
+      console.log("Requesting microphone permissions...");
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 24000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      
+      // Stop the test stream (we'll recreate it when recording starts)
+      stream.getTracks().forEach(track => track.stop());
+      console.log("Microphone permissions granted");
+      
       // Initialize audio context
       this.audioContext = new AudioContext({ sampleRate: 24000 });
       this.audioQueue = new AudioQueue(this.audioContext);
