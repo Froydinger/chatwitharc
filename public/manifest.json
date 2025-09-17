@@ -9,13 +9,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "https://froydinger.com/wp-content/uploads/2025/09/mac512.png",
+      "src": "/icons/mac512.png",
       "sizes": "512x512 180x180",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://froydinger.com/wp-content/uploads/2025/09/appstore1024.png",
+      "src": "/icons/appstore1024.png",
       "sizes": "1024x1024 512x512 192x192",
       "type": "image/png",
       "purpose": "any maskable"
