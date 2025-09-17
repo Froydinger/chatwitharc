@@ -135,4 +135,36 @@ export class OpenAIService {
       throw error;
     }
   }
+
+  async editImage(prompt: string, baseImageUrl: string): Promise<string> {
+    try {
+      console.log('Editing image with prompt:', prompt, 'Base image:', baseImageUrl);
+      
+      const { data, error } = await supabase.functions.invoke('edit-image', {
+        body: { 
+          prompt, 
+          baseImageUrl,
+          operation: 'edit'
+        }
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(`Image editing error: ${error.message}`);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (!data.success || !data.imageUrl) {
+        throw new Error('Failed to edit image');
+      }
+
+      return data.imageUrl;
+    } catch (error) {
+      console.error('Image editing error:', error);
+      throw error;
+    }
+  }
 }

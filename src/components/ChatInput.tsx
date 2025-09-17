@@ -232,10 +232,18 @@ export function ChatInput() {
       handleAIResponse(content);
     };
 
+    const handleImageEdit = (event: CustomEvent) => {
+      const { content, baseImageUrl, editInstruction } = event.detail;
+      console.log('Processing image edit:', { content, baseImageUrl, editInstruction });
+      handleImageEditRequest(content, baseImageUrl, editInstruction);
+    };
+
     window.addEventListener('processEditedMessage', handleEditedMessage as EventListener);
+    window.addEventListener('processImageEdit', handleImageEdit as EventListener);
     
     return () => {
       window.removeEventListener('processEditedMessage', handleEditedMessage as EventListener);
+      window.removeEventListener('processImageEdit', handleImageEdit as EventListener);
     };
   }, []);
 
@@ -251,6 +259,79 @@ export function ChatInput() {
       }
     }
     return { cleaned: text, saved: null as string | null } as const;
+  };
+
+  const handleImageEditRequest = async (prompt: string, baseImageUrl: string, editInstruction: string) => {
+    try {
+      const openai = new OpenAIService();
+      
+      // Add placeholder message immediately
+      setGeneratingImage(true);
+      addMessage({
+        content: `Editing image: ${editInstruction}`,
+        role: 'assistant',
+        type: 'image-generating',
+        imagePrompt: editInstruction
+      });
+      
+      try {
+        // Use the new editImage method
+        const imageUrl = await openai.editImage(editInstruction, baseImageUrl);
+        
+        // Upload edited image to Supabase storage for persistence
+        let permanentImageUrl = imageUrl;
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('Not authenticated');
+
+          // Convert the edited image URL to a blob and upload it
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const fileName = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
+          
+          const { data, error } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, blob, {
+              contentType: 'image/png',
+              upsert: false
+            });
+
+          if (error) {
+            console.error('Error uploading edited image to storage:', error);
+          } else {
+            // Get the public URL
+            const { data: publicUrlData } = supabase.storage
+              .from('avatars')
+              .getPublicUrl(fileName);
+            permanentImageUrl = publicUrlData.publicUrl;
+          }
+        } catch (uploadError) {
+          console.error('Error uploading edited image:', uploadError);
+          // Continue with original URL if upload fails
+        }
+
+        // Replace placeholder with actual image
+        await addMessage({
+          content: `Edited image: ${editInstruction}`,
+          role: 'assistant',
+          type: 'image',
+          imageUrl: permanentImageUrl
+        });
+      } catch (error) {
+        console.error('Image editing error:', error);
+        // Replace placeholder with error message
+        await addMessage({
+          content: `Sorry, I couldn't edit the image. ${error instanceof Error ? error.message : 'Please try again.'}`,
+          role: 'assistant',
+          type: 'text'
+        });
+      } finally {
+        setGeneratingImage(false);
+      }
+    } catch (error) {
+      console.error('Image edit request error:', error);
+      setGeneratingImage(false);
+    }
   };
 
   const handleAIResponse = async (userMessage: string) => {

@@ -7,10 +7,12 @@ import { useProfile } from "@/hooks/useProfile";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 import { ImageGenerationPlaceholder } from "@/components/ImageGenerationPlaceholder";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { TypewriterText } from "@/components/TypewriterText";
 import { ImageModal } from "@/components/ImageModal";
+import { ImageEditModal } from "@/components/ImageEditModal";
 
 interface MessageBubbleProps {
   message: Message;
@@ -26,6 +28,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [editContent, setEditContent] = useState(message.content);
     const [showActions, setShowActions] = useState(false);
     const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+    const [editImageUrl, setEditImageUrl] = useState<string | null>(null);
     const isUser = message.role === "user";
 
     const handleCopy = async () => {
@@ -167,7 +170,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                         }`}
                       >
                         {message.imageUrls.map((url, index) => (
-                          <div key={index}>
+                          <div key={index} className="relative group">
                             <div 
                               className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden cursor-pointer hover:border-white/20 transition-colors"
                               onClick={() => setSelectedImageUrl(url)}
@@ -179,21 +182,53 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                                 loadingClassName="w-full h-48"
                               />
                             </div>
+                            
+                            {/* Edit button for AI-generated images */}
+                            {!isUser && (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 hover:bg-black/70 text-white border-white/20"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditImageUrl(url);
+                                }}
+                              >
+                                Edit
+                              </Button>
+                            )}
                           </div>
                         ))}
                       </div>
                     ) : (
                       message.imageUrl && (
-                        <div 
-                          className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden cursor-pointer hover:border-white/20 transition-colors"
-                          onClick={() => setSelectedImageUrl(message.imageUrl!)}
-                        >
-                          <SmoothImage
-                            src={message.imageUrl}
-                            alt="Generated image"
-                            className="max-w-full h-auto max-h-48 object-cover"
-                            loadingClassName="w-full h-48"
-                          />
+                        <div className="relative group">
+                          <div 
+                            className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden cursor-pointer hover:border-white/20 transition-colors"
+                            onClick={() => setSelectedImageUrl(message.imageUrl!)}
+                          >
+                            <SmoothImage
+                              src={message.imageUrl}
+                              alt="Generated image"
+                              className="max-w-full h-auto max-h-48 object-cover"
+                              loadingClassName="w-full h-48"
+                            />
+                          </div>
+                          
+                          {/* Edit button for AI-generated images */}
+                          {!isUser && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 hover:bg-black/70 text-white border-white/20"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditImageUrl(message.imageUrl!);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                          )}
                         </div>
                       )
                     )}
@@ -298,6 +333,14 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           onClose={() => setSelectedImageUrl(null)}
           imageUrl={selectedImageUrl || ""}
           alt="Image"
+        />
+
+        {/* Image Edit Modal */}
+        <ImageEditModal
+          isOpen={editImageUrl !== null}
+          onClose={() => setEditImageUrl(null)}
+          imageUrl={editImageUrl || ""}
+          originalPrompt={message.content}
         />
       </motion.div>
     );
