@@ -37,242 +37,270 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
   }> = ({ items, speed = 30, initialDirection = 'left' }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
-    const [isDragging, setIsDragging] = useState(false);
-    const [currentX, setCurrentX] = useState(0);
-    const [maxScroll, setMaxScroll] = useState(0);
-    const [direction, setDirection] = useState<'left' | 'right'>(initialDirection);
-    const [glowIndex, setGlowIndex] = useState<number>(-1);
-    const [glowColor, setGlowColor] = useState('');
-    const animationRef = useRef<number>();
-    const lastTimeRef = useRef<number>();
-    const glowTimeoutRef = useRef<NodeJS.Timeout>();
 
-    // Glow colors for random selection (internal glow colors)
+    // Refs for hot path
+    const currentXRef = useRef(0);
+    const maxScrollRef = useRef(0);
+    const dirRef = useRef<'left' | 'right'>(initialDirection);
+    const draggingRef = useRef(false);
+    const rafRef = useRef<number | null>(null);
+    const lastTsRef = useRef<number | null>(null);
+
+    // Small UI states that can re-render without hurting perf
+    const [glowIndex, setGlowIndex] = useState(-1);
+    const [glowColor, setGlowColor] = useState("");
+    const [isDraggingUI, setIsDraggingUI] = useState(false);
+
+    // timeouts for glow
+    const glowRootTimeout = useRef<number | null>(null);
+    const glowClearTimeout = useRef<number | null>(null);
+
     const glowColors = [
-      'hsl(0, 84%, 60%)', // Red
-      'hsl(221, 83%, 53%)', // Blue  
-      'hsl(142, 76%, 36%)', // Green
-      'hsl(24, 95%, 53%)', // Orange
-      'hsl(329, 73%, 60%)', // Pink
+      "hsl(0, 84%, 60%)",
+      "hsl(221, 83%, 53%)",
+      "hsl(142, 76%, 36%)",
+      "hsl(24, 95%, 53%)",
+      "hsl(329, 73%, 60%)",
     ];
 
-    // Random glow effect
-    useEffect(() => {
-      const scheduleNextGlow = () => {
-        const randomDelay = 2000 + Math.random() * 4000; // 2-6 seconds
-        glowTimeoutRef.current = setTimeout(() => {
-          const randomIndex = Math.floor(Math.random() * items.length);
-          const randomColor = glowColors[Math.floor(Math.random() * glowColors.length)];
-          setGlowIndex(randomIndex);
-          setGlowColor(randomColor);
-          
-          // Remove glow after animation (3 seconds)
-          setTimeout(() => {
-            setGlowIndex(-1);
-            scheduleNextGlow();
-          }, 3000);
-        }, randomDelay);
-      };
-      
-      scheduleNextGlow();
-      
-      return () => {
-        if (glowTimeoutRef.current) {
-          clearTimeout(glowTimeoutRef.current);
-        }
-      };
-    }, [items.length]);
-
-    // Calculate boundaries
-    const updateBoundaries = useCallback(() => {
-      if (!containerRef.current || !contentRef.current) return;
-      
-      const containerWidth = containerRef.current.offsetWidth;
-      const contentWidth = contentRef.current.scrollWidth;
-      const maxScrollValue = Math.max(0, contentWidth - containerWidth);
-      setMaxScroll(maxScrollValue);
+    // Boundaries
+    const updateBounds = useCallback(() => {
+      const c = containerRef.current;
+      const content = contentRef.current;
+      if (!c || !content) return;
+      const containerWidth = c.offsetWidth;
+      const contentWidth = content.scrollWidth;
+      maxScrollRef.current = Math.max(0, contentWidth - containerWidth);
+      // Clamp position into new bounds
+      currentXRef.current = Math.min(0, Math.max(-maxScrollRef.current, currentXRef.current));
+      if (contentRef.current) {
+        contentRef.current.style.transform = `translate3d(${currentXRef.current}px,0,0)`;
+      }
     }, []);
 
     useEffect(() => {
-      updateBoundaries();
-      window.addEventListener('resize', updateBoundaries);
-      return () => window.removeEventListener('resize', updateBoundaries);
-    }, [updateBoundaries, items]);
+      updateBounds();
+      const onResize = () => updateBounds();
+      window.addEventListener("resize", onResize);
+      return () => window.removeEventListener("resize", onResize);
+    }, [updateBounds, items.length]);
 
-    // Animation loop with ping-pong behavior
-    const animate = useCallback((timestamp: number) => {
-      if (isDragging || maxScroll <= 0) return;
-      
-      if (lastTimeRef.current) {
-        const deltaTime = timestamp - lastTimeRef.current;
-        const distance = (speed * deltaTime) / 1000;
-        
-        setCurrentX(prev => {
-          let newX = prev;
-          
-          if (direction === 'left') {
-            newX = prev - distance;
-            if (newX <= -maxScroll) {
-              setDirection('right');
-              return -maxScroll;
-            }
-          } else {
-            newX = prev + distance;
-            if (newX >= 0) {
-              setDirection('left');
-              return 0;
-            }
+    // Single RAF loop that never changes identity
+    const tick = useCallback((ts: number) => {
+      // Stop if not needed
+      if (draggingRef.current || maxScrollRef.current <= 0) {
+        lastTsRef.current = ts;
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      if (lastTsRef.current != null) {
+        const dt = ts - lastTsRef.current;
+        const px = (speed * dt) / 1000;
+
+        let x = currentXRef.current;
+        if (dirRef.current === "left") {
+          x -= px;
+          if (x <= -maxScrollRef.current) {
+            x = -maxScrollRef.current;
+            dirRef.current = "right";
           }
-          
-          return newX;
-        });
+        } else {
+          x += px;
+          if (x >= 0) {
+            x = 0;
+            dirRef.current = "left";
+          }
+        }
+        currentXRef.current = x;
+
+        if (contentRef.current) {
+          // mutate style directly to avoid re-render per frame
+          contentRef.current.style.transform = `translate3d(${x}px,0,0)`;
+        }
       }
 
-      lastTimeRef.current = timestamp;
-      if (!isDragging) {
-        animationRef.current = requestAnimationFrame(animate);
-      }
-    }, [isDragging, speed, direction, maxScroll]);
+      lastTsRef.current = ts;
+      rafRef.current = requestAnimationFrame(tick);
+    }, [speed]);
 
-    // Start/stop animation based on drag state
     useEffect(() => {
-      if (!isDragging && maxScroll > 0) {
-        lastTimeRef.current = performance.now();
-        animationRef.current = requestAnimationFrame(animate);
-      } else if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      // start loop once
+      if (rafRef.current == null) {
+        rafRef.current = requestAnimationFrame(tick);
       }
-      
       return () => {
-        if (animationRef.current) {
-          cancelAnimationFrame(animationRef.current);
-        }
+        if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
       };
-    }, [isDragging, animate, maxScroll]);
+    }, [tick]);
 
-    // Apply transform - single source of truth
+    // Pointer drag
     useEffect(() => {
-      if (contentRef.current) {
-        const constrainedX = Math.max(-maxScroll, Math.min(0, currentX));
-        contentRef.current.style.transform = `translate3d(${constrainedX}px, 0, 0)`;
-      }
-    }, [currentX, maxScroll]);
+      const c = containerRef.current;
+      if (!c) return;
 
-    // Improved drag handling
-    const handleStart = useCallback((clientX: number) => {
-      const startTime = Date.now();
-      const startPosition = clientX;
-      const startX = currentX;
-      let hasMoved = false;
-      
-      const handleMove = (moveX: number) => {
-        const distance = Math.abs(moveX - startPosition);
-        
-        if (distance > 5 && !hasMoved) {
-          hasMoved = true;
-          setIsDragging(true);
+      let startX = 0;
+      let startPos = 0;
+      let moved = false;
+
+      const onPointerDown = (e: PointerEvent) => {
+        c.setPointerCapture(e.pointerId);
+        startX = e.clientX;
+        startPos = currentXRef.current;
+        moved = false;
+        draggingRef.current = false;
+        setIsDraggingUI(false);
+      };
+
+      const onPointerMove = (e: PointerEvent) => {
+        if (startX === 0 && startPos === 0) return;
+        const dist = e.clientX - startX;
+        if (!moved && Math.abs(dist) > 5) {
+          moved = true;
+          draggingRef.current = true;
+          setIsDraggingUI(true);
         }
-        
-        if (hasMoved) {
-          const deltaX = moveX - startPosition;
-          const newX = Math.max(-maxScroll, Math.min(0, startX + deltaX));
-          setCurrentX(newX);
+        if (moved) {
+          const nx = Math.max(-maxScrollRef.current, Math.min(0, startPos + dist));
+          currentXRef.current = nx;
+          if (contentRef.current) {
+            contentRef.current.style.transform = `translate3d(${nx}px,0,0)`;
+          }
         }
       };
 
-      const handleEnd = () => {
-        const endTime = Date.now();
-        const timeDiff = endTime - startTime;
-        
-        if (hasMoved) {
-          // Smooth direction setting after drag
-          setTimeout(() => {
-            setCurrentX(prev => {
-              if (prev <= -maxScroll * 0.8) {
-                setDirection('right');
-              } else if (prev >= -maxScroll * 0.2) {
-                setDirection('left');
-              }
-              return prev;
-            });
-          }, 100);
-        }
-        
-        setIsDragging(false);
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleEnd);
-        document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleEnd);
+      const onPointerUp = (e: PointerEvent) => {
+        try { c.releasePointerCapture(e.pointerId); } catch {}
+        // bias direction a bit based on where we ended
+        const x = currentXRef.current;
+        if (x <= -maxScrollRef.current * 0.8) dirRef.current = "right";
+        else if (x >= -maxScrollRef.current * 0.2) dirRef.current = "left";
+        draggingRef.current = false;
+        setIsDraggingUI(false);
+        startX = 0;
+        startPos = 0;
       };
 
-      const handleMouseMove = (e: MouseEvent) => {
-        e.preventDefault();
-        handleMove(e.pageX);
-      };
+      c.addEventListener("pointerdown", onPointerDown);
+      c.addEventListener("pointermove", onPointerMove);
+      c.addEventListener("pointerup", onPointerUp);
+      c.addEventListener("pointercancel", onPointerUp);
 
-      const handleTouchMove = (e: TouchEvent) => {
-        e.preventDefault();
-        handleMove(e.touches[0].pageX);
+      return () => {
+        c.removeEventListener("pointerdown", onPointerDown);
+        c.removeEventListener("pointermove", onPointerMove);
+        c.removeEventListener("pointerup", onPointerUp);
+        c.removeEventListener("pointercancel", onPointerUp);
       };
+    }, []);
 
-      document.addEventListener('mousemove', handleMouseMove, { passive: false });
-      document.addEventListener('mouseup', handleEnd);
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
-      document.addEventListener('touchend', handleEnd);
-    }, [currentX, maxScroll]);
+    // Random glow, with proper cleanup
+    useEffect(() => {
+      const schedule = () => {
+        const delay = 2000 + Math.random() * 4000;
+        glowRootTimeout.current = window.setTimeout(() => {
+          const idx = Math.floor(Math.random() * items.length);
+          const color = glowColors[Math.floor(Math.random() * glowColors.length)];
+          setGlowIndex(idx);
+          setGlowColor(color);
+          glowClearTimeout.current = window.setTimeout(() => {
+            setGlowIndex(-1);
+            schedule();
+          }, 3000);
+        }, delay);
+      };
+      schedule();
+      return () => {
+        if (glowRootTimeout.current) window.clearTimeout(glowRootTimeout.current);
+        if (glowClearTimeout.current) window.clearTimeout(glowClearTimeout.current);
+      };
+    }, [items.length]);
 
     return (
-      <div 
+      <div
         ref={containerRef}
         className="pong-marquee"
-        onMouseDown={(e) => {
-          e.preventDefault();
-          handleStart(e.pageX);
-        }}
-        onTouchStart={(e) => {
-          e.preventDefault();
-          handleStart(e.touches[0].pageX);
-        }}
         style={{
-          cursor: isDragging ? 'grabbing' : 'grab',
-          userSelect: 'none',
-          overflow: 'hidden',
-          position: 'relative',
-          minHeight: '48px',
-          maskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)'
+          cursor: isDraggingUI ? "grabbing" : "grab",
+          userSelect: "none",
+          overflow: "hidden",
+          position: "relative",
+          minHeight: "48px",
+          // Cheaper than masking on some GPUs: overlay fades
+          // If you prefer mask, replace with your original
         }}
       >
-        <div 
+        {/* Edge fade overlays */}
+        <div
+          aria-hidden
+          style={{
+            pointerEvents: "none",
+            position: "absolute",
+            inset: 0,
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              left: 0,
+              width: "40px",
+              background:
+                "linear-gradient(to right, rgba(0,0,0,1), rgba(0,0,0,0))",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              right: 0,
+              width: "40px",
+              background:
+                "linear-gradient(to left, rgba(0,0,0,1), rgba(0,0,0,0))",
+            }}
+          />
+        </div>
+
+        <div
           ref={contentRef}
           className="pong-marquee-content"
           style={{
-            display: 'flex',
-            gap: '12px',
-            whiteSpace: 'nowrap',
-            willChange: 'transform',
-            paddingLeft: '20px',
-            paddingRight: '20px'
+            display: "flex",
+            gap: "12px",
+            whiteSpace: "nowrap",
+            willChange: "transform",
+            paddingLeft: "20px",
+            paddingRight: "20px",
+            transform: "translate3d(0,0,0)",
           }}
+          // stop pointer down from triggering button focus while dragging
+          onPointerDown={(e) => e.preventDefault()}
         >
           {items.map((prompt, i) => (
-            <button 
-              key={i}
+            <button
+              key={`${prompt.label}-${i}`}
               onClick={(e) => {
                 e.stopPropagation();
-                if (!isDragging) {
-                  // Dispatch event to put prompt in input bar
-                  window.dispatchEvent(new CustomEvent('quickPromptSelected', { 
-                    detail: { prompt: prompt.prompt } 
-                  }));
+                // ignore taps that were drags
+                if (!draggingRef.current) {
+                  window.dispatchEvent(
+                    new CustomEvent("quickPromptSelected", {
+                      detail: { prompt: prompt.prompt },
+                    })
+                  );
                 }
               }}
               className="prompt-pill"
               style={{
                 flexShrink: 0,
-                '--glow-color': glowIndex === i ? glowColor : undefined,
-                boxShadow: glowIndex === i ? `inset 0 0 0 1px ${glowColor}` : 'none',
-                animation: glowIndex === i ? 'breathe-internal-glow 3s ease-in-out' : 'none',
+                boxShadow:
+                  glowIndex === i
+                    ? `inset 0 0 0 1px ${glowColor}, 0 0 10px ${glowColor}`
+                    : "none",
+                transition: "box-shadow 200ms ease",
               } as React.CSSProperties}
             >
               <span className="font-medium text-sm">{prompt.label}</span>
