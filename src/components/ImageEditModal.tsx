@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
@@ -85,6 +85,9 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Edit Image</DialogTitle>
+          <DialogDescription>
+            Modify the image using AI-powered editing. Describe how you'd like to change the image.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">

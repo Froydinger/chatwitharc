@@ -110,7 +110,7 @@ export class OpenAIService {
 
   async generateImage(prompt: string): Promise<string> {
     try {
-      console.log('Generating image with prompt:', prompt);
+      // Generating image
       
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { prompt }
@@ -138,7 +138,7 @@ export class OpenAIService {
 
   async editImage(prompt: string, baseImageUrl: string): Promise<string> {
     try {
-      console.log('Editing image with prompt:', prompt, 'Base image:', baseImageUrl);
+      // Editing image
       
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: { 

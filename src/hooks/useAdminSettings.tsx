@@ -37,17 +37,20 @@ export function useAdminSettings() {
     }
 
     try {
+      // Simple check - just see if user has any admin record
       const { data, error } = await supabase
         .from('admin_users')
-        .select('*')
+        .select('id')
         .eq('user_id', user.id)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        throw error;
+        console.error('Admin check error:', error);
+        setIsAdmin(false);
+      } else {
+        setIsAdmin(!!data);
       }
-
-      setIsAdmin(!!data);
     } catch (err) {
       console.error('Admin check error:', err);
       setIsAdmin(false);
@@ -60,7 +63,6 @@ export function useAdminSettings() {
     if (!isAdmin) return;
 
     try {
-      setLoading(true);
       setError(null);
 
       const { data, error } = await supabase
@@ -73,8 +75,6 @@ export function useAdminSettings() {
     } catch (err) {
       console.error('Settings fetch error:', err);
       setError(err as Error);
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -49,7 +49,7 @@ function checkForImageRequest(message: string): boolean {
   
   // EXPLICIT check for "generate an image" pattern - highest priority
   if (/^generate\s+an?\s+image\s+of/i.test(lowerMsg)) {
-    console.log('EXPLICIT IMAGE GENERATION DETECTED:', lowerMsg);
+    // Explicit image generation keywords detected
     return true;
   }
   
@@ -252,7 +252,7 @@ export function ChatInput() {
   useEffect(() => {
     const handleQuickPromptSelected = (event: CustomEvent) => {
       const { prompt } = event.detail;
-      console.log('Quick prompt selected:', prompt);
+      // Quick prompt selected
       setInputValue(prompt);
       // Focus the textarea after setting the value
       setTimeout(() => {
@@ -352,14 +352,14 @@ export function ChatInput() {
 
     const handleImageEdit = (event: CustomEvent) => {
       const { content, baseImageUrl, editInstruction } = event.detail;
-      console.log('Processing image edit:', { content, baseImageUrl, editInstruction });
+      // Processing image edit
       handleImageEditRequest(content, baseImageUrl, editInstruction);
     };
 
     
     const handleTriggerPrompt = async (event: CustomEvent) => {
       const { prompt, type } = event.detail;
-      console.log('Handling triggered prompt:', { prompt, type });
+      // Handling triggered prompt
       
       if (type === 'image') {
         // Set input value and trigger image generation
@@ -536,7 +536,7 @@ export function ChatInput() {
 
     const userMessage = inputValue.trim();
     const imagesToProcess = [...selectedImages]; // Store images before clearing
-    console.log('SEND HANDLER CALLED:', { userMessage, imagesToProcess: imagesToProcess.length });
+    // Send handler called
     setInputValue("");
     setSelectedImages([]); // Clear immediately to prevent UI issues
 
@@ -692,7 +692,7 @@ export function ChatInput() {
         const openai = new OpenAIService();
         
         // Check if user is requesting image generation with intelligent detection
-        console.log('Main submit - image generation check:', isImageGenerationRequest, 'for message:', userMessage);
+        // Image generation check
         if (isImageGenerationRequest) {
         // Extract the image description intelligently
         let imagePrompt = extractImagePrompt(userMessage);

@@ -229,7 +229,7 @@ export function MobileChatApp() {
                   message={message} 
                   onEdit={async (messageId: string, newContent: string) => {
                     // When a message is edited, trigger a new AI response
-                    console.log('Message edited, triggering new response for:', newContent);
+                    // Message edited, triggering new response
                     
                     // Get the ChatInput component to handle the response
                     const chatInputEvent = new CustomEvent('processEditedMessage', {

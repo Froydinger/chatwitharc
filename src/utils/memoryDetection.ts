@@ -105,7 +105,7 @@ export async function addToMemoryBank(memoryItem: MemoryItem): Promise<boolean> 
     });
 
     if (isDuplicate) {
-      console.log('Memory already exists, skipping:', sanitized);
+      // Memory already exists, skipping
       return false;
     }
 
@@ -124,7 +124,7 @@ export async function addToMemoryBank(memoryItem: MemoryItem): Promise<boolean> 
 
     if (updateError) throw updateError;
 
-    console.log('Memory added successfully:', memoryEntry);
+    // Memory added successfully
     return true;
   } catch (error) {
     console.error('Error adding to memory bank:', error);
