@@ -64,10 +64,27 @@ serve(async (req) => {
       );
     }
 
-    // Build smart prompt with identity preservation
+    // Build smart prompt with identity preservation and aspect ratio detection
     function buildEditPrompt(userPrompt: string): string {
       const lowerPrompt = userPrompt.toLowerCase();
       let finalPrompt = '';
+      
+      // Check if user specifically requests aspect ratio change
+      const aspectRatioChange = lowerPrompt.includes('16:9') || 
+                               lowerPrompt.includes('9:16') || 
+                               lowerPrompt.includes('wide') || 
+                               lowerPrompt.includes('tall') || 
+                               lowerPrompt.includes('landscape') || 
+                               lowerPrompt.includes('portrait') || 
+                               lowerPrompt.includes('square') ||
+                               lowerPrompt.includes('aspect ratio') ||
+                               lowerPrompt.includes('crop') ||
+                               lowerPrompt.includes('resize');
+      
+      // Add aspect ratio preservation instruction unless specifically requested otherwise
+      if (!aspectRatioChange) {
+        finalPrompt += "IMPORTANT: Maintain the exact same aspect ratio as the original image. Do not change the width-to-height proportions.\n\n";
+      }
       
       // Check if this looks like a portrait/face edit
       const isPortrait = lowerPrompt.includes('same person') || 
@@ -119,7 +136,7 @@ serve(async (req) => {
     formData.append('image', imageBlob, 'image.webp');
     formData.append('model', 'gpt-image-1');
     formData.append('prompt', editPrompt);
-    formData.append('size', '1024x1024');
+    formData.append('size', 'auto'); // Use auto to preserve original aspect ratio
     formData.append('output_format', 'webp');
     formData.append('quality', 'high');
 
