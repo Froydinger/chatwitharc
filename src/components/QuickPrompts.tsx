@@ -30,16 +30,17 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
     { label: "Abstract art", prompt: "Generate an abstract artistic composition with flowing organic shapes, vibrant color gradients, dynamic patterns, and harmonious geometric elements" }
   ];
 
-  const ConstrainedMarquee: React.FC<{
+  const PongMarquee: React.FC<{
     items: Array<{ label: string; prompt: string }>;
     speed?: number;
-    direction?: 'left' | 'right';
-  }> = ({ items, speed = 40, direction = 'left' }) => {
+    initialDirection?: 'left' | 'right';
+  }> = ({ items, speed = 30, initialDirection = 'left' }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [currentX, setCurrentX] = useState(0);
     const [maxScroll, setMaxScroll] = useState(0);
+    const [direction, setDirection] = useState<'left' | 'right'>(initialDirection);
     const animationRef = useRef<number>();
     const lastTimeRef = useRef<number>();
 
@@ -59,12 +60,7 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
       return () => window.removeEventListener('resize', updateBoundaries);
     }, [updateBoundaries, items]);
 
-    // Constrain position within bounds
-    const constrainPosition = useCallback((x: number) => {
-      return Math.max(-maxScroll, Math.min(0, x));
-    }, [maxScroll]);
-
-    // Animation loop
+    // Animation loop with ping-pong behavior
     const animate = useCallback((timestamp: number) => {
       if (!isDragging && maxScroll > 0) {
         if (lastTimeRef.current) {
@@ -73,27 +69,31 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
           
           setCurrentX(prev => {
             let newX = prev;
+            
             if (direction === 'left') {
               newX = prev - distance;
-              // Bounce back when hitting boundaries
+              // Hit left boundary - bounce to right
               if (newX <= -maxScroll) {
-                return -maxScroll + (newX + maxScroll) * -0.1; // Slight bounce effect
+                setDirection('right');
+                return -maxScroll;
               }
             } else {
               newX = prev + distance;
-              // Bounce back when hitting boundaries  
+              // Hit right boundary - bounce to left
               if (newX >= 0) {
-                return newX * -0.1; // Slight bounce effect
+                setDirection('left');
+                return 0;
               }
             }
-            return constrainPosition(newX);
+            
+            return newX;
           });
         }
       }
 
       lastTimeRef.current = timestamp;
       animationRef.current = requestAnimationFrame(animate);
-    }, [isDragging, speed, direction, maxScroll, constrainPosition]);
+    }, [isDragging, speed, direction, maxScroll]);
 
     useEffect(() => {
       lastTimeRef.current = performance.now();
@@ -106,27 +106,47 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
       };
     }, [animate]);
 
-    // Apply transform with constraints
+    // Apply transform
     useEffect(() => {
       if (contentRef.current) {
-        const constrainedX = constrainPosition(currentX);
+        const constrainedX = Math.max(-maxScroll, Math.min(0, currentX));
         contentRef.current.style.transform = `translate3d(${constrainedX}px, 0, 0)`;
       }
-    }, [currentX, constrainPosition]);
+    }, [currentX, maxScroll]);
 
-    // Drag handlers with constraints
+    // Drag handlers with direction setting
     const handleStart = useCallback((clientX: number) => {
       setIsDragging(true);
       const startX = clientX - (containerRef.current?.offsetLeft || 0);
+      let lastMoveX = startX;
       
       const handleMove = (moveX: number) => {
         const x = moveX - (containerRef.current?.offsetLeft || 0);
         const walk = x - startX;
-        setCurrentX(prev => constrainPosition(prev + walk));
+        const newX = Math.max(-maxScroll, Math.min(0, currentX + walk));
+        setCurrentX(newX);
+        
+        // Track drag direction for when user releases
+        if (moveX !== lastMoveX) {
+          setDirection(moveX > lastMoveX ? 'right' : 'left');
+          lastMoveX = moveX;
+        }
       };
 
       const handleEnd = () => {
         setIsDragging(false);
+        
+        // Set direction based on current position when released
+        setCurrentX(prev => {
+          if (prev <= -maxScroll * 0.9) {
+            setDirection('right'); // Near left edge, move right
+          } else if (prev >= -maxScroll * 0.1) {
+            setDirection('left'); // Near right edge, move left
+          }
+          // Otherwise keep current direction
+          return prev;
+        });
+        
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleEnd);
         document.removeEventListener('touchmove', handleTouchMove);
@@ -146,12 +166,12 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
       document.addEventListener('mouseup', handleEnd);
       document.addEventListener('touchmove', handleTouchMove);
       document.addEventListener('touchend', handleEnd);
-    }, [constrainPosition]);
+    }, [currentX, maxScroll]);
 
     return (
       <div 
         ref={containerRef}
-        className="constrained-marquee"
+        className="pong-marquee"
         onMouseDown={(e) => handleStart(e.pageX)}
         onTouchStart={(e) => handleStart(e.touches[0].pageX)}
         style={{
@@ -166,7 +186,7 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
       >
         <div 
           ref={contentRef}
-          className="constrained-marquee-content"
+          className="pong-marquee-content"
           style={{
             display: 'flex',
             gap: '12px',
@@ -196,8 +216,8 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
 
   return (
     <div className="w-full max-w-2xl flex flex-col gap-6 mb-16">
-      <ConstrainedMarquee items={textPrompts} speed={30} direction="left" />
-      <ConstrainedMarquee items={imagePrompts} speed={25} direction="right" />
+      <PongMarquee items={textPrompts} speed={25} initialDirection="left" />
+      <PongMarquee items={imagePrompts} speed={20} initialDirection="right" />
     </div>
   );
 }
