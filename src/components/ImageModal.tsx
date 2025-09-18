@@ -42,10 +42,6 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image" }: ImageMo
       // Cleanup
       window.URL.revokeObjectURL(url);
       
-      toast({
-        title: "Download Started",
-        description: "Image download has started",
-      });
     } catch (error) {
       console.error('Download failed:', error);
       toast({

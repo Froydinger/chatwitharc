@@ -235,4 +235,14 @@ All colors MUST be HSL for perfect glass effects.
   .transition-smooth {
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   }
+
+  /* Hide scrollbars but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
 }

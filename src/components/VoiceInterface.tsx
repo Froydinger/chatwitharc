@@ -127,10 +127,6 @@ export function VoiceInterface() {
         voiceChatRef.current.updateVoice(selectedVoice === 'cedar' ? 'cedar' : 'marin');
       }
       
-      toast({
-        title: "Voice Mode Ready",
-        description: "Hold the microphone button to speak",
-      });
       
     } catch (error) {
       console.error('Failed to connect:', error);

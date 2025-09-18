@@ -120,7 +120,7 @@ export function MobileChatApp() {
       el.scrollTop = 0;
       requestAnimationFrame(() => (el.scrollTop = 0));
     }
-    toast({ title: "New Chat Started", description: "Ready for a fresh conversation!" });
+    
   };
 
   const handleDrop = (e: React.DragEvent) => {

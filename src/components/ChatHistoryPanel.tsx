@@ -31,10 +31,6 @@ export function ChatHistoryPanel() {
   const handleNewChat = () => {
     createNewSession();
     goToChat();
-    toast({
-      title: "New chat created",
-      description: "Ready for a fresh conversation!"
-    });
   };
 
   const handleLoadSession = (sessionId: string) => {
@@ -48,10 +44,6 @@ export function ChatHistoryPanel() {
     
     try {
       deleteSession(sessionId);
-      toast({
-        title: "Chat deleted",
-        description: "The chat has been removed successfully"
-      });
     } catch {
       toast({
         title: "Error", 
@@ -100,7 +92,7 @@ export function ChatHistoryPanel() {
   );
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 p-6 h-full overflow-y-auto">
+    <div className="w-full max-w-4xl mx-auto space-y-6 p-6 h-full overflow-y-auto scrollbar-hide">
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center gap-3">

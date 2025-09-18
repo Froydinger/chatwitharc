@@ -92,10 +92,6 @@ export function SettingsPanel() {
     try {
       await updateProfile({ display_name: displayNameDraft.trim() });
       setDisplayNameDirty(false);
-      toast({
-        title: "Saved",
-        description: "Your name was updated."
-      });
     } catch (e) {
       toast({
         title: "Save failed",
@@ -114,10 +110,6 @@ export function SettingsPanel() {
     try {
       await updateProfile({ context_info: contextDraft });
       setContextDirty(false);
-      toast({
-        title: "Saved",
-        description: "Your context was updated."
-      });
     } catch (e) {
       toast({
         title: "Save failed",
@@ -136,10 +128,6 @@ export function SettingsPanel() {
     try {
       await updateProfile({ memory_info: memoryDraft });
       setMemoryDirty(false);
-      toast({
-        title: "Saved",
-        description: "Your memory was updated."
-      });
     } catch (e) {
       toast({
         title: "Save failed",
@@ -159,10 +147,6 @@ export function SettingsPanel() {
       await updateProfile({ memory_info: "" });
       setMemoryDraft("");
       setMemoryDirty(false);
-      toast({
-        title: "Cleared",
-        description: "Your memory has been cleared."
-      });
     } catch (e) {
       toast({
         title: "Clear failed",
@@ -195,11 +179,6 @@ export function SettingsPanel() {
 
       // Update profile with new avatar URL
       await updateProfile({ avatar_url: publicUrl });
-
-      toast({
-        title: "Avatar updated",
-        description: "Your profile picture has been updated successfully!"
-      });
     } catch (error) {
       console.error('Error uploading avatar:', error);
       toast({
@@ -629,7 +608,7 @@ export function SettingsPanel() {
   ];
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-4 sm:space-y-6 pb-20 pt-8 sm:pt-16 px-3 sm:px-4 h-full overflow-y-auto">
+    <div className="w-full max-w-2xl mx-auto space-y-4 sm:space-y-6 pb-20 pt-8 sm:pt-16 px-3 sm:px-4 h-full overflow-y-auto scrollbar-hide">
       {/* Profile Picture Upload */}
       <div className="max-w-md mx-auto">
         <GlassCard variant="bubble" className="p-6">

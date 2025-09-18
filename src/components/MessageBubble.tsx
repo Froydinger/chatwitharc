@@ -34,7 +34,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const handleCopy = async () => {
       try {
         await navigator.clipboard.writeText(message.content);
-        toast({ title: "Copied!", description: "Message copied to clipboard" });
+        
         setShowActions(false);
       } catch {
         toast({
