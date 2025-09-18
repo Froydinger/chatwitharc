@@ -449,17 +449,31 @@ export const useArcStore = create<ArcState>()(
       setLoading: (loading) => set({ isLoading: loading }),
       setGeneratingImage: (generating) => set({ isGeneratingImage: generating }),
       
-      // Quick Start
+      // Quick Start - modified to trigger proper image detection
       startChatWithMessage: async (message) => {
         const state = get();
-        // Add the user message
-        await state.addMessage({
-          content: message,
-          role: 'user',
-          type: 'text'
-        });
         
-        // Don't trigger loading here - let ChatInput handle the response
+        // Check if this is an image generation request
+        const isImageRequest = /^generate\s+an?\s+image\s+of/i.test(message.toLowerCase());
+        
+        if (isImageRequest) {
+          // For image requests, trigger the input field submission to ensure proper handling
+          window.dispatchEvent(new CustomEvent('arcai:triggerPrompt', { 
+            detail: { prompt: message, type: 'image' } 
+          }));
+        } else {
+          // For text prompts, add the user message and trigger response
+          await state.addMessage({
+            content: message,
+            role: 'user',
+            type: 'text'
+          });
+          
+          // Trigger response through the same system
+          window.dispatchEvent(new CustomEvent('arcai:triggerPrompt', { 
+            detail: { prompt: message, type: 'text' } 
+          }));
+        }
       },
       
       // Voice

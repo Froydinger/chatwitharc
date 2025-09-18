@@ -337,12 +337,32 @@ export function ChatInput() {
       handleImageEditRequest(content, baseImageUrl, editInstruction);
     };
 
+    
+    const handleTriggerPrompt = async (event: CustomEvent) => {
+      const { prompt, type } = event.detail;
+      console.log('Handling triggered prompt:', { prompt, type });
+      
+      if (type === 'image') {
+        // Set input value and trigger image generation
+        setInputValue(prompt);
+        // Wait a bit then trigger send
+        setTimeout(() => {
+          handleSend();
+        }, 100);
+      } else {
+        // For text prompts, trigger AI response directly
+        handleAIResponse(prompt);
+      }
+    };
+
     window.addEventListener('processEditedMessage', handleEditedMessage as EventListener);
     window.addEventListener('processImageEdit', handleImageEdit as EventListener);
+    window.addEventListener('arcai:triggerPrompt', handleTriggerPrompt as EventListener);
     
     return () => {
       window.removeEventListener('processEditedMessage', handleEditedMessage as EventListener);
       window.removeEventListener('processImageEdit', handleImageEdit as EventListener);
+      window.removeEventListener('arcai:triggerPrompt', handleTriggerPrompt as EventListener);
     };
   }, []);
 
