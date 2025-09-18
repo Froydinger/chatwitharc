@@ -101,51 +101,56 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
 
     // Animation loop with ping-pong behavior
     const animate = useCallback((timestamp: number) => {
-      if (!isDragging && maxScroll > 0) {
-        if (lastTimeRef.current) {
-          const deltaTime = timestamp - lastTimeRef.current;
-          const distance = (speed * deltaTime) / 1000;
+      if (isDragging || maxScroll <= 0) return;
+      
+      if (lastTimeRef.current) {
+        const deltaTime = timestamp - lastTimeRef.current;
+        const distance = (speed * deltaTime) / 1000;
+        
+        setCurrentX(prev => {
+          let newX = prev;
           
-          setCurrentX(prev => {
-            let newX = prev;
-            
-            if (direction === 'left') {
-              newX = prev - distance;
-              // Hit left boundary - bounce to right
-              if (newX <= -maxScroll) {
-                setDirection('right');
-                return -maxScroll;
-              }
-            } else {
-              newX = prev + distance;
-              // Hit right boundary - bounce to left
-              if (newX >= 0) {
-                setDirection('left');
-                return 0;
-              }
+          if (direction === 'left') {
+            newX = prev - distance;
+            if (newX <= -maxScroll) {
+              setDirection('right');
+              return -maxScroll;
             }
-            
-            return newX;
-          });
-        }
+          } else {
+            newX = prev + distance;
+            if (newX >= 0) {
+              setDirection('left');
+              return 0;
+            }
+          }
+          
+          return newX;
+        });
       }
 
       lastTimeRef.current = timestamp;
-      animationRef.current = requestAnimationFrame(animate);
+      if (!isDragging) {
+        animationRef.current = requestAnimationFrame(animate);
+      }
     }, [isDragging, speed, direction, maxScroll]);
 
+    // Start/stop animation based on drag state
     useEffect(() => {
-      lastTimeRef.current = performance.now();
-      animationRef.current = requestAnimationFrame(animate);
+      if (!isDragging && maxScroll > 0) {
+        lastTimeRef.current = performance.now();
+        animationRef.current = requestAnimationFrame(animate);
+      } else if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
       
       return () => {
         if (animationRef.current) {
           cancelAnimationFrame(animationRef.current);
         }
       };
-    }, [animate]);
+    }, [isDragging, animate, maxScroll]);
 
-    // Apply transform
+    // Apply transform - single source of truth
     useEffect(() => {
       if (contentRef.current) {
         const constrainedX = Math.max(-maxScroll, Math.min(0, currentX));
@@ -153,28 +158,25 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
       }
     }, [currentX, maxScroll]);
 
-    // Click vs Drag detection
+    // Improved drag handling
     const handleStart = useCallback((clientX: number) => {
       const startTime = Date.now();
-      const startPosition = { x: clientX, y: 0 };
+      const startPosition = clientX;
+      const startX = currentX;
       let hasMoved = false;
       
       const handleMove = (moveX: number) => {
-        const distance = Math.abs(moveX - startPosition.x);
+        const distance = Math.abs(moveX - startPosition);
         
-        if (distance > 5 && !hasMoved) { // 5px threshold for drag
+        if (distance > 5 && !hasMoved) {
           hasMoved = true;
           setIsDragging(true);
         }
         
         if (hasMoved) {
-          const x = moveX - (containerRef.current?.offsetLeft || 0);
-          const walk = x - (startPosition.x - (containerRef.current?.offsetLeft || 0));
-          const newX = Math.max(-maxScroll, Math.min(0, currentX + walk));
+          const deltaX = moveX - startPosition;
+          const newX = Math.max(-maxScroll, Math.min(0, startX + deltaX));
           setCurrentX(newX);
-          
-          // Track drag direction for when user releases
-          setDirection(moveX > startPosition.x ? 'right' : 'left');
         }
       };
 
@@ -182,19 +184,18 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
         const endTime = Date.now();
         const timeDiff = endTime - startTime;
         
-        // If it was a quick tap/click without significant movement, don't treat as drag
-        if (!hasMoved && timeDiff < 300) {
-          // This was a click/tap, let the button handle it
-        } else if (hasMoved) {
-          // Set direction based on current position when released
-          setCurrentX(prev => {
-            if (prev <= -maxScroll * 0.9) {
-              setDirection('right'); // Near left edge, move right
-            } else if (prev >= -maxScroll * 0.1) {
-              setDirection('left'); // Near right edge, move left
-            }
-            return prev;
-          });
+        if (hasMoved) {
+          // Smooth direction setting after drag
+          setTimeout(() => {
+            setCurrentX(prev => {
+              if (prev <= -maxScroll * 0.8) {
+                setDirection('right');
+              } else if (prev >= -maxScroll * 0.2) {
+                setDirection('left');
+              }
+              return prev;
+            });
+          }, 100);
         }
         
         setIsDragging(false);
@@ -210,12 +211,13 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
       };
 
       const handleTouchMove = (e: TouchEvent) => {
+        e.preventDefault();
         handleMove(e.touches[0].pageX);
       };
 
-      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mousemove', handleMouseMove, { passive: false });
       document.addEventListener('mouseup', handleEnd);
-      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
       document.addEventListener('touchend', handleEnd);
     }, [currentX, maxScroll]);
 
