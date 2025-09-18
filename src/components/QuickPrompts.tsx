@@ -41,8 +41,49 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
     const [currentX, setCurrentX] = useState(0);
     const [maxScroll, setMaxScroll] = useState(0);
     const [direction, setDirection] = useState<'left' | 'right'>(initialDirection);
+    const [glowIndex, setGlowIndex] = useState<number>(-1);
+    const [glowColor, setGlowColor] = useState('');
     const animationRef = useRef<number>();
     const lastTimeRef = useRef<number>();
+    const glowTimeoutRef = useRef<NodeJS.Timeout>();
+
+    // Glow colors for random selection
+    const glowColors = [
+      'rgba(59, 130, 246, 0.6)', // Blue
+      'rgba(147, 51, 234, 0.6)', // Purple  
+      'rgba(236, 72, 153, 0.6)', // Pink
+      'rgba(34, 197, 94, 0.6)', // Green
+      'rgba(249, 115, 22, 0.6)', // Orange
+      'rgba(168, 85, 247, 0.6)', // Violet
+      'rgba(14, 165, 233, 0.6)', // Sky
+    ];
+
+    // Random glow effect
+    useEffect(() => {
+      const scheduleNextGlow = () => {
+        const randomDelay = 2000 + Math.random() * 4000; // 2-6 seconds
+        glowTimeoutRef.current = setTimeout(() => {
+          const randomIndex = Math.floor(Math.random() * items.length);
+          const randomColor = glowColors[Math.floor(Math.random() * glowColors.length)];
+          setGlowIndex(randomIndex);
+          setGlowColor(randomColor);
+          
+          // Remove glow after animation (3 seconds)
+          setTimeout(() => {
+            setGlowIndex(-1);
+            scheduleNextGlow();
+          }, 3000);
+        }, randomDelay);
+      };
+      
+      scheduleNextGlow();
+      
+      return () => {
+        if (glowTimeoutRef.current) {
+          clearTimeout(glowTimeoutRef.current);
+        }
+      };
+    }, [items.length]);
 
     // Calculate boundaries
     const updateBoundaries = useCallback(() => {
@@ -114,39 +155,51 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
       }
     }, [currentX, maxScroll]);
 
-    // Drag handlers with direction setting
+    // Click vs Drag detection
     const handleStart = useCallback((clientX: number) => {
-      setIsDragging(true);
-      const startX = clientX - (containerRef.current?.offsetLeft || 0);
-      let lastMoveX = startX;
+      const startTime = Date.now();
+      const startPosition = { x: clientX, y: 0 };
+      let hasMoved = false;
       
       const handleMove = (moveX: number) => {
-        const x = moveX - (containerRef.current?.offsetLeft || 0);
-        const walk = x - startX;
-        const newX = Math.max(-maxScroll, Math.min(0, currentX + walk));
-        setCurrentX(newX);
+        const distance = Math.abs(moveX - startPosition.x);
         
-        // Track drag direction for when user releases
-        if (moveX !== lastMoveX) {
-          setDirection(moveX > lastMoveX ? 'right' : 'left');
-          lastMoveX = moveX;
+        if (distance > 5 && !hasMoved) { // 5px threshold for drag
+          hasMoved = true;
+          setIsDragging(true);
+        }
+        
+        if (hasMoved) {
+          const x = moveX - (containerRef.current?.offsetLeft || 0);
+          const walk = x - (startPosition.x - (containerRef.current?.offsetLeft || 0));
+          const newX = Math.max(-maxScroll, Math.min(0, currentX + walk));
+          setCurrentX(newX);
+          
+          // Track drag direction for when user releases
+          setDirection(moveX > startPosition.x ? 'right' : 'left');
         }
       };
 
       const handleEnd = () => {
+        const endTime = Date.now();
+        const timeDiff = endTime - startTime;
+        
+        // If it was a quick tap/click without significant movement, don't treat as drag
+        if (!hasMoved && timeDiff < 300) {
+          // This was a click/tap, let the button handle it
+        } else if (hasMoved) {
+          // Set direction based on current position when released
+          setCurrentX(prev => {
+            if (prev <= -maxScroll * 0.9) {
+              setDirection('right'); // Near left edge, move right
+            } else if (prev >= -maxScroll * 0.1) {
+              setDirection('left'); // Near right edge, move left
+            }
+            return prev;
+          });
+        }
+        
         setIsDragging(false);
-        
-        // Set direction based on current position when released
-        setCurrentX(prev => {
-          if (prev <= -maxScroll * 0.9) {
-            setDirection('right'); // Near left edge, move right
-          } else if (prev >= -maxScroll * 0.1) {
-            setDirection('left'); // Near right edge, move left
-          }
-          // Otherwise keep current direction
-          return prev;
-        });
-        
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleEnd);
         document.removeEventListener('touchmove', handleTouchMove);
@@ -172,8 +225,14 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
       <div 
         ref={containerRef}
         className="pong-marquee"
-        onMouseDown={(e) => handleStart(e.pageX)}
-        onTouchStart={(e) => handleStart(e.touches[0].pageX)}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          handleStart(e.pageX);
+        }}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          handleStart(e.touches[0].pageX);
+        }}
         style={{
           cursor: isDragging ? 'grabbing' : 'grab',
           userSelect: 'none',
@@ -199,11 +258,17 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
           {items.map((prompt, i) => (
             <button 
               key={i}
-              onClick={() => onTriggerPrompt(prompt.prompt)}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isDragging) {
+                  onTriggerPrompt(prompt.prompt);
+                }
+              }}
               className="prompt-pill"
               style={{
-                pointerEvents: isDragging ? 'none' : 'auto',
-                flexShrink: 0
+                flexShrink: 0,
+                boxShadow: glowIndex === i ? `0 0 20px ${glowColor}, 0 0 40px ${glowColor}` : 'none',
+                animation: glowIndex === i ? 'breathe-glow 3s ease-in-out' : 'none',
               }}
             >
               <span className="font-medium text-sm">{prompt.label}</span>
