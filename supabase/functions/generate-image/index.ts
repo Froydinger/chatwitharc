@@ -28,7 +28,7 @@ serve(async (req) => {
         model: 'gpt-image-1',
         prompt: prompt,
         n: 1,
-        size: '1792x1024', // 16:9 aspect ratio by default
+        size: '1536x1024', // 16:9 aspect ratio - supported size
         quality: 'medium', // Faster generation
         output_format: 'webp', // Smaller file size for faster loading
         output_compression: 85 // Good balance of quality vs speed
