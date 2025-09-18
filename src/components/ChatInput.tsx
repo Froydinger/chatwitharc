@@ -531,6 +531,31 @@ export function ChatInput() {
     }
   };
 
+  // Analyze prompt to determine if it's for image or text generation
+  const analyzePromptIntent = async (message: string): Promise<'image' | 'text'> => {
+    try {
+      const openai = new OpenAIService();
+      const response = await openai.sendMessage([{
+        role: 'user',
+        content: `Analyze this prompt and respond with ONLY "image" or "text" based on whether the user wants image generation or text response:
+
+"${message}"
+
+Rules:
+- If they want to create, generate, make, draw, design, show, visualize ANY visual content (image, photo, picture, art, illustration, diagram, etc.) → respond "image"
+- If they want text responses, explanations, conversations, or anything non-visual → respond "text"
+- Be very inclusive - even subtle visual requests should be "image"`
+      }]);
+      
+      const intent = response.toLowerCase().trim();
+      return intent.includes('image') ? 'image' : 'text';
+    } catch (error) {
+      console.error('Error analyzing prompt intent:', error);
+      // Fallback to current detection method
+      return checkForImageRequest(message) ? 'image' : 'text';
+    }
+  };
+
   const handleSend = async () => {
     if ((!inputValue.trim() && selectedImages.length === 0) || isLoading) return;
 
@@ -544,12 +569,20 @@ export function ChatInput() {
 
     // Early detection of image edit requests to prevent ghost bubbles
     const isUploadedImageEdit = imagesToProcess.length > 0 && userMessage && isImageEditRequest(userMessage);
-    const isImageGenerationRequest = !imagesToProcess.length && checkForImageRequest(userMessage);
+    
+    // For text-only prompts, analyze intent with AI
+    let isImageGenerationRequest = false;
+    if (!imagesToProcess.length && userMessage) {
+      const intent = await analyzePromptIntent(userMessage);
+      isImageGenerationRequest = intent === 'image';
+    }
+    
     console.log('FLOW DETECTION:', { 
       isUploadedImageEdit, 
       isImageGenerationRequest, 
       hasImages: imagesToProcess.length > 0,
-      userMessage 
+      userMessage,
+      analyzedIntent: !imagesToProcess.length ? (isImageGenerationRequest ? 'image' : 'text') : 'n/a'
     });
 
     try {
