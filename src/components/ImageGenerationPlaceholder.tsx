@@ -73,24 +73,17 @@ export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerati
 
          {/* Content overlay */}
          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-           {/* Larger, more prominent loading spinner */}
+           {/* Simple rotating half circle */}
            <motion.div
              initial={{ scale: 0 }}
              animate={{ scale: 1 }}
              transition={{ delay: 0.2, type: "spring" }}
-             className="w-20 h-20 rounded-full bg-primary/10 backdrop-blur-sm border border-primary/20 flex items-center justify-center mb-6 relative"
+             className="w-16 h-16 mb-6 relative"
            >
-             {/* Outer spinning ring */}
              <motion.div
                animate={{ rotate: 360 }}
-               transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-               className="absolute inset-1 border-2 border-transparent border-t-primary border-r-primary rounded-full"
-             />
-             {/* Inner spinning ring (opposite direction) */}
-             <motion.div
-               animate={{ rotate: -360 }}
-               transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
-               className="w-10 h-10 border-2 border-transparent border-b-primary/70 border-l-primary/70 rounded-full"
+               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+               className="w-full h-full border-4 border-transparent border-t-primary border-r-primary rounded-full"
              />
            </motion.div>
           
