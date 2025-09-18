@@ -261,9 +261,8 @@ export function SettingsPanel() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="voice">Voice & AI</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
         </TabsList>
 
@@ -471,54 +470,10 @@ export function SettingsPanel() {
           </Collapsible>
         </TabsContent>
 
-        {/* Voice & AI Tab */}
-        <TabsContent value="voice" className="space-y-6 mt-6">
-          <GlassCard variant="bubble" className="p-6 space-y-6">
-            {/* Voice Mode Toggle */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-foreground">Voice Mode</h3>
-                <p className="text-xs text-muted-foreground">Enable voice conversations with AI</p>
-              </div>
-              <GlassButton
-                variant={isVoiceMode ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setVoiceMode(!isVoiceMode)}
-              >
-                {isVoiceMode ? "Enabled" : "Disabled"}
-              </GlassButton>
-            </div>
-
-            {/* Voice Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Voice Selection</label>
-              <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                <SelectTrigger className="glass border-glass-border">
-                  <SelectValue placeholder="Choose voice" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cedar">Cedar (Warm & Friendly)</SelectItem>
-                  <SelectItem value="marin">Marin (Clear & Professional)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Voice Interaction Mode */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-foreground">Interaction Mode</h3>
-                <p className="text-xs text-muted-foreground">How voice conversations work</p>
-              </div>
-              <GlassButton
-                variant="ghost"
-                size="sm"
-                onClick={() => setContinuousVoiceMode(!isContinuousVoiceMode)}
-              >
-                {isContinuousVoiceMode ? "Auto-Talk" : "Push-to-Talk"}
-              </GlassButton>
-            </div>
-
-            {/* Sync Status */}
+        {/* Account Tab */}
+        <TabsContent value="account" className="space-y-6 mt-6">
+          {/* Sync Status */}
+          <GlassCard variant="bubble" className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium text-foreground">Sync Status</h3>
@@ -530,10 +485,7 @@ export function SettingsPanel() {
               </div>
             </div>
           </GlassCard>
-        </TabsContent>
 
-        {/* Account Tab */}
-        <TabsContent value="account" className="space-y-6 mt-6">
           {/* Data Management */}
           <GlassCard variant="bubble" className="p-6">
             <div className="flex items-center justify-between">
