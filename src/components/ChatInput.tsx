@@ -531,45 +531,59 @@ export function ChatInput() {
     }
   };
 
-  // Analyze prompt to determine if it's for image or text generation
+  // Fast hybrid analysis - use local patterns first, AI only for unclear cases
   const analyzePromptIntent = async (message: string): Promise<'image' | 'text'> => {
+    // First, run quick local pattern matching
+    const localResult = checkForImageRequest(message);
+    
+    // If local check is confident (very clear keywords), trust it
+    const lowerMsg = message.toLowerCase();
+    const veryConfidentImageKeywords = [
+      'generate image', 'create image', 'make image', 'draw me', 'show me a picture',
+      'generate a picture', 'create a photo', 'make a drawing', 'visualize this'
+    ];
+    const veryConfidentTextKeywords = [
+      'explain', 'tell me about', 'what is', 'how to', 'help me understand',
+      'write a', 'describe', 'summarize', 'calculate', 'define'
+    ];
+    
+    const hasVeryConfidentImage = veryConfidentImageKeywords.some(keyword => lowerMsg.includes(keyword));
+    const hasVeryConfidentText = veryConfidentTextKeywords.some(keyword => lowerMsg.includes(keyword));
+    
+    // Return immediately if we're very confident
+    if (hasVeryConfidentImage) return 'image';
+    if (hasVeryConfidentText) return 'text';
+    if (localResult && (lowerMsg.includes('generate') || lowerMsg.includes('create') || lowerMsg.includes('make'))) return 'image';
+    if (!localResult && message.length > 50 && !lowerMsg.includes('image') && !lowerMsg.includes('picture')) return 'text';
+    
+    // Only use AI for borderline cases - use fastest model with minimal prompt
     try {
-      const openai = new OpenAIService();
-      // Get the image analysis prompt from settings
-      const { data: settings } = await supabase
-        .from('admin_settings')
-        .select('value')
-        .eq('key', 'image_analysis_prompt')
-        .single();
+      const response = await fetch('/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [{
+            role: 'user',
+            content: `Does this want image generation? Answer only "yes" or "no": "${message}"`
+          }],
+          model: 'gpt-5-nano-2025-08-07', // Fastest model
+          max_completion_tokens: 5 // Minimal response
+        })
+      });
       
-      const analysisPrompt = settings?.value || `Analyze this prompt and respond with ONLY "image" or "text" based on whether the user wants image generation or text response:
-
-"${message}"
-
-Rules for detecting IMAGE requests:
-- Visual creation keywords: create, generate, make, draw, design, show, visualize, render, produce, illustrate
-- Visual objects: image, photo, picture, art, illustration, diagram, chart, graphic, banner, logo, icon, wallpaper
-- Art styles: realistic, cartoon, abstract, minimalist, watercolor, oil painting, sketch, digital art, 3D render
-- Descriptive phrases: "I want to see", "Can you show me", "What would look like", "Picture this", "Imagine a"
-- Visual concepts: landscape, portrait, scene, background, character, building, object
-- Style descriptors: colorful, detailed, bright, dark, vibrant, soft, hard, smooth, rough
-
-Be VERY inclusive - even subtle visual requests should return "image"
-If they want text responses, explanations, conversations, or anything non-visual → respond "text"`;
-
-      const response = await openai.sendMessage([{
-        role: 'user',
-        content: `${analysisPrompt}
-
-"${message}"`
-      }]);
+      if (!response.ok) {
+        console.warn('Fast analysis failed, using local detection');
+        return localResult ? 'image' : 'text';
+      }
       
-      const intent = response.toLowerCase().trim();
-      return intent.includes('image') ? 'image' : 'text';
+      const data = await response.json();
+      const answer = data.choices[0]?.message?.content?.toLowerCase() || '';
+      return answer.includes('yes') ? 'image' : 'text';
     } catch (error) {
-      console.error('Error analyzing prompt intent:', error);
-      // Fallback to current detection method
-      return checkForImageRequest(message) ? 'image' : 'text';
+      console.error('Error in fast analysis:', error);
+      return localResult ? 'image' : 'text';
     }
   };
 
