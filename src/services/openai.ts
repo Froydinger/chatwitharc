@@ -54,7 +54,7 @@ export class OpenAIService {
       }
 
       // Ask the model to propose memory saves only for NEW user information (not recalled info)
-      systemPrompt += " If the user shares NEW important personal information worth remembering (not information you're recalling from existing memories), include [MEMORY_SAVE] <brief natural sentence> [/MEMORY_SAVE] at the start of your response - this is invisible to users. Do NOT save information you're already recalling from memory.";
+      systemPrompt += " CRITICAL: Only use [MEMORY_SAVE] for completely NEW information the user shares that you don't already know. NEVER save information you're recalling or that's already in your memory. Check your existing memory carefully before saving anything new.";
       
       const systemMessage: OpenAIMessage = {
         role: 'system',

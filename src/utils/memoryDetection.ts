@@ -88,7 +88,23 @@ export async function addToMemoryBank(memoryItem: MemoryItem): Promise<boolean> 
       .map(l => l.replace(/^\[[^\]]+\]\s*/, '').trim().toLowerCase())
       .filter(Boolean);
 
-    if (existingLines.includes(sanitized.toLowerCase())) {
+    // More robust duplicate detection - check for semantic similarity
+    const normalizedNew = sanitized.toLowerCase().replace(/[^\w\s]/g, '').trim();
+    const isDuplicate = existingLines.some(existing => {
+      const normalizedExisting = existing.replace(/[^\w\s]/g, '').trim();
+      // Check for exact match or substantial overlap (>80% similarity)
+      if (normalizedExisting === normalizedNew) return true;
+      
+      // Check for substantial word overlap to catch paraphrases
+      const newWords = new Set(normalizedNew.split(/\s+/));
+      const existingWords = new Set(normalizedExisting.split(/\s+/));
+      const intersection = new Set([...newWords].filter(x => existingWords.has(x)));
+      const similarity = intersection.size / Math.max(newWords.size, existingWords.size);
+      
+      return similarity > 0.8; // 80% word overlap threshold
+    });
+
+    if (isDuplicate) {
       console.log('Memory already exists, skipping:', sanitized);
       return false;
     }
