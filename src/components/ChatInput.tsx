@@ -535,16 +535,33 @@ export function ChatInput() {
   const analyzePromptIntent = async (message: string): Promise<'image' | 'text'> => {
     try {
       const openai = new OpenAIService();
-      const response = await openai.sendMessage([{
-        role: 'user',
-        content: `Analyze this prompt and respond with ONLY "image" or "text" based on whether the user wants image generation or text response:
+      // Get the image analysis prompt from settings
+      const { data: settings } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'image_analysis_prompt')
+        .single();
+      
+      const analysisPrompt = settings?.value || `Analyze this prompt and respond with ONLY "image" or "text" based on whether the user wants image generation or text response:
 
 "${message}"
 
-Rules:
-- If they want to create, generate, make, draw, design, show, visualize ANY visual content (image, photo, picture, art, illustration, diagram, etc.) → respond "image"
-- If they want text responses, explanations, conversations, or anything non-visual → respond "text"
-- Be very inclusive - even subtle visual requests should be "image"`
+Rules for detecting IMAGE requests:
+- Visual creation keywords: create, generate, make, draw, design, show, visualize, render, produce, illustrate
+- Visual objects: image, photo, picture, art, illustration, diagram, chart, graphic, banner, logo, icon, wallpaper
+- Art styles: realistic, cartoon, abstract, minimalist, watercolor, oil painting, sketch, digital art, 3D render
+- Descriptive phrases: "I want to see", "Can you show me", "What would look like", "Picture this", "Imagine a"
+- Visual concepts: landscape, portrait, scene, background, character, building, object
+- Style descriptors: colorful, detailed, bright, dark, vibrant, soft, hard, smooth, rough
+
+Be VERY inclusive - even subtle visual requests should return "image"
+If they want text responses, explanations, conversations, or anything non-visual → respond "text"`;
+
+      const response = await openai.sendMessage([{
+        role: 'user',
+        content: `${analysisPrompt}
+
+"${message}"`
       }]);
       
       const intent = response.toLowerCase().trim();
