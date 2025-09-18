@@ -248,6 +248,25 @@ export function ChatInput() {
     }
   }, [messages]);
 
+  // Listen for quick prompt selection events
+  useEffect(() => {
+    const handleQuickPromptSelected = (event: CustomEvent) => {
+      const { prompt } = event.detail;
+      console.log('Quick prompt selected:', prompt);
+      setInputValue(prompt);
+      // Focus the textarea after setting the value
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 0);
+    };
+
+    window.addEventListener('quickPromptSelected', handleQuickPromptSelected as EventListener);
+    
+    return () => {
+      window.removeEventListener('quickPromptSelected', handleQuickPromptSelected as EventListener);
+    };
+  }, []);
+
   // Listen for edited message events
   useEffect(() => {
     const handleEditedMessage = async (event: CustomEvent) => {
