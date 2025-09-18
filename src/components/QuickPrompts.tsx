@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 
 interface QuickPromptsProps {
   quickPrompts: Array<{ label: string; prompt: string }>;
@@ -6,59 +6,183 @@ interface QuickPromptsProps {
 }
 
 export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProps) {
-  /** Ping-pong Marquee — slower */
-  const MarqueePingPong: React.FC<{
+  const SmoothMarquee: React.FC<{
     items: typeof quickPrompts;
-    duration?: number; // seconds for a full center→edge→other edge cycle
-    delay?: number;    // negative offsets allowed to desync rows
-  }> = ({ items, duration = 60, delay = 0 }) => { // SLOW default
-    const setRef = useRef<HTMLDivElement>(null);
-    const trackRef = useRef<HTMLDivElement>(null);
+    speed?: number; // pixels per second
+    direction?: 'left' | 'right';
+  }> = ({ items, speed = 50, direction = 'left' }) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [scrollLeft, setScrollLeft] = useState(0);
+    const [currentX, setCurrentX] = useState(0);
+    const animationRef = useRef<number>();
+    const lastTimeRef = useRef<number>();
+
+    // Animation loop
+    const animate = useCallback((timestamp: number) => {
+      if (!containerRef.current || !contentRef.current) return;
+
+      const container = containerRef.current;
+      const content = contentRef.current;
+      const containerWidth = container.offsetWidth;
+      const contentWidth = content.offsetWidth / 3; // Each set is 1/3 of total width
+
+      if (!isDragging) {
+        if (lastTimeRef.current) {
+          const deltaTime = timestamp - lastTimeRef.current;
+          const distance = (speed * deltaTime) / 1000;
+          
+          if (direction === 'left') {
+            setCurrentX(prev => {
+              const newX = prev - distance;
+              // Reset to seamless loop position when we've moved one full content width
+              if (newX <= -contentWidth) {
+                return newX + contentWidth;
+              }
+              return newX;
+            });
+          } else {
+            setCurrentX(prev => {
+              const newX = prev + distance;
+              // Reset to seamless loop position
+              if (newX >= 0) {
+                return newX - contentWidth;
+              }
+              return newX;
+            });
+          }
+        }
+      }
+
+      lastTimeRef.current = timestamp;
+      animationRef.current = requestAnimationFrame(animate);
+    }, [isDragging, speed, direction]);
 
     useEffect(() => {
-      const update = () => {
-        const w = setRef.current?.getBoundingClientRect().width ?? 600;
-        trackRef.current?.style.setProperty("--setW", `${Math.ceil(w)}px`);
-        trackRef.current?.style.setProperty("--dur", `${duration}s`);
-        trackRef.current?.style.setProperty("--delay", `${delay}s`);
-      };
-      update();
-      const ro = new ResizeObserver(update);
-      if (setRef.current) ro.observe(setRef.current);
-      window.addEventListener("resize", update);
+      lastTimeRef.current = performance.now();
+      animationRef.current = requestAnimationFrame(animate);
+      
       return () => {
-        ro.disconnect();
-        window.removeEventListener("resize", update);
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+        }
       };
-    }, [items, duration, delay]);
+    }, [animate]);
+
+    // Apply transform
+    useEffect(() => {
+      if (contentRef.current) {
+        contentRef.current.style.transform = `translate3d(${currentX}px, 0, 0)`;
+      }
+    }, [currentX]);
+
+    // Mouse drag handlers
+    const handleMouseDown = (e: React.MouseEvent) => {
+      setIsDragging(true);
+      setStartX(e.pageX - (containerRef.current?.offsetLeft || 0));
+      setScrollLeft(currentX);
+    };
+
+    const handleMouseMove = useCallback((e: MouseEvent) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const x = e.pageX - (containerRef.current?.offsetLeft || 0);
+      const walk = x - startX;
+      setCurrentX(scrollLeft + walk);
+    }, [isDragging, startX, scrollLeft]);
+
+    const handleMouseUp = useCallback(() => {
+      setIsDragging(false);
+    }, []);
+
+    // Touch handlers for mobile
+    const handleTouchStart = (e: React.TouchEvent) => {
+      setIsDragging(true);
+      setStartX(e.touches[0].pageX - (containerRef.current?.offsetLeft || 0));
+      setScrollLeft(currentX);
+    };
+
+    const handleTouchMove = useCallback((e: TouchEvent) => {
+      if (!isDragging) return;
+      const x = e.touches[0].pageX - (containerRef.current?.offsetLeft || 0);
+      const walk = x - startX;
+      setCurrentX(scrollLeft + walk);
+    }, [isDragging, startX, scrollLeft]);
+
+    const handleTouchEnd = useCallback(() => {
+      setIsDragging(false);
+    }, []);
+
+    // Add global event listeners for drag
+    useEffect(() => {
+      if (isDragging) {
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        document.addEventListener('touchmove', handleTouchMove);
+        document.addEventListener('touchend', handleTouchEnd);
+      }
+
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+      };
+    }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
     return (
-      <div className="marquee-ping">
-        <div ref={trackRef} className="marquee-ping-track">
-          {/* LEFT CLONE (A) */}
-          <div className="marquee-ping-set" aria-hidden>
-            {items.map((p, i) => (
-              <button key={`L-${i}`} onClick={() => onTriggerPrompt(p.prompt)} className="prompt-pill">
-                <span className="font-medium text-sm">{p.label}</span>
-              </button>
-            ))}
-          </div>
-          {/* CENTER (B) — measured */}
-          <div ref={setRef} className="marquee-ping-set">
-            {items.map((p, i) => (
-              <button key={`C-${i}`} onClick={() => onTriggerPrompt(p.prompt)} className="prompt-pill">
-                <span className="font-medium text-sm">{p.label}</span>
-              </button>
-            ))}
-          </div>
-          {/* RIGHT CLONE (C) */}
-          <div className="marquee-ping-set" aria-hidden>
-            {items.map((p, i) => (
-              <button key={`R-${i}`} onClick={() => onTriggerPrompt(p.prompt)} className="prompt-pill">
-                <span className="font-medium text-sm">{p.label}</span>
-              </button>
-            ))}
-          </div>
+      <div 
+        ref={containerRef}
+        className="smooth-marquee"
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        style={{
+          cursor: isDragging ? 'grabbing' : 'grab',
+          userSelect: 'none',
+          overflow: 'hidden',
+          position: 'relative',
+          minHeight: '48px',
+          maskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)'
+        }}
+      >
+        <div 
+          ref={contentRef}
+          className="smooth-marquee-content"
+          style={{
+            display: 'flex',
+            gap: '12px',
+            whiteSpace: 'nowrap',
+            willChange: 'transform'
+          }}
+        >
+          {/* Triple the content for seamless looping */}
+          {[...Array(3)].map((_, setIndex) => (
+            <div 
+              key={setIndex}
+              className="smooth-marquee-set"
+              style={{
+                display: 'flex',
+                gap: '12px',
+                flexShrink: 0
+              }}
+            >
+              {items.map((prompt, i) => (
+                <button 
+                  key={`${setIndex}-${i}`}
+                  onClick={() => onTriggerPrompt(prompt.prompt)}
+                  className="prompt-pill"
+                  style={{
+                    pointerEvents: isDragging ? 'none' : 'auto'
+                  }}
+                >
+                  <span className="font-medium text-sm">{prompt.label}</span>
+                </button>
+              ))}
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -66,8 +190,8 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
 
   return (
     <div className="w-full max-w-2xl flex flex-col gap-6 mb-16">
-      <MarqueePingPong items={quickPrompts.slice(0, 6)} duration={68} />
-      <MarqueePingPong items={quickPrompts.slice(6)} duration={80} delay={-12} />
+      <SmoothMarquee items={quickPrompts.slice(0, 6)} speed={40} direction="left" />
+      <SmoothMarquee items={quickPrompts.slice(6)} speed={35} direction="right" />
     </div>
   );
 }
