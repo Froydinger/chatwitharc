@@ -18,16 +18,16 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
     { label: "🎯 Make decision", prompt: "Help me make an important decision" }
   ];
 
-  // Detailed image generation prompts
+  // Detailed image generation prompts (16:9 aspect ratio)
   const imagePrompts = [
-    { label: "🌌 Cosmic landscape", prompt: "Generate an image of a breathtaking photorealistic cosmic landscape with swirling galaxies, nebulae in vibrant purples and blues, distant planets, and ethereal lighting effects" },
-    { label: "🏙️ Futuristic city", prompt: "Generate an image of a stunning photorealistic futuristic cityscape at sunset with towering glass spires, flying vehicles, neon lights, and advanced architecture reflecting golden hour lighting" },
-    { label: "🌲 Mystical forest", prompt: "Generate an image of a photorealistic enchanted mystical forest with ancient towering trees, glowing mushrooms, magical fireflies, misty atmosphere, and dappled sunlight filtering through leaves" },
-    { label: "🌊 Ocean depths", prompt: "Generate an image of a photorealistic underwater scene in the deep ocean with bioluminescent creatures, coral reefs, schools of tropical fish, and rays of sunlight penetrating the water" },
-    { label: "⛰️ Mountain vista", prompt: "Generate an image of a photorealistic majestic mountain landscape at dawn with snow-capped peaks, alpine lakes, wildflower meadows, and dramatic cloud formations in the sky" },
-    { label: "🏜️ Desert oasis", prompt: "Generate an image of a photorealistic beautiful desert oasis with palm trees, crystal clear water, sand dunes, cacti, and a stunning sunset sky with warm golden and orange tones" },
-    { label: "🏰 Fantasy castle", prompt: "Generate an image of a photorealistic magnificent fantasy castle on a cliff with multiple towers, flowing banners, a waterfall, surrounding clouds, and magical aurora in the night sky" },
-    { label: "🎨 Abstract art", prompt: "Generate an image of an abstract artistic composition with flowing organic shapes, vibrant color gradients, dynamic patterns, and harmonious geometric elements" }
+    { label: "🌌 Cosmic landscape", prompt: "Generate a 16:9 image of a breathtaking photorealistic cosmic landscape with swirling galaxies, nebulae in vibrant purples and blues, distant planets, and ethereal lighting effects" },
+    { label: "🏙️ Futuristic city", prompt: "Generate a 16:9 image of a stunning photorealistic futuristic cityscape at sunset with towering glass spires, flying vehicles, neon lights, and advanced architecture reflecting golden hour lighting" },
+    { label: "🌲 Mystical forest", prompt: "Generate a 16:9 image of a photorealistic enchanted mystical forest with ancient towering trees, glowing mushrooms, magical fireflies, misty atmosphere, and dappled sunlight filtering through leaves" },
+    { label: "🌊 Ocean depths", prompt: "Generate a 16:9 image of a photorealistic underwater scene in the deep ocean with bioluminescent creatures, coral reefs, schools of tropical fish, and rays of sunlight penetrating the water" },
+    { label: "⛰️ Mountain vista", prompt: "Generate a 16:9 image of a photorealistic majestic mountain landscape at dawn with snow-capped peaks, alpine lakes, wildflower meadows, and dramatic cloud formations in the sky" },
+    { label: "🏜️ Desert oasis", prompt: "Generate a 16:9 image of a photorealistic beautiful desert oasis with palm trees, crystal clear water, sand dunes, cacti, and a stunning sunset sky with warm golden and orange tones" },
+    { label: "🏰 Fantasy castle", prompt: "Generate a 16:9 image of a photorealistic magnificent fantasy castle on a cliff with multiple towers, flowing banners, a waterfall, surrounding clouds, and magical aurora in the night sky" },
+    { label: "🎨 Abstract art", prompt: "Generate a 16:9 image of an abstract artistic composition with flowing organic shapes, vibrant color gradients, dynamic patterns, and harmonious geometric elements" }
   ];
 
   const PongMarquee: React.FC<{
@@ -268,9 +268,10 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
               className="prompt-pill"
               style={{
                 flexShrink: 0,
+                '--glow-color': glowIndex === i ? glowColor : undefined,
                 boxShadow: glowIndex === i ? `inset 0 0 0 1px ${glowColor}` : 'none',
                 animation: glowIndex === i ? 'breathe-internal-glow 3s ease-in-out' : 'none',
-              }}
+              } as React.CSSProperties}
             >
               <span className="font-medium text-sm">{prompt.label}</span>
             </button>
