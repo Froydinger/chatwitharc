@@ -16,25 +16,19 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        {/* Temporary maintenance banner */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white text-center py-3 px-4 font-medium">
-          🚧 Under Construction - Be Back Soon 🚧
-        </div>
-        <div className="pt-16"> {/* Add padding to push content below banner */}
-          <Toaster />
-          <Sonner />
-          <PWAInstallPrompt />
-          <UpdateNotification />
-          <BrowserRouter>
-            <PageTransition>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </PageTransition>
-          </BrowserRouter>
-        </div>
+        <Toaster />
+        <Sonner />
+        <PWAInstallPrompt />
+        <UpdateNotification />
+        <BrowserRouter>
+          <PageTransition>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </PageTransition>
+        </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
