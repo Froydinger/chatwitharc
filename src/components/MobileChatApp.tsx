@@ -11,6 +11,7 @@ import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useProfile } from "@/hooks/useProfile";
 
 /** Time-of-day greeting (no name usage) */
 function getDaypartGreeting(
@@ -36,6 +37,8 @@ export function MobileChatApp() {
     currentSessionId,
   } = useArcStore();
 
+  const { profile } = useProfile();
+
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -49,13 +52,19 @@ export function MobileChatApp() {
 
   const { toast } = useToast();
 
-  // Greeting (updates with local time, no name)
-  const [greeting, setGreeting] = useState(getDaypartGreeting());
+  // Greeting with user's name when available
+  const getPersonalizedGreeting = () => {
+    const timeGreeting = getDaypartGreeting();
+    const displayName = profile?.display_name;
+    return displayName ? `${timeGreeting}, ${displayName}` : timeGreeting;
+  };
+  
+  const [greeting, setGreeting] = useState(getPersonalizedGreeting());
   useEffect(() => {
-    setGreeting(getDaypartGreeting());
-    const id = setInterval(() => setGreeting(getDaypartGreeting()), 60_000);
+    setGreeting(getPersonalizedGreeting());
+    const id = setInterval(() => setGreeting(getPersonalizedGreeting()), 60_000);
     return () => clearInterval(id);
-  }, []);
+  }, [profile?.display_name]);
 
   // Quick Prompts
   const quickPrompts = [
