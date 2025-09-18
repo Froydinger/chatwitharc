@@ -239,7 +239,8 @@ export function MobileChatApp() {
                   }} 
                 />
               ))}
-              <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
+              {/* Only show ThinkingIndicator for text-only loading, not for image generation */}
+              {isLoading && !isGeneratingImage && <ThinkingIndicator isLoading={true} isGeneratingImage={false} />}
             </div>
           )}
         </div>
