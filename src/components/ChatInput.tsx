@@ -653,6 +653,7 @@ export function ChatInput() {
         
         // Add placeholder message immediately
         setGeneratingImage(true);
+        console.log('ADDING IMAGE GENERATING MESSAGE');
         addMessage({
           content: `Generating image: ${imagePrompt || userMessage}`,
           role: 'assistant',

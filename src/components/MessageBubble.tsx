@@ -146,10 +146,13 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
               {/* Image Generating */}
               {message.type === "image-generating" && (
-                <ImageGenerationPlaceholder
-                  prompt={message.imagePrompt || message.content}
-                  onComplete={() => {}}
-                />
+                <>
+                  {console.log('RENDERING IMAGE GENERATION PLACEHOLDER for message:', message)}
+                  <ImageGenerationPlaceholder
+                    prompt={message.imagePrompt || message.content}
+                    onComplete={() => {}}
+                  />
+                </>
               )}
 
               {/* Images */}
