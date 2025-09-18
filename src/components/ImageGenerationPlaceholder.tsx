@@ -73,35 +73,22 @@ export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerati
 
          {/* Content overlay */}
          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-           {/* Simple rotating half circle */}
-           <motion.div
-             initial={{ scale: 0 }}
-             animate={{ scale: 1 }}
-             transition={{ delay: 0.2, type: "spring" }}
-             className="w-16 h-16 mb-6 relative"
+           
+           <motion.h3
+             initial={{ opacity: 0, y: 10 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ delay: 0.2 }}
+             className="text-lg font-semibold text-foreground mb-2"
            >
-             <motion.div
-               animate={{ rotate: 360 }}
-               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-               className="w-full h-full border-4 border-transparent border-t-primary border-r-primary rounded-full"
-             />
-           </motion.div>
+             Generating Image
+           </motion.h3>
           
-          <motion.h3
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="text-lg font-semibold text-foreground mb-2"
-          >
-            Generating Image
-          </motion.h3>
-          
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="text-sm text-muted-foreground mb-6 line-clamp-2"
-          >
+           <motion.p
+             initial={{ opacity: 0, y: 10 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ delay: 0.4 }}
+             className="text-sm text-muted-foreground mb-6 line-clamp-2"
+           >
             {prompt}
           </motion.p>
 
@@ -111,12 +98,12 @@ export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerati
               value={progress} 
               className="h-2 bg-background/50"
             />
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="text-xs text-muted-foreground mt-2"
-            >
+             <motion.p
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               transition={{ delay: 0.6 }}
+               className="text-xs text-muted-foreground mt-2"
+             >
               {Math.round(progress)}%
             </motion.p>
           </div>
