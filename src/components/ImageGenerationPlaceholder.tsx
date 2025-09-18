@@ -14,7 +14,7 @@ export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerati
   useEffect(() => {
     if (isComplete) return;
     
-    const duration = 45000; // 45 seconds max wait
+    const duration = 135000; // 135 seconds max wait (3x longer for image edits)
     const interval = 100; // Update every 100ms for smoother animation
     const increment = (interval / duration) * 100;
 
