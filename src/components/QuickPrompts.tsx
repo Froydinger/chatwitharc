@@ -6,59 +6,94 @@ interface QuickPromptsProps {
 }
 
 export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProps) {
-  const SmoothMarquee: React.FC<{
-    items: typeof quickPrompts;
-    speed?: number; // pixels per second
+  // Text conversation prompts
+  const textPrompts = [
+    { label: "Plan my day", prompt: "Help me plan my day effectively" },
+    { label: "Explain concept", prompt: "Explain a complex concept in simple terms" },
+    { label: "Write email", prompt: "Help me write a professional email" },
+    { label: "Brainstorm ideas", prompt: "Let's brainstorm creative ideas together" },
+    { label: "Solve problem", prompt: "Help me solve a challenging problem" },
+    { label: "Learn something", prompt: "Teach me something interesting today" },
+    { label: "Get advice", prompt: "I need some thoughtful advice" },
+    { label: "Make decision", prompt: "Help me make an important decision" }
+  ];
+
+  // Detailed image generation prompts
+  const imagePrompts = [
+    { label: "Cosmic landscape", prompt: "Create a breathtaking cosmic landscape with swirling galaxies, nebulae in vibrant purples and blues, distant planets, and ethereal lighting effects" },
+    { label: "Futuristic city", prompt: "Generate a stunning futuristic cityscape at sunset with towering glass spires, flying vehicles, neon lights, and advanced architecture reflecting golden hour lighting" },
+    { label: "Mystical forest", prompt: "Design an enchanted mystical forest with ancient towering trees, glowing mushrooms, magical fireflies, misty atmosphere, and dappled sunlight filtering through leaves" },
+    { label: "Ocean depths", prompt: "Create an underwater scene in the deep ocean with bioluminescent creatures, coral reefs, schools of tropical fish, and rays of sunlight penetrating the water" },
+    { label: "Mountain vista", prompt: "Generate a majestic mountain landscape at dawn with snow-capped peaks, alpine lakes, wildflower meadows, and dramatic cloud formations in the sky" },
+    { label: "Desert oasis", prompt: "Design a beautiful desert oasis with palm trees, crystal clear water, sand dunes, cacti, and a stunning sunset sky with warm golden and orange tones" },
+    { label: "Fantasy castle", prompt: "Create a magnificent fantasy castle on a cliff with multiple towers, flowing banners, a waterfall, surrounding clouds, and magical aurora in the night sky" },
+    { label: "Abstract art", prompt: "Generate an abstract artistic composition with flowing organic shapes, vibrant color gradients, dynamic patterns, and harmonious geometric elements" }
+  ];
+
+  const ConstrainedMarquee: React.FC<{
+    items: Array<{ label: string; prompt: string }>;
+    speed?: number;
     direction?: 'left' | 'right';
-  }> = ({ items, speed = 50, direction = 'left' }) => {
+  }> = ({ items, speed = 40, direction = 'left' }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const [startX, setStartX] = useState(0);
-    const [scrollLeft, setScrollLeft] = useState(0);
     const [currentX, setCurrentX] = useState(0);
+    const [maxScroll, setMaxScroll] = useState(0);
     const animationRef = useRef<number>();
     const lastTimeRef = useRef<number>();
 
+    // Calculate boundaries
+    const updateBoundaries = useCallback(() => {
+      if (!containerRef.current || !contentRef.current) return;
+      
+      const containerWidth = containerRef.current.offsetWidth;
+      const contentWidth = contentRef.current.scrollWidth;
+      const maxScrollValue = Math.max(0, contentWidth - containerWidth);
+      setMaxScroll(maxScrollValue);
+    }, []);
+
+    useEffect(() => {
+      updateBoundaries();
+      window.addEventListener('resize', updateBoundaries);
+      return () => window.removeEventListener('resize', updateBoundaries);
+    }, [updateBoundaries, items]);
+
+    // Constrain position within bounds
+    const constrainPosition = useCallback((x: number) => {
+      return Math.max(-maxScroll, Math.min(0, x));
+    }, [maxScroll]);
+
     // Animation loop
     const animate = useCallback((timestamp: number) => {
-      if (!containerRef.current || !contentRef.current) return;
-
-      const container = containerRef.current;
-      const content = contentRef.current;
-      const containerWidth = container.offsetWidth;
-      const contentWidth = content.offsetWidth / 3; // Each set is 1/3 of total width
-
-      if (!isDragging) {
+      if (!isDragging && maxScroll > 0) {
         if (lastTimeRef.current) {
           const deltaTime = timestamp - lastTimeRef.current;
           const distance = (speed * deltaTime) / 1000;
           
-          if (direction === 'left') {
-            setCurrentX(prev => {
-              const newX = prev - distance;
-              // Reset to seamless loop position when we've moved one full content width
-              if (newX <= -contentWidth) {
-                return newX + contentWidth;
+          setCurrentX(prev => {
+            let newX = prev;
+            if (direction === 'left') {
+              newX = prev - distance;
+              // Bounce back when hitting boundaries
+              if (newX <= -maxScroll) {
+                return -maxScroll + (newX + maxScroll) * -0.1; // Slight bounce effect
               }
-              return newX;
-            });
-          } else {
-            setCurrentX(prev => {
-              const newX = prev + distance;
-              // Reset to seamless loop position
+            } else {
+              newX = prev + distance;
+              // Bounce back when hitting boundaries  
               if (newX >= 0) {
-                return newX - contentWidth;
+                return newX * -0.1; // Slight bounce effect
               }
-              return newX;
-            });
-          }
+            }
+            return constrainPosition(newX);
+          });
         }
       }
 
       lastTimeRef.current = timestamp;
       animationRef.current = requestAnimationFrame(animate);
-    }, [isDragging, speed, direction]);
+    }, [isDragging, speed, direction, maxScroll, constrainPosition]);
 
     useEffect(() => {
       lastTimeRef.current = performance.now();
@@ -71,117 +106,88 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
       };
     }, [animate]);
 
-    // Apply transform
+    // Apply transform with constraints
     useEffect(() => {
       if (contentRef.current) {
-        contentRef.current.style.transform = `translate3d(${currentX}px, 0, 0)`;
+        const constrainedX = constrainPosition(currentX);
+        contentRef.current.style.transform = `translate3d(${constrainedX}px, 0, 0)`;
       }
-    }, [currentX]);
+    }, [currentX, constrainPosition]);
 
-    // Mouse drag handlers
-    const handleMouseDown = (e: React.MouseEvent) => {
+    // Drag handlers with constraints
+    const handleStart = useCallback((clientX: number) => {
       setIsDragging(true);
-      setStartX(e.pageX - (containerRef.current?.offsetLeft || 0));
-      setScrollLeft(currentX);
-    };
-
-    const handleMouseMove = useCallback((e: MouseEvent) => {
-      if (!isDragging) return;
-      e.preventDefault();
-      const x = e.pageX - (containerRef.current?.offsetLeft || 0);
-      const walk = x - startX;
-      setCurrentX(scrollLeft + walk);
-    }, [isDragging, startX, scrollLeft]);
-
-    const handleMouseUp = useCallback(() => {
-      setIsDragging(false);
-    }, []);
-
-    // Touch handlers for mobile
-    const handleTouchStart = (e: React.TouchEvent) => {
-      setIsDragging(true);
-      setStartX(e.touches[0].pageX - (containerRef.current?.offsetLeft || 0));
-      setScrollLeft(currentX);
-    };
-
-    const handleTouchMove = useCallback((e: TouchEvent) => {
-      if (!isDragging) return;
-      const x = e.touches[0].pageX - (containerRef.current?.offsetLeft || 0);
-      const walk = x - startX;
-      setCurrentX(scrollLeft + walk);
-    }, [isDragging, startX, scrollLeft]);
-
-    const handleTouchEnd = useCallback(() => {
-      setIsDragging(false);
-    }, []);
-
-    // Add global event listeners for drag
-    useEffect(() => {
-      if (isDragging) {
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-        document.addEventListener('touchmove', handleTouchMove);
-        document.addEventListener('touchend', handleTouchEnd);
-      }
-
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-        document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleTouchEnd);
+      const startX = clientX - (containerRef.current?.offsetLeft || 0);
+      
+      const handleMove = (moveX: number) => {
+        const x = moveX - (containerRef.current?.offsetLeft || 0);
+        const walk = x - startX;
+        setCurrentX(prev => constrainPosition(prev + walk));
       };
-    }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
+
+      const handleEnd = () => {
+        setIsDragging(false);
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleEnd);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleEnd);
+      };
+
+      const handleMouseMove = (e: MouseEvent) => {
+        e.preventDefault();
+        handleMove(e.pageX);
+      };
+
+      const handleTouchMove = (e: TouchEvent) => {
+        handleMove(e.touches[0].pageX);
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleEnd);
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleEnd);
+    }, [constrainPosition]);
 
     return (
       <div 
         ref={containerRef}
-        className="smooth-marquee"
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
+        className="constrained-marquee"
+        onMouseDown={(e) => handleStart(e.pageX)}
+        onTouchStart={(e) => handleStart(e.touches[0].pageX)}
         style={{
           cursor: isDragging ? 'grabbing' : 'grab',
           userSelect: 'none',
           overflow: 'hidden',
           position: 'relative',
           minHeight: '48px',
-          maskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)'
+          maskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)'
         }}
       >
         <div 
           ref={contentRef}
-          className="smooth-marquee-content"
+          className="constrained-marquee-content"
           style={{
             display: 'flex',
             gap: '12px',
             whiteSpace: 'nowrap',
-            willChange: 'transform'
+            willChange: 'transform',
+            paddingLeft: '20px',
+            paddingRight: '20px'
           }}
         >
-          {/* Triple the content for seamless looping */}
-          {[...Array(3)].map((_, setIndex) => (
-            <div 
-              key={setIndex}
-              className="smooth-marquee-set"
+          {items.map((prompt, i) => (
+            <button 
+              key={i}
+              onClick={() => onTriggerPrompt(prompt.prompt)}
+              className="prompt-pill"
               style={{
-                display: 'flex',
-                gap: '12px',
+                pointerEvents: isDragging ? 'none' : 'auto',
                 flexShrink: 0
               }}
             >
-              {items.map((prompt, i) => (
-                <button 
-                  key={`${setIndex}-${i}`}
-                  onClick={() => onTriggerPrompt(prompt.prompt)}
-                  className="prompt-pill"
-                  style={{
-                    pointerEvents: isDragging ? 'none' : 'auto'
-                  }}
-                >
-                  <span className="font-medium text-sm">{prompt.label}</span>
-                </button>
-              ))}
-            </div>
+              <span className="font-medium text-sm">{prompt.label}</span>
+            </button>
           ))}
         </div>
       </div>
@@ -190,8 +196,8 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
 
   return (
     <div className="w-full max-w-2xl flex flex-col gap-6 mb-16">
-      <SmoothMarquee items={quickPrompts.slice(0, 6)} speed={40} direction="left" />
-      <SmoothMarquee items={quickPrompts.slice(6)} speed={35} direction="right" />
+      <ConstrainedMarquee items={textPrompts} speed={30} direction="left" />
+      <ConstrainedMarquee items={imagePrompts} speed={25} direction="right" />
     </div>
   );
 }
