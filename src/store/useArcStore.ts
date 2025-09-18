@@ -37,6 +37,7 @@ export interface ArcState {
   // Current Chat State
   messages: Message[];
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
+  replaceLastMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => void;
   clearCurrentMessages: () => void;
   
@@ -324,6 +325,58 @@ export const useArcStore = create<ArcState>()(
           get().saveChatToSupabase(sessionToSave);
           
           return {
+            messages: updatedMessages,
+            chatSessions: updatedSessions,
+            currentSessionId
+          };
+        });
+      },
+      
+      replaceLastMessage: async (message) => {
+        const newMessage = {
+          ...message,
+          id: Math.random().toString(36).substring(7),
+          timestamp: new Date()
+        };
+        
+        set((state) => {
+          if (state.messages.length === 0) {
+            // If no messages, just add it
+            return {
+              ...state,
+              messages: [newMessage]
+            };
+          }
+          
+          // Replace the last message
+          const updatedMessages = [...state.messages];
+          updatedMessages[updatedMessages.length - 1] = newMessage;
+          
+          // Update current session
+          let updatedSessions = state.chatSessions;
+          let currentSessionId = state.currentSessionId;
+          let sessionToSave: ChatSession;
+          
+          if (currentSessionId) {
+            const existingSession = state.chatSessions.find(s => s.id === currentSessionId);
+            if (existingSession) {
+              sessionToSave = {
+                ...existingSession,
+                lastMessageAt: new Date(),
+                messages: updatedMessages
+              };
+              
+              updatedSessions = state.chatSessions.map(session => 
+                session.id === currentSessionId ? sessionToSave : session
+              );
+              
+              // Save to Supabase async
+              get().saveChatToSupabase(sessionToSave);
+            }
+          }
+          
+          return {
+            ...state,
             messages: updatedMessages,
             chatSessions: updatedSessions,
             currentSessionId

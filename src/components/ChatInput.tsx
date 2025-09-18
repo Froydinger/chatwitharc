@@ -202,6 +202,7 @@ export function ChatInput() {
   const { 
     messages, 
     addMessage, 
+    replaceLastMessage,
     isLoading, 
     isGeneratingImage,
     setLoading,
@@ -328,7 +329,7 @@ export function ChatInput() {
         }
 
         // Replace placeholder with actual image
-        await addMessage({
+        await replaceLastMessage({
           content: `Edited image: ${editInstruction}`,
           role: 'assistant',
           type: 'image',
@@ -337,7 +338,7 @@ export function ChatInput() {
       } catch (error) {
         console.error('Image editing error:', error);
         // Replace placeholder with error message
-        await addMessage({
+        await replaceLastMessage({
           content: `Sorry, I couldn't edit the image. ${error instanceof Error ? error.message : 'Please try again.'}`,
           role: 'assistant',
           type: 'text'
@@ -534,7 +535,7 @@ export function ChatInput() {
           }
 
           // Replace placeholder with actual image
-          addMessage({
+          await replaceLastMessage({
             content: `Edited image: ${userMessage}`,
             role: 'assistant',
             type: 'image',
@@ -543,7 +544,7 @@ export function ChatInput() {
         } catch (error) {
           console.error('Image editing error:', error);
           // Replace placeholder with error message
-          await addMessage({
+          await replaceLastMessage({
             content: `Sorry, I couldn't edit the image. ${error instanceof Error ? error.message : 'Please try again.'}`,
             role: 'assistant',
             type: 'text'
@@ -612,7 +613,7 @@ export function ChatInput() {
           }
           
           // Replace placeholder with actual image
-          addMessage({
+          await replaceLastMessage({
             content: `Generated image: ${imagePrompt || userMessage}`,
             role: 'assistant',
             type: 'image',
@@ -621,7 +622,7 @@ export function ChatInput() {
         } catch (error) {
           console.error('Image generation error:', error);
           // Replace placeholder with error message
-          await addMessage({
+          await replaceLastMessage({
             content: `Sorry, I couldn't generate the image. ${error instanceof Error ? error.message : 'Please try again.'}`,
             role: 'assistant',
             type: 'text'
