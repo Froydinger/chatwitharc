@@ -490,6 +490,7 @@ export function ChatInput() {
 
     const userMessage = inputValue.trim();
     const imagesToProcess = [...selectedImages]; // Store images before clearing
+    console.log('SEND HANDLER CALLED:', { userMessage, imagesToProcess: imagesToProcess.length });
     setInputValue("");
     setSelectedImages([]); // Clear immediately to prevent UI issues
 
@@ -498,6 +499,12 @@ export function ChatInput() {
     // Early detection of image edit requests to prevent ghost bubbles
     const isUploadedImageEdit = imagesToProcess.length > 0 && userMessage && isImageEditRequest(userMessage);
     const isImageGenerationRequest = !imagesToProcess.length && checkForImageRequest(userMessage);
+    console.log('FLOW DETECTION:', { 
+      isUploadedImageEdit, 
+      isImageGenerationRequest, 
+      hasImages: imagesToProcess.length > 0,
+      userMessage 
+    });
 
     try {
       // Handle multiple images - upload to storage for persistence with user folder structure
