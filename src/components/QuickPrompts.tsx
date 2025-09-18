@@ -49,11 +49,11 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
 
     // Glow colors for random selection (internal glow colors)
     const glowColors = [
-      'rgba(239, 68, 68, 0.8)', // Red
-      'rgba(59, 130, 246, 0.8)', // Blue  
-      'rgba(34, 197, 94, 0.8)', // Green
-      'rgba(249, 115, 22, 0.8)', // Orange
-      'rgba(236, 72, 153, 0.8)', // Pink
+      'hsl(0, 84%, 60%)', // Red
+      'hsl(221, 83%, 53%)', // Blue  
+      'hsl(142, 76%, 36%)', // Green
+      'hsl(24, 95%, 53%)', // Orange
+      'hsl(329, 73%, 60%)', // Pink
     ];
 
     // Random glow effect
@@ -259,7 +259,10 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
               onClick={(e) => {
                 e.stopPropagation();
                 if (!isDragging) {
-                  onTriggerPrompt(prompt.prompt);
+                  // Dispatch event to put prompt in input bar
+                  window.dispatchEvent(new CustomEvent('quickPromptSelected', { 
+                    detail: { prompt: prompt.prompt } 
+                  }));
                 }
               }}
               className="prompt-pill"
