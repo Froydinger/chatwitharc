@@ -249,6 +249,7 @@ export function ChatInput() {
       
       // Check if the edited message is requesting image generation
       const isImageGenerationRequest = checkForImageRequest(content);
+      console.log('Edited message image generation check:', isImageGenerationRequest);
       
       if (isImageGenerationRequest) {
         // Handle image generation for edited message
@@ -638,6 +639,7 @@ export function ChatInput() {
         const openai = new OpenAIService();
         
         // Check if user is requesting image generation with intelligent detection
+        console.log('Main submit - image generation check:', isImageGenerationRequest, 'for message:', userMessage);
         if (isImageGenerationRequest) {
         // Extract the image description intelligently
         let imagePrompt = extractImagePrompt(userMessage);
