@@ -9,6 +9,7 @@ import { UpdateNotification } from "@/components/UpdateNotification";
 import { PageTransition } from "@/components/PageTransition";
 import { Index } from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import { AdminPage } from "./pages/AdminPage";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
           <PageTransition>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/admin" element={<AdminPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
