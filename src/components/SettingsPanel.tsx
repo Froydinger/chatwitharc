@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { 
   Trash2, User, LogOut, AlertTriangle, Camera, Wifi, WifiOff, 
   Cloud, CloudOff, Mic, Settings as SettingsIcon, ChevronDown,
-  Save, RotateCcw, X, Mail
+  Save, RotateCcw, X, Mail, Key
 } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
@@ -30,6 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AdminSettingsPanel } from "@/components/AdminSettingsPanel";
 
 export function SettingsPanel() {
@@ -50,6 +51,8 @@ export function SettingsPanel() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   
   // Collapsible states
   const [openSections, setOpenSections] = useState({
@@ -200,6 +203,41 @@ export function SettingsPanel() {
         description: error.message || "Failed to sign out",
         variant: "destructive"
       });
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!user?.email) {
+      toast({
+        title: "Error",
+        description: "No email address found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/`,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password reset sent",
+        description: "Check your email for password reset instructions"
+      });
+      
+      setIsPasswordResetOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send password reset",
+        variant: "destructive"
+      });
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -527,7 +565,48 @@ export function SettingsPanel() {
                         <div className="text-xs text-muted-foreground">Primary login method</div>
                       </div>
                     </div>
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div className="flex items-center gap-2">
+                      <Dialog open={isPasswordResetOpen} onOpenChange={setIsPasswordResetOpen}>
+                        <DialogTrigger asChild>
+                          <GlassButton variant="ghost" size="sm">
+                            <Key className="w-3 h-3 mr-1" />
+                            Reset
+                          </GlassButton>
+                        </DialogTrigger>
+                        <DialogContent className="glass border-glass-border">
+                          <DialogHeader>
+                            <DialogTitle>Reset Password</DialogTitle>
+                            <DialogDescription>
+                              {user?.app_metadata?.providers?.includes('google') 
+                                ? "This will add email/password login to your account. Your Google login will remain active."
+                                : "We'll send a password reset link to your email address."
+                              }
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="py-4">
+                            <div className="text-sm text-muted-foreground">
+                              Email: <span className="font-mono">{user?.email}</span>
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <GlassButton 
+                              variant="ghost" 
+                              onClick={() => setIsPasswordResetOpen(false)}
+                              disabled={isResettingPassword}
+                            >
+                              Cancel
+                            </GlassButton>
+                            <GlassButton 
+                              onClick={handlePasswordReset}
+                              disabled={isResettingPassword}
+                            >
+                              {isResettingPassword ? "Sending..." : "Send Reset Link"}
+                            </GlassButton>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    </div>
                   </div>
                 </div>
               </div>
