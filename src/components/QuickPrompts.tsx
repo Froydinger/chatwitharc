@@ -32,103 +32,161 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
 
   const PongMarquee: React.FC<{
     items: Array<{ label: string; prompt: string }>;
-    speed?: number;
-    initialDirection?: 'left' | 'right';
-  }> = ({ items, speed = 30, initialDirection = 'left' }) => {
+    speed?: number; // px per second
+  }> = ({ items, speed = 24 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
 
-    // Refs for hot path
-    const currentXRef = useRef(0);
-    const maxScrollRef = useRef(0);
-    const dirRef = useRef<'left' | 'right'>(initialDirection);
-    const draggingRef = useRef(false);
+    // Hot path refs
+    const xRef = useRef(0);                       // current translate X
+    const dirRef = useRef<1 | -1>(1);             // 1 = right, -1 = left
     const rafRef = useRef<number | null>(null);
     const lastTsRef = useRef<number | null>(null);
+    const draggingRef = useRef(false);
 
-    // Small UI states that can re-render without hurting perf
-    const [glowIndex, setGlowIndex] = useState(-1);
-    const [glowColor, setGlowColor] = useState("");
-    const [isDraggingUI, setIsDraggingUI] = useState(false);
+    // Geometry refs
+    const singleWidthRef = useRef(0);             // width of one copy
+    const centerXRef = useRef(0);                 // translateX at exact center
+    const maxFromCenterRef = useRef(0);           // travel range from center
+    const childrenRefs = useRef<HTMLButtonElement[]>([]);
 
-    // timeouts for glow
-    const glowRootTimeout = useRef<number | null>(null);
-    const glowClearTimeout = useRef<number | null>(null);
+    // Visible index tracking for glow
+    const visibleSetRef = useRef<Set<number>>(new Set());
+    const [visibleVersion, setVisibleVersion] = useState(0); // bump to drive glow picking
+    const [glowIndex, setGlowIndex] = useState<number>(-1);
+    const [glowColor, setGlowColor] = useState<string>("");
 
-    const glowColors = [
-      "hsl(0, 84%, 60%)",
-      "hsl(221, 83%, 53%)",
-      "hsl(142, 76%, 36%)",
-      "hsl(24, 95%, 53%)",
-      "hsl(329, 73%, 60%)",
-    ];
+    // Fades at edges
+    const EdgeFades = () => (
+      <div aria-hidden style={{ pointerEvents: "none", position: "absolute", inset: 0 }}>
+        <div style={{
+          position: "absolute", top: 0, bottom: 0, left: 0, width: "48px",
+          background: "linear-gradient(to right, rgba(0,0,0,1), rgba(0,0,0,0))"
+        }} />
+        <div style={{
+          position: "absolute", top: 0, bottom: 0, right: 0, width: "48px",
+          background: "linear-gradient(to left, rgba(0,0,0,1), rgba(0,0,0,0))"
+        }} />
+      </div>
+    );
 
-    // Boundaries
-    const updateBounds = useCallback(() => {
+    // Triple items so edges never show
+    const tripled = [...items, ...items, ...items];
+
+    // Build child refs array length
+    childrenRefs.current = [];
+    const setChildRef = (el: HTMLButtonElement | null) => {
+      if (el) childrenRefs.current.push(el);
+    };
+
+    // Compute geometry and center
+    const computeBounds = useCallback(() => {
       const c = containerRef.current;
       const content = contentRef.current;
       if (!c || !content) return;
-      const containerWidth = c.offsetWidth;
-      const contentWidth = content.scrollWidth;
-      maxScrollRef.current = Math.max(0, contentWidth - containerWidth);
-      // Clamp position into new bounds
-      currentXRef.current = Math.min(0, Math.max(-maxScrollRef.current, currentXRef.current));
-      if (contentRef.current) {
-        contentRef.current.style.transform = `translate3d(${currentXRef.current}px,0,0)`;
+
+      // Measure one copy width by summing first N nodes equal to items.length
+      let w = 0;
+      const nodes = Array.from(content.children) as HTMLElement[];
+      for (let i = 0; i < items.length && i < nodes.length; i++) {
+        w += nodes[i].offsetWidth;
+        // add gaps
+        if (i < items.length - 1) {
+          const gap = parseFloat(getComputedStyle(content).columnGap || "0") || 0;
+          w += gap;
+        }
       }
-    }, []);
+      const paddingLeft = parseFloat(getComputedStyle(content).paddingLeft || "0") || 0;
+      const paddingRight = parseFloat(getComputedStyle(content).paddingRight || "0") || 0;
+      const contentGap = parseFloat(getComputedStyle(content).gap || "0") || 0; // tailwind uses gap not columnGap
+      // Better gap estimation: use gap
+      w = 0;
+      for (let i = 0; i < items.length && i < nodes.length; i++) {
+        w += nodes[i].offsetWidth;
+        if (i < items.length - 1) w += contentGap;
+      }
+
+      singleWidthRef.current = w;
+      // Place center so that the middle copy is exactly aligned
+      // tripled = [copyA][copyB][copyC]
+      // We want to start inside copyB
+      centerXRef.current = -w; // shift left by exactly one copy width to show copyB
+      const containerWidth = c.offsetWidth;
+
+      // We restrict travel to stay within copyB only
+      // So from center we can move left until the container right edge touches copyB left edge
+      // That gives range = singleWidth - containerWidth, but never below 0
+      maxFromCenterRef.current = Math.max(0, singleWidthRef.current - containerWidth);
+
+      // Clamp current x into new range around center
+      const minX = centerXRef.current - maxFromCenterRef.current;
+      const maxX = centerXRef.current + maxFromCenterRef.current;
+      xRef.current = Math.min(maxX, Math.max(minX, xRef.current));
+
+      if (contentRef.current) {
+        contentRef.current.style.transform = `translate3d(${xRef.current}px,0,0)`;
+      }
+    }, [items.length]);
 
     useEffect(() => {
-      updateBounds();
-      const onResize = () => updateBounds();
+      computeBounds();
+      const onResize = () => computeBounds();
       window.addEventListener("resize", onResize);
       return () => window.removeEventListener("resize", onResize);
-    }, [updateBounds, items.length]);
+    }, [computeBounds, tripled.length]);
 
-    // Single RAF loop that never changes identity
+    // Only pick glow from visible items
+    const updateVisibleSet = useCallback(() => {
+      const c = containerRef.current;
+      if (!c) return;
+      const cRect = c.getBoundingClientRect();
+      const visible = new Set<number>();
+
+      childrenRefs.current.forEach((el, idx) => {
+        const r = el.getBoundingClientRect();
+        const overlap = Math.min(r.right, cRect.right) - Math.max(r.left, cRect.left);
+        if (overlap > 8) visible.add(idx); // small threshold
+      });
+      visibleSetRef.current = visible;
+      setVisibleVersion(v => v + 1); // drive glow scheduler
+    }, []);
+
+    // RAF loop for back and forth
     const tick = useCallback((ts: number) => {
-      // Stop if not needed
-      if (draggingRef.current || maxScrollRef.current <= 0) {
-        lastTsRef.current = ts;
-        rafRef.current = requestAnimationFrame(tick);
-        return;
-      }
+      if (lastTsRef.current == null) lastTsRef.current = ts;
 
-      if (lastTsRef.current != null) {
-        const dt = ts - lastTsRef.current;
+      const dt = ts - lastTsRef.current;
+      lastTsRef.current = ts;
+
+      if (!draggingRef.current) {
         const px = (speed * dt) / 1000;
+        const minX = centerXRef.current - maxFromCenterRef.current;
+        const maxX = centerXRef.current + maxFromCenterRef.current;
 
-        let x = currentXRef.current;
-        if (dirRef.current === "left") {
-          x -= px;
-          if (x <= -maxScrollRef.current) {
-            x = -maxScrollRef.current;
-            dirRef.current = "right";
-          }
-        } else {
-          x += px;
-          if (x >= 0) {
-            x = 0;
-            dirRef.current = "left";
-          }
+        let x = xRef.current + dirRef.current * px;
+
+        if (x >= maxX) {
+          x = maxX;
+          dirRef.current = -1; // go left
+        } else if (x <= minX) {
+          x = minX;
+          dirRef.current = 1; // go right
         }
-        currentXRef.current = x;
 
+        xRef.current = x;
         if (contentRef.current) {
-          // mutate style directly to avoid re-render per frame
           contentRef.current.style.transform = `translate3d(${x}px,0,0)`;
         }
       }
 
-      lastTsRef.current = ts;
+      // Visibility check at a light interval
+      if ((ts % 120) < 16) updateVisibleSet();
+
       rafRef.current = requestAnimationFrame(tick);
-    }, [speed]);
+    }, [speed, updateVisibleSet]);
 
     useEffect(() => {
-      // start loop once
-      if (rafRef.current == null) {
-        rafRef.current = requestAnimationFrame(tick);
-      }
+      if (rafRef.current == null) rafRef.current = requestAnimationFrame(tick);
       return () => {
         if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
@@ -140,46 +198,40 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
       const c = containerRef.current;
       if (!c) return;
 
+      let startClientX = 0;
       let startX = 0;
-      let startPos = 0;
       let moved = false;
 
       const onPointerDown = (e: PointerEvent) => {
         c.setPointerCapture(e.pointerId);
-        startX = e.clientX;
-        startPos = currentXRef.current;
+        startClientX = e.clientX;
+        startX = xRef.current;
         moved = false;
-        draggingRef.current = false;
-        setIsDraggingUI(false);
       };
-
       const onPointerMove = (e: PointerEvent) => {
-        if (startX === 0 && startPos === 0) return;
-        const dist = e.clientX - startX;
-        if (!moved && Math.abs(dist) > 5) {
-          moved = true;
-          draggingRef.current = true;
-          setIsDraggingUI(true);
-        }
+        if (!startClientX) return;
+        const dx = e.clientX - startClientX;
+        if (!moved && Math.abs(dx) > 5) moved = true;
         if (moved) {
-          const nx = Math.max(-maxScrollRef.current, Math.min(0, startPos + dist));
-          currentXRef.current = nx;
+          draggingRef.current = true;
+          const minX = centerXRef.current - maxFromCenterRef.current;
+          const maxX = centerXRef.current + maxFromCenterRef.current;
+          const nx = Math.min(maxX, Math.max(minX, startX + dx));
+          xRef.current = nx;
           if (contentRef.current) {
             contentRef.current.style.transform = `translate3d(${nx}px,0,0)`;
           }
+          updateVisibleSet();
         }
       };
-
       const onPointerUp = (e: PointerEvent) => {
         try { c.releasePointerCapture(e.pointerId); } catch {}
-        // bias direction a bit based on where we ended
-        const x = currentXRef.current;
-        if (x <= -maxScrollRef.current * 0.8) dirRef.current = "right";
-        else if (x >= -maxScrollRef.current * 0.2) dirRef.current = "left";
+        // pick a direction based on where we ended so it naturally crosses center again
+        const mid = centerXRef.current;
+        dirRef.current = xRef.current >= mid ? -1 : 1;
         draggingRef.current = false;
-        setIsDraggingUI(false);
+        startClientX = 0;
         startX = 0;
-        startPos = 0;
       };
 
       c.addEventListener("pointerdown", onPointerDown);
@@ -193,77 +245,71 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
         c.removeEventListener("pointerup", onPointerUp);
         c.removeEventListener("pointercancel", onPointerUp);
       };
-    }, []);
+    }, [updateVisibleSet]);
 
-    // Random glow, with proper cleanup
+    // Glow scheduler that picks only from visible set inside the middle copy window
+    const glowColors = [
+      "hsl(0, 84%, 60%)",
+      "hsl(221, 83%, 53%)",
+      "hsl(142, 76%, 36%)",
+      "hsl(24, 95%, 53%)",
+      "hsl(329, 73%, 60%)",
+    ];
+
     useEffect(() => {
+      let rootTimer: number | null = null;
+      let clearTimer: number | null = null;
+
       const schedule = () => {
-        const delay = 2000 + Math.random() * 4000;
-        glowRootTimeout.current = window.setTimeout(() => {
-          const idx = Math.floor(Math.random() * items.length);
-          const color = glowColors[Math.floor(Math.random() * glowColors.length)];
-          setGlowIndex(idx);
-          setGlowColor(color);
-          glowClearTimeout.current = window.setTimeout(() => {
-            setGlowIndex(-1);
-            schedule();
-          }, 3000);
+        const delay = 1800 + Math.random() * 3200;
+        rootTimer = window.setTimeout(() => {
+          const visible = Array.from(visibleSetRef.current);
+          if (visible.length) {
+            const idx = visible[Math.floor(Math.random() * visible.length)];
+            const color = glowColors[Math.floor(Math.random() * glowColors.length)];
+            setGlowIndex(idx);
+            setGlowColor(color);
+            clearTimer = window.setTimeout(() => {
+              setGlowIndex(-1);
+              schedule();
+            }, 2400);
+          } else {
+            // nothing visible yet, retry soon
+            rootTimer = window.setTimeout(schedule, 600);
+          }
         }, delay);
       };
+
       schedule();
       return () => {
-        if (glowRootTimeout.current) window.clearTimeout(glowRootTimeout.current);
-        if (glowClearTimeout.current) window.clearTimeout(glowClearTimeout.current);
+        if (rootTimer) window.clearTimeout(rootTimer);
+        if (clearTimer) window.clearTimeout(clearTimer);
       };
-    }, [items.length]);
+    }, [visibleVersion]);
+
+    // Initial compute after first paint
+    useEffect(() => {
+      // small delay to allow layout
+      const t = setTimeout(() => {
+        computeBounds();
+        updateVisibleSet();
+      }, 0);
+      return () => clearTimeout(t);
+    }, [computeBounds, updateVisibleSet]);
 
     return (
       <div
         ref={containerRef}
         className="pong-marquee"
         style={{
-          cursor: isDraggingUI ? "grabbing" : "grab",
-          userSelect: "none",
-          overflow: "hidden",
           position: "relative",
+          overflow: "hidden",
+          userSelect: "none",
+          cursor: draggingRef.current ? "grabbing" : "grab",
           minHeight: "48px",
-          // Cheaper than masking on some GPUs: overlay fades
-          // If you prefer mask, replace with your original
         }}
       >
-        {/* Edge fade overlays */}
-        <div
-          aria-hidden
-          style={{
-            pointerEvents: "none",
-            position: "absolute",
-            inset: 0,
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              bottom: 0,
-              left: 0,
-              width: "40px",
-              background:
-                "linear-gradient(to right, rgba(0,0,0,1), rgba(0,0,0,0))",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              bottom: 0,
-              right: 0,
-              width: "40px",
-              background:
-                "linear-gradient(to left, rgba(0,0,0,1), rgba(0,0,0,0))",
-            }}
-          />
-        </div>
-
+        <EdgeFades />
         <div
           ref={contentRef}
           className="pong-marquee-content"
@@ -276,15 +322,14 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
             paddingRight: "20px",
             transform: "translate3d(0,0,0)",
           }}
-          // stop pointer down from triggering button focus while dragging
           onPointerDown={(e) => e.preventDefault()}
         >
-          {items.map((prompt, i) => (
+          {tripled.map((prompt, i) => (
             <button
               key={`${prompt.label}-${i}`}
+              ref={setChildRef}
               onClick={(e) => {
                 e.stopPropagation();
-                // ignore taps that were drags
                 if (!draggingRef.current) {
                   window.dispatchEvent(
                     new CustomEvent("quickPromptSelected", {
@@ -313,8 +358,8 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
 
   return (
     <div className="w-full max-w-2xl flex flex-col gap-6 mb-16">
-      <PongMarquee items={textPrompts} speed={25} initialDirection="left" />
-      <PongMarquee items={imagePrompts} speed={20} initialDirection="right" />
+      <PongMarquee items={textPrompts} speed={24} />
+      <PongMarquee items={imagePrompts} speed={20} />
     </div>
   );
 }
