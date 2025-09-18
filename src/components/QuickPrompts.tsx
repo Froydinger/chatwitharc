@@ -47,15 +47,13 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
     const lastTimeRef = useRef<number>();
     const glowTimeoutRef = useRef<NodeJS.Timeout>();
 
-    // Glow colors for random selection
+    // Glow colors for random selection (internal glow colors)
     const glowColors = [
-      'rgba(59, 130, 246, 0.6)', // Blue
-      'rgba(147, 51, 234, 0.6)', // Purple  
-      'rgba(236, 72, 153, 0.6)', // Pink
-      'rgba(34, 197, 94, 0.6)', // Green
-      'rgba(249, 115, 22, 0.6)', // Orange
-      'rgba(168, 85, 247, 0.6)', // Violet
-      'rgba(14, 165, 233, 0.6)', // Sky
+      'rgba(239, 68, 68, 0.8)', // Red
+      'rgba(59, 130, 246, 0.8)', // Blue  
+      'rgba(34, 197, 94, 0.8)', // Green
+      'rgba(249, 115, 22, 0.8)', // Orange
+      'rgba(236, 72, 153, 0.8)', // Pink
     ];
 
     // Random glow effect
@@ -267,8 +265,8 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
               className="prompt-pill"
               style={{
                 flexShrink: 0,
-                boxShadow: glowIndex === i ? `0 0 20px ${glowColor}, 0 0 40px ${glowColor}` : 'none',
-                animation: glowIndex === i ? 'breathe-glow 3s ease-in-out' : 'none',
+                boxShadow: glowIndex === i ? `inset 0 0 0 1px ${glowColor}` : 'none',
+                animation: glowIndex === i ? 'breathe-internal-glow 3s ease-in-out' : 'none',
               }}
             >
               <span className="font-medium text-sm">{prompt.label}</span>

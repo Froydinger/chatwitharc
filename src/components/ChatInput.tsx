@@ -47,6 +47,12 @@ function checkForImageRequest(message: string): boolean {
     return false;
   }
   
+  // EXPLICIT check for "generate an image" pattern - highest priority
+  if (/^generate\s+an?\s+image\s+of/i.test(lowerMsg)) {
+    console.log('EXPLICIT IMAGE GENERATION DETECTED:', lowerMsg);
+    return true;
+  }
+  
   // Direct generation keywords
   const directKeywords = [
     'generate', 'create', 'make', 'draw', 'paint', 'sketch', 'illustrate', 
@@ -157,7 +163,8 @@ function checkForImageRequest(message: string): boolean {
   console.log('Image detection final score:', {
     score,
     threshold: 2,
-    willGenerateImage: score >= 2
+    willGenerateImage: score >= 2,
+    explicitCheck: /^generate\s+an?\s+image\s+of/i.test(lowerMsg)
   });
 
   // Return true if score is 2 or higher (indicating strong image intent)
