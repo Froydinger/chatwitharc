@@ -6,7 +6,6 @@ interface QuickPromptsProps {
 }
 
 export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProps) {
-  // Text conversation prompts
   const textPrompts = [
     { label: "📅 Plan my day", prompt: "Help me plan my day effectively" },
     { label: "🧠 Explain concept", prompt: "Explain a complex concept in simple terms" },
@@ -18,7 +17,6 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
     { label: "🎯 Make decision", prompt: "Help me make an important decision" }
   ];
 
-  // Detailed image generation prompts (16:9 aspect ratio)
   const imagePrompts = [
     { label: "🌌 Cosmic landscape", prompt: "Generate a 16:9 image of a breathtaking photorealistic cosmic landscape with swirling galaxies, nebulae in vibrant purples and blues, distant planets, and ethereal lighting effects" },
     { label: "🏙️ Futuristic city", prompt: "Generate a 16:9 image of a stunning photorealistic futuristic cityscape at sunset with towering glass spires, flying vehicles, neon lights, and advanced architecture reflecting golden hour lighting" },
@@ -32,222 +30,35 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
 
   const PongMarquee: React.FC<{
     items: Array<{ label: string; prompt: string }>;
-    speed?: number; // px per second
-  }> = ({ items, speed = 24 }) => {
+    speed?: number; // px/s
+    edgeFade?: number; // px
+  }> = ({ items, speed = 24, edgeFade = 48 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const contentRef = useRef<HTMLDivElement>(null);
+    const trackRef = useRef<HTMLDivElement>(null);
 
-    // Hot path refs
-    const xRef = useRef(0);                       // current translate X
-    const dirRef = useRef<1 | -1>(1);             // 1 = right, -1 = left
+    // motion
+    const xRef = useRef(0);
+    const dirRef = useRef<1 | -1>(1);
     const rafRef = useRef<number | null>(null);
     const lastTsRef = useRef<number | null>(null);
+
+    // bounds
+    const singleWRef = useRef(0);
+    const minXRef = useRef(0);
+    const maxXRef = useRef(0);
+
+    // drag
     const draggingRef = useRef(false);
+    const wasDragRef = useRef(false); // blocks click after drag
+    const [dragUI, setDragUI] = useState(false);
 
-    // Geometry refs
-    const singleWidthRef = useRef(0);             // width of one copy
-    const centerXRef = useRef(0);                 // translateX at exact center
-    const maxFromCenterRef = useRef(0);           // travel range from center
-    const childrenRefs = useRef<HTMLButtonElement[]>([]);
-
-    // Visible index tracking for glow
+    // visibility + glow
+    const childBtns = useRef<HTMLButtonElement[]>([]);
     const visibleSetRef = useRef<Set<number>>(new Set());
-    const [visibleVersion, setVisibleVersion] = useState(0); // bump to drive glow picking
-    const [glowIndex, setGlowIndex] = useState<number>(-1);
-    const [glowColor, setGlowColor] = useState<string>("");
+    const [visibleTick, setVisibleTick] = useState(0);
+    const [glowIndex, setGlowIndex] = useState(-1);
+    const [glowColor, setGlowColor] = useState("");
 
-    // Fades at edges
-    const EdgeFades = () => (
-      <div aria-hidden style={{ pointerEvents: "none", position: "absolute", inset: 0 }}>
-        <div style={{
-          position: "absolute", top: 0, bottom: 0, left: 0, width: "48px",
-          background: "linear-gradient(to right, rgba(0,0,0,1), rgba(0,0,0,0))"
-        }} />
-        <div style={{
-          position: "absolute", top: 0, bottom: 0, right: 0, width: "48px",
-          background: "linear-gradient(to left, rgba(0,0,0,1), rgba(0,0,0,0))"
-        }} />
-      </div>
-    );
-
-    // Triple items so edges never show
-    const tripled = [...items, ...items, ...items];
-
-    // Build child refs array length
-    childrenRefs.current = [];
-    const setChildRef = (el: HTMLButtonElement | null) => {
-      if (el) childrenRefs.current.push(el);
-    };
-
-    // Compute geometry and center
-    const computeBounds = useCallback(() => {
-      const c = containerRef.current;
-      const content = contentRef.current;
-      if (!c || !content) return;
-
-      // Measure one copy width by summing first N nodes equal to items.length
-      let w = 0;
-      const nodes = Array.from(content.children) as HTMLElement[];
-      for (let i = 0; i < items.length && i < nodes.length; i++) {
-        w += nodes[i].offsetWidth;
-        // add gaps
-        if (i < items.length - 1) {
-          const gap = parseFloat(getComputedStyle(content).columnGap || "0") || 0;
-          w += gap;
-        }
-      }
-      const paddingLeft = parseFloat(getComputedStyle(content).paddingLeft || "0") || 0;
-      const paddingRight = parseFloat(getComputedStyle(content).paddingRight || "0") || 0;
-      const contentGap = parseFloat(getComputedStyle(content).gap || "0") || 0; // tailwind uses gap not columnGap
-      // Better gap estimation: use gap
-      w = 0;
-      for (let i = 0; i < items.length && i < nodes.length; i++) {
-        w += nodes[i].offsetWidth;
-        if (i < items.length - 1) w += contentGap;
-      }
-
-      singleWidthRef.current = w;
-      // Place center so that the middle copy is exactly aligned
-      // tripled = [copyA][copyB][copyC]
-      // We want to start inside copyB
-      centerXRef.current = -w; // shift left by exactly one copy width to show copyB
-      const containerWidth = c.offsetWidth;
-
-      // We restrict travel to stay within copyB only
-      // So from center we can move left until the container right edge touches copyB left edge
-      // That gives range = singleWidth - containerWidth, but never below 0
-      maxFromCenterRef.current = Math.max(0, singleWidthRef.current - containerWidth);
-
-      // Clamp current x into new range around center
-      const minX = centerXRef.current - maxFromCenterRef.current;
-      const maxX = centerXRef.current + maxFromCenterRef.current;
-      xRef.current = Math.min(maxX, Math.max(minX, xRef.current));
-
-      if (contentRef.current) {
-        contentRef.current.style.transform = `translate3d(${xRef.current}px,0,0)`;
-      }
-    }, [items.length]);
-
-    useEffect(() => {
-      computeBounds();
-      const onResize = () => computeBounds();
-      window.addEventListener("resize", onResize);
-      return () => window.removeEventListener("resize", onResize);
-    }, [computeBounds, tripled.length]);
-
-    // Only pick glow from visible items
-    const updateVisibleSet = useCallback(() => {
-      const c = containerRef.current;
-      if (!c) return;
-      const cRect = c.getBoundingClientRect();
-      const visible = new Set<number>();
-
-      childrenRefs.current.forEach((el, idx) => {
-        const r = el.getBoundingClientRect();
-        const overlap = Math.min(r.right, cRect.right) - Math.max(r.left, cRect.left);
-        if (overlap > 8) visible.add(idx); // small threshold
-      });
-      visibleSetRef.current = visible;
-      setVisibleVersion(v => v + 1); // drive glow scheduler
-    }, []);
-
-    // RAF loop for back and forth
-    const tick = useCallback((ts: number) => {
-      if (lastTsRef.current == null) lastTsRef.current = ts;
-
-      const dt = ts - lastTsRef.current;
-      lastTsRef.current = ts;
-
-      if (!draggingRef.current) {
-        const px = (speed * dt) / 1000;
-        const minX = centerXRef.current - maxFromCenterRef.current;
-        const maxX = centerXRef.current + maxFromCenterRef.current;
-
-        let x = xRef.current + dirRef.current * px;
-
-        if (x >= maxX) {
-          x = maxX;
-          dirRef.current = -1; // go left
-        } else if (x <= minX) {
-          x = minX;
-          dirRef.current = 1; // go right
-        }
-
-        xRef.current = x;
-        if (contentRef.current) {
-          contentRef.current.style.transform = `translate3d(${x}px,0,0)`;
-        }
-      }
-
-      // Visibility check at a light interval
-      if ((ts % 120) < 16) updateVisibleSet();
-
-      rafRef.current = requestAnimationFrame(tick);
-    }, [speed, updateVisibleSet]);
-
-    useEffect(() => {
-      if (rafRef.current == null) rafRef.current = requestAnimationFrame(tick);
-      return () => {
-        if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      };
-    }, [tick]);
-
-    // Pointer drag
-    useEffect(() => {
-      const c = containerRef.current;
-      if (!c) return;
-
-      let startClientX = 0;
-      let startX = 0;
-      let moved = false;
-
-      const onPointerDown = (e: PointerEvent) => {
-        c.setPointerCapture(e.pointerId);
-        startClientX = e.clientX;
-        startX = xRef.current;
-        moved = false;
-      };
-      const onPointerMove = (e: PointerEvent) => {
-        if (!startClientX) return;
-        const dx = e.clientX - startClientX;
-        if (!moved && Math.abs(dx) > 5) moved = true;
-        if (moved) {
-          draggingRef.current = true;
-          const minX = centerXRef.current - maxFromCenterRef.current;
-          const maxX = centerXRef.current + maxFromCenterRef.current;
-          const nx = Math.min(maxX, Math.max(minX, startX + dx));
-          xRef.current = nx;
-          if (contentRef.current) {
-            contentRef.current.style.transform = `translate3d(${nx}px,0,0)`;
-          }
-          updateVisibleSet();
-        }
-      };
-      const onPointerUp = (e: PointerEvent) => {
-        try { c.releasePointerCapture(e.pointerId); } catch {}
-        // pick a direction based on where we ended so it naturally crosses center again
-        const mid = centerXRef.current;
-        dirRef.current = xRef.current >= mid ? -1 : 1;
-        draggingRef.current = false;
-        startClientX = 0;
-        startX = 0;
-      };
-
-      c.addEventListener("pointerdown", onPointerDown);
-      c.addEventListener("pointermove", onPointerMove);
-      c.addEventListener("pointerup", onPointerUp);
-      c.addEventListener("pointercancel", onPointerUp);
-
-      return () => {
-        c.removeEventListener("pointerdown", onPointerDown);
-        c.removeEventListener("pointermove", onPointerMove);
-        c.removeEventListener("pointerup", onPointerUp);
-        c.removeEventListener("pointercancel", onPointerUp);
-      };
-    }, [updateVisibleSet]);
-
-    // Glow scheduler that picks only from visible set inside the middle copy window
     const glowColors = [
       "hsl(0, 84%, 60%)",
       "hsl(221, 83%, 53%)",
@@ -256,46 +67,191 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
       "hsl(329, 73%, 60%)",
     ];
 
+    // build tripled list
+    const tripled = [...items, ...items, ...items];
+
+    // collect refs
+    childBtns.current = [];
+    const setChildRef = (el: HTMLButtonElement | null) => {
+      if (el) childBtns.current.push(el);
+    };
+
+    // measure single-copy width and travel bounds inside middle copy only
+    const computeBounds = useCallback(() => {
+      const c = containerRef.current;
+      const t = trackRef.current;
+      if (!c || !t) return;
+
+      // reset transform to measure
+      const prev = t.style.transform;
+      t.style.transform = "translate3d(0,0,0)";
+
+      // width of the first N children spans one copy
+      const nodes = Array.from(t.children) as HTMLElement[];
+      if (nodes.length === 0) return;
+      const first = nodes[0].getBoundingClientRect();
+      const last = nodes[items.length - 1].getBoundingClientRect();
+      const singleW = Math.max(0, last.right - first.left);
+      singleWRef.current = singleW;
+
+      const containerW = c.offsetWidth;
+      const travel = Math.max(0, singleW - containerW); // how far we can move within B
+
+      // keep motion within the middle copy [B] only
+      // allowed range = [-singleW - travel, -singleW]
+      minXRef.current = -singleW - travel;
+      maxXRef.current = -singleW;
+
+      // start at the center of that range
+      xRef.current = (minXRef.current + maxXRef.current) / 2;
+
+      t.style.transform = `translate3d(${xRef.current}px,0,0)`;
+
+      // back to previous if needed
+      if (prev) t.style.transform = prev;
+    }, [items.length]);
+
+    // visibility calc against container rect
+    const updateVisible = useCallback(() => {
+      const c = containerRef.current;
+      if (!c) return;
+      const cRect = c.getBoundingClientRect();
+      const set = new Set<number>();
+      childBtns.current.forEach((el, i) => {
+        const r = el.getBoundingClientRect();
+        const overlap = Math.min(r.right, cRect.right) - Math.max(r.left, cRect.left);
+        if (overlap > 8) set.add(i);
+      });
+      visibleSetRef.current = set;
+      setVisibleTick(v => v + 1);
+    }, []);
+
+    // raf loop
+    const tick = useCallback((ts: number) => {
+      if (lastTsRef.current == null) lastTsRef.current = ts;
+      const dt = ts - lastTsRef.current;
+      lastTsRef.current = ts;
+
+      if (!draggingRef.current) {
+        const px = (speed * dt) / 1000;
+        let x = xRef.current + dirRef.current * px;
+
+        if (x >= maxXRef.current) {
+          x = maxXRef.current;
+          dirRef.current = -1;
+        } else if (x <= minXRef.current) {
+          x = minXRef.current;
+          dirRef.current = 1;
+        }
+
+        xRef.current = x;
+        if (trackRef.current) {
+          trackRef.current.style.transform = `translate3d(${x}px,0,0)`;
+        }
+      }
+
+      // light throttle for visibility checks
+      if ((ts % 120) < 16) updateVisible();
+
+      rafRef.current = requestAnimationFrame(tick);
+    }, [speed, updateVisible]);
+
     useEffect(() => {
-      let rootTimer: number | null = null;
-      let clearTimer: number | null = null;
+      computeBounds();
+      updateVisible();
+      if (rafRef.current == null) rafRef.current = requestAnimationFrame(tick);
+
+      const onResize = () => { computeBounds(); updateVisible(); };
+      window.addEventListener("resize", onResize);
+
+      return () => {
+        if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+        window.removeEventListener("resize", onResize);
+      };
+    }, [computeBounds, tick, updateVisible]);
+
+    // pointer drag without preventDefault so clicks still work
+    useEffect(() => {
+      const c = containerRef.current;
+      if (!c) return;
+
+      let startX = 0;
+      let startPos = 0;
+      let moved = false;
+
+      const move = (clientX: number) => {
+        const dx = clientX - startX;
+        if (!moved && Math.abs(dx) > 5) {
+          moved = true;
+          draggingRef.current = true;
+          setDragUI(true);
+        }
+        if (moved) {
+          const nx = Math.max(minXRef.current, Math.min(maxXRef.current, startPos + dx));
+          xRef.current = nx;
+          if (trackRef.current) trackRef.current.style.transform = `translate3d(${nx}px,0,0)`;
+          updateVisible();
+        }
+      };
+
+      const onPointerDown = (e: PointerEvent) => {
+        startX = e.clientX;
+        startPos = xRef.current;
+        moved = false;
+        wasDragRef.current = false;
+        window.addEventListener("pointermove", onPointerMove);
+        window.addEventListener("pointerup", onPointerUp, { once: true });
+      };
+      const onPointerMove = (e: PointerEvent) => move(e.clientX);
+      const onPointerUp = () => {
+        // set direction to head back across the middle nicely
+        const mid = (minXRef.current + maxXRef.current) / 2;
+        dirRef.current = xRef.current >= mid ? -1 : 1;
+
+        draggingRef.current = false;
+        setDragUI(false);
+        if (moved) {
+          wasDragRef.current = true;
+          setTimeout(() => { wasDragRef.current = false; }, 0); // clear after click phase
+        }
+        window.removeEventListener("pointermove", onPointerMove);
+      };
+
+      c.addEventListener("pointerdown", onPointerDown);
+      return () => c.removeEventListener("pointerdown", onPointerDown);
+    }, [updateVisible]);
+
+    // glow only from visible
+    useEffect(() => {
+      let root: number | null = null;
+      let clear: number | null = null;
 
       const schedule = () => {
         const delay = 1800 + Math.random() * 3200;
-        rootTimer = window.setTimeout(() => {
+        root = window.setTimeout(() => {
           const visible = Array.from(visibleSetRef.current);
           if (visible.length) {
             const idx = visible[Math.floor(Math.random() * visible.length)];
             const color = glowColors[Math.floor(Math.random() * glowColors.length)];
             setGlowIndex(idx);
             setGlowColor(color);
-            clearTimer = window.setTimeout(() => {
+            clear = window.setTimeout(() => {
               setGlowIndex(-1);
               schedule();
             }, 2400);
           } else {
-            // nothing visible yet, retry soon
-            rootTimer = window.setTimeout(schedule, 600);
+            root = window.setTimeout(schedule, 400);
           }
         }, delay);
       };
 
       schedule();
       return () => {
-        if (rootTimer) window.clearTimeout(rootTimer);
-        if (clearTimer) window.clearTimeout(clearTimer);
+        if (root) window.clearTimeout(root);
+        if (clear) window.clearTimeout(clear);
       };
-    }, [visibleVersion]);
-
-    // Initial compute after first paint
-    useEffect(() => {
-      // small delay to allow layout
-      const t = setTimeout(() => {
-        computeBounds();
-        updateVisibleSet();
-      }, 0);
-      return () => clearTimeout(t);
-    }, [computeBounds, updateVisibleSet]);
+    }, [visibleTick]);
 
     return (
       <div
@@ -305,14 +261,14 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
           position: "relative",
           overflow: "hidden",
           userSelect: "none",
-          cursor: draggingRef.current ? "grabbing" : "grab",
-          minHeight: "48px",
+          cursor: dragUI ? "grabbing" : "grab",
+          touchAction: "pan-y",
+          WebkitMaskImage: `linear-gradient(to right, rgba(0,0,0,0) 0, rgba(0,0,0,1) ${edgeFade}px, rgba(0,0,0,1) calc(100% - ${edgeFade}px), rgba(0,0,0,0) 100%)`,
+          maskImage: `linear-gradient(to right, rgba(0,0,0,0) 0, rgba(0,0,0,1) ${edgeFade}px, rgba(0,0,0,1) calc(100% - ${edgeFade}px), rgba(0,0,0,0) 100%)`,
         }}
       >
-        <EdgeFades />
         <div
-          ref={contentRef}
-          className="pong-marquee-content"
+          ref={trackRef}
           style={{
             display: "flex",
             gap: "12px",
@@ -322,33 +278,29 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
             paddingRight: "20px",
             transform: "translate3d(0,0,0)",
           }}
-          onPointerDown={(e) => e.preventDefault()}
         >
-          {tripled.map((prompt, i) => (
+          {tripled.map((p, i) => (
             <button
-              key={`${prompt.label}-${i}`}
+              key={`${p.label}-${i}`}
               ref={setChildRef}
               onClick={(e) => {
+                if (wasDragRef.current) return; // ignore click right after drag
                 e.stopPropagation();
-                if (!draggingRef.current) {
-                  window.dispatchEvent(
-                    new CustomEvent("quickPromptSelected", {
-                      detail: { prompt: prompt.prompt },
-                    })
-                  );
-                }
+                window.dispatchEvent(new CustomEvent("quickPromptSelected", { detail: { prompt: p.prompt } }));
+                // or use callback if you prefer:
+                // onTriggerPrompt(p.prompt);
               }}
               className="prompt-pill"
               style={{
                 flexShrink: 0,
+                transition: "box-shadow 200ms ease",
                 boxShadow:
                   glowIndex === i
                     ? `inset 0 0 0 1px ${glowColor}, 0 0 10px ${glowColor}`
                     : "none",
-                transition: "box-shadow 200ms ease",
               } as React.CSSProperties}
             >
-              <span className="font-medium text-sm">{prompt.label}</span>
+              <span className="font-medium text-sm">{p.label}</span>
             </button>
           ))}
         </div>
