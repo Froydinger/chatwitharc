@@ -64,66 +64,71 @@ serve(async (req) => {
       );
     }
 
-    // First, analyze the image to understand what we're editing
-    const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        max_tokens: 300,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `Describe this image in detail, focusing on the subject, pose, clothing, background, lighting, and artistic style. I want to edit it with this instruction: "${prompt}". Provide a detailed description that will help recreate this exact image with the requested modifications.`
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:image/webp;base64,${baseImageBase64}`
-                }
-              }
-            ]
-          }
-        ]
-      }),
-    });
-
-    if (!visionResponse.ok) {
-      const errorData = await visionResponse.text();
-      console.error('Vision API error:', visionResponse.status, errorData);
-      return new Response(
-        JSON.stringify({ error: 'Failed to analyze base image' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+    // Build smart prompt with identity preservation
+    function buildEditPrompt(userPrompt: string): string {
+      const lowerPrompt = userPrompt.toLowerCase();
+      let finalPrompt = '';
+      
+      // Check if this looks like a portrait/face edit
+      const isPortrait = lowerPrompt.includes('same person') || 
+                        lowerPrompt.includes('my face') || 
+                        lowerPrompt.includes('selfie') || 
+                        lowerPrompt.includes('headshot') || 
+                        lowerPrompt.includes('portrait') || 
+                        lowerPrompt.includes('look like me') ||
+                        lowerPrompt.includes('me,') ||
+                        lowerPrompt.includes('me ');
+      
+      if (isPortrait) {
+        finalPrompt += "Same person. Preserve facial identity. Keep the same face exactly as in the source image. Do not alter eye shape, nose width, mouth corners, hairline, or overall face geometry. Keep the pose and camera angle unless requested.\n\n";
+      }
+      
+      // Check for explicit preservation requests
+      const keepMatches = userPrompt.match(/keep\s+(the\s+)?([^,.!?]+)/gi);
+      if (keepMatches && keepMatches.length > 0) {
+        const preserveItems = keepMatches.map(match => 
+          match.replace(/keep\s+(the\s+)?/i, '').trim()
+        ).join(', ');
+        finalPrompt += `Preserve the following elements exactly as in the source image: ${preserveItems}. Do not alter their shape, color, or proportions.\n\n`;
+      } else if (!isPortrait) {
+        // Default preservation for non-portrait images
+        finalPrompt += "Preserve the main subject's proportions and geometry. Avoid altering recognizable identity features.\n\n";
+      }
+      
+      // Add the user's actual edit request
+      finalPrompt += userPrompt;
+      
+      return finalPrompt;
     }
 
-    const visionData = await visionResponse.json();
-    const imageDescription = visionData.choices[0].message.content;
-    console.log('Image analysis:', imageDescription);
+    const editPrompt = buildEditPrompt(prompt);
+    console.log('Edit prompt:', editPrompt);
 
-    // Now generate a new image based on the description and edit instruction
-    const enhancedPrompt = `${imageDescription}\n\nNow modify this image: ${prompt}. Keep everything else exactly the same - same pose, same background, same lighting, same artistic style. Only make the specific requested changes.`;
+    // Use image edits endpoint with gpt-image-1
+    const formData = new FormData();
+    
+    // Convert base64 back to blob for the API
+    const imageBlob = new Blob([
+      new Uint8Array(
+        atob(baseImageBase64)
+          .split('')
+          .map(char => char.charCodeAt(0))
+      )
+    ], { type: 'image/webp' });
+    
+    formData.append('image', imageBlob, 'image.webp');
+    formData.append('model', 'gpt-image-1');
+    formData.append('prompt', editPrompt);
+    formData.append('size', '1024x1024');
+    formData.append('output_format', 'webp');
+    formData.append('quality', 'high');
 
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
+    const response = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: 'gpt-image-1',
-        prompt: enhancedPrompt,
-        n: 1,
-        size: '1024x1024',
-        quality: 'high',
-        output_format: 'webp'
-      }),
+      body: formData,
     });
 
     if (!response.ok) {
