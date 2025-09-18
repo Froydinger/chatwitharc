@@ -243,10 +243,84 @@ export function ChatInput() {
 
   // Listen for edited message events
   useEffect(() => {
-    const handleEditedMessage = (event: CustomEvent) => {
+    const handleEditedMessage = async (event: CustomEvent) => {
       const { content } = event.detail;
       console.log('Processing edited message:', content);
-      handleAIResponse(content);
+      
+      // Check if the edited message is requesting image generation
+      const isImageGenerationRequest = checkForImageRequest(content);
+      
+      if (isImageGenerationRequest) {
+        // Handle image generation for edited message
+        let imagePrompt = extractImagePrompt(content);
+        
+        // Add placeholder message immediately
+        setGeneratingImage(true);
+        await addMessage({
+          content: `Generating image: ${imagePrompt || content}`,
+          role: 'assistant',
+          type: 'image-generating',
+          imagePrompt: imagePrompt || content
+        });
+        
+        try {
+          const openai = new OpenAIService();
+          const imageUrl = await openai.generateImage(imagePrompt || content);
+          
+          // Upload generated image to Supabase storage for persistence
+          let permanentImageUrl = imageUrl;
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('Not authenticated');
+
+            // Convert the generated image URL to a blob and upload it
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            const fileName = `${user.id}/generated-${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
+            
+            const { data, error } = await supabase.storage
+              .from('avatars')
+              .upload(fileName, blob, {
+                contentType: 'image/png',
+                upsert: false
+              });
+
+            if (error) {
+              console.error('Error uploading generated image to storage:', error);
+            } else {
+              // Get the public URL
+              const { data: publicUrlData } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(fileName);
+              permanentImageUrl = publicUrlData.publicUrl;
+            }
+          } catch (uploadError) {
+            console.error('Error uploading generated image:', uploadError);
+            // Continue with original URL if upload fails
+          }
+          
+          // Replace placeholder with actual image
+          await replaceLastMessage({
+            content: `Generated image: ${imagePrompt || content}`,
+            role: 'assistant',
+            type: 'image',
+            imageUrl: permanentImageUrl
+          });
+        } catch (error) {
+          console.error('Image generation error:', error);
+          // Replace placeholder with error message
+          await replaceLastMessage({
+            content: `Sorry, I couldn't generate the image. ${error instanceof Error ? error.message : 'Please try again.'}`,
+            role: 'assistant',
+            type: 'text'
+          });
+        } finally {
+          setGeneratingImage(false);
+        }
+      } else {
+        // Handle regular AI response for edited message
+        handleAIResponse(content);
+      }
     };
 
     const handleImageEdit = (event: CustomEvent) => {
