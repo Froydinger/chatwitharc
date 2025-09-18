@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { fadeInVariants, staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
 import {
   AlertDialog,
@@ -29,6 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { AdminSettingsPanel } from "@/components/AdminSettingsPanel";
 
 export function SettingsPanel() {
   const { 
@@ -44,6 +46,7 @@ export function SettingsPanel() {
   const { user } = useAuth();
   const { profile, updateProfile, updating } = useProfile();
   const { toast } = useToast();
+  const { isAdmin } = useAdminSettings();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -261,9 +264,10 @@ export function SettingsPanel() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
+          {isAdmin && <TabsTrigger value="admin">Admin</TabsTrigger>}
         </TabsList>
 
         {/* Profile Tab */}
@@ -585,6 +589,22 @@ export function SettingsPanel() {
             </div>
           </GlassCard>
         </TabsContent>
+
+        {/* Admin Tab */}
+        {isAdmin && (
+          <TabsContent value="admin" className="space-y-6 mt-6">
+            <div className="text-center space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <div className="glass rounded-full p-2">
+                  <SettingsIcon className="h-6 w-6 text-primary-glow" />
+                </div>
+                <h2 className="text-xl font-bold text-foreground">Admin Settings</h2>
+              </div>
+              <p className="text-muted-foreground">Configure global AI behavior and system settings</p>
+            </div>
+            <AdminSettingsPanel />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
