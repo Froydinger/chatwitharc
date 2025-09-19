@@ -1,17 +1,15 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Settings, History } from "lucide-react";
+import { Plus, Settings, History, Headphones } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput } from "@/components/ChatInput";
-import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
-import { SettingsPanel } from "@/components/SettingsPanel";
-import { MusicPlayer } from "@/components/MusicPlayer";
+import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
+import { cn } from "@/lib/utils";
 
 /** Time-of-day greeting (no name usage) */
 function getDaypartGreeting(
@@ -35,12 +33,14 @@ export function MobileChatApp() {
     createNewSession,
     startChatWithMessage,
     currentSessionId,
+    rightPanelOpen,
+    setRightPanelOpen,
+    rightPanelTab,
+    setRightPanelTab,
   } = useArcStore();
 
   const { profile } = useProfile();
 
-  const [showHistory, setShowHistory] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
 
@@ -83,13 +83,6 @@ export function MobileChatApp() {
     { label: "🧘 Calm",      prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise." }
   ];
 
-  // Listen for chat history close events
-  useEffect(() => {
-    const handleCloseHistory = () => setShowHistory(false);
-    window.addEventListener("arcai:closeHistory", handleCloseHistory);
-    return () => window.removeEventListener("arcai:closeHistory", handleCloseHistory);
-  }, []);
-
   // Smooth scroll to bottom on new content
   useEffect(() => {
     const el = messagesContainerRef.current;
@@ -123,14 +116,12 @@ export function MobileChatApp() {
 
   const handleNewChat = () => {
     createNewSession();
-    setShowHistory(false);
-    setShowSettings(false);
+    setRightPanelOpen(false);
     const el = messagesContainerRef.current;
     if (el) {
       el.scrollTop = 0;
       requestAnimationFrame(() => (el.scrollTop = 0));
     }
-    
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -140,8 +131,7 @@ export function MobileChatApp() {
 
   const triggerPrompt = (prompt: string) => {
     startChatWithMessage(prompt);
-    setShowHistory(false);
-    setShowSettings(false);
+    setRightPanelOpen(false);
   };
 
   /** AI avatar progressive fade in after load */
@@ -180,33 +170,64 @@ export function MobileChatApp() {
 
   // Main chat interface
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            <img src={HEADER_LOGO} alt="ArcAI" className="h-8 w-8" />
-            <div>
-              <h1 className="text-lg">
-                <span className="font-thin">Arc</span><span className="font-semibold">Ai</span>
-              </h1>
+    <div className="min-h-screen bg-background flex">
+      {/* Main Content */}
+      <div className={cn(
+        "flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+        rightPanelOpen && "lg:mr-80 xl:mr-96"
+      )}>
+        {/* Header */}
+        <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex h-16 items-center justify-between px-4">
+            <div className="flex items-center gap-3">
+              <img src={HEADER_LOGO} alt="ArcAI" className="h-8 w-8" />
+              <div>
+                <h1 className="text-lg">
+                  <span className="font-thin">Arc</span><span className="font-semibold">Ai</span>
+                </h1>
+              </div>
             </div>
-            <Button variant="outline" size="icon" className="rounded-full ml-2" onClick={() => setShowSettings(true)}>
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <MusicPlayer />
-            <Button variant="outline" size="icon" className="rounded-full" onClick={() => setShowHistory(true)}>
-              <History className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
-              <Plus className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-full" 
+                onClick={() => {
+                  setRightPanelTab("music");
+                  setRightPanelOpen(true);
+                }}
+              >
+                <Headphones className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-full" 
+                onClick={() => {
+                  setRightPanelTab("history");
+                  setRightPanelOpen(true);
+                }}
+              >
+                <History className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-full" 
+                onClick={() => {
+                  setRightPanelTab("settings");
+                  setRightPanelOpen(true);
+                }}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
       {/* Scrollable messages layer with bottom padding equal to dock height */}
       <div
@@ -256,8 +277,11 @@ export function MobileChatApp() {
         </div>
 
         {/* Fixed glass input dock */}
-        <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
-          <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+        <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-30 pointer-events-none">
+          <div className={cn(
+            "px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+            rightPanelOpen && "lg:mr-80 xl:mr-96"
+          )}>
             <div className="mx-auto max-w-screen-sm">
               <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
                 <ChatInput onImagesChange={setHasSelectedImages} />
@@ -266,6 +290,15 @@ export function MobileChatApp() {
           </div>
         </div>
       </div>
+
+      {/* Right Panel */}
+      <RightPanel
+        isOpen={rightPanelOpen}
+        onClose={() => setRightPanelOpen(false)}
+        activeTab={rightPanelTab}
+        onTabChange={setRightPanelTab}
+      />
+    </div>
 
       {/* Scoped styles */}
       <style>{`
@@ -488,24 +521,6 @@ export function MobileChatApp() {
           transition: background-color 999999s ease-in-out 0s !important;
         }
       `}</style>
-
-      {/* Chat History Dialog */}
-      <Dialog open={showHistory} onOpenChange={setShowHistory}>
-        <DialogContent className="max-w-5xl w-[95vw] h-[85vh] p-0 gap-0 bg-glass/95 backdrop-blur-xl border-glass-border/60 shadow-2xl overflow-hidden">
-          <div className="h-full overflow-y-auto">
-            <ChatHistoryPanel />
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Settings Dialog */}
-      <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] p-0 gap-0 bg-glass/95 backdrop-blur-xl border-glass-border/60 shadow-2xl overflow-hidden">
-          <div className="h-full overflow-y-auto">
-            <SettingsPanel />
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

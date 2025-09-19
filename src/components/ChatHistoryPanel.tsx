@@ -14,7 +14,8 @@ export function ChatHistoryPanel() {
     currentSessionId, 
     createNewSession, 
     loadSession, 
-    deleteSession
+    deleteSession,
+    setRightPanelOpen
   } = useArcStore();
 
   const { toast } = useToast();
@@ -22,10 +23,9 @@ export function ChatHistoryPanel() {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("history");
 
-  /** Navigate back to chat - close dialog */
+  /** Navigate back to chat - close panel */
   const goToChat = () => {
-    // Emit custom event to notify MobileChatApp to close history panel
-    window.dispatchEvent(new CustomEvent('arcai:closeHistory'));
+    setRightPanelOpen(false);
   };
 
   const handleNewChat = () => {

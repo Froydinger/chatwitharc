@@ -44,8 +44,10 @@ export interface ArcState {
   // UI State
   currentTab: 'chat' | 'history' | 'settings';
   setCurrentTab: (tab: 'chat' | 'history' | 'settings') => void;
-  showHistory: boolean;
-  setShowHistory: (show: boolean) => void;
+  rightPanelOpen: boolean;
+  setRightPanelOpen: (open: boolean) => void;
+  rightPanelTab: 'history' | 'settings' | 'music';
+  setRightPanelTab: (tab: 'history' | 'settings' | 'music') => void;
 
   isVoiceMode: boolean;
   setVoiceMode: (enabled: boolean) => void;
@@ -433,15 +435,17 @@ export const useArcStore = create<ArcState>()(
       // UI
       currentTab: 'chat',
       setCurrentTab: (tab) => set({ currentTab: tab }),
-      showHistory: false,
-      setShowHistory: (show) => set({ showHistory: show }),
+      rightPanelOpen: false,
+      setRightPanelOpen: (open) => set({ rightPanelOpen: open }),
+      rightPanelTab: 'history',
+      setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
       
       // Voice Mode
       isVoiceMode: false,
       setVoiceMode: (enabled) => set({ isVoiceMode: enabled }),
       toggleVoiceMode: () => set((state) => ({ 
         isVoiceMode: !state.isVoiceMode,
-        showHistory: false // Close history when switching to voice mode
+        rightPanelOpen: false // Close panel when switching to voice mode
       })),
 
       isLoading: false,
