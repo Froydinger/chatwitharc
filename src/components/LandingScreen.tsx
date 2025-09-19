@@ -81,7 +81,7 @@ export function LandingScreen() {
         </div>
 
         {/* Center Section - Hero Chat Input */}
-        <div className="flex-shrink-0 w-full" style={{ maxWidth: '800px' }}>
+        <div className="flex-shrink-0 w-full px-8 lg:px-32">
           <motion.div 
             initial={{ opacity: 0, y: 30 }} 
             animate={{ opacity: 1, y: 0 }}

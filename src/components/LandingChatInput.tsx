@@ -83,7 +83,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
       <style>{`
         .landing-input-container {
           width: 100%;
-          max-width: 768px;
+          max-width: none;
           margin: 0 auto;
           background: rgba(15, 15, 15, 0.85);
           backdrop-filter: blur(12px) saturate(120%);
