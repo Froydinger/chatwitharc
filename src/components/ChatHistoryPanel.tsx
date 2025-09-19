@@ -92,7 +92,7 @@ export function ChatHistoryPanel() {
   );
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-4 p-4 h-full overflow-y-auto scrollbar-hide">
+    <div className="w-full max-w-3xl mx-auto space-y-4 pt-16 px-4 pb-4 h-full overflow-y-auto scrollbar-hide">
       {/* Simple Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-foreground">
