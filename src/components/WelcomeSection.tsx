@@ -111,7 +111,6 @@ export function WelcomeSection({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('Prompt clicked:', prompt.prompt, 'Type:', activeTab);
                   onTriggerPrompt(prompt.prompt);
                 }}
                 className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm transition-all duration-200 text-left hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1 cursor-pointer touch-manipulation"

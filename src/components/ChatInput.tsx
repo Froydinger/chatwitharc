@@ -373,20 +373,18 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         setTimeout(() => {
           handleSend();
         }, 100);
-      } else {
-        // For text prompts, trigger AI response directly
-        handleAIResponse(prompt);
       }
+      // Ignore text prompts to prevent double responses - they're handled directly in store
     };
 
     window.addEventListener('processEditedMessage', handleEditedMessage as EventListener);
     window.addEventListener('processImageEdit', handleImageEdit as EventListener);
-    // Removed 'arcai:triggerPrompt' listener to prevent double responses from quick prompts
+    window.addEventListener('arcai:triggerPrompt', handleTriggerPrompt as EventListener);
     
     return () => {
       window.removeEventListener('processEditedMessage', handleEditedMessage as EventListener);
       window.removeEventListener('processImageEdit', handleImageEdit as EventListener);
-      // Removed 'arcai:triggerPrompt' cleanup
+      window.removeEventListener('arcai:triggerPrompt', handleTriggerPrompt as EventListener);
     };
   }, []);
 
