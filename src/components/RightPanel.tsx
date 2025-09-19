@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils";
 interface RightPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  activeTab: "history" | "settings" | "music";
-  onTabChange: (tab: "history" | "settings" | "music") => void;
+  activeTab: "history" | "music" | "settings";
+  onTabChange: (tab: "history" | "music" | "settings") => void;
 }
 
 export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
@@ -63,13 +63,13 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                 <History className="h-4 w-4" />
                 <span className="hidden sm:inline">History</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Settings</span>
-              </TabsTrigger>
               <TabsTrigger value="music" className="flex items-center gap-2">
                 <Headphones className="h-4 w-4" />
                 <span className="hidden sm:inline">Music</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Settings</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -91,12 +91,12 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
               <ChatHistoryPanel />
             </TabsContent>
             
-            <TabsContent value="settings" className="h-full m-0">
-              <SettingsPanel />
-            </TabsContent>
-            
             <TabsContent value="music" className="h-full m-0">
               <MusicPlayerPanel />
+            </TabsContent>
+            
+            <TabsContent value="settings" className="h-full m-0">
+              <SettingsPanel />
             </TabsContent>
           </Tabs>
         </div>
