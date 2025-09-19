@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Settings, History, Headphones } from "lucide-react";
+import { Plus, Menu } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput } from "@/components/ChatInput";
@@ -189,41 +189,18 @@ export function MobileChatApp() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="rounded-full" 
-                onClick={() => {
-                  setRightPanelTab("music");
-                  setRightPanelOpen(true);
-                }}
-              >
-                <Headphones className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="rounded-full" 
-                onClick={() => {
-                  setRightPanelTab("history");
-                  setRightPanelOpen(true);
-                }}
-              >
-                <History className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="rounded-full" 
-                onClick={() => {
-                  setRightPanelTab("settings");
-                  setRightPanelOpen(true);
-                }}
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
               <Button variant="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
                 <Plus className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-full" 
+                onClick={() => {
+                  setRightPanelOpen(!rightPanelOpen);
+                }}
+              >
+                <Menu className="h-4 w-4" />
               </Button>
             </div>
           </div>
