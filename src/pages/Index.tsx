@@ -5,7 +5,7 @@ import { NamePrompt } from "@/components/NamePrompt";
 import { MobileChatApp } from "@/components/MobileChatApp";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
-import { AuthPage } from "@/components/AuthPage";
+import { LandingScreen } from "@/components/LandingScreen";
 
 export function Index() {
   const { user, loading, needsOnboarding } = useAuth();
@@ -36,9 +36,9 @@ export function Index() {
     );
   }
 
-  // Show auth page if user is not authenticated
+  // Show landing screen if user is not authenticated
   if (!user) {
-    return <AuthPage />;
+    return <LandingScreen />;
   }
 
   // Show onboarding if user needs it and hasn't completed it
