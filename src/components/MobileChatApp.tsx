@@ -248,16 +248,14 @@ export function MobileChatApp() {
         >
           {/* Empty state */}
           {messages.length === 0 ? (
-            <div className="h-full overflow-y-auto">
-              <WelcomeSection
-                greeting={greeting}
-                heroAvatar={HERO_AVATAR}
-                quickPrompts={quickPrompts}
-                onTriggerPrompt={triggerPrompt}
-                isLoading={isLoading}
-                isGeneratingImage={isGeneratingImage}
-              />
-            </div>
+            <WelcomeSection
+              greeting={greeting}
+              heroAvatar={HERO_AVATAR}
+              quickPrompts={quickPrompts}
+              onTriggerPrompt={triggerPrompt}
+              isLoading={isLoading}
+              isGeneratingImage={isGeneratingImage}
+            />
           ) : (
             <div className="p-4 space-y-4 chat-messages">
               {messages.map((message) => (

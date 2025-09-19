@@ -57,7 +57,7 @@ export function WelcomeSection({
 
   return (
     <motion.div 
-      className="min-h-full flex flex-col items-center justify-start p-6 pt-8"
+      className="h-full flex flex-col items-center justify-start p-6 pt-8"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
@@ -134,9 +134,10 @@ export function WelcomeSection({
               <button
                 key={`${activeTab}-${index}`}
                 onClick={() => onTriggerPrompt(prompt.prompt)}
-                className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm transition-all duration-200 text-left hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1"
+                className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm transition-all duration-200 text-left hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1 cursor-pointer touch-manipulation"
                 style={{
                   borderColor: `hsl(var(--${prompt.color}-500) / 0.2)`,
+                  border: `1px solid hsl(var(--${prompt.color}-500) / 0.2)`,
                 }}
               >
                 <div className="flex items-start gap-3">
