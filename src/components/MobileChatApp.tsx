@@ -83,10 +83,10 @@ export function MobileChatApp() {
     { label: "🧘 Calm",      prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise." }
   ];
 
-  // Smooth scroll to bottom on new content
+  // Smooth scroll to bottom on new content - only when there are messages
   useEffect(() => {
     const el = messagesContainerRef.current;
-    if (!el) return;
+    if (!el || messages.length === 0) return; // Don't scroll if no messages
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isGeneratingImage]);
 

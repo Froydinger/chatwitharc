@@ -19,10 +19,10 @@ export function WelcomeSection({
   isGeneratingImage 
 }: WelcomeSectionProps) {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full animate-fade-in">
       {/* Welcome Section */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <div className="mb-8">
+        <div className="mb-8 animate-scale-in" style={{ animationDelay: '0.2s' }}>
           <img
             src={heroAvatar}
             alt="Arc assistant avatar"
@@ -34,11 +34,15 @@ export function WelcomeSection({
         </div>
 
         {/* Rolling wall of prompts — 2 rows, ping-pong, slow */}
-        <QuickPrompts quickPrompts={quickPrompts} onTriggerPrompt={onTriggerPrompt} />
+        <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          <QuickPrompts quickPrompts={quickPrompts} onTriggerPrompt={onTriggerPrompt} />
+        </div>
 
         <div className="pb-8" />
 
-        <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
+        <div className="animate-fade-in" style={{ animationDelay: '0.6s' }}>
+          <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
+        </div>
       </div>
     </div>
   );
