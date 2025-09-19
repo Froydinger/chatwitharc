@@ -128,22 +128,13 @@ export function WelcomeSection({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
           >
             {(activeTab === 'chat' ? chatPrompts : imagePrompts).map((prompt, index) => (
-              <motion.button
+              <button
                 key={`${activeTab}-${index}`}
                 onClick={() => onTriggerPrompt(prompt.prompt)}
-                className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm transition-all duration-200 text-left hover:shadow-lg"
-                initial={{ opacity: 0, y: 30, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ 
-                  delay: 0.6 + (index * 0.08), 
-                  duration: 0.4,
-                  ease: [0.25, 0.1, 0.25, 1]
-                }}
-                whileHover={{ scale: 1.02, y: -4 }}
-                whileTap={{ scale: 0.98 }}
+                className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm transition-all duration-200 text-left hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1"
                 style={{
                   borderColor: `hsl(var(--${prompt.color}-500) / 0.2)`,
                 }}
@@ -161,7 +152,7 @@ export function WelcomeSection({
                     </p>
                   </div>
                 </div>
-              </motion.button>
+              </button>
             ))}
           </motion.div>
         </AnimatePresence>
