@@ -57,7 +57,7 @@ export function WelcomeSection({
 
   return (
     <motion.div 
-      className="flex flex-col h-full items-center justify-center p-6"
+      className="min-h-full flex flex-col items-center justify-start p-6 pt-8"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
@@ -120,11 +120,11 @@ export function WelcomeSection({
       </motion.div>
 
       {/* Prompts Grid */}
-      <div className="w-full max-w-4xl mb-8">
+      <div className="w-full max-w-4xl mb-8 flex-1">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
