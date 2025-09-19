@@ -253,24 +253,24 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     }
   }, [messages]);
 
-  // Listen for quick prompt selection events
-  useEffect(() => {
-    const handleQuickPromptSelected = (event: CustomEvent) => {
-      const { prompt } = event.detail;
-      // Quick prompt selected
-      setInputValue(prompt);
-      // Focus the textarea after setting the value
-      setTimeout(() => {
-        textareaRef.current?.focus();
-      }, 0);
-    };
+  // Listen for quick prompt selection events (only for old QuickPrompts component)
+  // useEffect(() => {
+  //   const handleQuickPromptSelected = (event: CustomEvent) => {
+  //     const { prompt } = event.detail;
+  //     // Quick prompt selected
+  //     setInputValue(prompt);
+  //     // Focus the textarea after setting the value
+  //     setTimeout(() => {
+  //       textareaRef.current?.focus();
+  //     }, 0);
+  //   };
 
-    window.addEventListener('quickPromptSelected', handleQuickPromptSelected as EventListener);
+  //   window.addEventListener('quickPromptSelected', handleQuickPromptSelected as EventListener);
     
-    return () => {
-      window.removeEventListener('quickPromptSelected', handleQuickPromptSelected as EventListener);
-    };
-  }, []);
+  //   return () => {
+  //     window.removeEventListener('quickPromptSelected', handleQuickPromptSelected as EventListener);
+  //   };
+  // }, []);
 
   // Listen for edited message events
   useEffect(() => {

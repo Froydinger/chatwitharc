@@ -68,53 +68,7 @@ export function WelcomeSection({
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-      >
-        <div className="relative mb-6">
-          <motion.img
-            src={heroAvatar}
-            alt="Arc assistant avatar"
-            className="h-24 w-24 mx-auto rounded-full shadow-lg"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ 
-              scale: 1, 
-              opacity: 1,
-              y: [0, -8, 0],
-              rotate: [0, 2, -2, 0]
-            }}
-            transition={{ 
-              scale: { delay: 0.2, duration: 0.5 },
-              opacity: { delay: 0.2, duration: 0.5 },
-              y: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.8 },
-              rotate: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.8 }
-            }}
-          />
-          <motion.div
-            className="absolute -inset-2 bg-primary/20 rounded-full blur-md"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ 
-              scale: 1,
-              opacity: 0.3
-            }}
-            transition={{
-              delay: 0.4,
-              duration: 0.5
-            }}
-          />
-          <motion.div
-            className="absolute -inset-2 bg-primary/20 rounded-full blur-md"
-            animate={{ 
-              scale: [1, 1.1, 1],
-              opacity: [0.3, 0.6, 0.3]
-            }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 1
-            }}
-          />
-        </div>
-        
+      >        
         <motion.h1 
           className="text-3xl font-bold text-foreground mb-2"
           initial={{ opacity: 0, y: 20 }}
@@ -180,7 +134,7 @@ export function WelcomeSection({
               <motion.button
                 key={`${activeTab}-${index}`}
                 onClick={() => onTriggerPrompt(prompt.prompt)}
-                className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm border transition-all duration-200 text-left hover:shadow-lg"
+                className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm transition-all duration-200 text-left hover:shadow-lg"
                 initial={{ opacity: 0, y: 30, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ 

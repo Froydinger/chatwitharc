@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Plus, Menu } from "lucide-react";
+import { motion } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput } from "@/components/ChatInput";
@@ -177,10 +178,36 @@ export function MobileChatApp() {
         rightPanelOpen && "lg:mr-80 xl:mr-96"
       )}>
         {/* Header */}
-        <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-2">
           <div className="flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-3">
-              <img src={HEADER_LOGO} alt="ArcAI" className="h-8 w-8" />
+              <div className="relative">
+                <motion.img
+                  src={HERO_AVATAR}
+                  alt="ArcAI"
+                  className="h-8 w-8 rounded-full"
+                  animate={{ 
+                    y: [0, -2, 0],
+                  }}
+                  transition={{ 
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+                <motion.div
+                  className="absolute -inset-1 bg-primary/20 rounded-full blur-sm"
+                  animate={{ 
+                    scale: [1, 1.05, 1],
+                    opacity: [0.2, 0.4, 0.2]
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+              </div>
               <div>
                 <h1 className="text-lg">
                   <span className="font-thin">Arc</span><span className="font-semibold">Ai</span>
@@ -217,7 +244,7 @@ export function MobileChatApp() {
         <div
           ref={messagesContainerRef}
           className="absolute inset-0 overflow-y-auto"
-          style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 4rem)` }}
+          style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 2rem)` }}
         >
           {/* Empty state */}
           {messages.length === 0 ? (
