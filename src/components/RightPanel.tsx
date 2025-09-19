@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { X, History, Settings, Headphones } from "lucide-react";
+import { X, History, Headphones } from "lucide-react";
+import { Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

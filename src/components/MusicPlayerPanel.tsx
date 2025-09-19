@@ -184,32 +184,51 @@ export function MusicPlayerPanel() {
       {/* Current Track Display */}
       <GlassCard variant="bubble" className="p-6">
         <div className="space-y-6">
-          {/* Album Art and Track Info */}
+          {/* Large Album Art Display */}
           <div className="text-center space-y-4">
-            <div className="w-48 h-48 mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 to-primary-glow/20 flex items-center justify-center relative">
-              {track.albumArt ? (
-                <img 
-                  src={track.albumArt} 
-                  alt={`${track.name} album art`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // Fallback to gradient with icon
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : null}
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary-glow/20">
-                <Play className="h-12 w-12 text-primary-glow" />
+            <div className="w-64 h-64 mx-auto rounded-3xl overflow-hidden shadow-2xl relative group">
+              <img 
+                src={track.albumArt} 
+                alt={`${track.name} album art`}
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                onError={(e) => {
+                  // Fallback to gradient with icon if image fails to load
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    const fallback = parent.querySelector('.fallback-art') as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }
+                }}
+              />
+              <div className="fallback-art absolute inset-0 bg-gradient-to-br from-primary/30 to-primary-glow/30 flex items-center justify-center hidden">
+                <Play className="h-20 w-20 text-primary-glow drop-shadow-lg" />
               </div>
+              
+              {/* Now Playing Overlay */}
+              {isPlaying && (
+                <div className="absolute inset-0 bg-black/20 flex items-end p-4">
+                  <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1 flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <div className="w-1 h-3 bg-white rounded-full animate-pulse" />
+                      <div className="w-1 h-4 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
+                      <div className="w-1 h-3 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
+                    </div>
+                    <span className="text-white text-sm font-medium">Now Playing</span>
+                  </div>
+                </div>
+              )}
             </div>
+            
             <div>
-              <h2 className="text-xl font-bold text-foreground">{track.name}</h2>
-              <p className="text-base text-muted-foreground">{track.artist}</p>
+              <h2 className="text-2xl font-bold text-foreground">{track.name}</h2>
+              <p className="text-lg text-muted-foreground">{track.artist}</p>
             </div>
           </div>
 
           {/* Progress Bar */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Slider
               value={[currentTime]}
               onValueChange={handleSeek}
@@ -220,29 +239,24 @@ export function MusicPlayerPanel() {
               disabled={!duration}
             />
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
+              <span className="font-mono">{formatTime(currentTime)}</span>
+              <span className="font-mono">{formatTime(duration)}</span>
             </div>
           </div>
           
-          {/* Playback Status */}
-          <div className="flex items-center justify-center gap-2 text-sm">
+          {/* Status Indicator */}
+          <div className="flex items-center justify-center">
             {isLoading ? (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse" />
-                Loading...
+                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                <span>Loading...</span>
               </div>
-            ) : isPlaying ? (
-              <div className="flex items-center gap-2 text-primary-glow">
-                <div className="w-2 h-2 bg-primary-glow rounded-full animate-pulse" />
-                Now Playing
-              </div>
-            ) : (
+            ) : !isPlaying ? (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <div className="w-2 h-2 bg-muted-foreground rounded-full" />
-                Paused
+                <span>Paused</span>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </GlassCard>
