@@ -381,12 +381,12 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
 
     window.addEventListener('processEditedMessage', handleEditedMessage as EventListener);
     window.addEventListener('processImageEdit', handleImageEdit as EventListener);
-    window.addEventListener('arcai:triggerPrompt', handleTriggerPrompt as EventListener);
+    // Removed 'arcai:triggerPrompt' listener to prevent double responses from quick prompts
     
     return () => {
       window.removeEventListener('processEditedMessage', handleEditedMessage as EventListener);
       window.removeEventListener('processImageEdit', handleImageEdit as EventListener);
-      window.removeEventListener('arcai:triggerPrompt', handleTriggerPrompt as EventListener);
+      // Removed 'arcai:triggerPrompt' cleanup
     };
   }, []);
 

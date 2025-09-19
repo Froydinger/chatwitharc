@@ -458,7 +458,9 @@ export const useArcStore = create<ArcState>()(
         const state = get();
         
         // Check if this is an image generation request
-        const isImageRequest = /^generate\s+an?\s+image\s+of/i.test(message.toLowerCase());
+        const isImageRequest = /^generate\s+an?\s+image\s+of/i.test(message.toLowerCase()) ||
+                             message.toLowerCase().includes('create an image') ||
+                             message.toLowerCase().includes('generate image');
         
         if (isImageRequest) {
           // For image requests, trigger the input field submission to ensure proper handling
@@ -466,17 +468,14 @@ export const useArcStore = create<ArcState>()(
             detail: { prompt: message, type: 'image' } 
           }));
         } else {
-          // For text prompts, add the user message and trigger response
+          // For text prompts, add the user message directly without dispatching events
           await state.addMessage({
             content: message,
             role: 'user',
             type: 'text'
           });
           
-          // Trigger response through the same system
-          window.dispatchEvent(new CustomEvent('arcai:triggerPrompt', { 
-            detail: { prompt: message, type: 'text' } 
-          }));
+          // No need to dispatch event - the chat will auto-respond via useEffect in ChatInput
         }
       },
       
