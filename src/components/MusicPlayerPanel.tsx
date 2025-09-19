@@ -188,7 +188,7 @@ export function MusicPlayerPanel() {
           <div className="text-center space-y-4">
             <div className="w-64 h-64 mx-auto rounded-3xl overflow-hidden shadow-2xl relative group">
               <img 
-                src={track.albumArt} 
+                src={`${track.albumArt}?v=${Date.now()}`} 
                 alt={`${track.name} album art`}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 onError={(e) => {
