@@ -458,9 +458,39 @@ export const useArcStore = create<ArcState>()(
         const state = get();
         
         // Check if this is an image generation request
-        const isImageRequest = /^generate\s+an?\s+image\s+of/i.test(message.toLowerCase()) ||
-                             message.toLowerCase().includes('create an image') ||
-                             message.toLowerCase().includes('generate image');
+        const isImageRequest = (() => {
+          const lowerMessage = message.toLowerCase();
+          
+          // Explicit image keywords
+          if (/^generate\s+an?\s+image\s+of/i.test(lowerMessage) ||
+              lowerMessage.includes('create an image') ||
+              lowerMessage.includes('generate image')) {
+            return true;
+          }
+          
+          // Visual creation verbs combined with visual subjects
+          const visualVerbs = ['generate', 'create', 'make', 'design', 'draw', 'paint', 'render', 'produce'];
+          const visualSubjects = [
+            'landscape', 'portrait', 'character', 'scene', 'artwork', 'art piece', 'illustration',
+            'painting', 'drawing', 'digital art', 'concept art', 'fantasy', 'abstract', 'logo',
+            'design', 'cityscape', 'nature scene', 'background', 'wallpaper', 'cover art',
+            'album art', 'poster', 'banner', 'icon', 'avatar', 'mascot', 'creature', 'monster',
+            'building', 'architecture', 'vehicle', 'spaceship', 'robot', 'mech', 'weapon',
+            'magical', 'mystical', 'ethereal', 'futuristic', 'sci-fi', 'fantasy world',
+            'comic book', 'anime', 'cartoon', 'realistic photo', 'photorealistic'
+          ];
+          
+          const hasVisualVerb = visualVerbs.some(verb => 
+            new RegExp(`^${verb}\\s+a\\s+`, 'i').test(lowerMessage) ||
+            new RegExp(`^${verb}\\s+an\\s+`, 'i').test(lowerMessage)
+          );
+          
+          const hasVisualSubject = visualSubjects.some(subject => 
+            lowerMessage.includes(subject)
+          );
+          
+          return hasVisualVerb && hasVisualSubject;
+        })();
         
         if (isImageRequest) {
           // For image requests, trigger the input field submission to ensure proper handling
