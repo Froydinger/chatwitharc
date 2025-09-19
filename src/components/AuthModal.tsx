@@ -91,7 +91,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-md p-0 bg-transparent border-0 shadow-none overflow-hidden">
+        <DialogContent className="sm:max-w-md p-0 bg-transparent border-0 shadow-none overflow-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
           <div className="relative">
             <GlassCard variant="bubble" glow className="w-full p-8 auth-modal-card">
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -132,6 +132,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                         onChange={(e) => setEmail(e.target.value)}
                         className="pl-10"
                         disabled={loading}
+                        autoFocus={false}
                         required
                       />
                     </div>
