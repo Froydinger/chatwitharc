@@ -205,7 +205,7 @@ function extractImagePrompt(message: string): string {
   return prompt;
 }
 
-export function ChatInput() {
+export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boolean) => void }) {
   const { 
     messages, 
     addMessage, 
@@ -222,6 +222,11 @@ export function ChatInput() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { profile, refetch: refetchProfile } = useProfile();
+
+  // Notify parent about image selection changes
+  useEffect(() => {
+    onImagesChange?.(selectedImages.length > 0);
+  }, [selectedImages.length, onImagesChange]);
 
   // Auto-resize textarea
   useEffect(() => {

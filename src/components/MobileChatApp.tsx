@@ -42,6 +42,7 @@ export function MobileChatApp() {
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [hasSelectedImages, setHasSelectedImages] = useState(false);
 
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -258,8 +259,8 @@ export function MobileChatApp() {
         <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
           <div className="px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
             <div className="mx-auto max-w-screen-sm">
-              <div className="pointer-events-auto glass-dock">
-                <ChatInput />
+              <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
+                <ChatInput onImagesChange={setHasSelectedImages} />
               </div>
             </div>
           </div>
@@ -406,6 +407,11 @@ export function MobileChatApp() {
           box-shadow: 0 10px 30px rgba(0,0,0,0.35);
           isolation: isolate;
           overflow: visible;
+        }
+        
+        /* Reduced border radius when images are attached */
+        .glass-dock[data-has-images="true"]{
+          border-radius: 1rem;
         }
         .glass-dock::before{
           content: "";
