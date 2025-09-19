@@ -56,45 +56,20 @@ export function WelcomeSection({
   const [activeTab, setActiveTab] = useState<'chat' | 'image'>('chat');
 
   return (
-    <motion.div 
-      className="h-full flex flex-col items-center justify-start p-6 pt-8"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-    >
+    <div className="h-full flex flex-col items-center justify-start p-6 pt-8">
       {/* Hero Section */}
-      <motion.div 
-        className="text-center mb-8"
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        transition={{ delay: 0.1, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-      >        
-        <motion.h1 
-          className="text-3xl font-bold text-foreground mb-2"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
-        >
+      <div className="text-center mb-8">        
+        <h1 className="text-3xl font-bold text-foreground mb-2">
           {greeting}!
-        </motion.h1>
+        </h1>
         
-        <motion.p 
-          className="text-muted-foreground text-lg"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.5, ease: "easeOut" }}
-        >
+        <p className="text-muted-foreground text-lg">
           What would you like to explore today?
-        </motion.p>
-      </motion.div>
+        </p>
+      </div>
 
       {/* Tab Selection */}
-      <motion.div 
-        className="flex bg-muted/50 p-1 rounded-lg mb-8 backdrop-blur-sm"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.5, ease: "easeOut" }}
-      >
+      <div className="flex bg-muted/50 p-1 rounded-lg mb-8 backdrop-blur-sm">
         <button
           onClick={() => setActiveTab('chat')}
           className={`flex items-center gap-2 px-6 py-2 rounded-md transition-all duration-200 ${
@@ -117,7 +92,7 @@ export function WelcomeSection({
           <Image size={16} />
           Images
         </button>
-      </motion.div>
+      </div>
 
       {/* Prompts Grid */}
       <div className="w-full max-w-4xl mb-8 flex-1">
@@ -133,7 +108,12 @@ export function WelcomeSection({
             {(activeTab === 'chat' ? chatPrompts : imagePrompts).map((prompt, index) => (
               <button
                 key={`${activeTab}-${index}`}
-                onClick={() => onTriggerPrompt(prompt.prompt)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Prompt clicked:', prompt.prompt, 'Type:', activeTab);
+                  onTriggerPrompt(prompt.prompt);
+                }}
                 className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm transition-all duration-200 text-left hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1 cursor-pointer touch-manipulation"
                 style={{
                   borderColor: `hsl(var(--${prompt.color}-500) / 0.2)`,
@@ -160,13 +140,9 @@ export function WelcomeSection({
       </div>
 
       {/* Thinking Indicator */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.2, duration: 0.4, ease: "easeOut" }}
-      >
+      <div>
         <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
