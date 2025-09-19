@@ -414,7 +414,7 @@ export function MobileChatApp() {
           position: absolute;
           inset: 0;
           border-radius: inherit;
-          background: rgba(50,50,50,0.42);
+          background: rgba(15,15,15,0.85);
           backdrop-filter: blur(10px) saturate(120%);
           -webkit-backdrop-filter: blur(10px) saturate(120%);
           box-shadow:
@@ -434,6 +434,22 @@ export function MobileChatApp() {
         /* Define halo-active glow effect with correct border radius */
         .glass-dock .chat-input-halo.halo-active {
           box-shadow: 0 0 0 2px hsla(var(--primary), 0.3), 0 0 20px hsla(var(--primary), 0.15) !important;
+        }
+
+        /* Force border radius for all input states - stronger override */
+        .glass-dock .chat-input-halo,
+        .glass-dock .chat-input-halo.halo-active,
+        .glass-dock .chat-input-halo:focus-within,
+        .glass-dock .chat-input-halo:active,
+        .glass-dock .chat-input-halo[data-active="true"] {
+          border-radius: 1rem !important;
+        }
+
+        /* Ultra-specific override for any Tailwind classes */
+        div.glass-dock div.chat-input-halo,
+        div.glass-dock div.chat-input-halo.halo-active,
+        .glass-dock > div.chat-input-halo {
+          border-radius: 1rem !important;
         }
 
         .glass-dock :is(.surface,.card,[class*="bg-"],[class*="ring-"],[class*="border"],[class*="shadow"],
