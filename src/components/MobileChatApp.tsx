@@ -96,8 +96,11 @@ export function MobileChatApp() {
     const el = messagesContainerRef.current;
     if (!el) return;
     if (messages.length === 0) {
-      el.scrollTop = 0;
-      requestAnimationFrame(() => (el.scrollTop = 0));
+      // Use a small delay to ensure DOM has rendered
+      setTimeout(() => {
+        el.scrollTop = 0;
+        requestAnimationFrame(() => (el.scrollTop = 0));
+      }, 10);
     }
   }, [messages.length]);
 
@@ -118,11 +121,15 @@ export function MobileChatApp() {
   const handleNewChat = () => {
     createNewSession();
     setRightPanelOpen(false);
-    const el = messagesContainerRef.current;
-    if (el) {
-      el.scrollTop = 0;
-      requestAnimationFrame(() => (el.scrollTop = 0));
-    }
+    // Let the useEffect handle scrolling when messages become empty
+    // Add a small delay to ensure DOM has updated
+    setTimeout(() => {
+      const el = messagesContainerRef.current;
+      if (el) {
+        el.scrollTop = 0;
+        requestAnimationFrame(() => (el.scrollTop = 0));
+      }
+    }, 50);
   };
 
   const handleDrop = (e: React.DragEvent) => {
