@@ -62,10 +62,11 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Message ArcAI..."
-            className="landing-textarea resize-none border-0 bg-transparent text-base leading-6 placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[60px] pr-16 py-4"
+            className="landing-textarea resize-none border-0 bg-transparent text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[60px] pr-16 px-4 py-4"
             rows={1}
+            style={{ lineHeight: '1.5' }}
           />
-          <div className="absolute bottom-4 right-4">
+          <div className="absolute top-1/2 right-4 transform -translate-y-1/2">
             <GlassButton
               variant="glow"
               size="sm"
@@ -107,10 +108,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
         .landing-textarea {
           font-size: 16px !important;
           line-height: 1.5 !important;
-          padding-top: 16px !important;
-          padding-bottom: 16px !important;
-          display: flex !important;
-          align-items: center !important;
+          vertical-align: middle !important;
         }
 
         .landing-textarea::placeholder {
