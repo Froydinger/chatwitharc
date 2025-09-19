@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Image, X, Download, Search } from "lucide-react";
+import { Image, X, Download, Search, MessageCircle } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
@@ -34,9 +34,15 @@ function toDate(ts: unknown): Date | null {
 }
 
 export function MediaLibraryPanel() {
-  const { chatSessions } = useArcStore();
+  const { chatSessions, loadSession, setRightPanelOpen } = useArcStore();
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const goToChat = (sessionId: string) => {
+    loadSession(sessionId);
+    setRightPanelOpen(false);
+    setSelectedImage(null);
+  };
 
   // Extract all generated images from chat sessions
   const generatedImages = useMemo(() => {
@@ -215,14 +221,25 @@ export function MediaLibraryPanel() {
                     </p>
                   </div>
 
-                  <GlassButton
-                    variant="glow"
-                    onClick={() => downloadImage(selectedImage)}
-                    className="bg-white/10 hover:bg-white/20 flex-shrink-0"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Save
-                  </GlassButton>
+                  <div className="flex flex-col gap-2 flex-shrink-0">
+                    <GlassButton
+                      variant="glow"
+                      onClick={() => goToChat(selectedImage.sessionId)}
+                      className="bg-white/10 hover:bg-white/20"
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Go to Chat
+                    </GlassButton>
+                    
+                    <GlassButton
+                      variant="glow"
+                      onClick={() => downloadImage(selectedImage)}
+                      className="bg-white/10 hover:bg-white/20"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Save
+                    </GlassButton>
+                  </div>
                 </div>
               </div>
             </div>
