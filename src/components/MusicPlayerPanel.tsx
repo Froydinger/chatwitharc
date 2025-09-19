@@ -10,19 +10,22 @@ const musicTracks = [
     id: 'lofi', 
     name: 'Lo-Fi Beats', 
     url: 'https://froydinger.com/wp-content/uploads/2025/03/lofi-beats-mix.mp3',
-    artist: 'Chill Collective'
+    artist: 'Chill Collective',
+    albumArt: '/lovable-uploads/lofi-album-art.jpg' // Will be generated
   },
   { 
     id: 'jazz', 
     name: 'Coffee House Jazz', 
     url: 'https://froydinger.com/wp-content/uploads/2025/05/jazz-coffee-bar-music.mp3',
-    artist: 'Jazz Lounge'
+    artist: 'Jazz Lounge',
+    albumArt: '/lovable-uploads/jazz-album-art.jpg' // Will be generated
   },
   { 
     id: 'ambient', 
     name: 'Space Ambient', 
     url: 'https://froydinger.com/wp-content/uploads/2025/05/pad-space-travel-hyperdrive-engine-humming-235901.mp3',
-    artist: 'Cosmic Sounds'
+    artist: 'Cosmic Sounds',
+    albumArt: '/lovable-uploads/ambient-album-art.jpg' // Will be generated
   }
 ];
 
@@ -38,23 +41,44 @@ export function MusicPlayerPanel() {
     return saved || 'lofi';
   });
   const [isMuted, setIsMuted] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const handleEnded = () => setIsPlaying(false);
-    const handleError = () => setIsPlaying(false);
+    const handleError = () => {
+      setIsPlaying(false);
+      setIsLoading(false);
+    };
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+      setIsLoading(false);
+    };
+    const handleLoadStart = () => setIsLoading(true);
+    const handleCanPlay = () => setIsLoading(false);
 
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('canplay', handleCanPlay);
     audio.volume = isMuted ? 0 : volume;
 
     return () => {
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('loadstart', handleLoadStart);
+      audio.removeEventListener('canplay', handleCanPlay);
     };
-  }, [volume, isMuted]);
+  }, [volume, isMuted, currentTrack]);
 
   // Save settings to localStorage
   useEffect(() => {
@@ -77,6 +101,22 @@ export function MusicPlayerPanel() {
       });
     }
     setIsPlaying(!isPlaying);
+  };
+
+  const handleSeek = (newTime: number[]) => {
+    const audio = audioRef.current;
+    if (!audio || !duration) return;
+    
+    const seekTime = newTime[0];
+    audio.currentTime = seekTime;
+    setCurrentTime(seekTime);
+  };
+
+  const formatTime = (time: number) => {
+    if (!isFinite(time)) return "0:00";
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const handleVolumeChange = (newVolume: number[]) => {
@@ -143,22 +183,67 @@ export function MusicPlayerPanel() {
 
       {/* Current Track Display */}
       <GlassCard variant="bubble" className="p-6">
-        <div className="text-center space-y-4">
-          <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-primary-glow/20 flex items-center justify-center">
-            <Play className="h-8 w-8 text-primary-glow" />
+        <div className="space-y-6">
+          {/* Album Art and Track Info */}
+          <div className="text-center space-y-4">
+            <div className="w-48 h-48 mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 to-primary-glow/20 flex items-center justify-center relative">
+              {track.albumArt ? (
+                <img 
+                  src={track.albumArt} 
+                  alt={`${track.name} album art`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback to gradient with icon
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : null}
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary-glow/20">
+                <Play className="h-12 w-12 text-primary-glow" />
+              </div>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-foreground">{track.name}</h2>
+              <p className="text-base text-muted-foreground">{track.artist}</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">{track.name}</h2>
-            <p className="text-sm text-muted-foreground">{track.artist}</p>
+
+          {/* Progress Bar */}
+          <div className="space-y-2">
+            <Slider
+              value={[currentTime]}
+              onValueChange={handleSeek}
+              max={duration || 100}
+              min={0}
+              step={1}
+              className="w-full cursor-pointer"
+              disabled={!duration}
+            />
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
+            </div>
           </div>
           
           {/* Playback Status */}
-          {isPlaying && (
-            <div className="flex items-center justify-center gap-2 text-sm text-primary-glow">
-              <div className="w-2 h-2 bg-primary-glow rounded-full animate-pulse" />
-              Now Playing
-            </div>
-          )}
+          <div className="flex items-center justify-center gap-2 text-sm">
+            {isLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse" />
+                Loading...
+              </div>
+            ) : isPlaying ? (
+              <div className="flex items-center gap-2 text-primary-glow">
+                <div className="w-2 h-2 bg-primary-glow rounded-full animate-pulse" />
+                Now Playing
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="w-2 h-2 bg-muted-foreground rounded-full" />
+                Paused
+              </div>
+            )}
+          </div>
         </div>
       </GlassCard>
 
@@ -236,22 +321,51 @@ export function MusicPlayerPanel() {
       {/* Track Selection */}
       <GlassCard variant="bubble" className="p-6">
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-foreground">Select Track</h3>
-          <Select value={currentTrack} onValueChange={handleTrackChange}>
-            <SelectTrigger className="glass border-glass-border">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="glass border-glass-border">
-              {musicTracks.map((track) => (
-                <SelectItem key={track.id} value={track.id}>
-                  <div className="flex flex-col">
-                    <span className="font-medium">{track.name}</span>
-                    <span className="text-xs text-muted-foreground">{track.artist}</span>
+          <h3 className="text-lg font-semibold text-foreground">Music Library</h3>
+          <div className="space-y-3">
+            {musicTracks.map((musicTrack) => (
+              <div
+                key={musicTrack.id}
+                className={`flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all ${
+                  currentTrack === musicTrack.id 
+                    ? 'bg-primary/10 ring-1 ring-primary-glow' 
+                    : 'hover:bg-muted/5'
+                }`}
+                onClick={() => handleTrackChange(musicTrack.id)}
+              >
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-primary-glow/20 flex-shrink-0">
+                  {musicTrack.albumArt ? (
+                    <img 
+                      src={musicTrack.albumArt} 
+                      alt={`${musicTrack.name} album art`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Play className="h-4 w-4 text-primary-glow" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-foreground truncate">{musicTrack.name}</p>
+                  <p className="text-sm text-muted-foreground truncate">{musicTrack.artist}</p>
+                </div>
+                {currentTrack === musicTrack.id && (
+                  <div className="flex items-center gap-1 text-primary-glow">
+                    {isPlaying ? (
+                      <div className="flex gap-1">
+                        <div className="w-1 h-4 bg-primary-glow rounded-full animate-pulse" />
+                        <div className="w-1 h-4 bg-primary-glow rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
+                        <div className="w-1 h-4 bg-primary-glow rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
+                      </div>
+                    ) : (
+                      <Pause className="h-4 w-4" />
+                    )}
                   </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </GlassCard>
 
