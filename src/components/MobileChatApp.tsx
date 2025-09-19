@@ -425,6 +425,17 @@ export function MobileChatApp() {
         }
         .glass-dock > *{ position: relative; z-index: 1; }
 
+        /* Ensure input halo matches dock border radius */
+        .glass-dock .chat-input-halo,
+        .glass-dock .chat-input-halo.halo-active {
+          border-radius: 1rem !important;
+        }
+
+        /* Define halo-active glow effect with correct border radius */
+        .glass-dock .chat-input-halo.halo-active {
+          box-shadow: 0 0 0 2px hsla(var(--primary), 0.3), 0 0 20px hsla(var(--primary), 0.15) !important;
+        }
+
         .glass-dock :is(.surface,.card,[class*="bg-"],[class*="ring-"],[class*="border"],[class*="shadow"],
                         .backdrop-blur,[class*="backdrop-"],[style*="backdrop-filter"]){
           background: transparent !important; box-shadow: none !important; border: 0 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;

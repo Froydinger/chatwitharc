@@ -146,6 +146,7 @@ export function ChatHistoryPanel() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="pl-9"
+                tabIndex={-1}
               />
             </div>
             <GlassButton variant="glow" onClick={handleNewChat}>
