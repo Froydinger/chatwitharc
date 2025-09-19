@@ -142,14 +142,10 @@ If they want text responses, explanations, conversations, or anything non-visual
       </div>
 
       <Tabs defaultValue="prompts" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="prompts" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
             AI Prompts
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            General
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -246,51 +242,6 @@ If they want text responses, explanations, conversations, or anything non-visual
               >
                 Save Global Context
               </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="settings" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Behavior Settings</CardTitle>
-              <CardDescription>
-                Configure how the AI responds to different types of requests
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Step-by-step Instructions</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Automatically provide step-by-step guidance for wellness checks and similar requests
-                  </p>
-                </div>
-                <Switch
-                  checked={getSetting('enable_step_by_step')?.value === 'true'}
-                  onCheckedChange={(checked) => {
-                    handleUpdateSetting('enable_step_by_step', checked.toString());
-                  }}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label htmlFor="max-conversation">Max Conversation Length</Label>
-                <Input
-                  id="max-conversation"
-                  type="number"
-                  value={getSetting('max_conversation_length')?.value || ''}
-                  onChange={(e) => {
-                    handleUpdateSetting('max_conversation_length', e.target.value);
-                  }}
-                  placeholder="50"
-                />
-                <p className="text-sm text-muted-foreground">
-                  Maximum number of messages before suggesting a new session
-                </p>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

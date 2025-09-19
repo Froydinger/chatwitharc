@@ -296,7 +296,7 @@ export function SettingsPanel() {
           <div className="glass rounded-full p-2">
             <SettingsIcon className="h-6 w-6 text-primary-glow" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+          <h1 className="text-2xl font-bold text-foreground">Preferences</h1>
         </div>
         <p className="text-muted-foreground">Customize your ArcAI experience</p>
       </div>
