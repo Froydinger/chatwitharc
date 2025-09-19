@@ -394,6 +394,7 @@ export function MobileChatApp() {
           border: 1px solid rgba(255,255,255,0.06) !important;
           box-shadow:
             0 2px 10px rgba(0,0,0,0.22),
+            inset 0 1.5px 0 rgba(255,255,255,0.08),
             inset 0 1px 0 rgba(255,255,255,0.04) !important;
         }
 
