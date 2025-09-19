@@ -11,7 +11,7 @@ const musicTracks = [
     name: 'Lo-Fi Beats', 
     url: 'https://froydinger.com/wp-content/uploads/2025/03/lofi-beats-mix.mp3',
     artist: 'Chill Collective',
-    albumArt: '/lovable-uploads/lofi-album-art.jpg' // Will be generated
+    albumArt: '/lovable-uploads/lofi-beats-album.jpg' // Generated with new filename
   },
   { 
     id: 'jazz', 
