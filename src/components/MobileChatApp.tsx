@@ -452,6 +452,12 @@ export function MobileChatApp() {
           border-radius: 1rem !important;
         }
 
+        /* Nuclear option - use attribute selector with inline style backup */
+        .glass-dock .chat-input-halo[style*="border-radius"],
+        .glass-dock .chat-input-halo[style*="borderRadius"] {
+          border-radius: 1rem !important;
+        }
+
         .glass-dock :is(.surface,.card,[class*="bg-"],[class*="ring-"],[class*="border"],[class*="shadow"],
                         .backdrop-blur,[class*="backdrop-"],[style*="backdrop-filter"]){
           background: transparent !important; box-shadow: none !important; border: 0 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;

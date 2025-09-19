@@ -990,7 +990,10 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
       )}
 
       {/* Input Row */}
-      <div className={`chat-input-halo flex items-end gap-3 transition-all duration-300 rounded-xl ${isActive ? 'halo-active' : ''}`}>
+      <div 
+        className={`chat-input-halo flex items-end gap-3 transition-all duration-300 ${isActive ? 'halo-active' : ''}`}
+        style={{ borderRadius: '1rem' }}
+      >
         {/* Paperclip Button */}
         <button
           onClick={() => fileInputRef.current?.click()}
