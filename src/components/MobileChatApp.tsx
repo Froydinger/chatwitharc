@@ -414,7 +414,7 @@ export function MobileChatApp() {
           position: absolute;
           inset: 0;
           border-radius: inherit;
-          background: rgba(40,40,40,0.45);
+          background: rgba(50,50,50,0.42);
           backdrop-filter: blur(10px) saturate(120%);
           -webkit-backdrop-filter: blur(10px) saturate(120%);
           box-shadow:
