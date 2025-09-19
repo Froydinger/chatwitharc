@@ -400,18 +400,13 @@ export function MobileChatApp() {
         /* Input dock */
         .glass-dock{
           position: relative;
-          border-radius: 9999px;
+          border-radius: 1rem;
           padding: 10px 12px;
           background: transparent;
           border: 0;
           box-shadow: 0 10px 30px rgba(0,0,0,0.35);
           isolation: isolate;
           overflow: visible;
-        }
-        
-        /* Reduced border radius when images are attached */
-        .glass-dock[data-has-images="true"]{
-          border-radius: 1rem;
         }
         .glass-dock::before{
           content: "";
