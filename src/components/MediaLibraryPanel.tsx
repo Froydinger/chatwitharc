@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Image, X, Download, Calendar, Search } from "lucide-react";
+import { Image, X, Download, Search } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
@@ -86,18 +86,16 @@ export function MediaLibraryPanel() {
     );
   }, [generatedImages, searchQuery]);
 
-  // Group images by date
-  const groupedImages = useMemo(() => {
-    const groups: Record<string, GeneratedImage[]> = {};
-
-    filteredImages.forEach((image) => {
-      const dateKey = image.timestamp.toLocaleDateString();
-      if (!groups[dateKey]) groups[dateKey] = [];
-      groups[dateKey].push(image);
-    });
-
-    return groups;
-  }, [filteredImages]);
+  // Group images by date - removed for iOS-style grid
+  // const groupedImages = useMemo(() => {
+  //   const groups: Record<string, GeneratedImage[]> = {};
+  //   filteredImages.forEach((image) => {
+  //     const dateKey = image.timestamp.toLocaleDateString();
+  //     if (!groups[dateKey]) groups[dateKey] = [];
+  //     groups[dateKey].push(image);
+  //   });
+  //   return groups;
+  // }, [filteredImages]);
 
   const downloadImage = async (image: GeneratedImage) => {
     try {
@@ -146,8 +144,8 @@ export function MediaLibraryPanel() {
       </div>
 
       {/* Image Grid */}
-      <div className="space-y-8">
-        {Object.keys(groupedImages).length === 0 ? (
+      <div className="space-y-6">
+        {filteredImages.length === 0 ? (
           <div className="text-center py-16">
             <GlassCard variant="bubble" glow className="p-12 max-w-md mx-auto">
               <div className="glass rounded-full p-6 w-fit mx-auto mb-6">
@@ -162,57 +160,29 @@ export function MediaLibraryPanel() {
             </GlassCard>
           </div>
         ) : (
-          Object.entries(groupedImages).map(([dateGroup, images]) => (
-            <section key={dateGroup}>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="glass rounded-full p-2">
-                  <Calendar className="h-5 w-5 text-primary-glow" />
+          <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {filteredImages.map((image, index) => (
+              <div
+                key={`${image.messageId}-${index}`}
+                className="aspect-square relative cursor-pointer group hover:scale-[1.02] transition-transform"
+                onClick={() => setSelectedImage(image)}
+              >
+                <SmoothImage
+                  src={image.url}
+                  alt={image.prompt}
+                  className="w-full h-full object-cover rounded-lg"
+                  loadingClassName="bg-muted animate-pulse rounded-lg"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                      <Image className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold text-foreground">
-                  {dateGroup}
-                </h3>
-                <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
               </div>
-
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {images.map((image, index) => (
-                  <GlassCard
-                    key={`${image.messageId}-${index}`}
-                    variant="default"
-                    className="p-0 overflow-hidden cursor-pointer group hover:translate-y-[-2px] transition-all"
-                    onClick={() => setSelectedImage(image)}
-                  >
-                    <div className="aspect-square relative">
-                      <SmoothImage
-                        src={image.url}
-                        alt={image.prompt}
-                        className="w-full h-full object-cover"
-                        loadingClassName="bg-muted animate-pulse"
-                      />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <GlassButton variant="glow" size="sm">
-                            View
-                          </GlassButton>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-4 space-y-2">
-                      <p className="text-sm text-foreground line-clamp-2 font-medium">
-                        {image.prompt}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        From: {image.sessionTitle}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {image.timestamp.toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </GlassCard>
-                ))}
-              </div>
-            </section>
-          ))
+            ))}
+          </div>
         )}
       </div>
 
@@ -237,12 +207,9 @@ export function MediaLibraryPanel() {
               </div>
 
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
-                <div className="flex items-end justify-between">
-                  <div className="text-white space-y-2">
-                    <p className="text-lg font-semibold">{selectedImage.prompt}</p>
-                    <p className="text-sm text-white/70">
-                      From: {selectedImage.sessionTitle}
-                    </p>
+                <div className="flex items-end justify-between gap-4">
+                  <div className="text-white space-y-1 flex-1 min-w-0">
+                    <p className="text-base font-medium line-clamp-2">{selectedImage.prompt}</p>
                     <p className="text-sm text-white/70">
                       {selectedImage.timestamp.toLocaleString()}
                     </p>
@@ -251,7 +218,7 @@ export function MediaLibraryPanel() {
                   <GlassButton
                     variant="glow"
                     onClick={() => downloadImage(selectedImage)}
-                    className="bg-white/10 hover:bg-white/20"
+                    className="bg-white/10 hover:bg-white/20 flex-shrink-0"
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Save
@@ -263,50 +230,26 @@ export function MediaLibraryPanel() {
         </DialogContent>
       </Dialog>
 
-      {/* Stats */}
-      {generatedImages.length > 0 && (
-        <div className="pt-8">
-          <GlassCard variant="bubble" glow className="p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4 text-center">
-              Media Statistics
-            </h3>
-            <div className="grid grid-cols-2 gap-6 text-center">
-              <div className="space-y-2">
-                <div className="glass rounded-full p-4 w-fit mx-auto">
-                  <Image className="h-6 w-6 text-primary-glow" />
-                </div>
-                <p className="text-3xl font-bold text-primary-glow">
-                  {generatedImages.length}
-                </p>
-                <p className="text-sm text-muted-foreground font-medium">
-                  Images Generated
-                </p>
-              </div>
-              <div className="space-y-2">
-                <div className="glass rounded-full p-4 w-fit mx-auto">
-                  <Calendar className="h-6 w-6 text-primary-glow" />
-                </div>
-                <p className="text-3xl font-bold text-primary-glow">
-                  {
-                    new Set(
-                      chatSessions
-                        .filter((s) =>
-                          s.messages.some(
-                            (m) => m?.type === "image" && m?.role === "assistant"
-                          )
+        {/* Stats */}
+        {generatedImages.length > 0 && (
+          <div className="pt-8">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">
+                {generatedImages.length} {generatedImages.length === 1 ? 'image' : 'images'} • {
+                  new Set(
+                    chatSessions
+                      .filter((s) =>
+                        s.messages.some(
+                          (m) => m?.type === "image" && m?.role === "assistant"
                         )
-                        .map((s) => s.id)
-                    ).size
-                  }
-                </p>
-                <p className="text-sm text-muted-foreground font-medium">
-                  Chats with Images
-                </p>
-              </div>
+                      )
+                      .map((s) => s.id)
+                  ).size
+                } {new Set(chatSessions.filter((s) => s.messages.some((m) => m?.type === "image" && m?.role === "assistant")).map((s) => s.id)).size === 1 ? 'chat' : 'chats'}
+              </p>
             </div>
-          </GlassCard>
-        </div>
-      )}
+          </div>
+        )}
     </div>
   );
 }
