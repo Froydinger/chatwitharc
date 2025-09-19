@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, History, Headphones } from "lucide-react";
+import { X, History, Headphones, Image } from "lucide-react";
 import { Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -7,13 +7,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { MusicPlayerPanel } from "@/components/MusicPlayerPanel";
+import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
 import { cn } from "@/lib/utils";
 
 interface RightPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  activeTab: "history" | "music" | "settings";
-  onTabChange: (tab: "history" | "music" | "settings") => void;
+  activeTab: "history" | "media" | "music" | "settings";
+  onTabChange: (tab: "history" | "media" | "music" | "settings") => void;
 }
 
 export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
@@ -59,10 +60,14 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/40 bg-background/95 backdrop-blur">
           <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="history" className="flex items-center gap-2">
                 <History className="h-4 w-4" />
-                <span className="hidden sm:inline">History</span>
+                <span className="hidden sm:inline">Chats</span>
+              </TabsTrigger>
+              <TabsTrigger value="media" className="flex items-center gap-2">
+                <Image className="h-4 w-4" />
+                <span className="hidden sm:inline">Media</span>
               </TabsTrigger>
               <TabsTrigger value="music" className="flex items-center gap-2">
                 <Headphones className="h-4 w-4" />
@@ -90,6 +95,10 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           <Tabs value={activeTab} className="h-full">
             <TabsContent value="history" className="h-full m-0">
               <ChatHistoryPanel />
+            </TabsContent>
+            
+            <TabsContent value="media" className="h-full m-0">
+              <MediaLibraryPanel />
             </TabsContent>
             
             <TabsContent value="music" className="h-full m-0">
