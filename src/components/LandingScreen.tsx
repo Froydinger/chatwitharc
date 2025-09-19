@@ -75,7 +75,7 @@ export function LandingScreen() {
               <span className="font-thin">Arc</span><span className="font-semibold">AI</span>
             </h1>
             <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-              Your intelligent assistant for creativity, productivity, and meaningful conversations
+              Ask, Reflect, Create
             </p>
           </motion.div>
         </div>
