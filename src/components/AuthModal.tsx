@@ -90,7 +90,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md p-0 bg-transparent border-0 shadow-none">
+      <DialogContent className="sm:max-w-md p-0 bg-transparent border-0 shadow-none" style={{
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)'
+      }}>
         <div className="relative">
           {/* Close button */}
           <button

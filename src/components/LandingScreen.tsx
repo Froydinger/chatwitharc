@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { LogIn } from "lucide-react";
 import { LandingChatInput } from "./LandingChatInput";
 import { QuickPrompts } from "./QuickPrompts";
 import { AuthModal } from "./AuthModal";
+import { GlassButton } from "@/components/ui/glass-button";
 
 export function LandingScreen() {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -97,9 +99,25 @@ export function LandingScreen() {
             initial={{ opacity: 0, y: 40 }} 
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="w-full max-w-6xl"
+            className="w-full max-w-6xl mb-8"
           >
             <QuickPrompts quickPrompts={quickPrompts} onTriggerPrompt={handleTriggerPrompt} />
+          </motion.div>
+
+          {/* Login/Sign Up Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+          >
+            <GlassButton
+              variant="ghost"
+              onClick={() => setShowAuthModal(true)}
+              className="border border-white/20 px-6 py-3"
+            >
+              <LogIn className="h-4 w-4 mr-2" />
+              Sign In / Sign Up
+            </GlassButton>
           </motion.div>
         </div>
       </div>
@@ -108,11 +126,11 @@ export function LandingScreen() {
       <motion.footer 
         initial={{ opacity: 0 }} 
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.6 }}
-        className="py-6 px-6 text-center relative z-10"
+        transition={{ duration: 0.6, delay: 0.8 }}
+        className="py-4 px-6 text-center relative z-10"
       >
-        <p className="text-sm text-muted-foreground">
-          Sign up or log in to start your conversation with ArcAI
+        <p className="text-xs text-muted-foreground/60">
+          Start your conversation with ArcAI
         </p>
       </motion.footer>
 
