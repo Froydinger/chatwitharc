@@ -62,20 +62,20 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="history" className="flex items-center gap-2">
-                <History className="h-4 w-4" />
-                <span className="hidden sm:inline">Chats</span>
+                <History className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline text-xs">Chats</span>
               </TabsTrigger>
               <TabsTrigger value="media" className="flex items-center gap-2">
-                <Image className="h-4 w-4" />
-                <span className="hidden sm:inline">Media</span>
+                <Image className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline text-xs">Media</span>
               </TabsTrigger>
               <TabsTrigger value="music" className="flex items-center gap-2">
-                <Headphones className="h-4 w-4" />
-                <span className="hidden sm:inline">Music</span>
+                <Headphones className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline text-xs">Music</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                <span className="hidden sm:inline">Prefs</span>
+                <Settings className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline text-xs">Prefs</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
