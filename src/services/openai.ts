@@ -61,9 +61,12 @@ export class OpenAIService {
         content: systemPrompt
       };
 
-      // Call the secure edge function
+      // Call the secure edge function with profile data
       const { data, error } = await supabase.functions.invoke('chat', {
-        body: { messages: [systemMessage, ...messages] }
+        body: { 
+          messages: [systemMessage, ...messages],
+          profile: effectiveProfile
+        }
       });
 
       if (error) {
