@@ -18,7 +18,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, profile } = await req.json();
+    const { messages } = await req.json();
     
     // Fetch admin settings for system prompt and global context
     const { data: settingsData } = await supabase
@@ -45,18 +45,6 @@ serve(async (req) => {
 
     // Build enhanced system prompt
     let enhancedSystemPrompt = systemPrompt;
-    
-    // Add profile information if available
-    if (profile?.display_name) {
-      enhancedSystemPrompt += `\n\nUser's name: ${profile.display_name}. Occasionally use their name in conversation to make it feel more personal and engaging.`;
-    }
-    if (profile?.context_info) {
-      enhancedSystemPrompt += `\n\nUser Context: ${profile.context_info}`;
-    }
-    if (profile?.memory_info) {
-      enhancedSystemPrompt += `\n\nMemory: ${profile.memory_info}`;
-    }
-    
     if (globalContext) {
       enhancedSystemPrompt += `\n\nGlobal Context: ${globalContext}`;
     }

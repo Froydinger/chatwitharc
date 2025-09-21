@@ -38,12 +38,32 @@ export class OpenAIService {
         console.warn('Falling back to provided profile:', e);
       }
 
-      // Call the secure edge function with profile information
+      // Add Arc's personality as system message with user personalization
+      let systemPrompt = "You are ArcAI, a helpful and conversational AI assistant. Be natural, brief, and direct. Give concise, focused responses. Avoid long lists of options or rambling explanations. Make clear recommendations instead of presenting endless choices. Keep it conversational and human-like, but prioritize brevity and clarity above all.";
+      
+      if (effectiveProfile?.display_name) {
+        systemPrompt += ` The user's name is ${effectiveProfile.display_name}.`;
+      }
+      
+      if (effectiveProfile?.context_info?.trim()) {
+        systemPrompt += ` Context: ${effectiveProfile.context_info}`;
+      }
+      
+      if (effectiveProfile?.memory_info?.trim()) {
+        systemPrompt += ` Remember these details: ${effectiveProfile.memory_info}`;
+      }
+
+      // Ask the model to propose memory saves only for NEW user information (not recalled info)
+      systemPrompt += " CRITICAL: Only use [MEMORY_SAVE] for completely NEW information the user shares that you don't already know. NEVER save information you're recalling or that's already in your memory. Check your existing memory carefully before saving anything new.";
+      
+      const systemMessage: OpenAIMessage = {
+        role: 'system',
+        content: systemPrompt
+      };
+
+      // Call the secure edge function
       const { data, error } = await supabase.functions.invoke('chat', {
-        body: { 
-          messages: messages,
-          profile: effectiveProfile
-        }
+        body: { messages: [systemMessage, ...messages] }
       });
 
       if (error) {
