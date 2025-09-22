@@ -451,10 +451,10 @@ export function MobileChatApp() {
             inset 0 1px 0 rgba(255,255,255,0.04) !important;
         }
 
-        /* Input shelf */
+        /* Input shelf - mobile first */
         .glass-dock{
           position: relative;
-          border-radius: 1.5rem 1.5rem 0 0;
+          border-radius: 1.5rem 1.5rem 0 0 !important;
           padding: 16px;
           margin: 0 10px;
           background: hsl(var(--background) / 0.8);
@@ -466,8 +466,8 @@ export function MobileChatApp() {
           overflow: visible;
         }
         
-        /* Desktop constrained width - force straight bottom */
-        @media (min-width: 768px) {
+        /* Desktop only - constrained width, same padding and border-radius */
+        @media (min-width: 1024px) {
           .glass-dock {
             margin: 0 auto !important;
             max-width: 768px !important;
