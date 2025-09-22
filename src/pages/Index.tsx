@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 import { useChatSync } from "@/hooks/useChatSync";
 import { NamePrompt } from "@/components/NamePrompt";
 import { MobileChatApp } from "@/components/MobileChatApp";
@@ -10,12 +11,13 @@ import { LandingScreen } from "@/components/LandingScreen";
 export function Index() {
   const { user, loading, needsOnboarding } = useAuth();
   const { isLoaded } = useChatSync();
+  const { theme } = useTheme();
   
   const [onboardingComplete, setOnboardingComplete] = useState(false);
 
-  // Force dark mode
+  // Initialize theme on app load
   useEffect(() => {
-    document.documentElement.className = 'dark';
+    // Theme is already handled by useTheme hook
   }, []);
 
   // Show name prompt for users without display name

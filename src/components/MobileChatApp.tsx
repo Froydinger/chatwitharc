@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Menu } from "lucide-react";
+import { Plus, Menu, Sun, Moon } from "lucide-react";
 import { motion } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -10,6 +10,7 @@ import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
+import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
 /** Time-of-day greeting (no name usage) */
@@ -41,6 +42,7 @@ export function MobileChatApp() {
   } = useArcStore();
 
   const { profile } = useProfile();
+  const { theme, toggleTheme } = useTheme();
 
   const [dragOver, setDragOver] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
@@ -225,6 +227,15 @@ export function MobileChatApp() {
             <div className="flex items-center gap-2">
               <Button variant="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
                 <Plus className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-full" 
+                onClick={toggleTheme}
+                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              >
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
               <Button 
                 variant="outline" 
