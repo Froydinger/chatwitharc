@@ -456,10 +456,12 @@ export function MobileChatApp() {
         /* Input shelf */
         .glass-dock{
           position: relative;
-          border-radius: 0;
+          border-radius: 1.5rem 1.5rem 0 0;
           padding: 16px;
-          background: hsl(var(--background));
-          border-top: 1px solid hsl(var(--border));
+          background: hsl(var(--background) / 0.8);
+          backdrop-filter: blur(20px) saturate(120%);
+          -webkit-backdrop-filter: blur(20px) saturate(120%);
+          border-top: 1px solid hsl(var(--border) / 0.5);
           box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
           isolation: isolate;
           overflow: visible;
@@ -468,7 +470,8 @@ export function MobileChatApp() {
           content: "";
           position: absolute;
           inset: 0;
-          background: hsl(var(--background));
+          border-radius: inherit;
+          background: hsl(var(--background) / 0.6);
           z-index: 0;
         }
         .glass-dock > *{ position: relative; z-index: 1; }
