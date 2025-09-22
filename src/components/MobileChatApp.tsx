@@ -469,13 +469,13 @@ export function MobileChatApp() {
           position: absolute;
           inset: 0;
           border-radius: inherit;
-          background: rgba(15,15,15,0.85);
+          background: hsl(var(--glass-bg) / 0.9);
           backdrop-filter: blur(10px) saturate(120%);
           -webkit-backdrop-filter: blur(10px) saturate(120%);
           box-shadow:
-            inset 0 2px 0 rgba(255,255,255,0.15),
-            inset 0 1px 0 rgba(255,255,255,0.08),
-            inset 0 -1px 0 rgba(255,255,255,0.03);
+            inset 0 2px 0 hsl(var(--border) / 0.15),
+            inset 0 1px 0 hsl(var(--border) / 0.08),
+            inset 0 -1px 0 hsl(var(--border) / 0.03);
           z-index: 0;
         }
         .glass-dock > *{ position: relative; z-index: 1; }
