@@ -298,14 +298,14 @@ export function MobileChatApp() {
           )}
         </div>
 
-        {/* Fixed glass input dock */}
+        {/* Fixed shelf input dock */}
         <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-30 pointer-events-none">
           <div className={cn(
-            "px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+            "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
             rightPanelOpen && "lg:mr-80 xl:mr-96"
           )}>
-            <div className="mx-auto max-w-screen-sm">
-              <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
+            <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
+              <div className="mx-auto max-w-screen-sm">
                 <ChatInput onImagesChange={setHasSelectedImages} />
               </div>
             </div>
@@ -453,14 +453,14 @@ export function MobileChatApp() {
             inset 0 1px 0 rgba(255,255,255,0.04) !important;
         }
 
-        /* Input dock */
+        /* Input shelf */
         .glass-dock{
           position: relative;
-          border-radius: 1rem;
-          padding: 10px 12px;
-          background: transparent;
-          border: 0;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+          border-radius: 0;
+          padding: 16px;
+          background: hsl(var(--background));
+          border-top: 1px solid hsl(var(--border));
+          box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
           isolation: isolate;
           overflow: visible;
         }
@@ -468,22 +468,15 @@ export function MobileChatApp() {
           content: "";
           position: absolute;
           inset: 0;
-          border-radius: inherit;
-          background: hsl(var(--glass-bg) / 0.85);
-          backdrop-filter: blur(10px) saturate(120%);
-          -webkit-backdrop-filter: blur(10px) saturate(120%);
-          box-shadow:
-            inset 0 2px 0 rgba(255,255,255,0.15),
-            inset 0 1px 0 rgba(255,255,255,0.08),
-            inset 0 -1px 0 rgba(255,255,255,0.03);
+          background: hsl(var(--background));
           z-index: 0;
         }
         .glass-dock > *{ position: relative; z-index: 1; }
 
-        /* Ensure input halo matches dock border radius */
+        /* Remove rounded corners for shelf design */
         .glass-dock .chat-input-halo,
         .glass-dock .chat-input-halo.halo-active {
-          border-radius: 1rem !important;
+          border-radius: 0.75rem !important;
         }
 
         /* Define halo-active glow effect with correct border radius */
