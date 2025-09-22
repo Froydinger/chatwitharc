@@ -1,6 +1,6 @@
 import { forwardRef, useState } from "react";
 import { motion } from "framer-motion";
-import { User, Copy, Edit2, Check } from "lucide-react";
+import { Copy, Edit2, Check } from "lucide-react";
 import { Message } from "@/store/useArcStore";
 import { useArcStore } from "@/store/useArcStore";
 import { useProfile } from "@/hooks/useProfile";
@@ -85,43 +85,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
         transition={{ duration: 0.15, ease: "easeOut" }}
         className={`flex ${isUser ? "justify-end" : "justify-start"} group`}
       >
-        <div
-          className={`flex items-start gap-3 max-w-[80%] ${
-            isUser ? "flex-row-reverse" : "flex-row"
-          }`}
-        >
-          {/* Avatar */}
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0.9 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.12 }}
-            className={`flex-shrink-0 w-8 h-8 rounded-full glass flex items-center justify-center ${
-              isUser ? "bg-primary/20" : "bg-glass/30 light:shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
-            }`}
-          >
-            {isUser ? (
-              profile?.avatar_url ? (
-                <SmoothImage
-                  src={profile.avatar_url}
-                  alt="User"
-                  className="w-8 h-8 rounded-full object-cover"
-                  fallback={<User className="h-4 w-4 text-primary-glow" />}
-                />
-              ) : (
-                <User className="h-4 w-4 text-primary-glow" />
-              )
-            ) : (
-              <div
-                className="w-8 h-8 rounded-full bg-cover bg-center bg-no-repeat light:shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
-                style={{
-                  backgroundImage:
-                    "url('/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png')",
-                }}
-              />
-            )}
-          </motion.div>
-
+        <div className="w-full">
           {/* Bubble container */}
+          {/* Avatar */}
           <motion.div
             initial={{ opacity: 0.9 }}
             animate={{ opacity: 1 }}

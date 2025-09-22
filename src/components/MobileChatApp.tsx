@@ -305,9 +305,7 @@ export function MobileChatApp() {
             rightPanelOpen && "lg:mr-80 xl:mr-96"
           )}>
             <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
-              <div className="mx-auto max-w-screen-sm">
-                <ChatInput onImagesChange={setHasSelectedImages} />
-              </div>
+              <ChatInput onImagesChange={setHasSelectedImages} />
             </div>
           </div>
         </div>
@@ -458,6 +456,7 @@ export function MobileChatApp() {
           position: relative;
           border-radius: 1.5rem 1.5rem 0 0;
           padding: 16px;
+          margin: 0 10px;
           background: hsl(var(--background) / 0.8);
           backdrop-filter: blur(20px) saturate(120%);
           -webkit-backdrop-filter: blur(20px) saturate(120%);
@@ -466,6 +465,16 @@ export function MobileChatApp() {
           isolation: isolate;
           overflow: visible;
         }
+        
+        /* Desktop constrained width */
+        @media (min-width: 768px) {
+          .glass-dock {
+            margin: 0 auto;
+            max-width: 768px;
+            border-radius: 1.5rem;
+          }
+        }
+        
         .glass-dock::before{
           content: "";
           position: absolute;
