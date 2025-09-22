@@ -70,8 +70,8 @@ export function DeleteDataModal({ isOpen, onClose, onDeleted }: DeleteDataModalP
       if (error) throw error;
 
       toast({
-        title: "Data Deleted",
-        description: "All your data has been permanently deleted",
+        title: "Data Deleted Successfully",
+        description: "All your data has been permanently deleted from our servers",
         variant: "default"
       });
 

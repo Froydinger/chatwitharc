@@ -4,6 +4,7 @@ import { LogIn } from "lucide-react";
 import { LandingChatInput } from "./LandingChatInput";
 import { QuickPrompts } from "./QuickPrompts";
 import { AuthModal } from "./AuthModal";
+import { PrivacyTermsModal } from "./PrivacyTermsModal";
 import { GlassButton } from "@/components/ui/glass-button";
 
 export function LandingScreen() {
@@ -132,6 +133,9 @@ export function LandingScreen() {
         <p className="text-xs text-muted-foreground/60">
           Start your conversation with ArcAI
         </p>
+        <div className="mt-2">
+          <PrivacyTermsModal />
+        </div>
       </motion.footer>
 
       {/* Auth Modal */}

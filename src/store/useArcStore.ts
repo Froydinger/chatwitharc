@@ -246,6 +246,18 @@ export const useArcStore = create<ArcState>()(
           messages: [] 
         });
 
+        // Show success notification
+        try {
+          const { toast } = await import("@/hooks/use-toast");
+          toast({
+            title: "All Conversations Deleted",
+            description: "Your chat history has been cleared",
+            variant: "default"
+          });
+        } catch (error) {
+          console.log('Toast notification failed:', error);
+        }
+
         // Clear from Supabase
         try {
           const { data: { user } } = await supabase.auth.getUser();
