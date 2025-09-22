@@ -53,6 +53,10 @@ All colors MUST be HSL for perfect glass effects.
     --glass-border: 240 10% 22%;
     --glass-glow: 200 90% 65%;
     
+    /* Message Bubble Colors */
+    --ai-message-bg: 240 8% 16%;
+    --ai-message-border: 240 10% 24%;
+    
     /* Radius System */
     --radius: 0.75rem;
     --radius-lg: 1rem;
@@ -91,6 +95,10 @@ All colors MUST be HSL for perfect glass effects.
     --glass-border: 240 25% 85%;
     --glass-glow: 240 100% 60%;
     --glass-overlay: 0 0% 98%;
+    
+    /* Message Bubble Colors - Very light gray with blue hue for AI */
+    --ai-message-bg: 220 20% 97%;
+    --ai-message-border: 220 15% 92%;
     
     --primary: 200 100% 50%;
     --primary-foreground: 0 0% 98%;

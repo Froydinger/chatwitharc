@@ -136,7 +136,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               "overflow-visible", // key change
               isUser
                 ? "bg-primary/20 border-primary/30"
-                : "bg-black/40 border-glass-border/40",
+                : "bg-[hsl(var(--ai-message-bg))] border-[hsl(var(--ai-message-border))]",
             ].join(" ")}
           >
             {/* Inner content clipper keeps visuals rounded while outer allows overflow */}
