@@ -96,7 +96,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.12 }}
             className={`flex-shrink-0 w-8 h-8 rounded-full glass flex items-center justify-center ${
-              isUser ? "bg-primary/20" : "bg-glass/30"
+              isUser ? "bg-primary/20" : "bg-glass/30 light:shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
             }`}
           >
             {isUser ? (
@@ -112,7 +112,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               )
             ) : (
               <div
-                className="w-8 h-8 rounded-full bg-cover bg-center bg-no-repeat"
+                className="w-8 h-8 rounded-full bg-cover bg-center bg-no-repeat light:shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
                 style={{
                   backgroundImage:
                     "url('/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png')",
