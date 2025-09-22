@@ -85,7 +85,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
         transition={{ duration: 0.15, ease: "easeOut" }}
         className={`flex ${isUser ? "justify-end" : "justify-start"} group`}
       >
-        <div className="w-full">
+        <div className={`flex max-w-[85%] ${isUser ? "ml-auto" : "mr-auto"}`}>
           {/* Bubble container */}
           {/* Avatar */}
           <motion.div

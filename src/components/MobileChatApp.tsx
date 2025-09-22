@@ -466,12 +466,12 @@ export function MobileChatApp() {
           overflow: visible;
         }
         
-        /* Desktop constrained width */
+        /* Desktop constrained width - keep same border radius */
         @media (min-width: 768px) {
           .glass-dock {
             margin: 0 auto;
             max-width: 768px;
-            border-radius: 1.5rem;
+            border-radius: 1.5rem 1.5rem 0 0;
           }
         }
         
