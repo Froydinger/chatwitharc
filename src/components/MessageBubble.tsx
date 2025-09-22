@@ -101,7 +101,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 "transition-[transform,box-shadow,background] duration-200",
                 "hover:shadow-[0_10px_26px_-8px_rgba(0,0,0,0.45)]",
                 "overflow-visible",
-                "bg-primary/20 border-primary/30"
+                "bg-primary/35 border-primary/55"
               ].join(" ") : "relative cursor-pointer",
             ].join(" ")}
           >
