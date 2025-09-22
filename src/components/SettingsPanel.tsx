@@ -5,6 +5,7 @@ import {
   Cloud, CloudOff, Mic, Settings as SettingsIcon, ChevronDown,
   Save, RotateCcw, X, Mail, Key
 } from "lucide-react";
+import { DeleteDataModal } from "@/components/DeleteDataModal";
 import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,6 +35,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AdminSettingsPanel } from "@/components/AdminSettingsPanel";
 
 export function SettingsPanel() {
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { 
     selectedVoice,
     setSelectedVoice, 
@@ -42,11 +44,21 @@ export function SettingsPanel() {
     isVoiceMode,
     setVoiceMode,
     isContinuousVoiceMode,
-    setContinuousVoiceMode
+    setContinuousVoiceMode,
+    createNewSession
   } = useArcStore();
   const { user } = useAuth();
   const { profile, updateProfile, updating } = useProfile();
   const { toast } = useToast();
+
+  const handleDataDeleted = () => {
+    // Create new session and refresh
+    createNewSession();
+    toast({
+      title: "Account Reset",
+      description: "Starting fresh with a new session",
+    });
+  };
   const { isAdmin } = useAdminSettings();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
