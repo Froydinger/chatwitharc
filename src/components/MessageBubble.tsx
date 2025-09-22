@@ -128,21 +128,21 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             transition={{ duration: 0.12 }}
             onClick={handleMessageClick}
             className={[
-              // Outer wrapper is visible to allow action buttons to hang out
-              "relative cursor-pointer rounded-[22px] border backdrop-blur-md",
-              "shadow-[0_6px_20px_-6px_rgba(0,0,0,0.35)]",
-              "transition-[transform,box-shadow,background] duration-200",
-              "hover:shadow-[0_10px_26px_-8px_rgba(0,0,0,0.45)]",
-              "overflow-visible", // key change
-              isUser
-                ? "bg-primary/20 border-primary/30"
-                : "bg-[hsl(var(--ai-message-bg))] border-[hsl(var(--ai-message-border))]",
+              // Only apply bubble styling to user messages
+              isUser ? [
+                "relative cursor-pointer rounded-[22px] border backdrop-blur-md",
+                "shadow-[0_6px_20px_-6px_rgba(0,0,0,0.35)]",
+                "transition-[transform,box-shadow,background] duration-200",
+                "hover:shadow-[0_10px_26px_-8px_rgba(0,0,0,0.45)]",
+                "overflow-visible",
+                "bg-primary/20 border-primary/30"
+              ].join(" ") : "relative cursor-pointer",
             ].join(" ")}
           >
             {/* Inner content clipper keeps visuals rounded while outer allows overflow */}
-            <div className="relative px-4 py-3 rounded-[22px] overflow-hidden">
-              {/* Gradient overlay: darker at bottom */}
-              <div className="absolute inset-0 rounded-[22px] pointer-events-none bg-gradient-to-b from-transparent to-black/20" />
+            <div className={isUser ? "relative px-4 py-3 rounded-[22px] overflow-hidden" : "relative"}>
+              {/* Gradient overlay: darker at bottom - only for user messages */}
+              {isUser && <div className="absolute inset-0 rounded-[22px] pointer-events-none bg-gradient-to-b from-transparent to-black/20" />}
 
               {/* Image Generating */}
               {message.type === "image-generating" && (
