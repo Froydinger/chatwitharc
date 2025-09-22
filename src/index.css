@@ -49,7 +49,7 @@ All colors MUST be HSL for perfect glass effects.
     --ring: 200 95% 55%;
 
     /* Glass Effects */
-    --glass-bg: 240 8% 12%;
+    --glass-bg: 240 8% 8%;
     --glass-border: 240 10% 22%;
     --glass-glow: 200 90% 65%;
     
