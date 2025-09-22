@@ -77,29 +77,44 @@ All colors MUST be HSL for perfect glass effects.
 
   .light {
     /* Light Glass Theme */
-    --background: 240 25% 96%;
-    --foreground: 240 10% 12%;
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
     
-    --glass: 240 15% 95%;
+    /* Card & Surface Colors */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --surface: 0 0% 98%;
+    --surface-foreground: 240 10% 3.9%;
+    
+    --glass: 0 0% 100%;
+    --glass-bg: 0 0% 100%;
     --glass-border: 240 25% 85%;
     --glass-glow: 240 100% 60%;
-    --glass-overlay: 240 20% 92%;
+    --glass-overlay: 0 0% 98%;
     
     --primary: 200 100% 50%;
-    --primary-foreground: 240 10% 95%;
+    --primary-foreground: 0 0% 98%;
     --primary-glow: 200 100% 60%;
     
-    --secondary: 240 15% 88%;
-    --secondary-foreground: 240 10% 20%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
     
-    --muted: 240 12% 92%;
-    --muted-foreground: 240 8% 45%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
     
-    --accent: 240 20% 85%;
-    --accent-foreground: 240 10% 12%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
     
-    --border: 240 25% 85%;
-    --input: 240 15% 95%;
+    /* Status Colors */
+    --destructive: 0 80% 58%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 142 76% 42%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 240 10% 3.9%;
+    
+    --border: 240 5.9% 90%;
+    --input: 0 0% 100%;
     --ring: 240 100% 60%;
   }
 }
