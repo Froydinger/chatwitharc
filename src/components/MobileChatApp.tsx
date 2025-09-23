@@ -194,7 +194,7 @@ export function MobileChatApp() {
                 <motion.img
                   src={HERO_AVATAR}
                   alt="ArcAI"
-                  className="h-8 w-8 rounded-full"
+                  className="h-8 w-8 rounded-full avatar-filled-eyes"
                   animate={{ 
                     y: [0, -2, 0],
                   }}

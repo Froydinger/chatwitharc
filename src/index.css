@@ -144,7 +144,7 @@ All colors MUST be HSL for perfect glass effects.
     position: relative;
   }
 
-  /* Global animated background */
+  /* Global animated background - dark mode only */
   body::before {
     content: '';
     position: fixed;
@@ -156,6 +156,10 @@ All colors MUST be HSL for perfect glass effects.
     z-index: -1;
     background: radial-gradient(circle at 20% 50%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%);
     animation: global-background-drift 20s linear infinite;
+  }
+
+  .light body::before {
+    display: none;
   }
 
   @keyframes global-background-drift {
