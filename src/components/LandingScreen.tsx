@@ -38,20 +38,6 @@ export function LandingScreen() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="fixed inset-0 pointer-events-none">
-        <motion.div
-          animate={{
-            background: [
-              "radial-gradient(circle at 20% 50%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%)",
-              "radial-gradient(circle at 80% 20%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%)",
-              "radial-gradient(circle at 40% 80%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%)",
-            ],
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-          className="w-full h-full"
-        />
-      </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center px-6 relative z-10">
@@ -69,7 +55,7 @@ export function LandingScreen() {
               className="flex justify-center mb-6"
             >
               <img 
-                src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" 
+                src="/lovable-uploads/filled-avatar-logo.png" 
                 alt="ArcAI" 
                 className="h-16 w-16 sm:h-20 sm:w-20" 
               />

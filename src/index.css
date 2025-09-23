@@ -141,6 +141,39 @@ All colors MUST be HSL for perfect glass effects.
     background: hsl(var(--background));
     min-height: 100vh;
     overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Global animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+    background: radial-gradient(circle at 20% 50%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%);
+    animation: global-background-drift 20s linear infinite;
+  }
+
+  @keyframes global-background-drift {
+    0% {
+      background: radial-gradient(circle at 20% 50%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%);
+    }
+    25% {
+      background: radial-gradient(circle at 80% 20%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%);
+    }
+    50% {
+      background: radial-gradient(circle at 40% 80%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%);
+    }
+    75% {
+      background: radial-gradient(circle at 10% 30%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%);
+    }
+    100% {
+      background: radial-gradient(circle at 20% 50%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%);
+    }
   }
 
   /* Text Selection Styles - Force override all elements */

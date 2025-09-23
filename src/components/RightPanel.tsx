@@ -61,21 +61,17 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         <div className="flex items-center justify-between p-4 border-b border-border/40 bg-background/95 backdrop-blur">
           <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="history" className="flex items-center gap-2">
-                <History className="h-4 w-4 flex-shrink-0" />
-                <span className="hidden sm:inline text-xs">Chats</span>
+              <TabsTrigger value="history" className="flex items-center justify-center">
+                <History className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="media" className="flex items-center gap-2">
-                <Image className="h-4 w-4 flex-shrink-0" />
-                <span className="hidden sm:inline text-xs">Media</span>
+              <TabsTrigger value="media" className="flex items-center justify-center">
+                <Image className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="music" className="flex items-center gap-2">
-                <Headphones className="h-4 w-4 flex-shrink-0" />
-                <span className="hidden sm:inline text-xs">Music</span>
+              <TabsTrigger value="music" className="flex items-center justify-center">
+                <Headphones className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-2">
-                <Settings className="h-4 w-4 flex-shrink-0" />
-                <span className="hidden sm:inline text-xs">Prefs</span>
+              <TabsTrigger value="settings" className="flex items-center justify-center">
+                <Settings className="h-4 w-4" />
               </TabsTrigger>
             </TabsList>
           </Tabs>
