@@ -315,6 +315,21 @@ All colors MUST be HSL for perfect glass effects.
     }
   }
 
+  /* Avatar with filled eyes - applies black background to eye areas */
+  .avatar-filled-eyes {
+    position: relative;
+    background: radial-gradient(circle at 35% 35%, black 8%, transparent 8%), 
+                radial-gradient(circle at 65% 35%, black 8%, transparent 8%);
+    background-size: 100% 100%;
+    border-radius: 50%;
+  }
+
+  .light .avatar-filled-eyes {
+    background: radial-gradient(circle at 35% 35%, black 8%, transparent 8%), 
+                radial-gradient(circle at 65% 35%, black 8%, transparent 8%);
+    background-size: 100% 100%;
+  }
+
   /* Internal breathing glow animation */
   @keyframes breathe-internal-glow {
     0% {
