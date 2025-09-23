@@ -319,9 +319,9 @@ All colors MUST be HSL for perfect glass effects.
     }
   }
 
-  /* Avatar with filled eyes - applies black outline to fill transparent eyes */
+  /* Avatar with filled eyes - adds black background to fill transparent areas */
   .avatar-filled-eyes {
-    border: 1px solid black;
+    background-color: black;
     border-radius: 50%;
   }
 
