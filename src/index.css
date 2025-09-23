@@ -319,10 +319,10 @@ All colors MUST be HSL for perfect glass effects.
     }
   }
 
-  /* Avatar with filled eyes - adds black background to fill transparent areas */
+  /* Avatar with filled eyes - adds black background with rounded square app icon style */
   .avatar-filled-eyes {
     background-color: black;
-    border-radius: 50%;
+    border-radius: 20%;
   }
 
   /* Internal breathing glow animation */
