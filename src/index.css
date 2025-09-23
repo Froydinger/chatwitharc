@@ -321,7 +321,7 @@ All colors MUST be HSL for perfect glass effects.
 
   /* Avatar with filled eyes - adds black background with rounded square app icon style */
   .avatar-filled-eyes {
-    background-color: black;
+    background-color: transparent;
     border-radius: 20%;
   }
 
