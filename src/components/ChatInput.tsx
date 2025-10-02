@@ -18,11 +18,7 @@ function isImageEditRequest(message: string): boolean {
     'remove the', 'remove this', 'take off', 'take away',
     'make the', 'change the', 'turn the', 'with a', 'wearing a',
     'in a', 'holding a', 'but with', 'except with', 'instead of',
-    'replace the', 'swap the', 'substitute', 'put on', 'add on',
-    // Multi-image combination keywords
-    'combine', 'merge', 'blend', 'mix', 'put together', 'fuse',
-    'combine these', 'merge these', 'blend these', 'mix these',
-    'put these together', 'join', 'unite'
+    'replace the', 'swap the', 'substitute', 'put on', 'add on'
   ];
   
   const lowerMessage = message.toLowerCase();
@@ -673,116 +669,73 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
 
         // Add fancy loading placeholder for image editing
         setGeneratingImage(true);
-        const actionType = imagesToProcess.length > 1 ? 'Combining images' : 'Editing image';
         const placeholderMessage = {
-          content: `${actionType}: ${userMessage}`,
+          content: `Editing image: ${userMessage}`,
           role: 'assistant' as const,
           type: 'image-generating' as const,
           imagePrompt: userMessage
         };
         addMessage(placeholderMessage);
 
-        // Process the image edit/combination
+        // Process the image edit
         try {
           const openai = new OpenAIService();
+          const file = imagesToProcess[0];
           
-          // For multi-image requests, pass all image URLs
-          if (imagesToProcess.length > 1) {
-            // Multi-image combination - use all uploaded images
-            const editedImageUrl = await openai.editImage(userMessage, imageUrls);
-            
-            // Upload the result to storage for persistence
-            let permanentImageUrl = editedImageUrl;
-            try {
-              const response = await fetch(editedImageUrl);
-              const blob = await response.blob();
-              const { data: { user } } = await supabase.auth.getUser();
-              if (!user) throw new Error('Not authenticated');
-              
-              const fileName = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
-              
-              const { data, error } = await supabase.storage
-                .from('avatars')
-                .upload(fileName, blob, {
-                  contentType: 'image/png',
-                  upsert: false
-                });
-
-              if (!error) {
-                const { data: publicUrlData } = supabase.storage
-                  .from('avatars')
-                  .getPublicUrl(fileName);
-                permanentImageUrl = publicUrlData.publicUrl;
-              }
-            } catch (uploadError) {
-              console.error('Error uploading combined image:', uploadError);
-            }
-            
-            await replaceLastMessage({
-              content: `Combined images: ${userMessage}`,
-              role: 'assistant',
-              type: 'image',
-              imageUrl: permanentImageUrl
+          // Upload the base image to get a URL
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('Not authenticated');
+          
+          const fileName = `${user.id}/base-for-edit-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
+          
+          const { data, error } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, file, {
+              contentType: file.type,
+              upsert: false
             });
-          } else {
-            // Single image edit
-            const file = imagesToProcess[0];
             
-            // Upload the base image to get a URL
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Not authenticated');
+          if (error) throw error;
+          
+          const { data: publicUrlData } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(fileName);
+          const baseImageUrl = publicUrlData.publicUrl;
+          
+          // Generate edited image
+          const imageUrl = await openai.editImage(userMessage, baseImageUrl);
+          
+          // Upload edited image to storage for persistence
+          let permanentImageUrl = imageUrl;
+          try {
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            const editedFileName = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
             
-            const fileName = `${user.id}/base-for-edit-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
-            
-            const { data, error } = await supabase.storage
+            const { data: uploadData, error: uploadError } = await supabase.storage
               .from('avatars')
-              .upload(fileName, file, {
-                contentType: file.type,
+              .upload(editedFileName, blob, {
+                contentType: 'image/png',
                 upsert: false
               });
-              
-            if (error) throw error;
-            
-            const { data: publicUrlData } = supabase.storage
-              .from('avatars')
-              .getPublicUrl(fileName);
-            const baseImageUrl = publicUrlData.publicUrl;
-            
-            // Generate edited image
-            const imageUrl = await openai.editImage(userMessage, baseImageUrl);
-            
-            // Upload edited image to storage for persistence
-            let permanentImageUrl = imageUrl;
-            try {
-              const response = await fetch(imageUrl);
-              const blob = await response.blob();
-              const editedFileName = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
-              
-              const { data: uploadData, error: uploadError } = await supabase.storage
+
+            if (!uploadError) {
+              const { data: publicUrlData } = supabase.storage
                 .from('avatars')
-                .upload(editedFileName, blob, {
-                  contentType: 'image/png',
-                  upsert: false
-                });
-
-              if (!uploadError) {
-                const { data: publicUrlData } = supabase.storage
-                  .from('avatars')
-                  .getPublicUrl(editedFileName);
-                permanentImageUrl = publicUrlData.publicUrl;
-              }
-            } catch (uploadError) {
-              console.error('Error uploading edited image:', uploadError);
+                .getPublicUrl(editedFileName);
+              permanentImageUrl = publicUrlData.publicUrl;
             }
-
-            // Replace placeholder with actual image
-            await replaceLastMessage({
-              content: `Edited image: ${userMessage}`,
-              role: 'assistant',
-              type: 'image',
-              imageUrl: permanentImageUrl
-            });
+          } catch (uploadError) {
+            console.error('Error uploading edited image:', uploadError);
           }
+
+          // Replace placeholder with actual image
+          await replaceLastMessage({
+            content: `Edited image: ${userMessage}`,
+            role: 'assistant',
+            type: 'image',
+            imageUrl: permanentImageUrl
+          });
         } catch (error) {
           console.error('Image editing error:', error);
           // Replace placeholder with error message

@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -16,45 +18,40 @@ serve(async (req) => {
     const { prompt } = await req.json();
     console.log('Generating image with prompt:', prompt);
 
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image-preview',
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        modalities: ['image', 'text']
+        model: 'gpt-image-1',
+        prompt: prompt,
+        n: 1,
+        size: 'auto', // Let OpenAI choose the best size
+        quality: 'medium', // Faster generation
+        output_format: 'webp', // Smaller file size for faster loading
+        output_compression: 85 // Good balance of quality vs speed
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Lovable AI error:', response.status, errorData);
-      throw new Error(`Lovable AI error: ${response.status} - ${errorData}`);
+      console.error('OpenAI API error:', response.status, errorData);
+      throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
     }
 
     const data = await response.json();
-    console.log('Image generation response received');
+    console.log('Image generation response:', data);
 
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    if (!imageUrl) {
-      throw new Error('No image data received from Lovable AI');
+    // gpt-image-1 returns base64 encoded images directly
+    const imageBase64 = data.data[0]?.b64_json;
+    if (!imageBase64) {
+      throw new Error('No image data received from OpenAI');
     }
 
     return new Response(JSON.stringify({ 
-      imageUrl: imageUrl,
+      imageUrl: `data:image/webp;base64,${imageBase64}`,
       success: true 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

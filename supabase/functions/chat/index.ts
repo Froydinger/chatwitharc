@@ -71,27 +71,27 @@ serve(async (req) => {
       ...messages.filter(m => m.role !== 'system') // Remove any existing system messages
     ];
     
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiApiKey) {
+      throw new Error('OpenAI API key not configured');
     }
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gpt-5-nano-2025-08-07', // Fastest model
         messages: enhancedMessages,
+        max_completion_tokens: 4096, // Maximum tokens for GPT-5 nano
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Lovable AI error:', response.status, errorData);
-      throw new Error(`Lovable AI error: ${response.status} ${errorData}`);
+      throw new Error(`OpenAI API error: ${response.status} ${errorData}`);
     }
 
     const data = await response.json();
