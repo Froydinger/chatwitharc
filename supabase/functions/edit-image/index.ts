@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, baseImageUrl } = await req.json();
+    const { prompt, baseImageUrl, operation } = await req.json();
 
     if (!prompt) {
       return new Response(
@@ -31,10 +31,94 @@ serve(async (req) => {
       );
     }
 
+    console.log('Operation type:', operation);
     console.log('Editing image with prompt:', prompt);
     console.log('Base image URL:', baseImageUrl);
 
-    if (!baseImageUrl) {
+    // Handle multi-image combination
+    if (operation === 'combine' && Array.isArray(baseImageUrl)) {
+      console.log('Combining multiple images:', baseImageUrl.length);
+      
+      // For multi-image, use the Lovable AI Gateway to generate a new image based on all the source images
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+      if (!LOVABLE_API_KEY) {
+        return new Response(
+          JSON.stringify({ error: 'LOVABLE_API_KEY not configured' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+
+      // Build the content array with text prompt and all images
+      const content: any[] = [
+        {
+          type: "text",
+          text: `Combine and merge these images together according to this instruction: ${prompt}`
+        }
+      ];
+
+      // Add all images to the content
+      for (const imageUrl of baseImageUrl) {
+        content.push({
+          type: "image_url",
+          image_url: {
+            url: imageUrl
+          }
+        });
+      }
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-image-preview",
+          messages: [
+            {
+              role: "user",
+              content: content
+            }
+          ],
+          modalities: ["image", "text"]
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Lovable AI error:', response.status, errorData);
+        return new Response(
+          JSON.stringify({ 
+            error: `Image combination error: ${response.status}`,
+            details: errorData 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
+        );
+      }
+
+      const data = await response.json();
+      const combinedImageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+      if (!combinedImageUrl) {
+        return new Response(
+          JSON.stringify({ error: 'No combined image data received' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          imageUrl: combinedImageUrl 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Single image editing
+    const singleImageUrl = Array.isArray(baseImageUrl) ? baseImageUrl[0] : baseImageUrl;
+    
+    if (!singleImageUrl) {
       return new Response(
         JSON.stringify({ error: 'Base image URL is required for editing' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -44,7 +128,7 @@ serve(async (req) => {
     // First, download the base image and convert to base64
     let baseImageBase64;
     try {
-      const imageResponse = await fetch(baseImageUrl);
+      const imageResponse = await fetch(singleImageUrl);
       if (!imageResponse.ok) {
         throw new Error(`Failed to fetch image: ${imageResponse.status}`);
       }

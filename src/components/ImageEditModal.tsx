@@ -82,25 +82,26 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle>Edit Image</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-2xl h-[85vh] md:h-auto md:max-h-[90vh] flex flex-col p-4 md:p-6">
+        <DialogHeader className="flex-shrink-0 pb-2">
+          <DialogTitle className="text-lg md:text-xl">Edit Image</DialogTitle>
+          <DialogDescription className="text-xs md:text-sm">
             Modify the image using AI-powered editing. Describe how you'd like to change the image.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 overflow-y-auto flex-1 min-h-0">
-          {/* Show the original image */}
-          <div className="flex justify-center">
-            <div className="relative max-w-sm w-full rounded-lg overflow-hidden">
-              <SmoothImage
-                src={imageUrl}
-                alt="Original image"
-                className="w-full h-auto max-h-[30vh] md:max-h-[40vh] object-contain"
-              />
+        <div className="flex-1 overflow-y-auto min-h-0 -mx-4 px-4 md:mx-0 md:px-0">
+          <div className="space-y-3 md:space-y-4 pb-4">
+            {/* Show the original image */}
+            <div className="flex justify-center">
+              <div className="relative w-full max-w-[280px] md:max-w-sm rounded-lg overflow-hidden">
+                <SmoothImage
+                  src={imageUrl}
+                  alt="Original image"
+                  className="w-full h-auto max-h-[25vh] md:max-h-[35vh] object-contain"
+                />
+              </div>
             </div>
-          </div>
 
           {/* Show original prompt if available */}
           {originalPrompt && (
@@ -109,36 +110,46 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
             </div>
           )}
 
-          {/* Edit instruction input */}
-          <div className="space-y-2 flex-shrink-0">
-            <label className="text-sm font-medium">
-              How would you like to edit this image?
-            </label>
-            <Textarea
-              value={editInstruction}
-              onChange={(e) => setEditInstruction(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="e.g., make it more photorealistic, change the background to a sunset, add more detail..."
-              className="min-h-[60px] md:min-h-[80px] resize-none"
-              disabled={isSubmitting}
-            />
+            {/* Original prompt display */}
+            {originalPrompt && (
+              <div className="text-xs md:text-sm text-muted-foreground px-2 md:px-0">
+                <strong>Original prompt:</strong> {originalPrompt}
+              </div>
+            )}
+
+            {/* Edit instruction input */}
+            <div className="space-y-1.5 md:space-y-2 px-2 md:px-0">
+              <label className="text-xs md:text-sm font-medium">
+                How would you like to edit this image?
+              </label>
+              <Textarea
+                value={editInstruction}
+                onChange={(e) => setEditInstruction(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="e.g., make it more photorealistic, change the background to a sunset, add more detail..."
+                className="min-h-[70px] md:min-h-[80px] resize-none text-sm"
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
         </div>
 
         {/* Action buttons */}
-        <div className="flex justify-end gap-3 flex-shrink-0 pt-4 border-t">
+        <div className="flex justify-end gap-2 md:gap-3 flex-shrink-0 pt-3 md:pt-4 border-t mt-2">
           <Button
             variant="outline"
             onClick={onClose}
             disabled={isSubmitting}
+            className="text-sm"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || !editInstruction.trim()}
+            className="text-sm"
           >
-            {isSubmitting ? "Starting Edit..." : "Edit Image"}
+            {isSubmitting ? "Starting..." : "Edit Image"}
           </Button>
         </div>
       </DialogContent>

@@ -139,21 +139,22 @@ export class OpenAIService {
     }
   }
 
-  async editImage(prompt: string, baseImageUrl: string): Promise<string> {
+  async editImage(prompt: string, baseImageUrl: string | string[]): Promise<string> {
     try {
-      // Editing image
+      // Editing/combining image(s)
+      const isMultiImage = Array.isArray(baseImageUrl);
       
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: { 
           prompt, 
-          baseImageUrl,
-          operation: 'edit'
+          baseImageUrl: isMultiImage ? baseImageUrl : baseImageUrl,
+          operation: isMultiImage ? 'combine' : 'edit'
         }
       });
 
       if (error) {
         console.error('Supabase function error:', error);
-        throw new Error(`Image editing error: ${error.message}`);
+        throw new Error(`Image ${isMultiImage ? 'combination' : 'editing'} error: ${error.message}`);
       }
 
       if (data.error) {
@@ -161,7 +162,7 @@ export class OpenAIService {
       }
 
       if (!data.success || !data.imageUrl) {
-        throw new Error('Failed to edit image');
+        throw new Error(`Failed to ${isMultiImage ? 'combine' : 'edit'} image`);
       }
 
       return data.imageUrl;
