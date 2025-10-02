@@ -1,8 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -16,9 +14,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (!openAIApiKey) {
-    console.error('OpenAI API key not found');
-    return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!lovableApiKey) {
+    console.error('LOVABLE_API_KEY not found');
+    return new Response(JSON.stringify({ error: 'LOVABLE_API_KEY not configured' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -35,15 +34,14 @@ serve(async (req) => {
       });
     }
 
-    // Use GPT-4.1 for vision capabilities
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-mini-2025-04-14', // Faster vision model
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
@@ -61,14 +59,13 @@ serve(async (req) => {
             }
             return msg;
           })
-        ],
-        max_completion_tokens: 600 // Reduced for faster responses
+        ]
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('OpenAI API error:', errorData);
+      console.error('Lovable AI error:', errorData);
       return new Response(JSON.stringify({ 
         error: `Image analysis failed: ${response.status} ${response.statusText}` 
       }), {
