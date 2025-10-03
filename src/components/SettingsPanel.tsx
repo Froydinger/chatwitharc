@@ -731,8 +731,8 @@ export function SettingsPanel() {
             
             <div className="space-y-2 text-sm text-muted-foreground">
               <p>✨ Beautiful glassmorphism interface</p>
-              <p>🤖 Powered by OpenAI GPT-5 Nano & Realtime API</p>
-              <p>🎙️ Cedar & Marin voice support</p>
+              <p>🤖 Powered by Google Gemini 2.5 Flash via Lovable AI</p>
+              <p>🎨 Image generation with Gemini Image Preview</p>
               <p>📱 Mobile-first responsive design</p>
               <p>🔒 Secure server-side API handling</p>
             </div>

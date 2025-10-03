@@ -1,11 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 
-interface OpenAIMessage {
+interface AIMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
-interface OpenAIResponse {
+interface AIResponse {
   choices: Array<{
     message: {
       content: string;
@@ -13,12 +13,12 @@ interface OpenAIResponse {
   }>;
 }
 
-export class OpenAIService {
+export class AIService {
   constructor() {
-    // No API key needed - using secure edge function
+    // No API key needed - using secure edge function with Lovable Cloud
   }
 
-  async sendMessage(messages: OpenAIMessage[], profile?: { display_name?: string | null; context_info?: string | null, memory_info?: string | null }): Promise<string> {
+  async sendMessage(messages: AIMessage[], profile?: { display_name?: string | null; context_info?: string | null, memory_info?: string | null }): Promise<string> {
     try {
       // Always fetch the freshest profile to include latest memory/context
       let effectiveProfile = profile || {};
@@ -56,7 +56,7 @@ export class OpenAIService {
       // Ask the model to propose memory saves only for NEW user information (not recalled info)
       systemPrompt += " CRITICAL: Only use [MEMORY_SAVE] for completely NEW information the user shares that you don't already know. NEVER save information you're recalling or that's already in your memory. Check your existing memory carefully before saving anything new.";
       
-      const systemMessage: OpenAIMessage = {
+      const systemMessage: AIMessage = {
         role: 'system',
         content: systemPrompt
       };
@@ -80,12 +80,12 @@ export class OpenAIService {
 
       return data.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
     } catch (error) {
-      console.error('OpenAI API Error:', error);
+      console.error('AI Service Error:', error);
       throw error;
     }
   }
 
-  async sendMessageWithImage(messages: OpenAIMessage[], base64Image: string): Promise<string> {
+  async sendMessageWithImage(messages: AIMessage[], base64Image: string): Promise<string> {
     try {
       // Call edge function for image analysis
       const { data, error } = await supabase.functions.invoke('analyze-image', {
@@ -113,7 +113,7 @@ export class OpenAIService {
 
   async generateImage(prompt: string): Promise<string> {
     try {
-      // Generating image
+      // Generating image with Gemini
       
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { prompt }
@@ -141,7 +141,7 @@ export class OpenAIService {
 
   async editImage(prompt: string, baseImageUrl: string): Promise<string> {
     try {
-      // Editing image
+      // Editing image with Gemini
       
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: { 

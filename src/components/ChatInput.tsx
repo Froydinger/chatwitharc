@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Paperclip } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
-import { OpenAIService } from "@/services/openai";
+import { AIService } from "@/services/ai";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Textarea } from "@/components/ui/textarea";
 import { useProfile } from "@/hooks/useProfile";
@@ -296,8 +296,8 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         });
         
         try {
-          const openai = new OpenAIService();
-          const imageUrl = await openai.generateImage(imagePrompt || content);
+          const ai = new AIService();
+          const imageUrl = await ai.generateImage(imagePrompt || content);
           
           // Upload generated image to Supabase storage for persistence
           let permanentImageUrl = imageUrl;
@@ -404,7 +404,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
 
   const handleImageEditRequest = async (prompt: string, baseImageUrl: string, editInstruction: string) => {
     try {
-      const openai = new OpenAIService();
+      const ai = new AIService();
       
       // Add placeholder message immediately
       setGeneratingImage(true);
@@ -418,7 +418,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
       
       try {
         // Use the new editImage method
-        const imageUrl = await openai.editImage(editInstruction, baseImageUrl);
+        const imageUrl = await ai.editImage(editInstruction, baseImageUrl);
         
         // Upload edited image to Supabase storage for persistence
         let permanentImageUrl = imageUrl;
@@ -478,7 +478,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
 
   const handleAIResponse = async (userMessage: string) => {
     try {
-      const openai = new OpenAIService();
+      const ai = new AIService();
 
       // Detect explicit memory save requests
       let explicitConfirmation = "";
@@ -491,15 +491,15 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         await refetchProfile();
       }
       
-      // Convert messages to OpenAI format (already includes the last user message)
-      const openaiMessages = messages
+      // Convert messages to AI format (already includes the last user message)
+      const aiMessages = messages
         .filter(msg => msg.type === 'text')
         .map(msg => ({
           role: msg.role,
           content: msg.content
         }));
 
-      const response = await openai.sendMessage(openaiMessages);
+      const response = await ai.sendMessage(aiMessages);
 
       // Parse implicit memory instructions from the model
       const { cleaned, saved } = await parseAndSaveImplicitMemory(response);
@@ -559,35 +559,8 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     if (localResult && (lowerMsg.includes('generate') || lowerMsg.includes('create') || lowerMsg.includes('make'))) return 'image';
     if (!localResult && message.length > 50 && !lowerMsg.includes('image') && !lowerMsg.includes('picture')) return 'text';
     
-    // Only use AI for borderline cases - use fastest model with minimal prompt
-    try {
-      const response = await fetch('/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [{
-            role: 'user',
-            content: `Does this want image generation? Answer only "yes" or "no": "${message}"`
-          }],
-          model: 'gpt-5-nano-2025-08-07', // Fastest model
-          max_completion_tokens: 5 // Minimal response
-        })
-      });
-      
-      if (!response.ok) {
-        console.warn('Fast analysis failed, using local detection');
-        return localResult ? 'image' : 'text';
-      }
-      
-      const data = await response.json();
-      const answer = data.choices[0]?.message?.content?.toLowerCase() || '';
-      return answer.includes('yes') ? 'image' : 'text';
-    } catch (error) {
-      console.error('Error in fast analysis:', error);
-      return localResult ? 'image' : 'text';
-    }
+    // For borderline cases, use local detection result
+    return localResult ? 'image' : 'text';
   };
 
   const handleSend = async () => {
@@ -679,7 +652,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
 
         // Process the image edit
         try {
-          const openai = new OpenAIService();
+          const ai = new AIService();
           const file = imagesToProcess[0];
           
           // Upload the base image to get a URL
@@ -703,7 +676,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           const baseImageUrl = publicUrlData.publicUrl;
           
           // Generate edited image
-          const imageUrl = await openai.editImage(userMessage, baseImageUrl);
+          const imageUrl = await ai.editImage(userMessage, baseImageUrl);
           
           // Upload edited image to storage for persistence
           let permanentImageUrl = imageUrl;
@@ -756,7 +729,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           imageUrls: imageUrls.length > 0 ? imageUrls : undefined
         });
 
-        const openai = new OpenAIService();
+        const ai = new AIService();
         
         // Check if user is requesting image generation with intelligent detection
         // Image generation check
@@ -774,7 +747,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         });
         
         try {
-          const imageUrl = await openai.generateImage(imagePrompt || userMessage);
+          const imageUrl = await ai.generateImage(imagePrompt || userMessage);
           
           // Upload generated image to Supabase storage for persistence
           let permanentImageUrl = imageUrl;
@@ -841,7 +814,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
             const base64 = await base64Promise;
             const analysisPrompt = userMessage || 'What do you see in these images?';
             
-            const response = await openai.sendMessageWithImage(
+            const response = await ai.sendMessageWithImage(
               [{ role: 'user', content: analysisPrompt }],
               base64
             );
@@ -878,13 +851,13 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
             await refetchProfile();
           }
           
-          const openaiMessages = messages
+          const aiMessages = messages
             .filter(msg => msg.type === 'text')
             .map(msg => ({ role: msg.role, content: msg.content }));
           
-          openaiMessages.push({ role: 'user', content: userMessage });
+          aiMessages.push({ role: 'user', content: userMessage });
 
-          const response = await openai.sendMessage(openaiMessages);
+          const response = await ai.sendMessage(aiMessages);
 
           // Handle implicit memory suggested by the model  
           const { cleaned, saved } = await parseAndSaveImplicitMemory(response);

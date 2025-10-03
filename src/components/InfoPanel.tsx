@@ -13,7 +13,7 @@ export function InfoPanel() {
     {
       icon: MessageSquare,
       title: "Smart Text Chat",
-      description: "Powered by OpenAI GPT-5 Nano for lightning-fast, intelligent responses"
+      description: "Powered by Google Gemini 2.5 Flash for lightning-fast, intelligent responses"
     },
     // Voice feature temporarily hidden
     // {
@@ -166,7 +166,7 @@ export function InfoPanel() {
             </h3>
             
             <div className="flex flex-wrap justify-center gap-3">
-              {["React", "TypeScript", "Framer Motion", "Tailwind CSS", "OpenAI API", "Zustand"].map((tech) => (
+              {["React", "TypeScript", "Framer Motion", "Tailwind CSS", "Lovable AI (Gemini)", "Zustand"].map((tech) => (
                 <motion.div
                   key={tech}
                   whileHover={{ scale: 1.05 }}
