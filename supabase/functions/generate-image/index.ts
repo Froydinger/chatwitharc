@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,40 +18,53 @@ serve(async (req) => {
     const { prompt } = await req.json();
     console.log('Generating image with prompt:', prompt);
 
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
+    if (!lovableApiKey) {
+      throw new Error('Lovable API key not configured');
+    }
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-image-1',
-        prompt: prompt,
-        n: 1,
-        size: 'auto', // Let OpenAI choose the best size
-        quality: 'medium', // Faster generation
-        output_format: 'webp', // Smaller file size for faster loading
-        output_compression: 85 // Good balance of quality vs speed
+        model: 'google/gemini-2.5-flash-image-preview',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        modalities: ['image', 'text']
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('OpenAI API error:', response.status, errorData);
-      throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
+      console.error('Lovable AI error:', response.status, errorData);
+      
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again later.');
+      }
+      if (response.status === 402) {
+        throw new Error('Payment required. Please add credits to your Lovable workspace.');
+      }
+      
+      throw new Error(`Lovable AI error: ${response.status} - ${errorData}`);
     }
 
     const data = await response.json();
-    console.log('Image generation response:', data);
+    console.log('Image generation response received');
 
-    // gpt-image-1 returns base64 encoded images directly
-    const imageBase64 = data.data[0]?.b64_json;
-    if (!imageBase64) {
-      throw new Error('No image data received from OpenAI');
+    // Extract base64 image from Gemini response
+    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    if (!imageUrl) {
+      throw new Error('No image data received from Lovable AI');
     }
 
     return new Response(JSON.stringify({ 
-      imageUrl: `data:image/webp;base64,${imageBase64}`,
+      imageUrl: imageUrl,
       success: true 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
