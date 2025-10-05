@@ -575,7 +575,12 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     setLoading(true);
 
     // Early detection of image edit requests to prevent ghost bubbles
-    const isUploadedImageEdit = imagesToProcess.length > 0 && userMessage && isImageEditRequest(userMessage);
+    // If images are uploaded WITH a prompt asking to DO something (not just "what is this"), treat as edit
+    const isUploadedImageEdit = imagesToProcess.length > 0 && userMessage && (
+      isImageEditRequest(userMessage) || 
+      // Detect composition/creation requests with uploaded images
+      /\b(put|place|combine|merge|add|create|make|compose|blend|mix|together|into|with|at|in)\b/i.test(userMessage)
+    );
     
     // For text-only prompts, analyze intent with AI
     let isImageGenerationRequest = false;
