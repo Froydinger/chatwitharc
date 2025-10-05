@@ -47,14 +47,46 @@ serve(async (req) => {
       const errorData = await response.text();
       console.error('Lovable AI error:', response.status, errorData);
       
-      if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again later.');
-      }
-      if (response.status === 402) {
-        throw new Error('Payment required. Please add credits to your Lovable workspace.');
+      // Parse error response to get detailed error information
+      let errorMessage = 'Failed to generate image';
+      let errorType = 'unknown';
+      
+      try {
+        const errorJson = JSON.parse(errorData);
+        const detailedError = errorJson.error?.message || errorJson.message || errorData;
+        
+        // Check for content safety violations
+        if (detailedError.toLowerCase().includes('safety') || 
+            detailedError.toLowerCase().includes('content policy') ||
+            detailedError.toLowerCase().includes('content violation') ||
+            detailedError.toLowerCase().includes('blocked')) {
+          errorType = 'content_violation';
+          errorMessage = 'Image generation blocked due to content policy violation. Please try a different prompt.';
+        }
+      } catch (e) {
+        // If error parsing fails, check status codes
       }
       
-      throw new Error(`Lovable AI error: ${response.status} - ${errorData}`);
+      if (response.status === 429) {
+        errorType = 'rate_limit';
+        errorMessage = 'Rate limit exceeded. Please try again later.';
+      } else if (response.status === 402) {
+        errorType = 'payment_required';
+        errorMessage = 'Payment required. Please add credits to your Lovable workspace.';
+      } else if (response.status === 400 && errorType === 'unknown') {
+        // 400 often indicates content issues
+        errorType = 'content_violation';
+        errorMessage = 'Image generation blocked. The prompt may violate content policies.';
+      }
+      
+      return new Response(JSON.stringify({ 
+        error: errorMessage,
+        errorType: errorType,
+        success: false 
+      }), {
+        status: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const data = await response.json();

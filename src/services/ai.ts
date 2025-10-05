@@ -125,7 +125,10 @@ export class AIService {
       }
 
       if (data.error) {
-        throw new Error(data.error);
+        // Create a more specific error with type information
+        const errorObj: any = new Error(data.error);
+        errorObj.errorType = data.errorType || 'unknown';
+        throw errorObj;
       }
 
       if (!data.success || !data.imageUrl) {
@@ -157,7 +160,10 @@ export class AIService {
       }
 
       if (data.error) {
-        throw new Error(data.error);
+        // Create a more specific error with type information
+        const errorObj: any = new Error(data.error);
+        errorObj.errorType = data.errorType || 'unknown';
+        throw errorObj;
       }
 
       if (!data.success || !data.imageUrl) {

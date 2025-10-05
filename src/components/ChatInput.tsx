@@ -716,9 +716,26 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           });
         } catch (error) {
           console.error('Image editing error:', error);
+          
+          // Determine error type and show appropriate message
+          let errorMessage = 'Sorry, I couldn\'t edit the image.';
+          const errorType = (error as any)?.errorType;
+          
+          if (errorType === 'content_violation') {
+            errorMessage = '🚫 Content Policy Violation: The image cannot be edited because it violates content safety policies. Please try a different image or prompt.';
+          } else if (errorType === 'rate_limit') {
+            errorMessage = '⏱️ Rate Limit: Too many requests. Please wait a moment and try again.';
+          } else if (errorType === 'payment_required') {
+            errorMessage = '💳 Credits Required: Please add credits to your Lovable workspace to continue editing images.';
+          } else if (error instanceof Error) {
+            errorMessage = `Sorry, I couldn't edit the image. ${error.message}`;
+          } else {
+            errorMessage = 'Sorry, I couldn\'t edit the image. Please try again.';
+          }
+          
           // Replace placeholder with error message
           await replaceLastMessage({
-            content: `Sorry, I couldn't edit the image. ${error instanceof Error ? error.message : 'Please try again.'}`,
+            content: errorMessage,
             role: 'assistant',
             type: 'text'
           });
@@ -795,9 +812,26 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           });
         } catch (error) {
           console.error('Image generation error:', error);
+          
+          // Determine error type and show appropriate message
+          let errorMessage = 'Sorry, I couldn\'t generate the image.';
+          const errorType = (error as any)?.errorType;
+          
+          if (errorType === 'content_violation') {
+            errorMessage = '🚫 Content Policy Violation: The image cannot be generated because it violates content safety policies. Please try a different prompt.';
+          } else if (errorType === 'rate_limit') {
+            errorMessage = '⏱️ Rate Limit: Too many requests. Please wait a moment and try again.';
+          } else if (errorType === 'payment_required') {
+            errorMessage = '💳 Credits Required: Please add credits to your Lovable workspace to continue generating images.';
+          } else if (error instanceof Error) {
+            errorMessage = `Sorry, I couldn't generate the image. ${error.message}`;
+          } else {
+            errorMessage = 'Sorry, I couldn\'t generate the image. Please try again.';
+          }
+          
           // Replace placeholder with error message
           await replaceLastMessage({
-            content: `Sorry, I couldn't generate the image. ${error instanceof Error ? error.message : 'Please try again.'}`,
+            content: errorMessage,
             role: 'assistant',
             type: 'text'
           });
