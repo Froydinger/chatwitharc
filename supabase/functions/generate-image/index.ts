@@ -22,6 +22,9 @@ serve(async (req) => {
       throw new Error('Lovable API key not configured');
     }
 
+    // Add 16:9 aspect ratio instruction to prompt
+    const enhancedPrompt = `Generate a 16:9 aspect ratio image. ${prompt}`;
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -33,7 +36,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'user',
-            content: prompt
+            content: enhancedPrompt
           }
         ],
         modalities: ['image', 'text']
