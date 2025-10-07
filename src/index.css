@@ -8,8 +8,8 @@ All colors MUST be HSL for perfect glass effects.
 
 @layer base {
   :root {
-    /* App-like Dark Background */
-    --background: 240 12% 6%;
+    /* App-like Dark Background - Dark Grey */
+    --background: 240 8% 12%;
     --foreground: 240 5% 96%;
 
     /* Card & Surface Colors */
@@ -319,9 +319,10 @@ All colors MUST be HSL for perfect glass effects.
     }
   }
 
-  /* Avatar with filled eyes - adds black background with rounded square app icon style */
+  /* Avatar with filled eyes - adds adaptive background with rounded square app icon style */
   .avatar-filled-eyes {
-    background-color: black;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
     border-radius: 30%;
   }
 
