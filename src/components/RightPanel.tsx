@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, History, Headphones, Image } from "lucide-react";
 import { Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,6 +10,30 @@ import { MusicPlayerPanel } from "@/components/MusicPlayerPanel";
 import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
 import { cn } from "@/lib/utils";
 
+const musicTracks = [
+  { 
+    id: 'lofi', 
+    name: 'Lo-Fi Beats', 
+    url: 'https://froydinger.com/wp-content/uploads/2025/03/lofi-beats-mix.mp3',
+    artist: 'Chill Collective',
+    albumArt: '/lovable-uploads/lofi-beats-album.jpg'
+  },
+  { 
+    id: 'jazz', 
+    name: 'Coffee House Jazz', 
+    url: 'https://froydinger.com/wp-content/uploads/2025/05/jazz-coffee-bar-music.mp3',
+    artist: 'Jazz Lounge',
+    albumArt: '/lovable-uploads/jazz-album-art.jpg'
+  },
+  { 
+    id: 'ambient', 
+    name: 'Space Ambient', 
+    url: 'https://froydinger.com/wp-content/uploads/2025/05/pad-space-travel-hyperdrive-engine-humming-235901.mp3',
+    artist: 'Cosmic Sounds',
+    albumArt: '/lovable-uploads/ambient-album-art.jpg'
+  }
+];
+
 interface RightPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -18,6 +42,88 @@ interface RightPanelProps {
 }
 
 export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
+  // Audio state management (persists across tab switches)
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(() => {
+    const saved = localStorage.getItem('arcai-music-playing');
+    return saved === 'true';
+  });
+  const [volume, setVolume] = useState(() => {
+    const saved = localStorage.getItem('arcai-music-volume');
+    return saved ? parseFloat(saved) : 0.4;
+  });
+  const [currentTrack, setCurrentTrack] = useState(() => {
+    const saved = localStorage.getItem('arcai-music-track');
+    return saved || 'lofi';
+  });
+  const [isMuted, setIsMuted] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => {
+    const saved = localStorage.getItem('arcai-music-time');
+    return saved ? parseFloat(saved) : 0;
+  });
+  const [duration, setDuration] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Audio event handlers
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleEnded = () => setIsPlaying(false);
+    const handleError = () => {
+      setIsPlaying(false);
+      setIsLoading(false);
+    };
+    const handleTimeUpdate = () => {
+      const time = audio.currentTime;
+      setCurrentTime(time);
+      localStorage.setItem('arcai-music-time', time.toString());
+    };
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+      setIsLoading(false);
+      const savedTime = localStorage.getItem('arcai-music-time');
+      if (savedTime) {
+        audio.currentTime = parseFloat(savedTime);
+      }
+      if (isPlaying) {
+        audio.play().catch(() => setIsPlaying(false));
+      }
+    };
+    const handleLoadStart = () => setIsLoading(true);
+    const handleCanPlay = () => setIsLoading(false);
+
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.volume = isMuted ? 0 : volume;
+
+    return () => {
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('loadstart', handleLoadStart);
+      audio.removeEventListener('canplay', handleCanPlay);
+    };
+  }, [volume, isMuted, currentTrack, isPlaying]);
+
+  // Save settings to localStorage
+  useEffect(() => {
+    localStorage.setItem('arcai-music-volume', volume.toString());
+  }, [volume]);
+
+  useEffect(() => {
+    localStorage.setItem('arcai-music-track', currentTrack);
+  }, [currentTrack]);
+
+  useEffect(() => {
+    localStorage.setItem('arcai-music-playing', isPlaying.toString());
+  }, [isPlaying]);
+
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -29,6 +135,9 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
+
+  const getCurrentTrack = () => musicTracks.find(t => t.id === currentTrack) || musicTracks[0];
+  const track = getCurrentTrack();
 
   return (
     <>
@@ -98,7 +207,21 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
             </TabsContent>
             
             <TabsContent value="music" className="h-full m-0">
-              <MusicPlayerPanel />
+              <MusicPlayerPanel 
+                audioRef={audioRef}
+                isPlaying={isPlaying}
+                setIsPlaying={setIsPlaying}
+                volume={volume}
+                setVolume={setVolume}
+                currentTrack={currentTrack}
+                setCurrentTrack={setCurrentTrack}
+                isMuted={isMuted}
+                setIsMuted={setIsMuted}
+                currentTime={currentTime}
+                setCurrentTime={setCurrentTime}
+                duration={duration}
+                isLoading={isLoading}
+              />
             </TabsContent>
             
             <TabsContent value="settings" className="h-full m-0">
@@ -106,6 +229,14 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
             </TabsContent>
           </Tabs>
         </div>
+
+        {/* Audio element - persists across all tabs */}
+        <audio
+          ref={audioRef}
+          src={track.url}
+          loop
+          preload="metadata"
+        />
       </motion.div>
     </>
   );
