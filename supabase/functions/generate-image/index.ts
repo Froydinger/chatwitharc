@@ -22,9 +22,6 @@ serve(async (req) => {
       throw new Error('Lovable API key not configured');
     }
 
-    // Add 16:9 aspect ratio instruction to prompt - emphasize widescreen canvas
-    const enhancedPrompt = `Create this in a widescreen 16:9 format. The entire canvas should be widescreen landscape orientation (1920x1080 or 1792x1008). Do not add letterboxing or borders. ${prompt}`;
-
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -36,7 +33,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'user',
-            content: enhancedPrompt
+            content: prompt
           }
         ],
         modalities: ['image', 'text']

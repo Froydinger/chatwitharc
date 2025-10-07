@@ -538,7 +538,7 @@ export function MobileChatApp() {
         }
 
         .glass-dock:focus-within{
-          box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 16px 4px hsl(var(--primary)/0.3), 0 0 40px 10px hsl(var(--primary)/0.15) !important;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 16px 4px hsl(var(--primary)/0.3), 0 0 40px 10px hsl(var(--primary)/0.15) !important;
           border-radius: 1rem;
         }
         .glass-dock input, .glass-dock textarea{ font-size: 16px !important; }
