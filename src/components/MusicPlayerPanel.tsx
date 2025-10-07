@@ -31,17 +31,23 @@ const musicTracks = [
 
 export function MusicPlayerPanel() {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(() => {
+    const saved = localStorage.getItem('arcai-music-playing');
+    return saved === 'true';
+  });
   const [volume, setVolume] = useState(() => {
     const saved = localStorage.getItem('arcai-music-volume');
-    return saved ? parseFloat(saved) : 0.4; // Default 40%
+    return saved ? parseFloat(saved) : 0.4;
   });
   const [currentTrack, setCurrentTrack] = useState(() => {
     const saved = localStorage.getItem('arcai-music-track');
     return saved || 'lofi';
   });
   const [isMuted, setIsMuted] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [currentTime, setCurrentTime] = useState(() => {
+    const saved = localStorage.getItem('arcai-music-time');
+    return saved ? parseFloat(saved) : 0;
+  });
   const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -54,10 +60,21 @@ export function MusicPlayerPanel() {
       setIsPlaying(false);
       setIsLoading(false);
     };
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleTimeUpdate = () => {
+      const time = audio.currentTime;
+      setCurrentTime(time);
+      localStorage.setItem('arcai-music-time', time.toString());
+    };
     const handleLoadedMetadata = () => {
       setDuration(audio.duration);
       setIsLoading(false);
+      const savedTime = localStorage.getItem('arcai-music-time');
+      if (savedTime) {
+        audio.currentTime = parseFloat(savedTime);
+      }
+      if (isPlaying) {
+        audio.play().catch(() => setIsPlaying(false));
+      }
     };
     const handleLoadStart = () => setIsLoading(true);
     const handleCanPlay = () => setIsLoading(false);
@@ -78,7 +95,7 @@ export function MusicPlayerPanel() {
       audio.removeEventListener('loadstart', handleLoadStart);
       audio.removeEventListener('canplay', handleCanPlay);
     };
-  }, [volume, isMuted, currentTrack]);
+  }, [volume, isMuted, currentTrack, isPlaying]);
 
   // Save settings to localStorage
   useEffect(() => {
@@ -88,6 +105,10 @@ export function MusicPlayerPanel() {
   useEffect(() => {
     localStorage.setItem('arcai-music-track', currentTrack);
   }, [currentTrack]);
+
+  useEffect(() => {
+    localStorage.setItem('arcai-music-playing', isPlaying.toString());
+  }, [isPlaying]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
