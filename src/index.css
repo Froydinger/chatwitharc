@@ -23,16 +23,16 @@ All colors MUST be HSL for perfect glass effects.
     --primary-foreground: 240 10% 98%;
     --primary-glow: 200 90% 65%;
 
-    /* Secondary Colors */
-    --secondary: 240 6% 16%;
+    /* Secondary Colors - Lighter gray for contrast */
+    --secondary: 240 6% 20%;
     --secondary-foreground: 240 4% 88%;
 
-    /* Muted Elements */
-    --muted: 240 4% 14%;
+    /* Muted Elements - Darker for distinction */
+    --muted: 240 4% 12%;
     --muted-foreground: 240 3% 68%;
 
-    /* Accent Colors */
-    --accent: 240 8% 18%;
+    /* Accent Colors - Medium gray for clear hierarchy */
+    --accent: 240 6% 24%;
     --accent-foreground: 240 4% 94%;
 
     /* Status Colors */

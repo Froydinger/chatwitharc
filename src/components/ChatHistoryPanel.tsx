@@ -137,7 +137,7 @@ export function ChatHistoryPanel() {
               key={session.id}
               variant={currentSessionId === session.id ? "bubble" : "default"}
               className={`p-4 cursor-pointer group transition-all ${
-                currentSessionId === session.id ? "ring-1 ring-primary-glow" : "hover:bg-glass/60"
+                currentSessionId === session.id ? "ring-1 ring-primary-glow rounded-xl" : "hover:bg-glass/60"
               }`}
               onClick={() => handleLoadSession(session.id)}
             >
