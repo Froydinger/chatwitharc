@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Paperclip } from "lucide-react";
+import { Send, Paperclip, Sparkles, Image as ImageIcon } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { AIService } from "@/services/ai";
 import { GlassButton } from "@/components/ui/glass-button";
@@ -8,6 +8,12 @@ import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Image editing/modification keywords for uploaded images
 function isImageEditRequest(message: string): boolean {
@@ -218,10 +224,14 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [isActive, setIsActive] = useState(false);
+  const [forceImageMode, setForceImageMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { profile, refetch: refetchProfile } = useProfile();
+
+  // Detect if current input suggests image generation
+  const shouldShowBanana = forceImageMode || (inputValue && checkForImageRequest(inputValue));
 
   // Notify parent about image selection changes
   useEffect(() => {
@@ -571,6 +581,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     // Send handler called
     setInputValue("");
     setSelectedImages([]); // Clear immediately to prevent UI issues
+    setForceImageMode(false); // Reset force mode after sending
 
     setLoading(true);
 
@@ -1009,16 +1020,42 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         className={`chat-input-halo flex items-end gap-3 transition-all duration-300 ${isActive ? 'halo-active' : ''}`}
         style={{ borderRadius: '1rem' }}
       >
-        {/* Paperclip Button */}
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isLoading}
-          className="shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-200 bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/40"
-        >
-          <Paperclip className="h-5 w-5" />
-        </button>
+        {/* Attachment Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              disabled={isLoading}
+              className="shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-200 bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/40"
+            >
+              <Paperclip className="h-5 w-5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56 bg-card/95 backdrop-blur-xl border-border/50 z-50">
+            <DropdownMenuItem 
+              onClick={() => setForceImageMode(true)}
+              className="cursor-pointer hover:bg-accent/50 focus:bg-accent/50"
+            >
+              <span className="mr-2">🍌</span>
+              <span>Generate Images</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => fileInputRef.current?.click()}
+              className="cursor-pointer hover:bg-accent/50 focus:bg-accent/50"
+            >
+              <ImageIcon className="h-4 w-4 mr-2" />
+              <span>Attach Images</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        <div className="flex-1">
+        <div className="flex-1 relative">
+          {/* Banana pill indicator */}
+          {shouldShowBanana && (
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-400/20 border border-yellow-400/40 backdrop-blur-sm animate-pulse">
+              <span className="text-base">🍌</span>
+              <span className="text-xs font-medium text-yellow-600 dark:text-yellow-400">Nano Banana</span>
+            </div>
+          )}
           <Textarea
             ref={textareaRef}
             value={inputValue}
@@ -1026,9 +1063,9 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
             onKeyDown={handleKeyPress}
             onFocus={() => setIsActive(true)}
             onBlur={() => setIsActive(false)}
-            placeholder={selectedImages.length > 0 ? "Add a message with your images..." : "Ask me anything..."}
+            placeholder={selectedImages.length > 0 ? "Add a message with your images..." : shouldShowBanana ? "Describe your image..." : "Ask me anything..."}
             disabled={isLoading}
-            className="card border-border/40 bg-card/50 text-foreground placeholder:text-muted-foreground resize-none min-h-[48px] max-h-[144px] leading-6"
+            className={`card border-border/40 bg-card/50 text-foreground placeholder:text-muted-foreground resize-none min-h-[48px] max-h-[144px] leading-6 ${shouldShowBanana ? 'pl-36' : ''}`}
             rows={1}
           />
         </div>
