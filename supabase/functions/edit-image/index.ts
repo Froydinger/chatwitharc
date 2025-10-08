@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, baseImageUrl } = await req.json();
+    const { prompt, baseImageUrl, baseImageUrls } = await req.json();
 
     if (!prompt) {
       return new Response(
@@ -31,20 +31,35 @@ serve(async (req) => {
       );
     }
 
-    console.log('Editing image with prompt:', prompt);
-    console.log('Base image URL:', baseImageUrl);
-
-    if (!baseImageUrl) {
+    // Support both single image and multiple images (up to 2 for combining)
+    const imageArray = baseImageUrls || (baseImageUrl ? [baseImageUrl] : []);
+    
+    if (imageArray.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Base image URL is required for editing' }),
+        JSON.stringify({ error: 'At least one base image URL is required for editing' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
+    if (imageArray.length > 2) {
+      return new Response(
+        JSON.stringify({ error: 'Maximum 2 images allowed for combining' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    console.log('Editing/combining images with prompt:', prompt);
+    console.log('Number of images:', imageArray.length);
+
     // Build smart prompt with identity preservation
-    function buildEditPrompt(userPrompt: string): string {
+    function buildEditPrompt(userPrompt: string, imageCount: number): string {
       const lowerPrompt = userPrompt.toLowerCase();
       let finalPrompt = '';
+      
+      // Check if this is a combining request
+      if (imageCount > 1) {
+        finalPrompt += "Combine or merge the provided images based on the instruction. ";
+      }
       
       // Check if this looks like a portrait/face edit
       const isPortrait = lowerPrompt.includes('same person') || 
@@ -73,10 +88,20 @@ serve(async (req) => {
       return finalPrompt;
     }
 
-    const editPrompt = buildEditPrompt(prompt);
-    console.log('Edit prompt:', editPrompt);
+    const editPrompt = buildEditPrompt(prompt, imageArray.length);
+    console.log('Edit/combine prompt:', editPrompt);
 
-    // Use Gemini image generation with the base image
+    // Build content array with text and all images
+    const contentArray: any[] = [
+      { type: 'text', text: editPrompt }
+    ];
+    
+    // Add all images to the content array
+    imageArray.forEach((url: string) => {
+      contentArray.push({ type: 'image_url', image_url: { url } });
+    });
+
+    // Use Gemini image generation with the base image(s)
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -88,10 +113,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'user',
-            content: [
-              { type: 'text', text: editPrompt },
-              { type: 'image_url', image_url: { url: baseImageUrl } }
-            ]
+            content: contentArray
           }
         ],
         modalities: ['image', 'text']

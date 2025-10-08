@@ -25,15 +25,44 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, image } = await req.json();
-    console.log('Analyzing image with messages:', messages.length);
+    const { messages, image, images } = await req.json();
 
-    if (!messages || !image) {
-      return new Response(JSON.stringify({ error: 'Messages and image are required' }), {
+    // Support both single image and multiple images (up to 4)
+    const imageArray = images || (image ? [image] : []);
+    
+    if (!messages) {
+      return new Response(JSON.stringify({ error: 'Messages are required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    
+    if (imageArray.length === 0) {
+      return new Response(JSON.stringify({ error: 'At least one image is required for analysis' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (imageArray.length > 4) {
+      return new Response(JSON.stringify({ error: 'Maximum 4 images allowed for analysis' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('Analyzing images count:', imageArray.length);
+
+    // Build content array with text and all images
+    const lastMessage = messages[messages.length - 1];
+    const contentArray: any[] = [
+      { type: 'text', text: lastMessage?.content || 'What do you see in these images?' }
+    ];
+    
+    // Add all images to the content array
+    imageArray.forEach((img: string) => {
+      contentArray.push({ type: 'image_url', image_url: { url: img } });
+    });
 
     // Use Gemini for vision capabilities
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -47,20 +76,13 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are ArcAI. Analyze images quickly and concisely. Be helpful but brief.'
+            content: 'You are ArcAI. Analyze images quickly and concisely. Be helpful but brief. When multiple images are provided, analyze each one and describe relationships between them if relevant.'
           },
-          ...messages.map((msg: any) => {
-            if (msg.role === 'user' && image) {
-              return {
-                role: 'user',
-                content: [
-                  { type: 'text', text: msg.content },
-                  { type: 'image_url', image_url: { url: image } }
-                ]
-              };
-            }
-            return msg;
-          })
+          ...messages.slice(0, -1), // Include previous messages but not the last one
+          {
+            role: 'user',
+            content: contentArray
+          }
         ]
       }),
     });

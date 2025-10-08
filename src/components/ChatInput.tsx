@@ -576,7 +576,9 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
 
     // Early detection of image edit requests to prevent ghost bubbles
     // If images are uploaded WITH a prompt asking to DO something (not just "what is this"), treat as edit
-    const isUploadedImageEdit = imagesToProcess.length > 0 && userMessage && (
+    const isUploadedImageEdit = imagesToProcess.length > 0 && 
+                                imagesToProcess.length <= 2 && 
+                                userMessage && (
       isImageEditRequest(userMessage) || 
       // Detect composition/creation requests with uploaded images
       /\b(put|place|combine|merge|add|create|make|compose|blend|mix|together|into|with|at|in)\b/i.test(userMessage)
@@ -655,33 +657,35 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         };
         addMessage(placeholderMessage);
 
-        // Process the image edit
+        // Process the image edit/combine
         try {
           const ai = new AIService();
-          const file = imagesToProcess[0];
           
-          // Upload the base image to get a URL
+          // Upload all base images to get URLs
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) throw new Error('Not authenticated');
           
-          const fileName = `${user.id}/base-for-edit-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
-          
-          const { data, error } = await supabase.storage
-            .from('avatars')
-            .upload(fileName, file, {
-              contentType: file.type,
-              upsert: false
-            });
+          const baseImageUrls: string[] = [];
+          for (const file of imagesToProcess) {
+            const fileName = `${user.id}/base-for-edit-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
             
-          if (error) throw error;
+            const { data, error } = await supabase.storage
+              .from('avatars')
+              .upload(fileName, file, {
+                contentType: file.type,
+                upsert: false
+              });
+              
+            if (error) throw error;
+            
+            const { data: publicUrlData } = supabase.storage
+              .from('avatars')
+              .getPublicUrl(fileName);
+            baseImageUrls.push(publicUrlData.publicUrl);
+          }
           
-          const { data: publicUrlData } = supabase.storage
-            .from('avatars')
-            .getPublicUrl(fileName);
-          const baseImageUrl = publicUrlData.publicUrl;
-          
-          // Generate edited image
-          const imageUrl = await ai.editImage(userMessage, baseImageUrl);
+          // Generate edited/combined image
+          const imageUrl = await ai.editImage(userMessage, baseImageUrls);
           
           // Upload edited image to storage for persistence
           let permanentImageUrl = imageUrl;
@@ -839,23 +843,24 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           setGeneratingImage(false);
         }
         } else if (imagesToProcess.length > 0) {
-          // Handle regular image analysis
+          // Handle regular image analysis (up to 4 images)
           try {
-            // Convert first image to base64 for analysis
-            const file = imagesToProcess[0];
-            const base64Promise = new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = () => reject(new Error('Failed to read image file'));
-              reader.readAsDataURL(file);
-            });
+            // Convert all images to base64 for analysis
+            const base64Promises = imagesToProcess.map(file => 
+              new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = () => reject(new Error('Failed to read image file'));
+                reader.readAsDataURL(file);
+              })
+            );
             
-            const base64 = await base64Promise;
-            const analysisPrompt = userMessage || 'What do you see in these images?';
+            const base64Images = await Promise.all(base64Promises);
+            const analysisPrompt = userMessage || `What do you see in ${imagesToProcess.length > 1 ? 'these images' : 'this image'}?`;
             
             const response = await ai.sendMessageWithImage(
               [{ role: 'user', content: analysisPrompt }],
-              base64
+              base64Images
             );
             
             await addMessage({

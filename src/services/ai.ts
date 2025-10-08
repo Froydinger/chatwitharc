@@ -85,13 +85,20 @@ export class AIService {
     }
   }
 
-  async sendMessageWithImage(messages: AIMessage[], base64Image: string): Promise<string> {
+  async sendMessageWithImage(messages: AIMessage[], base64Images: string | string[]): Promise<string> {
     try {
+      // Support both single image and array of images
+      const images = Array.isArray(base64Images) ? base64Images : [base64Images];
+      
+      if (images.length > 4) {
+        throw new Error('Maximum 4 images allowed for analysis');
+      }
+      
       // Call edge function for image analysis
       const { data, error } = await supabase.functions.invoke('analyze-image', {
         body: { 
           messages,
-          image: base64Image
+          images: images
         }
       });
 
@@ -142,15 +149,21 @@ export class AIService {
     }
   }
 
-  async editImage(prompt: string, baseImageUrl: string): Promise<string> {
+  async editImage(prompt: string, baseImageUrls: string | string[]): Promise<string> {
     try {
-      // Editing image with Gemini
+      // Support both single image and array of images (max 2 for combining)
+      const images = Array.isArray(baseImageUrls) ? baseImageUrls : [baseImageUrls];
+      
+      if (images.length > 2) {
+        throw new Error('Maximum 2 images allowed for combining');
+      }
+      
+      // Editing/combining image(s) with Gemini
       
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: { 
           prompt, 
-          baseImageUrl,
-          operation: 'edit'
+          baseImageUrls: images
         }
       });
 
