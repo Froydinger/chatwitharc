@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Progress } from "@/components/ui/progress";
+import { Loader2 } from "lucide-react";
 
 interface ImageGenerationPlaceholderProps {
   prompt: string;
@@ -8,29 +8,19 @@ interface ImageGenerationPlaceholderProps {
 }
 
 export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerationPlaceholderProps) {
-  const [progress, setProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
     if (isComplete) return;
     
-    const duration = 135000; // 135 seconds max wait (3x longer for image edits)
-    const interval = 100; // Update every 100ms for smoother animation
-    const increment = (interval / duration) * 100;
+    // Auto-complete after 12 seconds as a fallback
+    const timer = setTimeout(() => {
+      setIsComplete(true);
+      onComplete?.();
+    }, 12000);
 
-    const timer = setInterval(() => {
-      setProgress((prev) => {
-        const newProgress = prev + increment;
-        if (newProgress >= 95) {
-          // Slow down near the end but don't complete
-          return Math.min(99, prev + increment * 0.1);
-        }
-        return newProgress;
-      });
-    }, interval);
-
-    return () => clearInterval(timer);
-  }, [isComplete]);
+    return () => clearTimeout(timer);
+  }, [isComplete, onComplete]);
 
   return (
     <motion.div
@@ -74,6 +64,16 @@ export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerati
          {/* Content overlay */}
          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
            
+           {/* Circular spinner */}
+           <motion.div
+             initial={{ opacity: 0, scale: 0.8 }}
+             animate={{ opacity: 1, scale: 1 }}
+             transition={{ delay: 0.1 }}
+             className="mb-6"
+           >
+             <Loader2 className="w-16 h-16 text-primary animate-spin" />
+           </motion.div>
+           
            <motion.h3
              initial={{ opacity: 0, y: 10 }}
              animate={{ opacity: 1, y: 0 }}
@@ -86,27 +86,11 @@ export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerati
            <motion.p
              initial={{ opacity: 0, y: 10 }}
              animate={{ opacity: 1, y: 0 }}
-             transition={{ delay: 0.4 }}
-             className="text-sm text-muted-foreground mb-6 line-clamp-2"
+             transition={{ delay: 0.3 }}
+             className="text-sm text-muted-foreground line-clamp-2 max-w-xs"
            >
             {prompt}
           </motion.p>
-
-          {/* Progress bar */}
-          <div className="w-full max-w-xs">
-            <Progress 
-              value={progress} 
-              className="h-2 bg-background/50"
-            />
-             <motion.p
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               transition={{ delay: 0.6 }}
-               className="text-xs text-muted-foreground mt-2"
-             >
-              {Math.round(progress)}%
-            </motion.p>
-          </div>
         </div>
       </div>
     </motion.div>
