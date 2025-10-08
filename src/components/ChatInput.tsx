@@ -72,21 +72,20 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
   const { toast } = useToast();
   useProfile();
 
-  // When banana is active either by detection or force
+  // Banana active when forced or input suggests image intent
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
 
   useEffect(() => {
     onImagesChange?.(selectedImages.length > 0);
   }, [selectedImages.length, onImagesChange]);
 
-  // Quick prompts: listen for external quick prompts (populates input)
+  // Quick prompts listener (populates input)
   useEffect(() => {
     const quickHandler = (ev: Event) => {
       try {
         const e = ev as CustomEvent<{ prompt?: string; type?: string }>;
         if (e?.detail?.prompt) {
           setInputValue(e.detail.prompt);
-          // focus textarea and optionally trigger send if type === 'image' is desired
           setTimeout(() => textareaRef.current?.focus(), 0);
         }
       } catch (err) {
@@ -94,7 +93,6 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
       }
     };
     window.addEventListener("quickPromptSelected", quickHandler as EventListener);
-    // also listen to a legacy trigger event used in some places
     window.addEventListener("arcai:triggerPrompt", quickHandler as EventListener);
     return () => {
       window.removeEventListener("quickPromptSelected", quickHandler as EventListener);
@@ -102,12 +100,11 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     };
   }, []);
 
-  // Listen for image edit requests dispatched by ImageEditModal
+  // Event listener for modal-triggered image edits
   useEffect(() => {
     const handleImageEdit = (ev: Event) => {
       const e = ev as CustomEvent<{ content: string; baseImageUrl: string | string[]; editInstruction: string }>;
       if (!e?.detail) return;
-      // route to the same handler that ChatInput uses for edits
       handleExternalImageEdit(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction);
     };
     window.addEventListener("processImageEdit", handleImageEdit as EventListener);
@@ -143,24 +140,23 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
   const removeImage = (idx: number) => setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
   const clearSelected = () => setSelectedImages([]);
 
-  /* ---------- Core: handle external image edit (from modal) ---------- */
+  /* ---------- External image edit flow (from modal) ---------- */
   const handleExternalImageEdit = async (
     userMessage: string,
     baseImageUrl: string | string[],
     editInstruction: string,
   ) => {
-    // baseImageUrl may be single url string or array of urls
     try {
       const ai = new AIService();
       setGeneratingImage(true);
-      // add user image edit request to chat for context
+
       await addMessage({
         content: userMessage || editInstruction || "Edit request",
         role: "user",
         type: "image",
         imageUrls: Array.isArray(baseImageUrl) ? baseImageUrl : [baseImageUrl],
       });
-      // add placeholder assistant generating message
+
       await addMessage({
         content: `Editing image: ${editInstruction}`,
         role: "assistant",
@@ -168,10 +164,9 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         imagePrompt: editInstruction,
       });
 
-      // call AI edit endpoint
       const url = await ai.editImage(editInstruction, Array.isArray(baseImageUrl) ? baseImageUrl : [baseImageUrl]);
 
-      // try persist
+      // try persist to storage
       let finalUrl = url;
       try {
         const resp = await fetch(url);
@@ -190,7 +185,6 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           }
         }
       } catch (err) {
-        // ignore persistence errors
         console.warn("persist edited image failed", err);
       }
 
@@ -212,14 +206,14 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     }
   };
 
-  /* ---------- Core: send handler ---------- */
+  /* ---------- Main send handler ---------- */
   const handleSend = async () => {
     if ((!inputValue.trim() && selectedImages.length === 0) || isLoading) return;
 
     const userMessage = inputValue.trim();
     const images = [...selectedImages];
 
-    // Clear UI immediately
+    // Clear UI promptly
     setInputValue("");
     setSelectedImages([]);
     setForceImageMode(false);
@@ -228,9 +222,9 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     try {
       const ai = new AIService();
 
-      // If there are uploaded images -> either edit (if request) or analyze
+      // Images uploaded -> either edit or analyze
       if (images.length > 0) {
-        // upload images to storage if possible (best-effort), fallback to blob URLs
+        // upload images (best-effort) or fallback to blob URLs
         let imageUrls: string[] = [];
         try {
           const {
@@ -252,7 +246,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           imageUrls = images.map((f) => URL.createObjectURL(f));
         }
 
-        // If user message looks like edit -> run edit flow (supports up to 2 images as base)
+        // If user message looks like edit -> edit flow
         if (userMessage && isImageEditRequest(userMessage)) {
           await addMessage({ content: userMessage, role: "user", type: "image", imageUrls });
           await addMessage({
@@ -304,7 +298,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           return;
         }
 
-        // Otherwise analyze images with AI
+        // Otherwise analyze images
         await addMessage({
           content: userMessage || "Sent images",
           role: "user",
@@ -341,11 +335,10 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
       }
 
       // No uploaded images:
-      // If Nano Banana active => ALWAYS generate image (even if not explicit)
+      // If Nano Banana active => ALWAYS generate image
       if (shouldShowBanana) {
         const imagePrompt = extractImagePrompt(userMessage || "");
         await addMessage({ content: userMessage || imagePrompt, role: "user", type: "text" });
-
         await addMessage({
           content: `Generating image: ${imagePrompt}`,
           role: "assistant",
@@ -355,7 +348,6 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         setGeneratingImage(true);
 
         try {
-          // Use a clear API prompt so model doesn't leak "nanobanana" name into user prompt
           const apiPrompt = `Generate an image: ${imagePrompt}`;
           const genUrl = await ai.generateImage(apiPrompt);
           let finalUrl = genUrl;
@@ -402,7 +394,6 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
       if (memoryItem) {
         const wasNew = await addToMemoryBank(memoryItem);
         if (wasNew) {
-          // silent save (no visible confirmation)
           formatMemoryConfirmation(memoryItem.content);
         }
       }
@@ -490,13 +481,10 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
                 ].join(" ")}
               >
                 <span className="text-[20px] leading-none">🍌</span>
-                {/* desktop: show label inside the trigger button to minimize duplicated badge */}
-                <span className="hidden sm:inline ml-2 text-sm font-medium text-yellow-700 dark:text-yellow-400">
-                  Nano Banana
-                </span>
               </button>
             </DropdownMenuTrigger>
 
+            {/* Opaque menu background - same style as mobile */}
             <DropdownMenuContent align="start" className="w-56 bg-card border-border/50 z-50">
               <DropdownMenuItem
                 onClick={() => setForceImageMode(true)}
@@ -515,12 +503,12 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Mobile-only close X placed immediately to the right of the banana when active (avoids double banana "pill") */}
+          {/* Close X next to banana when active (same behavior on desktop & mobile now for consistency) */}
           {shouldShowBanana && (
             <button
               onClick={() => setForceImageMode(false)}
               aria-label="Disable Nano Banana"
-              className="sm:hidden h-10 w-10 inline-flex items-center justify-center rounded-md hover:bg-yellow-500/10"
+              className="h-10 w-10 inline-flex items-center justify-center rounded-md hover:bg-yellow-500/10"
               title="Disable Nano Banana"
             >
               <X className="h-5 w-5 text-yellow-600" />
