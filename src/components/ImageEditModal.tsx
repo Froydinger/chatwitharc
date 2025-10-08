@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,60 +13,87 @@ interface ImageEditModalProps {
   originalPrompt?: string;
 }
 
+const MAX_CHARS = 500;
+
+const SUGGESTIONS = [
+  "Make it more photorealistic",
+  "Change the background to a sunset",
+  "Warmer, golden-hour lighting",
+  "Add depth of field / bokeh",
+  "Increase detail and sharpness",
+  "Cinematic rim light",
+  "4:5 portrait framing",
+  "Remove background clutter",
+];
+
 export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: ImageEditModalProps) {
   const [editInstruction, setEditInstruction] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeChips, setActiveChips] = useState<string[]>([]);
   const { addMessage } = useArcStore();
   const { toast } = useToast();
 
+  const charsLeft = useMemo(() => Math.max(0, MAX_CHARS - editInstruction.length), [editInstruction]);
+
+  const toggleChip = (text: string) => {
+    setActiveChips((prev) => (prev.includes(text) ? prev.filter((t) => t !== text) : [...prev, text]));
+  };
+
+  const applyChipsToText = (base: string) => {
+    if (activeChips.length === 0) return base.trim();
+    const chips = activeChips.filter((c) => !base.toLowerCase().includes(c.toLowerCase()));
+    if (chips.length === 0) return base.trim();
+    const joiner = base.trim().length ? "; " : "";
+    return `${base.trim()}${joiner}${chips.join("; ")}`.slice(0, MAX_CHARS);
+  };
+
   const handleSubmit = async () => {
-    if (!editInstruction.trim()) {
+    const textWithChips = applyChipsToText(editInstruction);
+    if (!textWithChips) {
       toast({
-        title: "Error",
-        description: "Please enter editing instructions",
-        variant: "destructive"
+        title: "Add instructions",
+        description: "Tell me how you'd like to change the image.",
+        variant: "destructive",
       });
       return;
     }
 
     setIsSubmitting(true);
-
     try {
-      // Create a new message with the image and editing instructions
-      const editPrompt = originalPrompt 
-        ? `Edit this image (originally: "${originalPrompt}"): ${editInstruction.trim()}`
-        : `Edit this image: ${editInstruction.trim()}`;
+      const editPrompt = originalPrompt
+        ? `Edit this image (originally: "${originalPrompt}"): ${textWithChips}`
+        : `Edit this image: ${textWithChips}`;
 
       await addMessage({
         content: editPrompt,
-        role: 'user',
-        type: 'image',
-        imageUrls: [imageUrl] // Include the original image for reference
+        role: "user",
+        type: "image",
+        imageUrls: [imageUrl],
       });
 
-      // Trigger the edit by dispatching an event to ChatInput
-      const editEvent = new CustomEvent('processImageEdit', {
-        detail: { 
+      const editEvent = new CustomEvent("processImageEdit", {
+        detail: {
           content: editPrompt,
           baseImageUrl: imageUrl,
-          editInstruction: editInstruction.trim()
-        }
+          editInstruction: textWithChips,
+        },
       });
       window.dispatchEvent(editEvent);
 
       toast({
-        title: "Image Edit Started",
-        description: "Generating edited image...",
+        title: "Editing started",
+        description: "Nano Banana is working on your update 🍌",
       });
 
       onClose();
       setEditInstruction("");
+      setActiveChips([]);
     } catch (error) {
-      console.error('Error starting image edit:', error);
+      console.error("Error starting image edit:", error);
       toast({
         title: "Error",
         description: "Failed to start image editing",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -74,7 +101,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if ((e.key === "Enter" && (e.metaKey || e.ctrlKey)) || (e.key === "Enter" && !e.shiftKey)) {
       e.preventDefault();
       handleSubmit();
     }
@@ -82,64 +109,94 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle>Edit Image</DialogTitle>
-          <DialogDescription>
-            Modify the image using AI-powered editing. Describe how you'd like to change the image.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-4 overflow-y-auto flex-1 min-h-0">
-          {/* Show the original image */}
-          <div className="flex justify-center">
-            <div className="relative max-w-sm w-full rounded-lg overflow-hidden">
-              <SmoothImage
-                src={imageUrl}
-                alt="Original image"
-                className="w-full h-auto max-h-[30vh] md:max-h-[40vh] object-contain"
-              />
+      {/* bigger canvas, edge-to-edge content with a clean split layout */}
+      <DialogContent className="w-full max-w-3xl p-0 overflow-hidden">
+        {/* Header */}
+        <div className="px-6 pt-6 pb-3 border-b bg-gradient-to-b from-background/40 to-background">
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-xl sm:text-2xl flex items-center gap-2">
+              <span className="text-lg sm:text-xl animate-pulse drop-shadow-[0_0_8px_rgba(250,204,21,.8)]">🍌</span>
+              Edit Image
+            </DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">
+              Describe how you’d like to change the image. Use chips or type your own instructions.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+
+        {/* Body */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-6 p-6 pt-4">
+          {/* Preview panel */}
+          <div className="md:border-r md:pr-6 flex flex-col">
+            <div className="aspect-square w-full rounded-xl overflow-hidden bg-muted/40 border">
+              <SmoothImage src={imageUrl} alt="Original" className="w-full h-full object-contain" />
             </div>
+
+            {originalPrompt && (
+              <div className="mt-4 text-sm text-muted-foreground">
+                <div className="font-medium text-foreground mb-1">Original prompt</div>
+                <div className="rounded-lg border bg-card/60 p-3 leading-relaxed">{originalPrompt}</div>
+              </div>
+            )}
           </div>
 
-          {/* Show original prompt if available */}
-          {originalPrompt && (
-            <div className="text-sm text-muted-foreground">
-              <strong>Original prompt:</strong> {originalPrompt}
+          {/* Controls panel */}
+          <div className="pt-4 md:pt-0 flex flex-col min-h-[280px]">
+            {/* Chips */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {SUGGESTIONS.map((s) => {
+                const active = activeChips.includes(s);
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => toggleChip(s)}
+                    className={[
+                      "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
+                      active
+                        ? "bg-yellow-400/20 border-yellow-400/50 text-yellow-700 dark:text-yellow-300"
+                        : "bg-muted/40 border-border hover:bg-muted/70",
+                    ].join(" ")}
+                  >
+                    {s}
+                  </button>
+                );
+              })}
             </div>
-          )}
 
-          {/* Edit instruction input */}
-          <div className="space-y-2 flex-shrink-0">
-            <label className="text-sm font-medium">
-              How would you like to edit this image?
-            </label>
-            <Textarea
-              value={editInstruction}
-              onChange={(e) => setEditInstruction(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="e.g., make it more photorealistic, change the background to a sunset, add more detail..."
-              className="min-h-[60px] md:min-h-[80px] resize-none"
-              disabled={isSubmitting}
-            />
+            {/* Textarea */}
+            <div className="flex-1 flex flex-col">
+              <label className="text-sm font-medium mb-1.5">How would you like to edit this image?</label>
+              <Textarea
+                value={editInstruction}
+                onChange={(e) => setEditInstruction(e.target.value.slice(0, MAX_CHARS))}
+                onKeyDown={handleKeyPress}
+                placeholder="e.g., make it more photorealistic, change the background to a sunset, add more detail…"
+                className="min-h-[100px] resize-none focus-visible:ring-yellow-400"
+                disabled={isSubmitting}
+              />
+              <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+                <span>Tip: Press ⌘↵ / Ctrl↵ to edit</span>
+                <span className={charsLeft === 0 ? "text-destructive" : ""}>{charsLeft} chars left</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex justify-end gap-3 flex-shrink-0 pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting || !editInstruction.trim()}
-          >
-            {isSubmitting ? "Starting Edit..." : "Edit Image"}
-          </Button>
+        {/* Footer (sticky on mobile) */}
+        <div className="px-6 py-4 border-t bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky bottom-0 md:static">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2">
+            <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="sm:min-w-[120px]">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting || (!editInstruction.trim() && activeChips.length === 0)}
+              className="sm:min-w-[140px]"
+            >
+              {isSubmitting ? "Starting…" : "Edit Image"}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
