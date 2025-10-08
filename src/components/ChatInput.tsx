@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Paperclip, Sparkles, Image as ImageIcon } from "lucide-react";
+import { Send, Paperclip, Image as ImageIcon } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { AIService } from "@/services/ai";
-import { GlassButton } from "@/components/ui/glass-button";
 import { Textarea } from "@/components/ui/textarea";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
@@ -18,24 +17,50 @@ import {
 // Image editing/modification keywords for uploaded images
 function isImageEditRequest(message: string): boolean {
   const editKeywords = [
-    'edit this', 'modify this', 'change this', 'alter this', 'update this',
-    'make it', 'make this', 'turn this', 'convert this', 'transform this',
-    'add a', 'add some', 'put a', 'put some', 'give it', 'give this',
-    'remove the', 'remove this', 'take off', 'take away',
-    'make the', 'change the', 'turn the', 'with a', 'wearing a',
-    'in a', 'holding a', 'but with', 'except with', 'instead of',
-    'replace the', 'swap the', 'substitute', 'put on', 'add on'
+    "edit this",
+    "modify this",
+    "change this",
+    "alter this",
+    "update this",
+    "make it",
+    "make this",
+    "turn this",
+    "convert this",
+    "transform this",
+    "add a",
+    "add some",
+    "put a",
+    "put some",
+    "give it",
+    "give this",
+    "remove the",
+    "remove this",
+    "take off",
+    "take away",
+    "make the",
+    "change the",
+    "turn the",
+    "with a",
+    "wearing a",
+    "in a",
+    "holding a",
+    "but with",
+    "except with",
+    "instead of",
+    "replace the",
+    "swap the",
+    "substitute",
+    "put on",
+    "add on",
   ];
-  
   const lowerMessage = message.toLowerCase();
-  return editKeywords.some(keyword => lowerMessage.includes(keyword));
+  return editKeywords.some((k) => lowerMessage.includes(k));
 }
 
 // Intelligent image request detection
 function checkForImageRequest(message: string): boolean {
   const lowerMsg = message.toLowerCase().trim();
-  
-  // First check: If user is asking for a prompt/text, NOT an image
+
   const promptRequestIndicators = [
     /\b(?:make|write|create|give\s+me|provide)\s+(?:a\s+)?(?:prompt|description|text)\b/i,
     /\bprompt\s+for\b/i,
@@ -45,48 +70,69 @@ function checkForImageRequest(message: string): boolean {
     /\b(?:write|describe|explain)\s+(?:what|how)\b/i,
     /\bhelp\s+me\s+(?:write|describe|make|create)\b/i,
     /\bgive\s+me\s+(?:ideas?|suggestions?|examples?)\b/i,
-    /\bwhat\s+(?:should|would)\s+i\s+(?:write|say|type|put)\b/i
+    /\bwhat\s+(?:should|would)\s+i\s+(?:write|say|type|put)\b/i,
   ];
-  
-  // If they're asking for a prompt/text, return false (don't generate image)
-  if (promptRequestIndicators.some(pattern => pattern.test(lowerMsg))) {
-    return false;
-  }
-  
-  // EXPLICIT check for "generate an image" pattern - highest priority
-  if (/^generate\s+an?\s+image\s+of/i.test(lowerMsg)) {
-    // Explicit image generation keywords detected
-    return true;
-  }
-  
-  // Direct generation keywords
+  if (promptRequestIndicators.some((p) => p.test(lowerMsg))) return false;
+
+  if (/^generate\s+an?\s+image\s+of/i.test(lowerMsg)) return true;
+
   const directKeywords = [
-    'generate', 'create', 'make', 'draw', 'paint', 'sketch', 'illustrate', 
-    'design', 'render', 'produce', 'build', 'craft', 'show me', 'visualize',
-    'picture', 'image', 'photo', 'artwork', 'drawing', 'painting', 'graphic'
+    "generate",
+    "create",
+    "make",
+    "draw",
+    "paint",
+    "sketch",
+    "illustrate",
+    "design",
+    "render",
+    "produce",
+    "build",
+    "craft",
+    "show me",
+    "visualize",
+    "picture",
+    "image",
+    "photo",
+    "artwork",
+    "drawing",
+    "painting",
+    "graphic",
   ];
-  
-  // Phrases that indicate image requests
   const imageRequestPhrases = [
-    'i want to see', 'show me', 'can you show', 'what would.*look like',
-    'i need.*image', 'make.*picture', 'create.*visual', 'draw.*for me',
-    'generate.*picture', 'design.*logo', 'create.*illustration', 'make.*artwork',
-    'paint.*scene', 'sketch.*idea', 'visualize.*concept', 'render.*scene',
-    'create.*design', 'make.*graphic', 'draw.*character', 'illustrate.*story',
-    'design.*poster', 'create.*banner', 'make.*cover', 'draw.*diagram'
+    "i want to see",
+    "show me",
+    "can you show",
+    "what would.*look like",
+    "i need.*image",
+    "make.*picture",
+    "create.*visual",
+    "draw.*for me",
+    "generate.*picture",
+    "design.*logo",
+    "create.*illustration",
+    "make.*artwork",
+    "paint.*scene",
+    "sketch.*idea",
+    "visualize.*concept",
+    "render.*scene",
+    "create.*design",
+    "make.*graphic",
+    "draw.*character",
+    "illustrate.*story",
+    "design.*poster",
+    "create.*banner",
+    "make.*cover",
+    "draw.*diagram",
   ];
-  
-  // Patterns for image modification requests (iterating on existing images)
   const imageModificationPatterns = [
     /\b(?:give\s+it|make\s+it|change\s+it\s+to|turn\s+it)\s+.+(?:instead|rather|now)\b/i,
     /\b(?:make\s+it|change\s+it\s+to|turn\s+it\s+into|give\s+it)\s+(?:more|less|darker|brighter|bigger|smaller)\b/i,
     /\b(?:add|remove|change|modify|adjust|tweak)\s+(?:the|some|a)\s+.+(?:instead|to\s+it|on\s+it)\b/i,
     /\b(?:with\s+a|but\s+with|except\s+with|instead\s+of)\s+.+(?:hue|color|tone|style|background)\b/i,
     /\b(?:make\s+the|change\s+the|turn\s+the)\s+.+(?:purple|blue|red|green|yellow|orange|pink|black|white|gray|grey)\b/i,
-    /\b(?:more|less)\s+(?:vibrant|colorful|saturated|bright|dark|moody|dramatic|realistic|abstract)\b/i
+    /\b(?:more|less)\s+(?:vibrant|colorful|saturated|bright|dark|moody|dramatic|realistic|abstract)\b/i,
   ];
-  
-  // Visual description patterns that suggest image generation
   const visualDescriptionPatterns = [
     /^(?:a|an)\s+.*(scene|landscape|portrait|character|building|room|garden|forest|beach|mountain|city|street|house|car|animal|person|face|logo|design|artwork|drawing|painting|illustration)/i,
     /^(?:imagine|picture|envision)\s+/i,
@@ -94,144 +140,99 @@ function checkForImageRequest(message: string): boolean {
     /\b(in\s+the\s+style\s+of|inspired\s+by|similar\s+to)\b/i,
     /\b(photorealistic|cartoon|anime|realistic|abstract|minimalist|detailed)\b/i,
     /\b(scene\s+with|landscape\s+with|portrait\s+of|character\s+with)\b/i,
-    /\b(color\s+scheme|warm\s+colors|cool\s+colors|bright|dark|moody|lighting)\b/i
+    /\b(color\s+scheme|warm\s+colors|cool\s+colors|bright|dark|moody|lighting)\b/i,
   ];
-  
-  // Question patterns that suggest wanting to see something
   const questionPatterns = [
     /^what\s+(?:would|does|might).+(?:look\s+like|appear)/i,
     /^how\s+(?:would|does|might).+(?:look|appear)/i,
     /^can\s+you\s+(?:show|draw|create|make|generate|paint|sketch|illustrate)/i,
     /^could\s+you\s+(?:show|draw|create|make|generate|paint|sketch|illustrate)/i,
-    /^would\s+you\s+(?:show|draw|create|make|generate|paint|sketch|illustrate)/i
+    /^would\s+you\s+(?:show|draw|create|make|generate|paint|sketch|illustrate)/i,
   ];
-  
-  // Check direct keywords combined with visual terms
-  const hasDirectKeyword = directKeywords.some(keyword => lowerMsg.includes(keyword));
+
+  const hasDirectKeyword = directKeywords.some((k) => lowerMsg.includes(k));
   const hasVisualContext = /\b(of|with|showing|featuring|depicting|containing)\s+/i.test(lowerMsg);
-  
-  // Check phrase patterns
-  const hasImagePhrase = imageRequestPhrases.some(phrase => 
-    new RegExp(phrase, 'i').test(lowerMsg)
-  );
-  
-  // Check image modification patterns (high priority)
-  const hasModificationPattern = imageModificationPatterns.some(pattern => 
-    pattern.test(lowerMsg)
-  );
-  
-  // Debug logging
-  console.log('Image detection debug:', {
-    message: lowerMsg,
-    hasModificationPattern,
-    hasDirectKeyword,
-    hasImagePhrase,
-    patterns: imageModificationPatterns.map(p => ({ pattern: p.toString(), matches: p.test(lowerMsg) }))
-  });
-  
-  // Check visual description patterns
-  const hasVisualDescription = visualDescriptionPatterns.some(pattern => 
-    pattern.test(lowerMsg)
-  );
-  
-  // Check question patterns
-  const hasQuestionPattern = questionPatterns.some(pattern => 
-    pattern.test(lowerMsg)
-  );
-  
-  // Artistic/creative context
-  const hasArtisticContext = /\b(art|artistic|creative|visual|aesthetic|beautiful|stunning|amazing|gorgeous|colorful|vibrant|dramatic|epic|fantasy|surreal|abstract|realistic|photorealistic|HD|4K|detailed|intricate)\b/i.test(lowerMsg);
-  
-  // Style or medium indicators
-  const hasStyleIndicators = /\b(watercolor|oil\s+painting|digital\s+art|pencil\s+sketch|charcoal|acrylic|pastel|ink|vector|3D|CGI|concept\s+art|fine\s+art|pop\s+art|street\s+art|graffiti)\b/i.test(lowerMsg);
-  
-  // Location/setting descriptions that are often visual
-  const hasLocationDescription = /\b(sunset|sunrise|beach|ocean|mountain|forest|city|skyline|garden|room|kitchen|bedroom|office|street|park|lake|river|castle|house|building|bridge|road|path|field|valley|desert|jungle|snow|winter|summer|spring|autumn|night|day|evening|morning)\b/i.test(lowerMsg);
-  
-  // Additional check: Make sure it's not just asking about image generation
-  const isAskingAboutImages = /\b(?:about|discuss|talk\s+about|explain|help\s+with|understand)\s+.*\b(?:image|picture|photo|visual)\b/i.test(lowerMsg);
-  if (isAskingAboutImages && !hasDirectKeyword) {
-    return false;
-  }
-  
-  // Combine all checks with smart weighting
-  const score = 
-    (hasModificationPattern ? 4 : 0) +  // Highest priority for image modifications
+  const hasImagePhrase = imageRequestPhrases.some((phrase) => new RegExp(phrase, "i").test(lowerMsg));
+  const hasModificationPattern = imageModificationPatterns.some((p) => p.test(lowerMsg));
+  const hasVisualDescription = visualDescriptionPatterns.some((p) => p.test(lowerMsg));
+  const hasQuestionPattern = questionPatterns.some((p) => p.test(lowerMsg));
+  const hasArtisticContext =
+    /\b(art|artistic|creative|visual|aesthetic|beautiful|stunning|amazing|gorgeous|colorful|vibrant|dramatic|epic|fantasy|surreal|abstract|realistic|photorealistic|HD|4K|detailed|intricate)\b/i.test(
+      lowerMsg,
+    );
+  const hasStyleIndicators =
+    /\b(watercolor|oil\s+painting|digital\s+art|pencil\s+sketch|charcoal|acrylic|pastel|ink|vector|3D|CGI|concept\s+art|fine\s+art|pop\s+art|street\s+art|graffiti)\b/i.test(
+      lowerMsg,
+    );
+  const hasLocationDescription =
+    /\b(sunset|sunrise|beach|ocean|mountain|forest|city|skyline|garden|room|kitchen|bedroom|office|street|park|lake|river|castle|house|building|bridge|road|path|field|valley|desert|jungle|snow|winter|summer|spring|autumn|night|day|evening|morning)\b/i.test(
+      lowerMsg,
+    );
+  const isAskingAboutImages =
+    /\b(?:about|discuss|talk\s+about|explain|help\s+with|understand)\s+.*\b(?:image|picture|photo|visual)\b/i.test(
+      lowerMsg,
+    );
+  if (isAskingAboutImages && !hasDirectKeyword) return false;
+
+  const score =
+    (hasModificationPattern ? 4 : 0) +
     (hasDirectKeyword && hasVisualContext ? 3 : 0) +
-    (hasImagePhrase ? 3 : 0) +  
+    (hasImagePhrase ? 3 : 0) +
     (hasVisualDescription ? 2 : 0) +
     (hasQuestionPattern ? 2 : 0) +
     (hasDirectKeyword ? 1 : 0) +
     (hasArtisticContext ? 1 : 0) +
     (hasStyleIndicators ? 2 : 0) +
     (hasLocationDescription ? 1 : 0);
-  
-  console.log('Image detection final score:', {
-    score,
-    threshold: 2,
-    willGenerateImage: score >= 2,
-    explicitCheck: /^generate\s+an?\s+image\s+of/i.test(lowerMsg)
-  });
 
-  // Return true if score is 2 or higher (indicating strong image intent)
   return score >= 2;
 }
 
 // Extract clean image prompt from user message
 function extractImagePrompt(message: string): string {
   let prompt = message.trim();
-  
-  // Remove common image request prefixes
   const prefixesToRemove = [
     /^(?:please\s+)?(?:can\s+you\s+)?(?:could\s+you\s+)?(?:would\s+you\s+)?/i,
     /^(?:generate|create|make|draw|paint|sketch|illustrate|design|show\s+me|visualize)\s+(?:a\s+|an\s+)?(?:picture\s+of\s+|image\s+of\s+|drawing\s+of\s+|painting\s+of\s+)?/i,
     /^(?:draw|paint|create|make|generate|design)\s+(?:me\s+)?(?:a\s+|an\s+)?/i,
     /^(?:i\s+want\s+to\s+see|show\s+me)\s+(?:a\s+|an\s+)?/i,
     /^(?:what\s+(?:would|does)\s+.*\s+look\s+like\??\s*)/i,
-    /^(?:how\s+(?:would|does)\s+.*\s+(?:look|appear)\??\s*)/i
+    /^(?:how\s+(?:would|does)\s+.*\s+(?:look|appear)\??\s*)/i,
   ];
-  
-  for (const prefix of prefixesToRemove) {
-    prompt = prompt.replace(prefix, '').trim();
-  }
-  
-  // If the prompt is too short after cleaning, use the original
-  if (prompt.length < 3) {
-    prompt = message.trim();
-  }
-  
-  // Ensure it starts with a descriptive phrase
+  for (const p of prefixesToRemove) prompt = prompt.replace(p, "").trim();
+  if (prompt.length < 3) prompt = message.trim();
   if (!/^(?:a|an|the)\s+/i.test(prompt) && !/^[A-Z]/.test(prompt)) {
-    // Add "a" if it seems to be describing a singular thing
-    if (!/s\s*$/.test(prompt.split(' ')[0])) {
-      prompt = `a ${prompt}`;
-    }
+    if (!/s\s*$/.test(prompt.split(" ")[0])) prompt = `a ${prompt}`;
   }
-  
   return prompt;
 }
 
 export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boolean) => void }) {
-  const { 
-    messages, 
-    addMessage, 
-    replaceLastMessage,
-    isLoading, 
-    isGeneratingImage,
-    setLoading,
-    setGeneratingImage
-  } = useArcStore();
+  const { messages, addMessage, replaceLastMessage, isLoading, isGeneratingImage, setLoading, setGeneratingImage } =
+    useArcStore();
+
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [isActive, setIsActive] = useState(false);
   const [forceImageMode, setForceImageMode] = useState(false);
+  const [isMobile, setIsMobile] = useState(false); // new
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { profile, refetch: refetchProfile } = useProfile();
+  const { refetch: refetchProfile } = useProfile();
 
   // Detect if current input suggests image generation
   const shouldShowBanana = forceImageMode || (inputValue && checkForImageRequest(inputValue));
+
+  // Mobile watcher
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   // Notify parent about image selection changes
   useEffect(() => {
@@ -241,160 +242,109 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = "auto";
       const scrollHeight = textareaRef.current.scrollHeight;
-      const lineHeight = 24; // Approximate line height
-      const maxHeight = lineHeight * 3; // 3 lines max before scrolling
-      textareaRef.current.style.height = Math.min(scrollHeight, maxHeight) + 'px';
+      const lineHeight = 24;
+      const maxHeight = lineHeight * 3;
+      textareaRef.current.style.height = Math.min(scrollHeight, maxHeight) + "px";
     }
   }, [inputValue]);
 
   // Auto-respond to quick start messages (only for text messages without images)
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.role === 'user' && 
-        lastMessage?.type === 'text' && 
-        !lastMessage?.imageUrls && 
-        !isLoading && 
-        messages.filter(m => m.role === 'assistant').length === 0) {
-      // Only trigger auto-response if there are no assistant messages yet AND no images
+    if (
+      lastMessage?.role === "user" &&
+      lastMessage?.type === "text" &&
+      !lastMessage?.imageUrls &&
+      !isLoading &&
+      messages.filter((m) => m.role === "assistant").length === 0
+    ) {
       setLoading(true);
       handleAIResponse(lastMessage.content);
     }
   }, [messages]);
 
-  // Listen for quick prompt selection events (only for old QuickPrompts component)
-  // useEffect(() => {
-  //   const handleQuickPromptSelected = (event: CustomEvent) => {
-  //     const { prompt } = event.detail;
-  //     // Quick prompt selected
-  //     setInputValue(prompt);
-  //     // Focus the textarea after setting the value
-  //     setTimeout(() => {
-  //       textareaRef.current?.focus();
-  //     }, 0);
-  //   };
-
-  //   window.addEventListener('quickPromptSelected', handleQuickPromptSelected as EventListener);
-    
-  //   return () => {
-  //     window.removeEventListener('quickPromptSelected', handleQuickPromptSelected as EventListener);
-  //   };
-  // }, []);
-
-  // Listen for edited message events
+  // Handle edited message events and trigger image gen when applicable
   useEffect(() => {
     const handleEditedMessage = async (event: CustomEvent) => {
-      const { content } = event.detail;
-      console.log('Processing edited message:', content);
-      
-      // Check if the edited message is requesting image generation
+      const { content } = event.detail as { content: string };
+
       const isImageGenerationRequest = checkForImageRequest(content);
-      console.log('Edited message image generation check:', isImageGenerationRequest);
-      
       if (isImageGenerationRequest) {
-        // Handle image generation for edited message
-        let imagePrompt = extractImagePrompt(content);
-        
-        // Add placeholder message immediately
+        const imagePrompt = extractImagePrompt(content);
+        const apiPrompt = `Generate image with Nano Banana: ${imagePrompt}`; // hidden prefix
+
         setGeneratingImage(true);
         await addMessage({
-          content: `Generating image: ${imagePrompt || content}`,
-          role: 'assistant',
-          type: 'image-generating',
-          imagePrompt: imagePrompt || content
+          content: `Generating image: ${imagePrompt}`,
+          role: "assistant",
+          type: "image-generating",
+          imagePrompt,
         });
-        
+
         try {
           const ai = new AIService();
-          const imageUrl = await ai.generateImage(imagePrompt || content);
-          
-          // Upload generated image to Supabase storage for persistence
+          const imageUrl = await ai.generateImage(apiPrompt);
           let permanentImageUrl = imageUrl;
-          try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Not authenticated');
 
-            // Convert the generated image URL to a blob and upload it
+          try {
             const response = await fetch(imageUrl);
             const blob = await response.blob();
-            const fileName = `${user.id}/generated-${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
-            
-            const { data, error } = await supabase.storage
-              .from('avatars')
-              .upload(fileName, blob, {
-                contentType: 'image/png',
-                upsert: false
-              });
-
-            if (error) {
-              console.error('Error uploading generated image to storage:', error);
-            } else {
-              // Get the public URL
-              const { data: publicUrlData } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(fileName);
+            const fileName = `generated-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
+            const { error } = await supabase.storage.from("avatars").upload(fileName, blob, {
+              contentType: "image/png",
+              upsert: false,
+            });
+            if (!error) {
+              const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(fileName);
               permanentImageUrl = publicUrlData.publicUrl;
             }
-          } catch (uploadError) {
-            console.error('Error uploading generated image:', uploadError);
-            // Continue with original URL if upload fails
-          }
-          
-          // Replace placeholder with actual image
+          } catch {}
+
           await replaceLastMessage({
-            content: `Generated image: ${imagePrompt || content}`,
-            role: 'assistant',
-            type: 'image',
-            imageUrl: permanentImageUrl
+            content: `Generated image: ${imagePrompt}`,
+            role: "assistant",
+            type: "image",
+            imageUrl: permanentImageUrl,
           });
         } catch (error) {
-          console.error('Image generation error:', error);
-          // Replace placeholder with error message
           await replaceLastMessage({
-            content: `Sorry, I couldn't generate the image. ${error instanceof Error ? error.message : 'Please try again.'}`,
-            role: 'assistant',
-            type: 'text'
+            content: `Sorry, I couldn't generate the image. ${error instanceof Error ? error.message : "Please try again."}`,
+            role: "assistant",
+            type: "text",
           });
         } finally {
           setGeneratingImage(false);
         }
       } else {
-        // Handle regular AI response for edited message
         handleAIResponse(content);
       }
     };
 
     const handleImageEdit = (event: CustomEvent) => {
       const { content, baseImageUrl, editInstruction } = event.detail;
-      // Processing image edit
       handleImageEditRequest(content, baseImageUrl, editInstruction);
     };
 
-    
     const handleTriggerPrompt = async (event: CustomEvent) => {
-      const { prompt, type } = event.detail;
-      // Handling triggered prompt
-      
-      if (type === 'image') {
-        // Set input value and trigger image generation
+      const { prompt, type } = event.detail as { prompt: string; type: string };
+      if (type === "image") {
         setInputValue(prompt);
-        // Wait a bit then trigger send
         setTimeout(() => {
           handleSend();
         }, 100);
       }
-      // Ignore text prompts to prevent double responses - they're handled directly in store
     };
 
-    window.addEventListener('processEditedMessage', handleEditedMessage as EventListener);
-    window.addEventListener('processImageEdit', handleImageEdit as EventListener);
-    window.addEventListener('arcai:triggerPrompt', handleTriggerPrompt as EventListener);
-    
+    window.addEventListener("processEditedMessage", handleEditedMessage as EventListener);
+    window.addEventListener("processImageEdit", handleImageEdit as EventListener);
+    window.addEventListener("arcai:triggerPrompt", handleTriggerPrompt as EventListener);
+
     return () => {
-      window.removeEventListener('processEditedMessage', handleEditedMessage as EventListener);
-      window.removeEventListener('processImageEdit', handleImageEdit as EventListener);
-      window.removeEventListener('arcai:triggerPrompt', handleTriggerPrompt as EventListener);
+      window.removeEventListener("processEditedMessage", handleEditedMessage as EventListener);
+      window.removeEventListener("processImageEdit", handleImageEdit as EventListener);
+      window.removeEventListener("arcai:triggerPrompt", handleTriggerPrompt as EventListener);
     };
   }, []);
 
@@ -405,7 +355,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
       const content = match[1].trim();
       if (content.length >= 3) {
         const wasNewMemory = await addToMemoryBank({ content, timestamp: new Date() });
-        const cleaned = text.replace(match[0], '').trim();
+        const cleaned = text.replace(match[0], "").trim();
         return { cleaned, saved: wasNewMemory ? content : null } as const;
       }
     }
@@ -415,73 +365,46 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
   const handleImageEditRequest = async (prompt: string, baseImageUrl: string, editInstruction: string) => {
     try {
       const ai = new AIService();
-      
-      // Add placeholder message immediately
       setGeneratingImage(true);
-      const placeholderMessage = {
+      addMessage({
         content: `Editing image: ${editInstruction}`,
-        role: 'assistant' as const,
-        type: 'image-generating' as const,
-        imagePrompt: editInstruction
-      };
-      addMessage(placeholderMessage);
-      
+        role: "assistant",
+        type: "image-generating",
+        imagePrompt: editInstruction,
+      });
+
       try {
-        // Use the new editImage method
         const imageUrl = await ai.editImage(editInstruction, baseImageUrl);
-        
-        // Upload edited image to Supabase storage for persistence
         let permanentImageUrl = imageUrl;
         try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error('Not authenticated');
-
-          // Convert the edited image URL to a blob and upload it
           const response = await fetch(imageUrl);
           const blob = await response.blob();
-          const fileName = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
-          
-          const { data, error } = await supabase.storage
-            .from('avatars')
-            .upload(fileName, blob, {
-              contentType: 'image/png',
-              upsert: false
-            });
-
-          if (error) {
-            console.error('Error uploading edited image to storage:', error);
-          } else {
-            // Get the public URL
-            const { data: publicUrlData } = supabase.storage
-              .from('avatars')
-              .getPublicUrl(fileName);
+          const fileName = `edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
+          const { error } = await supabase.storage.from("avatars").upload(fileName, blob, {
+            contentType: "image/png",
+            upsert: false,
+          });
+          if (!error) {
+            const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(fileName);
             permanentImageUrl = publicUrlData.publicUrl;
           }
-        } catch (uploadError) {
-          console.error('Error uploading edited image:', uploadError);
-          // Continue with original URL if upload fails
-        }
-
-        // Replace placeholder with actual image
+        } catch {}
         await replaceLastMessage({
           content: `Edited image: ${editInstruction}`,
-          role: 'assistant',
-          type: 'image',
-          imageUrl: permanentImageUrl
+          role: "assistant",
+          type: "image",
+          imageUrl: permanentImageUrl,
         });
       } catch (error) {
-        console.error('Image editing error:', error);
-        // Replace placeholder with error message
         await replaceLastMessage({
-          content: `Sorry, I couldn't edit the image. ${error instanceof Error ? error.message : 'Please try again.'}`,
-          role: 'assistant',
-          type: 'text'
+          content: `Sorry, I couldn't edit the image. ${error instanceof Error ? error.message : "Please try again."}`,
+          role: "assistant",
+          type: "text",
         });
       } finally {
         setGeneratingImage(false);
       }
-    } catch (error) {
-      console.error('Image edit request error:', error);
+    } catch {
       setGeneratingImage(false);
     }
   };
@@ -490,454 +413,274 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     try {
       const ai = new AIService();
 
-      // Detect explicit memory save requests
       let explicitConfirmation = "";
       const memoryItem = detectMemoryCommand(userMessage);
       if (memoryItem) {
         const wasNewMemory = await addToMemoryBank(memoryItem);
-        if (wasNewMemory) {
-          explicitConfirmation = formatMemoryConfirmation(memoryItem.content);
-        }
-        await refetchProfile();
+        if (wasNewMemory) explicitConfirmation = formatMemoryConfirmation(memoryItem.content);
       }
-      
-      // Convert messages to AI format (already includes the last user message)
+
       const aiMessages = messages
-        .filter(msg => msg.type === 'text')
-        .map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }));
+        .filter((msg) => msg.type === "text")
+        .map((msg) => ({ role: msg.role, content: msg.content }));
 
       const response = await ai.sendMessage(aiMessages);
+      const { cleaned } = await parseAndSaveImplicitMemory(response);
 
-      // Parse implicit memory instructions from the model
-      const { cleaned, saved } = await parseAndSaveImplicitMemory(response);
-
-      // Send clean response without memory confirmations to maintain natural flow
-      await addMessage({
-        content: cleaned,
-        role: 'assistant',
-        type: 'text'
-      });
-      
-      // Handle explicit memory saves silently
-      if (explicitConfirmation && saved) {
-        // Memory was saved, but don't show confirmation to maintain conversational flow
-        await refetchProfile();
-      }
+      await addMessage({ content: cleaned, role: "assistant", type: "text" });
     } catch (error) {
-      console.error('AI response error:', error);
+      const { toast } = useToast();
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to get AI response",
-        variant: "destructive"
+        variant: "destructive",
       });
-      
       await addMessage({
         content: "Sorry, I encountered an error. Please try again.",
-        role: 'assistant',
-        type: 'text'
+        role: "assistant",
+        type: "text",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // Fast hybrid analysis - use local patterns first, AI only for unclear cases
-  const analyzePromptIntent = async (message: string): Promise<'image' | 'text'> => {
-    // First, run quick local pattern matching
+  // Fast hybrid analysis
+  const analyzePromptIntent = async (message: string): Promise<"image" | "text"> => {
     const localResult = checkForImageRequest(message);
-    
-    // If local check is confident (very clear keywords), trust it
     const lowerMsg = message.toLowerCase();
     const veryConfidentImageKeywords = [
-      'generate image', 'create image', 'make image', 'draw me', 'show me a picture',
-      'generate a picture', 'create a photo', 'make a drawing', 'visualize this'
+      "generate image",
+      "create image",
+      "make image",
+      "draw me",
+      "show me a picture",
+      "generate a picture",
+      "create a photo",
+      "make a drawing",
+      "visualize this",
     ];
     const veryConfidentTextKeywords = [
-      'explain', 'tell me about', 'what is', 'how to', 'help me understand',
-      'write a', 'describe', 'summarize', 'calculate', 'define'
+      "explain",
+      "tell me about",
+      "what is",
+      "how to",
+      "help me understand",
+      "write a",
+      "describe",
+      "summarize",
+      "calculate",
+      "define",
     ];
-    
-    const hasVeryConfidentImage = veryConfidentImageKeywords.some(keyword => lowerMsg.includes(keyword));
-    const hasVeryConfidentText = veryConfidentTextKeywords.some(keyword => lowerMsg.includes(keyword));
-    
-    // Return immediately if we're very confident
-    if (hasVeryConfidentImage) return 'image';
-    if (hasVeryConfidentText) return 'text';
-    if (localResult && (lowerMsg.includes('generate') || lowerMsg.includes('create') || lowerMsg.includes('make'))) return 'image';
-    if (!localResult && message.length > 50 && !lowerMsg.includes('image') && !lowerMsg.includes('picture')) return 'text';
-    
-    // For borderline cases, use local detection result
-    return localResult ? 'image' : 'text';
+    if (veryConfidentImageKeywords.some((k) => lowerMsg.includes(k))) return "image";
+    if (veryConfidentTextKeywords.some((k) => lowerMsg.includes(k))) return "text";
+    if (localResult && (lowerMsg.includes("generate") || lowerMsg.includes("create") || lowerMsg.includes("make")))
+      return "image";
+    if (!localResult && message.length > 50 && !lowerMsg.includes("image") && !lowerMsg.includes("picture"))
+      return "text";
+    return localResult ? "image" : "text";
   };
 
   const handleSend = async () => {
     if ((!inputValue.trim() && selectedImages.length === 0) || isLoading) return;
 
     const userMessage = inputValue.trim();
-    const imagesToProcess = [...selectedImages]; // Store images before clearing
-    // Send handler called
-    setInputValue("");
-    setSelectedImages([]); // Clear immediately to prevent UI issues
-    setForceImageMode(false); // Reset force mode after sending
+    const imagesToProcess = [...selectedImages];
 
+    setInputValue("");
+    setSelectedImages([]);
+    setForceImageMode(false);
     setLoading(true);
 
-    // Early detection of image edit requests to prevent ghost bubbles
-    // If images are uploaded WITH a prompt asking to DO something (not just "what is this"), treat as edit
-    const isUploadedImageEdit = imagesToProcess.length > 0 && 
-                                imagesToProcess.length <= 2 && 
-                                userMessage && (
-      isImageEditRequest(userMessage) || 
-      // Detect composition/creation requests with uploaded images
-      /\b(put|place|combine|merge|add|create|make|compose|blend|mix|together|into|with|at|in)\b/i.test(userMessage)
-    );
-    
-    // For text-only prompts, analyze intent with AI
+    const isUploadedImageEdit =
+      imagesToProcess.length > 0 &&
+      imagesToProcess.length <= 2 &&
+      userMessage &&
+      (isImageEditRequest(userMessage) ||
+        /\b(put|place|combine|merge|add|create|make|compose|blend|mix|together|into|with|at|in)\b/i.test(userMessage));
+
     let isImageGenerationRequest = false;
     if (!imagesToProcess.length && userMessage) {
       const intent = await analyzePromptIntent(userMessage);
-      isImageGenerationRequest = intent === 'image';
+      isImageGenerationRequest = intent === "image";
     }
-    
-    console.log('FLOW DETECTION:', { 
-      isUploadedImageEdit, 
-      isImageGenerationRequest, 
-      hasImages: imagesToProcess.length > 0,
-      userMessage,
-      analyzedIntent: !imagesToProcess.length ? (isImageGenerationRequest ? 'image' : 'text') : 'n/a'
-    });
 
     try {
-      // Handle multiple images - upload to storage for persistence with user folder structure
       let imageUrls: string[] = [];
       if (imagesToProcess.length > 0) {
         try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error('Not authenticated');
-
           const uploadPromises = imagesToProcess.map(async (file) => {
-            const fileName = `${user.id}/user-upload-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
-            
-            const { data, error } = await supabase.storage
-              .from('avatars')
-              .upload(fileName, file, {
-                contentType: file.type,
-                upsert: false
-              });
-
-            if (error) {
-              console.error('Error uploading image:', error);
-              return URL.createObjectURL(file); // Fallback to blob URL
-            }
-
-            const { data: publicUrlData } = supabase.storage
-              .from('avatars')
-              .getPublicUrl(fileName);
+            const fileName = `user-upload-${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split(".").pop()}`;
+            const { error } = await supabase.storage.from("avatars").upload(fileName, file, {
+              contentType: file.type,
+              upsert: false,
+            });
+            if (error) return URL.createObjectURL(file);
+            const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(fileName);
             return publicUrlData.publicUrl;
           });
-
           imageUrls = await Promise.all(uploadPromises);
-        } catch (error) {
-          console.error('Error uploading images:', error);
-          // Fallback to blob URLs
-          imageUrls = imagesToProcess.map(file => URL.createObjectURL(file));
+        } catch {
+          imageUrls = imagesToProcess.map((f) => URL.createObjectURL(f));
         }
       }
-      
-      // Handle different types of requests based on early detection
+
       if (isUploadedImageEdit) {
-        // This is an image edit request with uploaded images
-        // Add user message first
+        addMessage({ content: userMessage, role: "user", type: "image", imageUrls });
+        setGeneratingImage(true);
         addMessage({
-          content: userMessage,
-          role: 'user',
-          type: 'image',
-          imageUrls: imageUrls
+          content: `Editing image: ${userMessage}`,
+          role: "assistant",
+          type: "image-generating",
+          imagePrompt: userMessage,
         });
 
-        // Add fancy loading placeholder for image editing
-        setGeneratingImage(true);
-        const placeholderMessage = {
-          content: `Editing image: ${userMessage}`,
-          role: 'assistant' as const,
-          type: 'image-generating' as const,
-          imagePrompt: userMessage
-        };
-        addMessage(placeholderMessage);
-
-        // Process the image edit/combine
         try {
           const ai = new AIService();
-          
-          // Upload all base images to get URLs
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error('Not authenticated');
-          
-          const baseImageUrls: string[] = [];
-          for (const file of imagesToProcess) {
-            const fileName = `${user.id}/base-for-edit-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
-            
-            const { data, error } = await supabase.storage
-              .from('avatars')
-              .upload(fileName, file, {
-                contentType: file.type,
-                upsert: false
-              });
-              
-            if (error) throw error;
-            
-            const { data: publicUrlData } = supabase.storage
-              .from('avatars')
-              .getPublicUrl(fileName);
-            baseImageUrls.push(publicUrlData.publicUrl);
-          }
-          
-          // Generate edited/combined image
+          const baseImageUrls: string[] = imageUrls;
           const imageUrl = await ai.editImage(userMessage, baseImageUrls);
-          
-          // Upload edited image to storage for persistence
           let permanentImageUrl = imageUrl;
           try {
             const response = await fetch(imageUrl);
             const blob = await response.blob();
-            const editedFileName = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
-            
-            const { data: uploadData, error: uploadError } = await supabase.storage
-              .from('avatars')
-              .upload(editedFileName, blob, {
-                contentType: 'image/png',
-                upsert: false
-              });
-
+            const editedFileName = `edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
+            const { error: uploadError } = await supabase.storage.from("avatars").upload(editedFileName, blob, {
+              contentType: "image/png",
+              upsert: false,
+            });
             if (!uploadError) {
-              const { data: publicUrlData } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(editedFileName);
+              const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(editedFileName);
               permanentImageUrl = publicUrlData.publicUrl;
             }
-          } catch (uploadError) {
-            console.error('Error uploading edited image:', uploadError);
-          }
-
-          // Replace placeholder with actual image
+          } catch {}
           await replaceLastMessage({
             content: `Edited image: ${userMessage}`,
-            role: 'assistant',
-            type: 'image',
-            imageUrl: permanentImageUrl
+            role: "assistant",
+            type: "image",
+            imageUrl: permanentImageUrl,
           });
         } catch (error) {
-          console.error('Image editing error:', error);
-          
-          // Determine error type and show appropriate message
-          let errorMessage = 'Sorry, I couldn\'t edit the image.';
-          const errorType = (error as any)?.errorType;
-          
-          if (errorType === 'content_violation') {
-            errorMessage = '🚫 Content Policy Violation: The image cannot be edited because it violates content safety policies. Please try a different image or prompt.';
-          } else if (errorType === 'rate_limit') {
-            errorMessage = '⏱️ Rate Limit: Too many requests. Please wait a moment and try again.';
-          } else if (errorType === 'payment_required') {
-            errorMessage = '💳 Credits Required: Please add credits to your Lovable workspace to continue editing images.';
-          } else if (error instanceof Error) {
-            errorMessage = `Sorry, I couldn't edit the image. ${error.message}`;
-          } else {
-            errorMessage = 'Sorry, I couldn\'t edit the image. Please try again.';
-          }
-          
-          // Replace placeholder with error message
           await replaceLastMessage({
-            content: errorMessage,
-            role: 'assistant',
-            type: 'text'
+            content: `Sorry, I couldn't edit the image. ${error instanceof Error ? error.message : "Please try again."}`,
+            role: "assistant",
+            type: "text",
           });
         } finally {
           setGeneratingImage(false);
         }
       } else {
-        // Add user message for non-edit requests
         addMessage({
           content: userMessage || "Sent images",
-          role: 'user',
-          type: imagesToProcess.length > 0 ? 'image' : 'text',
-          imageUrls: imageUrls.length > 0 ? imageUrls : undefined
+          role: "user",
+          type: imagesToProcess.length > 0 ? "image" : "text",
+          imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
         });
 
         const ai = new AIService();
-        
-        // Check if user is requesting image generation with intelligent detection
-        // Image generation check
+
         if (isImageGenerationRequest) {
-        // Extract the image description intelligently
-        let imagePrompt = extractImagePrompt(userMessage);
-        
-        // Add placeholder message immediately
-        setGeneratingImage(true);
-        addMessage({
-          content: `Generating image: ${imagePrompt || userMessage}`,
-          role: 'assistant',
-          type: 'image-generating',
-          imagePrompt: imagePrompt || userMessage
-        });
-        
-        try {
-          const imageUrl = await ai.generateImage(imagePrompt || userMessage);
-          
-          // Upload generated image to Supabase storage for persistence
-          let permanentImageUrl = imageUrl;
-          try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Not authenticated');
+          const imagePrompt = extractImagePrompt(userMessage);
 
-            // Convert the generated image URL to a blob and upload it
-            const response = await fetch(imageUrl);
-            const blob = await response.blob();
-            const fileName = `${user.id}/generated-${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
-            
-            const { data, error } = await supabase.storage
-              .from('avatars')
-              .upload(fileName, blob, {
-                contentType: 'image/png',
-                upsert: false
+          // Nano Banana active means we prefix the actual API prompt silently
+          const nanoActive = true; // if we got here, detection said image, treat as active
+          const apiPrompt = nanoActive ? `Generate image with Nano Banana: ${imagePrompt}` : imagePrompt;
+
+          setGeneratingImage(true);
+          addMessage({
+            content: `Generating image: ${imagePrompt}`,
+            role: "assistant",
+            type: "image-generating",
+            imagePrompt,
+          });
+
+          try {
+            const imageUrl = await ai.generateImage(apiPrompt);
+
+            let permanentImageUrl = imageUrl;
+            try {
+              const response = await fetch(imageUrl);
+              const blob = await response.blob();
+              const fileName = `generated-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
+              const { error } = await supabase.storage.from("avatars").upload(fileName, blob, {
+                contentType: "image/png",
+                upsert: false,
               });
+              if (!error) {
+                const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(fileName);
+                permanentImageUrl = publicUrlData.publicUrl;
+              }
+            } catch {}
 
-            if (error) {
-              console.error('Error uploading generated image to storage:', error);
-            } else {
-              // Get the public URL
-              const { data: publicUrlData } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(fileName);
-              permanentImageUrl = publicUrlData.publicUrl;
-            }
-          } catch (uploadError) {
-            console.error('Error uploading generated image:', uploadError);
-            // Continue with original URL if upload fails
-          }
-          
-          // Replace placeholder with actual image
-          await replaceLastMessage({
-            content: `Generated image: ${imagePrompt || userMessage}`,
-            role: 'assistant',
-            type: 'image',
-            imageUrl: permanentImageUrl
-          });
-        } catch (error) {
-          console.error('Image generation error:', error);
-          
-          // Determine error type and show appropriate message
-          let errorMessage = 'Sorry, I couldn\'t generate the image.';
-          const errorType = (error as any)?.errorType;
-          
-          if (errorType === 'content_violation') {
-            errorMessage = '🚫 Content Policy Violation: The image cannot be generated because it violates content safety policies. Please try a different prompt.';
-          } else if (errorType === 'rate_limit') {
-            errorMessage = '⏱️ Rate Limit: Too many requests. Please wait a moment and try again.';
-          } else if (errorType === 'payment_required') {
-            errorMessage = '💳 Credits Required: Please add credits to your Lovable workspace to continue generating images.';
-          } else if (error instanceof Error) {
-            errorMessage = `Sorry, I couldn't generate the image. ${error.message}`;
-          } else {
-            errorMessage = 'Sorry, I couldn\'t generate the image. Please try again.';
-          }
-          
-          // Replace placeholder with error message
-          await replaceLastMessage({
-            content: errorMessage,
-            role: 'assistant',
-            type: 'text'
-          });
-        } finally {
-          setGeneratingImage(false);
-        }
-        } else if (imagesToProcess.length > 0) {
-          // Handle regular image analysis (up to 4 images)
-          try {
-            // Convert all images to base64 for analysis
-            const base64Promises = imagesToProcess.map(file => 
-              new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.onerror = () => reject(new Error('Failed to read image file'));
-                reader.readAsDataURL(file);
-              })
-            );
-            
-            const base64Images = await Promise.all(base64Promises);
-            const analysisPrompt = userMessage || `What do you see in ${imagesToProcess.length > 1 ? 'these images' : 'this image'}?`;
-            
-            const response = await ai.sendMessageWithImage(
-              [{ role: 'user', content: analysisPrompt }],
-              base64Images
-            );
-            
-            await addMessage({
-              content: response,
-              role: 'assistant',
-              type: 'text'
+            await replaceLastMessage({
+              content: `Generated image: ${imagePrompt}`,
+              role: "assistant",
+              type: "image",
+              imageUrl: permanentImageUrl,
             });
           } catch (error) {
-            console.error('Image analysis error:', error);
-            toast({
-              title: "Error",
-              description: "Failed to analyze images",
-              variant: "destructive"
+            await replaceLastMessage({
+              content: "Sorry, I couldn't generate the image.",
+              role: "assistant",
+              type: "text",
             });
-            
+          } finally {
+            setGeneratingImage(false);
+          }
+        } else if (imagesToProcess.length > 0) {
+          try {
+            const base64Promises = imagesToProcess.map(
+              (file) =>
+                new Promise<string>((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.onerror = () => reject(new Error("Failed to read image file"));
+                  reader.readAsDataURL(file);
+                }),
+            );
+            const base64Images = await Promise.all(base64Promises);
+            const analysisPrompt =
+              userMessage || `What do you see in ${imagesToProcess.length > 1 ? "these images" : "this image"}?`;
+            const response = await ai.sendMessageWithImage([{ role: "user", content: analysisPrompt }], base64Images);
+            await addMessage({ content: response, role: "assistant", type: "text" });
+          } catch {
+            const { toast } = useToast();
+            toast({ title: "Error", description: "Failed to analyze images", variant: "destructive" });
             await addMessage({
               content: "Sorry, I couldn't analyze these images. Please try again.",
-              role: 'assistant',
-              type: 'text'
+              role: "assistant",
+              type: "text",
             });
           }
         } else {
-          // Regular text conversation
-          // Detect explicit memory before calling the model
           let explicitConfirmation = "";
           const memoryItem = detectMemoryCommand(userMessage);
           if (memoryItem) {
             const wasNewMemory = await addToMemoryBank(memoryItem);
-            if (wasNewMemory) {
-              explicitConfirmation = formatMemoryConfirmation(memoryItem.content);
-            }
+            if (wasNewMemory) explicitConfirmation = formatMemoryConfirmation(memoryItem.content);
             await refetchProfile();
           }
-          
+
           const aiMessages = messages
-            .filter(msg => msg.type === 'text')
-            .map(msg => ({ role: msg.role, content: msg.content }));
-          
-          aiMessages.push({ role: 'user', content: userMessage });
+            .filter((msg) => msg.type === "text")
+            .map((msg) => ({ role: msg.role, content: msg.content }));
+          aiMessages.push({ role: "user", content: userMessage });
 
           const response = await ai.sendMessage(aiMessages);
-
-          // Handle implicit memory suggested by the model  
-          const { cleaned, saved } = await parseAndSaveImplicitMemory(response);
-          
-          // Send clean response without memory confirmations
-          await addMessage({ content: cleaned, role: 'assistant', type: 'text' });
-          
-          // Handle explicit memory saves silently 
-          if (explicitConfirmation && saved) {
-            await refetchProfile();
-          }
+          const { cleaned } = await parseAndSaveImplicitMemory(response);
+          await addMessage({ content: cleaned, role: "assistant", type: "text" });
         }
       }
     } catch (error) {
-      console.error('Chat error:', error);
+      const { toast } = useToast();
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to get AI response",
-        variant: "destructive"
+        variant: "destructive",
       });
-      
       await addMessage({
         content: "Sorry, I encountered an error. Please try again.",
-        role: 'assistant',
-        type: 'text'
+        role: "assistant",
+        type: "text",
       });
     } finally {
       setLoading(false);
@@ -945,38 +688,35 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
   const handleImageUpload = (files: File[]) => {
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
     const maxImages = 4;
-    
     if (selectedImages.length + imageFiles.length > maxImages) {
+      const { toast } = useToast();
       toast({
         title: "Too many images",
         description: `You can only send up to ${maxImages} images at once`,
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
-
-    setSelectedImages(prev => [...prev, ...imageFiles.slice(0, maxImages - prev.length)]);
+    setSelectedImages((prev) => [...prev, ...imageFiles.slice(0, maxImages - prev.length)]);
   };
 
   const removeImage = (index: number) => {
-    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     handleImageUpload(files);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
@@ -985,9 +725,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
       {selectedImages.length > 0 && (
         <div className="p-3 bg-glass/20 rounded-lg">
           <div className="flex items-center justify-center gap-4 mb-2">
-            <span className="text-sm text-muted-foreground">
-              Selected Images ({selectedImages.length}/4)
-            </span>
+            <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/4)</span>
             <button
               onClick={() => setSelectedImages([])}
               className="text-xs text-muted-foreground hover:text-foreground"
@@ -1016,9 +754,9 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
       )}
 
       {/* Input Row */}
-      <div 
-        className={`chat-input-halo flex items-end gap-3 transition-all duration-300 ${isActive ? 'halo-active' : ''}`}
-        style={{ borderRadius: '1rem' }}
+      <div
+        className={`chat-input-halo flex items-end gap-3 transition-all duration-300 ${isActive ? "halo-active" : ""}`}
+        style={{ borderRadius: "1rem" }}
       >
         {/* Attachment Menu */}
         <DropdownMenu>
@@ -1031,14 +769,14 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56 bg-card/95 backdrop-blur-xl border-border/50 z-50">
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={() => setForceImageMode(true)}
               className="cursor-pointer hover:bg-accent/50 focus:bg-accent/50"
             >
               <span className="mr-2">🍌</span>
               <span>Generate Images</span>
             </DropdownMenuItem>
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={() => fileInputRef.current?.click()}
               className="cursor-pointer hover:bg-accent/50 focus:bg-accent/50"
             >
@@ -1051,9 +789,14 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         <div className="flex-1 relative">
           {/* Banana pill indicator */}
           {shouldShowBanana && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-400/20 border border-yellow-400/40 backdrop-blur-sm animate-pulse">
+            <div
+              className={`absolute left-3 top-1/2 -translate-y-1/2 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-400/20 border border-yellow-400/40 backdrop-blur-sm animate-pulse`}
+            >
               <span className="text-base">🍌</span>
-              <span className="text-xs font-medium text-yellow-600 dark:text-yellow-400">Nano Banana</span>
+              {/* hide text on mobile */}
+              <span className="text-xs font-medium text-yellow-600 dark:text-yellow-400 hidden sm:inline">
+                Nano Banana
+              </span>
             </div>
           )}
           <Textarea
@@ -1063,9 +806,17 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
             onKeyDown={handleKeyPress}
             onFocus={() => setIsActive(true)}
             onBlur={() => setIsActive(false)}
-            placeholder={selectedImages.length > 0 ? "Add a message with your images..." : shouldShowBanana ? "Describe your image..." : "Ask me anything..."}
+            placeholder={
+              selectedImages.length > 0
+                ? "Add a message with your images..."
+                : shouldShowBanana
+                  ? "Describe your image..."
+                  : "Ask me anything..."
+            }
             disabled={isLoading}
-            className={`card border-border/40 bg-card/50 text-foreground placeholder:text-muted-foreground resize-none min-h-[48px] max-h-[144px] leading-6 ${shouldShowBanana ? 'pl-36' : ''}`}
+            className={`card border-border/40 bg-card/50 text-foreground placeholder:text-muted-foreground resize-none min-h-[48px] max-h-[144px] leading-6 ${
+              shouldShowBanana ? (isMobile ? "pl-12" : "pl-36") : ""
+            }`}
             rows={1}
           />
         </div>
@@ -1075,8 +826,8 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
           className={`shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-200 ${
             inputValue.trim() || selectedImages.length > 0
-              ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg' 
-              : 'bg-muted text-muted-foreground cursor-not-allowed'
+              ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+              : "bg-muted text-muted-foreground cursor-not-allowed"
           }`}
         >
           <Send className="h-5 w-5" />
@@ -1084,14 +835,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
       </div>
 
       {/* Hidden File Input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={handleFileSelect}
-      />
+      <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
     </div>
   );
 }
