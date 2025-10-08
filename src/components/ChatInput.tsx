@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Image as ImageIcon, X } from "lucide-react";
+import { Send, X, Image as ImageIcon } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { AIService } from "@/services/ai";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,88 +14,107 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-/* ---------------- helpers ---------------- */
+/* ---------------- Helpers ---------------- */
 function isImageEditRequest(message: string): boolean {
-  const editKeywords = [
+  if (!message) return false;
+  const keywords = [
     "edit",
     "modify",
     "change",
     "alter",
     "update",
     "replace",
-    "swap",
+    "retouch",
     "remove",
     "add",
-    "put",
     "combine",
-    "blend",
     "merge",
-    "retouch",
-    "fix",
+    "blend",
+    "compose",
+    "make it",
+    "make this",
+    "turn this",
+    "convert",
+    "put",
+    "place",
   ];
-  const lower = (message || "").toLowerCase();
-  return editKeywords.some((k) => lower.includes(k));
+  const lower = message.toLowerCase();
+  return keywords.some((k) => lower.includes(k));
 }
 
 function checkForImageRequest(message: string): boolean {
   if (!message) return false;
-  const m = message.toLowerCase();
-  // quick heuristics
-  const explicit = /^generate\s+an?\s+image\s+of/i.test(m);
-  if (explicit) return true;
-  return /(generate|create|make|draw|paint|design|render|picture|photo|image)/i.test(m);
+  const m = message.toLowerCase().trim();
+  if (/^generate\s+an?\s+image\s+of/i.test(m)) return true;
+  return /(generate|create|make|draw|paint|design|render|picture|photo|image|visualize|show me)/i.test(m);
 }
 
 function extractImagePrompt(message: string): string {
   let prompt = (message || "").trim();
-  // remove polite prefixes
   prompt = prompt.replace(/^(please\s+)?(?:can|could|would)\s+you\s+/i, "").trim();
-  // remove leading generation verbs
   prompt = prompt.replace(/^(?:generate|create|make|draw|paint|design|visualize|show\s+me)\s+(?:an?\s+)?/i, "").trim();
   if (!prompt) prompt = message.trim();
-  // ensure descriptive start
-  if (!/^(a|an|the)\s+/i.test(prompt) && !/^[A-Z]/.test(prompt)) {
-    prompt = `a ${prompt}`;
-  }
+  if (!/^(a|an|the)\s+/i.test(prompt) && !/^[A-Z]/.test(prompt)) prompt = `a ${prompt}`;
   return prompt;
 }
 
-/* ---------------- component ---------------- */
+/* ---------------- Component ---------------- */
 export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boolean) => void }) {
-  const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage } =
+  const { messages, addMessage, replaceLastMessage, isLoading, isGeneratingImage, setLoading, setGeneratingImage } =
     useArcStore();
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [isActive, setIsActive] = useState(false);
-  const [forceImageMode, setForceImageMode] = useState(false); // user forced Nano Banana
+  const [forceImageMode, setForceImageMode] = useState(false); // user toggled Nano Banana
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   useProfile();
 
-  // When banana is active (either forced or detected), show banana UI.
+  // When banana is active either by detection or force
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
 
   useEffect(() => {
     onImagesChange?.(selectedImages.length > 0);
   }, [selectedImages.length, onImagesChange]);
 
-  // Quick prompts: populate input when external quick prompt dispatches
+  // Quick prompts: listen for external quick prompts (populates input)
   useEffect(() => {
-    const handler = (ev: Event) => {
-      const e = ev as CustomEvent<{ prompt: string }>;
-      if (e?.detail?.prompt) {
-        setInputValue(e.detail.prompt);
-        // focus after setting
-        setTimeout(() => textareaRef.current?.focus(), 0);
+    const quickHandler = (ev: Event) => {
+      try {
+        const e = ev as CustomEvent<{ prompt?: string; type?: string }>;
+        if (e?.detail?.prompt) {
+          setInputValue(e.detail.prompt);
+          // focus textarea and optionally trigger send if type === 'image' is desired
+          setTimeout(() => textareaRef.current?.focus(), 0);
+        }
+      } catch (err) {
+        console.warn("quickPromptSelected handler error", err);
       }
     };
-    window.addEventListener("quickPromptSelected", handler as EventListener);
-    return () => window.removeEventListener("quickPromptSelected", handler as EventListener);
+    window.addEventListener("quickPromptSelected", quickHandler as EventListener);
+    // also listen to a legacy trigger event used in some places
+    window.addEventListener("arcai:triggerPrompt", quickHandler as EventListener);
+    return () => {
+      window.removeEventListener("quickPromptSelected", quickHandler as EventListener);
+      window.removeEventListener("arcai:triggerPrompt", quickHandler as EventListener);
+    };
   }, []);
 
-  // Auto-resize textarea
+  // Listen for image edit requests dispatched by ImageEditModal
+  useEffect(() => {
+    const handleImageEdit = (ev: Event) => {
+      const e = ev as CustomEvent<{ content: string; baseImageUrl: string | string[]; editInstruction: string }>;
+      if (!e?.detail) return;
+      // route to the same handler that ChatInput uses for edits
+      handleExternalImageEdit(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction);
+    };
+    window.addEventListener("processImageEdit", handleImageEdit as EventListener);
+    return () => window.removeEventListener("processImageEdit", handleImageEdit as EventListener);
+  }, [messages]);
+
+  // textarea auto-resize
   useEffect(() => {
     if (!textareaRef.current) return;
     textareaRef.current.style.height = "auto";
@@ -103,54 +122,122 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     textareaRef.current.style.height = Math.min(h, 24 * 3) + "px";
   }, [inputValue]);
 
-  const handleImageUpload = (files: File[]) => {
+  const handleImageUploadFiles = (files: File[]) => {
     const images = files.filter((f) => f.type.startsWith("image/"));
     const max = 4;
     setSelectedImages((prev) => {
-      const combined = [...prev, ...images].slice(0, max);
-      if (combined.length >= max && images.length > 0 && combined.length > prev.length) {
+      const merged = [...prev, ...images].slice(0, max);
+      if (merged.length >= max && images.length > 0 && merged.length > prev.length) {
         toast({ title: "Max images", description: `Up to ${max} images supported`, variant: "default" });
       }
-      return combined;
+      return merged;
     });
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    handleImageUpload(files);
+    handleImageUploadFiles(files);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const removeImage = (idx: number) => setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
-  const clearAllImages = () => setSelectedImages([]);
+  const clearSelected = () => setSelectedImages([]);
 
-  /* ------------- core send logic ------------- */
+  /* ---------- Core: handle external image edit (from modal) ---------- */
+  const handleExternalImageEdit = async (
+    userMessage: string,
+    baseImageUrl: string | string[],
+    editInstruction: string,
+  ) => {
+    // baseImageUrl may be single url string or array of urls
+    try {
+      const ai = new AIService();
+      setGeneratingImage(true);
+      // add user image edit request to chat for context
+      await addMessage({
+        content: userMessage || editInstruction || "Edit request",
+        role: "user",
+        type: "image",
+        imageUrls: Array.isArray(baseImageUrl) ? baseImageUrl : [baseImageUrl],
+      });
+      // add placeholder assistant generating message
+      await addMessage({
+        content: `Editing image: ${editInstruction}`,
+        role: "assistant",
+        type: "image-generating",
+        imagePrompt: editInstruction,
+      });
+
+      // call AI edit endpoint
+      const url = await ai.editImage(editInstruction, Array.isArray(baseImageUrl) ? baseImageUrl : [baseImageUrl]);
+
+      // try persist
+      let finalUrl = url;
+      try {
+        const resp = await fetch(url);
+        const blob = await resp.blob();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
+          const { error } = await supabase.storage
+            .from("avatars")
+            .upload(name, blob, { contentType: "image/png", upsert: false });
+          if (!error) {
+            const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
+            finalUrl = pub.publicUrl;
+          }
+        }
+      } catch (err) {
+        // ignore persistence errors
+        console.warn("persist edited image failed", err);
+      }
+
+      await replaceLastMessage({
+        content: `Edited image: ${editInstruction}`,
+        role: "assistant",
+        type: "image",
+        imageUrl: finalUrl,
+      });
+    } catch (err: any) {
+      console.error("external edit error", err);
+      await replaceLastMessage({
+        content: `Sorry, I couldn't edit the image. ${err?.message || ""}`,
+        role: "assistant",
+        type: "text",
+      });
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
+  /* ---------- Core: send handler ---------- */
   const handleSend = async () => {
     if ((!inputValue.trim() && selectedImages.length === 0) || isLoading) return;
 
     const userMessage = inputValue.trim();
-    const imagesToProcess = [...selectedImages]; // copy
-    // clear quickly for UI
+    const images = [...selectedImages];
+
+    // Clear UI immediately
     setInputValue("");
     setSelectedImages([]);
-    // If banana was forced, keep it off after send
     setForceImageMode(false);
-
     setLoading(true);
 
     try {
       const ai = new AIService();
 
-      // If there are images uploaded -> either edit or analyze (edit priority)
-      if (imagesToProcess.length > 0) {
-        // upload images (attempt supabase, fallback to blob URL)
+      // If there are uploaded images -> either edit (if request) or analyze
+      if (images.length > 0) {
+        // upload images to storage if possible (best-effort), fallback to blob URLs
         let imageUrls: string[] = [];
         try {
           const {
             data: { user },
           } = await supabase.auth.getUser();
           if (!user) throw new Error("Not authenticated");
-          const promises = imagesToProcess.map(async (file) => {
+          const uploadPromises = images.map(async (file) => {
             const name = `${user.id}/user-upload-${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split(".").pop()}`;
             const { error } = await supabase.storage
               .from("avatars")
@@ -159,24 +246,25 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
             const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
             return pub.publicUrl;
           });
-          imageUrls = await Promise.all(promises);
-        } catch {
-          imageUrls = imagesToProcess.map((f) => URL.createObjectURL(f));
+          imageUrls = await Promise.all(uploadPromises);
+        } catch (err) {
+          console.warn("upload images fallback", err);
+          imageUrls = images.map((f) => URL.createObjectURL(f));
         }
 
-        // If the user message looks like an edit request -> call editImage
+        // If user message looks like edit -> run edit flow (supports up to 2 images as base)
         if (userMessage && isImageEditRequest(userMessage)) {
           await addMessage({ content: userMessage, role: "user", type: "image", imageUrls });
-          addMessage({
+          await addMessage({
             content: `Editing image: ${userMessage}`,
             role: "assistant",
             type: "image-generating",
             imagePrompt: userMessage,
           });
           setGeneratingImage(true);
+
           try {
             const editedUrl = await ai.editImage(userMessage, imageUrls);
-            // attempt to persist edited image to storage (best-effort)
             let finalUrl = editedUrl;
             try {
               const resp = await fetch(editedUrl);
@@ -194,8 +282,8 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
                   finalUrl = pub.publicUrl;
                 }
               }
-            } catch {
-              // ignore upload error and use returned URL
+            } catch (err) {
+              console.warn("persist edited image failed", err);
             }
             await replaceLastMessage({
               content: `Edited image: ${userMessage}`,
@@ -204,6 +292,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
               imageUrl: finalUrl,
             });
           } catch (err: any) {
+            console.error("edit flow error", err);
             await replaceLastMessage({
               content: `Sorry, I couldn't edit the image. ${err?.message || ""}`,
               role: "assistant",
@@ -215,16 +304,17 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           return;
         }
 
-        // Otherwise treat as analysis (no edit requested)
+        // Otherwise analyze images with AI
         await addMessage({
           content: userMessage || "Sent images",
           role: "user",
           type: "image",
           imageUrls: imageUrls.length ? imageUrls : undefined,
         });
+
         try {
           const base64s = await Promise.all(
-            imagesToProcess.map(
+            images.map(
               (file) =>
                 new Promise<string>((res, rej) => {
                   const r = new FileReader();
@@ -235,10 +325,11 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
             ),
           );
           const analysisPrompt =
-            userMessage || `What do you see in ${imagesToProcess.length > 1 ? "these images" : "this image"}?`;
+            userMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`;
           const response = await ai.sendMessageWithImage([{ role: "user", content: analysisPrompt }], base64s);
           await addMessage({ content: response, role: "assistant", type: "text" });
         } catch (err: any) {
+          console.error("image analysis failed", err);
           toast({ title: "Error", description: "Failed to analyze images", variant: "destructive" });
           await addMessage({
             content: "Sorry, I couldn't analyze these images. Please try again.",
@@ -249,20 +340,24 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         return;
       }
 
-      // No uploaded images: if Nano Banana is active (either forced or detected) => ALWAYS generate image
+      // No uploaded images:
+      // If Nano Banana active => ALWAYS generate image (even if not explicit)
       if (shouldShowBanana) {
         const imagePrompt = extractImagePrompt(userMessage || "");
-        const apiPrompt = `Generate an image: ${imagePrompt}`;
-        addMessage({
+        await addMessage({ content: userMessage || imagePrompt, role: "user", type: "text" });
+
+        await addMessage({
           content: `Generating image: ${imagePrompt}`,
           role: "assistant",
           type: "image-generating",
           imagePrompt,
         });
         setGeneratingImage(true);
+
         try {
+          // Use a clear API prompt so model doesn't leak "nanobanana" name into user prompt
+          const apiPrompt = `Generate an image: ${imagePrompt}`;
           const genUrl = await ai.generateImage(apiPrompt);
-          // try to persist
           let finalUrl = genUrl;
           try {
             const resp = await fetch(genUrl);
@@ -280,8 +375,8 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
                 finalUrl = pub.publicUrl;
               }
             }
-          } catch {
-            // ignore upload error
+          } catch (err) {
+            console.warn("persist generated image failed", err);
           }
           await replaceLastMessage({
             content: `Generated image: ${imagePrompt}`,
@@ -290,6 +385,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
             imageUrl: finalUrl,
           });
         } catch (err: any) {
+          console.error("generate image error", err);
           await replaceLastMessage({
             content: `Sorry, I couldn't generate the image. ${err?.message || ""}`,
             role: "assistant",
@@ -302,23 +398,23 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
       }
 
       // Plain text flow
-      // detect memory commands
       const memoryItem = detectMemoryCommand(userMessage);
       if (memoryItem) {
         const wasNew = await addToMemoryBank(memoryItem);
         if (wasNew) {
-          const confirmation = formatMemoryConfirmation(memoryItem.content);
-          // don't show confirmation inline (silent save)
+          // silent save (no visible confirmation)
+          formatMemoryConfirmation(memoryItem.content);
         }
       }
       await addMessage({ content: userMessage, role: "user", type: "text" });
+
       try {
-        const ai = new AIService();
         const aiMessages = messages.filter((m) => m.type === "text").map((m) => ({ role: m.role, content: m.content }));
         aiMessages.push({ role: "user", content: userMessage });
         const reply = await ai.sendMessage(aiMessages);
         await addMessage({ content: reply, role: "assistant", type: "text" });
       } catch (err: any) {
+        console.error("ai text error", err);
         toast({ title: "Error", description: err?.message || "Failed to get AI response", variant: "destructive" });
         await addMessage({
           content: "Sorry, I encountered an error. Please try again.",
@@ -326,8 +422,9 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           type: "text",
         });
       }
-    } catch (e) {
-      toast({ title: "Error", description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+    } catch (err) {
+      console.error("send handler top-level error", err);
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Unknown", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -340,28 +437,24 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     }
   };
 
-  /* ---------------- render ---------------- */
+  /* ---------------- Render ---------------- */
   return (
     <div className="space-y-4">
-      {/* Selected Images Preview */}
+      {/* Selected Images preview */}
       {selectedImages.length > 0 && (
         <div className="p-3 bg-glass/20 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/4)</span>
-            <button onClick={clearAllImages} className="text-xs text-muted-foreground hover:text-foreground">
+            <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">
               Clear All
             </button>
           </div>
           <div className="flex gap-2 overflow-x-auto">
-            {selectedImages.map((file, idx) => (
-              <div key={idx} className="relative group shrink-0">
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt={`Selected ${idx + 1}`}
-                  className="w-16 h-16 object-cover rounded-lg"
-                />
+            {selectedImages.map((f, i) => (
+              <div key={i} className="relative group shrink-0">
+                <img src={URL.createObjectURL(f)} alt={`sel-${i}`} className="w-16 h-16 object-cover rounded-lg" />
                 <button
-                  onClick={() => removeImage(idx)}
+                  onClick={() => removeImage(i)}
                   className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   ×
@@ -377,70 +470,63 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         className={[
           "chat-input-halo flex items-center gap-3 transition-all duration-200",
           isActive ? "halo-active" : "",
-          shouldShowBanana ? "ring-2 ring-yellow-400/60 shadow-[0_0_24px_rgba(250,204,21,.2)]" : "ring-0",
+          shouldShowBanana ? "ring-2 ring-yellow-400/60 shadow-[0_0_24px_rgba(250,204,21,.18)]" : "ring-0",
         ].join(" ")}
         style={{ borderRadius: "1rem" }}
       >
-        {/* BANANA BUTTON (replaces paperclip) */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              disabled={isLoading}
-              className={`shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-colors duration-200 bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/40 ${shouldShowBanana ? "transform-gpu" : ""}`}
-              aria-label="Image actions"
-            >
-              <span className="text-[20px] leading-none">🍌</span>
-            </button>
-          </DropdownMenuTrigger>
-
-          {/* Menu: make opaque/readable */}
-          <DropdownMenuContent align="start" className="w-56 bg-card border-border/50 z-50">
-            <DropdownMenuItem
-              onClick={() => setForceImageMode(true)}
-              className="cursor-pointer hover:bg-accent/50 focus:bg-accent/50"
-            >
-              <span className="mr-2">🍌</span>
-              <span>Generate Image</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => fileInputRef.current?.click()}
-              className="cursor-pointer hover:bg-accent/50 focus:bg-accent/50"
-            >
-              <ImageIcon className="h-4 w-4 mr-2" />
-              <span>Attach Images</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Active badge - desktop shows text, mobile hides text and shows X close to emoji */}
-        {shouldShowBanana && (
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-400/10 border border-yellow-400/30">
-            <span className="hidden sm:inline text-xs font-medium text-yellow-700 dark:text-yellow-400">
-              🍌 Nano Banana
-            </span>
-
-            {/* mobile-only: emoji + X closely placed */}
-            <div className="flex items-center gap-2 sm:hidden">
-              <span className="text-base leading-none">🍌</span>
+        {/* BANANA (replaces paperclip) */}
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <button
-                onClick={() => setForceImageMode(false)}
-                aria-label="Disable Nano Banana"
-                className="inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-yellow-500/20"
+                aria-label="Image actions"
+                disabled={isLoading}
+                className={[
+                  "h-12 w-12 rounded-xl flex items-center justify-center transition-colors duration-200 border border-border/40",
+                  "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
+                  shouldShowBanana
+                    ? "bg-yellow-50/10 ring-1 ring-yellow-300/40 shadow-[0_6px_24px_rgba(250,204,21,.12)]"
+                    : "",
+                ].join(" ")}
               >
-                <X className="h-4 w-4 text-yellow-700" />
+                <span className="text-[20px] leading-none">🍌</span>
+                {/* desktop: show label inside the trigger button to minimize duplicated badge */}
+                <span className="hidden sm:inline ml-2 text-sm font-medium text-yellow-700 dark:text-yellow-400">
+                  Nano Banana
+                </span>
               </button>
-            </div>
+            </DropdownMenuTrigger>
 
-            {/* desktop: keep an X but smaller and inline */}
+            <DropdownMenuContent align="start" className="w-56 bg-card border-border/50 z-50">
+              <DropdownMenuItem
+                onClick={() => setForceImageMode(true)}
+                className="cursor-pointer hover:bg-accent/50 focus:bg-accent/50"
+              >
+                <span className="mr-2">🍌</span>
+                <span>Generate Image</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => fileInputRef.current?.click()}
+                className="cursor-pointer hover:bg-accent/50 focus:bg-accent/50"
+              >
+                <ImageIcon className="h-4 w-4 mr-2" />
+                <span>Attach Images</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Mobile-only close X placed immediately to the right of the banana when active (avoids double banana "pill") */}
+          {shouldShowBanana && (
             <button
               onClick={() => setForceImageMode(false)}
               aria-label="Disable Nano Banana"
-              className="hidden sm:inline-flex ml-1 h-6 w-6 items-center justify-center rounded-full hover:bg-yellow-500/20"
+              className="sm:hidden h-10 w-10 inline-flex items-center justify-center rounded-md hover:bg-yellow-500/10"
+              title="Disable Nano Banana"
             >
-              <X className="h-4 w-4 text-yellow-700" />
+              <X className="h-5 w-5 text-yellow-600" />
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* input */}
         <div className="flex-1">
@@ -464,7 +550,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           />
         </div>
 
-        {/* send – always black in light mode */}
+        {/* send – consistent black in light mode */}
         <button
           onClick={handleSend}
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
