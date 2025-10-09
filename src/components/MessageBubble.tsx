@@ -281,7 +281,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   >
                     <Copy className="h-3 w-3" />
                   </GlassButton>
-                  {isUser && (
+                  {isUser && message.type === "text" && (
                     <GlassButton
                       variant="ghost"
                       size="icon"

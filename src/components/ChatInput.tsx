@@ -37,6 +37,11 @@ function isImageEditRequest(message: string): boolean {
     "convert",
     "put",
     "place",
+    "swap",
+    "substitute",
+    "adjust",
+    "tweak",
+    "transform",
   ];
   const lower = message.toLowerCase();
   return keywords.some((k) => lower.includes(k));
@@ -45,14 +50,37 @@ function isImageEditRequest(message: string): boolean {
 function checkForImageRequest(message: string): boolean {
   if (!message) return false;
   const m = message.toLowerCase().trim();
-  if (/^generate\s+an?\s+image\s+of/i.test(m)) return true;
-  return /(generate|create|make|draw|paint|design|render|picture|photo|image|visualize|show me)/i.test(m);
+  
+  // Strong patterns for image generation
+  if (/^(generate|create|make|draw|paint|design|render|produce|build)\s+(an?\s+)?(image|picture|photo|illustration|artwork|graphic)/i.test(m)) return true;
+  if (/^(generate|create|make)\s+an?\s+image\s+of/i.test(m)) return true;
+  if (/^(show\s+me|give\s+me|i\s+want|i\s+need)\s+(an?\s+)?(image|picture|photo)/i.test(m)) return true;
+  
+  // Check for explicit image-related keywords
+  const imageKeywords = [
+    "generate image",
+    "create image",
+    "make image",
+    "draw",
+    "paint",
+    "illustrate",
+    "picture of",
+    "photo of",
+    "image of",
+    "render",
+    "visualize",
+    "design",
+    "artwork",
+    "graphic",
+  ];
+  
+  return imageKeywords.some((keyword) => m.includes(keyword));
 }
 
 function extractImagePrompt(message: string): string {
   let prompt = (message || "").trim();
   prompt = prompt.replace(/^(please\s+)?(?:can|could|would)\s+you\s+/i, "").trim();
-  prompt = prompt.replace(/^(?:generate|create|make|draw|paint|design|visualize|show\s+me)\s+(?:an?\s+)?/i, "").trim();
+  prompt = prompt.replace(/^(?:generate|create|make|draw|paint|design|render|produce|visualize|show\s+me|give\s+me)\s+(?:an?\s+)?(?:image|picture|photo|illustration|artwork|graphic)?\s*(?:of)?\s*/i, "").trim();
   if (!prompt) prompt = message.trim();
   if (!/^(a|an|the)\s+/i.test(prompt) && !/^[A-Z]/.test(prompt)) prompt = `a ${prompt}`;
   return prompt;
@@ -484,18 +512,18 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
               </button>
             </DropdownMenuTrigger>
 
-            {/* Opaque menu background - same style as mobile */}
-            <DropdownMenuContent align="start" className="w-56 bg-card border-border/50 z-50">
+            {/* Opaque menu background */}
+            <DropdownMenuContent align="start" className="w-56 bg-card/95 backdrop-blur-xl border-border shadow-lg z-50">
               <DropdownMenuItem
                 onClick={() => setForceImageMode(true)}
-                className="cursor-pointer hover:bg-accent/50 focus:bg-accent/50"
+                className="cursor-pointer hover:bg-accent focus:bg-accent"
               >
                 <span className="mr-2">🍌</span>
                 <span>Generate Image</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => fileInputRef.current?.click()}
-                className="cursor-pointer hover:bg-accent/50 focus:bg-accent/50"
+                className="cursor-pointer hover:bg-accent focus:bg-accent"
               >
                 <ImageIcon className="h-4 w-4 mr-2" />
                 <span>Attach Images</span>
