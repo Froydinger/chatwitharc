@@ -80,6 +80,7 @@ export function SettingsPanel() {
   const [contextDirty, setContextDirty] = useState(false);
   const [memoryDraft, setMemoryDraft] = useState("");
   const [memoryDirty, setMemoryDirty] = useState(false);
+  const [selectedModel, setSelectedModel] = useState((profile as any)?.preferred_model || 'google/gemini-2.5-flash');
 
   // Online/offline detection
   useEffect(() => {
@@ -105,6 +106,12 @@ export function SettingsPanel() {
   useEffect(() => {
     if (!memoryDirty) setMemoryDraft(profile?.memory_info || "");
   }, [profile?.memory_info, memoryDirty]);
+
+  useEffect(() => {
+    if ((profile as any)?.preferred_model) {
+      setSelectedModel((profile as any).preferred_model);
+    }
+  }, [(profile as any)?.preferred_model]);
 
   const handleSaveDisplayName = async () => {
     try {
@@ -154,6 +161,23 @@ export function SettingsPanel() {
       toast({
         title: "Clear failed",
         description: "Could not clear your memory. Try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleModelChange = async (model: string) => {
+    try {
+      setSelectedModel(model);
+      await updateProfile({ preferred_model: model } as any);
+      toast({
+        title: "Model updated",
+        description: `Now using ${model.includes('gemini') ? 'Google Gemini' : 'OpenAI GPT'}`
+      });
+    } catch (e) {
+      toast({
+        title: "Update failed",
+        description: "Could not update model preference",
         variant: "destructive"
       });
     }
@@ -466,6 +490,57 @@ export function SettingsPanel() {
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* AI Model Selection */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-foreground">AI Model</label>
+                      <p className="text-xs text-muted-foreground">Choose which model powers your conversations</p>
+                    </div>
+                    <Select value={selectedModel} onValueChange={handleModelChange}>
+                      <SelectTrigger className="glass border-glass-border">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="glass border-glass-border">
+                        <SelectItem value="google/gemini-2.5-flash">
+                          <div className="flex flex-col">
+                            <span className="font-medium">Gemini 2.5 Flash</span>
+                            <span className="text-xs text-muted-foreground">Balanced - Fast & smart (default)</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="google/gemini-2.5-pro">
+                          <div className="flex flex-col">
+                            <span className="font-medium">Gemini 2.5 Pro</span>
+                            <span className="text-xs text-muted-foreground">Most capable - Best reasoning</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="google/gemini-2.5-flash-lite">
+                          <div className="flex flex-col">
+                            <span className="font-medium">Gemini 2.5 Flash Lite</span>
+                            <span className="text-xs text-muted-foreground">Fastest - Simple tasks</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="openai/gpt-5">
+                          <div className="flex flex-col">
+                            <span className="font-medium">GPT-5</span>
+                            <span className="text-xs text-muted-foreground">Premium - Highest quality</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="openai/gpt-5-mini">
+                          <div className="flex flex-col">
+                            <span className="font-medium">GPT-5 Mini</span>
+                            <span className="text-xs text-muted-foreground">Efficient - Great performance</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="openai/gpt-5-nano">
+                          <div className="flex flex-col">
+                            <span className="font-medium">GPT-5 Nano</span>
+                            <span className="text-xs text-muted-foreground">Speed optimized</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Memory */}

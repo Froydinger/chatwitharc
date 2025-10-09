@@ -18,7 +18,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, profile } = await req.json();
+    const { messages, profile, model } = await req.json();
     
     // Fetch admin settings for system prompt and global context
     const { data: settingsData } = await supabase
@@ -83,7 +83,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: model || 'google/gemini-2.5-flash',
         messages: enhancedMessages,
       }),
     });

@@ -18,7 +18,7 @@ export class AIService {
     // No API key needed - using secure edge function with Lovable Cloud
   }
 
-  async sendMessage(messages: AIMessage[], profile?: { display_name?: string | null; context_info?: string | null, memory_info?: string | null }): Promise<string> {
+  async sendMessage(messages: AIMessage[], profile?: { display_name?: string | null; context_info?: string | null, memory_info?: string | null, preferred_model?: string | null }): Promise<string> {
     try {
       // Always fetch the freshest profile to include latest memory/context
       let effectiveProfile = profile || {};
@@ -27,7 +27,7 @@ export class AIService {
         if (user) {
           const { data } = await supabase
             .from('profiles')
-            .select('display_name, context_info, memory_info')
+            .select('display_name, context_info, memory_info, preferred_model')
             .eq('user_id', user.id)
             .maybeSingle();
           if (data) {
@@ -38,8 +38,11 @@ export class AIService {
         console.warn('Falling back to provided profile:', e);
       }
 
+      // Determine which model to use
+      const selectedModel = effectiveProfile.preferred_model || 'google/gemini-2.5-flash';
+
       // Add Arc's personality as system message with user personalization
-      let systemPrompt = "You are ArcAI, a helpful and conversational AI assistant powered by Google Gemini 2.5 Flash for text conversations and Nano Banana (Google's image generation model) for creating images. You provide a relaxing, organized, and simple space designed for both new and experienced AI users. Be natural, brief, and direct. Give concise, focused responses. Avoid long lists of options or rambling explanations. Make clear recommendations instead of presenting endless choices. Keep it conversational and human-like, but prioritize brevity and clarity above all.";
+      let systemPrompt = `You are ArcAI, a helpful and conversational AI assistant. You're currently powered by ${selectedModel} for text conversations. For image generation, you use "Nano Banana" - that's the beloved community name for Google's Gemini 2.5 Flash Image model (google/gemini-2.5-flash-image-preview). The name comes from its testing phase and Google has embraced it, even using the 🍌 banana emoji. You provide a relaxing, organized, and simple space designed for both new and experienced AI users. Be natural, brief, and direct. Give concise, focused responses. Avoid long lists of options or rambling explanations. Make clear recommendations instead of presenting endless choices. Keep it conversational and human-like, but prioritize brevity and clarity above all.`;
       
       if (effectiveProfile?.display_name) {
         systemPrompt += ` The user's name is ${effectiveProfile.display_name}.`;
@@ -61,11 +64,12 @@ export class AIService {
         content: systemPrompt
       };
 
-      // Call the secure edge function with profile data
+      // Call the secure edge function with profile data and model selection
       const { data, error } = await supabase.functions.invoke('chat', {
         body: { 
           messages: [systemMessage, ...messages],
-          profile: effectiveProfile
+          profile: effectiveProfile,
+          model: selectedModel
         }
       });
 

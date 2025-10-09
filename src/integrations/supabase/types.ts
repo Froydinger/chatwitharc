@@ -103,6 +103,7 @@ export type Database = {
           display_name: string | null
           id: string
           memory_info: string | null
+          preferred_model: string | null
           updated_at: string
           user_id: string
         }
@@ -113,6 +114,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           memory_info?: string | null
+          preferred_model?: string | null
           updated_at?: string
           user_id: string
         }
@@ -123,6 +125,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           memory_info?: string | null
+          preferred_model?: string | null
           updated_at?: string
           user_id?: string
         }
