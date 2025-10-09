@@ -13,7 +13,12 @@ export function InfoPanel() {
     {
       icon: MessageSquare,
       title: "Smart Text Chat",
-      description: "Powered by Google Gemini 2.5 Flash for lightning-fast, intelligent responses"
+      description: "Powered by Google Gemini 2.5 Flash for lightning-fast, intelligent conversations"
+    },
+    {
+      icon: () => <span className="text-2xl">🍌</span>,
+      title: "Nano Banana Images",
+      description: "Generate stunning images using Google's Nano Banana image generation model"
     },
     // Voice feature temporarily hidden
     // {
@@ -69,9 +74,12 @@ export function InfoPanel() {
         <h1 className="text-4xl font-bold text-foreground mb-2">
           Welcome to ArcAI
         </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Experience the future of AI conversation with liquid glass aesthetics 
-          and magical interactions. Voice mode coming soon!
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-3">
+          A relaxing, organized space for both new and experienced AI users with liquid glass aesthetics 
+          and magical interactions.
+        </p>
+        <p className="text-sm text-muted-foreground/70">
+          Powered by Google Gemini 2.5 Flash for conversations • Nano Banana 🍌 for image generation
         </p>
       </motion.div>
 

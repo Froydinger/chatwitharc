@@ -561,7 +561,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
                   : "Ask me anything..."
             }
             disabled={isLoading}
-            className={`card border-border/40 bg-card/50 text-foreground placeholder:text-muted-foreground resize-none min-h-[48px] max-h-[144px] leading-6 ${shouldShowBanana ? "pl-4" : ""}`}
+            className={`card border-border/40 bg-card/50 text-foreground placeholder:text-muted-foreground resize-none min-h-[60px] max-h-[144px] leading-6 py-4 ${shouldShowBanana ? "pl-4" : ""}`}
             rows={1}
           />
         </div>

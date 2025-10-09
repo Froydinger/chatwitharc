@@ -63,8 +63,11 @@ export function LandingScreen() {
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-4">
               <span className="font-thin">Arc</span><span className="font-semibold">AI</span>
             </h1>
-            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-3">
               Ask, Reflect, Create
+            </p>
+            <p className="text-sm text-muted-foreground/70 max-w-xl mx-auto">
+              Powered by Google Gemini 2.5 Flash & Nano Banana 🍌
             </p>
           </motion.div>
         </div>
@@ -116,8 +119,11 @@ export function LandingScreen() {
         transition={{ duration: 0.6, delay: 0.8 }}
         className="py-4 px-6 text-center relative z-10"
       >
-        <p className="text-xs text-muted-foreground/60">
-          Start your conversation with ArcAI
+        <p className="text-xs text-muted-foreground/60 mb-1">
+          A relaxing, organized space for both new and experienced AI users
+        </p>
+        <p className="text-xs text-muted-foreground/50 mb-2">
+          Chat with Gemini • Generate with Nano Banana 🍌
         </p>
         <div className="mt-2">
           <PrivacyTermsModal />

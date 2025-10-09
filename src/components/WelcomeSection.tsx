@@ -63,8 +63,11 @@ export function WelcomeSection({
           {greeting}!
         </h1>
         
-        <p className="text-muted-foreground text-lg">
+        <p className="text-muted-foreground text-lg mb-2">
           What would you like to explore today?
+        </p>
+        <p className="text-xs text-muted-foreground/60">
+          Powered by Google Gemini 2.5 Flash & Nano Banana 🍌 for images
         </p>
       </div>
 
