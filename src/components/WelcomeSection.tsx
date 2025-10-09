@@ -105,7 +105,9 @@ export function WelcomeSection({
         <p className="text-muted-foreground text-lg mb-2">
           What would you like to explore today?
         </p>
-        <p className="text-xs text-muted-foreground/60">You can change which model Arc uses in settings, images are generated using Nano Banana 🍌</p>
+        <p className="text-xs text-muted-foreground/60">Tap a prompt below to edit it and send it!
+You can change which model Arc uses in settings.
+Images are generated w/ Nano Banana 🍌</p>
       </div>
 
       {/* Tab Selection */}
