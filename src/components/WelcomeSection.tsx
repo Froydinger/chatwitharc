@@ -102,10 +102,8 @@ export function WelcomeSection({
           {greeting}!
         </h1>
         
-        <p className="text-muted-foreground text-lg mb-2">
-          What would you like to explore today?
-        </p>
-        <p className="text-xs text-muted-foreground/60">Tap a prompt below to edit it and send it!
+        <p className="text-muted-foreground text-lg mb-2">What are we getting into to today?</p>
+        <p className="text-xs text-muted-foreground/60 px-[27px] font-extralight">Tap a prompt below to edit it and send it!
 You can change which model Arc uses in settings.
 Images are generated w/ Nano Banana 🍌</p>
       </div>
