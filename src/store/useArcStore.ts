@@ -510,14 +510,10 @@ export const useArcStore = create<ArcState>()(
             detail: { prompt: message, type: 'image' } 
           }));
         } else {
-          // For text prompts, add the user message directly without dispatching events
-          await state.addMessage({
-            content: message,
-            role: 'user',
-            type: 'text'
-          });
-          
-          // No need to dispatch event - the chat will auto-respond via useEffect in ChatInput
+          // For text prompts, trigger through the event system so it goes through normal flow
+          window.dispatchEvent(new CustomEvent('arcai:triggerPrompt', { 
+            detail: { prompt: message, type: 'text' } 
+          }));
         }
       },
       
