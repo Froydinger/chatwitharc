@@ -587,12 +587,11 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         <button
           onClick={handleSend}
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
-          className={`shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-200
+          className={`shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-200 border
             ${(inputValue.trim() || selectedImages.length) 
-              ? "bg-black dark:bg-primary text-white dark:text-primary-foreground hover:bg-black/90 dark:hover:bg-primary/90 border-black dark:border-primary" 
-              : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed border-transparent"
+              ? "!bg-black dark:!bg-primary !text-white dark:!text-primary-foreground hover:opacity-90 !border-black dark:!border-primary" 
+              : "!bg-gray-300 dark:!bg-gray-700 !text-gray-500 dark:!text-gray-400 cursor-not-allowed !border-transparent"
             }`}
-          style={(inputValue.trim() || selectedImages.length) ? { backgroundColor: 'black' } : undefined}
           aria-label="Send"
         >
           <Send className="h-5 w-5" />
