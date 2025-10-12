@@ -66,15 +66,8 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
         ? `Edit this image (originally: "${originalPrompt}"): ${textWithChips}`
         : `Edit this image: ${textWithChips}`;
 
-      // Add a user message with the image (so the thread shows your action)
-      await addMessage({
-        content: editPrompt,
-        role: "user",
-        type: "image",
-        imageUrls: [imageUrl],
-      });
-
       // Signal ChatInput to do the actual edit (relies on its 'processImageEdit' listener)
+      // Note: ChatInput's handleExternalImageEdit will add the user message, so we don't duplicate it here
       const editEvent = new CustomEvent("processImageEdit", {
         detail: {
           content: editPrompt,
