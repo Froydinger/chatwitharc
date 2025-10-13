@@ -290,7 +290,7 @@ export function MobileChatApp() {
       </div>
 
       {/* Right Panel */}
-      <RightPanel isOpen={rightPanelOpen} onClose={() => setRightPanelOpen(false)} activeTab={rightPanelTab} onTabChange={setRightPanelTab} />
+      <RightPanel isOpen={rightPanelOpen} onClose={() => setRightPanelOpen(false)} activeTab={rightPanelTab as any} onTabChange={setRightPanelTab} />
     </div>
 
       {/* Scoped styles */}

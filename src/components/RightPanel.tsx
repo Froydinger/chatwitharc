@@ -8,6 +8,7 @@ import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { MusicPlayerPanel } from "@/components/MusicPlayerPanel";
 import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
+import { ExportPanel } from "@/components/ExportPanel";
 import { cn } from "@/lib/utils";
 
 const musicTracks = [
@@ -226,6 +227,10 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
             
             <TabsContent value="settings" className="h-full m-0">
               <SettingsPanel />
+            </TabsContent>
+
+            <TabsContent value="export" className="h-full m-0">
+              <ExportPanel />
             </TabsContent>
           </Tabs>
         </div>

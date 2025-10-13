@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { 
   Trash2, User, LogOut, AlertTriangle, Camera, Wifi, WifiOff, 
   Cloud, CloudOff, Mic, Settings as SettingsIcon, ChevronDown,
-  Save, RotateCcw, X, Mail, Key
+  Save, RotateCcw, X, Mail, Key, Download
 } from "lucide-react";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
 import { useProfile } from "@/hooks/useProfile";
@@ -45,7 +45,8 @@ export function SettingsPanel() {
     setVoiceMode,
     isContinuousVoiceMode,
     setContinuousVoiceMode,
-    createNewSession
+    createNewSession,
+    setRightPanelTab
   } = useArcStore();
   const { user } = useAuth();
   const { profile, updateProfile, updating } = useProfile();
@@ -714,21 +715,38 @@ export function SettingsPanel() {
             </div>
           </GlassCard>
 
-          {/* Data Management */}
-          <GlassCard variant="bubble" className="p-6">
+          {/* Export & Data Management */}
+          <GlassCard variant="bubble" className="p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium text-foreground">Clear Chat History</h3>
-                <p className="text-xs text-muted-foreground">Remove all stored conversations</p>
+                <h3 className="font-medium text-foreground">Export Chats</h3>
+                <p className="text-xs text-muted-foreground">Download as HTML, TXT, JSON, or WordPress plugin</p>
               </div>
               <GlassButton
                 variant="ghost"
                 size="sm"
-                onClick={handleClearMessages}
-                className="text-destructive hover:text-destructive"
+                onClick={() => setRightPanelTab('export')}
               >
-                Clear All
+                <Download className="h-4 w-4 mr-1" />
+                Export
               </GlassButton>
+            </div>
+
+            <div className="pt-4 border-t border-border/40">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-foreground">Clear Chat History</h3>
+                  <p className="text-xs text-muted-foreground">Remove all stored conversations</p>
+                </div>
+                <GlassButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearMessages}
+                  className="text-destructive hover:text-destructive"
+                >
+                  Clear All
+                </GlassButton>
+              </div>
             </div>
           </GlassCard>
 

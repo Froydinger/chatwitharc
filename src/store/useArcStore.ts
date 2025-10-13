@@ -46,8 +46,8 @@ export interface ArcState {
   setCurrentTab: (tab: 'chat' | 'history' | 'settings') => void;
   rightPanelOpen: boolean;
   setRightPanelOpen: (open: boolean) => void;
-  rightPanelTab: 'history' | 'media' | 'music' | 'settings';
-  setRightPanelTab: (tab: 'history' | 'media' | 'music' | 'settings') => void;
+  rightPanelTab: 'history' | 'media' | 'music' | 'settings' | 'export';
+  setRightPanelTab: (tab: 'history' | 'media' | 'music' | 'settings' | 'export') => void;
 
   isVoiceMode: boolean;
   setVoiceMode: (enabled: boolean) => void;
@@ -184,10 +184,13 @@ export const useArcStore = create<ArcState>()(
       loadSession: (sessionId) => {
         const session = get().chatSessions.find(s => s.id === sessionId);
         if (session) {
+          console.log('Loading session:', sessionId, 'with', session.messages.length, 'messages');
           set({
             currentSessionId: sessionId,
-            messages: [...session.messages] // Create a new array to ensure reactivity
+            messages: JSON.parse(JSON.stringify(session.messages)) // Deep clone to prevent reference issues
           });
+        } else {
+          console.warn('Session not found:', sessionId);
         }
       },
       
