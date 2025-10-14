@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,12 +21,13 @@ serve(async (req) => {
     return new Response("Expected WebSocket connection", { status: 400 });
   }
 
-  console.log("Creating WebSocket connection to OpenAI Realtime API");
+  console.log("Creating WebSocket relay to OpenAI Realtime API");
 
   try {
     const { socket, response } = Deno.upgradeWebSocket(req);
     
     let openAISocket: WebSocket | null = null;
+    const messageQueue: string[] = [];
     
     socket.onopen = async () => {
       console.log("Client WebSocket connected successfully");
@@ -40,58 +40,51 @@ serve(async (req) => {
         return;
       }
 
-      console.log("OPENAI_API_KEY found, creating session...");
+      console.log("OPENAI_API_KEY found, connecting to OpenAI...");
 
       try {
-        // First, create a session with OpenAI
-        console.log("Creating OpenAI session...");
-        const sessionResponse = await fetch("https://api.openai.com/v1/realtime/sessions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${openaiApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-realtime-preview-2024-12-17",
-            voice: "alloy",
-            instructions: "You are ArcAI, a helpful and engaging voice assistant. Speak naturally and conversationally. Be concise but friendly.",
-            modalities: ["text", "audio"],
-            input_audio_format: "pcm16",
-            output_audio_format: "pcm16",
-            input_audio_transcription: {
-              model: "whisper-1"
-            },
-            turn_detection: {
-              type: "server_vad",
-              threshold: 0.5,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 1000
-            },
-            temperature: 0.8,
-            max_response_output_tokens: "inf"
-          }),
-        });
-
-        if (!sessionResponse.ok) {
-          const errorText = await sessionResponse.text();
-          console.error("Failed to create OpenAI session:", sessionResponse.status, errorText);
-          socket.close(1000, `Session creation failed: ${sessionResponse.status}`);
-          return;
-        }
-
-        const sessionData = await sessionResponse.json();
-        console.log("Session created successfully:", sessionData);
-
-        // Now connect to OpenAI using the session token
-        const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
-        console.log("Connecting to OpenAI WebSocket with session token...");
+        // Connect to OpenAI Realtime API using authenticated URL
+        // OpenAI requires the API key to be passed in the URL for WebSocket connections
+        const model = "gpt-4o-realtime-preview-2024-12-17";
+        const wsUrl = `wss://api.openai.com/v1/realtime?model=${model}&api_key=${openaiApiKey}`;
+        console.log("Connecting to OpenAI WebSocket...");
         
-        // For session-based auth, we need to use the session token as Authorization header
-        // but Deno WebSocket doesn't support headers, so we use a different approach
-        openAISocket = new WebSocket(wsUrl, [`Bearer ${sessionData.client_secret.value}`]);
+        openAISocket = new WebSocket(wsUrl);
 
         openAISocket.onopen = () => {
           console.log("Successfully connected to OpenAI Realtime API!");
+          
+          // Send initial session configuration
+          const sessionConfig = {
+            type: "session.update",
+            session: {
+              modalities: ["text", "audio"],
+              instructions: "You are ArcAI, a helpful and engaging voice assistant. Speak naturally and conversationally. Be concise but friendly.",
+              voice: "alloy",
+              input_audio_format: "pcm16",
+              output_audio_format: "pcm16",
+              input_audio_transcription: {
+                model: "whisper-1"
+              },
+              turn_detection: {
+                type: "server_vad",
+                threshold: 0.5,
+                prefix_padding_ms: 300,
+                silence_duration_ms: 1000
+              },
+              temperature: 0.8,
+              max_response_output_tokens: "inf"
+            }
+          };
+          
+          openAISocket!.send(JSON.stringify(sessionConfig));
+          console.log("Session configuration sent");
+          
+          // Send any queued messages
+          while (messageQueue.length > 0) {
+            const msg = messageQueue.shift();
+            if (msg) openAISocket!.send(msg);
+          }
         };
 
         openAISocket.onmessage = (event) => {
@@ -111,7 +104,10 @@ serve(async (req) => {
         openAISocket.onerror = (error) => {
           console.error("OpenAI WebSocket error:", error);
           if (socket.readyState === WebSocket.OPEN) {
-            socket.close(1000, "OpenAI connection failed");
+            socket.send(JSON.stringify({ 
+              type: "error", 
+              error: "OpenAI connection error" 
+            }));
           }
         };
 
@@ -130,12 +126,15 @@ serve(async (req) => {
 
     socket.onmessage = (event) => {
       try {
-        console.log("Received from client:", event.data);
+        const message = event.data;
+        console.log("Received from client:", message.substring(0, 100));
+        
         // Forward client messages to OpenAI
         if (openAISocket?.readyState === WebSocket.OPEN) {
-          openAISocket.send(event.data);
+          openAISocket.send(message);
         } else {
-          console.log("OpenAI WebSocket not ready, message queued");
+          console.log("OpenAI WebSocket not ready, queuing message");
+          messageQueue.push(message);
         }
       } catch (error) {
         console.error("Error handling client message:", error);
