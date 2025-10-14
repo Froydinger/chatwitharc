@@ -86,7 +86,7 @@ function extractImagePrompt(message: string): string {
   return prompt;
 }
 
-  /* ---------------- Component ---------------- */
+/* ---------------- Component ---------------- */
 export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boolean) => void }) {
   const { messages, addMessage, replaceLastMessage, isLoading, isGeneratingImage, setLoading, setGeneratingImage } =
     useArcStore();
@@ -97,31 +97,8 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
   const [forceImageMode, setForceImageMode] = useState(false); // user toggled Nano Banana
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   useProfile();
-
-  // Handle mobile keyboard for smooth scrolling
-  useEffect(() => {
-    const handleResize = () => {
-      if (containerRef.current && textareaRef.current === document.activeElement) {
-        // Smooth scroll to input when keyboard opens
-        setTimeout(() => {
-          containerRef.current?.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'end',
-            inline: 'nearest' 
-          });
-        }, 100);
-      }
-    };
-
-    // Listen for visualViewport changes (mobile keyboard)
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize);
-      return () => window.visualViewport?.removeEventListener('resize', handleResize);
-    }
-  }, []);
 
   // Banana active when forced or input suggests image intent
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
@@ -498,7 +475,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
 
   /* ---------------- Render ---------------- */
   return (
-    <div ref={containerRef} className="space-y-4">
+    <div className="space-y-4">
       {/* Selected Images preview */}
       {selectedImages.length > 0 && (
         <div className="p-3 bg-glass/20 rounded-lg">
@@ -606,19 +583,15 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           />
         </div>
 
-        {/* send button with forced colors */}
+        {/* send – blue in light mode, primary in dark mode */}
         <button
           onClick={handleSend}
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
           className={`shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-200 border
             ${(inputValue.trim() || selectedImages.length) 
-              ? "text-white hover:opacity-90" 
+              ? "bg-blue-600 dark:bg-primary text-white dark:text-primary-foreground hover:opacity-90 border-blue-600 dark:border-primary" 
               : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed border-transparent"
             }`}
-          style={(inputValue.trim() || selectedImages.length) ? {
-            backgroundColor: 'rgb(37, 99, 235)', // Force blue-600 in light mode
-            borderColor: 'rgb(37, 99, 235)'
-          } : undefined}
           aria-label="Send"
         >
           <Send className="h-5 w-5" />
