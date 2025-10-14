@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Menu, Sun, Moon } from "lucide-react";
+import { Plus, Menu, Sun, Moon, Mic } from "lucide-react";
 import { motion } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -7,6 +7,7 @@ import { ChatInput } from "@/components/ChatInput";
 import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
+import { VoiceInterface } from "@/components/VoiceInterface";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
@@ -46,6 +47,7 @@ export function MobileChatApp() {
   } = useTheme();
   const [dragOver, setDragOver] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
+  const [showVoiceChat, setShowVoiceChat] = useState(false);
 
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -235,6 +237,9 @@ export function MobileChatApp() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" className="rounded-full" onClick={() => setShowVoiceChat(!showVoiceChat)} title="Voice Chat">
+                <Mic className={cn("h-4 w-4", showVoiceChat && "text-primary")} />
+              </Button>
               <Button variant="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
                 <Plus className="h-4 w-4" />
               </Button>
@@ -255,12 +260,17 @@ export function MobileChatApp() {
         e.preventDefault();
         setDragOver(true);
       }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop}>
-        {/* Chat Messages */}
-        <div ref={messagesContainerRef} className="absolute inset-0 overflow-y-auto" style={{
-          paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 2rem)`
-        }}>
-          {/* Empty state */}
-          {messages.length === 0 ? <WelcomeSection greeting={greeting} heroAvatar={HERO_AVATAR} quickPrompts={quickPrompts} onTriggerPrompt={triggerPrompt} isLoading={isLoading} isGeneratingImage={isGeneratingImage} /> : <div className="p-4 space-y-4 chat-messages">
+        
+        {showVoiceChat ? (
+          <VoiceInterface />
+        ) : (
+          <>
+            {/* Chat Messages */}
+            <div ref={messagesContainerRef} className="absolute inset-0 overflow-y-auto" style={{
+              paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 2rem)`
+            }}>
+              {/* Empty state */}
+              {messages.length === 0 ? <WelcomeSection greeting={greeting} heroAvatar={HERO_AVATAR} quickPrompts={quickPrompts} onTriggerPrompt={triggerPrompt} isLoading={isLoading} isGeneratingImage={isGeneratingImage} /> : <div className="p-4 space-y-4 chat-messages">
               {messages.map(message => <MessageBubble key={message.id} message={message} onEdit={async (messageId: string, newContent: string) => {
               // When a message is edited, trigger a new AI response
               // Message edited, triggering new response
@@ -279,14 +289,16 @@ export function MobileChatApp() {
             </div>}
         </div>
 
-        {/* Fixed shelf input dock */}
-        <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-30 pointer-events-none">
-          <div className={cn("transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]", rightPanelOpen && "lg:mr-80 xl:mr-96")}>
-            <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
-              <ChatInput onImagesChange={setHasSelectedImages} />
+            {/* Fixed shelf input dock */}
+            <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-30 pointer-events-none">
+              <div className={cn("transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]", rightPanelOpen && "lg:mr-80 xl:mr-96")}>
+                <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
+                  <ChatInput onImagesChange={setHasSelectedImages} />
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Right Panel */}
