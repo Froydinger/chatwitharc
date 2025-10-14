@@ -583,16 +583,15 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           />
         </div>
 
-        {/* send – consistent black in light mode, primary in dark mode */}
+        {/* send – blue in light mode, primary in dark mode */}
         <button
           onClick={handleSend}
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
           className={`shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-200 border
             ${(inputValue.trim() || selectedImages.length) 
-              ? "dark:bg-primary text-white dark:text-primary-foreground hover:opacity-90 border-[#1e1e1e] dark:border-primary" 
+              ? "bg-blue-600 dark:bg-primary text-white dark:text-primary-foreground hover:opacity-90 border-blue-600 dark:border-primary" 
               : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed border-transparent"
             }`}
-          style={(inputValue.trim() || selectedImages.length) ? { backgroundColor: '#1e1e1e' } : undefined}
           aria-label="Send"
         >
           <Send className="h-5 w-5" />
