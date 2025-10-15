@@ -115,10 +115,7 @@ export function MobileChatApp() {
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el || messages.length === 0) return; // Don't scroll if no messages
-    el.scrollTo({
-      top: el.scrollHeight,
-      behavior: "smooth",
-    });
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isGeneratingImage]);
 
   // When chat is empty, go to top
@@ -126,7 +123,6 @@ export function MobileChatApp() {
     const el = messagesContainerRef.current;
     if (!el) return;
     if (messages.length === 0) {
-      // Use a small delay to ensure DOM has rendered
       setTimeout(() => {
         el.scrollTop = 0;
         requestAnimationFrame(() => (el.scrollTop = 0));
@@ -149,8 +145,6 @@ export function MobileChatApp() {
   const handleNewChat = () => {
     createNewSession();
     setRightPanelOpen(false);
-    // Let the useEffect handle scrolling when messages become empty
-    // Add a small delay to ensure DOM has updated
     setTimeout(() => {
       const el = messagesContainerRef.current;
       if (el) {
@@ -185,12 +179,8 @@ export function MobileChatApp() {
         const markLoaded = () => img.classList.add("is-loaded");
         if (img.complete && img.naturalWidth > 0) markLoaded();
         else {
-          img.addEventListener("load", markLoaded, {
-            once: true,
-          });
-          img.addEventListener("error", markLoaded, {
-            once: true,
-          });
+          img.addEventListener("load", markLoaded, { once: true });
+          img.addEventListener("error", markLoaded, { once: true });
         }
       }
     };
@@ -205,10 +195,7 @@ export function MobileChatApp() {
         });
       }
     });
-    mo.observe(root, {
-      childList: true,
-      subtree: true,
-    });
+    mo.observe(root, { childList: true, subtree: true });
     return () => mo.disconnect();
   }, []);
 
@@ -231,26 +218,13 @@ export function MobileChatApp() {
                   src={HERO_AVATAR}
                   alt="ArcAI"
                   className="h-8 w-8 rounded-small avatar-filled-eyes"
-                  animate={{
-                    y: [0, -2, 0],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
+                  animate={{ y: [0, -2, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 />
                 <motion.div
                   className="absolute -inset-1 bg-primary/20 rounded-full blur-sm"
-                  animate={{
-                    scale: [1, 1.05, 1],
-                    opacity: [0.2, 0.4, 0.2],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
+                  animate={{ scale: [1, 1.05, 1], opacity: [0.2, 0.4, 0.2] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 />
               </div>
               <div>
@@ -278,9 +252,7 @@ export function MobileChatApp() {
                 variant="outline"
                 size="icon"
                 className="rounded-full"
-                onClick={() => {
-                  setRightPanelOpen(!rightPanelOpen);
-                }}
+                onClick={() => setRightPanelOpen(!rightPanelOpen)}
               >
                 <Menu className="h-4 w-4" />
               </Button>
@@ -302,11 +274,8 @@ export function MobileChatApp() {
           <div
             ref={messagesContainerRef}
             className="absolute inset-0 overflow-y-auto"
-            style={{
-              paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 3rem)`,
-            }}
+            style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 3rem)` }}
           >
-            {/* Empty state */}
             {messages.length === 0 ? (
               <WelcomeSection
                 greeting={greeting}
@@ -323,25 +292,20 @@ export function MobileChatApp() {
                     key={message.id}
                     message={message}
                     onEdit={async (messageId: string, newContent: string) => {
-                      // When a message is edited, trigger a new AI response
                       const chatInputEvent = new CustomEvent("processEditedMessage", {
-                        detail: {
-                          content: newContent,
-                          editedMessageId: messageId,
-                        },
+                        detail: { content: newContent, editedMessageId: messageId },
                       });
                       window.dispatchEvent(chatInputEvent);
                     }}
                   />
                 ))}
-                {/* Only show ThinkingIndicator for text-only loading, not for image generation */}
                 {isLoading && !isGeneratingImage && <ThinkingIndicator isLoading={true} isGeneratingImage={false} />}
               </div>
             )}
           </div>
 
           {/* Free-floating input shelf */}
-          <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-30 pointer-events-none px-4">
+          <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-50 pointer-events-none px-4">
             <div
               className={cn(
                 "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto",
@@ -355,7 +319,6 @@ export function MobileChatApp() {
           </div>
         </div>
 
-        {/* Right Panel */}
         <RightPanel
           isOpen={rightPanelOpen}
           onClose={() => setRightPanelOpen(false)}
@@ -366,120 +329,11 @@ export function MobileChatApp() {
 
       {/* Scoped styles */}
       <style>{`
-        /* Avatar progressive reveal */
-        img.ai-avatar{
-          opacity: 0;
-          filter: saturate(1) contrast(1);
-          transition: opacity 260ms ease, transform 260ms ease;
-          transform: translateY(2px);
-          will-change: opacity, transform;
-        }
-        img.ai-avatar.is-loaded{ opacity: 1; transform: translateY(0); }
-
-        /* Very light floating for hero avatar */
+        img.ai-avatar{ opacity:0; filter:saturate(1) contrast(1); transition:opacity 260ms ease, transform 260ms ease; transform:translateY(2px); will-change:opacity,transform;}
+        img.ai-avatar.is-loaded{ opacity:1; transform:translateY(0); }
         .floating-hero{ animation: float-3 5.2s ease-in-out infinite; }
-        .assistant-hero-avatar{
-          border-radius: 24%;
-          box-shadow: 0 12px 30px rgba(0,0,0,0.35);
-          border: none !important;
-          outline: none !important;
-          background: transparent;
-        }
-        @keyframes float-3 {
-          0%,100%{transform:translate(0px,0px) rotate(0)}
-          20%{transform:translate(1px,1px) rotate(0.2deg)}
-          40%{transform:translate(-1px,2px) rotate(-0.3deg)}
-          60%{transform:translate(2px,-1px) rotate(0.25deg)}
-          80%{transform:translate(-2px,0) rotate(-0.2deg)}
-        }
+        @keyframes float-3 { 0%,100%{transform:translate(0,0) rotate(0)} 20%{transform:translate(1px,1px) rotate(.2deg)} 40%{transform:translate(-1px,2px) rotate(-.3deg)} 60%{transform:translate(2px,-1px) rotate(.25deg)} 80%{transform:translate(-2px,0) rotate(-.2deg)} }
 
-        /* --- PING-PONG MARQUEE (SLOW) --- */
-        .marquee-ping{
-          position: relative;
-          overflow: hidden;
-          min-height: 48px;
-          -webkit-mask-image: linear-gradient(to right, transparent 0, black 10%, black 90%, transparent 100%);
-                  mask-image: linear-gradient(to right, transparent 0, black 10%, black 90%, transparent 100%);
-        }
-        .marquee-ping-track{
-          display: inline-flex;
-          gap: 12px;
-          white-space: nowrap;
-          will-change: transform;
-          transform: translate3d(0,0,0);
-          animation: pingpong var(--dur, 60s) cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
-          animation-delay: var(--delay, 0s);
-        }
-        .marquee-ping-set{ display: inline-flex; gap: 12px; }
-
-        @keyframes pingpong{
-          0%   { transform: translate3d(calc(-1 * var(--setW, 600px)), 0, 0); }
-          50%  { transform: translate3d(calc(-2 * var(--setW, 600px)), 0, 0); }
-          100% { transform: translate3d(0, 0, 0); }
-        }
-
-        /* Prompt pill style */
-        .prompt-pill{
-          pointer-events: auto;
-          padding: 12px 18px;
-          border-radius: 9999px;
-          background: rgba(22,22,22,0.45);
-          backdrop-filter: blur(8px) saturate(118%);
-          -webkit-backdrop-filter: blur(8px) saturate(118%);
-          border: 1px solid rgba(255,255,255,0.06);
-          box-shadow:
-            0 6px 16px rgba(0,0,0,0.25),
-            inset 0 1px 0 rgba(255,255,255,0.04);
-          transition: transform 220ms ease, background-color 220ms ease, box-shadow 220ms ease;
-          white-space: nowrap;
-        }
-        .prompt-pill:active { transform: scale(0.98); }
-        .prompt-pill:hover  { box-shadow: 0 8px 18px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.05); }
-
-        /* Thinking indicator container */
-        .thinking-shell{ transition: opacity 220ms ease, transform 220ms ease; opacity: 0; transform: translateY(3px); }
-        .thinking-shell[data-show="true"]{ opacity: 1; transform: translateY(0); }
-
-        /* The pill and its glow */
-        .thinking-pill{
-          position: relative;
-          padding: 10px 16px;
-          border-radius: 9999px;
-          overflow: hidden;
-          isolation: isolate;
-        }
-        .thinking-pill::before{
-          content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1;
-          background:
-            radial-gradient(80px 40px at 20% 50%, rgba(99,102,241,0.18), transparent 70%),
-            radial-gradient(80px 40px at 80% 50%, rgba(16,185,129,0.16), transparent 70%),
-            radial-gradient(100px 50px at 50% 0%, rgba(236,72,153,0.14), transparent 70%);
-          background-repeat: no-repeat;
-          filter: blur(8px);
-          animation: pill-pan 12s ease-in-out infinite alternate;
-        }
-        .thinking-pill::after{
-          content: ""; position: absolute; inset: -12%; border-radius: inherit; z-index: -2;
-          background: conic-gradient(from 0deg,
-            rgba(99,102,241,0.12),
-            rgba(236,72,153,0.10),
-            rgba(16,185,129,0.10),
-            rgba(59,130,246,0.10),
-            rgba(99,102,241,0.12));
-          filter: blur(14px);
-          animation: halo-slow 22s linear infinite;
-          opacity: 0.85;
-        }
-        @keyframes pill-pan{ 0%{ transform: translate3d(-2px,0,0) } 100%{ transform: translate3d(2px,0,0) } }
-        @keyframes halo-slow{ from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
-
-        /* Bounce + sparkle */
-        @keyframes bounce-slow { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-2px)} }
-        .animate-bounce-slow{ animation: bounce-slow 1.2s ease-in-out infinite; }
-        @keyframes twinkle { 0%,100%{transform:scale(0.9) rotate(0); opacity:0.85} 50%{transform:scale(1.05) rotate(8deg); opacity:1} }
-        .animate-twinkle{ animation: twinkle 1.6s ease-in-out infinite; }
-
-        /* Subtle glass bubbles for message area */
         .chat-messages .surface,
         .chat-messages .card,
         .chat-messages [data-bubble],
@@ -489,10 +343,7 @@ export function MobileChatApp() {
           backdrop-filter: blur(8px) saturate(118%) !important;
           -webkit-backdrop-filter: blur(8px) saturate(118%) !important;
           border: 1px solid rgba(255,255,255,0.06) !important;
-          box-shadow:
-            0 2px 10px rgba(0,0,0,0.22),
-            inset 0 1.5px 0 rgba(255,255,255,0.08),
-            inset 0 1px 0 rgba(255,255,255,0.04) !important;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.22), inset 0 1.5px 0 rgba(255,255,255,0.08), inset 0 1px 0 rgba(255,255,255,0.04) !important;
         }
 
         /* —— Minimal Luxe Input Bar —— */
@@ -511,59 +362,23 @@ export function MobileChatApp() {
           isolation: isolate;
         }
         .glass-dock::before{
-          content:"";
-          position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+          content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
           background: radial-gradient(120% 120% at 50% 50%, color-mix(in oklab, hsl(var(--primary)) 14%, transparent) 0%, transparent 40%);
           opacity:.18;
         }
-        .glass-dock:hover{
-          box-shadow: 0 4px 18px rgba(0,0,0,.22), 0 1px 0 rgba(255,255,255,.03) inset;
-          transform: translateY(-0.5px);
-          transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
-        }
-        .glass-dock:focus-within{
-          background: color-mix(in oklab, hsl(var(--background)) 88%, transparent);
-          box-shadow: 0 6px 22px rgba(0,0,0,.25), 0 0 0 1px color-mix(in oklab, hsl(var(--primary)) 26%, transparent) inset;
-        }
+        .glass-dock:hover{ box-shadow: 0 4px 18px rgba(0,0,0,.22), 0 1px 0 rgba(255,255,255,.03) inset; transform: translateY(-0.5px); transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+        .glass-dock:focus-within{ background: color-mix(in oklab, hsl(var(--background)) 88%, transparent); box-shadow: 0 6px 22px rgba(0,0,0,.25), 0 0 0 1px color-mix(in oklab, hsl(var(--primary)) 26%, transparent) inset; }
         .glass-dock > *{ position: relative; z-index: 1; }
-        .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){
-          background: transparent !important;
-          border: 0 !important;
-          box-shadow: none !important;
-        }
+        .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
+        .glass-dock .chat-input-halo{ border-radius: 9999px !important; border: 1px solid color-mix(in oklab, hsl(var(--border)) 28%, transparent) !important; background: color-mix(in oklab, hsl(var(--background)) 65%, transparent) !important; padding: 8px 10px !important; }
+        .glass-dock textarea{ outline: none !important; box-shadow: none !important; }
 
-        /* Inner halo */
-        .glass-dock .chat-input-halo{
-          border-radius: 9999px !important;
-          border: 1px solid color-mix(in oklab, hsl(var(--border)) 28%, transparent) !important;
-          background: color-mix(in oklab, hsl(var(--background)) 65%, transparent) !important;
-          padding: 8px 10px !important;
-        }
-
-        /* Keep textarea calm */
-        .glass-dock textarea{
-          outline: none !important;
-          box-shadow: none !important;
-        }
-
-        /* Selected images row sizing (from ChatInput) */
-        .ci-preview{
-          background: color-mix(in oklab, hsl(var(--background)) 70%, transparent);
-          border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
-          border-radius: 16px;
-        }
+        /* Preview styles (used by ChatInput) */
+        .ci-preview{ background: color-mix(in oklab, hsl(var(--background)) 70%, transparent); border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent); border-radius: 16px; }
         .ci-thumb{ width: 56px; height: 56px; border-radius: 9999px; object-fit: cover; }
 
-        /* compact on mobile */
-        @media (max-width: 480px){
-          .glass-dock{ padding: 8px; max-width: 92vw; }
-          .glass-dock .chat-input-halo{ padding: 6px 8px !important; }
-        }
-
-        /* reduced motion */
-        @media (prefers-reduced-motion: reduce){
-          .glass-dock, .glass-dock:hover{ transition: none !important; transform: none !important; }
-        }
+        @media (max-width: 480px){ .glass-dock{ padding: 8px; max-width: 92vw; } .glass-dock .chat-input-halo{ padding: 6px 8px !important; } }
+        @media (prefers-reduced-motion: reduce){ .glass-dock, .glass-dock:hover{ transition: none !important; transform: none !important; } }
       `}</style>
     </div>
   );
