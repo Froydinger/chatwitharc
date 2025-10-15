@@ -1,15 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Plus, X } from "lucide-react";
+import { createPortal } from "react-dom";
 import { useArcStore } from "@/store/useArcStore";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
-/**
- * ChatInput with:
- * - Attachments preview ABOVE input
- * - Popover tiles menu (big, easy to tap)
- * - Banana toggle + send button
- */
 export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boolean) => void }) {
   const { addMessage, isLoading } = useArcStore();
 
@@ -51,8 +46,8 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
   };
 
   return (
-    <div className="w-full space-y-2">
-      {/* Selected images preview above input */}
+    <div className="w-full space-y-2 relative">
+      {/* Selected images preview ABOVE input */}
       {selectedImages.length > 0 && (
         <div className="flex items-center gap-3 bg-muted/30 rounded-xl p-3">
           <div className="flex gap-2 overflow-x-auto">
@@ -86,7 +81,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           onClick={() => setShowMenu((v) => !v)}
           aria-label="Toggle menu"
           className="h-10 w-10 rounded-full flex items-center justify-center border border-border/40
-                     bg-muted/50 hover:bg-muted hover:text-foreground transition"
+                     bg-muted/50 hover:bg-muted hover:text-foreground transition z-50"
         >
           {shouldShowBanana ? "🍌" : showMenu ? <X className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
         </button>
@@ -130,30 +125,35 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         </button>
       </div>
 
-      {/* Popover menu */}
-      {showMenu && (
-        <div className="absolute bottom-20 left-4 right-4 z-50 flex gap-4 justify-center">
-          <div className="bg-popover rounded-2xl p-4 shadow-xl grid grid-cols-2 gap-4 w-full max-w-sm">
-            <button
-              onClick={() => {
-                setForceImageMode(true);
-                setShowMenu(false);
-              }}
-              className="flex flex-col items-center justify-center p-4 bg-yellow-100/10 hover:bg-yellow-100/20 rounded-xl"
-            >
-              <span className="text-2xl">🍌</span>
-              <span className="text-sm mt-2">Generate Image</span>
-            </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center p-4 bg-blue-100/10 hover:bg-blue-100/20 rounded-xl"
-            >
-              <span className="text-2xl">📎</span>
-              <span className="text-sm mt-2">Attach</span>
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Popover menu rendered at body level */}
+      {showMenu &&
+        createPortal(
+          <div
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-popover rounded-2xl p-4 shadow-xl grid grid-cols-2 gap-4">
+              <button
+                onClick={() => {
+                  setForceImageMode(true);
+                  setShowMenu(false);
+                }}
+                className="flex flex-col items-center justify-center p-4 bg-yellow-100/10 hover:bg-yellow-100/20 rounded-xl"
+              >
+                <span className="text-2xl">🍌</span>
+                <span className="text-sm mt-2">Generate Image</span>
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex flex-col items-center justify-center p-4 bg-blue-100/10 hover:bg-blue-100/20 rounded-xl"
+              >
+                <span className="text-2xl">📎</span>
+                <span className="text-sm mt-2">Attach</span>
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
 
       {/* Hidden file input */}
       <input
