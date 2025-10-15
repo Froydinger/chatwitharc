@@ -1,29 +1,7 @@
 import { useState, useEffect } from "react";
 import { ThinkingIndicator } from "./ThinkingIndicator";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  MessageCircle,
-  Image,
-  PenTool,
-  Heart,
-  Sparkles,
-  Target,
-  MessageSquare,
-  HandHeart,
-  Gift,
-  Palette,
-  Galaxy,
-  Film,
-  Leaf,
-  PartyPopper,
-  Stars,
-  BookOpen,
-  FileText,
-  Mail,
-  Clapperboard,
-  FileEdit,
-  Feather,
-} from "lucide-react";
+import { MessageCircle, Image, PenTool } from "lucide-react";
 
 interface WelcomeSectionProps {
   greeting: string;
@@ -36,21 +14,6 @@ interface WelcomeSectionProps {
   isLoading?: boolean;
   isGeneratingImage?: boolean;
 }
-
-// These are the IMAGE prompts - they have these specific emojis
-const IMAGE_PROMPTS = new Set([
-  "🎨 Dream Poster",
-  "🎪 Fever Dream",
-  "🎬 Cult Classic",
-  "🎵 Mixtape Maker",
-  "🔮 Future Forecast",
-]);
-
-const separatePrompts = (prompts: Array<{ label: string; prompt: string }>) => {
-  const chatPrompts = prompts.filter((p) => !IMAGE_PROMPTS.has(p.label));
-  const imagePrompts = prompts.filter((p) => IMAGE_PROMPTS.has(p.label));
-  return { chatPrompts, imagePrompts };
-};
 
 export function WelcomeSection({
   greeting,
@@ -76,7 +39,7 @@ export function WelcomeSection({
         setGlowIndex(Math.floor(Math.random() * currentPrompts.length));
       },
       2000 + Math.random() * 2000,
-    ); // 2-4 seconds between changes
+    );
     return () => clearInterval(interval);
   }, [currentPrompts.length]);
 
@@ -141,62 +104,53 @@ export function WelcomeSection({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
           >
-            {(activeTab === "chat" ? chatPrompts : activeTab === "create" ? createPrompts : writePrompts).map(
-              (prompt, index) => {
-                const label = prompt.label.replace(/^[^\s]+\s+/, ""); // Remove emoji
-                const isGlowing = index === glowIndex;
-                const Icon = getIconForPrompt(prompt.label);
+            {currentPrompts.map((prompt, index) => {
+              const label = prompt.label.replace(/^[^\s]+\s+/, "");
+              const isGlowing = index === glowIndex;
 
-                return (
-                  <motion.button
-                    key={`${activeTab}-${index}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onTriggerPrompt(prompt.prompt);
-                    }}
-                    className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm transition-all duration-200 text-left hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1 cursor-pointer touch-manipulation relative"
+              return (
+                <motion.button
+                  key={`${activeTab}-${index}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onTriggerPrompt(prompt.prompt);
+                  }}
+                  className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm transition-all duration-200 text-left hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1 cursor-pointer touch-manipulation relative"
+                  style={{
+                    border: "1px solid rgba(0, 205, 255, 0.2)",
+                  }}
+                  whileHover={{ boxShadow: "0 0 20px rgba(0, 205, 255, 0.4)" }}
+                >
+                  <motion.div
+                    className="absolute inset-0 rounded-xl pointer-events-none"
                     style={{
+                      boxShadow: "0 0 30px rgba(0, 205, 255, 0)",
                       border: "1px solid rgba(0, 205, 255, 0.2)",
                     }}
-                    whileHover={{ boxShadow: "0 0 20px rgba(0, 205, 255, 0.4)" }}
-                  >
-                    {/* Glow only on active tile */}
-                    <motion.div
-                      className="absolute inset-0 rounded-xl pointer-events-none"
-                      style={{
-                        boxShadow: "0 0 30px rgba(0, 205, 255, 0)",
-                        border: "1px solid rgba(0, 205, 255, 0.2)",
-                      }}
-                      animate={{
-                        boxShadow: isGlowing
-                          ? [
-                              "0 0 10px rgba(0, 205, 255, 0.3)",
-                              "0 0 25px rgba(0, 205, 255, 0.6)",
-                              "0 0 10px rgba(0, 205, 255, 0.3)",
-                            ]
-                          : "0 0 30px rgba(0, 205, 255, 0)",
-                      }}
-                      transition={{
-                        duration: isGlowing ? 1.5 : 0.3,
-                        repeat: isGlowing ? Infinity : 0,
-                        ease: "easeInOut",
-                      }}
-                    />
+                    animate={{
+                      boxShadow: isGlowing
+                        ? [
+                            "0 0 10px rgba(0, 205, 255, 0.3)",
+                            "0 0 25px rgba(0, 205, 255, 0.6)",
+                            "0 0 10px rgba(0, 205, 255, 0.3)",
+                          ]
+                        : "0 0 30px rgba(0, 205, 255, 0)",
+                    }}
+                    transition={{
+                      duration: isGlowing ? 1.5 : 0.3,
+                      repeat: isGlowing ? Infinity : 0,
+                      ease: "easeInOut",
+                    }}
+                  />
 
-                    <div className="flex items-start gap-3 relative z-10">
-                      <div className="flex-shrink-0 text-[#00cdff]">
-                        <Icon size={20} />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-foreground mb-2 transition-colors duration-200">{label}</h3>
-                        <p className="text-sm text-muted-foreground line-clamp-2">{prompt.prompt}</p>
-                      </div>
-                    </div>
-                  </motion.button>
-                );
-              },
-            )}
+                  <div className="relative z-10">
+                    <h3 className="font-medium text-foreground mb-2 transition-colors duration-200">{label}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{prompt.prompt}</p>
+                  </div>
+                </motion.button>
+              );
+            })}
           </motion.div>
         </AnimatePresence>
       </div>
