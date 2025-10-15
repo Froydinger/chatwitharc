@@ -67,53 +67,61 @@ export function MobileChatApp() {
   // Quick Prompts
   const quickPrompts = [
     {
-      label: "🎯 Focus",
-      prompt: "Help me set up a focused work session. Guide me through planning a productive 25-minute sprint.",
+      label: "🌐 What's Trending?",
+      prompt: "Search the web and tell me what's trending right now. What's everyone talking about today?",
     },
     {
-      label: "🎨 Create",
-      prompt: "I need creative inspiration. Give me an interesting creative idea I can work on today.",
+      label: "📰 News Flash",
+      prompt: "Give me a quick rundown of the top news stories happening right now. What should I know about?",
     },
     {
-      label: "💭 Check-in",
+      label: "💭 Reflect",
       prompt:
-        "Help me do a quick wellness check. Ask me about my mood and energy level, then give me personalized advice.",
+        "I want to take some time to reflect. Walk me through a guided reflection on where I've been, what I've learned, and where I'm heading.",
     },
     {
-      label: "💬 Chat",
-      prompt: "I want to have a casual conversation. Ask me about my day and let's chat like friends.",
+      label: "🧘 Check-in",
+      prompt:
+        "Help me do a real wellness check. Ask me about my mood, energy, and what's on my mind right now, then give me honest feedback.",
     },
     {
-      label: "🤝 Advice",
-      prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing.",
+      label: "🎨 Dream Poster",
+      prompt:
+        "Generate a wild, colorful retro 90s poster design concept for me. Think neon colors, geometric shapes, and absolute chaos in the best way.",
     },
     {
-      label: "🙏 Gratitude",
-      prompt: "Lead me through a quick gratitude exercise to help me appreciate the good things in my life.",
+      label: "🔮 Future Forecast",
+      prompt:
+        "Search for what experts are predicting about the future. What's coming next in tech, culture, or society?",
     },
     {
-      label: "📚 Learn",
-      prompt: "Help me understand something new. I want to learn about a topic that interests me.",
+      label: "🎬 Cult Classic",
+      prompt: "Describe a hidden gem 90s movie or show I probably haven't heard of. Make me want to hunt it down.",
     },
     {
-      label: "📋 Plan",
-      prompt: "Help me organize my day or week. Guide me through creating a structured plan for my goals.",
+      label: "🎵 Mixtape Maker",
+      prompt:
+        "Create a 90s throwback mixtape for me. Give me a list of absolute bangers with that authentic 90s sound.",
     },
     {
-      label: "🪞 Reflect",
-      prompt: "Lead me through a guided reflection session about my recent experiences and growth.",
+      label: "🌟 Stock Check",
+      prompt:
+        "Search for current stock market info. What's happening with crypto, tech stocks, or the market right now?",
     },
     {
-      label: "⚡ Motivate",
-      prompt: "I need encouragement and motivation. Help me feel inspired and energized.",
+      label: "🏆 Weird Facts",
+      prompt:
+        "Tell me some genuinely wild historical facts about the 90s that most people don't know. The oddball trivia that's actually true.",
     },
     {
-      label: "🤔 Decide",
-      prompt: "Help me make a decision. I have options to consider and need guidance on choosing the best path.",
+      label: "🎪 Fever Dream",
+      prompt:
+        "Create the most unhinged, beautiful, chaotic 90s vaporwave aesthetic scene. Neon lights, palm trees, abandoned malls, the works.",
     },
     {
-      label: "🧘 Calm",
-      prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise.",
+      label: "💾 Digital Archaeology",
+      prompt:
+        "What was it like browsing the early internet? Tell me about Geocities, AOL, and those glorious dial-up sounds. Make it fun and nostalgic.",
     },
   ];
 
@@ -148,7 +156,7 @@ export function MobileChatApp() {
     if (inputDockRef.current) ro.observe(inputDockRef.current);
     window.addEventListener("resize", update);
     return () => {
-      window.removeEventListener("resize", window);
+      window.removeEventListener("resize", update);
       ro.disconnect();
     };
   }, []);
@@ -314,7 +322,11 @@ export function MobileChatApp() {
                     }}
                   />
                 ))}
-                {isLoading && !isGeneratingImage && <ThinkingIndicator isLoading={true} isGeneratingImage={false} />}
+                {/* Only show ThinkingIndicator for text-only loading, not for image generation
+                    AND only after there is at least one message */}
+                {isLoading && !isGeneratingImage && messages.length > 0 && (
+                  <ThinkingIndicator isLoading={true} isGeneratingImage={false} />
+                )}
               </div>
             )}
           </div>
