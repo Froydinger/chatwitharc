@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ThinkingIndicator } from "./ThinkingIndicator";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, Image } from "lucide-react";
+import { MessageCircle, Image, PenTool } from "lucide-react";
 
 interface WelcomeSectionProps {
   greeting: string;
