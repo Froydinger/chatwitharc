@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Menu, Sun, Moon } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -42,8 +42,7 @@ export function MobileChatApp() {
   const { theme, toggleTheme } = useTheme();
   const [dragOver, setDragOver] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
-  const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
