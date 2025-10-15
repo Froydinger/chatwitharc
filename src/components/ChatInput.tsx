@@ -517,7 +517,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
                 aria-label="Image actions"
                 disabled={isLoading}
                 className={[
-                  "h-12 w-12 rounded-xl flex items-center justify-center transition-colors duration-200 border border-border/40",
+                  "h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40",
                   "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
                   shouldShowBanana
                     ? "bg-yellow-50/10 ring-1 ring-yellow-300/40 shadow-[0_6px_24px_rgba(250,204,21,.12)]"
@@ -552,7 +552,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
             <button
               onClick={() => setForceImageMode(false)}
               aria-label="Disable Nano Banana"
-              className="h-10 w-10 inline-flex items-center justify-center rounded-md hover:bg-yellow-500/10"
+              className="h-10 w-10 inline-flex items-center justify-center rounded-full hover:bg-yellow-500/10"
               title="Disable Nano Banana"
             >
               <X className="h-5 w-5 text-yellow-600" />
@@ -577,7 +577,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
                   : "Ask me anything..."
             }
             disabled={isLoading}
-            className={`card border-border/40 bg-card/50 text-foreground placeholder:text-muted-foreground resize-none min-h-[60px] max-h-[144px] leading-6 py-4 rounded-full ${shouldShowBanana ? "pl-4" : ""}`}
+            className={`border-none bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[60px] max-h-[144px] leading-6 py-4 px-4 focus:outline-none focus:ring-0 ${shouldShowBanana ? "pl-4" : ""}`}
             rows={1}
           />
         </div>
@@ -593,7 +593,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
                 : {}
               : {}
           }
-          className={`shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-200 border
+          className={`shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border
             ${(inputValue.trim() || selectedImages.length) 
               ? "dark:bg-primary text-white dark:text-primary-foreground hover:opacity-90 dark:border-primary" 
               : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed border-transparent"
