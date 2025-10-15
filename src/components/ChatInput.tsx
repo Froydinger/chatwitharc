@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState } from "react";
-import { Plus, X, ArrowRight } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useArcStore } from "@/store/useArcStore";
-import { AIService } from "@/services/ai";
+import { X, Paperclip, Plus, ArrowRight } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { useProfile } from "@/hooks/useProfile";
+import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
+import { useProfile } from "@/hooks/useProfile";
+import { AIService } from "@/services/ai";
 import { supabase } from "@/integrations/supabase/client";
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
 
-/* ---------------- Intent helpers ---------------- */
+/* ---------------- Helpers ---------------- */
 function isImageEditRequest(message: string): boolean {
   if (!message) return false;
   const keywords = [
@@ -41,7 +41,6 @@ function isImageEditRequest(message: string): boolean {
   const lower = message.toLowerCase();
   return keywords.some((k) => lower.includes(k));
 }
-
 function checkForImageRequest(message: string): boolean {
   if (!message) return false;
   const m = message.toLowerCase().trim();
@@ -69,9 +68,8 @@ function checkForImageRequest(message: string): boolean {
     "artwork",
     "graphic",
   ];
-  return imageKeywords.some((k) => m.includes(k));
+  return imageKeywords.some((keyword) => m.includes(keyword));
 }
-
 function extractImagePrompt(message: string): string {
   let prompt = (message || "").trim();
   prompt = prompt.replace(/^(please\s+)?(?:can|could|would)\s+you\s+/i, "").trim();
@@ -86,33 +84,37 @@ function extractImagePrompt(message: string): string {
   return prompt;
 }
 
-/* ---------------- Component ---------------- */
-export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boolean) => void }) {
+/* ---------------- Tiny utilities ---------------- */
+const useSafePortalRoot = () => {
+  const [root, setRoot] = useState<HTMLElement | null>(null);
+  useEffect(() => setRoot(document.body), []);
+  return root;
+};
+
+type Props = { onImagesChange?: (hasImages: boolean) => void };
+
+export function ChatInput({ onImagesChange }: Props) {
+  useProfile();
+  const portalRoot = useSafePortalRoot();
+  const { toast } = useToast();
+
   const { messages, addMessage, replaceLastMessage, isLoading, isGeneratingImage, setLoading, setGeneratingImage } =
     useArcStore();
-
-  useProfile();
-  const { toast } = useToast();
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [isActive, setIsActive] = useState(false);
 
-  // user-toggled image generation
+  // Tiles menu
+  const [showMenu, setShowMenu] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Banana toggle
   const [forceImageMode, setForceImageMode] = useState(false);
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
 
-  // popover menu state
-  const [menuOpen, setMenuOpen] = useState(false);
-
+  // Textarea auto-resize
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    onImagesChange?.(selectedImages.length > 0);
-  }, [selectedImages.length, onImagesChange]);
-
-  // auto-resize textarea
   useEffect(() => {
     if (!textareaRef.current) return;
     textareaRef.current.style.height = "auto";
@@ -120,52 +122,38 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     textareaRef.current.style.height = Math.min(h, 24 * 3) + "px";
   }, [inputValue]);
 
-  // outside click to close menu
+  // Notify parent about images
   useEffect(() => {
-    if (!menuOpen) return;
-    const onDown = (e: MouseEvent | TouchEvent) => {
-      const tile = document.getElementById("chat-attach-menu");
-      if (!tile) return;
-      if (!tile.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("touchstart", onDown, { passive: true });
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("touchstart", onDown);
-    };
-  }, [menuOpen]);
+    onImagesChange?.(selectedImages.length > 0);
+  }, [selectedImages.length, onImagesChange]);
 
-  // quick prompts -> send
+  // Close tiles on outside click / esc
   useEffect(() => {
-    const quickHandler = (ev: Event) => {
-      try {
-        const e = ev as CustomEvent<{ prompt?: string; type?: string }>;
-        if (!e?.detail?.prompt) return;
-
-        const prompt = e.detail.prompt;
-        const promptType = e.detail.type;
-
-        if (promptType === "image") setForceImageMode(true);
-        setInputValue(prompt);
-
-        setTimeout(() => {
-          const sendButton = document.querySelector('[aria-label="Send"]') as HTMLButtonElement;
-          if (sendButton && !sendButton.disabled) sendButton.click();
-        }, 100);
-      } catch (err) {
-        console.warn("quickPromptSelected handler error", err);
+    const onDoc = (e: MouseEvent) => {
+      if (!showMenu) return;
+      const t = e.target as HTMLElement;
+      if (!t.closest?.(".ci-tiles") && !t.closest?.(".ci-menu-btn")) {
+        setShowMenu(false);
       }
     };
-    window.addEventListener("quickPromptSelected", quickHandler as EventListener);
-    window.addEventListener("arcai:triggerPrompt", quickHandler as EventListener);
-    return () => {
-      window.removeEventListener("quickPromptSelected", quickHandler as EventListener);
-      window.removeEventListener("arcai:triggerPrompt", quickHandler as EventListener);
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowMenu(false);
     };
-  }, []);
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [showMenu]);
 
-  /* ---------------- Files ---------------- */
+  // File input
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    handleImageUploadFiles(files);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
   const handleImageUploadFiles = (files: File[]) => {
     const images = files.filter((f) => f.type.startsWith("image/"));
     const max = 4;
@@ -177,29 +165,42 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
       return merged;
     });
   };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    handleImageUploadFiles(files);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    setMenuOpen(false);
-  };
-
   const removeImage = (idx: number) => setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
   const clearSelected = () => setSelectedImages([]);
 
-  /* ---------------- External image edit (modal) ---------------- */
+  /* ---------- Quick prompt / edit event hooks ---------- */
   useEffect(() => {
-    const handleImageEdit = (ev: Event) => {
+    const quickHandler = (ev: Event) => {
+      try {
+        const e = ev as CustomEvent<{ prompt?: string; type?: string }>;
+        if (e?.detail?.prompt) {
+          const prompt = e.detail.prompt;
+          const type = e.detail.type;
+          if (type === "image") setForceImageMode(true);
+          setInputValue(prompt);
+          setTimeout(() => {
+            const btn = document.querySelector('[aria-label="Send"]') as HTMLButtonElement;
+            if (btn && !btn.disabled) btn.click();
+          }, 80);
+        }
+      } catch {}
+    };
+    const editHandler = (ev: Event) => {
       const e = ev as CustomEvent<{ content: string; baseImageUrl: string | string[]; editInstruction: string }>;
       if (!e?.detail) return;
       handleExternalImageEdit(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction);
     };
-    window.addEventListener("processImageEdit", handleImageEdit as EventListener);
-    return () => window.removeEventListener("processImageEdit", handleImageEdit as EventListener);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    window.addEventListener("quickPromptSelected", quickHandler as EventListener);
+    window.addEventListener("arcai:triggerPrompt", quickHandler as EventListener);
+    window.addEventListener("processImageEdit", editHandler as EventListener);
+    return () => {
+      window.removeEventListener("quickPromptSelected", quickHandler as EventListener);
+      window.removeEventListener("arcai:triggerPrompt", quickHandler as EventListener);
+      window.removeEventListener("processImageEdit", editHandler as EventListener);
+    };
   }, [messages]);
 
+  /* ---------- External image edit (modal) ---------- */
   const handleExternalImageEdit = async (
     userMessage: string,
     baseImageUrl: string | string[],
@@ -235,17 +236,16 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         } = await supabase.auth.getUser();
         if (user) {
           const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-          const { error } = await supabase.storage
-            .from("avatars")
-            .upload(name, blob, { contentType: "image/png", upsert: false });
+          const { error } = await supabase.storage.from("avatars").upload(name, blob, {
+            contentType: "image/png",
+            upsert: false,
+          });
           if (!error) {
             const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
             finalUrl = pub.publicUrl;
           }
         }
-      } catch (err) {
-        console.warn("persist edited image failed", err);
-      }
+      } catch {}
 
       await replaceLastMessage({
         content: `Edited image: ${editInstruction}`,
@@ -254,7 +254,6 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         imageUrl: finalUrl,
       });
     } catch (err: any) {
-      console.error("external edit error", err);
       await replaceLastMessage({
         content: `Sorry, I couldn't edit the image. ${err?.message || ""}`,
         role: "assistant",
@@ -265,7 +264,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     }
   };
 
-  /* ---------------- Send ---------------- */
+  /* ---------- Submit ---------- */
   const handleSend = async () => {
     if ((!inputValue.trim() && selectedImages.length === 0) || isLoading) return;
 
@@ -276,15 +275,15 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     setInputValue("");
     setSelectedImages([]);
     setForceImageMode(false);
-    setMenuOpen(false);
+    setShowMenu(false);
     setLoading(true);
 
     try {
       const ai = new AIService();
 
-      // With images attached
+      // With Images -> edit or analyze
       if (images.length > 0) {
-        // upload (best-effort) or fallback
+        // upload images or fallback
         let imageUrls: string[] = [];
         try {
           const {
@@ -292,23 +291,20 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           } = await supabase.auth.getUser();
           if (!user) throw new Error("Not authenticated");
           const uploadPromises = images.map(async (file) => {
-            const name = `${user.id}/user-upload-${Date.now()}-${Math.random()
-              .toString(36)
-              .slice(2)}.${file.name.split(".").pop()}`;
-            const { error } = await supabase.storage
-              .from("avatars")
-              .upload(name, file, { contentType: file.type, upsert: false });
+            const name = `${user.id}/user-upload-${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split(".").pop()}`;
+            const { error } = await supabase.storage.from("avatars").upload(name, file, {
+              contentType: file.type,
+              upsert: false,
+            });
             if (error) throw error;
             const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
             return pub.publicUrl;
           });
           imageUrls = await Promise.all(uploadPromises);
-        } catch (err) {
-          console.warn("upload images fallback", err);
+        } catch {
           imageUrls = images.map((f) => URL.createObjectURL(f));
         }
 
-        // edit flow?
         if (userMessage && isImageEditRequest(userMessage)) {
           await addMessage({ content: userMessage, role: "user", type: "image", imageUrls });
           await addMessage({
@@ -330,17 +326,16 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
               } = await supabase.auth.getUser();
               if (user) {
                 const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-                const { error } = await supabase.storage
-                  .from("avatars")
-                  .upload(name, blob, { contentType: "image/png", upsert: false });
+                const { error } = await supabase.storage.from("avatars").upload(name, blob, {
+                  contentType: "image/png",
+                  upsert: false,
+                });
                 if (!error) {
                   const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
                   finalUrl = pub.publicUrl;
                 }
               }
-            } catch (err) {
-              console.warn("persist edited image failed", err);
-            }
+            } catch {}
             await replaceLastMessage({
               content: `Edited image: ${userMessage}`,
               role: "assistant",
@@ -348,7 +343,6 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
               imageUrl: finalUrl,
             });
           } catch (err: any) {
-            console.error("edit flow error", err);
             await replaceLastMessage({
               content: `Sorry, I couldn't edit the image. ${err?.message || ""}`,
               role: "assistant",
@@ -360,7 +354,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           return;
         }
 
-        // otherwise analyze
+        // Analyze
         await addMessage({
           content: userMessage || "Sent images",
           role: "user",
@@ -384,8 +378,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
             userMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`;
           const response = await ai.sendMessageWithImage([{ role: "user", content: analysisPrompt }], base64s);
           await addMessage({ content: response, role: "assistant", type: "text" });
-        } catch (err: any) {
-          console.error("image analysis failed", err);
+        } catch {
           toast({ title: "Error", description: "Failed to analyze images", variant: "destructive" });
           await addMessage({
             content: "Sorry, I couldn't analyze these images. Please try again.",
@@ -396,7 +389,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         return;
       }
 
-      // No attachments
+      // No images: Banana => generate; else text
       if (shouldShowBanana) {
         const imagePrompt = extractImagePrompt(userMessage || "");
         await addMessage({ content: userMessage || imagePrompt, role: "user", type: "text" });
@@ -420,17 +413,16 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
             } = await supabase.auth.getUser();
             if (user) {
               const name = `${user.id}/generated-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-              const { error } = await supabase.storage
-                .from("avatars")
-                .upload(name, blob, { contentType: "image/png", upsert: false });
+              const { error } = await supabase.storage.from("avatars").upload(name, blob, {
+                contentType: "image/png",
+                upsert: false,
+              });
               if (!error) {
                 const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
                 finalUrl = pub.publicUrl;
               }
             }
-          } catch (err) {
-            console.warn("persist generated image failed", err);
-          }
+          } catch {}
           await replaceLastMessage({
             content: `Generated image: ${imagePrompt}`,
             role: "assistant",
@@ -438,7 +430,6 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
             imageUrl: finalUrl,
           });
         } catch (err: any) {
-          console.error("generate image error", err);
           await replaceLastMessage({
             content: `Sorry, I couldn't generate the image. ${err?.message || ""}`,
             role: "assistant",
@@ -450,23 +441,22 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         return;
       }
 
-      // plain text flow
-      const memoryItem = detectMemoryCommand(userMessage);
-      if (memoryItem) {
-        const wasNew = await addToMemoryBank(memoryItem);
-        if (wasNew) formatMemoryConfirmation(memoryItem.content);
+      // Plain text
+      if (userMessage) {
+        const memoryItem = detectMemoryCommand(userMessage);
+        if (memoryItem) {
+          const wasNew = await addToMemoryBank(memoryItem);
+          if (wasNew) formatMemoryConfirmation(memoryItem.content);
+        }
       }
-      await addMessage({ content: userMessage, role: "user", type: "text" });
 
+      await addMessage({ content: userMessage, role: "user", type: "text" });
       try {
-        const aiMessages = messages
-          .filter((m) => m.type === "text")
-          .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+        const aiMessages = messages.filter((m) => m.type === "text").map((m) => ({ role: m.role, content: m.content }));
         aiMessages.push({ role: "user", content: userMessage });
-        const reply = await ai.sendMessage(aiMessages);
+        const reply = await new AIService().sendMessage(aiMessages);
         await addMessage({ content: reply, role: "assistant", type: "text" });
       } catch (err: any) {
-        console.error("ai text error", err);
         toast({ title: "Error", description: err?.message || "Failed to get AI response", variant: "destructive" });
         await addMessage({
           content: "Sorry, I encountered an error. Please try again.",
@@ -474,9 +464,6 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           type: "text",
         });
       }
-    } catch (err) {
-      console.error("send handler top-level error", err);
-      toast({ title: "Error", description: err instanceof Error ? err.message : "Unknown", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -491,77 +478,87 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
 
   /* ---------------- Render ---------------- */
   return (
-    <div className="w-full space-y-3 relative pointer-events-auto">
-      {/* Selected Images preview (ABOVE input) */}
-      {selectedImages.length > 0 && (
-        <div className="rounded-2xl p-3 bg-background/70 backdrop-blur-xl border border-white/10 shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/4)</span>
-            <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">
-              Clear All
-            </button>
-          </div>
-          <div className="flex gap-2 overflow-x-auto">
-            {selectedImages.map((f, i) => (
-              <div key={i} className="relative group shrink-0">
-                <img
-                  src={URL.createObjectURL(f)}
-                  alt={`sel-${i}`}
-                  className="w-14 h-14 object-cover rounded-full border border-white/10"
-                />
-                <button
-                  onClick={() => removeImage(i)}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-black/70 text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Remove"
-                >
-                  ×
+    <div className="space-y-4 relative">
+      {/* Selected Images preview (fixed portal above the dock) */}
+      {portalRoot &&
+        selectedImages.length > 0 &&
+        createPortal(
+          <div
+            className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
+            style={{ bottom: "calc(110px + env(safe-area-inset-bottom, 0px))" }}
+          >
+            <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/4)</span>
+                <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">
+                  Clear All
                 </button>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {selectedImages.map((f, i) => (
+                  <div key={i} className="relative group shrink-0">
+                    <img
+                      src={URL.createObjectURL(f)}
+                      alt={`sel-${i}`}
+                      className="w-16 h-16 object-cover rounded-full border border-border/40"
+                    />
+                    <button
+                      onClick={() => removeImage(i)}
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Remove"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>,
+          portalRoot,
+        )}
 
       {/* Input Row */}
       <div
         className={[
           "chat-input-halo flex items-center gap-3 transition-all duration-200 rounded-full bg-transparent",
           isActive ? "halo-active" : "",
-          shouldShowBanana ? "ring-2 ring-yellow-400/70 shadow-[0_0_18px_rgba(250,204,21,.22)]" : "ring-0",
+          shouldShowBanana ? "ring-2 ring-yellow-400/60 shadow-[0_0_24px_rgba(250,204,21,.18)]" : "ring-0",
         ].join(" ")}
       >
-        {/* + / banana with tiny dismiss */}
-        <div className="relative shrink-0">
-          <button
-            aria-label="Toggle menu"
-            disabled={isLoading}
-            onClick={() => setMenuOpen((v) => !v)}
-            className="h-12 w-12 rounded-full flex items-center justify-center transition border border-border/40
-                       bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            {shouldShowBanana ? (
-              <span className="text-[20px] leading-none">🍌</span>
-            ) : menuOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Plus className="h-5 w-5" />
-            )}
-          </button>
+        {/* PLUS / X button (tiles trigger) */}
+        <button
+          ref={menuButtonRef}
+          type="button"
+          aria-label={showMenu ? "Close menu" : "Open menu"}
+          className={[
+            "ci-menu-btn h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40",
+            "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
+          ].join(" ")}
+          onClick={() => setShowMenu((v) => !v)}
+        >
+          <span className="inline-block transition-transform" style={{ transform: `rotate(${showMenu ? 45 : 0}deg)` }}>
+            <Plus className="h-5 w-5" />
+          </span>
+        </button>
 
-          {/* tiny X badge when banana active */}
-          {shouldShowBanana && (
+        {/* Banana chip (only when active) with tiny dismiss X */}
+        {shouldShowBanana && (
+          <div className="relative select-none">
+            <div className="h-10 w-10 rounded-full bg-yellow-500/10 border border-yellow-300/40 flex items-center justify-center">
+              <span className="text-lg leading-none">🍌</span>
+            </div>
             <button
+              aria-label="Disable image generation for this message"
+              className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/60 text-white flex items-center justify-center"
               onClick={() => setForceImageMode(false)}
-              aria-label="Disable Image Mode"
-              className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/80 text-white flex items-center justify-center text-[10px] hover:bg-black"
-              title="Disable image mode"
+              title="Disable image generation"
             >
-              ×
+              <X className="w-3 h-3" />
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Textarea */}
+        {/* Input */}
         <div className="flex-1">
           <Textarea
             ref={textareaRef}
@@ -570,72 +567,80 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
             onKeyDown={handleKeyPress}
             onFocus={() => setIsActive(true)}
             onBlur={() => setIsActive(false)}
+            // no selection highlight tinting – cursor/keyboard are enough
             placeholder={
               selectedImages.length > 0
-                ? "Add a message with your images..."
+                ? "Add a message with your images…"
                 : shouldShowBanana
-                  ? "Describe your image..."
+                  ? "Describe your image…"
                   : "Ask"
             }
             disabled={isLoading}
-            className="border-none bg-transparent text-foreground placeholder:text-muted-foreground
-                       resize-none min-h-[48px] max-h-[144px] leading-6 py-3 px-2 focus:outline-none focus:ring-0"
+            className="border-none bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 px-4 focus:outline-none focus:ring-0"
             rows={1}
           />
         </div>
 
-        {/* Send – thin right arrow */}
+        {/* Send */}
         <button
           onClick={handleSend}
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
-          className={`shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200
-            ${
-              inputValue.trim() || selectedImages.length
-                ? "bg-primary text-white hover:opacity-90"
-                : "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
-            }`}
+          className={[
+            "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border",
+            inputValue.trim() || selectedImages.length
+              ? "dark:bg-primary text-white dark:text-primary-foreground hover:opacity-90 dark:border-primary bg-blue-500 border-blue-500 text-white"
+              : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed border-transparent",
+          ].join(" ")}
           aria-label="Send"
         >
+          {/* thin right arrow to match your style */}
           <ArrowRight className="h-5 w-5" />
         </button>
       </div>
 
-      {/* Tile Popover (Portal) */}
-      {menuOpen &&
+      {/* Tiles popover (lower z-index than sidebar; fixed above dock) */}
+      {portalRoot &&
+        showMenu &&
         createPortal(
-          <div className="fixed inset-0 z-30" id="chat-attach-menu">
-            {/* ↓ lowered from z-50 to z-30 */}
-            {/* click-away layer */}
-            <div className="absolute inset-0" onClick={() => setMenuOpen(false)} />
-
-            {/* menu panel (above dock) */}
-            <div className="absolute left-1/2 -translate-x-1/2 bottom-24 w-full max-w-sm px-4">
-              <div className="rounded-2xl p-4 bg-background/70 backdrop-blur-xl border border-white/10 shadow-2xl grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => {
-                    setForceImageMode(true);
-                    setMenuOpen(false);
-                  }}
-                  className="flex flex-col items-center justify-center p-4 rounded-xl
-                             bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 transition"
-                >
+          <div
+            className="ci-tiles fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[35]"
+            style={{ bottom: "calc(170px + env(safe-area-inset-bottom, 0px))" }}
+          >
+            <div className="grid grid-cols-2 gap-12 px-2">
+              {/* Generate Image tile */}
+              <button
+                onClick={() => {
+                  setForceImageMode(true);
+                  setShowMenu(false);
+                }}
+                className="rounded-2xl border border-yellow-300/30 bg-background/80 backdrop-blur-xl shadow-xl px-5 py-6 text-left hover:bg-yellow-300/10 transition-colors"
+              >
+                <div className="flex items-center gap-3 mb-2">
                   <span className="text-2xl">🍌</span>
-                  <span className="text-sm mt-2">Generate Image</span>
-                </button>
+                  <div className="text-lg font-semibold">Generate Image</div>
+                </div>
+                <div className="text-sm text-muted-foreground">Turn this prompt into an image using Nano Banana.</div>
+              </button>
 
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex flex-col items-center justify-center p-4 rounded-xl
-                             bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 transition"
-                >
-                  <span className="text-2xl">📎</span>
-                  <span className="text-sm mt-2">Attach</span>
-                  <span className="text-xs mt-1 opacity-70">attach to analyze or edit!</span>
-                </button>
-              </div>
+              {/* Attach Images tile */}
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  fileInputRef.current?.click();
+                }}
+                className="rounded-2xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-5 py-6 text-left hover:bg-accent transition-colors"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted">
+                    <Paperclip className="h-4 w-4" />
+                  </span>
+                  <div className="text-lg font-semibold">Attach</div>
+                </div>
+                <div className="text-sm text-muted-foreground">Attach to analyze or edit!</div>
+              </button>
             </div>
           </div>,
-          document.body,
+          portalRoot,
         )}
 
       {/* hidden file input */}
