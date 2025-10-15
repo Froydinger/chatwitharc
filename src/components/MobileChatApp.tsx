@@ -1,3 +1,4 @@
+// src/components/MobileChatApp.tsx
 import { useState, useRef, useEffect } from "react";
 import { Plus, Menu, Sun, Moon } from "lucide-react";
 import { motion } from "framer-motion";
@@ -21,8 +22,6 @@ function getDaypartGreeting(d: Date = new Date()): "Good Morning" | "Good Aftern
   return "Good Evening";
 }
 
-/** Keep header logo as-is; use the head-only avatar above prompts */
-const HEADER_LOGO = "/lovable-uploads/c65f38aa-5928-46e1-b224-9f6a2bacbf18.png";
 const HERO_AVATAR = "/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png";
 
 export function MobileChatApp() {
@@ -32,12 +31,12 @@ export function MobileChatApp() {
     isGeneratingImage,
     createNewSession,
     startChatWithMessage,
-    currentSessionId,
     rightPanelOpen,
     setRightPanelOpen,
     rightPanelTab,
     setRightPanelTab,
   } = useArcStore();
+
   const { profile } = useProfile();
   const { theme, toggleTheme } = useTheme();
   const [dragOver, setDragOver] = useState(false);
@@ -114,7 +113,7 @@ export function MobileChatApp() {
   // Smooth scroll to bottom on new content - only when there are messages
   useEffect(() => {
     const el = messagesContainerRef.current;
-    if (!el || messages.length === 0) return; // Don't scroll if no messages
+    if (!el || messages.length === 0) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isGeneratingImage]);
 
@@ -142,6 +141,7 @@ export function MobileChatApp() {
       ro.disconnect();
     };
   }, []);
+
   const handleNewChat = () => {
     createNewSession();
     setRightPanelOpen(false);
@@ -153,10 +153,12 @@ export function MobileChatApp() {
       }
     }, 50);
   };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
   };
+
   const triggerPrompt = (prompt: string) => {
     startChatWithMessage(prompt);
     setRightPanelOpen(false);
@@ -285,8 +287,7 @@ export function MobileChatApp() {
                 heroAvatar={HERO_AVATAR}
                 quickPrompts={quickPrompts}
                 onTriggerPrompt={triggerPrompt}
-                /* IMPORTANT: do NOT pass loading flags into WelcomeSection,
-                   so the thinking pill never renders on the empty state */
+                /* Do NOT pass loading flags here; prevents thinking pill on empty state */
               />
             ) : (
               <div className="p-4 space-y-4 chat-messages">
@@ -302,7 +303,6 @@ export function MobileChatApp() {
                     }}
                   />
                 ))}
-                {/* Only show after at least one user message exists and not generating images */}
                 {isLoading && !isGeneratingImage && hasUserMessage && (
                   <ThinkingIndicator isLoading={true} isGeneratingImage={false} />
                 )}
