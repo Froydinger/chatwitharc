@@ -43,6 +43,9 @@ export function MobileChatApp() {
   const [dragOver, setDragOver] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
 
+  // Derived: only show thinking after a real user message exists
+  const hasUserMessage = messages.some((m) => m.role === "user");
+
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -315,8 +318,8 @@ export function MobileChatApp() {
                   />
                 ))}
                 {/* Only show ThinkingIndicator for text-only loading, not for image generation
-                    AND only after there is at least one message */}
-                {isLoading && !isGeneratingImage && messages.length > 0 && (
+                    AND only after there is at least one user message */}
+                {isLoading && !isGeneratingImage && hasUserMessage && (
                   <ThinkingIndicator isLoading={true} isGeneratingImage={false} />
                 )}
               </div>
