@@ -64,64 +64,63 @@ export function MobileChatApp() {
     return () => clearInterval(id);
   }, [profile?.display_name]);
 
-  // Quick Prompts
+  // Quick Prompts - 6 Chat, 6 Image
   const quickPrompts = [
-    {
-      label: "🌐 What's Trending?",
-      prompt: "Search the web and tell me what's trending right now. What's everyone talking about today?",
-    },
-    {
-      label: "📰 News Flash",
-      prompt: "Give me a quick rundown of the top news stories happening right now. What should I know about?",
-    },
+    // Chat prompts
     {
       label: "💭 Reflect",
-      prompt:
-        "I want to take some time to reflect. Walk me through a guided reflection on where I've been, what I've learned, and where I'm heading.",
+      prompt: "Walk me through a guided reflection on where I've been, what I've learned, and where I'm heading.",
     },
     {
       label: "🧘 Check-in",
       prompt:
-        "Help me do a real wellness check. Ask me about my mood, energy, and what's on my mind right now, then give me honest feedback.",
+        "Help me do a real wellness check. Ask me about my mood, energy, and what's on my mind, then give me honest feedback.",
     },
+    {
+      label: "🎯 Focus",
+      prompt: "Help me set up a focused work session. Guide me through planning a productive sprint.",
+    },
+    {
+      label: "💬 Chat",
+      prompt: "Let's have a casual conversation. Ask me about my day and chat like we're catching up.",
+    },
+    {
+      label: "🤝 Advice",
+      prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing.",
+    },
+    {
+      label: "🙏 Gratitude",
+      prompt: "Lead me through a quick gratitude exercise to help me appreciate the good things in my life.",
+    },
+    // Image prompts - 3 are 90s, 3 are not
     {
       label: "🎨 Dream Poster",
       prompt:
-        "Generate a wild, colorful retro 90s poster design concept for me. Think neon colors, geometric shapes, and absolute chaos in the best way.",
+        "Generate a wild, colorful retro 90s poster design concept. Think neon colors, geometric shapes, and absolute chaos in the best way.",
     },
     {
-      label: "🔮 Future Forecast",
+      label: "🌌 Cosmic Explorer",
       prompt:
-        "Search for what experts are predicting about the future. What's coming next in tech, culture, or society?",
+        "Create a stunning cosmic landscape with planets, nebulae, and distant galaxies. Make it feel vast and awe-inspiring.",
     },
     {
       label: "🎬 Cult Classic",
-      prompt: "Describe a hidden gem 90s movie or show I probably haven't heard of. Make me want to hunt it down.",
+      prompt: "Design a movie poster for a hidden gem 90s film. Make it visually striking and nostalgic.",
     },
     {
-      label: "🎵 Mixtape Maker",
+      label: "🌸 Nature's Canvas",
       prompt:
-        "Create a 90s throwback mixtape for me. Give me a list of absolute bangers with that authentic 90s sound.",
-    },
-    {
-      label: "🌟 Stock Check",
-      prompt:
-        "Search for current stock market info. What's happening with crypto, tech stocks, or the market right now?",
-    },
-    {
-      label: "🏆 Weird Facts",
-      prompt:
-        "Tell me some genuinely wild historical facts about the 90s that most people don't know. The oddball trivia that's actually true.",
+        "Create a beautiful, serene natural scene with lush details, perfect lighting, and a peaceful atmosphere.",
     },
     {
       label: "🎪 Fever Dream",
       prompt:
-        "Create the most unhinged, beautiful, chaotic 90s vaporwave aesthetic scene. Neon lights, palm trees, abandoned malls, the works.",
+        "Create the most unhinged, beautiful, chaotic 90s vaporwave aesthetic scene. Neon lights, palm trees, abandoned malls.",
     },
     {
-      label: "💾 Digital Archaeology",
+      label: "✨ Ethereal Portrait",
       prompt:
-        "What was it like browsing the early internet? Tell me about Geocities, AOL, and those glorious dial-up sounds. Make it fun and nostalgic.",
+        "Generate an artistic, ethereal portrait with dreamlike qualities, soft lighting, and beautiful composition.",
     },
   ];
 
