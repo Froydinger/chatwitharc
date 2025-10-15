@@ -42,6 +42,8 @@ export function MobileChatApp() {
   const { theme, toggleTheme } = useTheme();
   const [dragOver, setDragOver] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
+  const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
