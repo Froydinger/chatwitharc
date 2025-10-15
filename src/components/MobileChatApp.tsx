@@ -474,104 +474,39 @@ export function MobileChatApp() {
             inset 0 1px 0 rgba(255,255,255,0.04) !important;
         }
 
-      /* ——— Minimal Luxe Input Bar ——— */
-.glass-dock{
-  /* layout */
-  position: relative;
-  margin: 0 auto;
-  max-width: 760px;
-  padding: 10px;
-  inset: 0;
-  /* shape */
-  border-radius: 9999px !important;
-  overflow: hidden;                 /* clip internals to the pill */
-  /* background */
-  background: color-mix(in oklab, hsl(var(--background)) 82%, transparent);
-  backdrop-filter: blur(10px) saturate(115%);
-  -webkit-backdrop-filter: blur(10px) saturate(115%);
-  /* border + shadow kept calm */
-  border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
-  box-shadow:
-    0 2px 10px rgba(0,0,0,.20),
-    0 1px 0 rgba(255,255,255,.02) inset;
-  isolation: isolate;
-}
+        /* —— Minimal Luxe Input Bar —— */
+        .glass-dock{
+          position: relative;
+          margin: 0 auto;
+          max-width: 760px;
+          padding: 10px;
+          border-radius: 9999px !important;
+          overflow: visible;
+          background: color-mix(in oklab, hsl(var(--background)) 82%, transparent);
+          backdrop-filter: blur(10px) saturate(115%);
+          -webkit-backdrop-filter: blur(10px) saturate(115%);
+          border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
+          box-shadow: 0 2px 10px rgba(0,0,0,.20), 0 1px 0 rgba(255,255,255,.02) inset;
+          isolation: isolate;
+        }
+        .glass-dock::before{
+          content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+          background: radial-gradient(120% 120% at 50% 50%, color-mix(in oklab, hsl(var(--primary)) 14%, transparent) 0%, transparent 40%);
+          opacity:.18;
+        }
+        .glass-dock:hover{ box-shadow: 0 4px 18px rgba(0,0,0,.22), 0 1px 0 rgba(255,255,255,.03) inset; transform: translateY(-0.5px); transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+        .glass-dock:focus-within{ background: color-mix(in oklab, hsl(var(--background)) 88%, transparent); box-shadow: 0 6px 22px rgba(0,0,0,.25), 0 0 0 1px color-mix(in oklab, hsl(var(--primary)) 26%, transparent) inset; }
+        .glass-dock > *{ position: relative; z-index: 1; }
+        .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
+        .glass-dock .chat-input-halo{ border-radius: 9999px !important; border: 1px solid color-mix(in oklab, hsl(var(--border)) 28%, transparent) !important; background: color-mix(in oklab, hsl(var(--background)) 65%, transparent) !important; padding: 8px 10px !important; }
+        .glass-dock textarea{ outline: none !important; box-shadow: none !important; }
 
-/* subtle gradient hairline around the pill */
-.glass-dock::before{
-  content:"";
-  position:absolute; inset:0;
-  border-radius:inherit;
-  pointer-events:none;
-  background: radial-gradient(120% 120% at 50% 50%,
-    color-mix(in oklab, hsl(var(--primary)) 14%, transparent) 0%,
-    transparent 40%);
-  opacity:.18;
-}
+        /* Preview styles (used by ChatInput) */
+        .ci-preview{ background: color-mix(in oklab, hsl(var(--background)) 70%, transparent); border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent); border-radius: 16px; }
+        .ci-thumb{ width: 56px; height: 56px; border-radius: 9999px; object-fit: cover; }
 
-/* calm hover and focus treatment */
-.glass-dock:hover{
-  box-shadow:
-    0 4px 18px rgba(0,0,0,.22),
-    0 1px 0 rgba(255,255,255,.03) inset;
-  transform: translateY(-0.5px);
-  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
-}
-.glass-dock:focus-within{
-  background: color-mix(in oklab, hsl(var(--background)) 88%, transparent);
-  box-shadow:
-    0 6px 22px rgba(0,0,0,.25),
-    0 0 0 1px color-mix(in oklab, hsl(var(--primary)) 26%, transparent) inset;
-}
-
-/* keep internals clean and airy */
-.glass-dock > *{ position: relative; z-index: 1; }
-.glass-dock :is(.input-wrapper,.input-container,.chat-input,form){
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-/* inner halo = tiny, rounded, not flashy */
-.glass-dock .chat-input-halo,
-.glass-dock .chat-input-halo:focus-within{
-  border-radius: 9999px !important;
-  border: 1px solid color-mix(in oklab, hsl(var(--border)) 28%, transparent) !important;
-  box-shadow: 0 0 0 0 transparent !important;
-  background: color-mix(in oklab, hsl(var(--background)) 65%, transparent) !important;
-  padding: 8px 12px !important;
-}
-.glass-dock .chat-input-halo.halo-active{
-  border-color: color-mix(in oklab, hsl(var(--primary)) 30%, hsl(var(--border)) 20%) !important;
-}
-
-/* text sizing and spacing */
-.glass-dock input,
-.glass-dock textarea{
-  font-size: 15px !important;
-  line-height: 1.35 !important;
-  padding-block: 8px !important;
-}
-.glass-dock input::placeholder,
-.glass-dock textarea::placeholder{ opacity: .6; }
-
-/* strip loud utilities inside the dock */
-.glass-dock :is([class*="bg-"],[class*="ring-"],[class*="shadow"],[class*="border"],.backdrop-blur,[class*="backdrop-"]){
-  background: transparent !important;
-  box-shadow: none !important;
-  border: 0 !important;
-}
-
-/* compact on mobile */
-@media (max-width: 480px){
-  .glass-dock{ padding: 8px; max-width: 92vw; }
-  .glass-dock .chat-input-halo{ padding: 6px 10px !important; }
-}
-
-/* respect reduced motion */
-@media (prefers-reduced-motion: reduce){
-  .glass-dock, .glass-dock:hover{ transition: none !important; transform: none !important; }
-}
+        @media (max-width: 480px){ .glass-dock{ padding: 8px; max-width: 92vw; } .glass-dock .chat-input-halo{ padding: 6px 8px !important; } }
+        @media (prefers-reduced-motion: reduce){ .glass-dock, .glass-dock:hover{ transition: none !important; transform: none !important; } }
       `}</style>
     </div>
   );
