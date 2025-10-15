@@ -107,7 +107,6 @@ export function ChatInput({ onImagesChange }: Props) {
 
   // Tiles menu
   const [showMenu, setShowMenu] = useState(false);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   // Banana toggle
   const [forceImageMode, setForceImageMode] = useState(false);
@@ -132,13 +131,9 @@ export function ChatInput({ onImagesChange }: Props) {
     const onDoc = (e: MouseEvent) => {
       if (!showMenu) return;
       const t = e.target as HTMLElement;
-      if (!t.closest?.(".ci-tiles") && !t.closest?.(".ci-menu-btn")) {
-        setShowMenu(false);
-      }
+      if (!t.closest?.(".ci-tiles") && !t.closest?.(".ci-menu-btn")) setShowMenu(false);
     };
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowMenu(false);
-    };
+    const onEsc = (e: KeyboardEvent) => e.key === "Escape" && setShowMenu(false);
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onEsc);
     return () => {
@@ -525,31 +520,40 @@ export function ChatInput({ onImagesChange }: Props) {
           shouldShowBanana ? "ring-2 ring-yellow-400/60 shadow-[0_0_24px_rgba(250,204,21,.18)]" : "ring-0",
         ].join(" ")}
       >
-        {/* PLUS / X button (tiles trigger) */}
-        <button
-          ref={menuButtonRef}
-          type="button"
-          aria-label={showMenu ? "Close menu" : "Open menu"}
-          className={[
-            "ci-menu-btn h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40",
-            "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
-          ].join(" ")}
-          onClick={() => setShowMenu((v) => !v)}
-        >
-          <span className="inline-block transition-transform" style={{ transform: `rotate(${showMenu ? 45 : 0}deg)` }}>
-            <Plus className="h-5 w-5" />
-          </span>
-        </button>
-
-        {/* Banana chip (only when active) with tiny dismiss X */}
-        {shouldShowBanana && (
-          <div className="relative select-none">
-            <div className="h-10 w-10 rounded-full bg-yellow-500/10 border border-yellow-300/40 flex items-center justify-center shadow-[0_0_24px_rgba(250,204,21,.20)]">
-              <span className="text-lg leading-none">🍌</span>
+        {/* Left control: either + (opens menu) OR 🍌 with tiny X (disables) */}
+        {!shouldShowBanana ? (
+          <button
+            type="button"
+            aria-label={showMenu ? "Close menu" : "Open menu"}
+            className={[
+              "ci-menu-btn h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40",
+              "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
+            ].join(" ")}
+            onClick={() => setShowMenu((v) => !v)}
+          >
+            <span
+              className="inline-block transition-transform"
+              style={{ transform: `rotate(${showMenu ? 45 : 0}deg)` }}
+            >
+              <Plus className="h-5 w-5" />
+            </span>
+          </button>
+        ) : (
+          <div className="relative">
+            <div
+              className="h-12 w-12 rounded-full flex items-center justify-center border"
+              style={{
+                background: "rgba(253,224,71,0.12)",
+                borderColor: "rgba(250,204,21,0.45)",
+                boxShadow: "0 6px 22px rgba(250,204,21,.18), inset 0 0 0 1px rgba(250,204,21,.20)",
+              }}
+              aria-label="Image mode active"
+            >
+              <span className="text-[20px] leading-none">🍌</span>
             </div>
             <button
               aria-label="Disable image generation for this message"
-              className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/60 text-white flex items-center justify-center"
+              className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white flex items-center justify-center"
               onClick={() => setForceImageMode(false)}
               title="Disable image generation"
             >
