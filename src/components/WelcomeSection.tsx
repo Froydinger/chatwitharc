@@ -94,7 +94,7 @@ export function WelcomeSection({
       </div>
 
       {/* Prompts Grid */}
-      <div className="w-full max-w-4xl mb-8 flex-1">
+      <div className="w-full max-w-4xl mb-8 flex-1 pb-32">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
