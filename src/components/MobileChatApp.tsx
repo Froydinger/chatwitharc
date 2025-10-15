@@ -64,7 +64,7 @@ export function MobileChatApp() {
     return () => clearInterval(id);
   }, [profile?.display_name]);
 
-  // Quick Prompts - 6 Chat, 6 Image
+  // Quick Prompts - 6 Chat, 6 Create, 6 Write
   const quickPrompts = [
     // Chat prompts
     {
@@ -92,7 +92,7 @@ export function MobileChatApp() {
       label: "🙏 Gratitude",
       prompt: "Lead me through a quick gratitude exercise to help me appreciate the good things in my life.",
     },
-    // Image prompts - 3 are 90s, 3 are not
+    // Create/Image prompts - 3 are 90s, 3 are not
     {
       label: "🎨 Dream Poster",
       prompt:
@@ -121,6 +121,35 @@ export function MobileChatApp() {
       label: "✨ Ethereal Portrait",
       prompt:
         "Generate an artistic, ethereal portrait with dreamlike qualities, soft lighting, and beautiful composition.",
+    },
+    // Write prompts
+    {
+      label: "📖 Short Story",
+      prompt:
+        "Help me write a compelling short story. Guide me through character development, plot, and an engaging narrative.",
+    },
+    {
+      label: "✍️ Personal Essay",
+      prompt:
+        "Help me craft a personal essay about a meaningful experience. Let's explore themes and structure together.",
+    },
+    {
+      label: "💌 Heartfelt Letter",
+      prompt: "Help me write a sincere, heartfelt letter to someone important. Let's make it authentic and meaningful.",
+    },
+    {
+      label: "🎭 Screenplay Scene",
+      prompt: "Help me write a cinematic scene with dialogue and action. Let's create something visually compelling.",
+    },
+    {
+      label: "📝 Blog Post",
+      prompt:
+        "Help me write an engaging blog post on a topic I care about. Let's make it conversational and insightful.",
+    },
+    {
+      label: "🖋️ Poetry",
+      prompt:
+        "Help me write a poem that captures emotion and imagery. Let's explore different styles and find the right voice.",
     },
   ];
 
