@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { AIService } from "@/services/ai";
@@ -6,12 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 /* ---------------- Helpers ---------------- */
 function isImageEditRequest(message: string): boolean {
@@ -103,7 +97,9 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
   const [forceImageMode, setForceImageMode] = useState(false);
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
 
-  const [menuOpen, setMenuOpen] = useState(false); // control + menu open state for stability
+  /** Stable, controlled popover for the + button (no blip) */
+  const [launcherOpen, setLauncherOpen] = useState(false);
+  const launcherRef = useRef<HTMLDivElement>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -113,6 +109,17 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
   useEffect(() => {
     onImagesChange?.(selectedImages.length > 0);
   }, [selectedImages.length, onImagesChange]);
+
+  // Close popover on any outside pointer press
+  useEffect(() => {
+    const onDocPointer = (e: PointerEvent) => {
+      if (!launcherOpen) return;
+      const n = e.target as Node;
+      if (launcherRef.current && !launcherRef.current.contains(n)) setLauncherOpen(false);
+    };
+    document.addEventListener("pointerdown", onDocPointer);
+    return () => document.removeEventListener("pointerdown", onDocPointer);
+  }, [launcherOpen]);
 
   // Quick prompts listener (populates input)
   useEffect(() => {
@@ -181,7 +188,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     setInputValue("");
     setSelectedImages([]);
     setForceImageMode(false);
-    setMenuOpen(false);
+    setLauncherOpen(false);
     setLoading(true);
 
     try {
@@ -189,7 +196,6 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
 
       // With uploaded images: edit or analyze
       if (images.length > 0) {
-        // upload images (best-effort) or fallback to blob URLs
         let imageUrls: string[] = [];
         try {
           const {
@@ -211,7 +217,6 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           imageUrls = images.map((f) => URL.createObjectURL(f));
         }
 
-        // Edit flow if instruction looks like edit
         if (userMessage && isImageEditRequest(userMessage)) {
           await addMessage({ content: userMessage, role: "user", type: "image", imageUrls });
           await addMessage({
@@ -263,7 +268,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           return;
         }
 
-        // Otherwise analyze
+        // Analyze
         await addMessage({
           content: userMessage || "Sent images",
           role: "user",
@@ -417,74 +422,97 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
       <div
         className={[
           "chat-input-halo flex items-center gap-2 transition-all duration-200 rounded-full bg-transparent",
-          isActive ? "" : "",
           shouldShowBanana ? "ring-2 ring-yellow-400/60 shadow-[0_0_14px_rgba(250,204,21,.2)]" : "ring-0",
         ].join(" ")}
       >
-        {/* MAIN LEFT BUTTON ( + / 🍌 / X ) */}
-        <DropdownMenu open={shouldShowBanana ? false : menuOpen} onOpenChange={(o) => setMenuOpen(o)}>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              aria-label={shouldShowBanana ? "Disable image mode" : menuOpen ? "Close actions" : "Open actions"}
-              onClick={() => {
-                if (shouldShowBanana) {
-                  setForceImageMode(false); // behave like X
-                  return;
-                }
-                setMenuOpen((s) => !s);
-              }}
-              className="h-10 w-10 rounded-full flex items-center justify-center border border-border/40
-                         bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground
-                         transition-transform duration-200"
-            >
-              {shouldShowBanana ? (
-                <span className="text-lg">🍌</span>
-              ) : (
-                <Plus className={`h-5 w-5 stroke-[2] ${menuOpen ? "rotate-45 transition-transform" : ""}`} />
-              )}
-            </button>
-          </DropdownMenuTrigger>
-
-          {!shouldShowBanana && (
-            <DropdownMenuContent
-              align="start"
-              className="w-56 bg-card/95 backdrop-blur-xl border-border shadow-lg z-50"
-            >
-              <DropdownMenuItem
-                onClick={() => {
-                  setForceImageMode(true);
-                  setMenuOpen(false);
-                }}
-                className="cursor-pointer hover:bg-accent focus:bg-accent"
-              >
-                <span className="mr-2">🍌</span>
-                <span>Generate Image</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  fileInputRef.current?.click();
-                  setMenuOpen(false);
-                }}
-                className="cursor-pointer hover:bg-accent focus:bg-accent"
-              >
-                <span className="mr-2">📎</span>
-                <span>Attach Images</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          )}
-        </DropdownMenu>
-
-        {/* Extra X next to banana if you want a clear affordance (optional) */}
-        {shouldShowBanana && (
+        {/* LEFT LAUNCHER (+ ↔︎ Banana; X to clear) */}
+        <div ref={launcherRef} className="relative touch-manipulation">
           <button
-            onClick={() => setForceImageMode(false)}
-            aria-label="Disable image mode"
-            className="h-10 w-10 rounded-full flex items-center justify-center text-yellow-600 hover:bg-yellow-500/10"
+            type="button"
+            aria-label={shouldShowBanana ? "Disable image mode" : launcherOpen ? "Close actions" : "Open actions"}
+            onClick={() => {
+              if (shouldShowBanana) {
+                setForceImageMode(false);
+              } else {
+                setLauncherOpen((s) => !s);
+              }
+            }}
+            className="h-12 w-12 rounded-full flex items-center justify-center border border-border/40
+                       bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground
+                       active:scale-[0.98] transition-transform duration-150"
           >
-            <X className="h-5 w-5 stroke-[2]" />
+            {shouldShowBanana ? (
+              <span className="text-xl">🍌</span>
+            ) : (
+              <Plus className={`h-5 w-5 ${launcherOpen ? "rotate-45" : ""}`} />
+            )}
           </button>
-        )}
+
+          {/* Clear X when banana active */}
+          {shouldShowBanana && (
+            <button
+              onClick={() => setForceImageMode(false)}
+              aria-label="Disable image mode"
+              className="absolute -right-2 -top-2 h-7 w-7 rounded-full flex items-center justify-center
+                         bg-yellow-500/15 text-yellow-700 hover:bg-yellow-500/25"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* BIG TILES POPOVER (stable; no blip) */}
+          {!shouldShowBanana && launcherOpen && (
+            <div
+              role="dialog"
+              className="absolute left-0 top-[115%] z-[60] w-[260px] rounded-2xl border border-border/50
+                         bg-card/95 backdrop-blur-xl shadow-xl p-3"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => {
+                    setForceImageMode(true);
+                    setLauncherOpen(false);
+                  }}
+                  className="h-24 rounded-xl border border-yellow-400/30 bg-yellow-500/10
+                             hover:bg-yellow-500/15 flex flex-col items-center justify-center gap-2"
+                >
+                  <span className="text-2xl">🍌</span>
+                  <span className="text-xs font-medium">Generate Image</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    fileInputRef.current?.click();
+                    setLauncherOpen(false);
+                  }}
+                  className="h-24 rounded-xl border border-border/40 bg-muted/40
+                             hover:bg-muted/60 flex flex-col items-center justify-center gap-2"
+                >
+                  <span className="text-xl">📎</span>
+                  <span className="text-xs font-medium">Attach Images</span>
+                </button>
+
+                {/* Future tiles live here */}
+                <button
+                  disabled
+                  className="h-24 rounded-xl border border-border/30 bg-transparent opacity-50
+                             flex flex-col items-center justify-center gap-2"
+                >
+                  <span className="text-xl">🧩</span>
+                  <span className="text-xs font-medium">More soon</span>
+                </button>
+                <button
+                  onClick={() => setLauncherOpen(false)}
+                  className="h-24 rounded-xl border border-border/30 hover:bg-muted/30
+                             flex flex-col items-center justify-center gap-2"
+                >
+                  <span className="text-xl">✖️</span>
+                  <span className="text-xs font-medium">Close</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* input */}
         <div className="flex-1">
@@ -513,7 +541,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         <button
           onClick={handleSend}
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
-          className={`shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 border
+          className={`shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border
             ${
               inputValue.trim() || selectedImages.length
                 ? "bg-primary text-white border-primary hover:opacity-90"
