@@ -503,102 +503,104 @@ export function MobileChatApp() {
             inset 0 1px 0 rgba(255,255,255,0.04) !important;
         }
 
-        /* Input shelf - mobile first */
-        .glass-dock{
-          position: relative;
-          border-radius: 1.5rem 1.5rem 1.5rem 1.5rem !important;
-          padding: 16px;
-          margin: 0 10px;
-          background: hsl(var(--background) / 0.8);
-          backdrop-filter: blur(20px) saturate(120%);
-          -webkit-backdrop-filter: blur(20px) saturate(120%);
-          border-top: 1px solid hsl(var(--border) / 0.5);
-          box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
-          isolation: isolate;
-          overflow: visible;
-        }
-        
-        /* Desktop only - constrained width, same padding and border-radius */
-        @media (min-width: 1024px) {
-          .glass-dock {
-            margin: 0 auto !important;
-            max-width: 768px !important;
-            border-radius: 1.5rem 1.5rem 0 0 !important;
-          }
-        }
-        
-        .glass-dock::before{
-          content: "";
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          background: hsl(var(--background) / 0.6);
-          z-index: 0;
-        }
-        .glass-dock > *{ position: relative; z-index: 1; }
+      /* ——— Minimal Luxe Input Bar ——— */
+.glass-dock{
+  /* layout */
+  position: relative;
+  margin: 0 auto;
+  max-width: 760px;
+  padding: 10px;
+  inset: 0;
+  /* shape */
+  border-radius: 9999px !important;
+  overflow: hidden;                 /* clip internals to the pill */
+  /* background */
+  background: color-mix(in oklab, hsl(var(--background)) 82%, transparent);
+  backdrop-filter: blur(10px) saturate(115%);
+  -webkit-backdrop-filter: blur(10px) saturate(115%);
+  /* border + shadow kept calm */
+  border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
+  box-shadow:
+    0 2px 10px rgba(0,0,0,.20),
+    0 1px 0 rgba(255,255,255,.02) inset;
+  isolation: isolate;
+}
 
-        /* Remove rounded corners for shelf design */
-        .glass-dock .chat-input-halo,
-        .glass-dock .chat-input-halo.halo-active {
-          border-radius: 0.75rem !important;
-        }
+/* subtle gradient hairline around the pill */
+.glass-dock::before{
+  content:"";
+  position:absolute; inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  background: radial-gradient(120% 120% at 50% 50%,
+    color-mix(in oklab, hsl(var(--primary)) 14%, transparent) 0%,
+    transparent 40%);
+  opacity:.18;
+}
 
-        /* Define halo-active glow effect with correct border radius */
-        .glass-dock .chat-input-halo.halo-active {
-          box-shadow: 0 0 0 2px hsla(var(--primary), 0.3), 0 0 20px hsla(var(--primary), 0.15) !important;
-        }
+/* calm hover and focus treatment */
+.glass-dock:hover{
+  box-shadow:
+    0 4px 18px rgba(0,0,0,.22),
+    0 1px 0 rgba(255,255,255,.03) inset;
+  transform: translateY(-0.5px);
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.glass-dock:focus-within{
+  background: color-mix(in oklab, hsl(var(--background)) 88%, transparent);
+  box-shadow:
+    0 6px 22px rgba(0,0,0,.25),
+    0 0 0 1px color-mix(in oklab, hsl(var(--primary)) 26%, transparent) inset;
+}
 
-        /* Force border radius for all input states - stronger override */
-        .glass-dock .chat-input-halo,
-        .glass-dock .chat-input-halo.halo-active,
-        .glass-dock .chat-input-halo:focus-within,
-        .glass-dock .chat-input-halo:active,
-        .glass-dock .chat-input-halo[data-active="true"] {
-          border-radius: 1rem !important;
-        }
+/* keep internals clean and airy */
+.glass-dock > *{ position: relative; z-index: 1; }
+.glass-dock :is(.input-wrapper,.input-container,.chat-input,form){
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
 
-        /* Ultra-specific override for any Tailwind classes */
-        div.glass-dock div.chat-input-halo,
-        div.glass-dock div.chat-input-halo.halo-active,
-        .glass-dock > div.chat-input-halo {
-          border-radius: 1rem !important;
-        }
+/* inner halo = tiny, rounded, not flashy */
+.glass-dock .chat-input-halo,
+.glass-dock .chat-input-halo:focus-within{
+  border-radius: 9999px !important;
+  border: 1px solid color-mix(in oklab, hsl(var(--border)) 28%, transparent) !important;
+  box-shadow: 0 0 0 0 transparent !important;
+  background: color-mix(in oklab, hsl(var(--background)) 65%, transparent) !important;
+  padding: 8px 12px !important;
+}
+.glass-dock .chat-input-halo.halo-active{
+  border-color: color-mix(in oklab, hsl(var(--primary)) 30%, hsl(var(--border)) 20%) !important;
+}
 
-        /* Nuclear option - use attribute selector with inline style backup */
-        .glass-dock .chat-input-halo[style*="border-radius"],
-        .glass-dock .chat-input-halo[style*="borderRadius"] {
-          border-radius: 1rem !important;
-        }
+/* text sizing and spacing */
+.glass-dock input,
+.glass-dock textarea{
+  font-size: 15px !important;
+  line-height: 1.35 !important;
+  padding-block: 8px !important;
+}
+.glass-dock input::placeholder,
+.glass-dock textarea::placeholder{ opacity: .6; }
 
-        .glass-dock :is(.surface,.card,[class*="bg-"],[class*="ring-"],[class*="border"],[class*="shadow"],
-                        .backdrop-blur,[class*="backdrop-"],[style*="backdrop-filter"]){
-          background: transparent !important; box-shadow: none !important; border: 0 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-        }
-        .glass-dock :is(.input-wrapper,.input-container,.chat-input,.field,form){ background: transparent !important; box-shadow: none !important; border: 0 !important; }
+/* strip loud utilities inside the dock */
+.glass-dock :is([class*="bg-"],[class*="ring-"],[class*="shadow"],[class*="border"],.backdrop-blur,[class*="backdrop-"]){
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
 
-        /* Nudge input text and placeholder down ~2px */
-        .glass-dock input,
-        .glass-dock textarea {
-          padding-top: calc(0.75rem + 2px) !important;
-          padding-bottom: calc(0.75rem - 2px) !important;
-          line-height: 1.35 !important;
-        }
-        .glass-dock input::placeholder,
-        .glass-dock textarea::placeholder {
-          line-height: 1.35 !important;
-          opacity: 0.7;
-        }
+/* compact on mobile */
+@media (max-width: 480px){
+  .glass-dock{ padding: 8px; max-width: 92vw; }
+  .glass-dock .chat-input-halo{ padding: 6px 10px !important; }
+}
 
-        .glass-dock:focus-within{
-          box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 16px 4px hsl(var(--primary)/0.3), 0 0 40px 10px hsl(var(--primary)/0.15) !important;
-          border-radius: 1rem;
-        }
-        .glass-dock input, .glass-dock textarea{ font-size: 16px !important; }
-        .glass-dock input:-webkit-autofill, .glass-dock textarea:-webkit-autofill{
-          -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
-          -webkit-text-fill-color: inherit !important;
-          transition: background-color 999999s ease-in-out 0s !important;
-        }
+/* respect reduced motion */
+@media (prefers-reduced-motion: reduce){
+  .glass-dock, .glass-dock:hover{ transition: none !important; transform: none !important; }
+}
       `}</style>
     </div>
   );
