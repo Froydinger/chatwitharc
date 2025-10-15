@@ -105,7 +105,6 @@ export function WelcomeSection({
             transition={{ duration: 0.3, ease: "easeOut" }}
           >
             {(activeTab === "chat" ? chatPrompts : imagePrompts).map((prompt, index) => {
-              const emoji = prompt.label.charAt(0);
               const label = prompt.label.slice(2);
               const isGlowing = index === glowIndex;
 
@@ -146,12 +145,9 @@ export function WelcomeSection({
                     }}
                   />
 
-                  <div className="flex items-start gap-3 relative z-10">
-                    <div className="flex-shrink-0 text-2xl">{emoji}</div>
-                    <div>
-                      <h3 className="font-medium text-foreground mb-1 transition-colors duration-200">{label}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{prompt.prompt}</p>
-                    </div>
+                  <div className="relative z-10">
+                    <h3 className="font-medium text-foreground mb-2 transition-colors duration-200">{label}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{prompt.prompt}</p>
                   </div>
                 </motion.button>
               );
