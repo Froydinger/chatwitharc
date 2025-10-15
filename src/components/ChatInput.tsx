@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, X, ArrowRight } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useArcStore } from "@/store/useArcStore";
@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
 
-/* ---------------- Intent helpers (kept from your version) ---------------- */
+/* ---------------- Intent helpers ---------------- */
 function isImageEditRequest(message: string): boolean {
   if (!message) return false;
   const keywords = [
@@ -69,7 +69,7 @@ function checkForImageRequest(message: string): boolean {
     "artwork",
     "graphic",
   ];
-  return imageKeywords.some((keyword) => m.includes(keyword));
+  return imageKeywords.some((k) => m.includes(k));
 }
 
 function extractImagePrompt(message: string): string {
@@ -98,14 +98,13 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [isActive, setIsActive] = useState(false);
 
-  // user-toggled image generation (Nano Banana)
+  // user-toggled image generation
   const [forceImageMode, setForceImageMode] = useState(false);
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
 
-  // menu (tile popover) state
+  // popover menu state
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // refs
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -113,7 +112,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     onImagesChange?.(selectedImages.length > 0);
   }, [selectedImages.length, onImagesChange]);
 
-  // auto-resize textarea (no flashy focus ring)
+  // auto-resize textarea
   useEffect(() => {
     if (!textareaRef.current) return;
     textareaRef.current.style.height = "auto";
@@ -121,7 +120,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     textareaRef.current.style.height = Math.min(h, 24 * 3) + "px";
   }, [inputValue]);
 
-  // close menu on outside tap
+  // outside click to close menu
   useEffect(() => {
     if (!menuOpen) return;
     const onDown = (e: MouseEvent | TouchEvent) => {
@@ -137,7 +136,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     };
   }, [menuOpen]);
 
-  // quick prompts: support triggering send automatically
+  // quick prompts -> send
   useEffect(() => {
     const quickHandler = (ev: Event) => {
       try {
@@ -285,7 +284,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
 
       // With images attached
       if (images.length > 0) {
-        // upload images (best-effort) or fallback to blob URLs
+        // upload (best-effort) or fallback
         let imageUrls: string[] = [];
         try {
           const {
@@ -309,7 +308,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           imageUrls = images.map((f) => URL.createObjectURL(f));
         }
 
-        // If looks like an edit -> edit flow
+        // edit flow?
         if (userMessage && isImageEditRequest(userMessage)) {
           await addMessage({ content: userMessage, role: "user", type: "image", imageUrls });
           await addMessage({
@@ -361,7 +360,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           return;
         }
 
-        // Otherwise: analyze images
+        // otherwise analyze
         await addMessage({
           content: userMessage || "Sent images",
           role: "user",
@@ -604,7 +603,8 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
       {/* Tile Popover (Portal) */}
       {menuOpen &&
         createPortal(
-          <div className="fixed inset-0 z-50" id="chat-attach-menu">
+          <div className="fixed inset-0 z-30" id="chat-attach-menu">
+            {/* ↓ lowered from z-50 to z-30 */}
             {/* click-away layer */}
             <div className="absolute inset-0" onClick={() => setMenuOpen(false)} />
 
@@ -630,6 +630,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
                 >
                   <span className="text-2xl">📎</span>
                   <span className="text-sm mt-2">Attach</span>
+                  <span className="text-xs mt-1 opacity-70">attach to analyze or edit!</span>
                 </button>
               </div>
             </div>
@@ -638,20 +639,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
         )}
 
       {/* hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={(e) => handleFilesFromDialog(e.target.files)}
-      />
+      <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
     </div>
   );
-
-  /* helper to keep TS happy below JSX */
-  function handleFilesFromDialog(list: FileList | null) {
-    if (!list) return;
-    handleImageUploadFiles(Array.from(list));
-  }
 }
