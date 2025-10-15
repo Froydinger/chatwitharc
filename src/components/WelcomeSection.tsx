@@ -15,12 +15,18 @@ interface WelcomeSectionProps {
   isGeneratingImage?: boolean;
 }
 
-// Define which prompts are image-focused
-const IMAGE_EMOJI_SET = new Set(["🎨", "🔮", "🎪", "🎬", "🎵"]);
+// These are the IMAGE prompts - they have these specific emojis
+const IMAGE_PROMPTS = new Set([
+  "🎨 Dream Poster",
+  "🎪 Fever Dream",
+  "🎬 Cult Classic",
+  "🎵 Mixtape Maker",
+  "🔮 Future Forecast",
+]);
 
 const separatePrompts = (prompts: Array<{ label: string; prompt: string }>) => {
-  const chatPrompts = prompts.filter((p) => !IMAGE_EMOJI_SET.has(p.label.charAt(0)));
-  const imagePrompts = prompts.filter((p) => IMAGE_EMOJI_SET.has(p.label.charAt(0)));
+  const chatPrompts = prompts.filter((p) => !IMAGE_PROMPTS.has(p.label));
+  const imagePrompts = prompts.filter((p) => IMAGE_PROMPTS.has(p.label));
   return { chatPrompts, imagePrompts };
 };
 
@@ -75,31 +81,11 @@ export function WelcomeSection({
       </div>
 
       {/* Prompts Grid */}
-      <div className="w-full max-w-4xl mb-8 flex-1 relative">
-        {/* Dancing glow effect */}
-        <motion.div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(500px 300px at var(--glow-x, 50%) var(--glow-y, 50%), rgba(0, 205, 255, 0.15) 0%, transparent 80%)",
-          }}
-          animate={
-            {
-              "--glow-x": ["10%", "90%", "10%"],
-              "--glow-y": ["10%", "90%", "10%"],
-            } as any
-          }
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-
+      <div className="w-full max-w-4xl mb-8 flex-1">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-8 relative z-10"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -110,26 +96,48 @@ export function WelcomeSection({
               const label = prompt.label.slice(2);
 
               return (
-                <button
+                <motion.button
                   key={`${activeTab}-${index}`}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     onTriggerPrompt(prompt.prompt);
                   }}
-                  className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm transition-all duration-200 text-left hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1 cursor-pointer touch-manipulation"
+                  className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm transition-all duration-200 text-left hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1 cursor-pointer touch-manipulation relative"
                   style={{
                     border: "1px solid rgba(0, 205, 255, 0.2)",
                   }}
+                  whileHover={{ boxShadow: "0 0 20px rgba(0, 205, 255, 0.4)" }}
                 >
-                  <div className="flex items-start gap-3">
+                  {/* Animated glow per tile */}
+                  <motion.div
+                    className="absolute inset-0 rounded-xl pointer-events-none"
+                    style={{
+                      boxShadow: "0 0 30px rgba(0, 205, 255, 0)",
+                      border: "1px solid rgba(0, 205, 255, 0.2)",
+                    }}
+                    animate={{
+                      boxShadow: [
+                        "0 0 10px rgba(0, 205, 255, 0.3)",
+                        "0 0 20px rgba(0, 205, 255, 0.5)",
+                        "0 0 10px rgba(0, 205, 255, 0.3)",
+                      ],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      delay: index * 0.15,
+                    }}
+                  />
+
+                  <div className="flex items-start gap-3 relative z-10">
                     <div className="flex-shrink-0 text-2xl">{emoji}</div>
                     <div>
                       <h3 className="font-medium text-foreground mb-1 transition-colors duration-200">{label}</h3>
                       <p className="text-sm text-muted-foreground line-clamp-2">{prompt.prompt}</p>
                     </div>
                   </div>
-                </button>
+                </motion.button>
               );
             })}
           </motion.div>
