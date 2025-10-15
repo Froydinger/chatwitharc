@@ -1,3 +1,4 @@
+// src/components/ChatInput.tsx
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Paperclip, Plus, ArrowRight } from "lucide-react";
@@ -98,7 +99,7 @@ export function ChatInput({ onImagesChange }: Props) {
   const portalRoot = useSafePortalRoot();
   const { toast } = useToast();
 
-  const { messages, addMessage, replaceLastMessage, isLoading, isGeneratingImage, setLoading, setGeneratingImage } =
+  const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage } =
     useArcStore();
 
   const [inputValue, setInputValue] = useState("");
@@ -107,6 +108,7 @@ export function ChatInput({ onImagesChange }: Props) {
 
   // Tiles menu
   const [showMenu, setShowMenu] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   // Banana toggle
   const [forceImageMode, setForceImageMode] = useState(false);
@@ -131,9 +133,7 @@ export function ChatInput({ onImagesChange }: Props) {
     const onDoc = (e: MouseEvent) => {
       if (!showMenu) return;
       const t = e.target as HTMLElement;
-      if (!t.closest?.(".ci-tiles") && !t.closest?.(".ci-menu-btn")) {
-        setShowMenu(false);
-      }
+      if (!t.closest?.(".ci-tiles") && !t.closest?.(".ci-menu-btn")) setShowMenu(false);
     };
     const onEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") setShowMenu(false);
@@ -526,6 +526,7 @@ export function ChatInput({ onImagesChange }: Props) {
       >
         {/* LEFT BUTTON — Banana replaces + when active */}
         <button
+          ref={menuButtonRef}
           type="button"
           aria-label={shouldShowBanana ? "Disable image mode" : showMenu ? "Close menu" : "Open menu"}
           className={[
