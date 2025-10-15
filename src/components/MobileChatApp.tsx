@@ -35,15 +35,10 @@ export function MobileChatApp() {
     rightPanelOpen,
     setRightPanelOpen,
     rightPanelTab,
-    setRightPanelTab
+    setRightPanelTab,
   } = useArcStore();
-  const {
-    profile
-  } = useProfile();
-  const {
-    theme,
-    toggleTheme
-  } = useTheme();
+  const { profile } = useProfile();
+  const { theme, toggleTheme } = useTheme();
   const [dragOver, setDragOver] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
 
@@ -53,9 +48,7 @@ export function MobileChatApp() {
   // Fixed input dock measurement
   const inputDockRef = useRef<HTMLDivElement>(null);
   const [inputHeight, setInputHeight] = useState<number>(96);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
 
   // Greeting with user's name when available
   const getPersonalizedGreeting = () => {
@@ -71,43 +64,57 @@ export function MobileChatApp() {
   }, [profile?.display_name]);
 
   // Quick Prompts
-  const quickPrompts = [{
-    label: "🎯 Focus",
-    prompt: "Help me set up a focused work session. Guide me through planning a productive 25-minute sprint."
-  }, {
-    label: "🎨 Create",
-    prompt: "I need creative inspiration. Give me an interesting creative idea I can work on today."
-  }, {
-    label: "💭 Check-in",
-    prompt: "Help me do a quick wellness check. Ask me about my mood and energy level, then give me personalized advice."
-  }, {
-    label: "💬 Chat",
-    prompt: "I want to have a casual conversation. Ask me about my day and let's chat like friends."
-  }, {
-    label: "🤝 Advice",
-    prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing."
-  }, {
-    label: "🙏 Gratitude",
-    prompt: "Lead me through a quick gratitude exercise to help me appreciate the good things in my life."
-  }, {
-    label: "📚 Learn",
-    prompt: "Help me understand something new. I want to learn about a topic that interests me."
-  }, {
-    label: "📋 Plan",
-    prompt: "Help me organize my day or week. Guide me through creating a structured plan for my goals."
-  }, {
-    label: "🪞 Reflect",
-    prompt: "Lead me through a guided reflection session about my recent experiences and growth."
-  }, {
-    label: "⚡ Motivate",
-    prompt: "I need encouragement and motivation. Help me feel inspired and energized."
-  }, {
-    label: "🤔 Decide",
-    prompt: "Help me make a decision. I have options to consider and need guidance on choosing the best path."
-  }, {
-    label: "🧘 Calm",
-    prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise."
-  }];
+  const quickPrompts = [
+    {
+      label: "🎯 Focus",
+      prompt: "Help me set up a focused work session. Guide me through planning a productive 25-minute sprint.",
+    },
+    {
+      label: "🎨 Create",
+      prompt: "I need creative inspiration. Give me an interesting creative idea I can work on today.",
+    },
+    {
+      label: "💭 Check-in",
+      prompt:
+        "Help me do a quick wellness check. Ask me about my mood and energy level, then give me personalized advice.",
+    },
+    {
+      label: "💬 Chat",
+      prompt: "I want to have a casual conversation. Ask me about my day and let's chat like friends.",
+    },
+    {
+      label: "🤝 Advice",
+      prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing.",
+    },
+    {
+      label: "🙏 Gratitude",
+      prompt: "Lead me through a quick gratitude exercise to help me appreciate the good things in my life.",
+    },
+    {
+      label: "📚 Learn",
+      prompt: "Help me understand something new. I want to learn about a topic that interests me.",
+    },
+    {
+      label: "📋 Plan",
+      prompt: "Help me organize my day or week. Guide me through creating a structured plan for my goals.",
+    },
+    {
+      label: "🪞 Reflect",
+      prompt: "Lead me through a guided reflection session about my recent experiences and growth.",
+    },
+    {
+      label: "⚡ Motivate",
+      prompt: "I need encouragement and motivation. Help me feel inspired and energized.",
+    },
+    {
+      label: "🤔 Decide",
+      prompt: "Help me make a decision. I have options to consider and need guidance on choosing the best path.",
+    },
+    {
+      label: "🧘 Calm",
+      prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise.",
+    },
+  ];
 
   // Smooth scroll to bottom on new content - only when there are messages
   useEffect(() => {
@@ -115,7 +122,7 @@ export function MobileChatApp() {
     if (!el || messages.length === 0) return; // Don't scroll if no messages
     el.scrollTo({
       top: el.scrollHeight,
-      behavior: "smooth"
+      behavior: "smooth",
     });
   }, [messages, isLoading, isGeneratingImage]);
 
@@ -127,7 +134,7 @@ export function MobileChatApp() {
       // Use a small delay to ensure DOM has rendered
       setTimeout(() => {
         el.scrollTop = 0;
-        requestAnimationFrame(() => el.scrollTop = 0);
+        requestAnimationFrame(() => (el.scrollTop = 0));
       }, 10);
     }
   }, [messages.length]);
@@ -153,7 +160,7 @@ export function MobileChatApp() {
       const el = messagesContainerRef.current;
       if (el) {
         el.scrollTop = 0;
-        requestAnimationFrame(() => el.scrollTop = 0);
+        requestAnimationFrame(() => (el.scrollTop = 0));
       }
     }, 50);
   };
@@ -171,65 +178,90 @@ export function MobileChatApp() {
     const root = messagesContainerRef.current ?? document.body;
     const tagCandidate = (img: HTMLImageElement) => {
       const alt = (img.getAttribute("alt") || "").toLowerCase();
-      const likely = img.hasAttribute("data-ai-avatar") || img.classList.contains("ai-avatar") || alt.includes("arc") || alt.includes("assistant") || alt.includes("arcai");
+      const likely =
+        img.hasAttribute("data-ai-avatar") ||
+        img.classList.contains("ai-avatar") ||
+        alt.includes("arc") ||
+        alt.includes("assistant") ||
+        alt.includes("arcai");
       if (likely) {
         img.classList.add("ai-avatar");
         img.classList.remove("is-loaded");
         const markLoaded = () => img.classList.add("is-loaded");
-        if (img.complete && img.naturalWidth > 0) markLoaded();else {
+        if (img.complete && img.naturalWidth > 0) markLoaded();
+        else {
           img.addEventListener("load", markLoaded, {
-            once: true
+            once: true,
           });
           img.addEventListener("error", markLoaded, {
-            once: true
+            once: true,
           });
         }
       }
     };
-    const scan = () => root.querySelectorAll("img").forEach(n => tagCandidate(n as HTMLImageElement));
+    const scan = () => root.querySelectorAll("img").forEach((n) => tagCandidate(n as HTMLImageElement));
     scan();
-    const mo = new MutationObserver(muts => {
+    const mo = new MutationObserver((muts) => {
       for (const m of muts) {
-        m.addedNodes.forEach(n => {
-          if (n instanceof HTMLImageElement) tagCandidate(n);else if (n instanceof HTMLElement) n.querySelectorAll("img").forEach(img => tagCandidate(img as HTMLImageElement));
+        m.addedNodes.forEach((n) => {
+          if (n instanceof HTMLImageElement) tagCandidate(n);
+          else if (n instanceof HTMLElement)
+            n.querySelectorAll("img").forEach((img) => tagCandidate(img as HTMLImageElement));
         });
       }
     });
     mo.observe(root, {
       childList: true,
-      subtree: true
+      subtree: true,
     });
     return () => mo.disconnect();
   }, []);
 
   // Main chat interface
-  return <div className="min-h-screen bg-background flex">
+  return (
+    <div className="min-h-screen bg-background flex">
       {/* Main Content */}
-      <div className={cn("flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]", rightPanelOpen && "lg:mr-80 xl:mr-96")}>
+      <div
+        className={cn(
+          "flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+          rightPanelOpen && "lg:mr-80 xl:mr-96",
+        )}
+      >
         {/* Header */}
         <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-2">
           <div className="flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <motion.img src={HERO_AVATAR} alt="ArcAI" className="h-8 w-8 rounded-small avatar-filled-eyes" animate={{
-                y: [0, -2, 0]
-              }} transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }} />
-                <motion.div className="absolute -inset-1 bg-primary/20 rounded-full blur-sm" animate={{
-                scale: [1, 1.05, 1],
-                opacity: [0.2, 0.4, 0.2]
-              }} transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }} />
+                <motion.img
+                  src={HERO_AVATAR}
+                  alt="ArcAI"
+                  className="h-8 w-8 rounded-small avatar-filled-eyes"
+                  animate={{
+                    y: [0, -2, 0],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+                <motion.div
+                  className="absolute -inset-1 bg-primary/20 rounded-full blur-sm"
+                  animate={{
+                    scale: [1, 1.05, 1],
+                    opacity: [0.2, 0.4, 0.2],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
               </div>
               <div>
                 <h1 className="text-lg">
-                  <span className="text-[#00cdff] text-lg font-normal">Arc</span><span className="font-semibold">Ai</span>
+                  <span className="text-[#00cdff] text-lg font-normal">Arc</span>
+                  <span className="font-semibold">Ai</span>
                 </h1>
               </div>
             </div>
@@ -238,60 +270,107 @@ export function MobileChatApp() {
               <Button variant="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
                 <Plus className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="icon" className="rounded-full" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
-                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full"
+                onClick={toggleTheme}
+                title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
-              <Button variant="outline" size="icon" className="rounded-full" onClick={() => {
-              setRightPanelOpen(!rightPanelOpen);
-            }}>
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full"
+                onClick={() => {
+                  setRightPanelOpen(!rightPanelOpen);
+                }}
+              >
                 <Menu className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </header>
 
-      {/* Scrollable messages layer with bottom padding equal to dock height */}
-      <div className={`relative flex-1 ${dragOver ? "bg-primary/5" : ""}`} onDragOver={e => {
-        e.preventDefault();
-        setDragOver(true);
-      }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop}>
-        {/* Chat Messages */}
-        <div ref={messagesContainerRef} className="absolute inset-0 overflow-y-auto" style={{
-          paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 3rem)`
-        }}>
-          {/* Empty state */}
-          {messages.length === 0 ? <WelcomeSection greeting={greeting} heroAvatar={HERO_AVATAR} quickPrompts={quickPrompts} onTriggerPrompt={triggerPrompt} isLoading={isLoading} isGeneratingImage={isGeneratingImage} /> : <div className="p-4 space-y-4 chat-messages">
-              {messages.map(message => <MessageBubble key={message.id} message={message} onEdit={async (messageId: string, newContent: string) => {
-              // When a message is edited, trigger a new AI response
-              // Message edited, triggering new response
+        {/* Scrollable messages layer with bottom padding equal to dock height */}
+        <div
+          className={`relative flex-1 ${dragOver ? "bg-primary/5" : ""}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+        >
+          {/* Chat Messages */}
+          <div
+            ref={messagesContainerRef}
+            className="absolute inset-0 overflow-y-auto"
+            style={{
+              paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 3rem)`,
+            }}
+          >
+            {/* Empty state */}
+            {messages.length === 0 ? (
+              <WelcomeSection
+                greeting={greeting}
+                heroAvatar={HERO_AVATAR}
+                quickPrompts={quickPrompts}
+                onTriggerPrompt={triggerPrompt}
+                isLoading={isLoading}
+                isGeneratingImage={isGeneratingImage}
+              />
+            ) : (
+              <div className="p-4 space-y-4 chat-messages">
+                {messages.map((message) => (
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    onEdit={async (messageId: string, newContent: string) => {
+                      // When a message is edited, trigger a new AI response
+                      // Message edited, triggering new response
 
-              // Get the ChatInput component to handle the response
-              const chatInputEvent = new CustomEvent('processEditedMessage', {
-                detail: {
-                  content: newContent,
-                  editedMessageId: messageId
-                }
-              });
-              window.dispatchEvent(chatInputEvent);
-            }} />)}
-              {/* Only show ThinkingIndicator for text-only loading, not for image generation */}
-              {isLoading && !isGeneratingImage && <ThinkingIndicator isLoading={true} isGeneratingImage={false} />}
-            </div>}
-        </div>
+                      // Get the ChatInput component to handle the response
+                      const chatInputEvent = new CustomEvent("processEditedMessage", {
+                        detail: {
+                          content: newContent,
+                          editedMessageId: messageId,
+                        },
+                      });
+                      window.dispatchEvent(chatInputEvent);
+                    }}
+                  />
+                ))}
+                {/* Only show ThinkingIndicator for text-only loading, not for image generation */}
+                {isLoading && !isGeneratingImage && <ThinkingIndicator isLoading={true} isGeneratingImage={false} />}
+              </div>
+            )}
+          </div>
 
-        {/* Free-floating input shelf */}
-        <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-30 pointer-events-none px-4">
-          <div className={cn("transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto", rightPanelOpen && "lg:mr-80 xl:mr-96")}>
-            <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
-              <ChatInput onImagesChange={setHasSelectedImages} />
+          {/* Free-floating input shelf */}
+          <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-30 pointer-events-none px-4">
+            <div
+              className={cn(
+                "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto",
+                rightPanelOpen && "lg:mr-80 xl:mr-96",
+              )}
+            >
+              <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
+                <ChatInput onImagesChange={setHasSelectedImages} />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Right Panel */}
-      <RightPanel isOpen={rightPanelOpen} onClose={() => setRightPanelOpen(false)} activeTab={rightPanelTab as any} onTabChange={setRightPanelTab} />
-    </div>
+        {/* Right Panel */}
+        <RightPanel
+          isOpen={rightPanelOpen}
+          onClose={() => setRightPanelOpen(false)}
+          activeTab={rightPanelTab as any}
+          onTabChange={setRightPanelTab}
+        />
+      </div>
 
       {/* Scoped styles */}
       <style>{`
@@ -427,7 +506,7 @@ export function MobileChatApp() {
         /* Input shelf - mobile first */
         .glass-dock{
           position: relative;
-          border-radius: 1.5rem 1.5rem 0 0 !important;
+          border-radius: 1.5rem 1.5rem 1.5rem 1.5rem !important;
           padding: 16px;
           margin: 0 10px;
           background: hsl(var(--background) / 0.8);
@@ -521,5 +600,6 @@ export function MobileChatApp() {
           transition: background-color 999999s ease-in-out 0s !important;
         }
       `}</style>
-    </div>;
+    </div>
+  );
 }
