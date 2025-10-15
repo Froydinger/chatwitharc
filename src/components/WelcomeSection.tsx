@@ -24,23 +24,6 @@ const separatePrompts = (prompts: Array<{ label: string; prompt: string }>) => {
   return { chatPrompts, imagePrompts };
 };
 
-const getColorForIndex = (index: number): string => {
-  const colors = ["emerald", "blue", "purple", "pink", "orange", "teal"];
-  return colors[index % colors.length];
-};
-
-const getColorClasses = (color: string) => {
-  const colorMap = {
-    emerald: "bg-emerald-100/10 text-emerald-400 border-emerald-400/20",
-    blue: "bg-blue-100/10 text-blue-400 border-blue-400/20",
-    purple: "bg-purple-100/10 text-purple-400 border-purple-400/20",
-    pink: "bg-pink-100/10 text-pink-400 border-pink-400/20",
-    orange: "bg-orange-100/10 text-orange-400 border-orange-400/20",
-    teal: "bg-teal-100/10 text-teal-400 border-teal-400/20",
-  };
-  return colorMap[color as keyof typeof colorMap] || colorMap.blue;
-};
-
 export function WelcomeSection({
   greeting,
   heroAvatar,
@@ -92,19 +75,39 @@ export function WelcomeSection({
       </div>
 
       {/* Prompts Grid */}
-      <div className="w-full max-w-4xl mb-8 flex-1">
+      <div className="w-full max-w-4xl mb-8 flex-1 relative">
+        {/* Dancing glow effect */}
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(500px 300px at var(--glow-x, 50%) var(--glow-y, 50%), rgba(0, 205, 255, 0.15) 0%, transparent 80%)",
+          }}
+          animate={
+            {
+              "--glow-x": ["10%", "90%", "10%"],
+              "--glow-y": ["10%", "90%", "10%"],
+            } as any
+          }
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-8"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-8 relative z-10"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
           >
             {(activeTab === "chat" ? chatPrompts : imagePrompts).map((prompt, index) => {
-              const color = getColorForIndex(index);
               const emoji = prompt.label.charAt(0);
+              const label = prompt.label.slice(2);
 
               return (
                 <button
@@ -114,23 +117,15 @@ export function WelcomeSection({
                     e.stopPropagation();
                     onTriggerPrompt(prompt.prompt);
                   }}
-                  className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm transition-all duration-200 text-left hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1 cursor-pointer touch-manipulation border"
+                  className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm transition-all duration-200 text-left hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1 cursor-pointer touch-manipulation"
                   style={{
-                    borderColor: `hsl(var(--${color}-500) / 0.2)`,
+                    border: "1px solid rgba(0, 205, 255, 0.2)",
                   }}
                 >
                   <div className="flex items-start gap-3">
-                    <div
-                      className={`flex-shrink-0 p-2 rounded-lg transition-all duration-200 text-lg ${getColorClasses(
-                        color,
-                      )}`}
-                    >
-                      {emoji}
-                    </div>
+                    <div className="flex-shrink-0 text-2xl">{emoji}</div>
                     <div>
-                      <h3 className="font-medium text-foreground mb-1 transition-colors duration-200">
-                        {prompt.label.slice(1)}
-                      </h3>
+                      <h3 className="font-medium text-foreground mb-1 transition-colors duration-200">{label}</h3>
                       <p className="text-sm text-muted-foreground line-clamp-2">{prompt.prompt}</p>
                     </div>
                   </div>
