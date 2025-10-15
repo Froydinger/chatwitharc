@@ -132,7 +132,6 @@ export function MobileChatApp() {
     const el = messagesContainerRef.current;
     if (!el) return;
     if (messages.length === 0) {
-      // Use a small delay to ensure DOM has rendered
       setTimeout(() => {
         el.scrollTop = 0;
         requestAnimationFrame(() => (el.scrollTop = 0));
@@ -295,13 +294,15 @@ export function MobileChatApp() {
           >
             {/* Empty state */}
             {messages.length === 0 ? (
-              <WelcomeSection
-                greeting={greeting}
-                heroAvatar={HERO_AVATAR}
-                quickPrompts={quickPrompts}
-                onTriggerPrompt={triggerPrompt}
-                /* removed isLoading/isGeneratingImage to avoid showing "Arc is thinking..." on empty chats */
-              />
+              <div className="welcome-screen">
+                <WelcomeSection
+                  greeting={greeting}
+                  heroAvatar={HERO_AVATAR}
+                  quickPrompts={quickPrompts}
+                  onTriggerPrompt={triggerPrompt}
+                  /* no loader props here */
+                />
+              </div>
             ) : (
               <div className="p-4 space-y-4 chat-messages">
                 {messages.map((message) => (
@@ -316,7 +317,7 @@ export function MobileChatApp() {
                     }}
                   />
                 ))}
-                {/* Only show ThinkingIndicator for text-only loading, not for image generation, and only when chat is not empty */}
+                {/* Only show ThinkingIndicator when chat is not empty */}
                 {isLoading && !isGeneratingImage && messages.length > 0 && (
                   <ThinkingIndicator isLoading={true} isGeneratingImage={false} />
                 )}
@@ -350,6 +351,9 @@ export function MobileChatApp() {
 
       {/* Scoped styles */}
       <style>{`
+        /* Hide any thinking indicator while on the welcome (empty chat) screen */
+        .welcome-screen .thinking-shell{ display: none !important; }
+
         /* Avatar progressive reveal */
         img.ai-avatar{
           opacity: 0;
