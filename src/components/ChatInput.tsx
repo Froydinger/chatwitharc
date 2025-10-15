@@ -478,7 +478,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
     <div className="space-y-4">
       {/* Selected Images preview */}
       {selectedImages.length > 0 && (
-        <div className="p-3 bg-glass/20 rounded-lg">
+        <div className="p-3 bg-glass/20 rounded-full">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/4)</span>
             <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">
@@ -488,7 +488,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
           <div className="flex gap-2 overflow-x-auto">
             {selectedImages.map((f, i) => (
               <div key={i} className="relative group shrink-0">
-                <img src={URL.createObjectURL(f)} alt={`sel-${i}`} className="w-16 h-16 object-cover rounded-lg" />
+                <img src={URL.createObjectURL(f)} alt={`sel-${i}`} className="w-16 h-16 object-cover rounded-full" />
                 <button
                   onClick={() => removeImage(i)}
                   className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
@@ -504,11 +504,10 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
       {/* Input Row */}
       <div
         className={[
-          "chat-input-halo flex items-center gap-3 transition-all duration-200",
+          "chat-input-halo flex items-center gap-3 transition-all duration-200 rounded-full",
           isActive ? "halo-active" : "",
           shouldShowBanana ? "ring-2 ring-yellow-400/60 shadow-[0_0_24px_rgba(250,204,21,.18)]" : "ring-0",
         ].join(" ")}
-        style={{ borderRadius: "1rem" }}
       >
         {/* BANANA (replaces paperclip) */}
         <div className="flex items-center gap-2">
@@ -578,7 +577,7 @@ export function ChatInput({ onImagesChange }: { onImagesChange?: (hasImages: boo
                   : "Ask me anything..."
             }
             disabled={isLoading}
-            className={`card border-border/40 bg-card/50 text-foreground placeholder:text-muted-foreground resize-none min-h-[60px] max-h-[144px] leading-6 py-4 ${shouldShowBanana ? "pl-4" : ""}`}
+            className={`card border-border/40 bg-card/50 text-foreground placeholder:text-muted-foreground resize-none min-h-[60px] max-h-[144px] leading-6 py-4 rounded-full ${shouldShowBanana ? "pl-4" : ""}`}
             rows={1}
           />
         </div>

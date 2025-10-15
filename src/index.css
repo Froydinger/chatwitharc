@@ -201,7 +201,7 @@ All colors MUST be HSL for perfect glass effects.
   /* Free-floating glass dock for chat input */
   .glass-dock {
     padding: 1rem;
-    border-radius: 1.25rem;
+    border-radius: 9999px;
     background: hsl(var(--background) / 0.85);
     backdrop-filter: blur(24px) saturate(120%);
     -webkit-backdrop-filter: blur(24px) saturate(120%);
