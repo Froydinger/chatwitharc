@@ -15,13 +15,12 @@ interface WelcomeSectionProps {
   isGeneratingImage?: boolean;
 }
 
-const getEmojiFromLabel = (label: string): string => {
-  return label.split(" ")[0] || "✨";
-};
+// Define which prompts are image-focused
+const IMAGE_EMOJI_SET = new Set(["🎨", "🔮", "🎪", "🎬", "🎵"]);
 
 const separatePrompts = (prompts: Array<{ label: string; prompt: string }>) => {
-  const chatPrompts = prompts.filter((p) => !p.label.match(/🎨|🎪|🌟|💾|🎬|🎵|🏆|🔮/));
-  const imagePrompts = prompts.filter((p) => p.label.match(/🎨|🎪|🌟|💾|🎬|🎵|🏆|🔮/));
+  const chatPrompts = prompts.filter((p) => !IMAGE_EMOJI_SET.has(p.label.charAt(0)));
+  const imagePrompts = prompts.filter((p) => IMAGE_EMOJI_SET.has(p.label.charAt(0)));
   return { chatPrompts, imagePrompts };
 };
 
@@ -30,26 +29,14 @@ const getColorForIndex = (index: number): string => {
   return colors[index % colors.length];
 };
 
-const getColorClasses = (color: string, isHovered = false) => {
+const getColorClasses = (color: string) => {
   const colorMap = {
-    emerald: isHovered
-      ? "bg-emerald-100/20 text-emerald-300 border-emerald-300/30"
-      : "bg-emerald-100/10 text-emerald-400 border-emerald-400/20",
-    blue: isHovered
-      ? "bg-blue-100/20 text-blue-300 border-blue-300/30"
-      : "bg-blue-100/10 text-blue-400 border-blue-400/20",
-    purple: isHovered
-      ? "bg-purple-100/20 text-purple-300 border-purple-300/30"
-      : "bg-purple-100/10 text-purple-400 border-purple-400/20",
-    pink: isHovered
-      ? "bg-pink-100/20 text-pink-300 border-pink-300/30"
-      : "bg-pink-100/10 text-pink-400 border-pink-400/20",
-    orange: isHovered
-      ? "bg-orange-100/20 text-orange-300 border-orange-300/30"
-      : "bg-orange-100/10 text-orange-400 border-orange-400/20",
-    teal: isHovered
-      ? "bg-teal-100/20 text-teal-300 border-teal-300/30"
-      : "bg-teal-100/10 text-teal-400 border-teal-400/20",
+    emerald: "bg-emerald-100/10 text-emerald-400 border-emerald-400/20",
+    blue: "bg-blue-100/10 text-blue-400 border-blue-400/20",
+    purple: "bg-purple-100/10 text-purple-400 border-purple-400/20",
+    pink: "bg-pink-100/10 text-pink-400 border-pink-400/20",
+    orange: "bg-orange-100/10 text-orange-400 border-orange-400/20",
+    teal: "bg-teal-100/10 text-teal-400 border-teal-400/20",
   };
   return colorMap[color as keyof typeof colorMap] || colorMap.blue;
 };
@@ -117,7 +104,7 @@ export function WelcomeSection({
           >
             {(activeTab === "chat" ? chatPrompts : imagePrompts).map((prompt, index) => {
               const color = getColorForIndex(index);
-              const emoji = getEmojiFromLabel(prompt.label);
+              const emoji = prompt.label.charAt(0);
 
               return (
                 <button
@@ -142,7 +129,7 @@ export function WelcomeSection({
                     </div>
                     <div>
                       <h3 className="font-medium text-foreground mb-1 transition-colors duration-200">
-                        {prompt.label}
+                        {prompt.label.slice(1)}
                       </h3>
                       <p className="text-sm text-muted-foreground line-clamp-2">{prompt.prompt}</p>
                     </div>
