@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Paperclip, Plus, ArrowRight } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -544,7 +544,7 @@ export function ChatInput({ onImagesChange }: Props) {
         {/* Banana chip (only when active) with tiny dismiss X */}
         {shouldShowBanana && (
           <div className="relative select-none">
-            <div className="h-10 w-10 rounded-full bg-yellow-500/10 border border-yellow-300/40 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-yellow-500/10 border border-yellow-300/40 flex items-center justify-center shadow-[0_0_24px_rgba(250,204,21,.20)]">
               <span className="text-lg leading-none">🍌</span>
             </div>
             <button
@@ -567,13 +567,8 @@ export function ChatInput({ onImagesChange }: Props) {
             onKeyDown={handleKeyPress}
             onFocus={() => setIsActive(true)}
             onBlur={() => setIsActive(false)}
-            // no selection highlight tinting – cursor/keyboard are enough
             placeholder={
-              selectedImages.length > 0
-                ? "Add a message with your images…"
-                : shouldShowBanana
-                  ? "Describe your image…"
-                  : "Ask"
+              selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe your image…" : "Ask"
             }
             disabled={isLoading}
             className="border-none bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 px-4 focus:outline-none focus:ring-0"
@@ -593,7 +588,6 @@ export function ChatInput({ onImagesChange }: Props) {
           ].join(" ")}
           aria-label="Send"
         >
-          {/* thin right arrow to match your style */}
           <ArrowRight className="h-5 w-5" />
         </button>
       </div>
@@ -606,29 +600,41 @@ export function ChatInput({ onImagesChange }: Props) {
             className="ci-tiles fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[35]"
             style={{ bottom: "calc(170px + env(safe-area-inset-bottom, 0px))" }}
           >
-            <div className="grid grid-cols-2 gap-12 px-2">
-              {/* Generate Image tile */}
+            <div className="grid grid-cols-2 gap-4 px-1">
+              {/* Generate Image tile (yellow glow) */}
               <button
                 onClick={() => {
                   setForceImageMode(true);
                   setShowMenu(false);
                 }}
-                className="rounded-2xl border border-yellow-300/30 bg-background/80 backdrop-blur-xl shadow-xl px-5 py-6 text-left hover:bg-yellow-300/10 transition-colors"
+                className="rounded-2xl border bg-background/80 backdrop-blur-xl px-4 py-4 text-left transition-all hover:translate-y-[-2px] hover:scale-[1.01]"
+                style={{
+                  borderColor: "rgba(250,204,21,0.35)",
+                  boxShadow:
+                    "0 10px 30px rgba(0,0,0,.25), 0 0 0 1px rgba(250,204,21,.20) inset, 0 0 28px rgba(250,204,21,.18)",
+                }}
               >
                 <div className="flex items-center gap-3 mb-2">
                   <span className="text-2xl">🍌</span>
                   <div className="text-lg font-semibold">Generate Image</div>
                 </div>
-                <div className="text-sm text-muted-foreground">Turn this prompt into an image using Nano Banana.</div>
+                <div className="text-sm text-muted-foreground leading-snug">
+                  Turn this prompt into an image using Nano Banana.
+                </div>
               </button>
 
-              {/* Attach Images tile */}
+              {/* Attach Images tile (blue glow) */}
               <button
                 onClick={() => {
                   setShowMenu(false);
                   fileInputRef.current?.click();
                 }}
-                className="rounded-2xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-5 py-6 text-left hover:bg-accent transition-colors"
+                className="rounded-2xl border bg-background/80 backdrop-blur-xl px-4 py-4 text-left transition-all hover:translate-y-[-2px] hover:scale-[1.01]"
+                style={{
+                  borderColor: "rgba(59,130,246,0.35)",
+                  boxShadow:
+                    "0 10px 30px rgba(0,0,0,.25), 0 0 0 1px rgba(59,130,246,.20) inset, 0 0 28px rgba(59,130,246,.18)",
+                }}
               >
                 <div className="flex items-center gap-3 mb-2">
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted">
@@ -636,7 +642,7 @@ export function ChatInput({ onImagesChange }: Props) {
                   </span>
                   <div className="text-lg font-semibold">Attach</div>
                 </div>
-                <div className="text-sm text-muted-foreground">Attach to analyze or edit!</div>
+                <div className="text-sm text-muted-foreground leading-snug">Attach to analyze or edit!</div>
               </button>
             </div>
           </div>,
