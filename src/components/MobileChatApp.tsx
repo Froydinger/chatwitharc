@@ -326,7 +326,7 @@ export function MobileChatApp() {
           <div
             ref={messagesContainerRef}
             className="absolute inset-0 overflow-y-auto"
-            style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 3rem)` }}
+            style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 6rem)` }}
           >
             {/* Empty state */}
             {messages.length === 0 ? (
