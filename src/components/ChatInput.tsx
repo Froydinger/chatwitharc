@@ -1,654 +1,582 @@
-import React, { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { X, Paperclip, Plus, ArrowRight } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import { useState, useRef, useEffect } from "react";
+import { Plus, Menu, Sun, Moon } from "lucide-react";
+import { motion } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
+import { MessageBubble } from "@/components/MessageBubble";
+import { ChatInput } from "@/components/ChatInput";
+import { RightPanel } from "@/components/RightPanel";
+import { WelcomeSection } from "@/components/WelcomeSection";
+import { ThinkingIndicator } from "@/components/ThinkingIndicator";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
-import { AIService } from "@/services/ai";
-import { supabase } from "@/integrations/supabase/client";
-import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
+import { useTheme } from "@/hooks/useTheme";
+import { cn } from "@/lib/utils";
 
-/* ---------------- Helpers ---------------- */
-function isImageEditRequest(message: string): boolean {
-  if (!message) return false;
-  const keywords = [
-    "edit",
-    "modify",
-    "change",
-    "alter",
-    "update",
-    "replace",
-    "retouch",
-    "remove",
-    "add",
-    "combine",
-    "merge",
-    "blend",
-    "compose",
-    "make it",
-    "make this",
-    "turn this",
-    "convert",
-    "put",
-    "place",
-    "swap",
-    "substitute",
-    "adjust",
-    "tweak",
-    "transform",
-  ];
-  const lower = message.toLowerCase();
-  return keywords.some((k) => lower.includes(k));
-}
-function checkForImageRequest(message: string): boolean {
-  if (!message) return false;
-  const m = message.toLowerCase().trim();
-  if (
-    /^(generate|create|make|draw|paint|design|render|produce|build)\s+(an?\s+)?(image|picture|photo|illustration|artwork|graphic)/i.test(
-      m,
-    )
-  )
-    return true;
-  if (/^(generate|create|make)\s+an?\s+image\s+of/i.test(m)) return true;
-  if (/^(show\s+me|give\s+me|i\s+want|i\s+need)\s+(an?\s+)?(image|picture|photo)/i.test(m)) return true;
-  const imageKeywords = [
-    "generate image",
-    "create image",
-    "make image",
-    "draw",
-    "paint",
-    "illustrate",
-    "picture of",
-    "photo of",
-    "image of",
-    "render",
-    "visualize",
-    "design",
-    "artwork",
-    "graphic",
-  ];
-  return imageKeywords.some((keyword) => m.includes(keyword));
-}
-function extractImagePrompt(message: string): string {
-  let prompt = (message || "").trim();
-  prompt = prompt.replace(/^(please\s+)?(?:can|could|would)\s+you\s+/i, "").trim();
-  prompt = prompt
-    .replace(
-      /^(?:generate|create|make|draw|paint|design|render|produce|visualize|show\s+me|give\s+me)\s+(?:an?\s+)?(?:image|picture|photo|illustration|artwork|graphic)?\s*(?:of)?\s*/i,
-      "",
-    )
-    .trim();
-  if (!prompt) prompt = message.trim();
-  if (!/^(a|an|the)\s+/i.test(prompt) && !/^[A-Z]/.test(prompt)) prompt = `a ${prompt}`;
-  return prompt;
+/** Time-of-day greeting (no name usage) */
+function getDaypartGreeting(d: Date = new Date()): "Good Morning" | "Good Afternoon" | "Good Evening" {
+  const h = d.getHours();
+  if (h >= 5 && h < 12) return "Good Morning";
+  if (h >= 12 && h < 18) return "Good Afternoon";
+  return "Good Evening";
 }
 
-/* ---------------- Tiny utilities ---------------- */
-const useSafePortalRoot = () => {
-  const [root, setRoot] = useState<HTMLElement | null>(null);
-  useEffect(() => setRoot(document.body), []);
-  return root;
-};
+/** Keep header logo as-is; use the head-only avatar above prompts */
+const HEADER_LOGO = "/lovable-uploads/c65f38aa-5928-46e1-b224-9f6a2bacbf18.png";
+const HERO_AVATAR = "/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png";
 
-type Props = { onImagesChange?: (hasImages: boolean) => void };
+export function MobileChatApp() {
+  const {
+    messages,
+    isLoading,
+    isGeneratingImage,
+    createNewSession,
+    startChatWithMessage,
+    currentSessionId,
+    rightPanelOpen,
+    setRightPanelOpen,
+    rightPanelTab,
+    setRightPanelTab,
+  } = useArcStore();
+  const { profile } = useProfile();
+  const { theme, toggleTheme } = useTheme();
+  const [dragOver, setDragOver] = useState(false);
+  const [hasSelectedImages, setHasSelectedImages] = useState(false);
 
-export function ChatInput({ onImagesChange }: Props) {
-  useProfile();
-  const portalRoot = useSafePortalRoot();
+  // Scroll container for messages
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Fixed input dock measurement
+  const inputDockRef = useRef<HTMLDivElement>(null);
+  const [inputHeight, setInputHeight] = useState<number>(96);
   const { toast } = useToast();
 
-  const { messages, addMessage, replaceLastMessage, isLoading, isGeneratingImage, setLoading, setGeneratingImage } =
-    useArcStore();
-
-  const [inputValue, setInputValue] = useState("");
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [isActive, setIsActive] = useState(false);
-
-  // Tiles menu
-  const [showMenu, setShowMenu] = useState(false);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Banana toggle
-  const [forceImageMode, setForceImageMode] = useState(false);
-  const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
-
-  // Textarea auto-resize
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    if (!textareaRef.current) return;
-    textareaRef.current.style.height = "auto";
-    const h = textareaRef.current.scrollHeight;
-    textareaRef.current.style.height = Math.min(h, 24 * 3) + "px";
-  }, [inputValue]);
-
-  // Notify parent about images
-  useEffect(() => {
-    onImagesChange?.(selectedImages.length > 0);
-  }, [selectedImages.length, onImagesChange]);
-
-  // Close tiles on outside click / esc
-  useEffect(() => {
-    const onDoc = (e: MouseEvent) => {
-      if (!showMenu) return;
-      const t = e.target as HTMLElement;
-      if (!t.closest?.(".ci-tiles") && !t.closest?.(".ci-menu-btn")) {
-        setShowMenu(false);
-      }
-    };
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowMenu(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onEsc);
-    return () => {
-      document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onEsc);
-    };
-  }, [showMenu]);
-
-  // File input
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    handleImageUploadFiles(files);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  // Greeting with user's name when available
+  const getPersonalizedGreeting = () => {
+    const timeGreeting = getDaypartGreeting();
+    const displayName = profile?.display_name;
+    return displayName ? `${timeGreeting}, ${displayName}` : timeGreeting;
   };
-  const handleImageUploadFiles = (files: File[]) => {
-    const images = files.filter((f) => f.type.startsWith("image/"));
-    const max = 4;
-    setSelectedImages((prev) => {
-      const merged = [...prev, ...images].slice(0, max);
-      if (merged.length >= max && images.length > 0 && merged.length > prev.length) {
-        toast({ title: "Max images", description: `Up to ${max} images supported`, variant: "default" });
-      }
-      return merged;
+  const [greeting, setGreeting] = useState(getPersonalizedGreeting());
+  useEffect(() => {
+    setGreeting(getPersonalizedGreeting());
+    const id = setInterval(() => setGreeting(getPersonalizedGreeting()), 60_000);
+    return () => clearInterval(id);
+  }, [profile?.display_name]);
+
+  // Quick Prompts
+  const quickPrompts = [
+    {
+      label: "🎯 Focus",
+      prompt: "Help me set up a focused work session. Guide me through planning a productive 25-minute sprint.",
+    },
+    {
+      label: "🎨 Create",
+      prompt: "I need creative inspiration. Give me an interesting creative idea I can work on today.",
+    },
+    {
+      label: "💭 Check-in",
+      prompt:
+        "Help me do a quick wellness check. Ask me about my mood and energy level, then give me personalized advice.",
+    },
+    {
+      label: "💬 Chat",
+      prompt: "I want to have a casual conversation. Ask me about my day and let's chat like friends.",
+    },
+    {
+      label: "🤝 Advice",
+      prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing.",
+    },
+    {
+      label: "🙏 Gratitude",
+      prompt: "Lead me through a quick gratitude exercise to help me appreciate the good things in my life.",
+    },
+    {
+      label: "📚 Learn",
+      prompt: "Help me understand something new. I want to learn about a topic that interests me.",
+    },
+    {
+      label: "📋 Plan",
+      prompt: "Help me organize my day or week. Guide me through creating a structured plan for my goals.",
+    },
+    {
+      label: "🪞 Reflect",
+      prompt: "Lead me through a guided reflection session about my recent experiences and growth.",
+    },
+    {
+      label: "⚡ Motivate",
+      prompt: "I need encouragement and motivation. Help me feel inspired and energized.",
+    },
+    {
+      label: "🤔 Decide",
+      prompt: "Help me make a decision. I have options to consider and need guidance on choosing the best path.",
+    },
+    {
+      label: "🧘 Calm",
+      prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise.",
+    },
+  ];
+
+  // Smooth scroll to bottom on new content - only when there are messages
+  useEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el || messages.length === 0) return; // Don't scroll if no messages
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: "smooth",
     });
-  };
-  const removeImage = (idx: number) => setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
-  const clearSelected = () => setSelectedImages([]);
+  }, [messages, isLoading, isGeneratingImage]);
 
-  /* ---------- Quick prompt / edit event hooks ---------- */
+  // When chat is empty, go to top
   useEffect(() => {
-    const quickHandler = (ev: Event) => {
-      try {
-        const e = ev as CustomEvent<{ prompt?: string; type?: string }>;
-        if (e?.detail?.prompt) {
-          const prompt = e.detail.prompt;
-          const type = e.detail.type;
-          if (type === "image") setForceImageMode(true);
-          setInputValue(prompt);
-          setTimeout(() => {
-            const btn = document.querySelector('[aria-label="Send"]') as HTMLButtonElement;
-            if (btn && !btn.disabled) btn.click();
-          }, 80);
-        }
-      } catch {}
-    };
-    const editHandler = (ev: Event) => {
-      const e = ev as CustomEvent<{ content: string; baseImageUrl: string | string[]; editInstruction: string }>;
-      if (!e?.detail) return;
-      handleExternalImageEdit(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction);
-    };
-    window.addEventListener("quickPromptSelected", quickHandler as EventListener);
-    window.addEventListener("arcai:triggerPrompt", quickHandler as EventListener);
-    window.addEventListener("processImageEdit", editHandler as EventListener);
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    if (messages.length === 0) {
+      // Use a small delay to ensure DOM has rendered
+      setTimeout(() => {
+        el.scrollTop = 0;
+        requestAnimationFrame(() => (el.scrollTop = 0));
+      }, 10);
+    }
+  }, [messages.length]);
+
+  // Measure input dock height
+  useEffect(() => {
+    const update = () => inputDockRef.current && setInputHeight(inputDockRef.current.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    if (inputDockRef.current) ro.observe(inputDockRef.current);
+    window.addEventListener("resize", update);
     return () => {
-      window.removeEventListener("quickPromptSelected", quickHandler as EventListener);
-      window.removeEventListener("arcai:triggerPrompt", quickHandler as EventListener);
-      window.removeEventListener("processImageEdit", editHandler as EventListener);
+      window.removeEventListener("resize", update);
+      ro.disconnect();
     };
-  }, [messages]);
+  }, []);
 
-  /* ---------- External image edit (modal) ---------- */
-  const handleExternalImageEdit = async (
-    userMessage: string,
-    baseImageUrl: string | string[],
-    editInstruction: string,
-  ) => {
-    try {
-      const ai = new AIService();
-      setGeneratingImage(true);
-
-      await addMessage({
-        content: userMessage || editInstruction || "Edit request",
-        role: "user",
-        type: "image",
-        imageUrls: Array.isArray(baseImageUrl) ? baseImageUrl : [baseImageUrl],
-      });
-
-      await addMessage({
-        content: `Editing image: ${editInstruction}`,
-        role: "assistant",
-        type: "image-generating",
-        imagePrompt: editInstruction,
-      });
-
-      const url = await ai.editImage(editInstruction, Array.isArray(baseImageUrl) ? baseImageUrl : [baseImageUrl]);
-
-      // persist best-effort
-      let finalUrl = url;
-      try {
-        const resp = await fetch(url);
-        const blob = await resp.blob();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user) {
-          const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-          const { error } = await supabase.storage.from("avatars").upload(name, blob, {
-            contentType: "image/png",
-            upsert: false,
-          });
-          if (!error) {
-            const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-            finalUrl = pub.publicUrl;
-          }
-        }
-      } catch {}
-
-      await replaceLastMessage({
-        content: `Edited image: ${editInstruction}`,
-        role: "assistant",
-        type: "image",
-        imageUrl: finalUrl,
-      });
-    } catch (err: any) {
-      await replaceLastMessage({
-        content: `Sorry, I couldn't edit the image. ${err?.message || ""}`,
-        role: "assistant",
-        type: "text",
-      });
-    } finally {
-      setGeneratingImage(false);
-    }
+  const handleNewChat = () => {
+    createNewSession();
+    setRightPanelOpen(false);
+    // Let the useEffect handle scrolling when messages become empty
+    setTimeout(() => {
+      const el = messagesContainerRef.current;
+      if (el) {
+        el.scrollTop = 0;
+        requestAnimationFrame(() => (el.scrollTop = 0));
+      }
+    }, 50);
   };
 
-  /* ---------- Submit ---------- */
-  const handleSend = async () => {
-    if ((!inputValue.trim() && selectedImages.length === 0) || isLoading) return;
-
-    const userMessage = inputValue.trim();
-    const images = [...selectedImages];
-
-    // Clear UI promptly
-    setInputValue("");
-    setSelectedImages([]);
-    setForceImageMode(false);
-    setShowMenu(false);
-    setLoading(true);
-
-    try {
-      const ai = new AIService();
-
-      // With Images -> edit or analyze
-      if (images.length > 0) {
-        // upload images or fallback
-        let imageUrls: string[] = [];
-        try {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          if (!user) throw new Error("Not authenticated");
-          const uploadPromises = images.map(async (file) => {
-            const name = `${user.id}/user-upload-${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split(".").pop()}`;
-            const { error } = await supabase.storage.from("avatars").upload(name, file, {
-              contentType: file.type,
-              upsert: false,
-            });
-            if (error) throw error;
-            const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-            return pub.publicUrl;
-          });
-          imageUrls = await Promise.all(uploadPromises);
-        } catch {
-          imageUrls = images.map((f) => URL.createObjectURL(f));
-        }
-
-        if (userMessage && isImageEditRequest(userMessage)) {
-          await addMessage({ content: userMessage, role: "user", type: "image", imageUrls });
-          await addMessage({
-            content: `Editing image: ${userMessage}`,
-            role: "assistant",
-            type: "image-generating",
-            imagePrompt: userMessage,
-          });
-          setGeneratingImage(true);
-
-          try {
-            const editedUrl = await ai.editImage(userMessage, imageUrls);
-            let finalUrl = editedUrl;
-            try {
-              const resp = await fetch(editedUrl);
-              const blob = await resp.blob();
-              const {
-                data: { user },
-              } = await supabase.auth.getUser();
-              if (user) {
-                const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-                const { error } = await supabase.storage.from("avatars").upload(name, blob, {
-                  contentType: "image/png",
-                  upsert: false,
-                });
-                if (!error) {
-                  const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-                  finalUrl = pub.publicUrl;
-                }
-              }
-            } catch {}
-            await replaceLastMessage({
-              content: `Edited image: ${userMessage}`,
-              role: "assistant",
-              type: "image",
-              imageUrl: finalUrl,
-            });
-          } catch (err: any) {
-            await replaceLastMessage({
-              content: `Sorry, I couldn't edit the image. ${err?.message || ""}`,
-              role: "assistant",
-              type: "text",
-            });
-          } finally {
-            setGeneratingImage(false);
-          }
-          return;
-        }
-
-        // Analyze
-        await addMessage({
-          content: userMessage || "Sent images",
-          role: "user",
-          type: "image",
-          imageUrls: imageUrls.length ? imageUrls : undefined,
-        });
-
-        try {
-          const base64s = await Promise.all(
-            images.map(
-              (file) =>
-                new Promise<string>((res, rej) => {
-                  const r = new FileReader();
-                  r.onload = () => res(r.result as string);
-                  r.onerror = () => rej(new Error("read fail"));
-                  r.readAsDataURL(file);
-                }),
-            ),
-          );
-          const analysisPrompt =
-            userMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`;
-          const response = await ai.sendMessageWithImage([{ role: "user", content: analysisPrompt }], base64s);
-          await addMessage({ content: response, role: "assistant", type: "text" });
-        } catch {
-          toast({ title: "Error", description: "Failed to analyze images", variant: "destructive" });
-          await addMessage({
-            content: "Sorry, I couldn't analyze these images. Please try again.",
-            role: "assistant",
-            type: "text",
-          });
-        }
-        return;
-      }
-
-      // No images: Banana => generate; else text
-      if (shouldShowBanana) {
-        const imagePrompt = extractImagePrompt(userMessage || "");
-        await addMessage({ content: userMessage || imagePrompt, role: "user", type: "text" });
-        await addMessage({
-          content: `Generating image: ${imagePrompt}`,
-          role: "assistant",
-          type: "image-generating",
-          imagePrompt,
-        });
-        setGeneratingImage(true);
-
-        try {
-          const apiPrompt = `Generate an image: ${imagePrompt}`;
-          const genUrl = await ai.generateImage(apiPrompt);
-          let finalUrl = genUrl;
-          try {
-            const resp = await fetch(genUrl);
-            const blob = await resp.blob();
-            const {
-              data: { user },
-            } = await supabase.auth.getUser();
-            if (user) {
-              const name = `${user.id}/generated-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-              const { error } = await supabase.storage.from("avatars").upload(name, blob, {
-                contentType: "image/png",
-                upsert: false,
-              });
-              if (!error) {
-                const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-                finalUrl = pub.publicUrl;
-              }
-            }
-          } catch {}
-          await replaceLastMessage({
-            content: `Generated image: ${imagePrompt}`,
-            role: "assistant",
-            type: "image",
-            imageUrl: finalUrl,
-          });
-        } catch (err: any) {
-          await replaceLastMessage({
-            content: `Sorry, I couldn't generate the image. ${err?.message || ""}`,
-            role: "assistant",
-            type: "text",
-          });
-        } finally {
-          setGeneratingImage(false);
-        }
-        return;
-      }
-
-      // Plain text
-      if (userMessage) {
-        const memoryItem = detectMemoryCommand(userMessage);
-        if (memoryItem) {
-          const wasNew = await addToMemoryBank(memoryItem);
-          if (wasNew) formatMemoryConfirmation(memoryItem.content);
-        }
-      }
-
-      await addMessage({ content: userMessage, role: "user", type: "text" });
-      try {
-        const aiMessages = messages.filter((m) => m.type === "text").map((m) => ({ role: m.role, content: m.content }));
-        aiMessages.push({ role: "user", content: userMessage });
-        const reply = await new AIService().sendMessage(aiMessages);
-        await addMessage({ content: reply, role: "assistant", type: "text" });
-      } catch (err: any) {
-        toast({ title: "Error", description: err?.message || "Failed to get AI response", variant: "destructive" });
-        await addMessage({
-          content: "Sorry, I encountered an error. Please try again.",
-          role: "assistant",
-          type: "text",
-        });
-      }
-    } finally {
-      setLoading(false);
-    }
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+  const triggerPrompt = (prompt: string) => {
+    startChatWithMessage(prompt);
+    setRightPanelOpen(false);
   };
 
-  /* ---------------- Render ---------------- */
+  /** AI avatar progressive fade in after load */
+  useEffect(() => {
+    const root = messagesContainerRef.current ?? document.body;
+    const tagCandidate = (img: HTMLImageElement) => {
+      const alt = (img.getAttribute("alt") || "").toLowerCase();
+      const likely =
+        img.hasAttribute("data-ai-avatar") ||
+        img.classList.contains("ai-avatar") ||
+        alt.includes("arc") ||
+        alt.includes("assistant") ||
+        alt.includes("arcai");
+      if (likely) {
+        img.classList.add("ai-avatar");
+        img.classList.remove("is-loaded");
+        const markLoaded = () => img.classList.add("is-loaded");
+        if (img.complete && img.naturalWidth > 0) markLoaded();
+        else {
+          img.addEventListener("load", markLoaded, { once: true });
+          img.addEventListener("error", markLoaded, { once: true });
+        }
+      }
+    };
+    const scan = () => root.querySelectorAll("img").forEach((n) => tagCandidate(n as HTMLImageElement));
+    scan();
+    const mo = new MutationObserver((muts) => {
+      for (const m of muts) {
+        m.addedNodes.forEach((n) => {
+          if (n instanceof HTMLImageElement) tagCandidate(n);
+          else if (n instanceof HTMLElement)
+            n.querySelectorAll("img").forEach((img) => tagCandidate(img as HTMLImageElement));
+        });
+      }
+    });
+    mo.observe(root, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, []);
+
+  // Main chat interface
   return (
-    <div className="space-y-4 relative">
-      {/* Selected Images preview (fixed portal above the dock) */}
-      {portalRoot &&
-        selectedImages.length > 0 &&
-        createPortal(
-          <div
-            className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
-            style={{ bottom: "calc(110px + env(safe-area-inset-bottom, 0px))" }}
-          >
-            <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/4)</span>
-                <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">
-                  Clear All
-                </button>
+    <div className="min-h-screen bg-background flex">
+      {/* Main Content */}
+      <div
+        className={cn(
+          "flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+          rightPanelOpen && "lg:mr-80 xl:mr-96",
+        )}
+      >
+        {/* Header */}
+        <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-2">
+          <div className="flex h-16 items-center justify-between px-4">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <motion.img
+                  src={HERO_AVATAR}
+                  alt="ArcAI"
+                  className="h-8 w-8 rounded-small avatar-filled-eyes"
+                  animate={{ y: [0, -2, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div
+                  className="absolute -inset-1 bg-primary/20 rounded-full blur-sm"
+                  animate={{ scale: [1, 1.05, 1], opacity: [0.2, 0.4, 0.2] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                />
               </div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {selectedImages.map((f, i) => (
-                  <div key={i} className="relative group shrink-0">
-                    <img
-                      src={URL.createObjectURL(f)}
-                      alt={`sel-${i}`}
-                      className="w-16 h-16 object-cover rounded-full border border-border/40"
-                    />
-                    <button
-                      onClick={() => removeImage(i)}
-                      className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remove"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
+              <div>
+                <h1 className="text-lg">
+                  <span className="text-[#00cdff] text-lg font-normal">Arc</span>
+                  <span className="font-semibold">Ai</span>
+                </h1>
               </div>
             </div>
-          </div>,
-          portalRoot,
-        )}
 
-      {/* Input Row */}
-      <div
-        className={[
-          "chat-input-halo flex items-center gap-3 transition-all duration-200 rounded-full bg-transparent",
-          isActive ? "halo-active" : "",
-          shouldShowBanana ? "ring-2 ring-yellow-400/60 shadow-[0_0_24px_rgba(250,204,21,.18)]" : "ring-0",
-        ].join(" ")}
-      >
-        {/* LEFT BUTTON — Banana replaces + when active */}
-        <button
-          ref={menuButtonRef}
-          type="button"
-          aria-label={shouldShowBanana ? "Disable image mode" : showMenu ? "Close menu" : "Open menu"}
-          className={[
-            "ci-menu-btn h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 relative",
-            shouldShowBanana
-              ? "bg-yellow-50/10 ring-1 ring-yellow-300/50 shadow-[0_0_24px_rgba(250,204,21,.18)]"
-              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
-          ].join(" ")}
-          onClick={() => {
-            if (shouldShowBanana) setForceImageMode(false);
-            else setShowMenu((v) => !v);
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
+                <Plus className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full"
+                onClick={toggleTheme}
+                title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full"
+                onClick={() => {
+                  setRightPanelOpen(!rightPanelOpen);
+                }}
+              >
+                <Menu className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        {/* Scrollable messages layer with bottom padding equal to dock height */}
+        <div
+          className={`relative flex-1 ${dragOver ? "bg-primary/5" : ""}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
           }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
         >
-          {shouldShowBanana ? (
-            <>
-              <span className="text-lg leading-none">🍌</span>
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
-                ×
-              </span>
-            </>
-          ) : (
-            <span
-              className="inline-block transition-transform"
-              style={{ transform: `rotate(${showMenu ? 45 : 0}deg)` }}
-            >
-              <Plus className="h-5 w-5" />
-            </span>
-          )}
-        </button>
+          {/* Chat Messages */}
+          <div
+            ref={messagesContainerRef}
+            className="absolute inset-0 overflow-y-auto"
+            style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 3rem)` }}
+          >
+            {/* Empty state */}
+            {messages.length === 0 ? (
+              <WelcomeSection
+                greeting={greeting}
+                heroAvatar={HERO_AVATAR}
+                quickPrompts={quickPrompts}
+                onTriggerPrompt={triggerPrompt}
+              />
+            ) : (
+              <div className="p-4 space-y-4 chat-messages">
+                {messages.map((message) => (
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    onEdit={async (messageId: string, newContent: string) => {
+                      const chatInputEvent = new CustomEvent("processEditedMessage", {
+                        detail: { content: newContent, editedMessageId: messageId },
+                      });
+                      window.dispatchEvent(chatInputEvent);
+                    }}
+                  />
+                ))}
+                {/* Only show ThinkingIndicator for text-only loading, not for image generation
+                    AND only after there is at least one message */}
+                {isLoading && !isGeneratingImage && messages.length > 0 && (
+                  <ThinkingIndicator isLoading={true} isGeneratingImage={false} />
+                )}
+              </div>
+            )}
+          </div>
 
-        {/* Input */}
-        <div className="flex-1">
-          <Textarea
-            ref={textareaRef}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyPress}
-            onFocus={() => setIsActive(true)}
-            onBlur={() => setIsActive(false)}
-            placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe" : "Ask"}
-            disabled={isLoading}
-            className="border-none bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 px-4 focus:outline-none focus:ring-0 text-[16px]"
-            rows={1}
-          />
+          {/* Free-floating input shelf */}
+          <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-30 pointer-events-none px-4">
+            <div
+              className={cn(
+                "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto",
+                rightPanelOpen && "lg:mr-80 xl:mr-96",
+              )}
+            >
+              <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
+                <ChatInput onImagesChange={setHasSelectedImages} />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Send */}
-        <button
-          onClick={handleSend}
-          disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
-          className={[
-            "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border",
-            inputValue.trim() || selectedImages.length
-              ? "dark:bg-primary text-white dark:text-primary-foreground hover:opacity-90 dark:border-primary bg-blue-500 border-blue-500 text-white"
-              : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed border-transparent",
-          ].join(" ")}
-          aria-label="Send"
-        >
-          <ArrowRight className="h-5 w-5" />
-        </button>
+        {/* Right Panel */}
+        <RightPanel
+          isOpen={rightPanelOpen}
+          onClose={() => setRightPanelOpen(false)}
+          activeTab={rightPanelTab as any}
+          onTabChange={setRightPanelTab}
+        />
       </div>
 
-      {/* Tiles popover (lower z-index than sidebar; fixed above dock) */}
-      {portalRoot &&
-        showMenu &&
-        createPortal(
-          <div
-            className="ci-tiles fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[35]"
-            style={{ bottom: "calc(140px + env(safe-area-inset-bottom, 0px))" }}
-          >
-            <div className="grid grid-cols-2 gap-4 px-1">
-              {/* Generate Image tile (yellow glow) */}
-              <button
-                onClick={() => {
-                  setForceImageMode(true);
-                  setShowMenu(false);
-                }}
-                className="rounded-2xl border bg-background/80 backdrop-blur-xl px-4 py-4 text-left transition-all hover:translate-y-[-2px] hover:scale-[1.01]"
-                style={{
-                  borderColor: "rgba(250,204,21,0.35)",
-                  boxShadow:
-                    "0 10px 30px rgba(0,0,0,.25), 0 0 0 1px rgba(250,204,21,.20) inset, 0 0 20px rgba(250,204,21,.18)",
-                }}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-2xl">🍌</span>
-                  <div className="text-lg font-semibold">Generate Image</div>
-                </div>
-                <div className="text-sm text-muted-foreground leading-snug">
-                  Turn this prompt into an image using Nano Banana.
-                </div>
-              </button>
+      {/* Scoped styles */}
+      <style>{`
+        /* Avatar progressive reveal */
+        img.ai-avatar{
+          opacity: 0;
+          filter: saturate(1) contrast(1);
+          transition: opacity 260ms ease, transform 260ms ease;
+          transform: translateY(2px);
+          will-change: opacity, transform;
+        }
+        img.ai-avatar.is-loaded{ opacity: 1; transform: translateY(0); }
 
-              {/* Attach Images tile (blue glow) */}
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  fileInputRef.current?.click();
-                }}
-                className="rounded-2xl border bg-background/80 backdrop-blur-xl px-4 py-4 text-left transition-all hover:translate-y-[-2px] hover:scale-[1.01]"
-                style={{
-                  borderColor: "rgba(59,130,246,0.35)",
-                  boxShadow:
-                    "0 10px 30px rgba(0,0,0,.25), 0 0 0 1px rgba(59,130,246,.20) inset, 0 0 20px rgba(59,130,246,.18)",
-                }}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted">
-                    <Paperclip className="h-4 w-4" />
-                  </span>
-                  <div className="text-lg font-semibold">Attach</div>
-                </div>
-                <div className="text-sm text-muted-foreground leading-snug">Attach to analyze or edit!</div>
-              </button>
-            </div>
-          </div>,
-          portalRoot,
-        )}
+        /* Very light floating for hero avatar */
+        .floating-hero{ animation: float-3 5.2s ease-in-out infinite; }
+        .assistant-hero-avatar{
+          border-radius: 24%;
+          box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+          border: none !important;
+          outline: none !important;
+          background: transparent;
+        }
+        @keyframes float-3 {
+          0%,100%{transform:translate(0px,0px) rotate(0)}
+          20%{transform:translate(1px,1px) rotate(0.2deg)}
+          40%{transform:translate(-1px,2px) rotate(-0.3deg)}
+          60%{transform:translate(2px,-1px) rotate(0.25deg)}
+          80%{transform:translate(-2px,0) rotate(-0.2deg)}
+        }
 
-      {/* hidden file input */}
-      <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+        /* --- PING-PONG MARQUEE (SLOW) --- */
+        .marquee-ping{
+          position: relative;
+          overflow: hidden;
+          min-height: 48px;
+          -webkit-mask-image: linear-gradient(to right, transparent 0, black 10%, black 90%, transparent 100%);
+                  mask-image: linear-gradient(to right, transparent 0, black 10%, black 90%, transparent 100%);
+        }
+        .marquee-ping-track{
+          display: inline-flex;
+          gap: 12px;
+          white-space: nowrap;
+          will-change: transform;
+          transform: translate3d(0,0,0);
+          animation: pingpong var(--dur, 60s) cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
+          animation-delay: var(--delay, 0s);
+        }
+        .marquee-ping-set{ display: inline-flex; gap: 12px; }
+
+        @keyframes pingpong{
+          0%   { transform: translate3d(calc(-1 * var(--setW, 600px)), 0, 0); }
+          50%  { transform: translate3d(calc(-2 * var(--setW, 600px)), 0, 0); }
+          100% { transform: translate3d(0, 0, 0); }
+        }
+
+        /* Prompt pill style */
+        .prompt-pill{
+          pointer-events: auto;
+          padding: 12px 18px;
+          border-radius: 9999px;
+          background: rgba(22,22,22,0.45);
+          backdrop-filter: blur(8px) saturate(118%);
+          -webkit-backdrop-filter: blur(8px) saturate(118%);
+          border: 1px solid rgba(255,255,255,0.06);
+          box-shadow:
+            0 6px 16px rgba(0,0,0,0.25),
+            inset 0 1px 0 rgba(255,255,255,0.04);
+          transition: transform 220ms ease, background-color 220ms ease, box-shadow 220ms ease;
+          white-space: nowrap;
+        }
+        .prompt-pill:active { transform: scale(0.98); }
+        .prompt-pill:hover  { box-shadow: 0 8px 18px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.05); }
+
+        /* Thinking indicator container */
+        .thinking-shell{ transition: opacity 220ms ease, transform 220ms ease; opacity: 0; transform: translateY(3px); }
+        .thinking-shell[data-show="true"]{ opacity: 1; transform: translateY(0); }
+
+        /* The pill and its glow */
+        .thinking-pill{
+          position: relative;
+          padding: 10px 16px;
+          border-radius: 9999px;
+          overflow: hidden;
+          isolation: isolate;
+        }
+        .thinking-pill::before{
+          content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1;
+          background:
+            radial-gradient(80px 40px at 20% 50%, rgba(99,102,241,0.18), transparent 70%),
+            radial-gradient(80px 40px at 80% 50%, rgba(16,185,129,0.16), transparent 70%),
+            radial-gradient(100px 50px at 50% 0%, rgba(236,72,153,0.14), transparent 70%);
+          background-repeat: no-repeat;
+          filter: blur(8px);
+          animation: pill-pan 12s ease-in-out infinite alternate;
+        }
+        .thinking-pill::after{
+          content: ""; position: absolute; inset: -12%; border-radius: inherit; z-index: -2;
+          background: conic-gradient(from 0deg,
+            rgba(99,102,241,0.12),
+            rgba(236,72,153,0.10),
+            rgba(16,185,129,0.10),
+            rgba(59,130,246,0.10),
+            rgba(99,102,241,0.12));
+          filter: blur(14px);
+          animation: halo-slow 22s linear infinite;
+          opacity: 0.85;
+        }
+        @keyframes pill-pan{ 0%{ transform: translate3d(-2px,0,0) } 100%{ transform: translate3d(2px,0,0) } }
+        @keyframes halo-slow{ from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+
+        /* Bounce + sparkle */
+        @keyframes bounce-slow { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-2px)} }
+        .animate-bounce-slow{ animation: bounce-slow 1.2s ease-in-out infinite; }
+        @keyframes twinkle { 0%,100%{transform:scale(0.9) rotate(0); opacity:0.85} 50%{transform:scale(1.05) rotate(8deg); opacity:1} }
+        .animate-twinkle{ animation: twinkle 1.6s ease-in-out infinite; }
+
+        /* Subtle glass bubbles for message area */
+        .chat-messages .surface,
+        .chat-messages .card,
+        .chat-messages [data-bubble],
+        .chat-messages [class*="bubble"]{
+          border-radius: 18px !important;
+          background: rgba(18,18,18,0.42) !important;
+          backdrop-filter: blur(8px) saturate(118%) !important;
+          -webkit-backdrop-filter: blur(8px) saturate(118%) !important;
+          border: 1px solid rgba(255,255,255,0.06) !important;
+          box-shadow:
+            0 2px 10px rgba(0,0,0,0.22),
+            inset 0 1.5px 0 rgba(255,255,255,0.08),
+            inset 0 1px 0 rgba(255,255,255,0.04) !important;
+        }
+
+      /* ——— Minimal Luxe Input Bar ——— */
+.glass-dock{
+  /* layout */
+  position: relative;
+  margin: 0 auto;
+  max-width: 760px;
+  padding: 10px;
+  inset: 0;
+  /* shape */
+  border-radius: 9999px !important;
+  overflow: hidden;                 /* clip internals to the pill */
+  /* background */
+  background: color-mix(in oklab, hsl(var(--background)) 82%, transparent);
+  backdrop-filter: blur(10px) saturate(115%);
+  -webkit-backdrop-filter: blur(10px) saturate(115%);
+  /* border + shadow kept calm */
+  border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
+  box-shadow:
+    0 2px 10px rgba(0,0,0,.20),
+    0 1px 0 rgba(255,255,255,.02) inset;
+  isolation: isolate;
+}
+
+/* subtle gradient hairline around the pill */
+.glass-dock::before{
+  content:"";
+  position:absolute; inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  background: radial-gradient(120% 120% at 50% 50%,
+    color-mix(in oklab, hsl(var(--primary)) 14%, transparent) 0%,
+    transparent 40%);
+  opacity:.18;
+}
+
+/* calm hover and focus treatment */
+.glass-dock:hover{
+  box-shadow:
+    0 4px 18px rgba(0,0,0,.22),
+    0 1px 0 rgba(255,255,255,.03) inset;
+  transform: translateY(-0.5px);
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.glass-dock:focus-within{
+  background: color-mix(in oklab, hsl(var(--background)) 88%, transparent);
+  box-shadow:
+    0 6px 22px rgba(0,0,0,.25),
+    0 0 0 1px color-mix(in oklab, hsl(var(--primary)) 26%, transparent) inset;
+}
+
+/* keep internals clean and airy */
+.glass-dock > *{ position: relative; z-index: 1; }
+.glass-dock :is(.input-wrapper,.input-container,.chat-input,form){
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* inner halo = tiny, rounded, not flashy */
+.glass-dock .chat-input-halo,
+.glass-dock .chat-input-halo:focus-within{
+  border-radius: 9999px !important;
+  border: 1px solid color-mix(in oklab, hsl(var(--border)) 28%, transparent) !important;
+  box-shadow: 0 0 0 0 transparent !important;
+  background: color-mix(in oklab, hsl(var(--background)) 65%, transparent) !important;
+  padding: 8px 12px !important;
+}
+.glass-dock .chat-input-halo.halo-active{
+  border-color: color-mix(in oklab, hsl(var(--primary)) 30%, hsl(var(--border)) 20%) !important;
+}
+
+/* text sizing and spacing */
+.glass-dock input,
+.glass-dock textarea{
+  font-size: 15px !important;
+  line-height: 1.35 !important;
+  padding-block: 8px !important;
+}
+.glass-dock input::placeholder,
+.glass-dock textarea::placeholder{ opacity: .6; }
+
+/* strip loud utilities inside the dock */
+.glass-dock :is([class*="bg-"],[class*="ring-"],[class*="shadow"],[class*="border"],.backdrop-blur,[class*="backdrop-"]){
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+/* compact on mobile */
+@media (max-width: 480px){
+  .glass-dock{ padding: 8px; max-width: 92vw; }
+  .glass-dock .chat-input-halo{ padding: 6px 10px !important; }
+}
+
+/* respect reduced motion */
+@media (prefers-reduced-motion: reduce){
+  .glass-dock, .glass-dock:hover{ transition: none !important; transform: none !important; }
+}
+      `}</style>
     </div>
   );
 }
