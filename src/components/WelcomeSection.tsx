@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ThinkingIndicator } from "./ThinkingIndicator";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, Image } from "lucide-react";
@@ -40,11 +40,14 @@ export function WelcomeSection({
 }: WelcomeSectionProps) {
   const [activeTab, setActiveTab] = useState<"chat" | "image">("chat");
   const [glowIndex, setGlowIndex] = useState<number>(0);
-  const { chatPrompts, imagePrompts } = separatePrompts(quickPrompts);
+
+  // Separate prompts
+  const chatPrompts = quickPrompts.slice(0, 6);
+  const imagePrompts = quickPrompts.slice(6, 12);
   const currentPrompts = activeTab === "chat" ? chatPrompts : imagePrompts;
 
   // Random glow movement effect
-  useState(() => {
+  useEffect(() => {
     const interval = setInterval(
       () => {
         setGlowIndex(Math.floor(Math.random() * currentPrompts.length));
