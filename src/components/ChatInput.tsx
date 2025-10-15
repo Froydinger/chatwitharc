@@ -525,38 +525,38 @@ export function ChatInput({ onImagesChange }: Props) {
           shouldShowBanana ? "ring-2 ring-yellow-400/60 shadow-[0_0_24px_rgba(250,204,21,.18)]" : "ring-0",
         ].join(" ")}
       >
-        {/* PLUS / X button (tiles trigger) */}
+        {/* LEFT BUTTON — Banana replaces + when active */}
         <button
           ref={menuButtonRef}
           type="button"
-          aria-label={showMenu ? "Close menu" : "Open menu"}
+          aria-label={shouldShowBanana ? "Disable image mode" : showMenu ? "Close menu" : "Open menu"}
           className={[
-            "ci-menu-btn h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40",
-            "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
+            "ci-menu-btn h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 relative",
+            shouldShowBanana
+              ? "bg-yellow-50/10 ring-1 ring-yellow-300/50 shadow-[0_0_24px_rgba(250,204,21,.18)]"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
           ].join(" ")}
-          onClick={() => setShowMenu((v) => !v)}
+          onClick={() => {
+            if (shouldShowBanana) setForceImageMode(false);
+            else setShowMenu((v) => !v);
+          }}
         >
-          <span className="inline-block transition-transform" style={{ transform: `rotate(${showMenu ? 45 : 0}deg)` }}>
-            <Plus className="h-5 w-5" />
-          </span>
-        </button>
-
-        {/* Banana chip (only when active) with tiny dismiss X */}
-        {shouldShowBanana && (
-          <div className="relative select-none">
-            <div className="h-10 w-10 rounded-full bg-yellow-500/10 border border-yellow-300/40 flex items-center justify-center shadow-[0_0_24px_rgba(250,204,21,.20)]">
+          {shouldShowBanana ? (
+            <>
               <span className="text-lg leading-none">🍌</span>
-            </div>
-            <button
-              aria-label="Disable image generation for this message"
-              className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/60 text-white flex items-center justify-center"
-              onClick={() => setForceImageMode(false)}
-              title="Disable image generation"
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
+                ×
+              </span>
+            </>
+          ) : (
+            <span
+              className="inline-block transition-transform"
+              style={{ transform: `rotate(${showMenu ? 45 : 0}deg)` }}
             >
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        )}
+              <Plus className="h-5 w-5" />
+            </span>
+          )}
+        </button>
 
         {/* Input */}
         <div className="flex-1">
@@ -567,11 +567,9 @@ export function ChatInput({ onImagesChange }: Props) {
             onKeyDown={handleKeyPress}
             onFocus={() => setIsActive(true)}
             onBlur={() => setIsActive(false)}
-            placeholder={
-              selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe your image…" : "Ask"
-            }
+            placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe" : "Ask"}
             disabled={isLoading}
-            className="border-none bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 px-4 focus:outline-none focus:ring-0"
+            className="border-none bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 px-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
           />
         </div>
@@ -598,7 +596,7 @@ export function ChatInput({ onImagesChange }: Props) {
         createPortal(
           <div
             className="ci-tiles fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[35]"
-            style={{ bottom: "calc(170px + env(safe-area-inset-bottom, 0px))" }}
+            style={{ bottom: "calc(140px + env(safe-area-inset-bottom, 0px))" }}
           >
             <div className="grid grid-cols-2 gap-4 px-1">
               {/* Generate Image tile (yellow glow) */}
@@ -611,7 +609,7 @@ export function ChatInput({ onImagesChange }: Props) {
                 style={{
                   borderColor: "rgba(250,204,21,0.35)",
                   boxShadow:
-                    "0 10px 30px rgba(0,0,0,.25), 0 0 0 1px rgba(250,204,21,.20) inset, 0 0 28px rgba(250,204,21,.18)",
+                    "0 10px 30px rgba(0,0,0,.25), 0 0 0 1px rgba(250,204,21,.20) inset, 0 0 20px rgba(250,204,21,.18)",
                 }}
               >
                 <div className="flex items-center gap-3 mb-2">
@@ -633,7 +631,7 @@ export function ChatInput({ onImagesChange }: Props) {
                 style={{
                   borderColor: "rgba(59,130,246,0.35)",
                   boxShadow:
-                    "0 10px 30px rgba(0,0,0,.25), 0 0 0 1px rgba(59,130,246,.20) inset, 0 0 28px rgba(59,130,246,.18)",
+                    "0 10px 30px rgba(0,0,0,.25), 0 0 0 1px rgba(59,130,246,.20) inset, 0 0 20px rgba(59,130,246,.18)",
                 }}
               >
                 <div className="flex items-center gap-3 mb-2">
