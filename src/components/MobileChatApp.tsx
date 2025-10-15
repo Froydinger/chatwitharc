@@ -257,7 +257,7 @@ export function MobileChatApp() {
       }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop}>
         {/* Chat Messages */}
         <div ref={messagesContainerRef} className="absolute inset-0 overflow-y-auto" style={{
-          paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 2rem)`
+          paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 3rem)`
         }}>
           {/* Empty state */}
           {messages.length === 0 ? <WelcomeSection greeting={greeting} heroAvatar={HERO_AVATAR} quickPrompts={quickPrompts} onTriggerPrompt={triggerPrompt} isLoading={isLoading} isGeneratingImage={isGeneratingImage} /> : <div className="p-4 space-y-4 chat-messages">
@@ -279,9 +279,9 @@ export function MobileChatApp() {
             </div>}
         </div>
 
-        {/* Fixed shelf input dock */}
-        <div ref={inputDockRef} className="fixed inset-x-0 bottom-0 z-30 pointer-events-none">
-          <div className={cn("transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]", rightPanelOpen && "lg:mr-80 xl:mr-96")}>
+        {/* Free-floating input shelf */}
+        <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-30 pointer-events-none px-4">
+          <div className={cn("transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto", rightPanelOpen && "lg:mr-80 xl:mr-96")}>
             <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
               <ChatInput onImagesChange={setHasSelectedImages} />
             </div>
