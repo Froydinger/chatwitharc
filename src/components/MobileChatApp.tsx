@@ -323,6 +323,16 @@ export function MobileChatApp() {
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
         >
+          {/* Scroll to bottom button - TEST - should be visible */}
+          <div className="fixed bottom-40 left-1/2 -translate-x-1/2 z-[9999]">
+            <button
+              onClick={scrollToBottom}
+              className="w-14 h-14 rounded-full bg-red-500 border-4 border-yellow-300 flex items-center justify-center shadow-2xl"
+            >
+              <ArrowDown size={28} className="text-white" strokeWidth={3} />
+            </button>
+          </div>
+
           {/* Chat Messages */}
           <div
             ref={messagesContainerRef}
