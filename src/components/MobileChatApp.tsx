@@ -25,7 +25,7 @@ function getDaypartGreeting(d: Date = new Date()): "Good Morning" | "Good Aftern
 const HEADER_LOGO = "/lovable-uploads/c65f38aa-5928-46e1-b224-9f6a2bacbf18.png";
 const HERO_AVATAR = "/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png";
 
-export default function MobileChatApp() {
+export function MobileChatApp() {
   const {
     messages,
     isLoading,
@@ -154,22 +154,50 @@ export default function MobileChatApp() {
     },
   ];
 
-  // Smooth scroll to bottom on new content - only when there are messages
+  // Smooth scroll to bottom on new messages
   useEffect(() => {
     const el = messagesContainerRef.current;
-    if (!el || messages.length === 0) return; // Don't scroll if no messages
-    el.scrollTo({
-      top: el.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [messages, isLoading, isGeneratingImage]);
+    if (!el || messages.length === 0) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [messages.length]);
+
+  // Detect if user has scrolled up to show scroll button
+  useEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+
+    const handleScroll = () => {
+      const scrollTop = el.scrollTop;
+      const scrollHeight = el.scrollHeight;
+      const clientHeight = el.clientHeight;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+      // Show button if more than 100px from bottom
+      setShowScrollButton(distanceFromBottom > 100);
+    };
+
+    handleScroll();
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    const timer = setTimeout(handleScroll, 100);
+
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+      clearTimeout(timer);
+    };
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    const el = messagesContainerRef.current;
+    if (el) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }
+  };
 
   // When chat is empty, go to top
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
     if (messages.length === 0) {
-      // Use a small delay to ensure DOM has rendered
       setTimeout(() => {
         el.scrollTop = 0;
         requestAnimationFrame(() => (el.scrollTop = 0));
@@ -193,7 +221,6 @@ export default function MobileChatApp() {
   const handleNewChat = () => {
     createNewSession();
     setRightPanelOpen(false);
-    // Let the useEffect handle scrolling when messages become empty
     setTimeout(() => {
       const el = messagesContainerRef.current;
       if (el) {
@@ -303,9 +330,7 @@ export default function MobileChatApp() {
                 variant="outline"
                 size="icon"
                 className="rounded-full"
-                onClick={() => {
-                  setRightPanelOpen(!rightPanelOpen);
-                }}
+                onClick={() => setRightPanelOpen(!rightPanelOpen)}
               >
                 <Menu className="h-4 w-4" />
               </Button>
@@ -323,19 +348,38 @@ export default function MobileChatApp() {
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
         >
+          {/* Scroll to bottom button */}
+          {showScrollButton && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="fixed bottom-24 z-[9999]"
+              style={{ left: "calc(50% - 5px)", transform: "translateX(-50%)" }}
+            >
+              <button
+                onClick={scrollToBottom}
+                className="w-10 h-10 rounded-full bg-background/90 backdrop-blur-sm border border-[#00cdff]/30 hover:border-[#00cdff] flex items-center justify-center shadow-lg transition-all duration-200"
+              >
+                <ArrowDown size={18} className="text-[#00cdff]" strokeWidth={2.5} />
+              </button>
+            </motion.div>
+          )}
+
           {/* Chat Messages */}
           <div
             ref={messagesContainerRef}
             className="absolute inset-0 overflow-y-auto"
             style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 6rem)` }}
           >
-            {/* Empty state */}
             {messages.length === 0 ? (
               <WelcomeSection
                 greeting={greeting}
                 heroAvatar={HERO_AVATAR}
                 quickPrompts={quickPrompts}
                 onTriggerPrompt={triggerPrompt}
+                isLoading={false}
+                isGeneratingImage={false}
               />
             ) : (
               <div className="p-4 space-y-4 chat-messages">
@@ -351,17 +395,13 @@ export default function MobileChatApp() {
                     }}
                   />
                 ))}
-                {/* Only show ThinkingIndicator for text-only loading, not for image generation
-                    AND only after there is at least one message */}
-                {isLoading && !isGeneratingImage && messages.length > 0 && (
-                  <ThinkingIndicator isLoading={true} isGeneratingImage={false} />
-                )}
+                {isLoading && !isGeneratingImage && <ThinkingIndicator isLoading={true} isGeneratingImage={false} />}
               </div>
             )}
           </div>
 
           {/* Free-floating input shelf */}
-          <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-30 pointer-events-none px-4">
+          <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-50 pointer-events-none px-4">
             <div
               className={cn(
                 "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto",
@@ -369,13 +409,12 @@ export default function MobileChatApp() {
               )}
             >
               <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
-                <ChatInput onImagesChange={setHasSelectedImages} hideThinkingIndicator={messages.length === 0} />
+                <ChatInput onImagesChange={setHasSelectedImages} />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Panel */}
         <RightPanel
           isOpen={rightPanelOpen}
           onClose={() => setRightPanelOpen(false)}
@@ -386,120 +425,17 @@ export default function MobileChatApp() {
 
       {/* Scoped styles */}
       <style>{`
-        /* Avatar progressive reveal */
-        img.ai-avatar{
-          opacity: 0;
-          filter: saturate(1) contrast(1);
-          transition: opacity 260ms ease, transform 260ms ease;
-          transform: translateY(2px);
-          will-change: opacity, transform;
-        }
-        img.ai-avatar.is-loaded{ opacity: 1; transform: translateY(0); }
-
-        /* Very light floating for hero avatar */
+        img.ai-avatar{ opacity:0; filter:saturate(1) contrast(1); transition:opacity 260ms ease, transform 260ms ease; transform:translateY(2px); will-change:opacity,transform;}
+        img.ai-avatar.is-loaded{ opacity:1; transform:translateY(0); }
         .floating-hero{ animation: float-3 5.2s ease-in-out infinite; }
-        .assistant-hero-avatar{
-          border-radius: 24%;
-          box-shadow: 0 12px 30px rgba(0,0,0,0.35);
-          border: none !important;
+        @keyframes float-3 { 0%,100%{transform:translate(0,0) rotate(0)} 20%{transform:translate(1px,1px) rotate(.2deg)} 40%{transform:translate(-1px,2px) rotate(-.3deg)} 60%{transform:translate(2px,-1px) rotate(.25deg)} 80%{transform:translate(-2px,0) rotate(-.2deg)} }
+
+        /* Remove outline from header logo */
+        header img {
           outline: none !important;
-          background: transparent;
-        }
-        @keyframes float-3 {
-          0%,100%{transform:translate(0px,0px) rotate(0)}
-          20%{transform:translate(1px,1px) rotate(0.2deg)}
-          40%{transform:translate(-1px,2px) rotate(-0.3deg)}
-          60%{transform:translate(2px,-1px) rotate(0.25deg)}
-          80%{transform:translate(-2px,0) rotate(-0.2deg)}
+          border: none !important;
         }
 
-        /* --- PING-PONG MARQUEE (SLOW) --- */
-        .marquee-ping{
-          position: relative;
-          overflow: hidden;
-          min-height: 48px;
-          -webkit-mask-image: linear-gradient(to right, transparent 0, black 10%, black 90%, transparent 100%);
-                  mask-image: linear-gradient(to right, transparent 0, black 10%, black 90%, transparent 100%);
-        }
-        .marquee-ping-track{
-          display: inline-flex;
-          gap: 12px;
-          white-space: nowrap;
-          will-change: transform;
-          transform: translate3d(0,0,0);
-          animation: pingpong var(--dur, 60s) cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
-          animation-delay: var(--delay, 0s);
-        }
-        .marquee-ping-set{ display: inline-flex; gap: 12px; }
-
-        @keyframes pingpong{
-          0%   { transform: translate3d(calc(-1 * var(--setW, 600px)), 0, 0); }
-          50%  { transform: translate3d(calc(-2 * var(--setW, 600px)), 0, 0); }
-          100% { transform: translate3d(0, 0, 0); }
-        }
-
-        /* Prompt pill style */
-        .prompt-pill{
-          pointer-events: auto;
-          padding: 12px 18px;
-          border-radius: 9999px;
-          background: rgba(22,22,22,0.45);
-          backdrop-filter: blur(8px) saturate(118%);
-          -webkit-backdrop-filter: blur(8px) saturate(118%);
-          border: 1px solid rgba(255,255,255,0.06);
-          box-shadow:
-            0 6px 16px rgba(0,0,0,0.25),
-            inset 0 1px 0 rgba(255,255,255,0.04);
-          transition: transform 220ms ease, background-color 220ms ease, box-shadow 220ms ease;
-          white-space: nowrap;
-        }
-        .prompt-pill:active { transform: scale(0.98); }
-        .prompt-pill:hover  { box-shadow: 0 8px 18px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.05); }
-
-        /* Thinking indicator container */
-        .thinking-shell{ transition: opacity 220ms ease, transform 220ms ease; opacity: 0; transform: translateY(3px); }
-        .thinking-shell[data-show="true"]{ opacity: 1; transform: translateY(0); }
-
-        /* The pill and its glow */
-        .thinking-pill{
-          position: relative;
-          padding: 10px 16px;
-          border-radius: 9999px;
-          overflow: hidden;
-          isolation: isolate;
-        }
-        .thinking-pill::before{
-          content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1;
-          background:
-            radial-gradient(80px 40px at 20% 50%, rgba(99,102,241,0.18), transparent 70%),
-            radial-gradient(80px 40px at 80% 50%, rgba(16,185,129,0.16), transparent 70%),
-            radial-gradient(100px 50px at 50% 0%, rgba(236,72,153,0.14), transparent 70%);
-          background-repeat: no-repeat;
-          filter: blur(8px);
-          animation: pill-pan 12s ease-in-out infinite alternate;
-        }
-        .thinking-pill::after{
-          content: ""; position: absolute; inset: -12%; border-radius: inherit; z-index: -2;
-          background: conic-gradient(from 0deg,
-            rgba(99,102,241,0.12),
-            rgba(236,72,153,0.10),
-            rgba(16,185,129,0.10),
-            rgba(59,130,246,0.10),
-            rgba(99,102,241,0.12));
-          filter: blur(14px);
-          animation: halo-slow 22s linear infinite;
-          opacity: 0.85;
-        }
-        @keyframes pill-pan{ 0%{ transform: translate3d(-2px,0,0) } 100%{ transform: translate3d(2px,0,0) } }
-        @keyframes halo-slow{ from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
-
-        /* Bounce + sparkle */
-        @keyframes bounce-slow { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-2px)} }
-        .animate-bounce-slow{ animation: bounce-slow 1.2s ease-in-out infinite; }
-        @keyframes twinkle { 0%,100%{transform:scale(0.9) rotate(0); opacity:0.85} 50%{transform:scale(1.05) rotate(8deg); opacity:1} }
-        .animate-twinkle{ animation: twinkle 1.6s ease-in-out infinite; }
-
-        /* Subtle glass bubbles for message area */
         .chat-messages .surface,
         .chat-messages .card,
         .chat-messages [data-bubble],
@@ -509,10 +445,7 @@ export default function MobileChatApp() {
           backdrop-filter: blur(8px) saturate(118%) !important;
           -webkit-backdrop-filter: blur(8px) saturate(118%) !important;
           border: 1px solid rgba(255,255,255,0.06) !important;
-          box-shadow:
-            0 2px 10px rgba(0,0,0,0.22),
-            inset 0 1.5px 0 rgba(255,255,255,0.08),
-            inset 0 1px 0 rgba(255,255,255,0.04) !important;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.22), inset 0 1.5px 0 rgba(255,255,255,0.08), inset 0 1px 0 rgba(255,255,255,0.04) !important;
         }
 
         /* —— Minimal Luxe Input Bar —— */
