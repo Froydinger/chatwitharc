@@ -354,7 +354,8 @@ export function MobileChatApp() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="fixed bottom-36 left-1/2 -translate-x-1/2 z-[9999]"
+              className="fixed bottom-36 left-1/2 z-[9999]"
+              style={{ transform: "translateX(-50%)" }}
             >
               <button
                 onClick={scrollToBottom}
