@@ -389,12 +389,12 @@ export function MobileChatApp() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="fixed bottom-32 left-1/2 -translate-x-1/2 z-40 pointer-events-auto"
+              className="fixed bottom-32 left-[45%] -translate-x-1/2 z-40 pointer-events-auto"
             >
               <Button
                 size="icon"
                 variant="outline"
-                className="rounded-full shadow-lg bg-background/80 backdrop-blur-sm border-border/50"
+                className="rounded-full shadow-lg bg-background/80 backdrop-blur-sm border border-primary/20"
                 onClick={scrollToBottom}
               >
                 <ArrowDown className="h-4 w-4" />
