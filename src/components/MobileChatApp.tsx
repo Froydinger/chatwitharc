@@ -97,31 +97,31 @@ export function MobileChatApp() {
     {
       label: "🎨 Dream Poster",
       prompt:
-        "Generate a wild, colorful retro 90s poster design concept. Think neon colors, geometric shapes, and absolute chaos in the best way.",
+        "Generate an image: a wild, colorful retro 90s poster design concept. Think neon colors, geometric shapes, and absolute chaos in the best way.",
     },
     {
       label: "🌌 Cosmic Explorer",
       prompt:
-        "Create a stunning cosmic landscape with planets, nebulae, and distant galaxies. Make it feel vast and awe-inspiring.",
+        "Generate an image: a stunning cosmic landscape with planets, nebulae, and distant galaxies. Make it feel vast and awe-inspiring.",
     },
     {
       label: "🎬 Cult Classic",
-      prompt: "Design a movie poster for a hidden gem 90s film. Make it visually striking and nostalgic.",
+      prompt: "Generate an image: a movie poster for a hidden gem 90s film. Make it visually striking and nostalgic.",
     },
     {
       label: "🌸 Nature's Canvas",
       prompt:
-        "Create a beautiful, serene natural scene with lush details, perfect lighting, and a peaceful atmosphere.",
+        "Generate an image: a beautiful, serene natural scene with lush details, perfect lighting, and a peaceful atmosphere.",
     },
     {
       label: "🎪 Fever Dream",
       prompt:
-        "Create the most unhinged, beautiful, chaotic 90s vaporwave aesthetic scene. Neon lights, palm trees, abandoned malls.",
+        "Generate an image: the most unhinged, beautiful, chaotic 90s vaporwave aesthetic scene. Neon lights, palm trees, abandoned malls.",
     },
     {
       label: "✨ Ethereal Portrait",
       prompt:
-        "Generate an artistic, ethereal portrait with dreamlike qualities, soft lighting, and beautiful composition.",
+        "Generate an image: an artistic, ethereal portrait with dreamlike qualities, soft lighting, and beautiful composition.",
     },
     // Write prompts
     {
