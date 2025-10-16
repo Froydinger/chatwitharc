@@ -164,6 +164,29 @@ export function MobileChatApp() {
     });
   }, [messages, isLoading, isGeneratingImage]);
 
+  // Show/hide scroll button based on scroll position
+  useEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+
+    const handleScroll = () => {
+      const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
+      setShowScrollButton(!isNearBottom && messages.length > 0);
+    };
+
+    el.addEventListener("scroll", handleScroll);
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, [messages.length]);
+
+  const scrollToBottom = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: "smooth",
+    });
+  };
+
   // When chat is empty, go to top
   useEffect(() => {
     const el = messagesContainerRef.current;
@@ -359,6 +382,25 @@ export function MobileChatApp() {
               </div>
             )}
           </div>
+
+          {/* Scroll to bottom button */}
+          {showScrollButton && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed bottom-32 left-1/2 -translate-x-1/2 z-40 pointer-events-auto"
+            >
+              <Button
+                size="icon"
+                variant="outline"
+                className="rounded-full shadow-lg bg-background/80 backdrop-blur-sm border-border/50"
+                onClick={scrollToBottom}
+              >
+                <ArrowDown className="h-4 w-4" />
+              </Button>
+            </motion.div>
+          )}
 
           {/* Free-floating input shelf */}
           <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-30 pointer-events-none px-4">
