@@ -268,7 +268,7 @@ export function MobileChatApp() {
                 <motion.img
                   src={HERO_AVATAR}
                   alt="ArcAI"
-                  className="h-8 w-8 rounded-small avatar-filled-eyes"
+                  className="h-8 w-8 rounded-small"
                   animate={{ y: [0, -2, 0] }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 />
@@ -369,7 +369,7 @@ export function MobileChatApp() {
               )}
             >
               <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
-                <ChatInput onImagesChange={setHasSelectedImages} hideThinkingIndicator={messages.length === 0} />
+                <ChatInput onImagesChange={setHasSelectedImages} />
               </div>
             </div>
           </div>

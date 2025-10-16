@@ -347,43 +347,6 @@ export function SettingsPanel() {
 
         {/* Profile Tab */}
         <TabsContent value="profile" className="space-y-6 mt-6">
-          {/* Profile Picture */}
-          <GlassCard variant="bubble" className="p-6">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="w-24 h-24 rounded-full overflow-hidden bg-muted border-2 border-border">
-                {profile?.avatar_url ? (
-                  <img 
-                    src={profile.avatar_url} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <User className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-              
-              <GlassButton
-                variant="default"
-                onClick={() => document.getElementById('avatar-upload')?.click()}
-                disabled={isUploading}
-                className="flex items-center gap-2"
-              >
-                <Camera className="w-4 h-4" />
-                {isUploading ? "Uploading..." : "Update Photo"}
-              </GlassButton>
-              
-              <input
-                id="avatar-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarUpload}
-                className="hidden"
-              />
-            </div>
-          </GlassCard>
-
           {/* Personal Information */}
           <Collapsible 
             open={openSections.profile} 
