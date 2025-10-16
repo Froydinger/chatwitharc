@@ -354,7 +354,7 @@ export function MobileChatApp() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="fixed bottom-20 z-[9999]"
+              className="fixed bottom-24 z-[9999]"
               style={{ left: "calc(50% - 5px)", transform: "translateX(-50%)" }}
             >
               <button
