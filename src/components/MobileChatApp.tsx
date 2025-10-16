@@ -349,14 +349,21 @@ export function MobileChatApp() {
           onDrop={handleDrop}
         >
           {/* Scroll to bottom button */}
-          <div className="fixed bottom-40 left-1/2 -translate-x-1/2 z-[9999]">
-            <button
-              onClick={scrollToBottom}
-              className="w-14 h-14 rounded-full bg-red-500 border-4 border-yellow-300 flex items-center justify-center shadow-2xl"
+          {showScrollButton && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[9999]"
             >
-              <ArrowDown size={28} className="text-white" strokeWidth={3} />
-            </button>
-          </div>
+              <button
+                onClick={scrollToBottom}
+                className="w-10 h-10 rounded-full bg-background/90 backdrop-blur-sm border border-[#00cdff]/30 hover:border-[#00cdff] flex items-center justify-center shadow-lg transition-all duration-200"
+              >
+                <ArrowDown size={18} className="text-[#00cdff]" strokeWidth={2.5} />
+              </button>
+            </motion.div>
+          )}
 
           {/* Chat Messages */}
           <div
