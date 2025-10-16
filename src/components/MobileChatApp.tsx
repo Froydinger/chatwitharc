@@ -395,7 +395,9 @@ export function MobileChatApp() {
                     }}
                   />
                 ))}
-                {isLoading && !isGeneratingImage && <ThinkingIndicator isLoading={true} isGeneratingImage={false} />}
+                {isLoading && !isGeneratingImage && messages.length > 0 && (
+                  <ThinkingIndicator isLoading={true} isGeneratingImage={false} />
+                )}
               </div>
             )}
           </div>
