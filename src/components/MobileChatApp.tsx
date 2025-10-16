@@ -378,8 +378,8 @@ export function MobileChatApp() {
                 heroAvatar={HERO_AVATAR}
                 quickPrompts={quickPrompts}
                 onTriggerPrompt={triggerPrompt}
-                isLoading={isLoading}
-                isGeneratingImage={isGeneratingImage}
+                isLoading={false}
+                isGeneratingImage={false}
               />
             ) : (
               <div className="p-4 space-y-4 chat-messages">
@@ -395,9 +395,7 @@ export function MobileChatApp() {
                     }}
                   />
                 ))}
-                {isLoading && !isGeneratingImage && messages.length > 0 && (
-                  <ThinkingIndicator isLoading={true} isGeneratingImage={false} />
-                )}
+                {isLoading && !isGeneratingImage && <ThinkingIndicator isLoading={true} isGeneratingImage={false} />}
               </div>
             )}
           </div>
