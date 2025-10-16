@@ -214,16 +214,27 @@ export function MobileChatApp() {
   }, []);
 
   const handleNewChat = () => {
+    // Immediately scroll to top
+    const el = messagesContainerRef.current;
+    if (el) {
+      el.scrollTop = 0;
+    }
+    
     createNewSession();
     setRightPanelOpen(false);
-    // Let the useEffect handle scrolling when messages become empty
+    
+    // Force scroll to top again after state updates
     setTimeout(() => {
-      const el = messagesContainerRef.current;
       if (el) {
         el.scrollTop = 0;
-        requestAnimationFrame(() => (el.scrollTop = 0));
       }
-    }, 50);
+    }, 0);
+    
+    requestAnimationFrame(() => {
+      if (el) {
+        el.scrollTop = 0;
+      }
+    });
   };
 
   const handleDrop = (e: React.DragEvent) => {
