@@ -430,6 +430,12 @@ export function MobileChatApp() {
         .floating-hero{ animation: float-3 5.2s ease-in-out infinite; }
         @keyframes float-3 { 0%,100%{transform:translate(0,0) rotate(0)} 20%{transform:translate(1px,1px) rotate(.2deg)} 40%{transform:translate(-1px,2px) rotate(-.3deg)} 60%{transform:translate(2px,-1px) rotate(.25deg)} 80%{transform:translate(-2px,0) rotate(-.2deg)} }
 
+        /* Remove outline from header logo */
+        header img {
+          outline: none !important;
+          border: none !important;
+        }
+
         .chat-messages .surface,
         .chat-messages .card,
         .chat-messages [data-bubble],
