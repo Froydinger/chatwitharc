@@ -172,10 +172,10 @@ export function CodePreview({ code, language }: CodePreviewProps) {
   }
 
   return (
-    <div className="border-t border-border/40 max-h-[500px] overflow-auto">
+    <div className="border-t border-border/40 h-full overflow-auto">
       <iframe
         ref={iframeRef}
-        className="w-full h-[500px] bg-white"
+        className="w-full min-h-[600px] h-full bg-white"
         sandbox="allow-scripts allow-same-origin"
         title="Code Preview"
         scrolling="yes"
