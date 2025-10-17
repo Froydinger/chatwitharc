@@ -233,11 +233,14 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           background: rgba(0, 0, 0, 0.6) !important;
         }
         
-        /* Make the auth modal card less transparent for more depth */
+        /* Make the auth modal highly visible with strong contrast */
         .auth-modal-card.glass-card-bubble {
-          background: rgba(15, 15, 15, 0.95) !important;
-          backdrop-filter: blur(16px) saturate(120%) !important;
-          -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
+          background: hsl(var(--background)) !important;
+          border: 1px solid hsl(var(--border)) !important;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 
+                      0 0 0 1px rgba(255, 255, 255, 0.1) inset !important;
+          backdrop-filter: blur(24px) saturate(150%) !important;
+          -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
         }
       `}</style>
     </>
