@@ -142,11 +142,11 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 "hover:shadow-[0_10px_26px_-8px_rgba(0,0,0,0.45)]",
                 "overflow-visible",
                 "bg-primary/45 border-primary/65"
-              ].join(" ") : "relative cursor-pointer",
+              ].join(" ") : "relative cursor-pointer w-full min-w-0",
             ].join(" ")}
           >
             {/* Inner content clipper keeps visuals rounded while outer allows overflow */}
-            <div className={isUser ? "relative px-4 py-3 rounded-[22px] overflow-hidden" : "relative"}>
+            <div className={isUser ? "relative px-4 py-3 rounded-[22px] overflow-hidden" : "relative w-full min-w-0"}>
               {/* Gradient overlay: darker at bottom - only for user messages */}
               {isUser && <div className="absolute inset-0 rounded-[22px] pointer-events-none bg-gradient-to-b from-transparent to-black/20" />}
 
@@ -284,7 +284,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     </p>
                   ) : (
                     // AI messages with code block support
-                    <div className="relative z-10">
+                    <div className="relative z-10 w-full min-w-0 overflow-hidden">
                       {contentParts.map((part, idx) => {
                         if (part.type === "code") {
                           return (
