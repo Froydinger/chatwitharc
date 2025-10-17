@@ -106,41 +106,47 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
 
       {/* Fullscreen Dialog */}
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-        <DialogContent className="max-w-[100vw] w-screen h-screen p-0 gap-0 m-0" hideCloseButton>
+        <DialogContent className="max-w-[100vw] w-screen h-screen p-0 gap-0 m-0 rounded-none" hideCloseButton>
           <div className="flex flex-col h-full bg-background">
-            {/* Fullscreen Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-muted/10">
-              <div className="flex items-center gap-3">
-                <Code className="h-5 w-5 text-primary" />
-                <span className="text-lg font-medium">{language}</span>
+            {/* Fullscreen Header - Sticky */}
+            <div className="sticky top-0 z-10 flex items-center justify-between px-3 sm:px-6 py-2 sm:py-4 border-b border-border/40 bg-background/95 backdrop-blur-sm">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <Code className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                <span className="text-sm sm:text-lg font-medium truncate">{language}</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
                 {canPreview && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowPreview(!showPreview)}
+                    className="h-7 sm:h-9 text-xs sm:text-sm"
                   >
-                    <Play className="h-4 w-4 mr-2" />
-                    {showPreview ? "Hide Preview" : "Show Preview"}
+                    <Play className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">{showPreview ? "Hide" : "Preview"}</span>
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" onClick={handleCopy}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy Code
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleCopy}
+                  className="h-7 sm:h-9 text-xs sm:text-sm"
+                >
+                  <Copy className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Copy</span>
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsFullscreen(false)}
-                  className="rounded-full"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-full flex-shrink-0"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </div>
             </div>
 
-            {/* Fullscreen Content */}
+            {/* Fullscreen Content - Scrollable */}
             <div className="flex-1 overflow-auto">
               {!showPreview ? (
                 <SyntaxHighlighter
@@ -149,9 +155,9 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
                   customStyle={{
                     margin: 0,
                     background: "transparent",
-                    fontSize: "16px",
-                    padding: "2rem",
-                    height: "100%",
+                    fontSize: "14px",
+                    padding: "1rem",
+                    minHeight: "100%",
                   }}
                   showLineNumbers
                   wrapLines={false}
@@ -159,7 +165,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
                   {code}
                 </SyntaxHighlighter>
               ) : (
-                <div className="h-full">
+                <div className="h-full min-h-[calc(100vh-60px)]">
                   <CodePreview code={code} language={language} />
                 </div>
               )}
