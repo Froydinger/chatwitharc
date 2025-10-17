@@ -142,6 +142,27 @@ serve(async (req) => {
       '✅ INSTEAD: Output the complete code block IN THE SAME RESPONSE immediately after a brief explanation.\n' +
       '✅ CORRECT FORMAT: "Here\'s a [description]:" followed immediately by the code block.\n' +
       '✅ The user cannot and will not prompt you again - you must output everything in ONE response.\n\n' +
+      '🎨 COLOR CONTRAST RULE - ABSOLUTELY CRITICAL:\n' +
+      '⚠️ ALWAYS ensure proper contrast between text and background colors\n' +
+      '❌ NEVER use black text on black background\n' +
+      '❌ NEVER use white text on white background\n' +
+      '❌ NEVER use purple text on purple background\n' +
+      '❌ NEVER use similar colored text on similar colored background\n' +
+      '✅ ALWAYS use high contrast combinations (e.g., white on dark, dark on light)\n' +
+      '✅ Test readability: If text and background are similar colors, CHANGE ONE OF THEM\n' +
+      '✅ Use text-foreground and bg-background semantic tokens for automatic contrast\n\n' +
+      '🔍 PLACEHOLDER DETECTION - MANDATORY:\n' +
+      'If you see ANY placeholders or brackets in the user\'s request like:\n' +
+      '- [describe problem]\n' +
+      '- [your text here]\n' +
+      '- [enter details]\n' +
+      '- Any other bracketed placeholder text\n' +
+      'YOU MUST:\n' +
+      '1. ❌ DO NOT proceed with coding\n' +
+      '2. ✅ ASK the user to fill in those specific details\n' +
+      '3. ✅ List each placeholder that needs information\n' +
+      '4. ✅ WAIT for their response before generating any code\n' +
+      '5. ✅ Once they provide the details, THEN create the code with their specific information\n\n' +
       'DESIGN STANDARDS (ALWAYS FOLLOW):\n' +
       '- Beautiful color schemes with gradients and modern palettes\n' +
       '- Smooth animations and transitions (hover effects, loading states)\n' +
