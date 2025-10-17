@@ -15,12 +15,17 @@ export function CodePreview({ code, language }: CodePreviewProps) {
     setError(null);
 
     try {
-      if (language === "html" || language === "jsx" || language === "tsx") {
+      if (language === "html" || language === "jsx" || language === "tsx" || language === "react") {
         renderHTML(code);
       } else if (language === "css") {
         renderCSS(code);
-      } else if (language === "javascript" || language === "typescript") {
+      } else if (language === "javascript" || language === "typescript" || language === "js" || language === "ts") {
         renderJS(code);
+      } else if (language === "python" || language === "py") {
+        renderPython(code);
+      } else {
+        // For other languages, just show the code
+        renderOtherLanguages(code);
       }
     } catch (err: any) {
       setError(err.message || "Failed to render preview");
@@ -45,17 +50,41 @@ export function CodePreview({ code, language }: CodePreviewProps) {
             <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
             <style>
               body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; }
+              * { box-sizing: border-box; }
             </style>
           </head>
           <body>
             <div id="root"></div>
             <script type="text/babel">
+              const { useState, useEffect, useCallback, useMemo, useRef } = React;
+              
               ${htmlCode}
               
-              // Auto-render if there's a default export or a component
-              if (typeof App !== 'undefined') {
-                ReactDOM.render(<App />, document.getElementById('root'));
-              }
+              // Smart component detection and rendering
+              (function() {
+                const root = document.getElementById('root');
+                
+                // Try to find and render the main component
+                if (typeof App !== 'undefined') {
+                  ReactDOM.render(<App />, root);
+                } else if (typeof Component !== 'undefined') {
+                  ReactDOM.render(<Component />, root);
+                } else {
+                  // Try to find any function that returns JSX
+                  const componentNames = Object.keys(window).filter(key => 
+                    typeof window[key] === 'function' && 
+                    key[0] === key[0].toUpperCase() &&
+                    !['React', 'ReactDOM', 'Babel'].includes(key)
+                  );
+                  
+                  if (componentNames.length > 0) {
+                    const ComponentToRender = window[componentNames[0]];
+                    ReactDOM.render(<ComponentToRender />, root);
+                  } else {
+                    root.innerHTML = '<div style="color: #666; padding: 20px;">No component found to render. Make sure to export a component named App, Component, or any capitalized function.</div>';
+                  }
+                }
+              })();
             </script>
           </body>
         </html>
@@ -146,6 +175,100 @@ export function CodePreview({ code, language }: CodePreviewProps) {
                 '<div style="color: red;">Error: ' + err.message + '</div>';
             }
           </script>
+        </body>
+      </html>
+    `;
+
+    const iframe = iframeRef.current;
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    
+    if (doc) {
+      doc.open();
+      doc.write(html);
+      doc.close();
+    }
+  };
+
+  const renderPython = (pythonCode: string) => {
+    if (!iframeRef.current) return;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; }
+            .info-box { 
+              background: #e3f2fd; 
+              border: 1px solid #2196f3; 
+              border-radius: 8px; 
+              padding: 16px; 
+              margin-bottom: 16px;
+            }
+            pre { 
+              background: #f5f5f5; 
+              border: 1px solid #ddd; 
+              border-radius: 8px; 
+              padding: 16px; 
+              overflow-x: auto;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="info-box">
+            <strong>📝 Python Code Preview</strong>
+            <p>This is Python code. To run it, copy and paste it into a Python environment.</p>
+          </div>
+          <pre><code>${pythonCode.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>
+        </body>
+      </html>
+    `;
+
+    const iframe = iframeRef.current;
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    
+    if (doc) {
+      doc.open();
+      doc.write(html);
+      doc.close();
+    }
+  };
+
+  const renderOtherLanguages = (code: string) => {
+    if (!iframeRef.current) return;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; }
+            .info-box { 
+              background: #fff3e0; 
+              border: 1px solid #ff9800; 
+              border-radius: 8px; 
+              padding: 16px; 
+              margin-bottom: 16px;
+            }
+            pre { 
+              background: #f5f5f5; 
+              border: 1px solid #ddd; 
+              border-radius: 8px; 
+              padding: 16px; 
+              overflow-x: auto;
+              white-space: pre-wrap;
+              word-wrap: break-word;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="info-box">
+            <strong>📄 Code Preview (${language})</strong>
+            <p>This code cannot be executed in the browser. Copy it to use in your development environment.</p>
+          </div>
+          <pre><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>
         </body>
       </html>
     `;
