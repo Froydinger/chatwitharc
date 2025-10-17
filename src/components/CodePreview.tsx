@@ -15,17 +15,15 @@ export function CodePreview({ code, language }: CodePreviewProps) {
     setError(null);
 
     try {
-      if (language === "html" || language === "jsx" || language === "tsx" || language === "react") {
+      if (language === "html") {
         renderHTML(code);
       } else if (language === "css") {
         renderCSS(code);
-      } else if (language === "javascript" || language === "typescript" || language === "js" || language === "ts") {
+      } else if (language === "javascript" || language === "js") {
         renderJS(code);
-      } else if (language === "python" || language === "py") {
-        renderPython(code);
       } else {
-        // For other languages, just show the code
-        renderOtherLanguages(code);
+        // For other languages (React, Python, TypeScript, etc.), just show the code
+        renderCodeOnly(code);
       }
     } catch (err: any) {
       setError(err.message || "Failed to render preview");
@@ -35,76 +33,12 @@ export function CodePreview({ code, language }: CodePreviewProps) {
   const renderHTML = (htmlCode: string) => {
     if (!iframeRef.current) return;
 
-    // Extract React/JSX if present
-    let processedCode = htmlCode;
-    
-    // If it's JSX/TSX, wrap it in a basic HTML template
-    if (language === "jsx" || language === "tsx" || language === "react") {
-      processedCode = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="UTF-8">
-            <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-            <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-            <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-            <style>
-              body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; background: white; color: #333; }
-              * { box-sizing: border-box; }
-            </style>
-          </head>
-          <body>
-            <div id="root"></div>
-            <script type="text/babel">
-              const { useState, useEffect, useCallback, useMemo, useRef } = React;
-              
-              try {
-                ${htmlCode}
-                
-                // Smart component detection and rendering using React 18 API
-                setTimeout(() => {
-                  const rootElement = document.getElementById('root');
-                  const root = ReactDOM.createRoot(rootElement);
-                  
-                  // Try to find and render the main component
-                  if (typeof App !== 'undefined') {
-                    root.render(<App />);
-                  } else if (typeof Component !== 'undefined') {
-                    root.render(<Component />);
-                  } else if (typeof SnakeGame !== 'undefined') {
-                    root.render(<SnakeGame />);
-                  } else {
-                    // Try to find any function that returns JSX
-                    const componentNames = Object.keys(window).filter(key => 
-                      typeof window[key] === 'function' && 
-                      key[0] === key[0].toUpperCase() &&
-                      !['React', 'ReactDOM', 'Babel'].includes(key)
-                    );
-                    
-                    if (componentNames.length > 0) {
-                      const ComponentToRender = window[componentNames[0]];
-                      root.render(<ComponentToRender />);
-                    } else {
-                      rootElement.innerHTML = '<div style="color: #666; padding: 20px;">No component found. Make sure to define a component function (e.g., function App() { return <div>Hello</div> })</div>';
-                    }
-                  }
-                }, 100);
-              } catch (error) {
-                console.error('Error rendering component:', error);
-                document.getElementById('root').innerHTML = '<div style="color: red; padding: 20px;">Error: ' + error.message + '</div>';
-              }
-            </script>
-          </body>
-        </html>
-      `;
-    }
-
     const iframe = iframeRef.current;
     const doc = iframe.contentDocument || iframe.contentWindow?.document;
     
     if (doc) {
       doc.open();
-      doc.write(processedCode);
+      doc.write(htmlCode);
       doc.close();
     }
   };
@@ -197,53 +131,7 @@ export function CodePreview({ code, language }: CodePreviewProps) {
     }
   };
 
-  const renderPython = (pythonCode: string) => {
-    if (!iframeRef.current) return;
-
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; }
-            .info-box { 
-              background: #e3f2fd; 
-              border: 1px solid #2196f3; 
-              border-radius: 8px; 
-              padding: 16px; 
-              margin-bottom: 16px;
-            }
-            pre { 
-              background: #f5f5f5; 
-              border: 1px solid #ddd; 
-              border-radius: 8px; 
-              padding: 16px; 
-              overflow-x: auto;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="info-box">
-            <strong>📝 Python Code Preview</strong>
-            <p>This is Python code. To run it, copy and paste it into a Python environment.</p>
-          </div>
-          <pre><code>${pythonCode.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>
-        </body>
-      </html>
-    `;
-
-    const iframe = iframeRef.current;
-    const doc = iframe.contentDocument || iframe.contentWindow?.document;
-    
-    if (doc) {
-      doc.open();
-      doc.write(html);
-      doc.close();
-    }
-  };
-
-  const renderOtherLanguages = (code: string) => {
+  const renderCodeOnly = (code: string) => {
     if (!iframeRef.current) return;
 
     const html = `
@@ -274,7 +162,7 @@ export function CodePreview({ code, language }: CodePreviewProps) {
         <body>
           <div class="info-box">
             <strong>📄 Code Preview (${language})</strong>
-            <p>This code cannot be executed in the browser. Copy it to use in your development environment.</p>
+            <p>Preview not available for this language. Copy the code to use in your development environment.</p>
           </div>
           <pre><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>
         </body>

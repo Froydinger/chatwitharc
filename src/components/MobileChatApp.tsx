@@ -154,28 +154,28 @@ export function MobileChatApp() {
     },
     // Code prompts
     {
-      label: "⚛️ React Component",
-      prompt: "Create a React component for [describe what you need]. Include TypeScript types and make it reusable.",
-    },
-    {
       label: "🎮 Interactive Demo",
-      prompt: "Build an interactive demo or game. Make it fun and visually appealing with smooth animations.",
+      prompt: "Build an interactive demo or game using HTML, CSS, and JavaScript. Make it fun and visually appealing.",
     },
     {
-      label: "📊 Data Viz",
-      prompt: "Create a data visualization or chart component. Make it responsive and easy to customize.",
+      label: "📊 Dashboard",
+      prompt: "Create a dashboard interface with HTML and CSS. Include charts, stats, and a clean layout.",
+    },
+    {
+      label: "🎨 Animation",
+      prompt: "Create a beautiful CSS and JavaScript animation. Make it smooth and eye-catching.",
     },
     {
       label: "🧮 Calculator",
-      prompt: "Build a calculator or conversion tool. Include a clean UI and proper error handling.",
+      prompt: "Build a calculator using HTML, CSS, and JavaScript. Include a clean UI and proper error handling.",
     },
     {
-      label: "🎨 CSS Animation",
-      prompt: "Create a beautiful CSS animation or transition effect. Make it smooth and performant.",
+      label: "🎯 Landing Page",
+      prompt: "Design a modern landing page with HTML and CSS. Make it responsive and conversion-focused.",
     },
     {
-      label: "🛠️ Utility Function",
-      prompt: "Write a utility function to solve [describe problem]. Include tests and documentation.",
+      label: "🛠️ Form Builder",
+      prompt: "Create an interactive form with validation using HTML, CSS, and JavaScript.",
     },
   ];
 
