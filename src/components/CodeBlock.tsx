@@ -106,40 +106,43 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
 
       {/* Fullscreen Dialog */}
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-        <DialogContent className="max-w-[100vw] w-screen h-screen p-0 gap-0 m-0 rounded-none" hideCloseButton>
-          <div className="flex flex-col h-full bg-background">
+        <DialogContent 
+          className="!max-w-none !w-screen !h-screen !p-0 !gap-0 !m-0 !rounded-none !translate-x-0 !translate-y-0 !top-0 !left-0 !right-0 !bottom-0 fixed inset-0" 
+          hideCloseButton
+        >
+          <div className="flex flex-col w-full h-full bg-background">
             {/* Fullscreen Header - Sticky */}
-            <div className="sticky top-0 z-10 flex items-center justify-between px-3 sm:px-6 py-2 sm:py-4 border-b border-border/40 bg-background/95 backdrop-blur-sm">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="flex-shrink-0 flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-border/40 bg-background shadow-sm">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <Code className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
                 <span className="text-sm sm:text-lg font-medium truncate">{language}</span>
               </div>
-              <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
+              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                 {canPreview && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowPreview(!showPreview)}
-                    className="h-7 sm:h-9 text-xs sm:text-sm"
+                    className="h-8 px-2 sm:px-3 text-xs sm:text-sm"
                   >
-                    <Play className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">{showPreview ? "Hide" : "Preview"}</span>
+                    <Play className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline ml-1.5">{showPreview ? "Hide" : "Preview"}</span>
                   </Button>
                 )}
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={handleCopy}
-                  className="h-7 sm:h-9 text-xs sm:text-sm"
+                  className="h-8 px-2 sm:px-3 text-xs sm:text-sm"
                 >
-                  <Copy className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Copy</span>
+                  <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline ml-1.5">Copy</span>
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsFullscreen(false)}
-                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-full flex-shrink-0"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-full flex-shrink-0 ml-1"
                 >
                   <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
@@ -147,7 +150,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
             </div>
 
             {/* Fullscreen Content - Scrollable */}
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto min-h-0">
               {!showPreview ? (
                 <SyntaxHighlighter
                   language={language}
@@ -165,7 +168,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
                   {code}
                 </SyntaxHighlighter>
               ) : (
-                <div className="h-full min-h-[calc(100vh-60px)]">
+                <div className="w-full h-full">
                   <CodePreview code={code} language={language} />
                 </div>
               )}
