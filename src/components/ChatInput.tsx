@@ -10,6 +10,16 @@ import { AIService } from "@/services/ai";
 import { supabase } from "@/integrations/supabase/client";
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
 
+// Global abort controller for canceling AI requests
+let currentAbortController: AbortController | null = null;
+
+export const cancelCurrentRequest = () => {
+  if (currentAbortController) {
+    currentAbortController.abort();
+    currentAbortController = null;
+  }
+};
+
 /* ---------------- Helpers ---------------- */
 function isImageEditRequest(message: string): boolean {
   if (!message) return false;
@@ -331,6 +341,9 @@ export function ChatInput({ onImagesChange }: Props) {
     setSelectedImages([]);
     setForceImageMode(false);
     setShowMenu(false);
+    
+    // Create new abort controller for this request
+    currentAbortController = new AbortController();
     setLoading(true);
 
     try {
@@ -515,6 +528,11 @@ export function ChatInput({ onImagesChange }: Props) {
         const reply = await new AIService().sendMessage(aiMessages);
         await addMessage({ content: reply, role: "assistant", type: "text" });
       } catch (err: any) {
+        // Check if request was aborted by user
+        if (err.name === 'AbortError' || err.message?.includes('aborted')) {
+          // Don't show error for user-initiated cancellation
+          return;
+        }
         toast({ title: "Error", description: err?.message || "Failed to get AI response", variant: "destructive" });
         await addMessage({
           content: "Sorry, I encountered an error. Please try again.",
@@ -523,6 +541,7 @@ export function ChatInput({ onImagesChange }: Props) {
         });
       }
     } finally {
+      currentAbortController = null;
       setLoading(false);
     }
   };

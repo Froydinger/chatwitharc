@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Menu, Sun, Moon, ArrowDown } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
-import { ChatInput } from "@/components/ChatInput";
+import { ChatInput, cancelCurrentRequest } from "@/components/ChatInput";
 import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
@@ -388,7 +388,20 @@ export function MobileChatApp() {
                 {/* Only show ThinkingIndicator for text-only loading, not for image generation
                     AND only after there is at least one message */}
                 {isLoading && !isGeneratingImage && messages.length > 0 && (
-                  <ThinkingIndicator isLoading={true} isGeneratingImage={false} />
+                  <div className="flex flex-col items-start gap-2">
+                    <ThinkingIndicator isLoading={true} isGeneratingImage={false} />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        cancelCurrentRequest();
+                      }}
+                      className="ml-2 text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-3.5 w-3.5 mr-1.5" />
+                      Cancel
+                    </Button>
+                  </div>
                 )}
               </div>
             )}
