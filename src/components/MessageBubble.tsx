@@ -13,6 +13,7 @@ import { SmoothImage } from "@/components/ui/smooth-image";
 import { TypewriterText } from "@/components/TypewriterText";
 import { ImageModal } from "@/components/ImageModal";
 import { ImageEditModal } from "@/components/ImageEditModal";
+import { CodeBlock } from "@/components/CodeBlock";
 
 interface MessageBubbleProps {
   message: Message;
@@ -76,6 +77,45 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const handleMessageClick = () => {
       if (!isEditing) setShowActions((s) => !s);
     };
+
+    // Parse code blocks from message content
+    const parseCodeBlocks = (text: string) => {
+      const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+      const parts: Array<{ type: "text" | "code"; content: string; language?: string }> = [];
+      let lastIndex = 0;
+      let match;
+
+      while ((match = codeBlockRegex.exec(text)) !== null) {
+        // Add text before code block
+        if (match.index > lastIndex) {
+          parts.push({
+            type: "text",
+            content: text.slice(lastIndex, match.index),
+          });
+        }
+
+        // Add code block
+        parts.push({
+          type: "code",
+          content: match[2].trim(),
+          language: match[1] || "plaintext",
+        });
+
+        lastIndex = match.index + match[0].length;
+      }
+
+      // Add remaining text
+      if (lastIndex < text.length) {
+        parts.push({
+          type: "text",
+          content: text.slice(lastIndex),
+        });
+      }
+
+      return parts.length > 0 ? parts : [{ type: "text" as const, content: text }];
+    };
+
+    const contentParts = !isUser && message.type === "text" ? parseCodeBlocks(message.content) : [];
 
     return (
       <motion.div
@@ -243,12 +283,30 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                       {message.content}
                     </p>
                   ) : (
-                    <TypewriterText 
-                      text={message.content}
-                      shouldAnimate={Date.now() - new Date(message.timestamp).getTime() < 5000}
-                    />
+                    // AI messages with code block support
+                    <div className="relative z-10">
+                      {contentParts.map((part, idx) => {
+                        if (part.type === "code") {
+                          return (
+                            <CodeBlock
+                              key={idx}
+                              code={part.content}
+                              language={part.language || "plaintext"}
+                            />
+                          );
+                        }
+                        return (
+                          <TypewriterText
+                            key={idx}
+                            text={part.content}
+                            shouldAnimate={Date.now() - new Date(message.timestamp).getTime() < 5000}
+                          />
+                        );
+                      })}
+                    </div>
                   )
                 ))}
+
 
             </div>
 
