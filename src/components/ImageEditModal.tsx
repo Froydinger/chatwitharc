@@ -106,7 +106,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[100vw] sm:max-w-2xl p-0 gap-0 overflow-hidden border-border/50">
+      <DialogContent className="w-full max-w-[100vw] sm:max-w-2xl p-0 gap-0 overflow-hidden border-border/50" hideCloseButton>
         <div className="flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh]">
           {/* Header */}
           <div className="relative px-6 pt-6 pb-4 border-b border-border/30">
