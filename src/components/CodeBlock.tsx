@@ -101,58 +101,50 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
       {/* Fullscreen Dialog */}
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
         <DialogContent 
-          className="max-w-none w-screen h-screen p-0 gap-0 m-0 rounded-none [&>button]:hidden" 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            transform: 'none',
-            zIndex: 9999
-          }}
+          hideCloseButton
+          className="!max-w-none !w-screen !h-screen !p-0 !gap-0 !m-0 !rounded-none !top-0 !left-0 !translate-x-0 !translate-y-0"
         >
-          <div className="flex flex-col w-full h-full bg-background">
-            {/* Header with X button */}
-            <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-border/40 bg-background">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                <Code className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-                <span className="text-sm sm:text-lg font-medium truncate">{language}</span>
+          <div className="flex flex-col w-screen h-screen bg-background overflow-hidden">
+            {/* Header with X button - Always visible */}
+            <div className="flex-shrink-0 flex items-center justify-between px-3 sm:px-6 py-3 border-b border-border/40 bg-background">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Code className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                <span className="text-sm sm:text-lg font-medium">{language}</span>
               </div>
-              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2">
                 {canPreview && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowPreview(!showPreview)}
-                    className="h-8 px-2 sm:px-3 text-xs sm:text-sm"
+                    className="h-8 px-2 sm:px-3"
                   >
                     <Play className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline ml-1.5">{showPreview ? "Code" : "Preview"}</span>
+                    <span className="hidden sm:inline ml-2">{showPreview ? "Code" : "Preview"}</span>
                   </Button>
                 )}
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={handleCopy}
-                  className="h-8 px-2 sm:px-3 text-xs sm:text-sm"
+                  className="h-8 px-2 sm:px-3"
                 >
                   <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline ml-1.5">Copy</span>
+                  <span className="hidden sm:inline ml-2">Copy</span>
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsFullscreen(false)}
-                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-full flex-shrink-0 ml-1"
+                  className="h-9 w-9 rounded-full"
                 >
-                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <X className="h-5 w-5" />
                 </Button>
               </div>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-auto">
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-auto w-full">
               {!showPreview ? (
                 <SyntaxHighlighter
                   language={language}
@@ -162,10 +154,8 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
                     background: "transparent",
                     fontSize: "14px",
                     padding: "1rem",
-                    minHeight: "100%",
                   }}
                   showLineNumbers
-                  wrapLines={false}
                 >
                   {code}
                 </SyntaxHighlighter>
