@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
 import { SmoothImage } from "@/components/ui/smooth-image";
+import { X, Sparkles } from "lucide-react";
 
 interface ImageEditModalProps {
   isOpen: boolean;
@@ -66,8 +67,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
         ? `Edit this image (originally: "${originalPrompt}"): ${textWithChips}`
         : `Edit this image: ${textWithChips}`;
 
-      // Signal ChatInput to do the actual edit (relies on its 'processImageEdit' listener)
-      // Note: ChatInput's handleExternalImageEdit will add the user message, so we don't duplicate it here
+      // Signal ChatInput to do the actual edit
       const editEvent = new CustomEvent("processImageEdit", {
         detail: {
           content: editPrompt,
@@ -106,103 +106,113 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      {/* Mobile-first glassmorphism modal */}
-      <DialogContent className="w-full max-w-[100vw] sm:max-w-3xl p-0 overflow-hidden bg-background/95 backdrop-blur-xl border-border/40">
+      <DialogContent className="w-full max-w-[100vw] sm:max-w-2xl p-0 gap-0 overflow-hidden border-border/50">
         <div className="flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh]">
-          {/* Header with glassmorphism */}
-          <div className="px-5 pt-5 pb-3 border-b border-border/40 bg-muted/20 backdrop-blur-sm">
-            <DialogHeader className="space-y-2">
-              <DialogTitle className="text-lg sm:text-2xl flex items-center gap-2 font-semibold">
-                <span className="text-2xl">🍌</span>
-                Edit Image
-              </DialogTitle>
-              <DialogDescription className="text-sm sm:text-base text-muted-foreground">
-                Describe how you'd like to change the image. Use the quick chips or type your own instructions.
-              </DialogDescription>
-            </DialogHeader>
+          {/* Header */}
+          <div className="relative px-6 pt-6 pb-4 border-b border-border/30">
+            <button
+              onClick={onClose}
+              className="absolute right-4 top-4 rounded-full p-2 hover:bg-muted/50 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-full bg-primary/10">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="text-xl font-semibold">Edit Image</h2>
+            </div>
+            
+            <p className="text-sm text-muted-foreground">
+              Use quick suggestions or describe your changes
+            </p>
           </div>
 
-          {/* Scrollable Body */}
-          <div className="flex-1 overflow-y-auto px-5 pb-4 pt-4 scrollbar-hide">
-            <div className="grid grid-cols-1 md:grid-cols-2 md:gap-6">
-              {/* Preview with glassmorphism */}
-              <div className="md:pr-6">
-                <div className="w-full rounded-2xl overflow-hidden bg-muted/30 border border-border/40 backdrop-blur-sm">
-                  <div className="w-full aspect-[4/5] sm:aspect-video">
-                    <SmoothImage src={imageUrl} alt="Original" className="w-full h-full object-contain" />
-                  </div>
-                </div>
-
-                {originalPrompt && (
-                  <div className="mt-4 text-xs sm:text-sm text-muted-foreground">
-                    <div className="font-medium text-foreground mb-1.5">Original prompt</div>
-                    <div className="rounded-xl border border-border/40 bg-muted/20 backdrop-blur-sm p-3 leading-relaxed text-[16px]">
-                      {originalPrompt}
-                    </div>
-                  </div>
-                )}
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+            {/* Original Prompt - Subtle, above image */}
+            {originalPrompt && (
+              <div className="text-xs text-muted-foreground">
+                <span className="opacity-60">Original:</span>{" "}
+                <span className="opacity-80">{originalPrompt}</span>
               </div>
+            )}
 
-              {/* Controls */}
-              <div className="pt-4 md:pt-0 flex flex-col min-h-[260px]">
-                {/* Chips with glassmorphism */}
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2 mb-4">
-                  {SUGGESTIONS.map((s) => {
-                    const active = activeChips.includes(s);
-                    return (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => toggleChip(s)}
-                        className={[
-                          "px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-medium transition-all border backdrop-blur-sm text-left",
-                          active
-                            ? "bg-primary/20 border-primary/50 text-primary scale-[0.98]"
-                            : "bg-muted/30 border-border/40 hover:bg-muted/50 hover:scale-[1.02]",
-                        ].join(" ")}
-                      >
-                        {s}
-                      </button>
-                    );
-                  })}
-                </div>
+            {/* Image Preview */}
+            <div className="rounded-xl overflow-hidden border border-border/50 bg-muted/20">
+              <div className="w-full aspect-video sm:aspect-[4/3]">
+                <SmoothImage src={imageUrl} alt="Image to edit" className="w-full h-full object-contain" />
+              </div>
+            </div>
 
-                {/* Textarea with 16pt font */}
-                <label className="text-sm font-medium mb-2 text-foreground">How would you like to edit this image?</label>
-                <Textarea
-                  value={editInstruction}
-                  onChange={(e) => setEditInstruction(e.target.value.slice(0, MAX_CHARS))}
-                  onKeyDown={handleKeyPress}
-                  placeholder="e.g., make it more photorealistic, change the background to a sunset, add more detail…"
-                  className="min-h-[96px] sm:min-h-[120px] resize-none text-[16px] bg-muted/20 backdrop-blur-sm border-border/40 focus-visible:ring-primary/50 rounded-xl"
-                  style={{ fontSize: '16px' }}
-                  disabled={isSubmitting}
-                />
-                <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Tip: Press ⌘↵ / Ctrl↵ to edit</span>
-                  <span className={charsLeft === 0 ? "text-destructive font-medium" : ""}>{charsLeft} chars left</span>
-                </div>
+            {/* Quick Edit Chips */}
+            <div>
+              <label className="text-sm font-medium mb-3 block">Quick edits</label>
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTIONS.map((s) => {
+                  const active = activeChips.includes(s);
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => toggleChip(s)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        active
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "bg-muted/80 hover:bg-muted text-foreground/80 hover:text-foreground"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Main Edit Textarea */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Describe your changes</label>
+              <Textarea
+                value={editInstruction}
+                onChange={(e) => setEditInstruction(e.target.value.slice(0, MAX_CHARS))}
+                onKeyDown={handleKeyPress}
+                placeholder="e.g., make it more photorealistic, change the background to a sunset..."
+                className="min-h-[100px] resize-none text-[16px] bg-background border-border/50 focus-visible:ring-primary/50"
+                style={{ fontSize: '16px' }}
+                disabled={isSubmitting}
+              />
+              <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                <span>Press ⌘↵ / Ctrl↵ to submit</span>
+                <span className={charsLeft < 50 ? "text-warning" : ""}>{charsLeft} left</span>
               </div>
             </div>
           </div>
 
-          {/* Sticky Footer with glassmorphism */}
-          <div className="px-5 py-4 border-t border-border/40 bg-muted/20 backdrop-blur-xl sticky bottom-0 sm:static">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2">
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-border/30 bg-muted/20">
+            <div className="flex items-center justify-end gap-3">
               <Button 
                 variant="outline" 
                 onClick={onClose} 
-                disabled={isSubmitting} 
-                className="sm:min-w-[120px] bg-background/50 backdrop-blur-sm border-border/40 hover:bg-muted/50"
+                disabled={isSubmitting}
+                className="min-w-[100px]"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting || (!editInstruction.trim() && activeChips.length === 0)}
-                className="sm:min-w-[140px] bg-primary hover:bg-primary/90"
+                className="min-w-[120px] bg-primary hover:bg-primary/90"
               >
-                {isSubmitting ? "Starting…" : "Edit Image"}
+                {isSubmitting ? (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2 animate-spin" />
+                    Editing...
+                  </>
+                ) : (
+                  "Edit Image"
+                )}
               </Button>
             </div>
           </div>

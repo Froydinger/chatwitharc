@@ -353,16 +353,13 @@ All colors MUST be HSL for perfect glass effects.
     display: none;  /* Chrome, Safari and Opera */
   }
 
-  /* Breathing glow animation */
+  /* Breathing glow animation for quick prompts */
   @keyframes breathe-glow {
-    0% {
-      box-shadow: 0 0 5px currentColor;
+    0%, 100% {
+      opacity: 0.5;
     }
     50% {
-      box-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
-    }
-    100% {
-      box-shadow: 0 0 5px currentColor;
+      opacity: 1;
     }
   }
 

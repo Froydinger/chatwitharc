@@ -222,13 +222,12 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
       return () => c.removeEventListener("pointerdown", onPointerDown);
     }, [updateVisible]);
 
-    // glow only from visible
+    // slow breathing glow only from visible
     useEffect(() => {
       let root: number | null = null;
-      let clear: number | null = null;
 
       const schedule = () => {
-        const delay = 1800 + Math.random() * 3200;
+        const delay = 2500 + Math.random() * 4000; // longer delay between glows
         root = window.setTimeout(() => {
           const visible = Array.from(visibleSetRef.current);
           if (visible.length) {
@@ -236,12 +235,13 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
             const color = glowColors[Math.floor(Math.random() * glowColors.length)];
             setGlowIndex(idx);
             setGlowColor(color);
-            clear = window.setTimeout(() => {
-              setGlowIndex(-1);
+            // Keep the glow on and let CSS handle the breathing animation
+            // After a long duration, pick a new one
+            root = window.setTimeout(() => {
               schedule();
-            }, 2400);
+            }, 5000); // 5 seconds of slow breathing
           } else {
-            root = window.setTimeout(schedule, 400);
+            root = window.setTimeout(schedule, 600);
           }
         }, delay);
       };
@@ -249,7 +249,6 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
       schedule();
       return () => {
         if (root) window.clearTimeout(root);
-        if (clear) window.clearTimeout(clear);
       };
     }, [visibleTick]);
 
@@ -293,12 +292,14 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
               className="prompt-pill"
               style={{
                 flexShrink: 0,
-                transition: "box-shadow 200ms ease",
+                transition: "none",
+                animation: glowIndex === i ? "breathe-glow 5s ease-in-out infinite" : "none",
                 boxShadow:
                   glowIndex === i
-                    ? `inset 0 0 0 1px ${glowColor}, 0 0 10px ${glowColor}`
+                    ? `inset 0 0 0 1px ${glowColor}, 0 0 6px ${glowColor}`
                     : "none",
-              } as React.CSSProperties}
+                "--glow-color": glowColor,
+              } as React.CSSProperties & { "--glow-color": string }}
             >
               <span className="font-medium text-sm">{p.label}</span>
             </button>
