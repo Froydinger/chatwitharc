@@ -37,145 +37,143 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
     }
   };
 
-  const renderCodeContent = () => (
-    <>
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/40">
-        <div className="flex items-center gap-2">
-          <Code className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium text-muted-foreground">{language}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {canPreview && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowPreview(!showPreview)}
-              className="h-7 text-xs"
-            >
-              <Play className="h-3 w-3 mr-1.5" />
-              {showPreview ? "Hide" : "Preview"}
-            </Button>
-          )}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setIsFullscreen(true)} 
-            className="h-7 text-xs"
-          >
-            <Maximize2 className="h-3 w-3 mr-1.5" />
-            Fullscreen
-          </Button>
-          <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 text-xs">
-            <Copy className="h-3 w-3 mr-1.5" />
-            Copy
-          </Button>
-        </div>
-      </div>
-
-      {/* Code */}
-      {!showPreview && (
-        <div className="relative max-h-[500px] overflow-x-auto overflow-y-auto">
-          <SyntaxHighlighter
-            language={language}
-            style={vscDarkPlus}
-            customStyle={{
-              margin: 0,
-              background: "transparent",
-              fontSize: "14px",
-              padding: "1rem",
-            }}
-            showLineNumbers
-            wrapLines={false}
-          >
-            {code}
-          </SyntaxHighlighter>
-        </div>
-      )}
-
-      {/* Preview */}
-      {showPreview && <CodePreview code={code} language={language} />}
-    </>
-  );
-
   return (
     <>
-      <div className="my-4 rounded-xl border border-border/40 bg-muted/20 backdrop-blur-sm w-full min-w-0">
-        {renderCodeContent()}
+      <div className="my-4 rounded-xl border border-border/40 bg-muted/20 backdrop-blur-sm w-full min-w-0 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/40">
+          <div className="flex items-center gap-2">
+            <Code className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium text-muted-foreground">{language}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {canPreview && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPreview(!showPreview)}
+                className="h-7 text-xs"
+              >
+                <Play className="h-3 w-3 mr-1.5" />
+                {showPreview ? "Hide" : "Preview"}
+              </Button>
+            )}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setIsFullscreen(true)} 
+              className="h-7 text-xs"
+            >
+              <Maximize2 className="h-3 w-3 mr-1.5" />
+              Fullscreen
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 text-xs">
+              <Copy className="h-3 w-3 mr-1.5" />
+              Copy
+            </Button>
+          </div>
+        </div>
+
+        {/* Code */}
+        {!showPreview && (
+          <div className="relative max-h-[500px] overflow-auto">
+            <SyntaxHighlighter
+              language={language}
+              style={vscDarkPlus}
+              customStyle={{
+                margin: 0,
+                background: "transparent",
+                fontSize: "14px",
+                padding: "1rem",
+              }}
+              showLineNumbers
+              wrapLines={false}
+            >
+              {code}
+            </SyntaxHighlighter>
+          </div>
+        )}
+
+        {/* Preview */}
+        {showPreview && <CodePreview code={code} language={language} />}
       </div>
 
       {/* Fullscreen Dialog */}
-      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-        <DialogContent 
-          className="!max-w-none !w-screen !h-screen !p-0 !gap-0 !m-0 !rounded-none !translate-x-0 !translate-y-0 !top-0 !left-0 !right-0 !bottom-0 fixed inset-0" 
-          hideCloseButton
-        >
-          <div className="flex flex-col w-full h-full bg-background">
-            {/* Fullscreen Header - Sticky */}
-            <div className="flex-shrink-0 flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-border/40 bg-background shadow-sm">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                <Code className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-                <span className="text-sm sm:text-lg font-medium truncate">{language}</span>
-              </div>
-              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                {canPreview && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowPreview(!showPreview)}
+      {isFullscreen && (
+        <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+          <DialogContent 
+            className="!max-w-none !w-screen !h-screen !p-0 !gap-0 !m-0 !rounded-none !translate-x-0 !translate-y-0 !top-0 !left-0 !right-0 !bottom-0 fixed inset-0" 
+            hideCloseButton
+          >
+            <div className="flex flex-col w-full h-full bg-background">
+              {/* Fullscreen Header - Always visible */}
+              <div className="flex-shrink-0 flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-border/40 bg-background shadow-sm z-10">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                  <Code className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                  <span className="text-sm sm:text-lg font-medium truncate">{language}</span>
+                </div>
+                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                  {canPreview && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowPreview(!showPreview)}
+                      className="h-8 px-2 sm:px-3 text-xs sm:text-sm"
+                    >
+                      <Play className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline ml-1.5">{showPreview ? "Code" : "Preview"}</span>
+                    </Button>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleCopy}
                     className="h-8 px-2 sm:px-3 text-xs sm:text-sm"
                   >
-                    <Play className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline ml-1.5">{showPreview ? "Hide" : "Preview"}</span>
+                    <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline ml-1.5">Copy</span>
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsFullscreen(false)}
+                    className="h-8 w-8 sm:h-9 sm:w-9 rounded-full flex-shrink-0 ml-1"
+                  >
+                    <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Fullscreen Content - Scrollable */}
+              <div className="flex-1 min-h-0 overflow-auto">
+                {!showPreview ? (
+                  <div className="w-full h-full overflow-auto">
+                    <SyntaxHighlighter
+                      language={language}
+                      style={vscDarkPlus}
+                      customStyle={{
+                        margin: 0,
+                        background: "transparent",
+                        fontSize: "14px",
+                        padding: "1rem",
+                        minHeight: "100%",
+                      }}
+                      showLineNumbers
+                      wrapLines={false}
+                    >
+                      {code}
+                    </SyntaxHighlighter>
+                  </div>
+                ) : (
+                  <div className="w-full h-full overflow-auto">
+                    <CodePreview code={code} language={language} />
+                  </div>
                 )}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleCopy}
-                  className="h-8 px-2 sm:px-3 text-xs sm:text-sm"
-                >
-                  <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline ml-1.5">Copy</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsFullscreen(false)}
-                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-full flex-shrink-0 ml-1"
-                >
-                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
-                </Button>
               </div>
             </div>
-
-            {/* Fullscreen Content - Scrollable */}
-            <div className="flex-1 overflow-auto min-h-0">
-              {!showPreview ? (
-                <SyntaxHighlighter
-                  language={language}
-                  style={vscDarkPlus}
-                  customStyle={{
-                    margin: 0,
-                    background: "transparent",
-                    fontSize: "14px",
-                    padding: "1rem",
-                    minHeight: "100%",
-                  }}
-                  showLineNumbers
-                  wrapLines={false}
-                >
-                  {code}
-                </SyntaxHighlighter>
-              ) : (
-                <div className="w-full h-full">
-                  <CodePreview code={code} language={language} />
-                </div>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
