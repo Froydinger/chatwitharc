@@ -10,14 +10,14 @@ import { AIService } from "@/services/ai";
 import { supabase } from "@/integrations/supabase/client";
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
 
-// Global abort controller for canceling AI requests
-let currentAbortController: AbortController | null = null;
+// Global cancellation flag
+let cancelRequested = false;
 
 export const cancelCurrentRequest = () => {
-  if (currentAbortController) {
-    currentAbortController.abort();
-    currentAbortController = null;
-  }
+  cancelRequested = true;
+  const store = useArcStore.getState();
+  store.setLoading(false);
+  store.setGeneratingImage(false);
 };
 
 /* ---------------- Helpers ---------------- */
@@ -342,8 +342,8 @@ export function ChatInput({ onImagesChange }: Props) {
     setForceImageMode(false);
     setShowMenu(false);
     
-    // Create new abort controller for this request
-    currentAbortController = new AbortController();
+    // Reset cancellation flag
+    cancelRequested = false;
     setLoading(true);
 
     try {
@@ -525,12 +525,23 @@ export function ChatInput({ onImagesChange }: Props) {
       try {
         const aiMessages = messages.filter((m) => m.type === "text").map((m) => ({ role: m.role, content: m.content }));
         aiMessages.push({ role: "user", content: userMessage });
+        
+        // Check if cancelled before making the call
+        if (cancelRequested) {
+          return;
+        }
+        
         const reply = await new AIService().sendMessage(aiMessages);
+        
+        // Check if cancelled after getting response
+        if (cancelRequested) {
+          return;
+        }
+        
         await addMessage({ content: reply, role: "assistant", type: "text" });
       } catch (err: any) {
-        // Check if request was aborted by user
-        if (err.name === 'AbortError' || err.message?.includes('aborted')) {
-          // Don't show error for user-initiated cancellation
+        // Check if request was cancelled
+        if (cancelRequested) {
           return;
         }
         toast({ title: "Error", description: err?.message || "Failed to get AI response", variant: "destructive" });
@@ -541,8 +552,9 @@ export function ChatInput({ onImagesChange }: Props) {
         });
       }
     } finally {
-      currentAbortController = null;
-      setLoading(false);
+      if (!cancelRequested) {
+        setLoading(false);
+      }
     }
   };
 
