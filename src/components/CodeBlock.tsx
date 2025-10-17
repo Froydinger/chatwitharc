@@ -36,7 +36,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
   };
 
   return (
-    <div className="my-4 rounded-xl overflow-hidden border border-border/40 bg-muted/20 backdrop-blur-sm max-w-full">
+    <div className="my-4 rounded-xl border border-border/40 bg-muted/20 backdrop-blur-sm w-full min-w-0">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/40">
         <div className="flex items-center gap-2">
@@ -64,7 +64,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
 
       {/* Code */}
       {!showPreview && (
-        <div className="relative max-h-[500px] overflow-auto">
+        <div className="relative max-h-[500px] overflow-x-auto overflow-y-auto">
           <SyntaxHighlighter
             language={language}
             style={vscDarkPlus}
@@ -75,8 +75,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
               padding: "1rem",
             }}
             showLineNumbers
-            wrapLines
-            wrapLongLines
+            wrapLines={false}
           >
             {code}
           </SyntaxHighlighter>
