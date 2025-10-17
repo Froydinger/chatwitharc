@@ -39,17 +39,17 @@ export function CodePreview({ code, language }: CodePreviewProps) {
     let processedCode = htmlCode;
     
     // If it's JSX/TSX, wrap it in a basic HTML template
-    if (language === "jsx" || language === "tsx") {
+    if (language === "jsx" || language === "tsx" || language === "react") {
       processedCode = `
         <!DOCTYPE html>
         <html>
           <head>
             <meta charset="UTF-8">
-            <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-            <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+            <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+            <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
             <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
             <style>
-              body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; }
+              body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; background: white; color: #333; }
               * { box-sizing: border-box; }
             </style>
           </head>
@@ -58,33 +58,41 @@ export function CodePreview({ code, language }: CodePreviewProps) {
             <script type="text/babel">
               const { useState, useEffect, useCallback, useMemo, useRef } = React;
               
-              ${htmlCode}
-              
-              // Smart component detection and rendering
-              (function() {
-                const root = document.getElementById('root');
+              try {
+                ${htmlCode}
                 
-                // Try to find and render the main component
-                if (typeof App !== 'undefined') {
-                  ReactDOM.render(<App />, root);
-                } else if (typeof Component !== 'undefined') {
-                  ReactDOM.render(<Component />, root);
-                } else {
-                  // Try to find any function that returns JSX
-                  const componentNames = Object.keys(window).filter(key => 
-                    typeof window[key] === 'function' && 
-                    key[0] === key[0].toUpperCase() &&
-                    !['React', 'ReactDOM', 'Babel'].includes(key)
-                  );
+                // Smart component detection and rendering using React 18 API
+                setTimeout(() => {
+                  const rootElement = document.getElementById('root');
+                  const root = ReactDOM.createRoot(rootElement);
                   
-                  if (componentNames.length > 0) {
-                    const ComponentToRender = window[componentNames[0]];
-                    ReactDOM.render(<ComponentToRender />, root);
+                  // Try to find and render the main component
+                  if (typeof App !== 'undefined') {
+                    root.render(<App />);
+                  } else if (typeof Component !== 'undefined') {
+                    root.render(<Component />);
+                  } else if (typeof SnakeGame !== 'undefined') {
+                    root.render(<SnakeGame />);
                   } else {
-                    root.innerHTML = '<div style="color: #666; padding: 20px;">No component found to render. Make sure to export a component named App, Component, or any capitalized function.</div>';
+                    // Try to find any function that returns JSX
+                    const componentNames = Object.keys(window).filter(key => 
+                      typeof window[key] === 'function' && 
+                      key[0] === key[0].toUpperCase() &&
+                      !['React', 'ReactDOM', 'Babel'].includes(key)
+                    );
+                    
+                    if (componentNames.length > 0) {
+                      const ComponentToRender = window[componentNames[0]];
+                      root.render(<ComponentToRender />);
+                    } else {
+                      rootElement.innerHTML = '<div style="color: #666; padding: 20px;">No component found. Make sure to define a component function (e.g., function App() { return <div>Hello</div> })</div>';
+                    }
                   }
-                }
-              })();
+                }, 100);
+              } catch (error) {
+                console.error('Error rendering component:', error);
+                document.getElementById('root').innerHTML = '<div style="color: red; padding: 20px;">Error: ' + error.message + '</div>';
+              }
             </script>
           </body>
         </html>
