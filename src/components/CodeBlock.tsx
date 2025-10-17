@@ -102,6 +102,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
         <DialogContent 
           hideCloseButton
+          hideOverlay
           className="!max-w-none !w-screen !h-screen !p-0 !gap-0 !m-0 !rounded-none !top-0 !left-0 !translate-x-0 !translate-y-0"
         >
           <div className="flex flex-col w-screen h-screen bg-background overflow-hidden">
