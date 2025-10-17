@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 interface SmoothImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallback?: React.ReactNode;
   loadingClassName?: string;
+  thumbnail?: boolean; // Optimize for small previews
 }
 
 export const SmoothImage = ({ 
@@ -12,6 +13,7 @@ export const SmoothImage = ({
   className, 
   fallback,
   loadingClassName,
+  thumbnail = false,
   onLoad,
   onError,
   ...props 
@@ -23,7 +25,13 @@ export const SmoothImage = ({
   useEffect(() => {
     if (!src) return;
     
-    // Preload the image
+    // For thumbnails, skip preloading and use native lazy loading
+    if (thumbnail) {
+      setImageSrc(src);
+      return;
+    }
+    
+    // Preload the image for full-size displays
     const img = new Image();
     img.onload = () => {
       setImageSrc(src);
@@ -38,7 +46,7 @@ export const SmoothImage = ({
       img.onload = null;
       img.onerror = null;
     };
-  }, [src]);
+  }, [src, thumbnail]);
 
   const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setIsLoaded(true);
@@ -57,7 +65,7 @@ export const SmoothImage = ({
   return (
     <div className="relative overflow-hidden">
       {/* Loading placeholder */}
-      {!isLoaded && (
+      {!isLoaded && !thumbnail && (
         <div 
           className={cn(
             "absolute inset-0 bg-muted animate-pulse rounded",
@@ -71,9 +79,10 @@ export const SmoothImage = ({
         <img
           src={imageSrc}
           alt={alt}
+          loading={thumbnail ? "lazy" : "eager"}
           className={cn(
             "transition-opacity duration-300",
-            isLoaded ? "opacity-100" : "opacity-0",
+            thumbnail ? "opacity-100" : (isLoaded ? "opacity-100" : "opacity-0"),
             className
           )}
           onLoad={handleLoad}

@@ -106,28 +106,28 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      {/* Mobile-first: full viewport height on mobile, standard dialog on desktop */}
-      <DialogContent className="w-full max-w-[100vw] sm:max-w-3xl p-0 overflow-hidden">
+      {/* Mobile-first glassmorphism modal */}
+      <DialogContent className="w-full max-w-[100vw] sm:max-w-3xl p-0 overflow-hidden bg-background/95 backdrop-blur-xl border-border/40">
         <div className="flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh]">
-          {/* Header */}
-          <div className="px-5 pt-5 pb-3 border-b bg-gradient-to-b from-background/40 to-background">
+          {/* Header with glassmorphism */}
+          <div className="px-5 pt-5 pb-3 border-b border-border/40 bg-muted/20 backdrop-blur-sm">
             <DialogHeader className="space-y-2">
-              <DialogTitle className="text-lg sm:text-2xl flex items-center gap-2">
-                <span className="text-base sm:text-xl animate-pulse drop-shadow-[0_0_8px_rgba(250,204,21,.8)]">🍌</span>
+              <DialogTitle className="text-lg sm:text-2xl flex items-center gap-2 font-semibold">
+                <span className="text-2xl">🍌</span>
                 Edit Image
               </DialogTitle>
-              <DialogDescription className="text-sm sm:text-base">
-                Describe how you’d like to change the image. Use the quick chips or type your own instructions.
+              <DialogDescription className="text-sm sm:text-base text-muted-foreground">
+                Describe how you'd like to change the image. Use the quick chips or type your own instructions.
               </DialogDescription>
             </DialogHeader>
           </div>
 
           {/* Scrollable Body */}
-          <div className="flex-1 overflow-y-auto px-5 pb-4 pt-3">
+          <div className="flex-1 overflow-y-auto px-5 pb-4 pt-4 scrollbar-hide">
             <div className="grid grid-cols-1 md:grid-cols-2 md:gap-6">
-              {/* Preview */}
+              {/* Preview with glassmorphism */}
               <div className="md:pr-6">
-                <div className="w-full rounded-xl overflow-hidden bg-muted/40 border">
+                <div className="w-full rounded-2xl overflow-hidden bg-muted/30 border border-border/40 backdrop-blur-sm">
                   <div className="w-full aspect-[4/5] sm:aspect-video">
                     <SmoothImage src={imageUrl} alt="Original" className="w-full h-full object-contain" />
                   </div>
@@ -135,16 +135,18 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
 
                 {originalPrompt && (
                   <div className="mt-4 text-xs sm:text-sm text-muted-foreground">
-                    <div className="font-medium text-foreground mb-1">Original prompt</div>
-                    <div className="rounded-lg border bg-card/60 p-3 leading-relaxed">{originalPrompt}</div>
+                    <div className="font-medium text-foreground mb-1.5">Original prompt</div>
+                    <div className="rounded-xl border border-border/40 bg-muted/20 backdrop-blur-sm p-3 leading-relaxed text-[16px]">
+                      {originalPrompt}
+                    </div>
                   </div>
                 )}
               </div>
 
               {/* Controls */}
               <div className="pt-4 md:pt-0 flex flex-col min-h-[260px]">
-                {/* Chips: grid on mobile, wrap on larger screens */}
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2 mb-3">
+                {/* Chips with glassmorphism */}
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2 mb-4">
                   {SUGGESTIONS.map((s) => {
                     const active = activeChips.includes(s);
                     return (
@@ -153,10 +155,10 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
                         type="button"
                         onClick={() => toggleChip(s)}
                         className={[
-                          "px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium transition-colors border text-left",
+                          "px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-medium transition-all border backdrop-blur-sm text-left",
                           active
-                            ? "bg-yellow-400/20 border-yellow-400/50 text-yellow-700 dark:text-yellow-300"
-                            : "bg-muted/40 border-border hover:bg-muted/70",
+                            ? "bg-primary/20 border-primary/50 text-primary scale-[0.98]"
+                            : "bg-muted/30 border-border/40 hover:bg-muted/50 hover:scale-[1.02]",
                         ].join(" ")}
                       >
                         {s}
@@ -165,34 +167,40 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
                   })}
                 </div>
 
-                {/* Textarea */}
-                <label className="text-sm font-medium mb-1.5">How would you like to edit this image?</label>
+                {/* Textarea with 16pt font */}
+                <label className="text-sm font-medium mb-2 text-foreground">How would you like to edit this image?</label>
                 <Textarea
                   value={editInstruction}
                   onChange={(e) => setEditInstruction(e.target.value.slice(0, MAX_CHARS))}
                   onKeyDown={handleKeyPress}
                   placeholder="e.g., make it more photorealistic, change the background to a sunset, add more detail…"
-                  className="min-h-[96px] sm:min-h-[120px] resize-none focus-visible:ring-yellow-400"
+                  className="min-h-[96px] sm:min-h-[120px] resize-none text-[16px] bg-muted/20 backdrop-blur-sm border-border/40 focus-visible:ring-primary/50 rounded-xl"
+                  style={{ fontSize: '16px' }}
                   disabled={isSubmitting}
                 />
-                <div className="mt-1.5 flex items-center justify-between text-[11px] sm:text-xs text-muted-foreground">
+                <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                   <span>Tip: Press ⌘↵ / Ctrl↵ to edit</span>
-                  <span className={charsLeft === 0 ? "text-destructive" : ""}>{charsLeft} chars left</span>
+                  <span className={charsLeft === 0 ? "text-destructive font-medium" : ""}>{charsLeft} chars left</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Sticky Footer (mobile) / static (desktop) */}
-          <div className="px-5 py-4 border-t bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky bottom-0 sm:static">
+          {/* Sticky Footer with glassmorphism */}
+          <div className="px-5 py-4 border-t border-border/40 bg-muted/20 backdrop-blur-xl sticky bottom-0 sm:static">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2">
-              <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="sm:min-w-[120px]">
+              <Button 
+                variant="outline" 
+                onClick={onClose} 
+                disabled={isSubmitting} 
+                className="sm:min-w-[120px] bg-background/50 backdrop-blur-sm border-border/40 hover:bg-muted/50"
+              >
                 Cancel
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting || (!editInstruction.trim() && activeChips.length === 0)}
-                className="sm:min-w-[140px]"
+                className="sm:min-w-[140px] bg-primary hover:bg-primary/90"
               >
                 {isSubmitting ? "Starting…" : "Edit Image"}
               </Button>

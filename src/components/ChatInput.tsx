@@ -104,6 +104,7 @@ export function ChatInput({ onImagesChange }: Props) {
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imageEditModes, setImageEditModes] = useState<boolean[]>([]); // Track which images are in edit mode
   const [isActive, setIsActive] = useState(false);
 
   // Tiles menu
@@ -161,11 +162,22 @@ export function ChatInput({ onImagesChange }: Props) {
       if (merged.length >= max && images.length > 0 && merged.length > prev.length) {
         toast({ title: "Max images", description: `Up to ${max} images supported`, variant: "default" });
       }
+      // Initialize edit modes for new images (default to analyze mode)
+      setImageEditModes(prevModes => [...prevModes, ...new Array(merged.length - prev.length).fill(false)]);
       return merged;
     });
   };
-  const removeImage = (idx: number) => setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
-  const clearSelected = () => setSelectedImages([]);
+  const removeImage = (idx: number) => {
+    setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
+    setImageEditModes((prev) => prev.filter((_, i) => i !== idx));
+  };
+  const clearSelected = () => {
+    setSelectedImages([]);
+    setImageEditModes([]);
+  };
+  const toggleImageEditMode = (idx: number) => {
+    setImageEditModes((prev) => prev.map((mode, i) => (i === idx ? !mode : mode)));
+  };
 
   /* ---------- Quick prompt / edit event hooks ---------- */
   useEffect(() => {
@@ -189,13 +201,20 @@ export function ChatInput({ onImagesChange }: Props) {
       if (!e?.detail) return;
       handleExternalImageEdit(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction);
     };
+    const editedMessageHandler = (ev: Event) => {
+      const e = ev as CustomEvent<{ content: string; editedMessageId: string }>;
+      if (!e?.detail) return;
+      handleEditedMessage(e.detail.content, e.detail.editedMessageId);
+    };
     window.addEventListener("quickPromptSelected", quickHandler as EventListener);
     window.addEventListener("arcai:triggerPrompt", quickHandler as EventListener);
     window.addEventListener("processImageEdit", editHandler as EventListener);
+    window.addEventListener("processEditedMessage", editedMessageHandler as EventListener);
     return () => {
       window.removeEventListener("quickPromptSelected", quickHandler as EventListener);
       window.removeEventListener("arcai:triggerPrompt", quickHandler as EventListener);
       window.removeEventListener("processImageEdit", editHandler as EventListener);
+      window.removeEventListener("processEditedMessage", editedMessageHandler as EventListener);
     };
   }, [messages]);
 
@@ -263,6 +282,43 @@ export function ChatInput({ onImagesChange }: Props) {
     }
   };
 
+  /* ---------- Handle edited message resend ---------- */
+  const handleEditedMessage = async (newContent: string, editedMessageId: string) => {
+    if (!newContent.trim() || isLoading) return;
+
+    setLoading(true);
+
+    try {
+      const ai = new AIService();
+      // Get all messages up to the edited one, replace its content, and send to AI
+      const messageIndex = messages.findIndex((m) => m.id === editedMessageId);
+      if (messageIndex === -1) return;
+
+      // Remove all messages after the edited one
+      const messagesToKeep = messages.slice(0, messageIndex + 1);
+      
+      // Build conversation history for AI
+      const aiMessages = messagesToKeep
+        .filter((m) => m.type === "text")
+        .map((m) => ({
+          role: m.role,
+          content: m.id === editedMessageId ? newContent : m.content,
+        }));
+
+      const reply = await ai.sendMessage(aiMessages);
+      await addMessage({ content: reply, role: "assistant", type: "text" });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message || "Failed to get AI response", variant: "destructive" });
+      await addMessage({
+        content: "Sorry, I encountered an error. Please try again.",
+        role: "assistant",
+        type: "text",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   /* ---------- Submit ---------- */
   const handleSend = async () => {
     if ((!inputValue.trim() && selectedImages.length === 0) || isLoading) return;
@@ -304,7 +360,10 @@ export function ChatInput({ onImagesChange }: Props) {
           imageUrls = images.map((f) => URL.createObjectURL(f));
         }
 
-        if (userMessage && isImageEditRequest(userMessage)) {
+        // Check if ANY images are in edit mode
+        const hasEditModeImages = imageEditModes.some((mode) => mode);
+
+        if (hasEditModeImages || (userMessage && isImageEditRequest(userMessage))) {
           await addMessage({ content: userMessage, role: "user", type: "image", imageUrls });
           await addMessage({
             content: `Editing image: ${userMessage}`,
@@ -494,22 +553,40 @@ export function ChatInput({ onImagesChange }: Props) {
                 </button>
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1">
-                {selectedImages.map((f, i) => (
-                  <div key={i} className="relative group shrink-0">
-                    <img
-                      src={URL.createObjectURL(f)}
-                      alt={`sel-${i}`}
-                      className="w-16 h-16 object-cover rounded-full border border-border/40"
-                    />
-                    <button
-                      onClick={() => removeImage(i)}
-                      className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remove"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
+                {selectedImages.map((f, i) => {
+                  const url = URL.createObjectURL(f);
+                  const isEditMode = imageEditModes[i] || false;
+                  return (
+                    <div key={i} className="relative group shrink-0">
+                      <img
+                        src={url}
+                        alt={`sel-${i}`}
+                        className="w-16 h-16 object-cover rounded-full border border-border/40"
+                      />
+                      
+                      {/* Mode toggle badge */}
+                      <button
+                        type="button"
+                        onClick={() => toggleImageEditMode(i)}
+                        className={`absolute bottom-0 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all backdrop-blur-sm border ${
+                          isEditMode
+                            ? "bg-primary/90 border-primary text-primary-foreground"
+                            : "bg-muted/90 border-border/50 text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {isEditMode ? "Edit" : "Analyze"}
+                      </button>
+                      
+                      <button
+                        onClick={() => removeImage(i)}
+                        className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>,

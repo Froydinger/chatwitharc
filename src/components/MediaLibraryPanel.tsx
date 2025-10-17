@@ -178,6 +178,7 @@ export function MediaLibraryPanel() {
                   alt={image.prompt}
                   className="w-full h-full object-cover rounded-lg"
                   loadingClassName="bg-muted animate-pulse rounded-lg"
+                  thumbnail
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity">
