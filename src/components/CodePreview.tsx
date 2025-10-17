@@ -176,7 +176,7 @@ export function CodePreview({ code, language }: CodePreviewProps) {
       <iframe
         ref={iframeRef}
         className="w-full min-h-[300px] bg-white"
-        sandbox="allow-scripts"
+        sandbox="allow-scripts allow-same-origin"
         title="Code Preview"
       />
     </div>

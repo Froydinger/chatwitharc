@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ThinkingIndicator } from "./ThinkingIndicator";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, Image, PenTool } from "lucide-react";
+import { MessageCircle, Image, PenTool, Code2 } from "lucide-react";
 
 interface WelcomeSectionProps {
   greeting: string;
@@ -23,14 +23,19 @@ export function WelcomeSection({
   isLoading = false,
   isGeneratingImage = false,
 }: WelcomeSectionProps) {
-  const [activeTab, setActiveTab] = useState<"chat" | "create" | "write">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "create" | "write" | "code">("chat");
   const [glowIndex, setGlowIndex] = useState<number>(0);
 
-  // Separate prompts: 6 chat, 6 create, 6 write
+  // Separate prompts: 6 chat, 6 create, 6 write, 6 code
   const chatPrompts = quickPrompts.slice(0, 6);
   const createPrompts = quickPrompts.slice(6, 12);
   const writePrompts = quickPrompts.slice(12, 18);
-  const currentPrompts = activeTab === "chat" ? chatPrompts : activeTab === "create" ? createPrompts : writePrompts;
+  const codePrompts = quickPrompts.slice(18, 24);
+  const currentPrompts = 
+    activeTab === "chat" ? chatPrompts : 
+    activeTab === "create" ? createPrompts : 
+    activeTab === "code" ? codePrompts :
+    writePrompts;
 
   // Random glow movement effect
   useEffect(() => {
@@ -90,6 +95,17 @@ export function WelcomeSection({
         >
           <PenTool size={14} />
           Write
+        </button>
+        <button
+          onClick={() => setActiveTab("code")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 text-sm ${
+            activeTab === "code"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Code2 size={14} />
+          Code
         </button>
       </div>
 

@@ -65,7 +65,7 @@ export function MobileChatApp() {
     return () => clearInterval(id);
   }, [profile?.display_name]);
 
-  // Quick Prompts - 6 Chat, 6 Create, 6 Write
+  // Quick Prompts - 6 Chat, 6 Create, 6 Write, 6 Code
   const quickPrompts = [
     // Chat prompts
     {
@@ -151,6 +151,31 @@ export function MobileChatApp() {
       label: "🖋️ Poetry",
       prompt:
         "Help me write a poem that captures emotion and imagery. Let's explore different styles and find the right voice.",
+    },
+    // Code prompts
+    {
+      label: "⚛️ React Component",
+      prompt: "Create a React component for [describe what you need]. Include TypeScript types and make it reusable.",
+    },
+    {
+      label: "🎮 Interactive Demo",
+      prompt: "Build an interactive demo or game. Make it fun and visually appealing with smooth animations.",
+    },
+    {
+      label: "📊 Data Viz",
+      prompt: "Create a data visualization or chart component. Make it responsive and easy to customize.",
+    },
+    {
+      label: "🧮 Calculator",
+      prompt: "Build a calculator or conversion tool. Include a clean UI and proper error handling.",
+    },
+    {
+      label: "🎨 CSS Animation",
+      prompt: "Create a beautiful CSS animation or transition effect. Make it smooth and performant.",
+    },
+    {
+      label: "🛠️ Utility Function",
+      prompt: "Write a utility function to solve [describe problem]. Include tests and documentation.",
     },
   ];
 

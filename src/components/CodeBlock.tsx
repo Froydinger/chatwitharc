@@ -36,7 +36,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
   };
 
   return (
-    <div className="my-4 rounded-xl overflow-hidden border border-border/40 bg-muted/20 backdrop-blur-sm">
+    <div className="my-4 rounded-xl overflow-hidden border border-border/40 bg-muted/20 backdrop-blur-sm max-w-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/40">
         <div className="flex items-center gap-2">
@@ -75,6 +75,8 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
               padding: "1rem",
             }}
             showLineNumbers
+            wrapLines
+            wrapLongLines
           >
             {code}
           </SyntaxHighlighter>
