@@ -235,12 +235,25 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         
         /* Make the auth modal highly visible with strong contrast */
         .auth-modal-card.glass-card-bubble {
-          background: hsl(var(--background)) !important;
-          border: 1px solid hsl(var(--border)) !important;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 
-                      0 0 0 1px rgba(255, 255, 255, 0.1) inset !important;
+          background: rgba(255, 255, 255, 0.98) !important;
+          color: #000 !important;
+          border: 1px solid rgba(0, 0, 0, 0.1) !important;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
           backdrop-filter: blur(24px) saturate(150%) !important;
           -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
+        }
+        
+        .auth-modal-card.glass-card-bubble * {
+          color: #000 !important;
+        }
+        
+        .auth-modal-card.glass-card-bubble input {
+          background: rgba(0, 0, 0, 0.05) !important;
+          border: 1px solid rgba(0, 0, 0, 0.2) !important;
+        }
+        
+        .auth-modal-card.glass-card-bubble button {
+          color: #fff !important;
         }
       `}</style>
     </>
