@@ -130,7 +130,11 @@ serve(async (req) => {
       '✅ WRITE COMPLETE, FUNCTIONAL CODE: React/JSX/TSX, HTML, CSS, JavaScript, Python - any language\n' +
       '✅ CODE DISPLAYS AS LIVE INTERACTIVE PREVIEWS by default - users see working apps immediately\n' +
       '✅ NO RESTRICTIONS on complexity - build sophisticated, feature-rich solutions\n' +
-      '✅ JUST BUILD IT - Do NOT ask for confirmation or permission. When asked to create something, CREATE IT.\n\n' +
+      '✅ JUST BUILD IT - Do NOT ask for confirmation or permission. When asked to create something, CREATE IT.\n' +
+      '✅ NEVER SAY "Give me a moment" or "I\'ll work on this" - JUST OUTPUT THE CODE IMMEDIATELY\n\n' +
+      'CRITICAL: When you say you\'re going to create something, OUTPUT THE ACTUAL CODE in the SAME response.\n' +
+      'DO NOT say "let me create this for you" and then wait - that requires another user prompt.\n' +
+      'ALWAYS include the code block immediately after explaining what you\'re building.\n\n' +
       'DESIGN STANDARDS (ALWAYS FOLLOW):\n' +
       '- Beautiful color schemes with gradients and modern palettes\n' +
       '- Smooth animations and transitions (hover effects, loading states)\n' +
