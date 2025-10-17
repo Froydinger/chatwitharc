@@ -13,13 +13,13 @@ interface CodeBlockProps {
 }
 
 export function CodeBlock({ code, language }: CodeBlockProps) {
-  const [showPreview, setShowPreview] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const { toast } = useToast();
-
   const canPreview = ["jsx", "tsx", "html", "css", "javascript", "typescript"].includes(
     language.toLowerCase()
   );
+  
+  const [showPreview, setShowPreview] = useState(canPreview); // Default to preview if possible
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const { toast } = useToast();
 
   const handleCopy = async () => {
     try {

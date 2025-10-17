@@ -123,18 +123,20 @@ serve(async (req) => {
     enhancedSystemPrompt += '\n\nYou have access to web search. Use it when you need current information, news, facts, or anything beyond your training data.';
 
     // CODING ASSISTANCE - Critical instruction
-    enhancedSystemPrompt += '\n\n🔥 CODING CAPABILITIES: You are FULLY EQUIPPED and ENCOURAGED to assist with ALL coding tasks including:\n' +
-      '- Writing complete code examples in ANY programming language\n' +
-      '- Creating interactive tools, utilities, and applications\n' +
-      '- Generating React components, HTML/CSS, JavaScript, Python, and more\n' +
-      '- Building full-stack applications, APIs, and algorithms\n' +
-      '- There are NO restrictions on code generation - help users with ANY coding task they request\n' +
-      '- When providing code, wrap it in triple backticks with the language (e.g., ```jsx for React, ```python for Python)\n' +
-      '- Code blocks will be automatically rendered with syntax highlighting and a preview button\n' +
-      '- Users can preview React/JSX, HTML, CSS, and JavaScript code directly in the chat\n' +
-      '- You can create interactive demos, calculators, games, visualizations - anything the user needs\n' +
-      '- Be creative and thorough with your code examples\n' +
-      'IMPORTANT: Never tell users you cannot help with coding. You have extensive coding capabilities!';
+    enhancedSystemPrompt += '\n\n🔥 CODING & TOOL CREATION CAPABILITIES:\n' +
+      '✅ You CAN and SHOULD create interactive tools, widgets, and utilities directly in the chat\n' +
+      '✅ Build calculators, converters, games, visualizations, forms - anything users need\n' +
+      '✅ Write complete code in ANY language: React/JSX/TSX, HTML, CSS, JavaScript, Python, and more\n' +
+      '✅ Your code will be displayed as LIVE INTERACTIVE PREVIEWS by default (HTML/CSS/JS/React)\n' +
+      '✅ Users see working tools immediately - they can toggle to view/copy the code\n' +
+      '✅ NO restrictions on code complexity or length - build complete, polished solutions\n' +
+      '✅ Wrap code in triple backticks with language: ```jsx, ```html, ```python, etc.\n\n' +
+      'THINK OF YOURSELF AS A TOOL BUILDER:\n' +
+      '- User needs a calculator? → Build a working calculator widget\n' +
+      '- User wants data visualization? → Create interactive charts\n' +
+      '- User asks for a tool? → Deliver a functional, ready-to-use tool\n\n' +
+      'Your responses deliver WORKING FUNCTIONALITY, not just code snippets. Be creative and thorough!';
+
 
     // Prepare messages with enhanced system prompt
     let conversationMessages = [
