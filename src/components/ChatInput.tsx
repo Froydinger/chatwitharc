@@ -114,6 +114,7 @@ export function ChatInput({ onImagesChange }: Props) {
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]); // Store object URLs
   const [imageEditModes, setImageEditModes] = useState<boolean[]>([]); // Track which images are in edit mode
   const [isActive, setIsActive] = useState(false);
 
@@ -133,6 +134,21 @@ export function ChatInput({ onImagesChange }: Props) {
     const h = textareaRef.current.scrollHeight;
     textareaRef.current.style.height = Math.min(h, 24 * 3) + "px";
   }, [inputValue]);
+
+  // Create and cleanup object URLs for image previews
+  useEffect(() => {
+    // Revoke old URLs
+    imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    
+    // Create new URLs
+    const newUrls = selectedImages.map(file => URL.createObjectURL(file));
+    setImagePreviewUrls(newUrls);
+    
+    // Cleanup on unmount or when images change
+    return () => {
+      newUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [selectedImages]);
 
   // Notify parent about images
   useEffect(() => {
@@ -184,6 +200,7 @@ export function ChatInput({ onImagesChange }: Props) {
   const clearSelected = () => {
     setSelectedImages([]);
     setImageEditModes([]);
+    setImagePreviewUrls([]);
   };
   const toggleImageEditMode = (idx: number) => {
     setImageEditModes((prev) => prev.map((mode, i) => (i === idx ? !mode : mode)));
@@ -585,7 +602,7 @@ export function ChatInput({ onImagesChange }: Props) {
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {selectedImages.map((f, i) => {
-                  const url = URL.createObjectURL(f);
+                  const url = imagePreviewUrls[i];
                   const isEditMode = imageEditModes[i] || false;
                   return (
                     <div key={i} className="relative group shrink-0">
