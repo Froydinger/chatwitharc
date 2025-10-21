@@ -63,14 +63,15 @@ export const SmoothImage = ({
   }
 
   return (
-    <div className="relative overflow-hidden">
-      {/* Loading placeholder - show for all images until loaded */}
+    <div className={cn("relative overflow-hidden", className)}>
+      {/* Loading placeholder - always visible until image loads */}
       {!isLoaded && (
         <div 
           className={cn(
-            "absolute inset-0 bg-muted animate-pulse rounded",
+            "absolute inset-0 bg-gradient-to-br from-muted/40 to-muted/70 animate-pulse",
             loadingClassName
           )}
+          style={{ minHeight: thumbnail ? "100%" : "200px" }}
         />
       )}
       
@@ -81,9 +82,8 @@ export const SmoothImage = ({
           alt={alt}
           loading={thumbnail ? "lazy" : "eager"}
           className={cn(
-            "transition-opacity duration-300",
-            isLoaded ? "opacity-100" : "opacity-0",
-            className
+            "w-full h-full object-cover transition-opacity duration-300",
+            isLoaded ? "opacity-100" : "opacity-0"
           )}
           onLoad={handleLoad}
           onError={handleError}
