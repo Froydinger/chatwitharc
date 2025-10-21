@@ -3,8 +3,9 @@ import { motion } from "framer-motion";
 import { 
   Trash2, User, LogOut, AlertTriangle, Camera, Wifi, WifiOff, 
   Cloud, CloudOff, Mic, Settings as SettingsIcon, ChevronDown,
-  Save, RotateCcw, X, Mail, Key, Download
+  Save, RotateCcw, X, Mail, Key, Download, Monitor
 } from "lucide-react";
+import { useTheme } from "@/hooks/useTheme";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
 import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
@@ -16,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
@@ -51,6 +53,7 @@ export function SettingsPanel() {
   const { user } = useAuth();
   const { profile, updateProfile, updating } = useProfile();
   const { toast } = useToast();
+  const { theme, toggleTheme, followSystem, toggleFollowSystem } = useTheme();
 
   const handleDataDeleted = () => {
     // Create new session and refresh
@@ -555,6 +558,48 @@ export function SettingsPanel() {
                           </GlassButton>
                         )}
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Theme Settings */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-foreground">Appearance</label>
+                      <p className="text-xs text-muted-foreground">Control how Arc looks on your device</p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {/* Follow System Theme Toggle */}
+                      <div className="flex items-center justify-between p-3 bg-glass/30 rounded-md">
+                        <div className="flex items-center gap-3">
+                          <Monitor className="h-4 w-4 text-primary-glow" />
+                          <div>
+                            <p className="text-sm font-medium">Follow System Theme</p>
+                            <p className="text-xs text-muted-foreground">Automatically match device appearance</p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={followSystem}
+                          onCheckedChange={toggleFollowSystem}
+                        />
+                      </div>
+
+                      {/* Manual Theme Toggle (only shown when not following system) */}
+                      {!followSystem && (
+                        <div className="flex items-center justify-between p-3 bg-glass/30 rounded-md">
+                          <div>
+                            <p className="text-sm font-medium">Theme</p>
+                            <p className="text-xs text-muted-foreground">Current: {theme === 'dark' ? 'Dark' : 'Light'}</p>
+                          </div>
+                          <GlassButton
+                            variant="ghost"
+                            size="sm"
+                            onClick={toggleTheme}
+                          >
+                            {theme === 'dark' ? '🌙' : '☀️'} Switch to {theme === 'dark' ? 'Light' : 'Dark'}
+                          </GlassButton>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
