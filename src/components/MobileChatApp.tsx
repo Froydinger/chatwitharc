@@ -171,7 +171,7 @@ export function MobileChatApp() {
     },
     {
       label: "🎯 Landing Page",
-      prompt: "Code: Design a modern landing page with HTML and CSS. Make it responsive and conversion-focused.",
+      prompt: "Code: Create a modern landing page with HTML and CSS. Make it responsive and conversion-focused.",
     },
     {
       label: "🛠️ Form Builder",
