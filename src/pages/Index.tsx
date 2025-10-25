@@ -19,6 +19,14 @@ export function Index() {
   const { currentSessionId, loadSession, chatSessions } = useArcStore();
 
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
+  // Mark initial load as complete once data is loaded
+  useEffect(() => {
+    if (user && isLoaded && !initialLoadComplete) {
+      setInitialLoadComplete(true);
+    }
+  }, [user, isLoaded, initialLoadComplete]);
 
   // Load session from URL if present
   useEffect(() => {
@@ -43,7 +51,8 @@ export function Index() {
     return <NamePrompt />;
   }
 
-  if (loading || (user && !isLoaded)) {
+  // Only show loading screen on initial load, not when switching chats
+  if (loading || (user && !initialLoadComplete)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
