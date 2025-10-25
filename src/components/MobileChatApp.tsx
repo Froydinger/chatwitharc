@@ -615,6 +615,9 @@ export function MobileChatApp() {
           border-radius: 9999px !important;
           overflow: visible;
           background: color-mix(in oklab, hsl(var(--background)) 82%, transparent);
+        }
+        .dark .glass-dock{
+          background: hsl(var(--muted) / 0.5);
           backdrop-filter: blur(10px) saturate(115%);
           -webkit-backdrop-filter: blur(10px) saturate(115%);
           border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
@@ -631,7 +634,6 @@ export function MobileChatApp() {
         .glass-dock > *{ position: relative; z-index: 1; }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
         .glass-dock .chat-input-halo{ border-radius: 9999px !important; border: 1px solid color-mix(in oklab, hsl(var(--border)) 28%, transparent) !important; background: color-mix(in oklab, hsl(var(--background)) 65%, transparent) !important; padding: 8px 10px !important; }
-        .dark .glass-dock .chat-input-halo{ background: rgba(24, 24, 30, 0.78) !important; border-color: rgba(60, 60, 70, 0.3) !important; }
         .glass-dock textarea{ outline: none !important; box-shadow: none !important; }
 
         /* Preview styles (used by ChatInput) */
