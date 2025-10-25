@@ -615,9 +615,6 @@ export function MobileChatApp() {
           border-radius: 9999px !important;
           overflow: visible;
           background: color-mix(in oklab, hsl(var(--background)) 82%, transparent);
-        }
-        .dark .glass-dock{
-          background: rgba(35, 38, 45, 0.65);
           backdrop-filter: blur(10px) saturate(115%);
           -webkit-backdrop-filter: blur(10px) saturate(115%);
           border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
