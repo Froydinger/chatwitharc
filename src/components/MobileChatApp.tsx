@@ -614,7 +614,10 @@ export function MobileChatApp() {
           padding: 10px;
           border-radius: 9999px !important;
           overflow: visible;
-          background: color-mix(in oklab, hsl(var(--background)) 82%, transparent);
+          background: rgba(107, 114, 128, 0.15);
+        }
+        .dark .glass-dock{
+          background: rgba(55, 60, 70, 0.4);
           backdrop-filter: blur(10px) saturate(115%);
           -webkit-backdrop-filter: blur(10px) saturate(115%);
           border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
@@ -630,8 +633,8 @@ export function MobileChatApp() {
         .glass-dock:focus-within{ background: color-mix(in oklab, hsl(var(--background)) 88%, transparent); box-shadow: 0 6px 22px rgba(0,0,0,.25), 0 0 0 1px color-mix(in oklab, hsl(var(--primary)) 26%, transparent) inset; }
         .glass-dock > *{ position: relative; z-index: 1; }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
-        .glass-dock .chat-input-halo{ border-radius: 9999px !important; border: 1px solid rgba(107, 114, 128, 0.5) !important; background: color-mix(in oklab, hsl(var(--background)) 65%, transparent) !important; padding: 8px 10px !important; }
-        .dark .glass-dock .chat-input-halo{ background: rgba(24, 24, 30, 0.78) !important; border-color: rgba(107, 114, 128, 0.5) !important; }
+        .glass-dock .chat-input-halo{ border-radius: 9999px !important; border: 1px solid color-mix(in oklab, hsl(var(--border)) 28%, transparent) !important; background: color-mix(in oklab, hsl(var(--background)) 65%, transparent) !important; padding: 8px 10px !important; }
+        .dark .glass-dock .chat-input-halo{ background: rgba(24, 24, 30, 0.78) !important; border-color: rgba(60, 60, 70, 0.3) !important; }
         .glass-dock textarea{ outline: none !important; box-shadow: none !important; }
 
         /* Preview styles (used by ChatInput) */
