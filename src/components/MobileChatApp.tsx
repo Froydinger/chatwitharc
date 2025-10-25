@@ -611,26 +611,11 @@ export function MobileChatApp() {
           position: relative;
           margin: 0 auto;
           max-width: 760px;
-          padding: 10px;
-          border-radius: 9999px !important;
+          padding: 0;
           overflow: visible;
-          background: color-mix(in oklab, hsl(var(--background)) 82%, transparent);
+          background: transparent;
         }
-        .dark .glass-dock{
-          background: hsl(var(--muted) / 0.5);
-          backdrop-filter: blur(10px) saturate(115%);
-          -webkit-backdrop-filter: blur(10px) saturate(115%);
-          border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
-          box-shadow: 0 2px 10px rgba(0,0,0,.20), 0 1px 0 rgba(255,255,255,.02) inset;
-          isolation: isolate;
-        }
-        .glass-dock::before{
-          content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
-          background: radial-gradient(120% 120% at 50% 50%, color-mix(in oklab, hsl(var(--primary)) 14%, transparent) 0%, transparent 40%);
-          opacity:.18;
-        }
-        .glass-dock:hover{ box-shadow: 0 4px 18px rgba(0,0,0,.22), 0 1px 0 rgba(255,255,255,.03) inset; transform: translateY(-0.5px); transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
-        .glass-dock:focus-within{ background: color-mix(in oklab, hsl(var(--background)) 88%, transparent); box-shadow: 0 6px 22px rgba(0,0,0,.25), 0 0 0 1px color-mix(in oklab, hsl(var(--primary)) 26%, transparent) inset; }
+        .glass-dock::before{ display: none; }
         .glass-dock > *{ position: relative; z-index: 1; }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
         .glass-dock .chat-input-halo{ background: transparent !important; border: none !important; padding: 0 !important; }
