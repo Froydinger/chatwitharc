@@ -420,7 +420,7 @@ export function MobileChatApp() {
                 })}
                 {/* Show thinking logo when loading and no messages yet or last message is user */}
                 {isLoading && !isGeneratingImage && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
-                  <div className="flex justify-start pl-4">
+                  <div className="flex justify-start pl-4 ml-2">
                     <motion.div
                       className="flex items-center justify-start"
                       initial={{ opacity: 0, scale: 0.8 }}
@@ -439,7 +439,7 @@ export function MobileChatApp() {
                         <img 
                           src="/arc-logo.png" 
                           alt="Arc" 
-                          className="h-24 w-24 rounded-full"
+                          className="h-18 w-18 rounded-full"
                         />
                         <motion.div
                           className="absolute -inset-2 bg-primary/40 rounded-full blur-lg"
