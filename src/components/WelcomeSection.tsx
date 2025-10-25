@@ -64,7 +64,7 @@ export function WelcomeSection({
             repeat: Infinity, 
             ease: "easeInOut" 
           }}
-          className="flex justify-center mb-6 opacity-80 mt-5"
+          className="flex justify-center mb-6 opacity-80 mt-[40px]"
         >
           <img 
             src={heroAvatar} 
@@ -77,8 +77,7 @@ export function WelcomeSection({
 
         <p className="text-muted-foreground text-lg mb-2">What are we getting into to today?</p>
         <p className="text-xs text-muted-foreground/60 px-[27px] font-extralight">
-          Tap a prompt below to edit it and send it! You can change which model Arc uses in settings. Images are
-          generated w/ Nano Banana 🍌
+          You can change which model Arc uses in settings. Images are generated w/ Nano Banana 🍌
         </p>
       </div>
 
