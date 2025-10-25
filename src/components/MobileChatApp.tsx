@@ -437,9 +437,9 @@ export function MobileChatApp() {
                     >
                       <div className="relative">
                         <img 
-                          src="/arc-logo.png" 
+                          src="/arc-logo-cropped.png" 
                           alt="Arc" 
-                          className="h-20 w-20 rounded-full"
+                          className="h-10 w-10"
                         />
                         <motion.div
                           className="absolute -inset-2 bg-primary/40 rounded-full blur-lg"
