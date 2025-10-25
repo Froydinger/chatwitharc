@@ -24,11 +24,11 @@
   "categories": ["productivity", "utilities", "social"],
   "screenshots": [
     {
-      "src": "/lovable-uploads/c7701ea9-bd3b-4b72-bdf0-0f92beefab95.png",
+      "src": "/arc-logo-pwa.png",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "ArcAI Chat Interface"
+      "label": "ArcAI Logo"
     }
   ]
 }
