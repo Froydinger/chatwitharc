@@ -31,9 +31,9 @@ export function Index() {
         <div className="text-center">
           <div className="animate-pulse flex justify-center mb-4">
             <img
-              src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png"
+              src="/arc-logo.png"
               alt="ArcAI"
-              className="h-12 w-12 avatar-filled-eyes"
+              className="h-12 w-12"
             />
           </div>
           <p className="text-muted-foreground">Just a second...</p>

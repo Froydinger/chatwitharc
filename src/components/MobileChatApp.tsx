@@ -22,8 +22,8 @@ function getDaypartGreeting(d: Date = new Date()): "Good Morning" | "Good Aftern
 }
 
 /** Keep header logo as-is; use the head-only avatar above prompts */
-const HEADER_LOGO = "/lovable-uploads/c65f38aa-5928-46e1-b224-9f6a2bacbf18.png";
-const HERO_AVATAR = "/lovable-uploads/87484cd8-85ad-46c7-af84-5cfe46e7a8f8.png";
+const HEADER_LOGO = "/arc-logo.png";
+const HERO_AVATAR = "/arc-logo.png";
 
 export function MobileChatApp() {
   const {

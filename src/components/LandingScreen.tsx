@@ -55,9 +55,9 @@ export function LandingScreen() {
               className="flex justify-center mb-6"
             >
               <img 
-                src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" 
+                src="/arc-logo.png" 
                 alt="ArcAI" 
-                className="h-16 w-16 sm:h-20 sm:w-20 avatar-filled-eyes" 
+                className="h-16 w-16 sm:h-20 sm:w-20" 
               />
             </motion.div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-4">

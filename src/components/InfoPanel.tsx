@@ -6,7 +6,7 @@ import { GlassButton } from "@/components/ui/glass-button";
 export function InfoPanel() {
   const features = [
     {
-      icon: () => <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="Arc AI" className="w-6 h-6 avatar-filled-eyes" />,
+      icon: () => <img src="/arc-logo.png" alt="Arc AI" className="w-6 h-6" />,
       title: "Liquid Glass UI",
       description: "Apple-inspired translucent interface with fluid animations and micro-interactions"
     },
@@ -68,7 +68,7 @@ export function InfoPanel() {
           }}
           className="flex justify-center mb-4"
         >
-          <img src="/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" alt="ArcAI" className="h-16 w-16 avatar-filled-eyes" />
+          <img src="/arc-logo.png" alt="ArcAI" className="h-16 w-16" />
         </motion.div>
         
         <h1 className="text-4xl font-bold text-foreground mb-2">
