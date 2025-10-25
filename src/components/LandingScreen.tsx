@@ -37,7 +37,7 @@ export function LandingScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden pt-12">
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center px-6 relative z-10">
@@ -99,7 +99,7 @@ export function LandingScreen() {
             initial={{ opacity: 0, y: 40 }} 
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="w-full max-w-6xl mb-8"
+            className="w-full max-w-6xl mb-3"
           >
             <QuickPrompts quickPrompts={quickPrompts} onTriggerPrompt={handleTriggerPrompt} />
           </motion.div>
