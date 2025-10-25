@@ -19,27 +19,19 @@ export function Index() {
   const { currentSessionId, loadSession, chatSessions } = useArcStore();
 
   const [onboardingComplete, setOnboardingComplete] = useState(false);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
-  // Mark initial load as complete once data is loaded
+  // Load session from URL if present (don't wait for isLoaded, just do it)
   useEffect(() => {
-    if (user && isLoaded && !initialLoadComplete) {
-      setInitialLoadComplete(true);
-    }
-  }, [user, isLoaded, initialLoadComplete]);
-
-  // Load session from URL if present
-  useEffect(() => {
-    if (sessionId && user && isLoaded) {
+    if (sessionId && user) {
       const sessionExists = chatSessions.find(s => s.id === sessionId);
       if (sessionExists && currentSessionId !== sessionId) {
         loadSession(sessionId);
-      } else if (!sessionExists) {
-        // Session doesn't exist, redirect to home
+      } else if (!sessionExists && isLoaded) {
+        // Only redirect if we've confirmed sessions are loaded
         navigate('/', { replace: true });
       }
     }
-  }, [sessionId, user, isLoaded, chatSessions, currentSessionId, loadSession, navigate]);
+  }, [sessionId, user, chatSessions, currentSessionId, loadSession, navigate, isLoaded]);
 
   // Initialize theme on app load
   useEffect(() => {
@@ -51,8 +43,8 @@ export function Index() {
     return <NamePrompt />;
   }
 
-  // Only show loading screen on initial load, not when switching chats
-  if (loading || (user && !initialLoadComplete)) {
+  // Only show loading screen during auth, never during chat switches
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
