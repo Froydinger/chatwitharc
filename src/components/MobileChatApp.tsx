@@ -327,7 +327,7 @@ export function MobileChatApp() {
                 <motion.img
                   src={HERO_AVATAR}
                   alt="ArcAI"
-                  className="h-8 w-8 rounded-small"
+                  className="h-12 w-12 rounded-small"
                   animate={{ y: [0, -2, 0] }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 />
