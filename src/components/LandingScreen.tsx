@@ -59,7 +59,7 @@ export function LandingScreen() {
                 repeat: Infinity, 
                 ease: "easeInOut" 
               }}
-              className="flex justify-center mb-[0px] relative z-0"
+              className="flex justify-center mb-[-5px] relative z-0"
             >
               <img 
                 src="/arc-logo.png" 
@@ -69,10 +69,10 @@ export function LandingScreen() {
             </motion.div>
             
             <div className="relative z-10">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-4">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-3">
                 <span className="font-thin">Arc</span><span className="font-semibold">AI</span>
               </h1>
-              <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-3">
+              <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-2">
                 Ask, Reflect, Create
               </p>
               <p className="text-sm text-muted-foreground/70 max-w-xl mx-auto">
