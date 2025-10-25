@@ -64,7 +64,7 @@ export function WelcomeSection({
             repeat: Infinity, 
             ease: "easeInOut" 
           }}
-          className="flex justify-center mb-6 opacity-80"
+          className="flex justify-center mb-6 opacity-80 mt-5"
         >
           <img 
             src={heroAvatar} 
