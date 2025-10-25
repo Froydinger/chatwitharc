@@ -398,30 +398,36 @@ export function MobileChatApp() {
               />
             ) : (
               <div className="p-4 space-y-4 chat-messages">
-                {messages.map((message) => (
-                  <MessageBubble
-                    key={message.id}
-                    message={message}
-                    onEdit={async (messageId: string, newContent: string) => {
-                      const chatInputEvent = new CustomEvent("processEditedMessage", {
-                        detail: { content: newContent, editedMessageId: messageId },
-                      });
-                      window.dispatchEvent(chatInputEvent);
-                    }}
-                  />
-                ))}
-                {/* Only show ThinkingIndicator for text-only loading, not for image generation
-                    AND only after there is at least one message */}
+                {messages.map((message, index) => {
+                  const isLastAssistantMessage = 
+                    message.role === 'assistant' && 
+                    index === messages.length - 1;
+                  
+                  return (
+                    <MessageBubble
+                      key={message.id}
+                      message={message}
+                      isLatestAssistant={isLastAssistantMessage}
+                      isThinking={isLastAssistantMessage && isLoading && !isGeneratingImage}
+                      onEdit={async (messageId: string, newContent: string) => {
+                        const chatInputEvent = new CustomEvent("processEditedMessage", {
+                          detail: { content: newContent, editedMessageId: messageId },
+                        });
+                        window.dispatchEvent(chatInputEvent);
+                      }}
+                    />
+                  );
+                })}
+                {/* Cancel button during loading */}
                 {isLoading && !isGeneratingImage && messages.length > 0 && (
-                  <div className="flex flex-col items-start gap-2">
-                    <ThinkingIndicator isLoading={true} isGeneratingImage={false} />
+                  <div className="flex justify-start pl-4">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => {
                         cancelCurrentRequest();
                       }}
-                      className="ml-2 text-muted-foreground hover:text-destructive"
+                      className="text-muted-foreground hover:text-destructive"
                     >
                       <X className="h-3.5 w-3.5 mr-1.5" />
                       Cancel

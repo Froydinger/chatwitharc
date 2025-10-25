@@ -18,10 +18,12 @@ import { CodeBlock } from "@/components/CodeBlock";
 interface MessageBubbleProps {
   message: Message;
   onEdit?: (messageId: string, newContent: string) => void;
+  isLatestAssistant?: boolean;
+  isThinking?: boolean;
 }
 
 export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
-  ({ message, onEdit }, ref) => {
+  ({ message, onEdit, isLatestAssistant, isThinking }, ref) => {
     const { editMessage } = useArcStore();
     const { profile } = useProfile();
     const { toast } = useToast();
@@ -125,18 +127,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
         transition={{ duration: 0.15, ease: "easeOut" }}
         className={`flex ${isUser ? "justify-end" : "justify-start"} group`}
       >
-        <div className={`flex gap-2 max-w-[85%] ${isUser ? "ml-auto flex-row-reverse" : "mr-auto"}`}>
-          {/* Avatar - only show for AI messages */}
-          {!isUser && (
-            <div className="flex-shrink-0 mt-1">
-              <img 
-                src="/arc-logo.png" 
-                alt="Arc" 
-                className="h-8 w-8 rounded-full opacity-80"
-              />
-            </div>
-          )}
-          
+        <div className={`flex flex-col gap-2 max-w-[85%] ${isUser ? "ml-auto items-end" : "mr-auto items-start"}`}>
           {/* Message Bubble */}
           <motion.div
             initial={{ opacity: 0.9 }}
@@ -366,6 +357,46 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               </motion.div>
             )}
           </motion.div>
+          
+          {/* Arc Logo - only show for latest assistant message */}
+          {!isUser && isLatestAssistant && (
+            <motion.div
+              className="flex items-center justify-start mt-1"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1,
+                rotate: isThinking ? 360 : 0
+              }}
+              transition={{ 
+                opacity: { duration: 0.3 },
+                scale: { duration: 0.3 },
+                rotate: { duration: 2, repeat: isThinking ? Infinity : 0, ease: "linear" }
+              }}
+            >
+              <div className="relative">
+                <img 
+                  src="/arc-logo.png" 
+                  alt="Arc" 
+                  className="h-6 w-6 rounded-full"
+                />
+                {isThinking && (
+                  <motion.div
+                    className="absolute -inset-1 bg-primary/30 rounded-full blur-md"
+                    animate={{ 
+                      scale: [1, 1.2, 1],
+                      opacity: [0.3, 0.6, 0.3]
+                    }}
+                    transition={{ 
+                      duration: 1.5, 
+                      repeat: Infinity, 
+                      ease: "easeInOut" 
+                    }}
+                  />
+                )}
+              </div>
+            </motion.div>
+          )}
         </div>
 
         {/* Image Modal */}
