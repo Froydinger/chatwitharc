@@ -59,7 +59,7 @@ export function LandingScreen() {
                 repeat: Infinity, 
                 ease: "easeInOut" 
               }}
-              className="flex justify-center mb-[-30px] relative z-0"
+              className="flex justify-center mb-[0px] relative z-0"
             >
               <img 
                 src="/arc-logo.png" 
