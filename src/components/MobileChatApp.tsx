@@ -614,10 +614,10 @@ export function MobileChatApp() {
           padding: 10px;
           border-radius: 9999px !important;
           overflow: visible;
-          background: rgba(107, 114, 128, 0.15);
+          background: color-mix(in oklab, hsl(var(--background)) 82%, transparent);
         }
         .dark .glass-dock{
-          background: rgba(55, 60, 70, 0.4);
+          background: rgba(35, 38, 45, 0.65);
           backdrop-filter: blur(10px) saturate(115%);
           -webkit-backdrop-filter: blur(10px) saturate(115%);
           border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);

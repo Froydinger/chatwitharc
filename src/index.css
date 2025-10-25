@@ -43,10 +43,11 @@ All colors MUST be HSL for perfect glass effects.
     --warning: 38 92% 50%;
     --warning-foreground: 240 5% 96%;
 
-    /* UI Elements */
-    --border: 240 8% 20%;
-    --input: 240 8% 12%;
-    --ring: 200 95% 55%;
+  /* UI Elements */
+  --border: 240 8% 20%;
+  --input: 240 8% 12%;
+  --input-dark: 240 10% 15%;
+  --ring: 200 95% 55%;
 
     /* Glass Effects */
     --glass-bg: 240 8% 8%;
@@ -368,6 +369,23 @@ All colors MUST be HSL for perfect glass effects.
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
     border-radius: 30%;
+  }
+
+  /* Dark input fields for panels */
+  .dark input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+  .dark textarea {
+    background: rgba(35, 38, 45, 0.65) !important;
+    border-color: rgba(60, 60, 70, 0.4) !important;
+  }
+
+  /* Dark glass cards in panels */
+  .dark .glass-card-dark {
+    background: rgba(35, 38, 45, 0.65) !important;
+  }
+
+  /* Dark music tiles */
+  .dark .music-tile-dark {
+    background: rgba(35, 38, 45, 0.65) !important;
   }
 
   /* Internal breathing glow animation */

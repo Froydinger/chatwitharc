@@ -313,7 +313,7 @@ export function MusicPlayerPanel({
             {musicTracks.map((musicTrack) => (
               <div
                 key={musicTrack.id}
-                className={`flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all ${
+                className={`flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all music-tile-dark ${
                   currentTrack === musicTrack.id 
                     ? 'bg-primary/10 ring-1 ring-primary-glow' 
                     : 'hover:bg-muted/5'
