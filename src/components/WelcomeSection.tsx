@@ -51,7 +51,26 @@ export function WelcomeSection({
   return (
     <div className="h-full flex flex-col items-center justify-start p-6 pt-8">
       {/* Hero Section */}
-      <div className="text-center mb-8">
+      <div className="text-center mb-8 relative">
+        {/* Logo positioned above greeting */}
+        <motion.div
+          animate={{ 
+            scale: [1, 1.05, 1]
+          }}
+          transition={{ 
+            duration: 10, 
+            repeat: Infinity, 
+            ease: "easeInOut" 
+          }}
+          className="flex justify-center mb-6 opacity-80"
+        >
+          <img 
+            src={heroAvatar} 
+            alt="ArcAI" 
+            className="h-20 w-20" 
+          />
+        </motion.div>
+        
         <h1 className="text-3xl font-bold text-foreground mb-2">{greeting}!</h1>
 
         <p className="text-muted-foreground text-lg mb-2">What are we getting into to today?</p>

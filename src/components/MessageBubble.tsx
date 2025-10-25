@@ -125,9 +125,19 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
         transition={{ duration: 0.15, ease: "easeOut" }}
         className={`flex ${isUser ? "justify-end" : "justify-start"} group`}
       >
-        <div className={`flex max-w-[85%] ${isUser ? "ml-auto" : "mr-auto"}`}>
-          {/* Bubble container */}
-          {/* Avatar */}
+        <div className={`flex gap-2 max-w-[85%] ${isUser ? "ml-auto flex-row-reverse" : "mr-auto"}`}>
+          {/* Avatar - only show for AI messages */}
+          {!isUser && (
+            <div className="flex-shrink-0 mt-1">
+              <img 
+                src="/arc-logo.png" 
+                alt="Arc" 
+                className="h-8 w-8 rounded-full opacity-80"
+              />
+            </div>
+          )}
+          
+          {/* Message Bubble */}
           <motion.div
             initial={{ opacity: 0.9 }}
             animate={{ opacity: 1 }}
