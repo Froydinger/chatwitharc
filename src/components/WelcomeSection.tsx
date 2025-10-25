@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ThinkingIndicator } from "./ThinkingIndicator";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, Image, PenTool, Code2 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface WelcomeSectionProps {
   greeting: string;
@@ -25,6 +26,7 @@ export function WelcomeSection({
 }: WelcomeSectionProps) {
   const [activeTab, setActiveTab] = useState<"chat" | "create" | "write" | "code">("chat");
   const [glowIndex, setGlowIndex] = useState<number>(0);
+  const isMobile = useIsMobile();
 
   // Separate prompts: 6 chat, 6 create, 6 write, 6 code
   const chatPrompts = quickPrompts.slice(0, 6);
@@ -84,47 +86,47 @@ export function WelcomeSection({
       <div className="flex bg-muted/50 p-1 rounded-lg mb-8 backdrop-blur-sm">
         <button
           onClick={() => setActiveTab("chat")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 text-sm ${
+          className={`flex items-center justify-center gap-2 ${isMobile ? 'px-3' : 'px-4'} py-2 rounded-md transition-all duration-200 text-sm ${
             activeTab === "chat"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <MessageCircle size={14} />
-          Chat
+          <MessageCircle size={16} />
+          {!isMobile && "Chat"}
         </button>
         <button
           onClick={() => setActiveTab("create")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 text-sm ${
+          className={`flex items-center justify-center gap-2 ${isMobile ? 'px-3' : 'px-4'} py-2 rounded-md transition-all duration-200 text-sm ${
             activeTab === "create"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Image size={14} />
-          Create
+          <Image size={16} />
+          {!isMobile && "Create"}
         </button>
         <button
           onClick={() => setActiveTab("write")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 text-sm ${
+          className={`flex items-center justify-center gap-2 ${isMobile ? 'px-3' : 'px-4'} py-2 rounded-md transition-all duration-200 text-sm ${
             activeTab === "write"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <PenTool size={14} />
-          Write
+          <PenTool size={16} />
+          {!isMobile && "Write"}
         </button>
         <button
           onClick={() => setActiveTab("code")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 text-sm ${
+          className={`flex items-center justify-center gap-2 ${isMobile ? 'px-3' : 'px-4'} py-2 rounded-md transition-all duration-200 text-sm ${
             activeTab === "code"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Code2 size={14} />
-          Code
+          <Code2 size={16} />
+          {!isMobile && "Code"}
         </button>
       </div>
 
