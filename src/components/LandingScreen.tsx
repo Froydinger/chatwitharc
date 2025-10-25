@@ -59,7 +59,7 @@ export function LandingScreen() {
                 repeat: Infinity, 
                 ease: "easeInOut" 
               }}
-              className="flex justify-center mb-[-20px] relative z-0"
+              className="flex justify-center mb-[-30px] relative z-0"
             >
               <img 
                 src="/arc-logo.png" 
@@ -76,7 +76,7 @@ export function LandingScreen() {
                 Ask, Reflect, Create
               </p>
               <p className="text-sm text-muted-foreground/70 max-w-xl mx-auto">
-                Powered by Google Gemini 2.5 Flash & Nano Banana 🍌
+                From morning check-ins to late-night ideas, AI that keeps up without the overwhelm
               </p>
             </div>
           </motion.div>
@@ -133,7 +133,7 @@ export function LandingScreen() {
           A relaxing, organized space for both new and experienced AI users
         </p>
         <p className="text-xs text-muted-foreground/50 mb-2">
-          Chat with Gemini • Generate with Nano Banana 🍌
+          Chat Powered by Gemini 2.5 or GPT 5 • Create Powered by Nano Banana
         </p>
         <div className="mt-2">
           <PrivacyTermsModal />
