@@ -628,7 +628,13 @@ export function MobileChatApp() {
         .glass-dock:focus-within{ background: rgba(24, 24, 30, 0.78); box-shadow: none; }
         .glass-dock > *{ position: relative; z-index: 1; }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
-        .glass-dock .chat-input-halo{ background: transparent !important; border: none !important; padding: 0 !important; }
+        .glass-dock .chat-input-halo{ 
+          background: transparent !important; 
+          border: none !important; 
+          box-shadow: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
         .glass-dock textarea{ outline: none !important; box-shadow: none !important; }
 
         /* Preview styles (used by ChatInput) */
