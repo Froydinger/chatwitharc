@@ -361,7 +361,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           {/* Arc Logo - only show for latest assistant message */}
           {!isUser && isLatestAssistant && (
             <motion.div
-              className="flex items-center justify-start mt-1"
+              className="flex items-center justify-start mt-2"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ 
                 opacity: 1, 
@@ -378,14 +378,14 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 <img 
                   src="/arc-logo.png" 
                   alt="Arc" 
-                  className="h-6 w-6 rounded-full"
+                  className="h-24 w-24 rounded-full"
                 />
                 {isThinking && (
                   <motion.div
-                    className="absolute -inset-1 bg-primary/30 rounded-full blur-md"
+                    className="absolute -inset-2 bg-primary/40 rounded-full blur-lg"
                     animate={{ 
-                      scale: [1, 1.2, 1],
-                      opacity: [0.3, 0.6, 0.3]
+                      scale: [1, 1.3, 1],
+                      opacity: [0.4, 0.7, 0.4]
                     }}
                     transition={{ 
                       duration: 1.5, 

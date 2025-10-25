@@ -418,6 +418,45 @@ export function MobileChatApp() {
                     />
                   );
                 })}
+                {/* Show thinking logo when loading and no messages yet or last message is user */}
+                {isLoading && !isGeneratingImage && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
+                  <div className="flex justify-start pl-4">
+                    <motion.div
+                      className="flex items-center justify-start"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ 
+                        opacity: 1, 
+                        scale: 1,
+                        rotate: 360
+                      }}
+                      transition={{ 
+                        opacity: { duration: 0.3 },
+                        scale: { duration: 0.3 },
+                        rotate: { duration: 2, repeat: Infinity, ease: "linear" }
+                      }}
+                    >
+                      <div className="relative">
+                        <img 
+                          src="/arc-logo.png" 
+                          alt="Arc" 
+                          className="h-24 w-24 rounded-full"
+                        />
+                        <motion.div
+                          className="absolute -inset-2 bg-primary/40 rounded-full blur-lg"
+                          animate={{ 
+                            scale: [1, 1.3, 1],
+                            opacity: [0.4, 0.7, 0.4]
+                          }}
+                          transition={{ 
+                            duration: 1.5, 
+                            repeat: Infinity, 
+                            ease: "easeInOut" 
+                          }}
+                        />
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
                 {/* Cancel button during loading */}
                 {isLoading && !isGeneratingImage && messages.length > 0 && (
                   <div className="flex justify-start pl-4">
