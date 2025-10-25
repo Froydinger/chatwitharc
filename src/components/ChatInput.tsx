@@ -703,10 +703,10 @@ export function ChatInput({ onImagesChange }: Props) {
           onClick={handleSend}
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
           className={[
-            "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border",
+            "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40",
             inputValue.trim() || selectedImages.length
               ? "dark:bg-primary text-white dark:text-primary-foreground hover:opacity-90 dark:border-primary bg-blue-500 border-blue-500 text-white"
-              : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed border-transparent",
+              : "bg-muted/50 text-muted-foreground cursor-not-allowed",
           ].join(" ")}
           aria-label="Send"
         >
