@@ -86,10 +86,10 @@ export function PWAInstallPrompt() {
         transition={{ type: "spring", damping: 20 }}
         className="fixed bottom-32 left-4 right-4 z-50 md:left-auto md:right-8 md:w-80"
       >
-        <GlassCard variant="bubble" glow className="p-4">
+        <div className="bg-card/95 backdrop-blur-xl border border-border rounded-2xl p-4 shadow-xl">
           <div className="flex items-start gap-3">
-            <div className="glass rounded-lg p-2">
-              <Smartphone className="h-5 w-5 text-primary-glow" />
+            <div className="bg-primary/10 rounded-lg p-2">
+              <Smartphone className="h-5 w-5 text-primary" />
             </div>
             
             <div className="flex-1">
@@ -115,13 +115,14 @@ export function PWAInstallPrompt() {
                   variant="ghost"
                   size="sm"
                   onClick={handleDismiss}
+                  className="border border-border"
                 >
                   <X className="h-4 w-4" />
                 </GlassButton>
               </div>
             </div>
           </div>
-        </GlassCard>
+        </div>
       </motion.div>
     </AnimatePresence>
   );

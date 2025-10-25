@@ -51,35 +51,14 @@ export function WelcomeSection({
   return (
     <div className="h-full flex flex-col items-center justify-start p-6 pt-8">
       {/* Hero Section */}
-      <div className="text-center mb-8 relative">
-        {/* Logo positioned to slightly clip behind text */}
-        <motion.div
-          animate={{ 
-            scale: [1, 1.05, 1]
-          }}
-          transition={{ 
-            duration: 10, 
-            repeat: Infinity, 
-            ease: "easeInOut" 
-          }}
-          className="flex justify-center mb-[-20px] relative z-0"
-        >
-          <img 
-            src={heroAvatar} 
-            alt="ArcAI" 
-            className="h-16 w-16" 
-          />
-        </motion.div>
-        
-        <div className="relative z-10">
-          <h1 className="text-3xl font-bold text-foreground mb-2">{greeting}!</h1>
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-foreground mb-2">{greeting}!</h1>
 
-          <p className="text-muted-foreground text-lg mb-2">What are we getting into to today?</p>
-          <p className="text-xs text-muted-foreground/60 px-[27px] font-extralight">
-            Tap a prompt below to edit it and send it! You can change which model Arc uses in settings. Images are
-            generated w/ Nano Banana 🍌
-          </p>
-        </div>
+        <p className="text-muted-foreground text-lg mb-2">What are we getting into to today?</p>
+        <p className="text-xs text-muted-foreground/60 px-[27px] font-extralight">
+          Tap a prompt below to edit it and send it! You can change which model Arc uses in settings. Images are
+          generated w/ Nano Banana 🍌
+        </p>
       </div>
 
       {/* Tab Selection */}

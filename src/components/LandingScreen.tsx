@@ -47,12 +47,19 @@ export function LandingScreen() {
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center"
+            className="text-center relative"
           >
+            {/* Logo positioned to slightly clip behind text */}
             <motion.div
-              animate={{ rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="flex justify-center mb-6"
+              animate={{ 
+                scale: [1, 1.05, 1]
+              }}
+              transition={{ 
+                duration: 10, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
+              className="flex justify-center mb-[-20px] relative z-0"
             >
               <img 
                 src="/arc-logo.png" 
@@ -60,15 +67,18 @@ export function LandingScreen() {
                 className="h-16 w-16 sm:h-20 sm:w-20" 
               />
             </motion.div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-4">
-              <span className="font-thin">Arc</span><span className="font-semibold">AI</span>
-            </h1>
-            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-3">
-              Ask, Reflect, Create
-            </p>
-            <p className="text-sm text-muted-foreground/70 max-w-xl mx-auto">
-              Powered by Google Gemini 2.5 Flash & Nano Banana 🍌
-            </p>
+            
+            <div className="relative z-10">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-4">
+                <span className="font-thin">Arc</span><span className="font-semibold">AI</span>
+              </h1>
+              <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-3">
+                Ask, Reflect, Create
+              </p>
+              <p className="text-sm text-muted-foreground/70 max-w-xl mx-auto">
+                Powered by Google Gemini 2.5 Flash & Nano Banana 🍌
+              </p>
+            </div>
           </motion.div>
         </div>
 
