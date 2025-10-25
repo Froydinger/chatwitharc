@@ -611,11 +611,15 @@ export function MobileChatApp() {
           position: relative;
           margin: 0 auto;
           max-width: 760px;
-          padding: 0;
+          padding: 10px;
           overflow: visible;
           background: transparent;
+          border: none;
+          box-shadow: none;
         }
         .glass-dock::before{ display: none; }
+        .glass-dock:hover{ box-shadow: none; transform: none; }
+        .glass-dock:focus-within{ background: transparent; box-shadow: none; }
         .glass-dock > *{ position: relative; z-index: 1; }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
         .glass-dock .chat-input-halo{ background: transparent !important; border: none !important; padding: 0 !important; }
