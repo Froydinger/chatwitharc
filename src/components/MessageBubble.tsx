@@ -378,7 +378,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 <img 
                   src="/arc-logo.png" 
                   alt="Arc" 
-                  className="h-18 w-18 rounded-full"
+                  className="h-20 w-20 rounded-full"
                 />
                 {isThinking && (
                   <motion.div

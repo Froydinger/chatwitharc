@@ -439,7 +439,7 @@ export function MobileChatApp() {
                         <img 
                           src="/arc-logo.png" 
                           alt="Arc" 
-                          className="h-18 w-18 rounded-full"
+                          className="h-20 w-20 rounded-full"
                         />
                         <motion.div
                           className="absolute -inset-2 bg-primary/40 rounded-full blur-lg"
