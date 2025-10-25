@@ -612,14 +612,20 @@ export function MobileChatApp() {
           margin: 0 auto;
           max-width: 760px;
           padding: 10px;
+          border-radius: 9999px;
           overflow: visible;
-          background: transparent;
-          border: none;
-          box-shadow: none;
+          background: color-mix(in oklab, hsl(var(--background)) 82%, transparent);
+          border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
+        }
+        .dark .glass-dock{
+          background: rgba(24, 24, 30, 0.78);
+          backdrop-filter: blur(10px) saturate(115%);
+          -webkit-backdrop-filter: blur(10px) saturate(115%);
+          border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
         }
         .glass-dock::before{ display: none; }
-        .glass-dock:hover{ box-shadow: none; transform: none; }
-        .glass-dock:focus-within{ background: transparent; box-shadow: none; }
+        .glass-dock:hover{ transform: none; transition: none; }
+        .glass-dock:focus-within{ background: rgba(24, 24, 30, 0.78); box-shadow: none; }
         .glass-dock > *{ position: relative; z-index: 1; }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
         .glass-dock .chat-input-halo{ background: transparent !important; border: none !important; padding: 0 !important; }
