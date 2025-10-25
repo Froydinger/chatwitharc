@@ -320,7 +320,7 @@ export function MobileChatApp() {
         )}
       >
         {/* Header */}
-        <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-2">
+        <header className="sticky top-0 z-40 border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-2 dark:bg-[rgba(24,24,30,0.78)] bg-background/95">
           <div className="flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -631,7 +631,7 @@ export function MobileChatApp() {
         .glass-dock > *{ position: relative; z-index: 1; }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
         .glass-dock .chat-input-halo{ border-radius: 9999px !important; border: 1px solid color-mix(in oklab, hsl(var(--border)) 28%, transparent) !important; background: color-mix(in oklab, hsl(var(--background)) 65%, transparent) !important; padding: 8px 10px !important; }
-        .dark .glass-dock .chat-input-halo{ background: rgba(20, 20, 25, 0.85) !important; }
+        .dark .glass-dock .chat-input-halo{ background: rgba(24, 24, 30, 0.78) !important; border-color: rgba(60, 60, 70, 0.5) !important; }
         .glass-dock textarea{ outline: none !important; box-shadow: none !important; }
 
         /* Preview styles (used by ChatInput) */
