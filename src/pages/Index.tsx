@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useChatSync } from "@/hooks/useChatSync";
+import { useArcStore } from "@/store/useArcStore";
 import { NamePrompt } from "@/components/NamePrompt";
 import { MobileChatApp } from "@/components/MobileChatApp";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
@@ -9,11 +11,27 @@ import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { LandingScreen } from "@/components/LandingScreen";
 
 export function Index() {
+  const { sessionId } = useParams();
+  const navigate = useNavigate();
   const { user, loading, needsOnboarding } = useAuth();
   const { isLoaded } = useChatSync();
   const { theme } = useTheme();
+  const { currentSessionId, loadSession, chatSessions } = useArcStore();
 
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+
+  // Load session from URL if present
+  useEffect(() => {
+    if (sessionId && user && isLoaded) {
+      const sessionExists = chatSessions.find(s => s.id === sessionId);
+      if (sessionExists && currentSessionId !== sessionId) {
+        loadSession(sessionId);
+      } else if (!sessionExists) {
+        // Session doesn't exist, redirect to home
+        navigate('/', { replace: true });
+      }
+    }
+  }, [sessionId, user, isLoaded, chatSessions, currentSessionId, loadSession, navigate]);
 
   // Initialize theme on app load
   useEffect(() => {

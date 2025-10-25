@@ -179,6 +179,8 @@ export const useArcStore = create<ArcState>()(
         get().saveChatToSupabase(newSession);
         
         return sessionId;
+        
+        return sessionId;
       },
       
       loadSession: (sessionId) => {

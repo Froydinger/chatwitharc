@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Image, X, Download, Search, MessageCircle } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -34,12 +35,14 @@ function toDate(ts: unknown): Date | null {
 }
 
 export function MediaLibraryPanel() {
+  const navigate = useNavigate();
   const { chatSessions, loadSession, setRightPanelOpen } = useArcStore();
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   const goToChat = (sessionId: string) => {
     loadSession(sessionId);
+    navigate(`/chat/${sessionId}`);
     setRightPanelOpen(false);
     setSelectedImage(null);
   };

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, MessageSquare, Search } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -7,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 
 export function ChatHistoryPanel() {
+  const navigate = useNavigate();
   const { 
     chatSessions, 
     currentSessionId, 
@@ -26,12 +28,14 @@ export function ChatHistoryPanel() {
   };
 
   const handleNewChat = () => {
-    createNewSession();
+    const newSessionId = createNewSession();
+    navigate(`/chat/${newSessionId}`);
     goToChat();
   };
 
   const handleLoadSession = (sessionId: string) => {
     loadSession(sessionId);
+    navigate(`/chat/${sessionId}`);
     goToChat();
   };
 

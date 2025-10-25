@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Menu, Sun, Moon, ArrowDown, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
@@ -26,6 +27,7 @@ const HEADER_LOGO = "/arc-logo.png";
 const HERO_AVATAR = "/arc-logo.png";
 
 export function MobileChatApp() {
+  const navigate = useNavigate();
   const {
     messages,
     isLoading,
@@ -64,6 +66,17 @@ export function MobileChatApp() {
     const id = setInterval(() => setGreeting(getPersonalizedGreeting()), 60_000);
     return () => clearInterval(id);
   }, [profile?.display_name]);
+
+  // Sync URL with current session
+  useEffect(() => {
+    if (currentSessionId) {
+      const currentPath = window.location.pathname;
+      const expectedPath = `/chat/${currentSessionId}`;
+      if (currentPath !== expectedPath) {
+        navigate(expectedPath, { replace: true });
+      }
+    }
+  }, [currentSessionId, navigate]);
 
   // Quick Prompts - 6 Chat, 6 Create, 6 Write, 6 Code
   const quickPrompts = [
@@ -245,7 +258,8 @@ export function MobileChatApp() {
       el.scrollTop = 0;
     }
     
-    createNewSession();
+    const newSessionId = createNewSession();
+    navigate(`/chat/${newSessionId}`);
     setRightPanelOpen(false);
     
     // Force scroll to top again after state updates
