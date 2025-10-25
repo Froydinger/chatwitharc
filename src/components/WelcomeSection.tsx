@@ -84,50 +84,106 @@ export function WelcomeSection({
 
       {/* Tab Selection */}
       <div className="flex bg-muted/50 p-1 rounded-lg mb-8 backdrop-blur-sm">
-        <button
+        <motion.button
           onClick={() => setActiveTab("chat")}
-          className={`flex items-center justify-center gap-2 ${isMobile ? 'px-3' : 'px-4'} py-2 rounded-md transition-all duration-200 text-sm ${
+          layout
+          className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md transition-all duration-300 text-sm ${
             activeTab === "chat"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <MessageCircle size={16} />
-          {!isMobile && "Chat"}
-        </button>
-        <button
+          <AnimatePresence mode="wait">
+            {activeTab === "chat" && (
+              <motion.span
+                key="chat-text"
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="overflow-hidden whitespace-nowrap"
+              >
+                Chat
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
+        <motion.button
           onClick={() => setActiveTab("create")}
-          className={`flex items-center justify-center gap-2 ${isMobile ? 'px-3' : 'px-4'} py-2 rounded-md transition-all duration-200 text-sm ${
+          layout
+          className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md transition-all duration-300 text-sm ${
             activeTab === "create"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <Image size={16} />
-          {!isMobile && "Create"}
-        </button>
-        <button
+          <AnimatePresence mode="wait">
+            {activeTab === "create" && (
+              <motion.span
+                key="create-text"
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="overflow-hidden whitespace-nowrap"
+              >
+                Create
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
+        <motion.button
           onClick={() => setActiveTab("write")}
-          className={`flex items-center justify-center gap-2 ${isMobile ? 'px-3' : 'px-4'} py-2 rounded-md transition-all duration-200 text-sm ${
+          layout
+          className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md transition-all duration-300 text-sm ${
             activeTab === "write"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <PenTool size={16} />
-          {!isMobile && "Write"}
-        </button>
-        <button
+          <AnimatePresence mode="wait">
+            {activeTab === "write" && (
+              <motion.span
+                key="write-text"
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="overflow-hidden whitespace-nowrap"
+              >
+                Write
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
+        <motion.button
           onClick={() => setActiveTab("code")}
-          className={`flex items-center justify-center gap-2 ${isMobile ? 'px-3' : 'px-4'} py-2 rounded-md transition-all duration-200 text-sm ${
+          layout
+          className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md transition-all duration-300 text-sm ${
             activeTab === "code"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <Code2 size={16} />
-          {!isMobile && "Code"}
-        </button>
+          <AnimatePresence mode="wait">
+            {activeTab === "code" && (
+              <motion.span
+                key="code-text"
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="overflow-hidden whitespace-nowrap"
+              >
+                Code
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
       </div>
 
       {/* Prompts Grid */}
