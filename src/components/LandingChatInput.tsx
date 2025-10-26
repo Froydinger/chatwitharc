@@ -95,6 +95,17 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
             inset 0 2px 0 rgba(255, 255, 255, 0.12),
             inset 0 1px 0 rgba(255, 255, 255, 0.06);
           transition: all 0.3s ease;
+          color: rgba(255, 255, 255, 0.9);
+        }
+
+        .light .landing-input-container {
+          background: rgba(255, 255, 255, 0.95);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          box-shadow: 
+            0 20px 40px rgba(0, 0, 0, 0.1),
+            inset 0 2px 0 rgba(255, 255, 255, 0.8),
+            inset 0 1px 0 rgba(255, 255, 255, 0.6);
+          color: rgba(0, 0, 0, 0.9);
         }
 
         .landing-input-container:focus-within {
@@ -105,16 +116,33 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
+        .light .landing-input-container:focus-within {
+          border-color: rgba(0, 0, 0, 0.2);
+          box-shadow: 
+            0 25px 50px rgba(0, 0, 0, 0.15),
+            inset 0 2px 0 rgba(255, 255, 255, 1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
         .landing-textarea {
           font-size: 16px !important;
           line-height: 1.5 !important;
           vertical-align: middle !important;
+          color: inherit;
+        }
+
+        .light .landing-textarea {
+          color: rgba(0, 0, 0, 0.9);
         }
 
         .landing-textarea::placeholder {
           font-size: 16px;
           opacity: 0.7;
           line-height: 1.5;
+        }
+
+        .light .landing-textarea::placeholder {
+          color: rgba(0, 0, 0, 0.5);
         }
       `}</style>
     </div>
