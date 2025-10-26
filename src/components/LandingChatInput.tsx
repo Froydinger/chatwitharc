@@ -54,7 +54,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
 
   return (
     <div className="landing-input-container">
-      <div className="flex items-end gap-2 p-1">
+      <div className="flex items-end gap-2">
         <div className="flex-1 relative">
           <Textarea
             ref={textareaRef}
@@ -132,6 +132,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           outline: none !important;
           box-shadow: none !important;
           ring: 0 !important;
+          border-radius: 24px !important;
         }
 
         .landing-textarea:focus,
