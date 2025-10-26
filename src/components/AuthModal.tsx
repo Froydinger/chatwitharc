@@ -89,7 +89,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   return (
-    <>
+    <div className="dark">
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-md p-0 bg-transparent border-0 shadow-none overflow-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
           <div className="relative">
@@ -250,12 +250,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         .auth-modal-card.glass-card-bubble input {
           background: rgba(0, 0, 0, 0.05) !important;
           border: 1px solid rgba(0, 0, 0, 0.2) !important;
+          border-radius: 0.375rem !important;
         }
         
         .auth-modal-card.glass-card-bubble button {
           color: #fff !important;
         }
       `}</style>
-    </>
+    </div>
   );
 }

@@ -5,7 +5,8 @@ type Theme = 'dark' | 'light';
 export function useTheme() {
   const [followSystem, setFollowSystem] = useState(() => {
     const saved = localStorage.getItem('followSystemTheme');
-    return saved === 'true';
+    // Default to true (follow system) if not explicitly set
+    return saved === null ? true : saved === 'true';
   });
 
   const [theme, setTheme] = useState<Theme>(() => {

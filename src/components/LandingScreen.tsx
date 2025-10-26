@@ -37,7 +37,7 @@ export function LandingScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden pt-12">
+    <div className="dark min-h-screen bg-background flex flex-col relative overflow-hidden pt-12">
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center px-6 relative z-10">

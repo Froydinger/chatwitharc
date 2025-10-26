@@ -81,7 +81,7 @@ export function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
+    <div className="dark min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
       {/* Background Effects */}
       <div className="fixed inset-0 pointer-events-none">
         <motion.div
