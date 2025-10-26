@@ -62,9 +62,9 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Message ArcAI..."
-            className="landing-textarea resize-none border-0 bg-transparent text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[60px] pr-16 px-4 py-4"
+            className="landing-textarea resize-none border-0 bg-transparent text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[60px] pr-16 px-4 py-4 outline-none"
             rows={1}
-            style={{ lineHeight: '1.5' }}
+            style={{ lineHeight: '1.5', border: 'none', boxShadow: 'none' }}
           />
           <div className="absolute top-1/2 right-4 transform -translate-y-1/2">
             <GlassButton
@@ -96,15 +96,15 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
             inset 0 1px 0 rgba(255, 255, 255, 0.06);
           transition: all 0.3s ease;
           color: rgba(255, 255, 255, 0.9);
+          overflow: hidden;
         }
 
         .light .landing-input-container {
-          background: rgba(255, 255, 255, 0.95);
-          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 1);
+          border: 1px solid rgba(0, 0, 0, 0.12);
           box-shadow: 
-            0 20px 40px rgba(0, 0, 0, 0.1),
-            inset 0 2px 0 rgba(255, 255, 255, 0.8),
-            inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            0 20px 40px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 1);
           color: rgba(0, 0, 0, 0.9);
         }
 
@@ -117,11 +117,10 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
         }
 
         .light .landing-input-container:focus-within {
-          border-color: rgba(0, 0, 0, 0.2);
+          border-color: rgba(0, 0, 0, 0.18);
           box-shadow: 
-            0 25px 50px rgba(0, 0, 0, 0.15),
-            inset 0 2px 0 rgba(255, 255, 255, 1),
-            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            0 25px 50px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 1);
         }
 
         .landing-textarea {
@@ -129,6 +128,15 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           line-height: 1.5 !important;
           vertical-align: middle !important;
           color: inherit;
+          border: none !important;
+          outline: none !important;
+          box-shadow: none !important;
+        }
+
+        .landing-textarea:focus {
+          border: none !important;
+          outline: none !important;
+          box-shadow: none !important;
         }
 
         .light .landing-textarea {
