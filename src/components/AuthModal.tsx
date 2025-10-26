@@ -243,7 +243,12 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
         }
         
-        .auth-modal-card.glass-card-bubble * {
+        .auth-modal-card.glass-card-bubble *,
+        .auth-modal-card.glass-card-bubble h1,
+        .auth-modal-card.glass-card-bubble p,
+        .auth-modal-card.glass-card-bubble label,
+        .auth-modal-card.glass-card-bubble span,
+        .auth-modal-card.glass-card-bubble div {
           color: #fff !important;
         }
         
@@ -259,6 +264,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }
         
         .auth-modal-card.glass-card-bubble button {
+          color: #fff !important;
+        }
+        
+        .auth-modal-card.glass-card-bubble svg {
           color: #fff !important;
         }
       `}</style>
