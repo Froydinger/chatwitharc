@@ -131,16 +131,20 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           border: none !important;
           outline: none !important;
           box-shadow: none !important;
+          ring: 0 !important;
         }
 
-        .landing-textarea:focus {
+        .landing-textarea:focus,
+        .landing-textarea:focus-visible,
+        .landing-textarea:active {
           border: none !important;
           outline: none !important;
           box-shadow: none !important;
+          ring: 0 !important;
         }
 
         .light .landing-textarea {
-          color: #000000;
+          color: #000000 !important;
         }
 
         .landing-textarea::placeholder {
@@ -150,7 +154,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
         }
 
         .light .landing-textarea::placeholder {
-          color: rgba(0, 0, 0, 0.5);
+          color: rgba(0, 0, 0, 0.5) !important;
         }
       `}</style>
     </div>
