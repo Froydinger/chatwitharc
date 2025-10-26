@@ -121,6 +121,14 @@ serve(async (req) => {
     }
 
     enhancedSystemPrompt += '\n\nYou have access to web search. Use it when you need current information, news, facts, or anything beyond your training data.';
+    
+    // Add explicit tool usage boundary
+    enhancedSystemPrompt += '\n\n⚠️ TOOL USAGE RULE - CRITICAL:\n' +
+      '✅ Use web_search tool ONLY to fetch external data (news, facts, current events, real-time information)\n' +
+      '❌ NEVER use web_search or ANY tool to output code, HTML, or programming content\n' +
+      '❌ NEVER pass code through tools or functions\n' +
+      '✅ Code must be responded DIRECTLY in your message - NOT through tools\n' +
+      '✅ Tools are for INPUT (fetching data), not OUTPUT (displaying content)\n';
 
     // CODING ASSISTANCE - Critical instruction
     enhancedSystemPrompt += '\n\n🔥 CODING & TOOL CREATION - YOU ARE A PROFESSIONAL DEVELOPER:\n' +
@@ -141,6 +149,7 @@ serve(async (req) => {
       '❌ Any phrase suggesting you need more time or another message\n\n' +
       '✅ INSTEAD: Output the complete code block IN THE SAME RESPONSE immediately after a brief explanation.\n' +
       '✅ CORRECT FORMAT: "Here\'s a [description]:" followed immediately by the code block.\n' +
+      '✅ CODE GOES DIRECTLY IN YOUR RESPONSE - Never route through tools or functions.\n' +
       '✅ The user cannot and will not prompt you again - you must output everything in ONE response.\n\n' +
       '🎨 COLOR CONTRAST RULE - ABSOLUTELY CRITICAL:\n' +
       '⚠️ ALWAYS ensure proper contrast between text and background colors\n' +
@@ -195,7 +204,7 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "web_search",
-          description: "Search the web for current information, news, facts, or real-time data. Use this when you need information beyond your training data or when the user asks about recent events, current prices, live data, etc.",
+          description: "Search the web ONLY for current information, news, facts, or real-time data from external sources. Use this when you need information beyond your training data. DO NOT use this tool for generating code, HTML, or any programming content - respond with those directly in your message.",
           parameters: {
             type: "object",
             properties: {
