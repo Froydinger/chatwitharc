@@ -234,7 +234,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }
         
         /* Make the auth modal highly visible with dark background and white text */
-        .auth-modal-card.glass-card-bubble {
+        .auth-modal-card {
           background: rgba(0, 0, 0, 0.85) !important;
           color: #fff !important;
           border: 1px solid rgba(255, 255, 255, 0.2) !important;
@@ -243,31 +243,31 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
         }
         
-        .auth-modal-card.glass-card-bubble *,
-        .auth-modal-card.glass-card-bubble h1,
-        .auth-modal-card.glass-card-bubble p,
-        .auth-modal-card.glass-card-bubble label,
-        .auth-modal-card.glass-card-bubble span,
-        .auth-modal-card.glass-card-bubble div {
+        .auth-modal-card *,
+        .auth-modal-card h1,
+        .auth-modal-card p,
+        .auth-modal-card label,
+        .auth-modal-card span,
+        .auth-modal-card div {
           color: #fff !important;
         }
         
-        .auth-modal-card.glass-card-bubble input {
+        .auth-modal-card input {
           background: rgba(255, 255, 255, 0.1) !important;
           border: 1px solid rgba(255, 255, 255, 0.2) !important;
           border-radius: 0.375rem !important;
           color: #fff !important;
         }
         
-        .auth-modal-card.glass-card-bubble input::placeholder {
+        .auth-modal-card input::placeholder {
           color: rgba(255, 255, 255, 0.5) !important;
         }
         
-        .auth-modal-card.glass-card-bubble button {
+        .auth-modal-card button {
           color: #fff !important;
         }
         
-        .auth-modal-card.glass-card-bubble svg {
+        .auth-modal-card svg {
           color: #fff !important;
         }
       `}</style>
