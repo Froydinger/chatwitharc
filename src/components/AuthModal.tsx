@@ -233,24 +233,29 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           background: rgba(0, 0, 0, 0.6) !important;
         }
         
-        /* Make the auth modal highly visible with strong contrast */
+        /* Make the auth modal highly visible with dark background and white text */
         .auth-modal-card.glass-card-bubble {
-          background: rgba(255, 255, 255, 0.98) !important;
-          color: #000 !important;
-          border: 1px solid rgba(0, 0, 0, 0.1) !important;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+          background: rgba(0, 0, 0, 0.85) !important;
+          color: #fff !important;
+          border: 1px solid rgba(255, 255, 255, 0.2) !important;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
           backdrop-filter: blur(24px) saturate(150%) !important;
           -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
         }
         
         .auth-modal-card.glass-card-bubble * {
-          color: #000 !important;
+          color: #fff !important;
         }
         
         .auth-modal-card.glass-card-bubble input {
-          background: rgba(0, 0, 0, 0.05) !important;
-          border: 1px solid rgba(0, 0, 0, 0.2) !important;
+          background: rgba(255, 255, 255, 0.1) !important;
+          border: 1px solid rgba(255, 255, 255, 0.2) !important;
           border-radius: 0.375rem !important;
+          color: #fff !important;
+        }
+        
+        .auth-modal-card.glass-card-bubble input::placeholder {
+          color: rgba(255, 255, 255, 0.5) !important;
         }
         
         .auth-modal-card.glass-card-bubble button {
