@@ -100,12 +100,12 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
         }
 
         .light .landing-input-container {
-          background: rgba(255, 255, 255, 1);
+          background: #ffffff;
           border: 1px solid rgba(0, 0, 0, 0.12);
           box-shadow: 
             0 20px 40px rgba(0, 0, 0, 0.08),
             inset 0 1px 0 rgba(255, 255, 255, 1);
-          color: rgba(0, 0, 0, 0.9);
+          color: #000000;
         }
 
         .landing-input-container:focus-within {
@@ -140,7 +140,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
         }
 
         .light .landing-textarea {
-          color: rgba(0, 0, 0, 0.9);
+          color: #000000;
         }
 
         .landing-textarea::placeholder {
