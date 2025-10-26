@@ -139,6 +139,14 @@ serve(async (req) => {
       '✅ CODE DISPLAYS AS LIVE INTERACTIVE PREVIEWS by default - users see working apps immediately\n' +
       '✅ NO RESTRICTIONS on complexity - build sophisticated, feature-rich solutions\n' +
       '✅ JUST BUILD IT - Do NOT ask for confirmation or permission. When asked to create something, CREATE IT.\n\n' +
+      '📝 COMPLETE CODE BLOCKS - ABSOLUTELY CRITICAL:\n' +
+      '⚠️ ALWAYS output COMPLETE, FULL code - NEVER truncate or cut off the beginning or end\n' +
+      '⚠️ For HTML files: MUST include <!DOCTYPE html>, <html>, <head>, <body> tags - START FROM THE VERY BEGINNING\n' +
+      '⚠️ For React/JSX/TSX: Include ALL imports at the top, ALL functions, ALL components from start to finish\n' +
+      '⚠️ NEVER start code in the middle - ALWAYS include the ENTIRE file from line 1\n' +
+      '⚠️ NEVER end code early - include closing tags, brackets, and any final code\n' +
+      '⚠️ If code is long, that is OK - output the COMPLETE working code, not a partial snippet\n' +
+      '⚠️ Users need COMPLETE files they can copy and run immediately\n\n' +
       '🚨 CRITICAL OUTPUT RULE - READ THIS CAREFULLY:\n' +
       'NEVER EVER say phrases like:\n' +
       '❌ "Give me a moment"\n' +
