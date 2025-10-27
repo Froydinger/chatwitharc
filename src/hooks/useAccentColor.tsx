@@ -106,16 +106,23 @@ export function useAccentColor() {
       document.head.appendChild(style);
     }
 
-    // Apply logo recolor effect
+    // Apply logo recolor - replace blue with theme color, preserve brightness & alpha
     const logoRecolor = document.getElementById('logo-recolor-style') || document.createElement('style');
     logoRecolor.id = 'logo-recolor-style';
     logoRecolor.textContent = `
       .logo-recolor {
-        filter: 
-          brightness(0) 
-          saturate(100%) 
-          invert(1)
-          opacity(1);
+        position: relative;
+        filter: saturate(0) brightness(2);
+      }
+      
+      .logo-recolor::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: hsl(${isLight ? config.lightPrimary : config.primary});
+        mix-blend-mode: multiply;
+        opacity: 0.8;
+        pointer-events: none;
       }
       
       .logo-recolor::after {
@@ -123,10 +130,8 @@ export function useAccentColor() {
         position: absolute;
         inset: 0;
         background: hsl(${isLight ? config.lightPrimary : config.primary});
-        mask-image: url('/arc-logo-cropped.png');
-        mask-size: contain;
-        mask-repeat: no-repeat;
-        mask-position: center;
+        mix-blend-mode: overlay;
+        opacity: 0.6;
         pointer-events: none;
       }
     `;

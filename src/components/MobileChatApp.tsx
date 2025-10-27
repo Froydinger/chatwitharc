@@ -359,13 +359,15 @@ export function MobileChatApp() {
           <div className="flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-1.5">
               <div className="relative logo-accent-glow header-logo-glow">
-                <motion.img
-                  src={HERO_AVATAR}
-                  alt="ArcAI"
-                  className="h-12 w-12 logo-recolor"
-                  animate={{ y: [0, -2, 0] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                />
+                <div className="relative logo-recolor">
+                  <motion.img
+                    src={HERO_AVATAR}
+                    alt="ArcAI"
+                    className="h-12 w-12 relative z-10"
+                    animate={{ y: [0, -2, 0] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                </div>
               </div>
               <div>
                 <h1 className="text-lg">
@@ -473,7 +475,9 @@ export function MobileChatApp() {
                         }}
                       >
                         <div className="relative logo-accent-glow">
-                          <img src="/arc-logo-cropped.png" alt="Arc" className="h-5 w-5 logo-recolor" />
+                          <div className="relative logo-recolor">
+                            <img src="/arc-logo-cropped.png" alt="Arc" className="h-5 w-5 relative z-10" />
+                          </div>
                           <motion.div
                             className="absolute -inset-2 bg-primary/20 rounded-full blur-lg"
                             animate={{
