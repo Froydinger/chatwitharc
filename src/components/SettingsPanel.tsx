@@ -431,46 +431,42 @@ export function SettingsPanel() {
                     </div>
                   </div>
 
-                  {/* Email */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Email Address</label>
-                    <div className="text-sm text-muted-foreground font-mono bg-glass/30 px-3 py-2 rounded-md">
-                      {user?.email || "No email"}
-                    </div>
-                  </div>
-
-                  {/* Context */}
+                  {/* Theme Settings */}
                   <div className="space-y-3">
                     <div>
-                      <label className="text-sm font-medium text-foreground">Context & Preferences</label>
-                      <p className="text-xs text-muted-foreground">Tell Arc about yourself and your needs</p>
+                      <label className="text-sm font-medium text-foreground">Appearance</label>
+                      <p className="text-xs text-muted-foreground">Control how Arc looks on your device</p>
                     </div>
-                    <div className="space-y-2">
-                      <Textarea
-                        value={contextDraft}
-                        onChange={(e) => {
-                          setContextDraft(e.target.value);
-                          setContextDirty(true);
-                        }}
-                        placeholder="I'm interested in... I prefer... I'm working on..."
-                        className="glass border-glass-border min-h-[80px] resize-none"
-                        disabled={updating}
-                      />
-                      {contextDirty && (
-                        <div className="flex items-center gap-2">
-                          <GlassButton variant="ghost" size="sm" onClick={handleSaveContext} disabled={updating}>
-                            <Save className="w-3 h-3 mr-1" />Save
-                          </GlassButton>
-                          <GlassButton 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => {
-                              setContextDraft(profile?.context_info || "");
-                              setContextDirty(false);
-                            }}
-                            disabled={updating}
+                    
+                    <div className="space-y-4">
+                      {/* Follow System Theme Toggle */}
+                      <div className="flex items-center justify-between p-3 bg-glass/30 rounded-md">
+                        <div className="flex items-center gap-3">
+                          <Monitor className="h-4 w-4 text-primary-glow" />
+                          <div>
+                            <p className="text-sm font-medium">Follow System Theme</p>
+                            <p className="text-xs text-muted-foreground">Automatically match device appearance</p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={followSystem}
+                          onCheckedChange={toggleFollowSystem}
+                        />
+                      </div>
+
+                      {/* Manual Theme Toggle (only shown when not following system) */}
+                      {!followSystem && (
+                        <div className="flex items-center justify-between p-3 bg-glass/30 rounded-md">
+                          <div>
+                            <p className="text-sm font-medium">Theme</p>
+                            <p className="text-xs text-muted-foreground">Current: {theme === 'dark' ? 'Dark' : 'Light'}</p>
+                          </div>
+                          <GlassButton
+                            variant="ghost"
+                            size="sm"
+                            onClick={toggleTheme}
                           >
-                            <RotateCcw className="w-3 h-3 mr-1" />Reset
+                            {theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
                           </GlassButton>
                         </div>
                       )}
@@ -528,28 +524,67 @@ export function SettingsPanel() {
                     </Select>
                   </div>
 
-                  {/* Memory Bank Button */}
+                  {/* Memories and Context Button */}
                   <div className="space-y-3">
                     <div>
-                      <label className="text-sm font-medium text-foreground">Memory Bank</label>
-                      <p className="text-xs text-muted-foreground">Information Arc remembers from conversations</p>
+                      <label className="text-sm font-medium text-foreground">Memories & Context</label>
+                      <p className="text-xs text-muted-foreground">Personal info and memories Arc stores</p>
                     </div>
                     <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
                       <DialogTrigger asChild>
-                        <GlassButton variant="default" className="w-full justify-start">
+                        <GlassButton variant="default" className="w-full justify-start bg-black text-white hover:bg-black/80 dark:bg-black dark:text-white dark:hover:bg-black/80">
                           <Brain className="w-4 h-4 mr-2" />
-                          Manage Memories ({memories.length})
+                          Memories and Context ({memories.length})
                         </GlassButton>
                       </DialogTrigger>
                       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                         <DialogHeader>
-                          <DialogTitle>Memory Bank</DialogTitle>
+                          <DialogTitle>Memories and Context</DialogTitle>
                           <DialogDescription>
-                            Manage information Arc remembers from your conversations
+                            Manage your personal information and memories
                           </DialogDescription>
                         </DialogHeader>
                         
-                        <div className="py-4">
+                        <div className="py-4 space-y-6">
+                          {/* Context Section */}
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-sm font-medium text-foreground">Context & Preferences</label>
+                              <p className="text-xs text-muted-foreground">Tell Arc about yourself and your needs</p>
+                            </div>
+                            <div className="space-y-2">
+                              <Textarea
+                                value={contextDraft}
+                                onChange={(e) => {
+                                  setContextDraft(e.target.value);
+                                  setContextDirty(true);
+                                }}
+                                placeholder="I'm interested in... I prefer... I'm working on..."
+                                className="glass border-glass-border min-h-[80px] resize-none"
+                                disabled={updating}
+                              />
+                              {contextDirty && (
+                                <div className="flex items-center gap-2">
+                                  <GlassButton variant="ghost" size="sm" onClick={handleSaveContext} disabled={updating}>
+                                    <Save className="w-3 h-3 mr-1" />Save
+                                  </GlassButton>
+                                  <GlassButton 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => {
+                                      setContextDraft(profile?.context_info || "");
+                                      setContextDirty(false);
+                                    }}
+                                    disabled={updating}
+                                  >
+                                    <RotateCcw className="w-3 h-3 mr-1" />Reset
+                                  </GlassButton>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Memory Bank Section */}
                           <MemoryBankAccordion
                             memories={memories}
                             onMemoriesChange={handleMemoriesChange}
@@ -585,48 +620,6 @@ export function SettingsPanel() {
                       </DialogContent>
                     </Dialog>
                   </div>
-
-                  {/* Theme Settings */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium text-foreground">Appearance</label>
-                      <p className="text-xs text-muted-foreground">Control how Arc looks on your device</p>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      {/* Follow System Theme Toggle */}
-                      <div className="flex items-center justify-between p-3 bg-glass/30 rounded-md">
-                        <div className="flex items-center gap-3">
-                          <Monitor className="h-4 w-4 text-primary-glow" />
-                          <div>
-                            <p className="text-sm font-medium">Follow System Theme</p>
-                            <p className="text-xs text-muted-foreground">Automatically match device appearance</p>
-                          </div>
-                        </div>
-                        <Switch
-                          checked={followSystem}
-                          onCheckedChange={toggleFollowSystem}
-                        />
-                      </div>
-
-                      {/* Manual Theme Toggle (only shown when not following system) */}
-                      {!followSystem && (
-                        <div className="flex items-center justify-between p-3 bg-glass/30 rounded-md">
-                          <div>
-                            <p className="text-sm font-medium">Theme</p>
-                            <p className="text-xs text-muted-foreground">Current: {theme === 'dark' ? 'Dark' : 'Light'}</p>
-                          </div>
-                          <GlassButton
-                            variant="ghost"
-                            size="sm"
-                            onClick={toggleTheme}
-                          >
-                            {theme === 'dark' ? '🌙' : '☀️'} Switch to {theme === 'dark' ? 'Light' : 'Dark'}
-                          </GlassButton>
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 </div>
               </CollapsibleContent>
             </GlassCard>
@@ -635,6 +628,19 @@ export function SettingsPanel() {
 
         {/* Account Tab */}
         <TabsContent value="account" className="space-y-6 mt-6">
+          {/* Email Address */}
+          <GlassCard variant="bubble" className="p-6">
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium text-foreground">Email Address</h4>
+                <p className="text-xs text-muted-foreground">Your account email</p>
+              </div>
+              <div className="text-sm text-muted-foreground font-mono bg-glass/30 px-3 py-2 rounded-md">
+                {user?.email || "No email"}
+              </div>
+            </div>
+          </GlassCard>
+
           {/* Sync Status */}
           <GlassCard variant="bubble" className="p-6">
             <div className="space-y-6">
