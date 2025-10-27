@@ -92,7 +92,7 @@ export function WelcomeSection({
 
   return (
     <>
-      <div className="flex flex-col items-center justify-start min-h-full py-12 px-4 space-y-12">
+      <div className="flex flex-col items-center justify-start min-h-full py-12 px-4 space-y-6">
         {/* Hero Section */}
         <motion.div
           className="flex flex-col items-center gap-6 text-center"
