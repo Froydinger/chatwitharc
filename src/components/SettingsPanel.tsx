@@ -5,6 +5,7 @@ import {
   Cloud, CloudOff, Mic, Settings as SettingsIcon, ChevronDown,
   Save, RotateCcw, X, Mail, Key, Download, Monitor
 } from "lucide-react";
+import { MemoryBankAccordion, parseMemoriesFromText, formatMemoriesToText } from "@/components/MemoryBankAccordion";
 import { useTheme } from "@/hooks/useTheme";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
 import { useProfile } from "@/hooks/useProfile";
@@ -85,6 +86,10 @@ export function SettingsPanel() {
   const [memoryDraft, setMemoryDraft] = useState("");
   const [memoryDirty, setMemoryDirty] = useState(false);
   const [selectedModel, setSelectedModel] = useState((profile as any)?.preferred_model || 'google/gemini-2.5-flash');
+  
+  // Structured memories state
+  const [memories, setMemories] = useState<Array<{id: string; date: string; content: string}>>([]);
+  const [memoriesDirty, setMemoriesDirty] = useState(false);
 
   // Online/offline detection
   useEffect(() => {
@@ -107,9 +112,13 @@ export function SettingsPanel() {
     if (!contextDirty) setContextDraft(profile?.context_info || "");
   }, [profile?.context_info, contextDirty]);
 
+  // Parse memories from text format on load (auto-migration)
   useEffect(() => {
-    if (!memoryDirty) setMemoryDraft(profile?.memory_info || "");
-  }, [profile?.memory_info, memoryDirty]);
+    if (!memoriesDirty && profile?.memory_info) {
+      const parsed = parseMemoriesFromText(profile.memory_info);
+      setMemories(parsed);
+    }
+  }, [profile?.memory_info, memoriesDirty]);
 
   useEffect(() => {
     if ((profile as any)?.preferred_model) {
@@ -145,8 +154,10 @@ export function SettingsPanel() {
 
   const handleSaveMemory = async () => {
     try {
-      await updateProfile({ memory_info: memoryDraft });
-      setMemoryDirty(false);
+      // Convert structured memories back to text format for storage
+      const memoryText = formatMemoriesToText(memories);
+      await updateProfile({ memory_info: memoryText });
+      setMemoriesDirty(false);
     } catch (e) {
       toast({
         title: "Save failed",
@@ -159,8 +170,8 @@ export function SettingsPanel() {
   const handleClearMemory = async () => {
     try {
       await updateProfile({ memory_info: "" });
-      setMemoryDraft("");
-      setMemoryDirty(false);
+      setMemories([]);
+      setMemoriesDirty(false);
     } catch (e) {
       toast({
         title: "Clear failed",
@@ -168,6 +179,11 @@ export function SettingsPanel() {
         variant: "destructive"
       });
     }
+  };
+
+  const handleMemoriesChange = (newMemories: Array<{id: string; date: string; content: string}>) => {
+    setMemories(newMemories);
+    setMemoriesDirty(true);
   };
 
   const handleModelChange = async (model: string) => {
@@ -511,55 +527,37 @@ export function SettingsPanel() {
                   </div>
 
                   {/* Memory */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium text-foreground">Memory Bank</label>
-                      <p className="text-xs text-muted-foreground">Information Arc remembers from conversations</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Textarea
-                        value={memoryDraft}
-                        onChange={(e) => {
-                          setMemoryDraft(e.target.value);
-                          setMemoryDirty(true);
-                        }}
-                        placeholder="Arc will automatically add things here when you say 'remember this'..."
-                        className="glass border-glass-border min-h-[80px] resize-none"
+                  <MemoryBankAccordion
+                    memories={memories}
+                    onMemoriesChange={handleMemoriesChange}
+                    onClearAll={handleClearMemory}
+                  />
+                  
+                  {/* Auto-save memories */}
+                  {memoriesDirty && (
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                      <GlassButton 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleSaveMemory} 
                         disabled={updating}
-                      />
-                      <div className="flex items-center gap-2">
-                        {memoryDirty ? (
-                          <>
-                            <GlassButton variant="ghost" size="sm" onClick={handleSaveMemory} disabled={updating}>
-                              <Save className="w-3 h-3 mr-1" />Save
-                            </GlassButton>
-                            <GlassButton 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => {
-                                setMemoryDraft(profile?.memory_info || "");
-                                setMemoryDirty(false);
-                              }}
-                              disabled={updating}
-                            >
-                              <RotateCcw className="w-3 h-3 mr-1" />Reset
-                            </GlassButton>
-                          </>
-                        ) : (
-                          <GlassButton
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleClearMemory}
-                            disabled={updating}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <X className="w-3 h-3 mr-1" />
-                            Clear All
-                          </GlassButton>
-                        )}
-                      </div>
+                      >
+                        <Save className="w-3 h-3 mr-1" />Save Changes
+                      </GlassButton>
+                      <GlassButton 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => {
+                          const parsed = parseMemoriesFromText(profile?.memory_info || "");
+                          setMemories(parsed);
+                          setMemoriesDirty(false);
+                        }}
+                        disabled={updating}
+                      >
+                        <RotateCcw className="w-3 h-3 mr-1" />Reset
+                      </GlassButton>
                     </div>
-                  </div>
+                  )}
 
                   {/* Theme Settings */}
                   <div className="space-y-3">
