@@ -409,7 +409,7 @@ export function MobileChatApp() {
         {/* Scrollable messages layer with bottom padding equal to dock height */}
         <div
           className={cn(
-            "relative flex-1 transition-all duration-300 ease-out pt-20",
+            "relative flex-1 transition-all duration-300 ease-out",
             dragOver && "bg-primary/5"
           )}
           onDragOver={(e) => {
@@ -422,7 +422,7 @@ export function MobileChatApp() {
           {/* Chat Messages */}
           <div
             ref={messagesContainerRef}
-            className="absolute inset-0 overflow-y-auto"
+            className="absolute inset-x-0 bottom-0 top-20 overflow-y-auto"
             style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 6rem)` }}
           >
             {/* Empty state */}
