@@ -12,7 +12,6 @@ const accentColorConfigs = {
     lightAiMessageBorder: '0 15% 92%',
     lightPrimary: '0 90% 55%',
     lightPrimaryGlow: '0 90% 65%',
-    filter: 'hue-rotate(160deg) saturate(1.2)',
   },
   blue: {
     primary: '200 95% 55%',
@@ -23,7 +22,6 @@ const accentColorConfigs = {
     lightAiMessageBorder: '220 15% 92%',
     lightPrimary: '200 100% 50%',
     lightPrimaryGlow: '200 100% 60%',
-    filter: 'none',
   },
   green: {
     primary: '142 76% 42%',
@@ -34,18 +32,16 @@ const accentColorConfigs = {
     lightAiMessageBorder: '142 15% 92%',
     lightPrimary: '142 76% 45%',
     lightPrimaryGlow: '142 76% 55%',
-    filter: 'hue-rotate(302deg) saturate(1.3)',
   },
   yellow: {
-    primary: '48 85% 55%',
-    primaryGlow: '48 85% 65%',
+    primary: '48 95% 60%',
+    primaryGlow: '48 95% 70%',
     aiMessageBg: '48 15% 16%',
     aiMessageBorder: '48 20% 24%',
     lightAiMessageBg: '48 20% 97%',
     lightAiMessageBorder: '48 15% 92%',
-    lightPrimary: '48 90% 50%',
-    lightPrimaryGlow: '48 90% 60%',
-    filter: 'hue-rotate(408deg) saturate(1.5) brightness(1.1)',
+    lightPrimary: '48 95% 55%',
+    lightPrimaryGlow: '48 95% 65%',
   },
   purple: {
     primary: '270 75% 60%',
@@ -56,18 +52,16 @@ const accentColorConfigs = {
     lightAiMessageBorder: '270 15% 92%',
     lightPrimary: '270 75% 55%',
     lightPrimaryGlow: '270 75% 65%',
-    filter: 'hue-rotate(430deg) saturate(1.4)',
   },
   orange: {
-    primary: '25 90% 58%',
-    primaryGlow: '25 90% 68%',
+    primary: '25 95% 58%',
+    primaryGlow: '25 95% 68%',
     aiMessageBg: '25 15% 16%',
     aiMessageBorder: '25 20% 24%',
     lightAiMessageBg: '25 20% 97%',
     lightAiMessageBorder: '25 15% 92%',
     lightPrimary: '25 95% 55%',
     lightPrimaryGlow: '25 95% 65%',
-    filter: 'hue-rotate(385deg) saturate(1.4) brightness(1.05)',
   },
 };
 
@@ -89,10 +83,19 @@ export function useAccentColor() {
     root.style.setProperty('--ai-message-bg', config.aiMessageBg);
     root.style.setProperty('--ai-message-border', config.aiMessageBorder);
 
+    // Update light mode CSS variables dynamically when in light mode
+    if (isLight) {
+      root.style.setProperty('--primary', config.lightPrimary);
+      root.style.setProperty('--primary-glow', config.lightPrimaryGlow);
+      root.style.setProperty('--ring', config.lightPrimary);
+      root.style.setProperty('--ai-message-bg', config.lightAiMessageBg);
+      root.style.setProperty('--ai-message-border', config.lightAiMessageBorder);
+    }
+
     // Update selection color
     const style = document.getElementById('accent-selection-style') || document.createElement('style');
     style.id = 'accent-selection-style';
-    const primaryRgb = hslToRgb(config.primary);
+    const primaryRgb = hslToRgb(isLight ? config.lightPrimary : config.primary);
     style.textContent = `
       *::selection { background: rgb(${primaryRgb}) !important; color: white !important; }
       *::-moz-selection { background: rgb(${primaryRgb}) !important; color: white !important; }
@@ -103,41 +106,25 @@ export function useAccentColor() {
       document.head.appendChild(style);
     }
 
-    // Update light mode CSS variables dynamically when in light mode
-    if (isLight) {
-      root.style.setProperty('--primary', config.lightPrimary);
-      root.style.setProperty('--primary-glow', config.lightPrimaryGlow);
-      root.style.setProperty('--ring', config.lightPrimary);
-      root.style.setProperty('--ai-message-bg', config.lightAiMessageBg);
-      root.style.setProperty('--ai-message-border', config.lightAiMessageBorder);
-    }
-
     // Apply logo duotone with accent color
-    const logoStyle = document.getElementById('logo-duotone-style') || document.createElement('style');
-    logoStyle.id = 'logo-duotone-style';
-    logoStyle.textContent = `
+    const logoDuotone = document.getElementById('logo-duotone-style') || document.createElement('style');
+    logoDuotone.id = 'logo-duotone-style';
+    logoDuotone.textContent = `
       .logo-accent-filter {
-        position: relative;
-        display: inline-block;
+        filter: grayscale(100%) brightness(0) invert(1);
       }
       
       .logo-accent-filter::after {
         content: '';
         position: absolute;
         inset: 0;
-        background: hsl(var(--primary));
-        mix-blend-mode: screen;
-        opacity: 0.85;
+        background: hsl(${isLight ? config.lightPrimary : config.primary});
+        mix-blend-mode: multiply;
         pointer-events: none;
       }
-      
-      .logo-accent-filter img {
-        display: block;
-        filter: grayscale(1) contrast(1.2) brightness(0.9);
-      }
     `;
-    if (!logoStyle.parentElement) {
-      document.head.appendChild(logoStyle);
+    if (!logoDuotone.parentElement) {
+      document.head.appendChild(logoDuotone);
     }
 
     // Save to localStorage
