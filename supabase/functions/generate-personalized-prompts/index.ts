@@ -48,36 +48,42 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a thoughtful AI assistant generating personalized conversation prompts. Based on the user's context, generate 2-3 highly relevant, personalized prompts that:
-- Reference their specific memories, interests, or recent topics
-- Feel natural and conversational (not generic)
-- Use their name (${displayName}) when appropriate
-- Are actionable and engaging
-- Vary in category (reflection, creation, conversation)
+            content: `You are generating personalized conversation prompts. Based on the user's context, generate 2-3 highly relevant prompts.
+
+User context:
+${userContext}
 
 Return ONLY a JSON array of prompt objects with this structure:
 [
   {
     "text": "SHORT display text (25-35 chars max)",
-    "fullPrompt": "the complete personalized prompt with full context that will be sent to AI",
+    "fullPrompt": "the complete personalized prompt that will be sent to AI",
     "icon": "emoji that fits the prompt",
     "category": "chat|create|write|code"
   }
 ]
 
-CRITICAL RULES:
-1. Write ALL prompts from the USER's perspective (e.g., "Help me code...", "Show me how to...", "Build a...")
-2. NEVER write from AI perspective (don't say "I'll help you..." or "Let me...")
-3. For coding tasks, ALWAYS use: "code", "build", "develop", "program", "write code"
-4. NEVER use these words as they trigger image generation: "generate", "create", "make", "draw", "image", "picture", "photo", "visualize", "render", "illustrate"
-5. Keep "text" field very short (25-35 characters) for display
-6. Put the full contextual prompt in "fullPrompt"
+CRITICAL RULES - PERSPECTIVE:
+1. Write prompts as if the USER is speaking/asking the AI
+2. Use first-person language: "I", "my", "me" (NOT "you", "your", "Jake")
+3. NEVER address the user by name or use second-person perspective
+4. Write as questions or requests TO the AI
 
-Example:
-- text: "Code a todo app"
-- fullPrompt: "Help me code a todo app with React and TypeScript that has task management features"
+WORD RESTRICTIONS:
+- For coding tasks, use: "code", "build", "develop", "program", "write code"
+- NEVER use: "generate", "create", "make", "draw", "image", "picture", "photo", "visualize", "render", "illustrate"
 
-Make them feel like they're coming from someone who knows the user.`
+EXAMPLES OF CORRECT PERSPECTIVE:
+✅ "Help me brainstorm marketing ideas for my window sales work"
+✅ "Code a scheduling tool for my appointments"
+✅ "What are some ways I could improve my sales presentations?"
+
+EXAMPLES OF WRONG PERSPECTIVE (DO NOT DO THIS):
+❌ "Jake, how might you use humor in your marketing?" (addressing user)
+❌ "As an AI-assisted developer, brainstorm..." (describing user)
+❌ "Let me help you with your work" (AI perspective)
+
+Keep "text" short (25-35 chars), put full context in "fullPrompt".`
           },
           {
             role: 'user',
