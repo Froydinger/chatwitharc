@@ -352,20 +352,21 @@ export function MobileChatApp() {
         {/* Header */}
         <header 
           className={cn(
-            "sticky top-0 z-40 border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-2 pb-1.5 dark:bg-[rgba(24,24,30,0.78)] bg-background/95 transition-transform duration-300 ease-out",
+            "fixed top-0 left-0 right-0 z-40 border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-2 pb-1.5 dark:bg-[rgba(24,24,30,0.78)] bg-background/95 transition-transform duration-300 ease-out",
             !headerVisible && "-translate-y-full"
           )}
         >
           <div className="flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-1.5">
               <div className="relative logo-accent-glow header-logo-glow">
-                <motion.img
-                  src={HERO_AVATAR}
-                  alt="ArcAI"
-                  className="h-12 w-12 rounded-small"
+                <motion.svg
+                  viewBox="0 0 100 100"
+                  className="h-12 w-12 text-primary"
                   animate={{ y: [0, -2, 0] }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                />
+                >
+                  <path d="M50 15 L30 40 L40 40 L40 75 L60 75 L60 40 L70 40 Z M50 85 L35 92 L50 88 L65 92 Z" fill="currentColor"/>
+                </motion.svg>
               </div>
               <div>
                 <h1 className="text-lg">
@@ -404,7 +405,11 @@ export function MobileChatApp() {
 
         {/* Scrollable messages layer with bottom padding equal to dock height */}
         <div
-          className={`relative flex-1 ${dragOver ? "bg-primary/5" : ""}`}
+          className={cn(
+            "relative flex-1 transition-all duration-300 ease-out",
+            dragOver && "bg-primary/5",
+            headerVisible ? "pt-20" : "pt-0"
+          )}
           onDragOver={(e) => {
             e.preventDefault();
             setDragOver(true);
@@ -469,7 +474,12 @@ export function MobileChatApp() {
                         }}
                       >
                         <div className="relative logo-accent-glow">
-                          <img src="/arc-logo-cropped.png" alt="Arc" className="h-5 w-5" />
+                          <svg 
+                            viewBox="0 0 100 100"
+                            className="h-5 w-5 text-primary"
+                          >
+                            <path d="M50 15 L30 40 L40 40 L40 75 L60 75 L60 40 L70 40 Z M50 85 L35 92 L50 88 L65 92 Z" fill="currentColor"/>
+                          </svg>
                           <motion.div
                             className="absolute -inset-2 bg-primary/20 rounded-full blur-lg"
                             animate={{

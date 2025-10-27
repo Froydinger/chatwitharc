@@ -64,11 +64,12 @@ export function LandingScreen() {
               className="flex justify-center mb-[-5px] relative z-0"
             >
               <div className="logo-accent-glow">
-                <img 
-                  src="/arc-logo.png" 
-                  alt="ArcAI" 
-                  className="h-16 w-16 sm:h-20 sm:w-20"
-                />
+                <svg 
+                  viewBox="0 0 100 100"
+                  className="h-16 w-16 sm:h-20 sm:w-20 text-primary"
+                >
+                  <path d="M50 15 L30 40 L40 40 L40 75 L60 75 L60 40 L70 40 Z M50 85 L35 92 L50 88 L65 92 Z" fill="currentColor"/>
+                </svg>
               </div>
             </motion.div>
             
