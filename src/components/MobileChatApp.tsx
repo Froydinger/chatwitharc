@@ -168,7 +168,8 @@ export function MobileChatApp() {
     // Code prompts
     {
       label: "🎮 Interactive Demo",
-      prompt: "Code: Build an interactive demo or game using HTML, CSS, and JavaScript. Make it fun and visually appealing.",
+      prompt:
+        "Code: Build an interactive demo or game using HTML, CSS, and JavaScript. Make it fun and visually appealing.",
     },
     {
       label: "📊 Dashboard",
@@ -257,18 +258,18 @@ export function MobileChatApp() {
     if (el) {
       el.scrollTop = 0;
     }
-    
+
     const newSessionId = createNewSession();
     navigate(`/chat/${newSessionId}`);
     setRightPanelOpen(false);
-    
+
     // Force scroll to top again after state updates
     setTimeout(() => {
       if (el) {
         el.scrollTop = 0;
       }
     }, 0);
-    
+
     requestAnimationFrame(() => {
       if (el) {
         el.scrollTop = 0;
@@ -413,10 +414,8 @@ export function MobileChatApp() {
             ) : (
               <div className="p-4 space-y-4 chat-messages">
                 {messages.map((message, index) => {
-                  const isLastAssistantMessage = 
-                    message.role === 'assistant' && 
-                    index === messages.length - 1;
-                  
+                  const isLastAssistantMessage = message.role === "assistant" && index === messages.length - 1;
+
                   return (
                     <MessageBubble
                       key={message.id}
@@ -433,44 +432,43 @@ export function MobileChatApp() {
                   );
                 })}
                 {/* Show thinking logo when loading and no messages yet or last message is user */}
-                {isLoading && !isGeneratingImage && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
-                  <div className="flex justify-start pl-4 ml-2">
-                    <motion.div
-                      className="flex items-center justify-start"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ 
-                        opacity: 1, 
-                        scale: 1,
-                        rotate: 360
-                      }}
-                      transition={{ 
-                        opacity: { duration: 0.3 },
-                        scale: { duration: 0.3 },
-                        rotate: { duration: 2, repeat: Infinity, ease: "linear" }
-                      }}
-                    >
-                      <div className="relative">
-                        <img 
-                          src="/arc-logo-cropped.png" 
-                          alt="Arc" 
-                          className="h-5 w-5"
-                        />
-                        <motion.div
-                          className="absolute -inset-2 bg-primary/40 rounded-full blur-lg"
-                          animate={{ 
-                            scale: [1, 1.3, 1],
-                            opacity: [0.4, 0.7, 0.4]
-                          }}
-                          transition={{ 
-                            duration: 1.5, 
-                            repeat: Infinity, 
-                            ease: "easeInOut" 
-                          }}
-                        />
-                      </div>
-                    </motion.div>
-                  </div>
-                )}
+                {isLoading &&
+                  !isGeneratingImage &&
+                  messages.length > 0 &&
+                  messages[messages.length - 1].role === "user" && (
+                    <div className="flex justify-start pl-4 ml-2">
+                      <motion.div
+                        className="flex items-center justify-start"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{
+                          opacity: 1,
+                          scale: 1,
+                          rotate: 360,
+                        }}
+                        transition={{
+                          opacity: { duration: 0.3 },
+                          scale: { duration: 0.3 },
+                          rotate: { duration: 2, repeat: Infinity, ease: "linear" },
+                        }}
+                      >
+                        <div className="relative">
+                          <img src="/arc-logo-cropped.png" alt="Arc" className="h-5 w-5" />
+                          <motion.div
+                            className="absolute -inset-2 bg-primary/40 rounded-full blur-lg"
+                            animate={{
+                              scale: [1, 1.3, 1],
+                              opacity: [0.4, 0.7, 0.4],
+                            }}
+                            transition={{
+                              duration: 1.5,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                            }}
+                          />
+                        </div>
+                      </motion.div>
+                    </div>
+                  )}
                 {/* Cancel button during loading */}
                 {isLoading && !isGeneratingImage && messages.length > 0 && (
                   <div className="flex justify-start pl-4">
@@ -680,8 +678,9 @@ export function MobileChatApp() {
           background: rgba(24, 24, 30, 0.78);
           backdrop-filter: blur(10px) saturate(115%);
           -webkit-backdrop-filter: blur(10px) saturate(115%);
-          border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
-        }
+          border: none !important;
+          box-shadow: none !important;
+         }
         .glass-dock::before{ display: none; }
         .glass-dock:hover{ transform: none; transition: none; }
         .dark .glass-dock:focus-within{ background: rgba(24, 24, 30, 0.78); box-shadow: none; }
