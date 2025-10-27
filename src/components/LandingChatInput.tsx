@@ -133,6 +133,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           box-shadow: none !important;
           ring: 0 !important;
           border-radius: 24px !important;
+          background: transparent !important;
         }
 
         .landing-textarea:focus,
@@ -142,6 +143,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           outline: none !important;
           box-shadow: none !important;
           ring: 0 !important;
+          background: transparent !important;
         }
 
         .light .landing-textarea {
