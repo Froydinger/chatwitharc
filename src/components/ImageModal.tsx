@@ -83,17 +83,17 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image" }: ImageMo
                 size="icon"
                 onClick={handleDownload}
                 disabled={isDownloading}
-                className="rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20"
+                className="rounded-full bg-black hover:bg-black/90 text-white backdrop-blur-md border border-white/20"
               >
-                <Download className="h-4 w-4" />
+                <Download className="h-4 w-4 text-white" />
               </Button>
               <Button
                 variant="secondary"
                 size="icon"
                 onClick={onClose}
-                className="rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20"
+                className="rounded-full bg-black hover:bg-black/90 text-white backdrop-blur-md border border-white/20"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 text-white" />
               </Button>
             </div>
 
