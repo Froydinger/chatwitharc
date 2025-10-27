@@ -79,7 +79,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-border/30 overflow-x-auto">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border/30 overflow-x-auto scrollbar-hide">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -109,13 +109,13 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
             </div>
 
             {/* Prompt Grid */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
               <motion.div
                 key={activeTab}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2 }}
-                className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+                className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-4"
               >
                 {getCurrentPrompts().map((prompt, index) => (
                   <motion.button

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { SmartSuggestions } from "@/components/SmartSuggestions";
@@ -29,6 +29,8 @@ export function WelcomeSection({
   isGeneratingImage = false,
 }: WelcomeSectionProps) {
   const [showLibrary, setShowLibrary] = useState(false);
+  const [smartSuggestions, setSmartSuggestions] = useState<QuickPrompt[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
 
   // Convert prompts to categorized format
   const categorizedPrompts: QuickPrompt[] = useMemo(() => {
@@ -42,9 +44,35 @@ export function WelcomeSection({
     }));
   }, [quickPrompts]);
 
-  // Smart prompt selection
-  const smartSuggestions = useMemo(() => {
-    return selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3);
+  // Smart prompt selection with AI personalization
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadSmartSuggestions = async () => {
+      setIsLoadingSuggestions(true);
+      try {
+        const suggestions = await selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3);
+        if (isMounted) {
+          setSmartSuggestions(suggestions);
+        }
+      } catch (error) {
+        console.error('Failed to load smart suggestions:', error);
+        // Fallback to first 3 prompts
+        if (isMounted) {
+          setSmartSuggestions(categorizedPrompts.slice(0, 3));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingSuggestions(false);
+        }
+      }
+    };
+
+    loadSmartSuggestions();
+
+    return () => {
+      isMounted = false;
+    };
   }, [categorizedPrompts, profile, chatSessions]);
 
   return (
@@ -105,18 +133,20 @@ export function WelcomeSection({
         </motion.div>
 
         {/* Smart Suggestions */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="w-full"
-        >
-          <SmartSuggestions
-            suggestions={smartSuggestions}
-            onSelectPrompt={onTriggerPrompt}
-            onShowMore={() => setShowLibrary(true)}
-          />
-        </motion.div>
+        {!isLoadingSuggestions && smartSuggestions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="w-full"
+          >
+            <SmartSuggestions
+              suggestions={smartSuggestions}
+              onSelectPrompt={onTriggerPrompt}
+              onShowMore={() => setShowLibrary(true)}
+            />
+          </motion.div>
+        )}
 
         {/* Thinking Indicator */}
         {(isLoading || isGeneratingImage) && (

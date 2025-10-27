@@ -1,10 +1,12 @@
 import { Profile } from '@/hooks/useProfile';
 import { ChatSession } from '@/store/useArcStore';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface QuickPrompt {
   label: string;
   prompt: string;
   category: 'chat' | 'create' | 'write' | 'code';
+  isPersonalized?: boolean; // AI-generated personalized prompt
 }
 
 interface PromptScore {
@@ -12,62 +14,137 @@ interface PromptScore {
   score: number;
 }
 
+// Cache for personalized prompts
+let personalizedPromptsCache: QuickPrompt[] = [];
+let lastCacheTime = 0;
+const CACHE_DURATION = 1000 * 60 * 30; // 30 minutes
+
 /**
- * Smart prompt selection algorithm
- * Prioritizes Chat/Reflect/Create prompts (70%) based on user context
+ * Fetch AI-generated personalized prompts based on user memories and context
  */
-export function selectSmartPrompts(
+export async function fetchPersonalizedPrompts(
+  profile: Profile | null,
+  chatSessions: ChatSession[]
+): Promise<QuickPrompt[]> {
+  // Check cache first
+  const now = Date.now();
+  if (personalizedPromptsCache.length > 0 && now - lastCacheTime < CACHE_DURATION) {
+    return personalizedPromptsCache;
+  }
+
+  // Only generate if user has meaningful context
+  const hasContext = profile?.memory_info || profile?.context_info || chatSessions.length > 0;
+  if (!hasContext) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-personalized-prompts', {
+      body: {
+        profile: profile ? {
+          display_name: profile.display_name,
+          memory_info: profile.memory_info,
+          context_info: profile.context_info,
+        } : null,
+        recentChats: chatSessions.slice(0, 5).map(chat => ({
+          title: chat.title,
+        })),
+      },
+    });
+
+    if (error) throw error;
+
+    const aiPrompts = (data?.prompts || []).map((p: any) => ({
+      label: p.icon + ' ' + p.text,
+      prompt: p.text,
+      category: p.category as 'chat' | 'create' | 'write' | 'code',
+      isPersonalized: true,
+    }));
+
+    // Update cache
+    personalizedPromptsCache = aiPrompts;
+    lastCacheTime = now;
+
+    return aiPrompts;
+  } catch (error) {
+    console.error('Failed to fetch personalized prompts:', error);
+    return [];
+  }
+}
+
+/**
+ * Smart prompt selection algorithm with AI personalization
+ * Prioritizes Chat/Reflect/Create prompts (70%) and mixes in personalized AI-generated prompts
+ */
+export async function selectSmartPrompts(
   prompts: QuickPrompt[],
   profile: Profile | null,
   chatSessions: ChatSession[],
   count: number = 3
-): QuickPrompt[] {
+): Promise<QuickPrompt[]> {
+  // Try to fetch personalized prompts
+  const personalizedPrompts = await fetchPersonalizedPrompts(profile, chatSessions);
+  
+  // If we have personalized prompts, mix them in
+  let allPrompts = [...prompts];
+  if (personalizedPrompts.length > 0) {
+    // Give personalized prompts a boost in scoring
+    allPrompts = [...personalizedPrompts, ...prompts];
+  }
   const now = new Date();
   const hour = now.getHours();
   
-  // Categorize prompts
-  const chatPrompts = prompts.filter(p => p.category === 'chat');
-  const createPrompts = prompts.filter(p => p.category === 'create');
-  const writePrompts = prompts.filter(p => p.category === 'write');
-  const codePrompts = prompts.filter(p => p.category === 'code');
-  
-  // Score all prompts
-  const scoredPrompts: PromptScore[] = prompts.map(prompt => ({
-    prompt,
-    score: scorePrompt(prompt, profile, chatSessions, hour)
-  }));
+  // Score all prompts (including personalized ones)
+  const scoredPrompts: PromptScore[] = allPrompts.map(prompt => {
+    let score = scorePrompt(prompt, profile, chatSessions, hour);
+    
+    // Boost personalized prompts significantly
+    if (prompt.isPersonalized) {
+      score += 40; // Strong boost for AI-generated prompts
+    }
+    
+    return { prompt, score };
+  });
   
   // Sort by score
   scoredPrompts.sort((a, b) => b.score - a.score);
   
-  // Selection strategy: Prioritize chat/create/write (70% weighting)
+  // Selection strategy: Prioritize personalized + chat/create/write (70% weighting)
   const selected: QuickPrompt[] = [];
   const categoryCount = { chat: 0, create: 0, write: 0, code: 0 };
+  const personalizedCount = scoredPrompts.filter(s => s.prompt.isPersonalized).length;
   
-  // First pass: Select top-scored non-code prompts
+  // Determine mix: if we have personalized prompts, show at least 1-2 of them
+  const minPersonalized = personalizedCount > 0 ? Math.min(2, personalizedCount) : 0;
+  let personalizedSelected = 0;
+  
+  // First pass: Select personalized prompts
+  if (minPersonalized > 0) {
+    for (const scored of scoredPrompts) {
+      if (personalizedSelected >= minPersonalized) break;
+      if (scored.prompt.isPersonalized) {
+        selected.push(scored.prompt);
+        categoryCount[scored.prompt.category]++;
+        personalizedSelected++;
+      }
+    }
+  }
+  
+  // Second pass: Fill remaining slots with high-scored generic prompts
   for (const scored of scoredPrompts) {
     if (selected.length >= count) break;
+    if (selected.includes(scored.prompt)) continue; // Skip already selected
     
     const cat = scored.prompt.category;
     
-    // Limit code prompts (max 1 out of 3)
-    if (cat === 'code' && categoryCount.code >= 1) continue;
+    // Limit code prompts (max 1 out of 3 unless personalized)
+    if (cat === 'code' && categoryCount.code >= 1 && !scored.prompt.isPersonalized) continue;
     
-    // Ensure variety (max 2 from same category)
-    if (categoryCount[cat] >= 2) continue;
+    // Ensure variety (max 2 from same category unless personalized)
+    if (categoryCount[cat] >= 2 && !scored.prompt.isPersonalized) continue;
     
     selected.push(scored.prompt);
     categoryCount[cat]++;
-  }
-  
-  // If we still need more prompts, add highest-scored remaining
-  if (selected.length < count) {
-    for (const scored of scoredPrompts) {
-      if (selected.length >= count) break;
-      if (!selected.includes(scored.prompt)) {
-        selected.push(scored.prompt);
-      }
-    }
   }
   
   return selected.slice(0, count);
