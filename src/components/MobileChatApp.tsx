@@ -35,6 +35,7 @@ export function MobileChatApp() {
     createNewSession,
     startChatWithMessage,
     currentSessionId,
+    chatSessions,
     rightPanelOpen,
     setRightPanelOpen,
     rightPanelTab,
@@ -410,6 +411,8 @@ export function MobileChatApp() {
                 heroAvatar={HERO_AVATAR}
                 quickPrompts={quickPrompts}
                 onTriggerPrompt={triggerPrompt}
+                profile={profile}
+                chatSessions={chatSessions}
               />
             ) : (
               <div className="p-4 space-y-4 chat-messages">

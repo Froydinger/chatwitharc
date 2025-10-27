@@ -1,17 +1,19 @@
-import { useState, useEffect } from "react";
-import { ThinkingIndicator } from "./ThinkingIndicator";
-import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, Image, PenTool, Code2 } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useState, useMemo } from "react";
+import { motion } from "framer-motion";
+import { ThinkingIndicator } from "@/components/ThinkingIndicator";
+import { SmartSuggestions } from "@/components/SmartSuggestions";
+import { PromptLibrary } from "@/components/PromptLibrary";
+import { selectSmartPrompts, QuickPrompt } from "@/utils/smartPrompts";
+import { Profile } from "@/hooks/useProfile";
+import { ChatSession } from "@/store/useArcStore";
 
 interface WelcomeSectionProps {
   greeting: string;
   heroAvatar: string;
-  quickPrompts: Array<{
-    label: string;
-    prompt: string;
-  }>;
+  quickPrompts: { label: string; prompt: string }[];
   onTriggerPrompt: (prompt: string) => void;
+  profile: Profile | null;
+  chatSessions: ChatSession[];
   isLoading?: boolean;
   isGeneratingImage?: boolean;
 }
@@ -21,236 +23,120 @@ export function WelcomeSection({
   heroAvatar,
   quickPrompts,
   onTriggerPrompt,
+  profile,
+  chatSessions,
   isLoading = false,
   isGeneratingImage = false,
 }: WelcomeSectionProps) {
-  const [activeTab, setActiveTab] = useState<"chat" | "create" | "write" | "code">("chat");
-  const [glowIndex, setGlowIndex] = useState<number>(0);
-  const isMobile = useIsMobile();
+  const [showLibrary, setShowLibrary] = useState(false);
 
-  // Separate prompts: 6 chat, 6 create, 6 write, 6 code
-  const chatPrompts = quickPrompts.slice(0, 6);
-  const createPrompts = quickPrompts.slice(6, 12);
-  const writePrompts = quickPrompts.slice(12, 18);
-  const codePrompts = quickPrompts.slice(18, 24);
-  const currentPrompts = 
-    activeTab === "chat" ? chatPrompts : 
-    activeTab === "create" ? createPrompts : 
-    activeTab === "code" ? codePrompts :
-    writePrompts;
+  // Convert prompts to categorized format
+  const categorizedPrompts: QuickPrompt[] = useMemo(() => {
+    return quickPrompts.map((p, index) => ({
+      ...p,
+      category: 
+        index < 6 ? 'chat' :
+        index < 12 ? 'create' :
+        index < 18 ? 'write' :
+        'code'
+    }));
+  }, [quickPrompts]);
 
-  // Random glow movement effect
-  useEffect(() => {
-    const interval = setInterval(
-      () => {
-        setGlowIndex(Math.floor(Math.random() * currentPrompts.length));
-      },
-      2000 + Math.random() * 2000,
-    );
-    return () => clearInterval(interval);
-  }, [currentPrompts.length]);
+  // Smart prompt selection
+  const smartSuggestions = useMemo(() => {
+    return selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3);
+  }, [categorizedPrompts, profile, chatSessions]);
 
   return (
-    <div className="h-full flex flex-col items-center justify-start p-6 pt-8">
-      {/* Hero Section */}
-      <div className="text-center mb-8 relative">
-        {/* Logo positioned above greeting */}
+    <>
+      <div className="flex flex-col items-center justify-start min-h-full py-12 px-4 space-y-12">
+        {/* Hero Section */}
         <motion.div
-          animate={{ 
-            scale: [1, 1.05, 1]
-          }}
-          transition={{ 
-            duration: 10, 
-            repeat: Infinity, 
-            ease: "easeInOut" 
-          }}
-          className="flex justify-center mb-6 opacity-80 mt-[25px]"
+          className="flex flex-col items-center gap-6 text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
         >
-          <img 
-            src={heroAvatar} 
-            alt="ArcAI" 
-            className="h-20 w-20" 
-          />
-        </motion.div>
-        
-        <h1 className="text-3xl font-bold text-foreground mb-2">{greeting}!</h1>
-
-        <p className="text-muted-foreground text-lg mb-2">What are we getting into to today?</p>
-        <p className="text-xs text-muted-foreground/60 px-[27px] font-extralight">
-          You can change which model Arc uses in settings. Images are generated w/ Nano Banana 🍌
-        </p>
-      </div>
-
-      {/* Tab Selection */}
-      <div className="flex bg-muted/50 p-1 rounded-lg mb-8 backdrop-blur-sm">
-        <motion.button
-          onClick={() => setActiveTab("chat")}
-          layout
-          className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md transition-all duration-300 text-sm ${
-            activeTab === "chat"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <MessageCircle size={16} />
-          <AnimatePresence mode="wait">
-            {activeTab === "chat" && (
-              <motion.span
-                key="chat-text"
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="overflow-hidden whitespace-nowrap"
-              >
-                Chat
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </motion.button>
-        <motion.button
-          onClick={() => setActiveTab("create")}
-          layout
-          className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md transition-all duration-300 text-sm ${
-            activeTab === "create"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Image size={16} />
-          <AnimatePresence mode="wait">
-            {activeTab === "create" && (
-              <motion.span
-                key="create-text"
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="overflow-hidden whitespace-nowrap"
-              >
-                Create
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </motion.button>
-        <motion.button
-          onClick={() => setActiveTab("write")}
-          layout
-          className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md transition-all duration-300 text-sm ${
-            activeTab === "write"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <PenTool size={16} />
-          <AnimatePresence mode="wait">
-            {activeTab === "write" && (
-              <motion.span
-                key="write-text"
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="overflow-hidden whitespace-nowrap"
-              >
-                Write
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </motion.button>
-        <motion.button
-          onClick={() => setActiveTab("code")}
-          layout
-          className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md transition-all duration-300 text-sm ${
-            activeTab === "code"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Code2 size={16} />
-          <AnimatePresence mode="wait">
-            {activeTab === "code" && (
-              <motion.span
-                key="code-text"
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="overflow-hidden whitespace-nowrap"
-              >
-                Code
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </motion.button>
-      </div>
-
-      {/* Prompts Grid */}
-      <div className="w-full max-w-4xl mb-8 flex-1 pb-32">
-        <AnimatePresence mode="wait">
+          {/* Avatar */}
           <motion.div
-            key={activeTab}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-8"
+            className="relative"
+            animate={{
+              y: [0, -8, 0],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            <img src={heroAvatar} alt="Arc" className="h-24 w-24 rounded-full" />
+            <motion.div
+              className="absolute -inset-1 bg-primary/30 rounded-full blur-xl"
+              animate={{
+                scale: [1, 1.1, 1],
+                opacity: [0.3, 0.5, 0.3],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+          </motion.div>
+
+          {/* Greeting */}
+          <motion.h2
+            className="text-3xl font-semibold"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
+            transition={{ delay: 0.2 }}
           >
-            {currentPrompts.map((prompt, index) => {
-              const label = prompt.label.replace(/^[^\s]+\s+/, "");
-              const isGlowing = index === glowIndex;
+            {greeting}
+          </motion.h2>
 
-              return (
-                <motion.button
-                  key={`${activeTab}-${index}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onTriggerPrompt(prompt.prompt);
-                  }}
-                  className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm transition-all duration-200 text-left hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1 cursor-pointer touch-manipulation relative"
-                  style={{
-                    border: "1px solid rgba(0, 205, 255, 0.2)",
-                  }}
-                  whileHover={{ boxShadow: "0 0 20px rgba(0, 205, 255, 0.4)" }}
-                >
-                  <motion.div
-                    className="absolute inset-0 rounded-xl pointer-events-none"
-                    style={{
-                      boxShadow: "0 0 30px rgba(0, 205, 255, 0)",
-                      border: "1px solid rgba(0, 205, 255, 0.2)",
-                    }}
-                    animate={{
-                      boxShadow: isGlowing
-                        ? [
-                            "0 0 10px rgba(0, 205, 255, 0.3)",
-                            "0 0 25px rgba(0, 205, 255, 0.6)",
-                            "0 0 10px rgba(0, 205, 255, 0.3)",
-                          ]
-                        : "0 0 30px rgba(0, 205, 255, 0)",
-                    }}
-                    transition={{
-                      duration: isGlowing ? 1.5 : 0.3,
-                      repeat: isGlowing ? Infinity : 0,
-                      ease: "easeInOut",
-                    }}
-                  />
+          <motion.p
+            className="text-muted-foreground text-lg max-w-md"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            What would you like to explore today?
+          </motion.p>
+        </motion.div>
 
-                  <div className="relative z-10">
-                    <h3 className="font-medium text-foreground mb-2 transition-colors duration-200">{label}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{prompt.prompt}</p>
-                  </div>
-                </motion.button>
-              );
-            })}
+        {/* Smart Suggestions */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="w-full"
+        >
+          <SmartSuggestions
+            suggestions={smartSuggestions}
+            onSelectPrompt={onTriggerPrompt}
+            onShowMore={() => setShowLibrary(true)}
+          />
+        </motion.div>
+
+        {/* Thinking Indicator */}
+        {(isLoading || isGeneratingImage) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-8"
+          >
+            <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
           </motion.div>
-        </AnimatePresence>
+        )}
       </div>
 
-      {/* Thinking Indicator */}
-      <div>
-        <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
-      </div>
-    </div>
+      {/* Prompt Library Drawer */}
+      <PromptLibrary
+        isOpen={showLibrary}
+        onClose={() => setShowLibrary(false)}
+        prompts={quickPrompts}
+        onSelectPrompt={onTriggerPrompt}
+      />
+    </>
   );
 }
