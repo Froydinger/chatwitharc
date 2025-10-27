@@ -7,6 +7,7 @@ export interface QuickPrompt {
   prompt: string;
   category: 'chat' | 'create' | 'write' | 'code';
   isPersonalized?: boolean; // AI-generated personalized prompt
+  fullPrompt?: string; // Full contextual prompt for personalized prompts
 }
 
 interface PromptScore {
@@ -24,11 +25,12 @@ const CACHE_DURATION = 1000 * 60 * 30; // 30 minutes
  */
 export async function fetchPersonalizedPrompts(
   profile: Profile | null,
-  chatSessions: ChatSession[]
+  chatSessions: ChatSession[],
+  skipCache: boolean = false
 ): Promise<QuickPrompt[]> {
-  // Check cache first
+  // Check cache first (unless explicitly skipping)
   const now = Date.now();
-  if (personalizedPromptsCache.length > 0 && now - lastCacheTime < CACHE_DURATION) {
+  if (!skipCache && personalizedPromptsCache.length > 0 && now - lastCacheTime < CACHE_DURATION) {
     return personalizedPromptsCache;
   }
 
@@ -57,6 +59,7 @@ export async function fetchPersonalizedPrompts(
     const aiPrompts = (data?.prompts || []).map((p: any) => ({
       label: p.icon + ' ' + p.text,
       prompt: p.text,
+      fullPrompt: p.fullPrompt || p.text,
       category: p.category as 'chat' | 'create' | 'write' | 'code',
       isPersonalized: true,
     }));
@@ -80,10 +83,11 @@ export async function selectSmartPrompts(
   prompts: QuickPrompt[],
   profile: Profile | null,
   chatSessions: ChatSession[],
-  count: number = 3
+  count: number = 3,
+  skipCache: boolean = false
 ): Promise<QuickPrompt[]> {
   // Try to fetch personalized prompts
-  const personalizedPrompts = await fetchPersonalizedPrompts(profile, chatSessions);
+  const personalizedPrompts = await fetchPersonalizedPrompts(profile, chatSessions, skipCache);
   
   // If we have personalized prompts, mix them in
   let allPrompts = [...prompts];

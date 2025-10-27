@@ -58,13 +58,18 @@ serve(async (req) => {
 Return ONLY a JSON array of prompt objects with this structure:
 [
   {
-    "text": "the personalized prompt text",
+    "text": "SHORT display text (25-35 chars max)",
+    "fullPrompt": "the complete personalized prompt with full context that will be sent to AI",
     "icon": "emoji that fits the prompt",
     "category": "chat|create|write|code"
   }
 ]
 
-Keep prompts concise (under 50 characters). Make them feel like they're coming from someone who knows the user.`
+CRITICAL: Keep "text" field very short (25-35 characters) for display. Put the full contextual prompt in "fullPrompt". Example:
+- text: "Reflect on today"
+- fullPrompt: "Let's reflect on how your day went and what stood out to you"
+
+Make them feel like they're coming from someone who knows the user.`
           },
           {
             role: 'user',

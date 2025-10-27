@@ -1,11 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
+import { RefreshCw } from "lucide-react";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { SmartSuggestions } from "@/components/SmartSuggestions";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { selectSmartPrompts, QuickPrompt } from "@/utils/smartPrompts";
 import { Profile } from "@/hooks/useProfile";
 import { ChatSession } from "@/store/useArcStore";
+import { Button } from "@/components/ui/button";
 
 interface WelcomeSectionProps {
   greeting: string;
@@ -31,6 +33,7 @@ export function WelcomeSection({
   const [showLibrary, setShowLibrary] = useState(false);
   const [smartSuggestions, setSmartSuggestions] = useState<QuickPrompt[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Convert prompts to categorized format
   const categorizedPrompts: QuickPrompt[] = useMemo(() => {
@@ -48,10 +51,10 @@ export function WelcomeSection({
   useEffect(() => {
     let isMounted = true;
     
-    const loadSmartSuggestions = async () => {
+    const loadSmartSuggestions = async (skipCache = false) => {
       setIsLoadingSuggestions(true);
       try {
-        const suggestions = await selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3);
+        const suggestions = await selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3, skipCache);
         if (isMounted) {
           setSmartSuggestions(suggestions);
         }
@@ -74,6 +77,18 @@ export function WelcomeSection({
       isMounted = false;
     };
   }, [categorizedPrompts, profile, chatSessions]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const suggestions = await selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3, true);
+      setSmartSuggestions(suggestions);
+    } catch (error) {
+      console.error('Failed to refresh suggestions:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   return (
     <>
@@ -138,8 +153,21 @@ export function WelcomeSection({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="w-full"
+            className="w-full space-y-2"
           >
+            {/* Refresh Button */}
+            <div className="flex justify-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+            
             <SmartSuggestions
               suggestions={smartSuggestions}
               onSelectPrompt={onTriggerPrompt}
