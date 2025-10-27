@@ -689,6 +689,9 @@ export function MobileChatApp() {
         .dark .glass-dock button{ border-color: transparent !important; }
         .dark .glass-dock .ci-menu-btn{ background: rgba(255, 255, 255, 0.05) !important; }
         .dark .glass-dock button:hover:not(:disabled){ background: rgba(255, 255, 255, 0.08) !important; }
+        
+        /* Remove textarea background to prevent layered rectangle appearance */
+        .dark .glass-dock textarea{ background: transparent !important; border-radius: 0 !important; }
         .glass-dock > *{ position: relative; z-index: 1; }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
         .glass-dock .chat-input-halo{ 
