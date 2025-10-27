@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AdminSettingsPanel } from "@/components/AdminSettingsPanel";
+import { Brain } from "lucide-react";
 
 export function SettingsPanel() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -90,6 +91,7 @@ export function SettingsPanel() {
   // Structured memories state
   const [memories, setMemories] = useState<Array<{id: string; date: string; content: string}>>([]);
   const [memoriesDirty, setMemoriesDirty] = useState(false);
+  const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
 
   // Online/offline detection
   useEffect(() => {
@@ -526,38 +528,63 @@ export function SettingsPanel() {
                     </Select>
                   </div>
 
-                  {/* Memory */}
-                  <MemoryBankAccordion
-                    memories={memories}
-                    onMemoriesChange={handleMemoriesChange}
-                    onClearAll={handleClearMemory}
-                  />
-                  
-                  {/* Auto-save memories */}
-                  {memoriesDirty && (
-                    <div className="flex items-center justify-end gap-2 pt-2">
-                      <GlassButton 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={handleSaveMemory} 
-                        disabled={updating}
-                      >
-                        <Save className="w-3 h-3 mr-1" />Save Changes
-                      </GlassButton>
-                      <GlassButton 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => {
-                          const parsed = parseMemoriesFromText(profile?.memory_info || "");
-                          setMemories(parsed);
-                          setMemoriesDirty(false);
-                        }}
-                        disabled={updating}
-                      >
-                        <RotateCcw className="w-3 h-3 mr-1" />Reset
-                      </GlassButton>
+                  {/* Memory Bank Button */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-foreground">Memory Bank</label>
+                      <p className="text-xs text-muted-foreground">Information Arc remembers from conversations</p>
                     </div>
-                  )}
+                    <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
+                      <DialogTrigger asChild>
+                        <GlassButton variant="default" className="w-full justify-start">
+                          <Brain className="w-4 h-4 mr-2" />
+                          Manage Memories ({memories.length})
+                        </GlassButton>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Memory Bank</DialogTitle>
+                          <DialogDescription>
+                            Manage information Arc remembers from your conversations
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="py-4">
+                          <MemoryBankAccordion
+                            memories={memories}
+                            onMemoriesChange={handleMemoriesChange}
+                            onClearAll={handleClearMemory}
+                          />
+                        </div>
+                        
+                        {/* Auto-save memories */}
+                        {memoriesDirty && (
+                          <DialogFooter>
+                            <GlassButton 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => {
+                                const parsed = parseMemoriesFromText(profile?.memory_info || "");
+                                setMemories(parsed);
+                                setMemoriesDirty(false);
+                              }}
+                              disabled={updating}
+                            >
+                              <RotateCcw className="w-3 h-3 mr-1" />Reset
+                            </GlassButton>
+                            <GlassButton 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={handleSaveMemory} 
+                              disabled={updating}
+                            >
+                              <Save className="w-3 h-3 mr-1" />Save Changes
+                            </GlassButton>
+                          </DialogFooter>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                  </div>
 
                   {/* Theme Settings */}
                   <div className="space-y-3">
