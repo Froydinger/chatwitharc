@@ -26,7 +26,6 @@ function getDaypartGreeting(d: Date = new Date()): "Good Morning" | "Good Aftern
 /** Keep header logo as-is; use the head-only avatar above prompts */
 const HEADER_LOGO = "/arc-logo.png";
 const HERO_AVATAR = "/arc-logo.png";
-const HEADER_HEIGHT = 80; // Height of the header in pixels (top-20 = 5rem = 80px)
 
 export function MobileChatApp() {
   const navigate = useNavigate();
@@ -209,7 +208,7 @@ export function MobileChatApp() {
     });
   }, [messages, isLoading, isGeneratingImage]);
 
-  // Show/hide scroll button and header based on scroll position
+  // Show/hide scroll button based on scroll position
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
@@ -221,27 +220,12 @@ export function MobileChatApp() {
 
       // Hide header when scrolling down, show when scrolling up (MOBILE ONLY)
       if (isMobile) {
-        const shouldHideHeader = currentScrollY > lastScrollY && currentScrollY > 80;
-        const shouldShowHeader = currentScrollY < lastScrollY;
-
-        if (shouldHideHeader && headerVisible) {
-          // About to hide header - compensate scroll position
+        if (currentScrollY > lastScrollY && currentScrollY > 80) {
+          // Scrolling down & past threshold
           setHeaderVisible(false);
-          // Use requestAnimationFrame to ensure DOM has updated
-          requestAnimationFrame(() => {
-            if (el) {
-              el.scrollTop = currentScrollY - HEADER_HEIGHT;
-            }
-          });
-        } else if (shouldShowHeader && !headerVisible) {
-          // About to show header - compensate scroll position
+        } else if (currentScrollY < lastScrollY) {
+          // Scrolling up
           setHeaderVisible(true);
-          // Use requestAnimationFrame to ensure DOM has updated
-          requestAnimationFrame(() => {
-            if (el) {
-              el.scrollTop = currentScrollY + HEADER_HEIGHT;
-            }
-          });
         }
       }
 
@@ -250,7 +234,7 @@ export function MobileChatApp() {
 
     el.addEventListener("scroll", handleScroll);
     return () => el.removeEventListener("scroll", handleScroll);
-  }, [messages.length, lastScrollY, isMobile, headerVisible]);
+  }, [messages.length, lastScrollY, isMobile]);
 
   const scrollToBottom = () => {
     const el = messagesContainerRef.current;
@@ -261,7 +245,7 @@ export function MobileChatApp() {
     });
   };
 
-  // When chat is empty, go to top and ensure header is visible
+  // When chat is empty, go to top and show header
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
@@ -439,8 +423,8 @@ export function MobileChatApp() {
             ref={messagesContainerRef}
             className={cn(
               "absolute inset-x-0 bottom-0 overflow-y-auto transition-all duration-300 ease-out",
-              // KEY FIX: Dynamically adjust top spacing based on header visibility
-              headerVisible ? "top-20" : "top-0",
+              // Dynamic top spacing: remove gap when header is hidden on mobile
+              isMobile && !headerVisible ? "top-0" : "top-20",
             )}
             style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 6rem)` }}
           >
