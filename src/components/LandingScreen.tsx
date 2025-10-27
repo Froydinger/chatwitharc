@@ -27,12 +27,14 @@ export function LandingScreen() {
   ];
 
   const handleSendAttempt = (message: string) => {
-    // User tried to send a message, show auth modal
+    // Store the message to be sent after authentication
+    sessionStorage.setItem('pending-prompt', message);
     setShowAuthModal(true);
   };
 
   const handleTriggerPrompt = (prompt: string) => {
-    // User selected a quick prompt, show auth modal
+    // Store the prompt to be sent after authentication
+    sessionStorage.setItem('pending-prompt', prompt);
     setShowAuthModal(true);
   };
 

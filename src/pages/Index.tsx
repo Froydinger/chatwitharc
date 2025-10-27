@@ -38,6 +38,17 @@ export function Index() {
     // Theme is already handled by useTheme hook
   }, []);
 
+  // Handle pending prompt from landing screen after authentication
+  useEffect(() => {
+    if (user && !loading && !needsOnboarding) {
+      const pendingPrompt = sessionStorage.getItem('pending-prompt');
+      if (pendingPrompt) {
+        sessionStorage.removeItem('pending-prompt');
+        useArcStore.getState().startChatWithMessage(pendingPrompt);
+      }
+    }
+  }, [user, loading, needsOnboarding]);
+
   // Show name prompt for users without display name
   if (user && needsOnboarding) {
     return <NamePrompt />;
