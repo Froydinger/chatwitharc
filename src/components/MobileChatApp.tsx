@@ -339,7 +339,7 @@ export function MobileChatApp() {
         <header className="sticky top-0 z-40 border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-2 pb-1.5 dark:bg-[rgba(24,24,30,0.78)] bg-background/95">
           <div className="flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-2">
-              <div className="relative">
+              <div className="relative logo-accent-glow">
                 <motion.img
                   src={HERO_AVATAR}
                   alt="ArcAI"
@@ -347,15 +347,10 @@ export function MobileChatApp() {
                   animate={{ y: [0, -2, 0] }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 />
-                <motion.div
-                  className="absolute -inset-0.5 bg-primary/20 rounded-full blur-[6px]"
-                  animate={{ scale: [1, 1.05, 1], opacity: [0.2, 0.4, 0.2] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                />
               </div>
               <div>
                 <h1 className="text-lg">
-                  <span className="text-[#00cdff] text-lg font-normal">Arc</span>
+                  <span className="text-primary text-lg font-normal">Arc</span>
                   <span className="font-semibold">Ai</span>
                 </h1>
               </div>
@@ -454,7 +449,7 @@ export function MobileChatApp() {
                           rotate: { duration: 2, repeat: Infinity, ease: "linear" },
                         }}
                       >
-                        <div className="relative logo-accent-filter">
+                        <div className="relative logo-accent-glow">
                           <img src="/arc-logo-cropped.png" alt="Arc" className="h-5 w-5" />
                           <motion.div
                             className="absolute -inset-2 bg-primary/40 rounded-full blur-lg"

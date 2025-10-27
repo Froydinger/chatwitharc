@@ -63,7 +63,7 @@ export function LandingScreen() {
               }}
               className="flex justify-center mb-[-5px] relative z-0"
             >
-              <div className="logo-accent-filter inline-block">
+              <div className="logo-accent-glow">
                 <img 
                   src="/arc-logo.png" 
                   alt="ArcAI" 

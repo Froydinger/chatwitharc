@@ -106,25 +106,39 @@ export function useAccentColor() {
       document.head.appendChild(style);
     }
 
-    // Apply logo duotone with accent color
-    const logoDuotone = document.getElementById('logo-duotone-style') || document.createElement('style');
-    logoDuotone.id = 'logo-duotone-style';
-    logoDuotone.textContent = `
-      .logo-accent-filter {
-        filter: grayscale(100%) brightness(0) invert(1);
+    // Apply logo glow with accent color
+    const logoGlow = document.getElementById('logo-glow-style') || document.createElement('style');
+    logoGlow.id = 'logo-glow-style';
+    logoGlow.textContent = `
+      .logo-accent-glow {
+        position: relative;
+        display: inline-block;
       }
       
-      .logo-accent-filter::after {
+      .logo-accent-glow::before {
         content: '';
         position: absolute;
-        inset: 0;
-        background: hsl(${isLight ? config.lightPrimary : config.primary});
-        mix-blend-mode: multiply;
+        inset: -8px;
+        background: hsl(${isLight ? config.lightPrimary : config.primary} / 0.4);
+        border-radius: 50%;
+        filter: blur(12px);
+        animation: logo-breathe 3s ease-in-out infinite;
         pointer-events: none;
       }
+      
+      @keyframes logo-breathe {
+        0%, 100% {
+          opacity: 0.4;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.7;
+          transform: scale(1.1);
+        }
+      }
     `;
-    if (!logoDuotone.parentElement) {
-      document.head.appendChild(logoDuotone);
+    if (!logoGlow.parentElement) {
+      document.head.appendChild(logoGlow);
     }
 
     // Save to localStorage
