@@ -46,6 +46,8 @@ export function MobileChatApp() {
   const [dragOver, setDragOver] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -210,13 +212,25 @@ export function MobileChatApp() {
     if (!el) return;
 
     const handleScroll = () => {
+      const currentScrollY = el.scrollTop;
       const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
       setShowScrollButton(!isNearBottom && messages.length > 0);
+
+      // Hide header when scrolling down, show when scrolling up
+      if (currentScrollY > lastScrollY && currentScrollY > 80) {
+        // Scrolling down & past threshold
+        setHeaderVisible(false);
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up
+        setHeaderVisible(true);
+      }
+
+      setLastScrollY(currentScrollY);
     };
 
     el.addEventListener("scroll", handleScroll);
     return () => el.removeEventListener("scroll", handleScroll);
-  }, [messages.length]);
+  }, [messages.length, lastScrollY]);
 
   const scrollToBottom = () => {
     const el = messagesContainerRef.current;
@@ -336,7 +350,12 @@ export function MobileChatApp() {
         )}
       >
         {/* Header */}
-        <header className="sticky top-0 z-40 border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-2 pb-1.5 dark:bg-[rgba(24,24,30,0.78)] bg-background/95">
+        <header 
+          className={cn(
+            "sticky top-0 z-40 border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-2 pb-1.5 dark:bg-[rgba(24,24,30,0.78)] bg-background/95 transition-transform duration-300 ease-out",
+            !headerVisible && "-translate-y-full"
+          )}
+        >
           <div className="flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-1.5">
               <div className="relative logo-accent-glow header-logo-glow">
