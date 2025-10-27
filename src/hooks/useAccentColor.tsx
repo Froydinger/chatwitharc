@@ -126,6 +126,11 @@ export function useAccentColor() {
         pointer-events: none;
       }
       
+      .header-logo-glow::before {
+        inset: -3px;
+        filter: blur(6px);
+      }
+      
       @keyframes logo-breathe {
         0%, 100% {
           opacity: 0.2;
