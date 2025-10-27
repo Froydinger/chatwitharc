@@ -112,14 +112,32 @@ export function useAccentColor() {
       root.style.setProperty('--ai-message-border', config.lightAiMessageBorder);
     }
 
-    // Apply logo filter
-    const logoFilter = document.getElementById('logo-filter-style') || document.createElement('style');
-    logoFilter.id = 'logo-filter-style';
-    logoFilter.textContent = `
-      .logo-accent-filter { filter: ${config.filter}; }
+    // Apply logo duotone with accent color
+    const logoStyle = document.getElementById('logo-duotone-style') || document.createElement('style');
+    logoStyle.id = 'logo-duotone-style';
+    logoStyle.textContent = `
+      .logo-accent-filter {
+        position: relative;
+        display: inline-block;
+      }
+      
+      .logo-accent-filter::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: hsl(var(--primary));
+        mix-blend-mode: screen;
+        opacity: 0.85;
+        pointer-events: none;
+      }
+      
+      .logo-accent-filter img {
+        display: block;
+        filter: grayscale(1) contrast(1.2) brightness(0.9);
+      }
     `;
-    if (!logoFilter.parentElement) {
-      document.head.appendChild(logoFilter);
+    if (!logoStyle.parentElement) {
+      document.head.appendChild(logoStyle);
     }
 
     // Save to localStorage

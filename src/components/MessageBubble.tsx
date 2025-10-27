@@ -374,11 +374,11 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 rotate: { duration: 2, repeat: isThinking ? Infinity : 0, ease: "linear" }
               }}
             >
-              <div className="relative">
+              <div className="relative logo-accent-filter">
                 <img 
                   src="/arc-logo-cropped.png" 
                   alt="Arc" 
-                  className="h-5 w-5 logo-accent-filter"
+                  className="h-5 w-5"
                 />
                 {isThinking && (
                   <motion.div
