@@ -375,13 +375,11 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               }}
             >
               <div className="relative logo-accent-glow">
-                <div className="relative logo-recolor">
-                  <img 
-                    src="/arc-logo-cropped.png" 
-                    alt="Arc" 
-                    className="h-5 w-5 relative z-10"
-                  />
-                </div>
+                <img 
+                  src="/arc-logo-cropped.png" 
+                  alt="Arc" 
+                  className="h-5 w-5"
+                />
                 {isThinking && (
                   <motion.div
                     className="absolute -inset-2 bg-primary/20 rounded-full blur-lg"

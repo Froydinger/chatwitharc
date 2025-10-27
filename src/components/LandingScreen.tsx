@@ -64,13 +64,11 @@ export function LandingScreen() {
               className="flex justify-center mb-[-5px] relative z-0"
             >
               <div className="logo-accent-glow">
-                <div className="logo-recolor">
-                  <img 
-                    src="/arc-logo.png" 
-                    alt="ArcAI" 
-                    className="h-16 w-16 sm:h-20 sm:w-20 relative z-10"
-                  />
-                </div>
+                <img 
+                  src="/arc-logo.png" 
+                  alt="ArcAI" 
+                  className="h-16 w-16 sm:h-20 sm:w-20"
+                />
               </div>
             </motion.div>
             

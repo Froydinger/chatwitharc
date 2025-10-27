@@ -106,45 +106,6 @@ export function useAccentColor() {
       document.head.appendChild(style);
     }
 
-    // Apply logo recolor - replace blue with theme color, preserve brightness & alpha
-    const logoRecolor = document.getElementById('logo-recolor-style') || document.createElement('style');
-    logoRecolor.id = 'logo-recolor-style';
-    logoRecolor.textContent = `
-      .logo-recolor {
-        position: relative;
-        display: inline-block;
-      }
-      
-      .logo-recolor img {
-        filter: grayscale(1) contrast(1.1) brightness(1.2);
-        position: relative;
-        z-index: 2;
-        mix-blend-mode: luminosity;
-      }
-      
-      .logo-recolor::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: hsl(${isLight ? config.lightPrimary : config.primary});
-        z-index: 1;
-      }
-      
-      .logo-recolor::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background-image: url('/arc-logo-cropped.png');
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-        mix-blend-mode: destination-in;
-        z-index: 3;
-      }
-    `;
-    if (!logoRecolor.parentElement) {
-      document.head.appendChild(logoRecolor);
-    }
 
     // Apply logo glow with accent color
     const logoGlow = document.getElementById('logo-glow-style') || document.createElement('style');

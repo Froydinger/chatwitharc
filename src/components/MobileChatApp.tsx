@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
 import { useTheme } from "@/hooks/useTheme";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 /** Time-of-day greeting (no name usage) */
@@ -43,6 +44,7 @@ export function MobileChatApp() {
   } = useArcStore();
   const { profile } = useProfile();
   const { theme, toggleTheme } = useTheme();
+  const isMobile = useIsMobile();
   const [dragOver, setDragOver] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -216,13 +218,15 @@ export function MobileChatApp() {
       const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
       setShowScrollButton(!isNearBottom && messages.length > 0);
 
-      // Hide header when scrolling down, show when scrolling up
-      if (currentScrollY > lastScrollY && currentScrollY > 80) {
-        // Scrolling down & past threshold
-        setHeaderVisible(false);
-      } else if (currentScrollY < lastScrollY) {
-        // Scrolling up
-        setHeaderVisible(true);
+      // Hide header when scrolling down, show when scrolling up (MOBILE ONLY)
+      if (isMobile) {
+        if (currentScrollY > lastScrollY && currentScrollY > 80) {
+          // Scrolling down & past threshold
+          setHeaderVisible(false);
+        } else if (currentScrollY < lastScrollY) {
+          // Scrolling up
+          setHeaderVisible(true);
+        }
       }
 
       setLastScrollY(currentScrollY);
@@ -230,7 +234,7 @@ export function MobileChatApp() {
 
     el.addEventListener("scroll", handleScroll);
     return () => el.removeEventListener("scroll", handleScroll);
-  }, [messages.length, lastScrollY]);
+  }, [messages.length, lastScrollY, isMobile]);
 
   const scrollToBottom = () => {
     const el = messagesContainerRef.current;
@@ -353,21 +357,19 @@ export function MobileChatApp() {
         <header 
           className={cn(
             "fixed top-0 left-0 right-0 z-40 border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-2 pb-1.5 dark:bg-[rgba(24,24,30,0.78)] bg-background/95 transition-transform duration-300 ease-out",
-            !headerVisible && "-translate-y-full"
+            isMobile && !headerVisible && "-translate-y-full"
           )}
         >
           <div className="flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-1.5">
               <div className="relative logo-accent-glow header-logo-glow">
-                <div className="relative logo-recolor">
-                  <motion.img
-                    src={HERO_AVATAR}
-                    alt="ArcAI"
-                    className="h-12 w-12 relative z-10"
-                    animate={{ y: [0, -2, 0] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  />
-                </div>
+                <motion.img
+                  src={HERO_AVATAR}
+                  alt="ArcAI"
+                  className="h-12 w-12"
+                  animate={{ y: [0, -2, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                />
               </div>
               <div>
                 <h1 className="text-lg">
@@ -407,9 +409,8 @@ export function MobileChatApp() {
         {/* Scrollable messages layer with bottom padding equal to dock height */}
         <div
           className={cn(
-            "relative flex-1 transition-all duration-300 ease-out",
-            dragOver && "bg-primary/5",
-            headerVisible ? "pt-20" : "pt-0"
+            "relative flex-1 transition-all duration-300 ease-out pt-20",
+            dragOver && "bg-primary/5"
           )}
           onDragOver={(e) => {
             e.preventDefault();
@@ -475,9 +476,7 @@ export function MobileChatApp() {
                         }}
                       >
                         <div className="relative logo-accent-glow">
-                          <div className="relative logo-recolor">
-                            <img src="/arc-logo-cropped.png" alt="Arc" className="h-5 w-5 relative z-10" />
-                          </div>
+                          <img src="/arc-logo-cropped.png" alt="Arc" className="h-5 w-5" />
                           <motion.div
                             className="absolute -inset-2 bg-primary/20 rounded-full blur-lg"
                             animate={{
