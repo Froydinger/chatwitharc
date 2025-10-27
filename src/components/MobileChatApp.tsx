@@ -684,7 +684,7 @@ export function MobileChatApp() {
         }
         .glass-dock::before{ display: none; }
         .glass-dock:hover{ transform: none; transition: none; }
-        .glass-dock:focus-within{ background: rgba(24, 24, 30, 0.78); box-shadow: none; }
+        .dark .glass-dock:focus-within{ background: rgba(24, 24, 30, 0.78); box-shadow: none; }
         .glass-dock > *{ position: relative; z-index: 1; }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
         .glass-dock .chat-input-halo{ 
