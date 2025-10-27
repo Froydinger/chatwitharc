@@ -235,20 +235,6 @@ export function MobileChatApp() {
     });
   };
 
-  // When chat is empty, go to top and show header
-  useEffect(() => {
-    const el = messagesContainerRef.current;
-    if (!el) return;
-    if (messages.length === 0) {
-      setHeaderVisible(true); // Always show header when no messages
-      // Use a small delay to ensure DOM has rendered
-      setTimeout(() => {
-        el.scrollTop = 0;
-        requestAnimationFrame(() => (el.scrollTop = 0));
-      }, 10);
-    }
-  }, [messages.length]);
-
   // Measure input dock height
   useEffect(() => {
     const update = () => inputDockRef.current && setInputHeight(inputDockRef.current.offsetHeight);
@@ -263,29 +249,9 @@ export function MobileChatApp() {
   }, []);
 
   const handleNewChat = () => {
-    // Immediately scroll to top and show header
-    setHeaderVisible(true);
-    const el = messagesContainerRef.current;
-    if (el) {
-      el.scrollTop = 0;
-    }
-
     const newSessionId = createNewSession();
     navigate(`/chat/${newSessionId}`);
     setRightPanelOpen(false);
-
-    // Force scroll to top again after state updates
-    setTimeout(() => {
-      if (el) {
-        el.scrollTop = 0;
-      }
-    }, 0);
-
-    requestAnimationFrame(() => {
-      if (el) {
-        el.scrollTop = 0;
-      }
-    });
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -411,7 +377,7 @@ export function MobileChatApp() {
           {/* Chat Messages */}
           <div
             ref={messagesContainerRef}
-            className="absolute inset-x-0 bottom-0 top-20 overflow-y-auto"
+            className="absolute inset-x-0 bottom-0 top-0 overflow-y-auto"
             style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 6rem)` }}
           >
             {/* Empty state */}
@@ -428,7 +394,7 @@ export function MobileChatApp() {
               <div
                 className="space-y-4 chat-messages"
                 style={{
-                  paddingTop: "5rem", // Add padding at top when messages exist so first message isn't under header
+                  paddingTop: "5rem",
                   paddingLeft: "1rem",
                   paddingRight: "1rem",
                 }}
