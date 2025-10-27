@@ -198,16 +198,6 @@ export function MobileChatApp() {
     },
   ];
 
-  // Smooth scroll to bottom on new content - only when there are messages
-  useEffect(() => {
-    const el = messagesContainerRef.current;
-    if (!el || messages.length === 0) return; // Don't scroll if no messages
-    el.scrollTo({
-      top: el.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [messages, isLoading, isGeneratingImage]);
-
   // Show/hide scroll button based on scroll position
   useEffect(() => {
     const el = messagesContainerRef.current;
@@ -421,11 +411,7 @@ export function MobileChatApp() {
           {/* Chat Messages */}
           <div
             ref={messagesContainerRef}
-            className={cn(
-              "absolute inset-x-0 bottom-0 overflow-y-auto transition-all duration-300 ease-out",
-              // Dynamic top spacing: remove gap when header is hidden on mobile
-              isMobile && !headerVisible ? "top-0" : "top-20",
-            )}
+            className="absolute inset-x-0 bottom-0 top-20 overflow-y-auto"
             style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 6rem)` }}
           >
             {/* Empty state */}
@@ -439,7 +425,14 @@ export function MobileChatApp() {
                 chatSessions={chatSessions}
               />
             ) : (
-              <div className="p-4 space-y-4 chat-messages">
+              <div
+                className="space-y-4 chat-messages"
+                style={{
+                  paddingTop: "5rem", // Add padding at top when messages exist so first message isn't under header
+                  paddingLeft: "1rem",
+                  paddingRight: "1rem",
+                }}
+              >
                 {messages.map((message, index) => {
                   const isLastAssistantMessage = message.role === "assistant" && index === messages.length - 1;
 
