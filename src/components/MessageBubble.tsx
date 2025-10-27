@@ -382,10 +382,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 />
                 {isThinking && (
                   <motion.div
-                    className="absolute -inset-2 bg-primary/40 rounded-full blur-lg"
+                    className="absolute -inset-2 bg-primary/20 rounded-full blur-lg"
                     animate={{ 
                       scale: [1, 1.3, 1],
-                      opacity: [0.4, 0.7, 0.4]
+                      opacity: [0.2, 0.35, 0.2]
                     }}
                     transition={{ 
                       duration: 1.5, 

@@ -118,22 +118,22 @@ export function useAccentColor() {
       .logo-accent-glow::before {
         content: '';
         position: absolute;
-        inset: -8px;
-        background: hsl(${isLight ? config.lightPrimary : config.primary} / 0.4);
+        inset: -6px;
+        background: hsl(${isLight ? config.lightPrimary : config.primary} / 0.2);
         border-radius: 50%;
-        filter: blur(12px);
+        filter: blur(10px);
         animation: logo-breathe 3s ease-in-out infinite;
         pointer-events: none;
       }
       
       @keyframes logo-breathe {
         0%, 100% {
-          opacity: 0.4;
+          opacity: 0.2;
           transform: scale(1);
         }
         50% {
-          opacity: 0.7;
-          transform: scale(1.1);
+          opacity: 0.4;
+          transform: scale(1.05);
         }
       }
     `;
