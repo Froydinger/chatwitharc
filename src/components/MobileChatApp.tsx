@@ -382,19 +382,21 @@ export function MobileChatApp() {
           >
             {/* Empty state */}
             {messages.length === 0 ? (
-              <WelcomeSection
-                greeting={greeting}
-                heroAvatar={HERO_AVATAR}
-                quickPrompts={quickPrompts}
-                onTriggerPrompt={triggerPrompt}
-                profile={profile}
-                chatSessions={chatSessions}
-              />
+              <div style={{ paddingTop: "3rem" }}>
+                <WelcomeSection
+                  greeting={greeting}
+                  heroAvatar={HERO_AVATAR}
+                  quickPrompts={quickPrompts}
+                  onTriggerPrompt={triggerPrompt}
+                  profile={profile}
+                  chatSessions={chatSessions}
+                />
+              </div>
             ) : (
               <div
                 className="space-y-4 chat-messages"
                 style={{
-                  paddingTop: "5rem",
+                  paddingTop: "6.5rem",
                   paddingLeft: "1rem",
                   paddingRight: "1rem",
                 }}
