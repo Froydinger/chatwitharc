@@ -170,7 +170,7 @@ export function MobileChatApp() {
     {
       label: "🎮 Interactive Demo",
       prompt:
-        "Code: Build an interactive demo or game using HTML, CSS, and JavaScript. Make it fun and visually appealing.",
+        "Code: Build a random interactive demo - surprise me with something fun! Pick any cool interactive demo like a particle system, drawing canvas, mini game (snake, pong, memory cards), color mixer, gravity simulator, or bouncing balls. Just build something engaging with HTML, CSS, and JavaScript without asking what I want - be creative!",
     },
     {
       label: "📊 Dashboard",
