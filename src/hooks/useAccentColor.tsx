@@ -112,7 +112,14 @@ export function useAccentColor() {
     logoRecolor.textContent = `
       .logo-recolor {
         position: relative;
-        filter: saturate(0) brightness(2);
+        display: inline-block;
+      }
+      
+      .logo-recolor img {
+        filter: grayscale(1) contrast(1.1) brightness(1.2);
+        position: relative;
+        z-index: 2;
+        mix-blend-mode: luminosity;
       }
       
       .logo-recolor::before {
@@ -120,19 +127,19 @@ export function useAccentColor() {
         position: absolute;
         inset: 0;
         background: hsl(${isLight ? config.lightPrimary : config.primary});
-        mix-blend-mode: multiply;
-        opacity: 0.8;
-        pointer-events: none;
+        z-index: 1;
       }
       
       .logo-recolor::after {
         content: '';
         position: absolute;
         inset: 0;
-        background: hsl(${isLight ? config.lightPrimary : config.primary});
-        mix-blend-mode: overlay;
-        opacity: 0.6;
-        pointer-events: none;
+        background-image: url('/arc-logo-cropped.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        mix-blend-mode: destination-in;
+        z-index: 3;
       }
     `;
     if (!logoRecolor.parentElement) {
