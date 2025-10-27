@@ -3,10 +3,11 @@ import { motion } from "framer-motion";
 import { 
   Trash2, User, LogOut, AlertTriangle, Camera, Wifi, WifiOff, 
   Cloud, CloudOff, Mic, Settings as SettingsIcon, ChevronDown,
-  Save, RotateCcw, X, Mail, Key, Download, Monitor
+  Save, RotateCcw, X, Mail, Key, Download, Monitor, Palette, Cpu, Check
 } from "lucide-react";
 import { MemoryBankAccordion, parseMemoriesFromText, formatMemoriesToText } from "@/components/MemoryBankAccordion";
 import { useTheme } from "@/hooks/useTheme";
+import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
 import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
@@ -19,6 +20,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
@@ -56,6 +59,7 @@ export function SettingsPanel() {
   const { profile, updateProfile, updating } = useProfile();
   const { toast } = useToast();
   const { theme, toggleTheme, followSystem, toggleFollowSystem } = useTheme();
+  const { accentColor, setAccentColor } = useAccentColor();
 
   const handleDataDeleted = () => {
     // Create new session and refresh
@@ -368,262 +372,304 @@ export function SettingsPanel() {
 
         {/* Profile Tab */}
         <TabsContent value="profile" className="space-y-6 mt-6">
-          {/* Personal Information */}
-          <Collapsible 
-            open={openSections.profile} 
-            onOpenChange={() => toggleSection('profile')}
-          >
-            <GlassCard variant="bubble" className="overflow-hidden">
-              <CollapsibleTrigger className="w-full p-6 flex items-center justify-between hover:bg-glass/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="glass rounded-lg p-2">
-                    <User className="h-5 w-5 text-primary-glow" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Personal Information</h3>
+          {/* Your Name */}
+          <GlassCard variant="bubble" className="p-6 space-y-3">
+            <div className="flex items-center gap-3">
+              <User className="h-5 w-5 text-primary-glow" />
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Your Name</h3>
+                <p className="text-sm text-muted-foreground">How Arc should address you</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Input
+                value={displayNameDraft}
+                onChange={(e) => {
+                  setDisplayNameDraft(e.target.value);
+                  setDisplayNameDirty(true);
+                }}
+                placeholder="Enter your name"
+                className="glass border-glass-border"
+                disabled={updating}
+              />
+              {displayNameDirty && (
+                <div className="flex items-center gap-2">
+                  <GlassButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSaveDisplayName}
+                    disabled={updating}
+                  >
+                    <Save className="w-3 h-3 mr-1" />
+                    Save
+                  </GlassButton>
+                  <GlassButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setDisplayNameDraft(profile?.display_name || "");
+                      setDisplayNameDirty(false);
+                    }}
+                    disabled={updating}
+                  >
+                    <RotateCcw className="w-3 h-3 mr-1" />
+                    Reset
+                  </GlassButton>
                 </div>
-                <ChevronDown className={`h-4 w-4 transition-transform ${openSections.profile ? 'rotate-180' : ''}`} />
-              </CollapsibleTrigger>
-              
-              <CollapsibleContent className="px-6 pb-6">
-                <div className="space-y-6">
-                  {/* Display Name */}
+              )}
+            </div>
+          </GlassCard>
+
+          {/* Memories and Context Button */}
+          <GlassCard variant="bubble" className="p-6 space-y-3">
+            <div className="flex items-center gap-3">
+              <Brain className="h-5 w-5 text-primary-glow" />
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Memories and Context</h3>
+                <p className="text-sm text-muted-foreground">
+                  Teach Arc about yourself and set preferences
+                </p>
+              </div>
+            </div>
+            <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full bg-black text-white hover:bg-black/80 dark:bg-black dark:text-white dark:hover:bg-black/80">
+                  <Brain className="w-4 h-4 mr-2" />
+                  Memories and Context ({memories.length})
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Memories and Context</DialogTitle>
+                  <DialogDescription>
+                    Manage your personal information and memories
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="py-4 space-y-6">
+                  {/* Context Section */}
                   <div className="space-y-3">
                     <div>
-                      <label className="text-sm font-medium text-foreground">Your Name</label>
-                      <p className="text-xs text-muted-foreground">How Arc should address you</p>
+                      <label className="text-sm font-medium text-foreground">Context & Preferences</label>
+                      <p className="text-xs text-muted-foreground">Tell Arc about yourself and your needs</p>
                     </div>
                     <div className="space-y-2">
-                      <Input
-                        value={displayNameDraft}
+                      <Textarea
+                        value={contextDraft}
                         onChange={(e) => {
-                          setDisplayNameDraft(e.target.value);
-                          setDisplayNameDirty(true);
+                          setContextDraft(e.target.value);
+                          setContextDirty(true);
                         }}
-                        placeholder="Enter your name"
-                        className="glass border-glass-border"
+                        placeholder="I'm interested in... I prefer... I'm working on..."
+                        className="glass border-glass-border min-h-[80px] resize-none"
                         disabled={updating}
                       />
-                      {displayNameDirty && (
+                      {contextDirty && (
                         <div className="flex items-center gap-2">
-                          <GlassButton
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleSaveDisplayName}
-                            disabled={updating}
-                          >
-                            <Save className="w-3 h-3 mr-1" />
-                            Save
+                          <GlassButton variant="ghost" size="sm" onClick={handleSaveContext} disabled={updating}>
+                            <Save className="w-3 h-3 mr-1" />Save
                           </GlassButton>
-                          <GlassButton
-                            variant="ghost"
-                            size="sm"
+                          <GlassButton 
+                            variant="ghost" 
+                            size="sm" 
                             onClick={() => {
-                              setDisplayNameDraft(profile?.display_name || "");
-                              setDisplayNameDirty(false);
+                              setContextDraft(profile?.context_info || "");
+                              setContextDirty(false);
                             }}
                             disabled={updating}
                           >
-                            <RotateCcw className="w-3 h-3 mr-1" />
-                            Reset
+                            <RotateCcw className="w-3 h-3 mr-1" />Reset
                           </GlassButton>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Theme Settings */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium text-foreground">Appearance</label>
-                      <p className="text-xs text-muted-foreground">Control how Arc looks on your device</p>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      {/* Follow System Theme Toggle */}
-                      <div className="flex items-center justify-between p-3 bg-glass/30 rounded-md">
-                        <div className="flex items-center gap-3">
-                          <Monitor className="h-4 w-4 text-primary-glow" />
-                          <div>
-                            <p className="text-sm font-medium">Follow System Theme</p>
-                            <p className="text-xs text-muted-foreground">Automatically match device appearance</p>
-                          </div>
-                        </div>
-                        <Switch
-                          checked={followSystem}
-                          onCheckedChange={toggleFollowSystem}
-                        />
-                      </div>
-
-                      {/* Manual Theme Toggle (only shown when not following system) */}
-                      {!followSystem && (
-                        <div className="flex items-center justify-between p-3 bg-glass/30 rounded-md">
-                          <div>
-                            <p className="text-sm font-medium">Theme</p>
-                            <p className="text-xs text-muted-foreground">Current: {theme === 'dark' ? 'Dark' : 'Light'}</p>
-                          </div>
-                          <GlassButton
-                            variant="ghost"
-                            size="sm"
-                            onClick={toggleTheme}
-                          >
-                            {theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
-                          </GlassButton>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* AI Model Selection */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium text-foreground">AI Model</label>
-                      <p className="text-xs text-muted-foreground">Choose which model powers your conversations</p>
-                    </div>
-                    <Select value={selectedModel} onValueChange={handleModelChange}>
-                      <SelectTrigger className="glass border-glass-border">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="glass border-glass-border">
-                        <SelectItem value="google/gemini-2.5-flash">
-                          <div className="flex flex-col">
-                            <span className="font-medium">Gemini 2.5 Flash</span>
-                            <span className="text-xs text-muted-foreground">Balanced - Fast & smart (default)</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="google/gemini-2.5-pro">
-                          <div className="flex flex-col">
-                            <span className="font-medium">Gemini 2.5 Pro</span>
-                            <span className="text-xs text-muted-foreground">Most capable - Best reasoning</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="google/gemini-2.5-flash-lite">
-                          <div className="flex flex-col">
-                            <span className="font-medium">Gemini 2.5 Flash Lite</span>
-                            <span className="text-xs text-muted-foreground">Fastest - Simple tasks</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="openai/gpt-5">
-                          <div className="flex flex-col">
-                            <span className="font-medium">GPT-5</span>
-                            <span className="text-xs text-muted-foreground">Premium - Highest quality</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="openai/gpt-5-mini">
-                          <div className="flex flex-col">
-                            <span className="font-medium">GPT-5 Mini</span>
-                            <span className="text-xs text-muted-foreground">Efficient - Great performance</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="openai/gpt-5-nano">
-                          <div className="flex flex-col">
-                            <span className="font-medium">GPT-5 Nano</span>
-                            <span className="text-xs text-muted-foreground">Speed optimized</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Memories and Context Button */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium text-foreground">Memories & Context</label>
-                      <p className="text-xs text-muted-foreground">Personal info and memories Arc stores</p>
-                    </div>
-                    <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
-                      <DialogTrigger asChild>
-                        <GlassButton variant="default" className="w-full justify-start bg-black text-white hover:bg-black/80 dark:bg-black dark:text-white dark:hover:bg-black/80">
-                          <Brain className="w-4 h-4 mr-2" />
-                          Memories and Context ({memories.length})
-                        </GlassButton>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>Memories and Context</DialogTitle>
-                          <DialogDescription>
-                            Manage your personal information and memories
-                          </DialogDescription>
-                        </DialogHeader>
-                        
-                        <div className="py-4 space-y-6">
-                          {/* Context Section */}
-                          <div className="space-y-3">
-                            <div>
-                              <label className="text-sm font-medium text-foreground">Context & Preferences</label>
-                              <p className="text-xs text-muted-foreground">Tell Arc about yourself and your needs</p>
-                            </div>
-                            <div className="space-y-2">
-                              <Textarea
-                                value={contextDraft}
-                                onChange={(e) => {
-                                  setContextDraft(e.target.value);
-                                  setContextDirty(true);
-                                }}
-                                placeholder="I'm interested in... I prefer... I'm working on..."
-                                className="glass border-glass-border min-h-[80px] resize-none"
-                                disabled={updating}
-                              />
-                              {contextDirty && (
-                                <div className="flex items-center gap-2">
-                                  <GlassButton variant="ghost" size="sm" onClick={handleSaveContext} disabled={updating}>
-                                    <Save className="w-3 h-3 mr-1" />Save
-                                  </GlassButton>
-                                  <GlassButton 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    onClick={() => {
-                                      setContextDraft(profile?.context_info || "");
-                                      setContextDirty(false);
-                                    }}
-                                    disabled={updating}
-                                  >
-                                    <RotateCcw className="w-3 h-3 mr-1" />Reset
-                                  </GlassButton>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Memory Bank Section */}
-                          <MemoryBankAccordion
-                            memories={memories}
-                            onMemoriesChange={handleMemoriesChange}
-                            onClearAll={handleClearMemory}
-                          />
-                        </div>
-                        
-                        {/* Auto-save memories */}
-                        {memoriesDirty && (
-                          <DialogFooter>
-                            <GlassButton 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => {
-                                const parsed = parseMemoriesFromText(profile?.memory_info || "");
-                                setMemories(parsed);
-                                setMemoriesDirty(false);
-                              }}
-                              disabled={updating}
-                            >
-                              <RotateCcw className="w-3 h-3 mr-1" />Reset
-                            </GlassButton>
-                            <GlassButton 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={handleSaveMemory} 
-                              disabled={updating}
-                            >
-                              <Save className="w-3 h-3 mr-1" />Save Changes
-                            </GlassButton>
-                          </DialogFooter>
-                        )}
-                      </DialogContent>
-                    </Dialog>
-                  </div>
+                  {/* Memory Bank Section */}
+                  <MemoryBankAccordion
+                    memories={memories}
+                    onMemoriesChange={handleMemoriesChange}
+                    onClearAll={handleClearMemory}
+                  />
                 </div>
-              </CollapsibleContent>
-            </GlassCard>
-          </Collapsible>
+                
+                {/* Auto-save memories */}
+                {memoriesDirty && (
+                  <DialogFooter>
+                    <GlassButton 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        const parsed = parseMemoriesFromText(profile?.memory_info || "");
+                        setMemories(parsed);
+                        setMemoriesDirty(false);
+                      }}
+                      disabled={updating}
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1" />Reset
+                    </GlassButton>
+                    <GlassButton 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleSaveMemory} 
+                      disabled={updating}
+                    >
+                      <Save className="w-3 h-3 mr-1" />Save Changes
+                    </GlassButton>
+                  </DialogFooter>
+                )}
+              </DialogContent>
+            </Dialog>
+          </GlassCard>
+
+          {/* Appearance Section */}
+          <GlassCard variant="bubble" className="p-6 space-y-6">
+            <div className="flex items-center gap-3">
+              <Palette className="h-5 w-5 text-primary-glow" />
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Appearance</h3>
+                <p className="text-sm text-muted-foreground">Customize your visual experience</p>
+              </div>
+            </div>
+
+            {/* Follow System Theme */}
+            <div className="flex items-center justify-between p-4 glass rounded-lg">
+              <div className="flex-1">
+                <Label htmlFor="follow-system" className="text-foreground font-medium">
+                  Follow System Theme
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Automatically match your device's theme
+                </p>
+              </div>
+              <Switch
+                id="follow-system"
+                checked={followSystem}
+                onCheckedChange={toggleFollowSystem}
+              />
+            </div>
+
+            {/* Theme Toggle */}
+            {!followSystem && (
+              <div className="flex items-center justify-between p-4 glass rounded-lg">
+                <div className="flex-1">
+                  <Label htmlFor="theme-toggle" className="text-foreground font-medium">
+                    Theme
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Choose between light and dark mode
+                  </p>
+                </div>
+                <Button
+                  id="theme-toggle"
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleTheme}
+                  className="glass-strong"
+                >
+                  {theme === "dark" ? (
+                    <Monitor className="h-5 w-5" />
+                  ) : (
+                    <Monitor className="h-5 w-5" />
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* Accent Color Picker */}
+            <div className="space-y-3">
+              <div>
+                <Label className="text-foreground font-medium">Accent Color</Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Customize the app's accent color
+                </p>
+              </div>
+              <div className="grid grid-cols-6 gap-3">
+                {(['red', 'blue', 'green', 'yellow', 'purple', 'orange'] as AccentColor[]).map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setAccentColor(color)}
+                    className={`aspect-square rounded-xl relative transition-all ${
+                      accentColor === color
+                        ? 'ring-2 ring-offset-2 ring-offset-background scale-110'
+                        : 'hover:scale-105'
+                    }`}
+                    style={{
+                      background: color === 'red' ? 'linear-gradient(135deg, hsl(0, 85%, 60%), hsl(0, 85%, 70%))' :
+                                color === 'blue' ? 'linear-gradient(135deg, hsl(200, 95%, 55%), hsl(200, 90%, 65%))' :
+                                color === 'green' ? 'linear-gradient(135deg, hsl(142, 76%, 42%), hsl(142, 76%, 52%))' :
+                                color === 'yellow' ? 'linear-gradient(135deg, hsl(48, 85%, 55%), hsl(48, 85%, 65%))' :
+                                color === 'purple' ? 'linear-gradient(135deg, hsl(270, 75%, 60%), hsl(270, 75%, 70%))' :
+                                'linear-gradient(135deg, hsl(25, 90%, 58%), hsl(25, 90%, 68%))',
+                      ...(accentColor === color && {
+                        boxShadow: '0 0 20px currentColor',
+                        opacity: 1
+                      })
+                    }}
+                    aria-label={`Select ${color} accent color`}
+                  >
+                    {accentColor === color && (
+                      <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-lg" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </GlassCard>
+
+          {/* AI Model */}
+          <GlassCard variant="bubble" className="p-6 space-y-3">
+            <div className="flex items-center gap-3">
+              <Cpu className="h-5 w-5 text-primary-glow" />
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">AI Model</h3>
+                <p className="text-sm text-muted-foreground">Choose which model powers your conversations</p>
+              </div>
+            </div>
+            <Select value={selectedModel} onValueChange={handleModelChange}>
+              <SelectTrigger className="glass border-glass-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="glass border-glass-border">
+                <SelectItem value="google/gemini-2.5-flash">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Gemini 2.5 Flash</span>
+                    <span className="text-xs text-muted-foreground">Balanced - Fast & smart (default)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="google/gemini-2.5-pro">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Gemini 2.5 Pro</span>
+                    <span className="text-xs text-muted-foreground">Most capable - Best reasoning</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="google/gemini-2.5-flash-lite">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Gemini 2.5 Flash Lite</span>
+                    <span className="text-xs text-muted-foreground">Fastest - Simple tasks</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="openai/gpt-5">
+                  <div className="flex flex-col">
+                    <span className="font-medium">GPT-5</span>
+                    <span className="text-xs text-muted-foreground">Premium - Highest quality</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="openai/gpt-5-mini">
+                  <div className="flex flex-col">
+                    <span className="font-medium">GPT-5 Mini</span>
+                    <span className="text-xs text-muted-foreground">Efficient - Great performance</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="openai/gpt-5-nano">
+                  <div className="flex flex-col">
+                    <span className="font-medium">GPT-5 Nano</span>
+                    <span className="text-xs text-muted-foreground">Speed optimized</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </GlassCard>
         </TabsContent>
 
         {/* Account Tab */}
@@ -641,7 +687,6 @@ export function SettingsPanel() {
             </div>
           </GlassCard>
 
-          {/* Sync Status */}
           <GlassCard variant="bubble" className="p-6">
             <div className="space-y-6">
               {/* Connected Accounts */}
@@ -828,18 +873,15 @@ export function SettingsPanel() {
                   <AlertDialogHeader>
                     <AlertDialogTitle className="flex items-center gap-2 text-destructive">
                       <AlertTriangle className="h-5 w-5" />
-                      Delete Account Permanently
+                      Are you absolutely sure?
                     </AlertDialogTitle>
-                    <AlertDialogDescription className="text-foreground">
-                      This action cannot be undone. This will permanently delete your account,
-                      remove all your data including chat history, profile information, and 
-                      disconnect any Google authentication. You can register again with the 
-                      same email if needed.
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel className="glass">Cancel</AlertDialogCancel>
-                    <AlertDialogAction 
+                    <AlertDialogCancel className="glass border-glass-border">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
                       onClick={handleDeleteAccount}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       disabled={isDeleting}
@@ -851,42 +893,22 @@ export function SettingsPanel() {
               </AlertDialog>
             </div>
           </GlassCard>
-
-          {/* App Info */}
-          <GlassCard variant="bubble" className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="glass rounded-lg p-2">
-                <SettingsIcon className="h-5 w-5 text-primary-glow" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground">About ArcAI</h3>
-            </div>
-            
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p>✨ Beautiful glassmorphism interface</p>
-              <p>🤖 Powered by Google Gemini 2.5 Flash via Lovable AI</p>
-              <p>🎨 Image generation with Gemini Image Preview</p>
-              <p>📱 Mobile-first responsive design</p>
-              <p>🔒 Secure server-side API handling</p>
-            </div>
-          </GlassCard>
         </TabsContent>
 
         {/* Admin Tab */}
         {isAdmin && (
-          <TabsContent value="admin" className="space-y-6 mt-6">
-            <div className="text-center space-y-2">
-              <div className="flex items-center justify-center gap-2">
-                <div className="glass rounded-full p-2">
-                  <SettingsIcon className="h-6 w-6 text-primary-glow" />
-                </div>
-                <h2 className="text-xl font-bold text-foreground">Admin Settings</h2>
-              </div>
-              <p className="text-muted-foreground">Configure global AI behavior and system settings</p>
-            </div>
+          <TabsContent value="admin" className="mt-6">
             <AdminSettingsPanel />
           </TabsContent>
         )}
       </Tabs>
+
+      {/* Delete Data Modal */}
+      <DeleteDataModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onDeleted={handleDataDeleted}
+      />
     </div>
   );
 }

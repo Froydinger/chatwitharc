@@ -66,7 +66,7 @@ export function LandingScreen() {
               <img 
                 src="/arc-logo.png" 
                 alt="ArcAI" 
-                className="h-16 w-16 sm:h-20 sm:w-20" 
+                className="h-16 w-16 sm:h-20 sm:w-20 logo-accent-filter"
               />
             </motion.div>
             

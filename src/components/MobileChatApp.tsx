@@ -455,7 +455,7 @@ export function MobileChatApp() {
                         }}
                       >
                         <div className="relative">
-                          <img src="/arc-logo-cropped.png" alt="Arc" className="h-5 w-5" />
+                          <img src="/arc-logo-cropped.png" alt="Arc" className="h-5 w-5 logo-accent-filter" />
                           <motion.div
                             className="absolute -inset-2 bg-primary/40 rounded-full blur-lg"
                             animate={{
