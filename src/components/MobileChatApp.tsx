@@ -26,6 +26,7 @@ function getDaypartGreeting(d: Date = new Date()): "Good Morning" | "Good Aftern
 /** Keep header logo as-is; use the head-only avatar above prompts */
 const HEADER_LOGO = "/arc-logo.png";
 const HERO_AVATAR = "/arc-logo.png";
+const HEADER_HEIGHT = 80; // Height of the header in pixels (top-20 = 5rem = 80px)
 
 export function MobileChatApp() {
   const navigate = useNavigate();
@@ -208,7 +209,7 @@ export function MobileChatApp() {
     });
   }, [messages, isLoading, isGeneratingImage]);
 
-  // Show/hide scroll button based on scroll position
+  // Show/hide scroll button and header based on scroll position
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
@@ -220,12 +221,27 @@ export function MobileChatApp() {
 
       // Hide header when scrolling down, show when scrolling up (MOBILE ONLY)
       if (isMobile) {
-        if (currentScrollY > lastScrollY && currentScrollY > 80) {
-          // Scrolling down & past threshold
+        const shouldHideHeader = currentScrollY > lastScrollY && currentScrollY > 80;
+        const shouldShowHeader = currentScrollY < lastScrollY;
+
+        if (shouldHideHeader && headerVisible) {
+          // About to hide header - compensate scroll position
           setHeaderVisible(false);
-        } else if (currentScrollY < lastScrollY) {
-          // Scrolling up
+          // Use requestAnimationFrame to ensure DOM has updated
+          requestAnimationFrame(() => {
+            if (el) {
+              el.scrollTop = currentScrollY - HEADER_HEIGHT;
+            }
+          });
+        } else if (shouldShowHeader && !headerVisible) {
+          // About to show header - compensate scroll position
           setHeaderVisible(true);
+          // Use requestAnimationFrame to ensure DOM has updated
+          requestAnimationFrame(() => {
+            if (el) {
+              el.scrollTop = currentScrollY + HEADER_HEIGHT;
+            }
+          });
         }
       }
 
@@ -234,7 +250,7 @@ export function MobileChatApp() {
 
     el.addEventListener("scroll", handleScroll);
     return () => el.removeEventListener("scroll", handleScroll);
-  }, [messages.length, lastScrollY, isMobile]);
+  }, [messages.length, lastScrollY, isMobile, headerVisible]);
 
   const scrollToBottom = () => {
     const el = messagesContainerRef.current;
@@ -245,11 +261,12 @@ export function MobileChatApp() {
     });
   };
 
-  // When chat is empty, go to top
+  // When chat is empty, go to top and ensure header is visible
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
     if (messages.length === 0) {
+      setHeaderVisible(true); // Always show header when no messages
       // Use a small delay to ensure DOM has rendered
       setTimeout(() => {
         el.scrollTop = 0;
@@ -272,7 +289,8 @@ export function MobileChatApp() {
   }, []);
 
   const handleNewChat = () => {
-    // Immediately scroll to top
+    // Immediately scroll to top and show header
+    setHeaderVisible(true);
     const el = messagesContainerRef.current;
     if (el) {
       el.scrollTop = 0;
@@ -354,10 +372,10 @@ export function MobileChatApp() {
         )}
       >
         {/* Header */}
-        <header 
+        <header
           className={cn(
             "fixed top-0 left-0 right-0 z-40 border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-2 pb-1.5 dark:bg-[rgba(24,24,30,0.78)] bg-background/95 transition-transform duration-300 ease-out",
-            isMobile && !headerVisible && "-translate-y-full"
+            isMobile && !headerVisible && "-translate-y-full",
           )}
         >
           <div className="flex h-16 items-center justify-between px-4">
@@ -408,10 +426,7 @@ export function MobileChatApp() {
 
         {/* Scrollable messages layer with bottom padding equal to dock height */}
         <div
-          className={cn(
-            "relative flex-1 transition-all duration-300 ease-out",
-            dragOver && "bg-primary/5"
-          )}
+          className={cn("relative flex-1 transition-all duration-300 ease-out", dragOver && "bg-primary/5")}
           onDragOver={(e) => {
             e.preventDefault();
             setDragOver(true);
@@ -422,7 +437,11 @@ export function MobileChatApp() {
           {/* Chat Messages */}
           <div
             ref={messagesContainerRef}
-            className="absolute inset-x-0 bottom-0 top-20 overflow-y-auto"
+            className={cn(
+              "absolute inset-x-0 bottom-0 overflow-y-auto transition-all duration-300 ease-out",
+              // KEY FIX: Dynamically adjust top spacing based on header visibility
+              headerVisible ? "top-20" : "top-0",
+            )}
             style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 6rem)` }}
           >
             {/* Empty state */}
