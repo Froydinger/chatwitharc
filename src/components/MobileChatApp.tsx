@@ -210,8 +210,8 @@ export function MobileChatApp() {
 
       // Hide header when scrolling down, show when scrolling up (MOBILE ONLY)
       if (isMobile) {
-        if (currentScrollY > lastScrollY && currentScrollY > 80) {
-          // Scrolling down & past threshold
+        if (currentScrollY > lastScrollY && currentScrollY > 1500) {
+          // Scrolling down & past threshold (about 2 page lengths)
           setHeaderVisible(false);
         } else if (currentScrollY < lastScrollY) {
           // Scrolling up
