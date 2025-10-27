@@ -106,6 +106,34 @@ export function useAccentColor() {
       document.head.appendChild(style);
     }
 
+    // Apply logo recolor effect
+    const logoRecolor = document.getElementById('logo-recolor-style') || document.createElement('style');
+    logoRecolor.id = 'logo-recolor-style';
+    logoRecolor.textContent = `
+      .logo-recolor {
+        filter: 
+          brightness(0) 
+          saturate(100%) 
+          invert(1)
+          opacity(1);
+      }
+      
+      .logo-recolor::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: hsl(${isLight ? config.lightPrimary : config.primary});
+        mask-image: url('/arc-logo-cropped.png');
+        mask-size: contain;
+        mask-repeat: no-repeat;
+        mask-position: center;
+        pointer-events: none;
+      }
+    `;
+    if (!logoRecolor.parentElement) {
+      document.head.appendChild(logoRecolor);
+    }
+
     // Apply logo glow with accent color
     const logoGlow = document.getElementById('logo-glow-style') || document.createElement('style');
     logoGlow.id = 'logo-glow-style';

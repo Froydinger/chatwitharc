@@ -375,12 +375,11 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               }}
             >
               <div className="relative logo-accent-glow">
-                <svg 
-                  viewBox="0 0 100 100"
-                  className="h-5 w-5 text-primary"
-                >
-                  <path d="M50 15 L30 40 L40 40 L40 75 L60 75 L60 40 L70 40 Z M50 85 L35 92 L50 88 L65 92 Z" fill="currentColor"/>
-                </svg>
+                <img 
+                  src="/arc-logo-cropped.png" 
+                  alt="Arc" 
+                  className="h-5 w-5 logo-recolor"
+                />
                 {isThinking && (
                   <motion.div
                     className="absolute -inset-2 bg-primary/20 rounded-full blur-lg"
