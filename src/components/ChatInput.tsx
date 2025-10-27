@@ -55,30 +55,34 @@ function isImageEditRequest(message: string): boolean {
 function checkForImageRequest(message: string): boolean {
   if (!message) return false;
   const m = message.toLowerCase().trim();
+  
+  // Require explicit image-related words to be present
+  const hasImageWord = /\b(image|picture|photo|illustration|artwork|graphic|visual|drawing|painting)\b/i.test(m);
+  if (!hasImageWord) return false;
+  
+  // Check for explicit image generation patterns
   if (
-    /^(generate|create|make|draw|paint|design|render|produce|build)\s+(an?\s+)?(image|picture|photo|illustration|artwork|graphic)/i.test(
-      m,
-    )
-  )
-    return true;
+    /^(generate|create|make|draw|paint|design|render|produce)\s+(an?\s+)?(image|picture|photo|illustration|artwork|graphic)/i.test(m)
+  ) return true;
+  
   if (/^(generate|create|make)\s+an?\s+image\s+of/i.test(m)) return true;
+  
   if (/^(show\s+me|give\s+me|i\s+want|i\s+need)\s+(an?\s+)?(image|picture|photo)/i.test(m)) return true;
+  
+  // More specific keyword combinations
   const imageKeywords = [
     "generate image",
     "create image",
     "make image",
-    "draw",
-    "paint",
-    "illustrate",
+    "draw image",
+    "paint image",
+    "generate picture",
+    "create picture",
+    "image of",
     "picture of",
     "photo of",
-    "image of",
-    "render",
-    "visualize",
-    "design",
-    "artwork",
-    "graphic",
   ];
+  
   return imageKeywords.some((keyword) => m.includes(keyword));
 }
 function extractImagePrompt(message: string): string {

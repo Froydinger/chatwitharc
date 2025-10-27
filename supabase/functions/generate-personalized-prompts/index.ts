@@ -65,9 +65,17 @@ Return ONLY a JSON array of prompt objects with this structure:
   }
 ]
 
-CRITICAL: Keep "text" field very short (25-35 characters) for display. Put the full contextual prompt in "fullPrompt". Example:
-- text: "Reflect on today"
-- fullPrompt: "Let's reflect on how your day went and what stood out to you"
+CRITICAL RULES:
+1. Write ALL prompts from the USER's perspective (e.g., "Help me code...", "Show me how to...", "Build a...")
+2. NEVER write from AI perspective (don't say "I'll help you..." or "Let me...")
+3. For coding tasks, ALWAYS use: "code", "build", "develop", "program", "write code"
+4. NEVER use these words as they trigger image generation: "generate", "create", "make", "draw", "image", "picture", "photo", "visualize", "render", "illustrate"
+5. Keep "text" field very short (25-35 characters) for display
+6. Put the full contextual prompt in "fullPrompt"
+
+Example:
+- text: "Code a todo app"
+- fullPrompt: "Help me code a todo app with React and TypeScript that has task management features"
 
 Make them feel like they're coming from someone who knows the user.`
           },
