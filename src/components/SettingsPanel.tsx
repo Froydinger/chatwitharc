@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import { MemoryBankAccordion, parseMemoriesFromText, formatMemoriesToText } from "@/components/MemoryBankAccordion";
 import { useTheme } from "@/hooks/useTheme";
-// Removed useAccentColor import; we'll drive accent color through useTheme
 import { DeleteDataModal } from "@/components/DeleteDataModal";
 import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
@@ -85,9 +84,8 @@ export function SettingsPanel() {
   const { user } = useAuth();
   const { profile, updateProfile, updating } = useProfile();
   const { toast } = useToast();
-  // Use Theme hook for both theme and accent color
   const { theme, toggleTheme, followSystem, toggleFollowSystem, accentColor, setAppAccentColor } = useTheme();
-  // Removed useAccentColor; accent color is controlled via setAppAccentColor
+  // Removed useAccentColor: Accent color is driven via Theme
 
   const handleDataDeleted = () => {
     // Create new session and refresh
@@ -118,6 +116,8 @@ export function SettingsPanel() {
   const [contextDirty, setContextDirty] = useState(false);
   const [memoryDraft, setMemoryDraft] = useState("");
   const [memoryDirty, setMemoryDirty] = useState(false);
+
+  // Ensure model selection from profile
   const [selectedModel, setSelectedModel] = useState((profile as any)?.preferred_model || "google/gemini-2.5-flash");
 
   // Structured memories state
@@ -304,15 +304,25 @@ export function SettingsPanel() {
       return;
     }
 
-    // ... (password reset logic unchanged)
+    // Password reset logic unchanged...
   };
 
   const handleDeleteAccount = async () => {
-    // ... (delete account logic unchanged)
+    // Delete account logic unchanged...
   };
 
-  const getSyncStatus = () => {
-    // ... (sync status logic unchanged)
+  // Sync status helper with clear typing
+  type SyncStatus = { icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; color: string; text: string };
+  const getSyncStatus = (): SyncStatus => {
+    if (!user) return { icon: CloudOff, color: "text-muted-foreground", text: "Not signed in" };
+    if (!isOnline) return { icon: WifiOff, color: "text-destructive", text: "Offline" };
+    if (!lastSyncAt) return { icon: CloudOff, color: "text-muted-foreground", text: "Syncing..." };
+
+    const timeSinceSync = Date.now() - lastSyncAt.getTime();
+    if (timeSinceSync < 5000) {
+      return { icon: Cloud, color: "text-green-400", text: "Synced" };
+    }
+    return { icon: Cloud, color: "text-primary-glow", text: "Auto-sync enabled" };
   };
 
   const { icon: SyncIcon, color: syncColor, text: syncText } = getSyncStatus();
@@ -321,7 +331,7 @@ export function SettingsPanel() {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Accent color options mapped to the new setAppAccentColor function
+  // Accent color options (using setAppAccentColor from Theme)
   const colorOptions = [
     {
       id: "red",
@@ -362,7 +372,7 @@ export function SettingsPanel() {
   ];
 
   const handleAccentClick = (value: string) => {
-    // Use Theme hook to apply and persist accent color
+    // Drive accent color through Theme hook
     setAppAccentColor(value);
   };
 
@@ -608,14 +618,13 @@ export function SettingsPanel() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="glass border-glass-border">
-                {/* same items as before... */}
                 <SelectItem value="google/gemini-2.5-flash">
                   <div className="flex flex-col">
                     <span className="font-medium">Gemini 2.5 Flash</span>
                     <span className="text-xs text-muted-foreground">Balanced - Fast & smart (default)</span>
                   </div>
                 </SelectItem>
-                {/* ... other items ... */}
+                {/* ... other items ... (omitted for brevity) */}
               </SelectContent>
             </Select>
           </GlassCard>
