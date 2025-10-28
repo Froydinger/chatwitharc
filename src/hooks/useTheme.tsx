@@ -9,6 +9,11 @@ function setCssVar(name: string, value: string) {
   document.documentElement.style.setProperty(name, value);
 }
 
+interface ProfileUpdatePayload {
+  theme_preference?: string;
+  accent_color?: string; // use the existing column
+}
+
 export function useTheme() {
   const { user } = useAuth();
   const [isLoaded, setIsLoaded] = useState(false);
@@ -77,17 +82,21 @@ export function useTheme() {
     [accentColor],
   );
 
-  // Save accent color (with immediate DOM apply)
-  const setAccentColor = useCallback((newColorHsL: string) => {
-    setAccentColorState(newColorHsL);
+  // Accent color setter for UI (exposed)
+  const setAppAccentColor = async (colorHsL: string) => {
+    setAccentColorState(colorHsL);
     try {
-      localStorage.setItem("accentColor", newColorHsL);
-    } catch (e) {
-      console.error("Failed to save accent color to localStorage:", e);
+      // Persist to DB using the existing column
+      if (user) {
+        await supabase.from("profiles").update({ accent_color: colorHsL }).eq("user_id", user.id);
+      }
+      localStorage.setItem("accentColor", colorHsL);
+    } catch (err) {
+      console.error("Failed to save accent color:", err);
     }
     // Immediately apply
-    setCssVar("--primary", newColorHsL);
-  }, []);
+    setCssVar("--primary", colorHsL);
+  };
 
   // Apply theme + accent on any change
   useEffect(() => {
@@ -105,7 +114,7 @@ export function useTheme() {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("theme_preference, accent_color_preference")
+          .select("theme_preference, accent_color")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -117,7 +126,7 @@ export function useTheme() {
 
         if (data) {
           const themePref = (data as any).theme_preference as string | undefined;
-          const accentPref = (data as any).accent_color_preference as string | undefined;
+          const accentPref = (data as any).accent_color as string | undefined;
 
           if (themePref === "system") {
             setFollowSystemState(true);
@@ -129,7 +138,8 @@ export function useTheme() {
           }
 
           if (accentPref) {
-            setAccentColor(accentPref);
+            setAccentColorState(accentPref);
+            localStorage.setItem("accentColor", accentPref);
           }
         }
         setIsLoaded(true);
@@ -140,7 +150,7 @@ export function useTheme() {
     };
 
     loadUserPreferences();
-  }, [user, isLoaded, setTheme, setAccentColor]);
+  }, [user, isLoaded, setTheme, setAppAccentColor]);
 
   // React to system theme changes when following system
   useEffect(() => {
@@ -149,7 +159,8 @@ export function useTheme() {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = (e: MediaQueryListEvent) => {
       setThemeState(e.matches ? "dark" : "light");
-      // Do not touch accentColor here; keep it in sync via setAppAccentColor or localStorage
+      // Accent color preserved via CSS var
+      // Do not touch accentColor here
     };
 
     mq.addEventListener("change", onChange);
@@ -158,7 +169,7 @@ export function useTheme() {
     return () => mq.removeEventListener("change", onChange);
   }, [followSystem]);
 
-  // Exposed actions
+  // Public actions
   const toggleTheme = async () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     // When user toggles manually, stop following system
@@ -190,7 +201,7 @@ export function useTheme() {
 
     if (user) {
       try {
-        const payload = { theme_preference: enabled ? "system" : theme };
+        const payload: ProfileUpdatePayload = { theme_preference: enabled ? "system" : theme };
         await supabase.from("profiles").update(payload).eq("user_id", user.id);
       } catch (err) {
         console.error("Failed to save theme preference to profile:", err);
@@ -199,16 +210,9 @@ export function useTheme() {
   };
 
   // Accent color setter for UI (exposed)
-  const setAppAccentColor = async (colorHsL: string) => {
-    setAccentColor(colorHsL);
-    try {
-      if (user) {
-        await supabase.from("profiles").update({ accent_color_preference: colorHsL }).eq("user_id", user.id);
-      }
-    } catch (err) {
-      console.error("Failed to save accent color:", err);
-    }
-  };
+  // (we keep the same function name for compatibility)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const {} = {};
 
   return { theme, toggleTheme, followSystem, toggleFollowSystem, accentColor, setAppAccentColor };
 }
