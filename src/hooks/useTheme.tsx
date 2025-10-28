@@ -1,135 +1,182 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
 
-type Theme = 'dark' | 'light';
+type Theme = "dark" | "light";
 
 export function useTheme() {
   const { user } = useAuth();
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Initialize followSystem from localStorage, defaulting to true
   const [followSystem, setFollowSystem] = useState(() => {
-    const saved = localStorage.getItem('followSystemTheme');
-    // Default to true (follow system) if not explicitly set
-    return saved === null ? true : saved === 'true';
-  });
-
-  const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('theme');
-    if (saved) return saved as Theme;
-    
-    // Check system preference on first load
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
+    try {
+      const saved = localStorage.getItem("followSystemTheme");
+      return saved === null ? true : saved === "true";
+    } catch (e) {
+      console.warn("Failed to read followSystemTheme from localStorage, defaulting to true.", e);
+      return true;
     }
-    return 'light';
   });
 
-  // Load theme from profile on mount
+  // Initialize theme. This logic runs once on mount.
+  const [theme, setThemeState] = useState<Theme>(() => {
+    let initialTheme: Theme = "light";
+    try {
+      const savedTheme = localStorage.getItem("theme");
+      if (savedTheme === "dark" || savedTheme === "light") {
+        initialTheme = savedTheme;
+      }
+
+      // If following system, override with system preference
+      const savedFollowSystem = localStorage.getItem("followSystemTheme");
+      const shouldFollowSystem = savedFollowSystem === null ? true : savedFollowSystem === "true";
+
+      if (shouldFollowSystem && window.matchMedia) {
+        initialTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      } else if (savedTheme === null && window.matchMedia) {
+        // If no saved theme and not explicitly not following system
+        initialTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+    } catch (e) {
+      console.warn("Failed to read theme from localStorage, defaulting to light.", e);
+    }
+    return initialTheme;
+  });
+
+  // Callback to set theme and also manage localStorage and potentially Supabase
+  const setTheme = useCallback((newTheme: Theme) => {
+    setThemeState(newTheme);
+    try {
+      // Only set in localStorage if NOT following system.
+      // If following system, the theme is derived, not persistent in localStorage.
+      const shouldFollowSystem = localStorage.getItem("followSystemTheme") === "true";
+      if (!shouldFollowSystem) {
+        localStorage.setItem("theme", newTheme);
+      } else {
+        localStorage.removeItem("theme"); // Clean up if we switch from manual to system
+      }
+    } catch (e) {
+      console.error("Failed to save theme to localStorage:", e);
+    }
+  }, []);
+
+  // Effect to apply the theme class to the documentElement
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(theme);
+  }, [theme]);
+
+  // Load theme from profile on mount for authenticated users
   useEffect(() => {
     if (!user || isLoaded) return;
 
-    const loadTheme = async () => {
+    const loadUserTheme = async () => {
       try {
         const { data, error } = await supabase
-          .from('profiles')
-          .select('theme_preference')
-          .eq('user_id', user.id)
+          .from("profiles")
+          .select("theme_preference")
+          .eq("user_id", user.id)
           .maybeSingle();
 
-        if (!error && data?.theme_preference) {
-          if (data.theme_preference === 'system') {
-            setFollowSystem(true);
-            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            setTheme(isDark ? 'dark' : 'light');
+        if (error) throw error;
+
+        if (data?.theme_preference) {
+          if (data.theme_preference === "system") {
+            setFollowSystem(true); // This will trigger the system theme logic
           } else {
             setFollowSystem(false);
             setTheme(data.theme_preference as Theme);
-            localStorage.setItem('theme', data.theme_preference);
           }
         }
         setIsLoaded(true);
       } catch (err) {
-        console.error('Failed to load theme:', err);
-        setIsLoaded(true);
+        console.error("Failed to load user theme from Supabase:", err);
+        setIsLoaded(true); // Still mark as loaded to prevent re-attempts
       }
     };
 
-    loadTheme();
-  }, [user, isLoaded]);
+    loadUserTheme();
+  }, [user, isLoaded, setTheme]);
 
-  // Listen for system theme changes
+  // Effect to listen for system theme changes
   useEffect(() => {
-    if (!followSystem) return;
+    if (!followSystem || !window.matchMedia) {
+      // If not following system or media queries not supported, do nothing
+      return;
+    }
 
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
     const handleChange = (e: MediaQueryListEvent) => {
-      const newTheme = e.matches ? 'dark' : 'light';
-      setTheme(newTheme);
+      setThemeState(e.matches ? "dark" : "light"); // Directly set state, don't trigger full `setTheme` callback to avoid localStorage write
     };
 
-    mediaQuery.addEventListener('change', handleChange);
-    
-    // Set initial theme based on system preference
-    const systemTheme = mediaQuery.matches ? 'dark' : 'light';
-    setTheme(systemTheme);
+    mediaQuery.addEventListener("change", handleChange);
+
+    // Ensure current theme matches system preference immediately
+    setThemeState(mediaQuery.matches ? "dark" : "light");
 
     return () => {
-      mediaQuery.removeEventListener('change', handleChange);
+      mediaQuery.removeEventListener("change", handleChange);
     };
-  }, [followSystem]);
+  }, [followSystem]); // Re-run if followSystem or window.matchMedia changes
 
-  useEffect(() => {
-    const root = document.documentElement;
-    
-    // Remove any existing theme classes
-    root.classList.remove('light', 'dark');
-    
-    // Add the current theme class
-    root.classList.add(theme);
-    
-    // Save to localStorage (only if not following system)
-    if (!followSystem) {
-      localStorage.setItem('theme', theme);
-    }
-  }, [theme, followSystem]);
-
+  // Handler to toggle between dark/light theme
   const toggleTheme = async () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setFollowSystem(false); // Manually setting theme means we stop following system
+    setTheme(newTheme); // This will update localStorage for the new manual theme
 
-    // Save to profile if user is logged in
     if (user) {
       try {
-        await supabase
-          .from('profiles')
-          .update({ theme_preference: newTheme })
-          .eq('user_id', user.id);
+        await supabase.from("profiles").update({ theme_preference: newTheme }).eq("user_id", user.id);
       } catch (err) {
-        console.error('Failed to save theme to profile:', err);
+        console.error("Failed to save theme to profile:", err);
       }
     }
   };
 
+  // Handler to toggle following the system's theme preference
   const toggleFollowSystem = async (enabled: boolean) => {
     setFollowSystem(enabled);
-    localStorage.setItem('followSystemTheme', enabled.toString());
-    
-    if (enabled) {
-      // Immediately apply system theme
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTheme(isDark ? 'dark' : 'light');
+
+    try {
+      localStorage.setItem("followSystemTheme", enabled.toString());
+      if (enabled) {
+        localStorage.removeItem("theme"); // Clear manual theme when following system
+      }
+    } catch (e) {
+      console.error("Failed to save followSystemTheme to localStorage:", e);
     }
 
-    // Save to profile if user is logged in
+    if (enabled && window.matchMedia) {
+      // Immediately apply system theme if enabled
+      setThemeState(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } else if (!enabled) {
+      // If stopping system follow, default to 'dark' or 'light' but ensure 'theme' state is valid
+      // This is a crucial line – if stopping 'followSystem', we need a new explicit theme.
+      // We could use the current 'theme' state, or default to a safe value.
+      // For now, let's keep the current theme state.
+      // E.g., if system was dark and we unfollow, stay dark.
+      // If no saved theme, maybe default to 'dark'.
+      const storedTheme = localStorage.getItem("theme");
+      if (storedTheme === "dark" || storedTheme === "light") {
+        setThemeState(storedTheme);
+      } else {
+        setThemeState(theme === "dark" ? "dark" : "light"); // Maintain current theme state or default
+      }
+    }
+
     if (user) {
       try {
         await supabase
-          .from('profiles')
-          .update({ theme_preference: enabled ? 'system' : theme })
-          .eq('user_id', user.id);
+          .from("profiles")
+          .update({ theme_preference: enabled ? "system" : theme }) // Use current `theme` for manual override
+          .eq("user_id", user.id);
       } catch (err) {
-        console.error('Failed to save theme preference to profile:', err);
+        console.error("Failed to save theme preference to profile:", err);
       }
     }
   };
