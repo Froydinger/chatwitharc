@@ -13,7 +13,7 @@ export function useTheme() {
   const { user } = useAuth();
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Start with system-follow preference, default to true
+  // Follow system by default (persisted)
   const [followSystem, setFollowSystemState] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem("followSystemTheme");
@@ -24,7 +24,7 @@ export function useTheme() {
     }
   });
 
-  // Load theme from localStorage or system, with a safe default
+  // Theme initialization: respects followSystem or explicit theme
   const [theme, setThemeState] = useState<Theme>(() => {
     try {
       const savedTheme = localStorage.getItem("theme");
@@ -41,7 +41,7 @@ export function useTheme() {
     return "light";
   });
 
-  // Accent color state, load from localStorage or default to green-ish
+  // Accent color state (default to green-ish)
   const [accentColor, setAccentColorState] = useState<string>(() => {
     try {
       const savedAccent = localStorage.getItem("accentColor");
@@ -52,10 +52,11 @@ export function useTheme() {
     }
   });
 
-  // Safe setter for theme (persists only when not following system)
+  // Save theme (with safe persistence)
   const setTheme = useCallback(
     (newTheme: Theme) => {
       setThemeState(newTheme);
+
       try {
         const shouldFollowSystem = localStorage.getItem("followSystemTheme") === "true";
         if (!shouldFollowSystem) {
@@ -66,17 +67,17 @@ export function useTheme() {
       } catch (e) {
         console.error("Failed to save theme to localStorage:", e);
       }
-      // Immediately re-apply theme + accent in DOM
+
+      // Always re-apply theme + accent to DOM
       const root = document.documentElement;
       root.classList.remove("light", "dark");
       root.classList.add(newTheme);
-      // Re-apply accent in case something overwrote it
       setCssVar("--primary", accentColor);
     },
     [accentColor],
   );
 
-  // Accent color setter that also persists to localStorage
+  // Save accent color (with immediate DOM apply)
   const setAccentColor = useCallback((newColorHsL: string) => {
     setAccentColorState(newColorHsL);
     try {
@@ -84,11 +85,11 @@ export function useTheme() {
     } catch (e) {
       console.error("Failed to save accent color to localStorage:", e);
     }
-    // Update CSS var immediately
+    // Immediately apply
     setCssVar("--primary", newColorHsL);
   }, []);
 
-  // Apply theme + accent on change
+  // Apply theme + accent on any change
   useEffect(() => {
     const root = document.documentElement;
     root.classList.remove("light", "dark");
@@ -96,7 +97,7 @@ export function useTheme() {
     setCssVar("--primary", accentColor);
   }, [theme, accentColor]);
 
-  // Load user preferences on mount (theme + accent color)
+  // Load user preferences (theme + accent) on mount
   useEffect(() => {
     if (!user || isLoaded) return;
 
@@ -141,14 +142,14 @@ export function useTheme() {
     loadUserPreferences();
   }, [user, isLoaded, setTheme, setAccentColor]);
 
-  // Listen to system-theme changes when following the system
+  // React to system theme changes when following system
   useEffect(() => {
     if (!followSystem || !window.matchMedia) return;
 
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = (e: MediaQueryListEvent) => {
       setThemeState(e.matches ? "dark" : "light");
-      // No need to touch accentColor here; it's controlled separately
+      // Do not touch accentColor here; keep it in sync via setAppAccentColor or localStorage
     };
 
     mq.addEventListener("change", onChange);
@@ -157,18 +158,16 @@ export function useTheme() {
     return () => mq.removeEventListener("change", onChange);
   }, [followSystem]);
 
-  // Public actions
+  // Exposed actions
   const toggleTheme = async () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     // When user toggles manually, stop following system
     setFollowSystemState(false);
-    // Apply and persist the new theme
     setTheme(newTheme);
 
     if (user) {
       try {
-        const payload: { theme_preference?: string } = { theme_preference: newTheme };
-        await supabase.from("profiles").update(payload).eq("user_id", user.id);
+        await supabase.from("profiles").update({ theme_preference: newTheme }).eq("user_id", user.id);
       } catch (err) {
         console.error("Failed to save theme to profile:", err);
       }
@@ -181,7 +180,7 @@ export function useTheme() {
     try {
       localStorage.setItem("followSystemTheme", enabled.toString());
       if (enabled) {
-        // If enabling system, ensure we re-derive and apply system theme
+        // Re-derive and apply system theme
         const sysTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
         setTheme(sysTheme);
       }
@@ -189,10 +188,9 @@ export function useTheme() {
       console.error("Failed to save followSystemTheme to localStorage:", e);
     }
 
-    // If turning off system follow, keep current theme; ensure accent color still applies
     if (user) {
       try {
-        const payload: { theme_preference?: string } = { theme_preference: enabled ? "system" : theme };
+        const payload = { theme_preference: enabled ? "system" : theme };
         await supabase.from("profiles").update(payload).eq("user_id", user.id);
       } catch (err) {
         console.error("Failed to save theme preference to profile:", err);
@@ -200,13 +198,12 @@ export function useTheme() {
     }
   };
 
-  // Accent color setter exposed for UI
+  // Accent color setter for UI (exposed)
   const setAppAccentColor = async (colorHsL: string) => {
     setAccentColor(colorHsL);
     try {
       if (user) {
-        const payload: { accent_color_preference?: string } = { accent_color_preference: colorHsL };
-        await supabase.from("profiles").update(payload).eq("user_id", user.id);
+        await supabase.from("profiles").update({ accent_color_preference: colorHsL }).eq("user_id", user.id);
       }
     } catch (err) {
       console.error("Failed to save accent color:", err);
