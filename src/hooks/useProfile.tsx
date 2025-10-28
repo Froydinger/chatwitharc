@@ -9,6 +9,8 @@ export interface Profile {
   context_info: string | null;
   memory_info: string | null;
   avatar_url: string | null;
+  accent_color: string | null;
+  theme_preference: string | null;
   created_at: string;
   updated_at: string;
 }

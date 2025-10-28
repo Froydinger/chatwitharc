@@ -148,7 +148,27 @@ export function WelcomeSection({
         </motion.div>
 
         {/* Smart Suggestions */}
-        {!isLoadingSuggestions && smartSuggestions.length > 0 && (
+        {isLoadingSuggestions ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="flex flex-col items-center gap-3 mt-4"
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="relative"
+            >
+              <img 
+                src="/arc-logo-cropped.png" 
+                alt="Loading" 
+                className="h-8 w-8 logo-accent-glow"
+              />
+            </motion.div>
+            <p className="text-sm text-muted-foreground">Personalizing prompts for you...</p>
+          </motion.div>
+        ) : smartSuggestions.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

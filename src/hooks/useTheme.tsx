@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
 
 type Theme = 'dark' | 'light';
 
 export function useTheme() {
+  const { user } = useAuth();
+  const [isLoaded, setIsLoaded] = useState(false);
   const [followSystem, setFollowSystem] = useState(() => {
     const saved = localStorage.getItem('followSystemTheme');
     // Default to true (follow system) if not explicitly set
@@ -19,6 +23,39 @@ export function useTheme() {
     }
     return 'light';
   });
+
+  // Load theme from profile on mount
+  useEffect(() => {
+    if (!user || isLoaded) return;
+
+    const loadTheme = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('theme_preference')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!error && data?.theme_preference) {
+          if (data.theme_preference === 'system') {
+            setFollowSystem(true);
+            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            setTheme(isDark ? 'dark' : 'light');
+          } else {
+            setFollowSystem(false);
+            setTheme(data.theme_preference as Theme);
+            localStorage.setItem('theme', data.theme_preference);
+          }
+        }
+        setIsLoaded(true);
+      } catch (err) {
+        console.error('Failed to load theme:', err);
+        setIsLoaded(true);
+      }
+    };
+
+    loadTheme();
+  }, [user, isLoaded]);
 
   // Listen for system theme changes
   useEffect(() => {
@@ -57,11 +94,24 @@ export function useTheme() {
     }
   }, [theme, followSystem]);
 
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
+  const toggleTheme = async () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+
+    // Save to profile if user is logged in
+    if (user) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ theme_preference: newTheme })
+          .eq('user_id', user.id);
+      } catch (err) {
+        console.error('Failed to save theme to profile:', err);
+      }
+    }
   };
 
-  const toggleFollowSystem = (enabled: boolean) => {
+  const toggleFollowSystem = async (enabled: boolean) => {
     setFollowSystem(enabled);
     localStorage.setItem('followSystemTheme', enabled.toString());
     
@@ -69,6 +119,18 @@ export function useTheme() {
       // Immediately apply system theme
       const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       setTheme(isDark ? 'dark' : 'light');
+    }
+
+    // Save to profile if user is logged in
+    if (user) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ theme_preference: enabled ? 'system' : theme })
+          .eq('user_id', user.id);
+      } catch (err) {
+        console.error('Failed to save theme preference to profile:', err);
+      }
     }
   };
 

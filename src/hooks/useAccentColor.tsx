@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
 
 export type AccentColor = 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'orange';
 
@@ -66,10 +68,38 @@ const accentColorConfigs = {
 };
 
 export function useAccentColor() {
-  const [accentColor, setAccentColor] = useState<AccentColor>(() => {
+  const { user } = useAuth();
+  const [accentColor, setAccentColorState] = useState<AccentColor>(() => {
     const saved = localStorage.getItem('accentColor');
     return (saved as AccentColor) || 'blue';
   });
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load accent color from profile on mount
+  useEffect(() => {
+    if (!user || isLoaded) return;
+
+    const loadAccentColor = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('accent_color')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!error && data?.accent_color) {
+          setAccentColorState(data.accent_color as AccentColor);
+          localStorage.setItem('accentColor', data.accent_color);
+        }
+        setIsLoaded(true);
+      } catch (err) {
+        console.error('Failed to load accent color:', err);
+        setIsLoaded(true);
+      }
+    };
+
+    loadAccentColor();
+  }, [user, isLoaded]);
 
   useEffect(() => {
     const config = accentColorConfigs[accentColor];
@@ -150,6 +180,23 @@ export function useAccentColor() {
     // Save to localStorage
     localStorage.setItem('accentColor', accentColor);
   }, [accentColor]);
+
+  const setAccentColor = async (color: AccentColor) => {
+    setAccentColorState(color);
+    localStorage.setItem('accentColor', color);
+
+    // Save to profile if user is logged in
+    if (user) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ accent_color: color })
+          .eq('user_id', user.id);
+      } catch (err) {
+        console.error('Failed to save accent color to profile:', err);
+      }
+    }
+  };
 
   return { accentColor, setAccentColor };
 }

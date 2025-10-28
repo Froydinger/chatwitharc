@@ -7,15 +7,17 @@ interface TypewriterTextProps {
   shouldAnimate?: boolean;
 }
 
-export const TypewriterText = ({ text, speed = 7, className = "", shouldAnimate = true }: TypewriterTextProps) => {
+export const TypewriterText = ({ text, speed = 3, className = "", shouldAnimate = true }: TypewriterTextProps) => {
   const [displayedText, setDisplayedText] = useState(shouldAnimate ? "" : text);
   const [currentIndex, setCurrentIndex] = useState(shouldAnimate ? 0 : text.length);
 
   useEffect(() => {
     if (shouldAnimate && currentIndex < text.length) {
       const timer = setTimeout(() => {
-        setDisplayedText(prev => prev + text[currentIndex]);
-        setCurrentIndex(prev => prev + 1);
+        // Batch render 2-3 characters at a time for better performance
+        const charsToAdd = Math.min(2, text.length - currentIndex);
+        setDisplayedText(prev => prev + text.slice(currentIndex, currentIndex + charsToAdd));
+        setCurrentIndex(prev => prev + charsToAdd);
       }, speed);
 
       return () => clearTimeout(timer);

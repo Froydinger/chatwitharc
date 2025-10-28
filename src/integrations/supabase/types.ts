@@ -97,6 +97,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          accent_color: string | null
           avatar_url: string | null
           context_info: string | null
           created_at: string
@@ -104,10 +105,12 @@ export type Database = {
           id: string
           memory_info: string | null
           preferred_model: string | null
+          theme_preference: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          accent_color?: string | null
           avatar_url?: string | null
           context_info?: string | null
           created_at?: string
@@ -115,10 +118,12 @@ export type Database = {
           id?: string
           memory_info?: string | null
           preferred_model?: string | null
+          theme_preference?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          accent_color?: string | null
           avatar_url?: string | null
           context_info?: string | null
           created_at?: string
@@ -126,6 +131,7 @@ export type Database = {
           id?: string
           memory_info?: string | null
           preferred_model?: string | null
+          theme_preference?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -136,10 +142,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      is_admin_user: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_admin_user: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
