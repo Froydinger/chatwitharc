@@ -9,6 +9,15 @@ function setCssVar(name: string, value: string) {
   document.documentElement.style.setProperty(name, value);
 }
 
+// Define a type for the profile update payload, to include accent_color_preference
+// This will resolve the TS errors assuming the column now exists in your DB.
+// You can remove this type and rely on generated types after running `supabase gen types`.
+interface ProfileUpdatePayload {
+  theme_preference?: string; // Union type 'system' | 'dark' | 'light'
+  accent_color_preference?: string; // Store HSL string
+  // Add any other updatable profile properties here
+}
+
 export function useTheme() {
   const { user } = useAuth();
   const [isLoaded, setIsLoaded] = useState(false);
@@ -66,7 +75,7 @@ export function useTheme() {
       if (!shouldFollowSystem) {
         localStorage.setItem("theme", newTheme);
       } else {
-        localStorage.removeItem("theme");
+        localStorage.removeItem("theme"); // Clean up if we switch from manual to system
       }
     } catch (e) {
       console.error("Failed to save theme to localStorage:", e);
@@ -82,7 +91,10 @@ export function useTheme() {
     // Apply accent color as a CSS variable
     // This allows you to use 'hsl(var(--primary))' in your Tailwind config or CSS
     setCssVar("--primary", accentColor);
-    setCssVar("--primary-foreground", `var(--${theme === "dark" ? "neutral-50" : "neutral-900"})`); // Example, adjust as needed
+    // You might also want to set --primary-foreground here if it's derived from primary
+    // For example: setCssVar('--primary-foreground', `var(--${theme === 'dark' ? 'neutral-50' : 'neutral-900'})`);
+    // Or if primary-foreground is custom per accent color:
+    // setCssVar('--primary-foreground', getContrastColor(accentColor)); // You'd need a helper for this
   }, [theme, accentColor]);
 
   // Load theme and accent color from profile on mount for authenticated users
@@ -93,25 +105,30 @@ export function useTheme() {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("theme_preference, accent_color_preference") // Fetch accent color too
+          // Using a narrower type for the select output might be necessary if types are not updated
+          .select("theme_preference, accent_color_preference")
           .eq("user_id", user.id)
           .maybeSingle();
 
         if (error) throw error;
 
         if (data) {
+          // Explicitly extracting properties for clearer type handling
+          const themePreference = (data as any).theme_preference as string | undefined;
+          const accentColorPreference = (data as any).accent_color_preference as string | undefined;
+
           // Handle theme preference
-          if (data.theme_preference === "system") {
+          if (themePreference === "system") {
             setFollowSystem(true);
-          } else if (data.theme_preference) {
+          } else if (themePreference) {
             setFollowSystem(false);
-            setTheme(data.theme_preference as Theme);
+            setTheme(themePreference as Theme);
           }
 
           // Handle accent color preference
-          if (data.accent_color_preference) {
-            setAccentColor(data.accent_color_preference);
-            localStorage.setItem("accentColor", data.accent_color_preference);
+          if (accentColorPreference) {
+            setAccentColor(accentColorPreference);
+            localStorage.setItem("accentColor", accentColorPreference);
           }
         }
         setIsLoaded(true);
@@ -153,7 +170,8 @@ export function useTheme() {
 
     if (user) {
       try {
-        await supabase.from("profiles").update({ theme_preference: newTheme }).eq("user_id", user.id);
+        const payload: ProfileUpdatePayload = { theme_preference: newTheme };
+        await supabase.from("profiles").update(payload).eq("user_id", user.id);
       } catch (err) {
         console.error("Failed to save theme to profile:", err);
       }
@@ -186,10 +204,8 @@ export function useTheme() {
 
     if (user) {
       try {
-        await supabase
-          .from("profiles")
-          .update({ theme_preference: enabled ? "system" : theme })
-          .eq("user_id", user.id);
+        const payload: ProfileUpdatePayload = { theme_preference: enabled ? "system" : theme };
+        await supabase.from("profiles").update(payload).eq("user_id", user.id);
       } catch (err) {
         console.error("Failed to save theme preference to profile:", err);
       }
@@ -202,7 +218,8 @@ export function useTheme() {
     try {
       localStorage.setItem("accentColor", colorHsL);
       if (user) {
-        await supabase.from("profiles").update({ accent_color_preference: colorHsL }).eq("user_id", user.id);
+        const payload: ProfileUpdatePayload = { accent_color_preference: colorHsL };
+        await supabase.from("profiles").update(payload).eq("user_id", user.id);
       }
     } catch (err) {
       console.error("Failed to save accent color:", err);
