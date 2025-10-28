@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { MemoryBankAccordion, parseMemoriesFromText, formatMemoriesToText } from "@/components/MemoryBankAccordion";
 import { useTheme } from "@/hooks/useTheme";
+// Accent color is driven via the Theme hook now
 import { DeleteDataModal } from "@/components/DeleteDataModal";
 import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
@@ -84,8 +85,9 @@ export function SettingsPanel() {
   const { user } = useAuth();
   const { profile, updateProfile, updating } = useProfile();
   const { toast } = useToast();
+  // Use Theme hook for theme and accent color
   const { theme, toggleTheme, followSystem, toggleFollowSystem, accentColor, setAppAccentColor } = useTheme();
-  // Removed useAccentColor: Accent color is driven via Theme
+  // Accent color is driven via Theme; no separate hook needed
 
   const handleDataDeleted = () => {
     // Create new session and refresh
@@ -304,14 +306,63 @@ export function SettingsPanel() {
       return;
     }
 
-    // Password reset logic unchanged...
+    setIsResettingPassword(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password reset sent",
+        description: "Check your email for password reset instructions",
+      });
+
+      setIsPasswordResetOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send password reset",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
-    // Delete account logic unchanged...
+    setIsDeleting(true);
+    try {
+      clearAllSessions();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      await supabase.from("profiles").delete().eq("user_id", user.id);
+      await supabase.from("chat_sessions").delete().eq("user_id", user.id);
+
+      toast({
+        title: "Account deleted",
+        description: "Your account has been permanently deleted. You can register again if needed.",
+      });
+
+      await supabase.auth.signOut();
+    } catch (error: any) {
+      console.error("Delete account error:", error);
+      toast({
+        title: "Deletion failed",
+        description: "Failed to delete account. Please try again or contact support.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
-  // Sync status helper with clear typing
+  // Typing for sync status
   type SyncStatus = { icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; color: string; text: string };
   const getSyncStatus = (): SyncStatus => {
     if (!user) return { icon: CloudOff, color: "text-muted-foreground", text: "Not signed in" };
@@ -331,7 +382,7 @@ export function SettingsPanel() {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Accent color options (using setAppAccentColor from Theme)
+  // Accent color options
   const colorOptions = [
     {
       id: "red",
@@ -624,19 +675,251 @@ export function SettingsPanel() {
                     <span className="text-xs text-muted-foreground">Balanced - Fast & smart (default)</span>
                   </div>
                 </SelectItem>
-                {/* ... other items ... (omitted for brevity) */}
+                <SelectItem value="google/gemini-2.5-pro">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Gemini 2.5 Pro</span>
+                    <span className="text-xs text-muted-foreground">Most capable - Best reasoning</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="google/gemini-2.5-flash-lite">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Gemini 2.5 Flash Lite</span>
+                    <span className="text-xs text-muted-foreground">Fastest - Simple tasks</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="openai/gpt-5">
+                  <div className="flex flex-col">
+                    <span className="font-medium">GPT-5</span>
+                    <span className="text-xs text-muted-foreground">Premium - Highest quality</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="openai/gpt-5-mini">
+                  <div className="flex flex-col">
+                    <span className="font-medium">GPT-5 Mini</span>
+                    <span className="text-xs text-muted-foreground">Efficient - Great performance</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="openai/gpt-5-nano">
+                  <div className="flex flex-col">
+                    <span className="font-medium">GPT-5 Nano</span>
+                    <span className="text-xs text-muted-foreground">Speed optimized</span>
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
           </GlassCard>
         </TabsContent>
 
-        {/* Account Tab (unchanged content remains below) */}
+        {/* Account Tab */}
         <TabsContent value="account" className="space-y-6 mt-6">
-          {/* Email Address, Connected Accounts, etc. (unchanged) */}
-          {/* ... you can keep the existing content here ... */}
+          {/* Email Address */}
+          <GlassCard variant="bubble" className="p-6">
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium text-foreground">Email Address</h4>
+                <p className="text-xs text-muted-foreground">Your account email</p>
+              </div>
+              <div className="text-sm text-muted-foreground font-mono bg-glass/30 px-3 py-2 rounded-md">
+                {user?.email || "No email"}
+              </div>
+            </div>
+          </GlassCard>
+
+          <GlassCard variant="bubble" className="p-6">
+            <div className="space-y-6">
+              {/* Connected Accounts */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-medium text-foreground">Connected Accounts</h4>
+                    <p className="text-xs text-muted-foreground">Manage your login methods</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {user?.app_metadata?.providers?.includes("google") && (
+                    <div className="flex items-center justify-between p-3 bg-glass/30 rounded-md">
+                      <div className="flex items-center gap-3">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            fill="currentColor"
+                            d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"
+                            opacity="0.15"
+                          ></path>
+                          <path
+                            fill="currentColor"
+                            d="M12 7a5 5 0 0 0-5 5c0 1.93 1.1 3.6 2.68 4.52L7 17c-1.2-1.23-2-2.92-2-5 0-3.87 3.13-7 7-7s7 3.13 7 7h-2a5 5 0 0 0-5-5z"
+                          ></path>
+                        </svg>
+                        <div>
+                          <div className="text-sm font-medium">Google Account</div>
+                          <div className="text-xs text-muted-foreground">Connected</div>
+                        </div>
+                      </div>
+                      <div className="w-2 h-2 bg-green-500 rounded-full" aria-label="connected-dot" />
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between p-3 bg-glass/30 rounded-md">
+                    <div className="flex items-center gap-3">
+                      <Mail className="w-5 h-5" />
+                      <div>
+                        <div className="text-sm font-medium">Email & Password</div>
+                        <div className="text-xs text-muted-foreground">Primary login method</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Dialog open={isPasswordResetOpen} onOpenChange={setIsPasswordResetOpen}>
+                        <DialogTrigger asChild>
+                          <GlassButton variant="ghost" size="sm">
+                            <Key className="w-3 h-3 mr-1" />
+                            Reset
+                          </GlassButton>
+                        </DialogTrigger>
+                        <DialogContent className="glass border-glass-border">
+                          <DialogHeader>
+                            <DialogTitle>Reset Password</DialogTitle>
+                            <DialogDescription>
+                              {user?.app_metadata?.providers?.includes("google")
+                                ? "This will add email/password login to your account. Your Google login will remain active."
+                                : "We'll send a password reset link to your email address."}
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="py-4">
+                            <div className="text-sm text-muted-foreground">
+                              Email: <span className="font-mono">{user?.email}</span>
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <GlassButton
+                              variant="ghost"
+                              onClick={() => setIsPasswordResetOpen(false)}
+                              disabled={isResettingPassword}
+                            >
+                              Cancel
+                            </GlassButton>
+                            <GlassButton onClick={handlePasswordReset} disabled={isResettingPassword}>
+                              {isResettingPassword ? "Sending..." : "Send Reset Link"}
+                            </GlassButton>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                      <div className="w-2 h-2 bg-green-500 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-px bg-border" />
+
+              {/* Sync Status */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-foreground">Sync Status</h3>
+                  <p className="text-xs text-muted-foreground">Cloud synchronization</p>
+                </div>
+                <div className="flex items-center gap-2 glass px-3 py-2 rounded-full text-sm">
+                  <SyncIcon className={`h-4 w-4 ${syncColor}`} />
+                  <span className={syncColor}>{syncText}</span>
+                </div>
+              </div>
+            </div>
+          </GlassCard>
+
+          {/* Export & Data Management */}
+          <GlassCard variant="bubble" className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-foreground">Export Chats</h3>
+                <p className="text-xs text-muted-foreground">Download as HTML, TXT, JSON, or WordPress plugin</p>
+              </div>
+              <GlassButton variant="ghost" size="sm" onClick={() => setRightPanelTab("export")}>
+                <Download className="h-4 w-4 mr-1" />
+                Export
+              </GlassButton>
+            </div>
+
+            <div className="pt-4 border-t border-border/40">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-foreground">Clear Chat History</h3>
+                  <p className="text-xs text-muted-foreground">Remove all stored conversations</p>
+                </div>
+                <GlassButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearMessages}
+                  className="text-destructive hover:text-destructive"
+                >
+                  Clear All
+                </GlassButton>
+              </div>
+            </div>
+          </GlassCard>
+
+          {/* Account Actions */}
+          <GlassCard variant="bubble" className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-foreground">Sign Out</h3>
+                <p className="text-xs text-muted-foreground">Sign out of your account</p>
+              </div>
+              <GlassButton
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                className="text-destructive hover:text-destructive"
+              >
+                Sign Out
+              </GlassButton>
+            </div>
+
+            <div className="h-px bg-border" />
+
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-foreground">Delete Account</h3>
+                <p className="text-xs text-muted-foreground">Permanently delete your account and all data</p>
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <GlassButton
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? "Deleting..." : "Delete Account"}
+                  </GlassButton>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="glass border-destructive/20">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                      <AlertTriangle className="h-5 w-5" />
+                      Are you absolutely sure?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete your account and remove all your data
+                      from our servers.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="glass border-glass-border">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAccount}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? "Deleting..." : "Delete Account"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </GlassCard>
         </TabsContent>
 
-        {/* Admin Tab & other sections unchanged... */}
+        {/* Admin Tab */}
         {isAdmin && (
           <TabsContent value="admin" className="mt-6">
             <AdminSettingsPanel />
