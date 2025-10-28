@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Menu, Sun, Moon, ArrowDown, X } from "lucide-react";
 import { motion } from "framer-motion";
@@ -83,8 +83,8 @@ export function MobileChatApp() {
     }
   }, [currentSessionId, navigate]);
 
-  // Quick Prompts - 6 Chat, 6 Create, 6 Write, 6 Code
-  const quickPrompts = [
+  // Quick Prompts - 6 Chat, 6 Create, 6 Write, 6 Code (memoized to prevent re-renders)
+  const quickPrompts = useMemo(() => [
     // Chat prompts
     {
       label: "💭 Reflect",
@@ -196,7 +196,7 @@ export function MobileChatApp() {
       label: "🛠️ Form Builder",
       prompt: "Code: Create an interactive form with validation using HTML, CSS, and JavaScript.",
     },
-  ];
+  ], []);
 
   // Show/hide scroll button based on scroll position
   useEffect(() => {
@@ -259,10 +259,10 @@ export function MobileChatApp() {
     setDragOver(false);
   };
 
-  const triggerPrompt = (prompt: string) => {
+  const triggerPrompt = useCallback((prompt: string) => {
     startChatWithMessage(prompt);
     setRightPanelOpen(false);
-  };
+  }, [startChatWithMessage, setRightPanelOpen]);
 
   /** AI avatar progressive fade in after load */
   useEffect(() => {

@@ -101,10 +101,12 @@ export function useAccentColor() {
     loadAccentColor();
   }, [user, isLoaded]);
 
+  // Apply CSS variables whenever accent color changes OR theme changes
   useEffect(() => {
-    const config = accentColorConfigs[accentColor];
-    const root = document.documentElement;
-    const isLight = root.classList.contains('light');
+    const applyAccentColors = () => {
+      const config = accentColorConfigs[accentColor];
+      const root = document.documentElement;
+      const isLight = root.classList.contains('light');
 
     // Update CSS variables for dark mode
     root.style.setProperty('--primary', config.primary);
@@ -177,8 +179,28 @@ export function useAccentColor() {
       document.head.appendChild(logoGlow);
     }
 
-    // Save to localStorage
-    localStorage.setItem('accentColor', accentColor);
+      // Save to localStorage
+      localStorage.setItem('accentColor', accentColor);
+    };
+
+    // Apply immediately
+    applyAccentColors();
+
+    // Listen for theme changes (when light/dark class changes on root)
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          applyAccentColors();
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => observer.disconnect();
   }, [accentColor]);
 
   const setAccentColor = async (color: AccentColor) => {
