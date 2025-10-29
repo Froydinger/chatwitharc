@@ -57,6 +57,7 @@ export function MobileChatApp() {
   // Fixed input dock measurement
   const inputDockRef = useRef<HTMLDivElement>(null);
   const [inputHeight, setInputHeight] = useState<number>(96);
+  const lastLoadedMessageIdRef = useRef<string | null>(null);
   const { toast } = useToast();
 
   // Greeting with user's name when available
@@ -82,6 +83,32 @@ export function MobileChatApp() {
       }
     }
   }, [currentSessionId, navigate]);
+
+  // Track the last message ID when loading a session to prevent typewriter animation on old messages
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      // Only update if we don't have a tracked ID yet, or if we're loading a different session
+      if (lastLoadedMessageIdRef.current === null) {
+        lastLoadedMessageIdRef.current = lastMessage.id;
+      }
+    }
+  }, [currentSessionId]);
+
+  // Clear the tracked ID when messages change (new message added)
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      // If the last message is different from what we tracked, it's a new message
+      if (lastLoadedMessageIdRef.current !== lastMessage.id) {
+        // Don't update the ref immediately - this allows the new message to animate
+        const timer = setTimeout(() => {
+          lastLoadedMessageIdRef.current = lastMessage.id;
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [messages]);
 
   // Quick Prompts - 6 Chat, 6 Create, 6 Write, 6 Code (memoized to prevent re-renders)
   const quickPrompts = useMemo(() => [
@@ -403,12 +430,14 @@ export function MobileChatApp() {
               >
                 {messages.map((message, index) => {
                   const isLastAssistantMessage = message.role === "assistant" && index === messages.length - 1;
+                  // Only animate if this is a new message (not loaded from history)
+                  const shouldAnimateTypewriter = isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current;
 
                   return (
                     <MessageBubble
                       key={message.id}
                       message={message}
-                      isLatestAssistant={isLastAssistantMessage}
+                      isLatestAssistant={shouldAnimateTypewriter}
                       isThinking={isLastAssistantMessage && isLoading && !isGeneratingImage}
                       onEdit={async (messageId: string, newContent: string) => {
                         const chatInputEvent = new CustomEvent("processEditedMessage", {
