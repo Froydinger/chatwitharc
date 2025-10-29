@@ -15,6 +15,27 @@ export function ExportPanel() {
   const exportAsPDF = async () => {
     setExporting(true);
     try {
+      // Format message content with proper line breaks and paragraph separation
+      const formatContent = (content: string) => {
+        if (!content) return '[No text content]';
+        
+        return content
+          .split('\n')
+          .map(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return '<br>';
+            
+            // Headers (lines starting with # or all caps with less than 50 chars)
+            if (trimmed.startsWith('#') || (trimmed === trimmed.toUpperCase() && trimmed.length < 50 && trimmed.length > 3)) {
+              return `<h3 style="margin: 16px 0 8px 0; font-size: 16px; font-weight: bold;">${trimmed.replace(/^#+\s*/, '')}</h3>`;
+            }
+            
+            // Regular paragraph
+            return `<p style="margin: 8px 0; line-height: 1.6;">${trimmed}</p>`;
+          })
+          .join('');
+      };
+      
       // Create HTML content for PDF
       const htmlContent = `
         <!DOCTYPE html>
@@ -24,24 +45,25 @@ export function ExportPanel() {
           <title>${currentSession?.title || 'Chat Export'}</title>
           <style>
             body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
-            h1 { color: #333; border-bottom: 2px solid #000; padding-bottom: 10px; }
-            .message { margin: 20px 0; padding: 15px; border-radius: 8px; }
+            h1 { color: #333; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+            .message { margin: 24px 0; padding: 16px; border-radius: 8px; page-break-inside: avoid; }
             .user { background: #e3f2fd; }
             .assistant { background: #f5f5f5; }
-            .role { font-weight: bold; margin-bottom: 8px; text-transform: uppercase; font-size: 12px; }
-            .content { line-height: 1.6; white-space: pre-wrap; }
-            .metadata { color: #666; font-size: 11px; margin-top: 8px; }
+            .role { font-weight: bold; margin-bottom: 12px; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+            .content h3 { margin: 16px 0 8px 0; font-size: 16px; font-weight: bold; }
+            .content p { margin: 8px 0; line-height: 1.6; }
+            .metadata { color: #666; font-size: 11px; margin-top: 12px; padding-top: 8px; border-top: 1px solid #ddd; }
           </style>
         </head>
         <body>
           <h1>${currentSession?.title || 'Chat Export'}</h1>
           <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
           <p><strong>Messages:</strong> ${messages.length}</p>
-          <hr>
+          <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
           ${messages.map(m => `
             <div class="message ${m.role}">
               <div class="role">${m.role}</div>
-              <div class="content">${m.content || '[No text content]'}</div>
+              <div class="content">${formatContent(m.content)}</div>
               ${m.imageUrl ? `<div class="metadata">Image: ${m.imageUrl}</div>` : ''}
             </div>
           `).join('')}

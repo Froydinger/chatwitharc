@@ -139,7 +139,7 @@ export function useAccentColor() {
     }
 
 
-    // Apply logo glow with accent color
+    // Apply logo accent color with mask and glow
     const logoGlow = document.getElementById('logo-glow-style') || document.createElement('style');
     logoGlow.id = 'logo-glow-style';
     logoGlow.textContent = `
@@ -148,30 +148,40 @@ export function useAccentColor() {
         display: inline-block;
       }
       
+      .logo-accent-glow img {
+        filter: brightness(0) saturate(100%) invert(1);
+        -webkit-mask: url('/arc-logo.png') no-repeat center;
+        mask: url('/arc-logo.png') no-repeat center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        background: hsl(${isLight ? config.lightPrimary : config.primary});
+      }
+      
       .logo-accent-glow::before {
         content: '';
         position: absolute;
         inset: -6px;
-        background: hsl(${isLight ? config.lightPrimary : config.primary} / 0.2);
+        background: hsl(${isLight ? config.lightPrimary : config.primary} / 0.3);
         border-radius: 50%;
-        filter: blur(10px);
+        filter: blur(12px);
         animation: logo-breathe 3s ease-in-out infinite;
         pointer-events: none;
+        z-index: -1;
       }
       
       .header-logo-glow::before {
         inset: -3px;
-        filter: blur(6px);
+        filter: blur(8px);
       }
       
       @keyframes logo-breathe {
         0%, 100% {
-          opacity: 0.2;
+          opacity: 0.3;
           transform: scale(1);
         }
         50% {
-          opacity: 0.4;
-          transform: scale(1.05);
+          opacity: 0.6;
+          transform: scale(1.08);
         }
       }
     `;

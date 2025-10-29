@@ -10,15 +10,27 @@ interface LandingChatInputProps {
 export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
   const [inputValue, setInputValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const cursorPositionRef = useRef<number | null>(null);
 
-  // Auto-resize textarea
+  // Auto-resize textarea with cursor position preservation
   useEffect(() => {
     if (textareaRef.current) {
+      // Save cursor position before resize
+      const cursorPos = textareaRef.current.selectionStart;
+      
       textareaRef.current.style.height = 'auto';
       const scrollHeight = textareaRef.current.scrollHeight;
       const lineHeight = 24; // Approximate line height
       const maxHeight = lineHeight * 3; // 3 lines max before scrolling
       textareaRef.current.style.height = Math.min(scrollHeight, maxHeight) + 'px';
+      
+      // Restore cursor position after resize
+      if (cursorPositionRef.current !== null) {
+        textareaRef.current.setSelectionRange(cursorPositionRef.current, cursorPositionRef.current);
+        cursorPositionRef.current = null;
+      } else if (document.activeElement === textareaRef.current) {
+        textareaRef.current.setSelectionRange(cursorPos, cursorPos);
+      }
     }
   }, [inputValue]);
 
