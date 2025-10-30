@@ -163,6 +163,42 @@ All colors MUST be HSL for perfect glass effects.
     display: none;
   }
 
+  /* Subtle twinkling starfield - dark mode only */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+    background-image: 
+      radial-gradient(1px 1px at 20% 30%, hsl(var(--foreground) / 0.3), transparent),
+      radial-gradient(1px 1px at 60% 70%, hsl(var(--foreground) / 0.4), transparent),
+      radial-gradient(1px 1px at 50% 50%, hsl(var(--foreground) / 0.3), transparent),
+      radial-gradient(1px 1px at 80% 10%, hsl(var(--foreground) / 0.4), transparent),
+      radial-gradient(1px 1px at 90% 60%, hsl(var(--foreground) / 0.3), transparent),
+      radial-gradient(1px 1px at 33% 85%, hsl(var(--foreground) / 0.4), transparent),
+      radial-gradient(1px 1px at 15% 10%, hsl(var(--foreground) / 0.3), transparent),
+      radial-gradient(1px 1px at 70% 40%, hsl(var(--foreground) / 0.3), transparent);
+    background-size: 200% 200%;
+    animation: twinkle 8s ease-in-out infinite;
+  }
+
+  .light body::after {
+    display: none;
+  }
+
+  @keyframes twinkle {
+    0%, 100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+
   @keyframes global-background-drift {
     0% {
       background: radial-gradient(circle at 20% 50%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%);
