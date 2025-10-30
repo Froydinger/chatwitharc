@@ -138,7 +138,7 @@ export function WelcomeSection({
 
           {/* Greeting with glow and accent-colored name */}
           <motion.h2
-            className="text-3xl font-semibold relative"
+            className="text-4xl font-semibold relative"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -148,13 +148,17 @@ export function WelcomeSection({
               {name && (
                 <>
                   <span>, </span>
-                  <span className="text-primary relative">
+                  <span className="text-primary relative inline-block">
                     {name}
-                    {/* Glow effect for name */}
+                    {/* Bright glow effect for name */}
                     <motion.span
-                      className="absolute inset-0 text-primary blur-md opacity-50"
+                      className="absolute inset-0 text-primary blur-lg"
+                      style={{
+                        filter: "blur(16px)",
+                        opacity: 0.7,
+                      }}
                       animate={{
-                        opacity: [0.3, 0.6, 0.3],
+                        opacity: [0.5, 0.9, 0.5],
                       }}
                       transition={{
                         duration: 2,
@@ -164,23 +168,27 @@ export function WelcomeSection({
                     >
                       {name}
                     </motion.span>
+                    {/* Extra bright core glow */}
+                    <motion.span
+                      className="absolute inset-0 text-primary blur-md"
+                      style={{
+                        filter: "blur(8px)",
+                        opacity: 0.6,
+                      }}
+                      animate={{
+                        opacity: [0.4, 0.8, 0.4],
+                      }}
+                      transition={{
+                        duration: 2.5,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    >
+                      {name}
+                    </motion.span>
                   </span>
                 </>
               )}
-              {/* Subtle glow for entire greeting */}
-              <motion.span
-                className="absolute inset-0 blur-lg opacity-20"
-                animate={{
-                  opacity: [0.15, 0.25, 0.15],
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              >
-                {greeting}
-              </motion.span>
             </span>
           </motion.h2>
 
