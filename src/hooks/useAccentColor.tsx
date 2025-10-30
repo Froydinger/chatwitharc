@@ -149,19 +149,17 @@ export function useAccentColor() {
       }
       
       .logo-accent-glow img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        filter: brightness(0) saturate(100%);
+        display: block;
+        opacity: 0;
+      }
+      
+      .logo-accent-glow::after {
+        content: '';
+        position: absolute;
+        inset: 0;
         background: hsl(${isLight ? config.lightPrimary : config.primary});
-        -webkit-mask-image: url('/arc-logo-cropped.png');
-        mask-image: url('/arc-logo-cropped.png');
-        -webkit-mask-size: contain;
-        mask-size: contain;
-        -webkit-mask-repeat: no-repeat;
-        mask-repeat: no-repeat;
-        -webkit-mask-position: center;
-        mask-position: center;
+        -webkit-mask: url('/arc-logo-cropped.png') no-repeat center / contain;
+        mask: url('/arc-logo-cropped.png') no-repeat center / contain;
       }
       
       .logo-accent-glow::before {
@@ -176,9 +174,35 @@ export function useAccentColor() {
         z-index: -1;
       }
       
+      .header-logo-glow {
+        position: relative;
+        display: inline-block;
+      }
+      
+      .header-logo-glow img {
+        display: block;
+        opacity: 0;
+      }
+      
+      .header-logo-glow::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: hsl(${isLight ? config.lightPrimary : config.primary});
+        -webkit-mask: url('/arc-logo-cropped.png') no-repeat center / contain;
+        mask: url('/arc-logo-cropped.png') no-repeat center / contain;
+      }
+      
       .header-logo-glow::before {
+        content: '';
+        position: absolute;
         inset: -3px;
+        background: hsl(${isLight ? config.lightPrimary : config.primary} / 0.3);
+        border-radius: 50%;
         filter: blur(8px);
+        animation: logo-breathe 3s ease-in-out infinite;
+        pointer-events: none;
+        z-index: -1;
       }
       
       @keyframes logo-breathe {
