@@ -437,7 +437,8 @@ export function MobileChatApp() {
                     <MessageBubble
                       key={message.id}
                       message={message}
-                      isLatestAssistant={shouldAnimateTypewriter}
+                      isLatestAssistant={isLastAssistantMessage}
+                      shouldAnimateTypewriter={shouldAnimateTypewriter}
                       isThinking={isLastAssistantMessage && isLoading && !isGeneratingImage}
                       onEdit={async (messageId: string, newContent: string) => {
                         const chatInputEvent = new CustomEvent("processEditedMessage", {

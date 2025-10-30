@@ -19,11 +19,12 @@ interface MessageBubbleProps {
   message: Message;
   onEdit?: (messageId: string, newContent: string) => void;
   isLatestAssistant?: boolean;
+  shouldAnimateTypewriter?: boolean;
   isThinking?: boolean;
 }
 
 export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
-  ({ message, onEdit, isLatestAssistant, isThinking }, ref) => {
+  ({ message, onEdit, isLatestAssistant, shouldAnimateTypewriter, isThinking }, ref) => {
     const { editMessage } = useArcStore();
     const { profile } = useProfile();
     const { toast } = useToast();
@@ -300,7 +301,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                           <TypewriterText
                             key={idx}
                             text={part.content}
-                            shouldAnimate={isLatestAssistant && !isThinking}
+                            shouldAnimate={shouldAnimateTypewriter && !isThinking}
                           />
                         );
                       })}

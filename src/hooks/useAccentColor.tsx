@@ -149,12 +149,19 @@ export function useAccentColor() {
       }
       
       .logo-accent-glow img {
-        filter: brightness(0) saturate(100%) invert(1);
-        -webkit-mask: url('/arc-logo.png') no-repeat center;
-        mask: url('/arc-logo.png') no-repeat center;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: brightness(0) saturate(100%);
+        background: hsl(${isLight ? config.lightPrimary : config.primary});
+        -webkit-mask-image: url('/arc-logo-cropped.png');
+        mask-image: url('/arc-logo-cropped.png');
         -webkit-mask-size: contain;
         mask-size: contain;
-        background: hsl(${isLight ? config.lightPrimary : config.primary});
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
       }
       
       .logo-accent-glow::before {
