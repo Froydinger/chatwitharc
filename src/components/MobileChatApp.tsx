@@ -355,7 +355,7 @@ export function MobileChatApp() {
         >
           <div className="flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-1.5">
-              <div className="relative logo-accent-glow header-logo-glow">
+              <div className="relative header-logo-glow">
                 <motion.img
                   src={HERO_AVATAR}
                   alt="ArcAI"
