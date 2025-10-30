@@ -150,16 +150,25 @@ export function useAccentColor() {
       
       .logo-accent-glow img {
         display: block;
-        opacity: 0;
+        visibility: hidden;
       }
       
       .logo-accent-glow::after {
         content: '';
         position: absolute;
-        inset: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         background: hsl(${isLight ? config.lightPrimary : config.primary});
-        -webkit-mask: url('/arc-logo-cropped.png') no-repeat center / contain;
-        mask: url('/arc-logo-cropped.png') no-repeat center / contain;
+        mask-image: url('/arc-logo-cropped.png');
+        mask-size: contain;
+        mask-repeat: no-repeat;
+        mask-position: center;
+        -webkit-mask-image: url('/arc-logo-cropped.png');
+        -webkit-mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        -webkit-mask-position: center;
       }
       
       .logo-accent-glow::before {
@@ -181,16 +190,25 @@ export function useAccentColor() {
       
       .header-logo-glow img {
         display: block;
-        opacity: 0;
+        visibility: hidden;
       }
       
       .header-logo-glow::after {
         content: '';
         position: absolute;
-        inset: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         background: hsl(${isLight ? config.lightPrimary : config.primary});
-        -webkit-mask: url('/arc-logo-cropped.png') no-repeat center / contain;
-        mask: url('/arc-logo-cropped.png') no-repeat center / contain;
+        mask-image: url('/arc-logo-cropped.png');
+        mask-size: contain;
+        mask-repeat: no-repeat;
+        mask-position: center;
+        -webkit-mask-image: url('/arc-logo-cropped.png');
+        -webkit-mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        -webkit-mask-position: center;
       }
       
       .header-logo-glow::before {
