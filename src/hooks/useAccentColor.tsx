@@ -50,7 +50,7 @@ const accentColorConfigs = {
     primaryGlow: "270 75% 70%",
     aiMessageBg: "270 15% 16%",
     aiMessageBorder: "270 20% 24%",
-    lightAiMessageBg: "270 15% 97%",
+    lightAiMessageBg: "270 20% 97%",
     lightAiMessageBorder: "270 15% 92%",
     lightPrimary: "270 75% 55%",
     lightPrimaryGlow: "270 75% 65%",
@@ -60,7 +60,7 @@ const accentColorConfigs = {
     primaryGlow: "25 95% 68%",
     aiMessageBg: "25 15% 16%",
     aiMessageBorder: "25 20% 24%",
-    lightAiMessageBg: "25 15% 97%",
+    lightAiMessageBg: "25 20% 97%",
     lightAiMessageBorder: "25 15% 92%",
     lightPrimary: "25 95% 55%",
     lightPrimaryGlow: "25 95% 65%",
@@ -149,7 +149,7 @@ export function useAccentColor() {
       
       .logo-accent-glow img {
         display: block;
-        opacity: 0; /* Hide the original image */
+        opacity: 0;
         pointer-events: none;
       }
       
@@ -160,12 +160,10 @@ export function useAccentColor() {
         left: 0;
         width: 100%;
         height: 100%;
-        /* This is the key: the background-color will fill the shape defined by the mask */
         background-color: hsl(${isLight ? config.lightPrimary : config.primary});
         mask: url('/arc-logo-cropped.png') center / contain no-repeat;
         -webkit-mask: url('/arc-logo-cropped.png') center / contain no-repeat;
         pointer-events: none;
-        /* Ensure your arc-logo-cropped.png is a transparent silhouette for this to work perfectly */
       }
       
       .logo-accent-glow::before {
@@ -187,7 +185,7 @@ export function useAccentColor() {
       
       .header-logo-glow img {
         display: block;
-        opacity: 0; /* Hide the original image */
+        opacity: 0;
         pointer-events: none;
       }
       
@@ -198,12 +196,10 @@ export function useAccentColor() {
         left: 0;
         width: 100%;
         height: 100%;
-        /* Same as above: background-color fills the masked area */
         background-color: hsl(${isLight ? config.lightPrimary : config.primary});
-        mask: url('/arc-logo-cropped.png') center / contain no-repeat;
-        -webkit-mask: url('/arc-logo-cropped.png') center / contain no-repeat;
+        mask: url('/arc-logo.png') center / contain no-repeat;
+        -webkit-mask: url('/arc-logo.png') center / contain no-repeat;
         pointer-events: none;
-        /* Ensure your arc-logo-cropped.png is a transparent silhouette for this to work perfectly */
       }
       
       .header-logo-glow::before {
