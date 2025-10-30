@@ -24,8 +24,9 @@ function getDaypartGreeting(d: Date = new Date()): "Good Morning" | "Good Aftern
 }
 
 /** Keep header logo as-is; use the head-only avatar above prompts */
-const HEADER_LOGO = "/arc-logo.png";
-const HERO_AVATAR = "/arc-logo.png";
+// Changed to use the cropped logo for consistent tinting
+const HEADER_LOGO = "/arc-logo-cropped.png";
+const HERO_AVATAR = "/arc-logo-cropped.png"; // Also changed to cropped logo
 
 export function MobileChatApp() {
   const navigate = useNavigate();
@@ -111,119 +112,124 @@ export function MobileChatApp() {
   }, [messages]);
 
   // Quick Prompts - 6 Chat, 6 Create, 6 Write, 6 Code (memoized to prevent re-renders)
-  const quickPrompts = useMemo(() => [
-    // Chat prompts
-    {
-      label: "💭 Reflect",
-      prompt: "Walk me through a guided reflection on where I've been, what I've learned, and where I'm heading.",
-    },
-    {
-      label: "🧘 Check-in",
-      prompt:
-        "Help me do a real wellness check. Ask me about my mood, energy, and what's on my mind, then give me honest feedback.",
-    },
-    {
-      label: "🎯 Focus",
-      prompt: "Help me set up a focused work session. Guide me through planning a productive sprint.",
-    },
-    {
-      label: "💬 Chat",
-      prompt: "Let's have a casual conversation. Ask me about my day and chat like we're catching up.",
-    },
-    {
-      label: "🤝 Advice",
-      prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing.",
-    },
-    {
-      label: "🙏 Gratitude",
-      prompt: "Lead me through a quick gratitude exercise to help me appreciate the good things in my life.",
-    },
-    // Create/Image prompts - 3 are 90s, 3 are not
-    {
-      label: "🎨 Dream Poster",
-      prompt:
-        "Generate an image: a wild, colorful retro 90s poster design concept. Think neon colors, geometric shapes, and absolute chaos in the best way.",
-    },
-    {
-      label: "🌌 Cosmic Explorer",
-      prompt:
-        "Generate an image: a stunning cosmic landscape with planets, nebulae, and distant galaxies. Make it feel vast and awe-inspiring.",
-    },
-    {
-      label: "🎬 Cult Classic",
-      prompt: "Generate an image: a movie poster for a hidden gem 90s film. Make it visually striking and nostalgic.",
-    },
-    {
-      label: "🌸 Nature's Canvas",
-      prompt:
-        "Generate an image: a beautiful, serene natural scene with lush details, perfect lighting, and a peaceful atmosphere.",
-    },
-    {
-      label: "🎪 Fever Dream",
-      prompt:
-        "Generate an image: the most unhinged, beautiful, chaotic 90s vaporwave aesthetic scene. Neon lights, palm trees, abandoned malls.",
-    },
-    {
-      label: "✨ Ethereal Portrait",
-      prompt:
-        "Generate an image: an artistic, ethereal portrait with dreamlike qualities, soft lighting, and beautiful composition.",
-    },
-    // Write prompts
-    {
-      label: "📖 Short Story",
-      prompt:
-        "Help me write a compelling short story. Guide me through character development, plot, and an engaging narrative.",
-    },
-    {
-      label: "✍️ Personal Essay",
-      prompt:
-        "Help me craft a personal essay about a meaningful experience. Let's explore themes and structure together.",
-    },
-    {
-      label: "💌 Heartfelt Letter",
-      prompt: "Help me write a sincere, heartfelt letter to someone important. Let's make it authentic and meaningful.",
-    },
-    {
-      label: "🎭 Screenplay Scene",
-      prompt: "Help me write a cinematic scene with dialogue and action. Let's create something visually compelling.",
-    },
-    {
-      label: "📝 Blog Post",
-      prompt:
-        "Help me write an engaging blog post on a topic I care about. Let's make it conversational and insightful.",
-    },
-    {
-      label: "🖋️ Poetry",
-      prompt:
-        "Help me write a poem that captures emotion and imagery. Let's explore different styles and find the right voice.",
-    },
-    // Code prompts
-    {
-      label: "🎮 Interactive Demo",
-      prompt:
-        "Code: Build a random interactive demo - surprise me with something fun! Pick any cool interactive demo like a particle system, drawing canvas, mini game (snake, pong, memory cards), color mixer, gravity simulator, or bouncing balls. Just build something engaging with HTML, CSS, and JavaScript without asking what I want - be creative!",
-    },
-    {
-      label: "📊 Dashboard",
-      prompt: "Code: Create a dashboard interface with HTML and CSS. Include charts, stats, and a clean layout.",
-    },
-    {
-      label: "🎨 Animation",
-      prompt: "Code: Create a beautiful CSS and JavaScript animation. Make it smooth and eye-catching.",
-    },
-    {
-      label: "🧮 Calculator",
-      prompt: "Code: Build a calculator using HTML, CSS, and JavaScript. Include a clean UI and proper error handling.",
-    },
-    {
-      label: "🎯 Landing Page",
-      prompt: "Code: Create a modern landing page with HTML and CSS. Make it responsive and conversion-focused.",
-    },
-    {
-      label: "🛠️ Form Builder",
-      prompt: "Code: Create an interactive form with validation using HTML, CSS, and JavaScript.",
-    },
-  ], []);
+  const quickPrompts = useMemo(
+    () => [
+      // Chat prompts
+      {
+        label: "💭 Reflect",
+        prompt: "Walk me through a guided reflection on where I've been, what I've learned, and where I'm heading.",
+      },
+      {
+        label: "🧘 Check-in",
+        prompt:
+          "Help me do a real wellness check. Ask me about my mood, energy, and what's on my mind, then give me honest feedback.",
+      },
+      {
+        label: "🎯 Focus",
+        prompt: "Help me set up a focused work session. Guide me through planning a productive sprint.",
+      },
+      {
+        label: "💬 Chat",
+        prompt: "Let's have a casual conversation. Ask me about my day and chat like we're catching up.",
+      },
+      {
+        label: "🤝 Advice",
+        prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing.",
+      },
+      {
+        label: "🙏 Gratitude",
+        prompt: "Lead me through a quick gratitude exercise to help me appreciate the good things in my life.",
+      },
+      // Create/Image prompts - 3 are 90s, 3 are not
+      {
+        label: "🎨 Dream Poster",
+        prompt:
+          "Generate an image: a wild, colorful retro 90s poster design concept. Think neon colors, geometric shapes, and absolute chaos in the best way.",
+      },
+      {
+        label: "🌌 Cosmic Explorer",
+        prompt:
+          "Generate an image: a stunning cosmic landscape with planets, nebulae, and distant galaxies. Make it feel vast and awe-inspiring.",
+      },
+      {
+        label: "🎬 Cult Classic",
+        prompt: "Generate an image: a movie poster for a hidden gem 90s film. Make it visually striking and nostalgic.",
+      },
+      {
+        label: "🌸 Nature's Canvas",
+        prompt:
+          "Generate an image: a beautiful, serene natural scene with lush details, perfect lighting, and a peaceful atmosphere.",
+      },
+      {
+        label: "🎪 Fever Dream",
+        prompt:
+          "Generate an image: the most unhinged, beautiful, chaotic 90s vaporwave aesthetic scene. Neon lights, palm trees, abandoned malls.",
+      },
+      {
+        label: "✨ Ethereal Portrait",
+        prompt:
+          "Generate an image: an artistic, ethereal portrait with dreamlike qualities, soft lighting, and beautiful composition.",
+      },
+      // Write prompts
+      {
+        label: "📖 Short Story",
+        prompt:
+          "Help me write a compelling short story. Guide me through character development, plot, and an engaging narrative.",
+      },
+      {
+        label: "✍️ Personal Essay",
+        prompt:
+          "Help me craft a personal essay about a meaningful experience. Let's explore themes and structure together.",
+      },
+      {
+        label: "💌 Heartfelt Letter",
+        prompt:
+          "Help me write a sincere, heartfelt letter to someone important. Let's make it authentic and meaningful.",
+      },
+      {
+        label: "🎭 Screenplay Scene",
+        prompt: "Help me write a cinematic scene with dialogue and action. Let's create something visually compelling.",
+      },
+      {
+        label: "📝 Blog Post",
+        prompt:
+          "Help me write an engaging blog post on a topic I care about. Let's make it conversational and insightful.",
+      },
+      {
+        label: "🖋️ Poetry",
+        prompt:
+          "Help me write a poem that captures emotion and imagery. Let's explore different styles and find the right voice.",
+      },
+      // Code prompts
+      {
+        label: "🎮 Interactive Demo",
+        prompt:
+          "Code: Build a random interactive demo - surprise me with something fun! Pick any cool interactive demo like a particle system, drawing canvas, mini game (snake, pong, memory cards), color mixer, gravity simulator, or bouncing balls. Just build something engaging with HTML, CSS, and JavaScript without asking what I want - be creative!",
+      },
+      {
+        label: "📊 Dashboard",
+        prompt: "Code: Create a dashboard interface with HTML and CSS. Include charts, stats, and a clean layout.",
+      },
+      {
+        label: "🎨 Animation",
+        prompt: "Code: Create a beautiful CSS and JavaScript animation. Make it smooth and eye-catching.",
+      },
+      {
+        label: "🧮 Calculator",
+        prompt:
+          "Code: Build a calculator using HTML, CSS, and JavaScript. Include a clean UI and proper error handling.",
+      },
+      {
+        label: "🎯 Landing Page",
+        prompt: "Code: Create a modern landing page with HTML and CSS. Make it responsive and conversion-focused.",
+      },
+      {
+        label: "🛠️ Form Builder",
+        prompt: "Code: Create an interactive form with validation using HTML, CSS, and JavaScript.",
+      },
+    ],
+    [],
+  );
 
   // Show/hide scroll button based on scroll position
   useEffect(() => {
@@ -286,10 +292,13 @@ export function MobileChatApp() {
     setDragOver(false);
   };
 
-  const triggerPrompt = useCallback((prompt: string) => {
-    startChatWithMessage(prompt);
-    setRightPanelOpen(false);
-  }, [startChatWithMessage, setRightPanelOpen]);
+  const triggerPrompt = useCallback(
+    (prompt: string) => {
+      startChatWithMessage(prompt);
+      setRightPanelOpen(false);
+    },
+    [startChatWithMessage, setRightPanelOpen],
+  );
 
   /** AI avatar progressive fade in after load */
   useEffect(() => {
@@ -349,7 +358,7 @@ export function MobileChatApp() {
             <div className="flex items-center gap-1.5">
               <div className="relative logo-accent-glow header-logo-glow">
                 <motion.img
-                  src={HERO_AVATAR}
+                  src={HEADER_LOGO} /* Changed to use HEADER_LOGO variable */
                   alt="ArcAI"
                   className="h-12 w-12"
                   animate={{ y: [0, -2, 0] }}
@@ -412,7 +421,7 @@ export function MobileChatApp() {
               <div style={{ paddingTop: "3rem" }}>
                 <WelcomeSection
                   greeting={greeting}
-                  heroAvatar={HERO_AVATAR}
+                  heroAvatar={HERO_AVATAR} /* Changed to use HERO_AVATAR variable */
                   quickPrompts={quickPrompts}
                   onTriggerPrompt={triggerPrompt}
                   profile={profile}
@@ -431,7 +440,8 @@ export function MobileChatApp() {
                 {messages.map((message, index) => {
                   const isLastAssistantMessage = message.role === "assistant" && index === messages.length - 1;
                   // Only animate if this is a new message (not loaded from history)
-                  const shouldAnimateTypewriter = isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current;
+                  const shouldAnimateTypewriter =
+                    isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current;
 
                   return (
                     <MessageBubble
