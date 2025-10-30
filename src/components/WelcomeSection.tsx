@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 
 interface WelcomeSectionProps {
   greeting: string;
-  heroAvatar: string;
+  heroAvatar: string | null;
   quickPrompts: { label: string; prompt: string }[];
   onTriggerPrompt: (prompt: string) => void;
   profile: Profile | null;
@@ -39,18 +39,14 @@ export function WelcomeSection({
   const categorizedPrompts: QuickPrompt[] = useMemo(() => {
     return quickPrompts.map((p, index) => ({
       ...p,
-      category: 
-        index < 6 ? 'chat' :
-        index < 12 ? 'create' :
-        index < 18 ? 'write' :
-        'code'
+      category: index < 6 ? "chat" : index < 12 ? "create" : index < 18 ? "write" : "code",
     }));
   }, [quickPrompts]);
 
   // Smart prompt selection with AI personalization
   useEffect(() => {
     let isMounted = true;
-    
+
     const loadSmartSuggestions = async (skipCache = false) => {
       setIsLoadingSuggestions(true);
       try {
@@ -59,7 +55,7 @@ export function WelcomeSection({
           setSmartSuggestions(suggestions);
         }
       } catch (error) {
-        console.error('Failed to load smart suggestions:', error);
+        console.error("Failed to load smart suggestions:", error);
         // Fallback to first 3 prompts
         if (isMounted) {
           setSmartSuggestions(categorizedPrompts.slice(0, 3));
@@ -84,11 +80,22 @@ export function WelcomeSection({
       const suggestions = await selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3, true);
       setSmartSuggestions(suggestions);
     } catch (error) {
-      console.error('Failed to refresh suggestions:', error);
+      console.error("Failed to refresh suggestions:", error);
     } finally {
       setIsRefreshing(false);
     }
   };
+
+  // Parse greeting to separate time greeting from name
+  const parseGreeting = (greetingText: string) => {
+    const parts = greetingText.split(", ");
+    if (parts.length === 2) {
+      return { timeGreeting: parts[0], name: parts[1] };
+    }
+    return { timeGreeting: greetingText, name: null };
+  };
+
+  const { timeGreeting, name } = parseGreeting(greeting);
 
   return (
     <>
@@ -100,41 +107,81 @@ export function WelcomeSection({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          {/* Avatar */}
-          <motion.div
-            className="relative"
-            animate={{
-              y: [0, -8, 0],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          >
-            <img src={heroAvatar} alt="Arc" className="h-24 w-24 rounded-full" />
+          {/* Avatar - only render if heroAvatar is provided */}
+          {heroAvatar && (
             <motion.div
-              className="absolute -inset-1 bg-primary/30 rounded-full blur-xl"
+              className="relative"
               animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.3, 0.5, 0.3],
+                y: [0, -8, 0],
               }}
               transition={{
-                duration: 3,
+                duration: 4,
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
-            />
-          </motion.div>
+            >
+              <img src={heroAvatar} alt="Arc" className="h-24 w-24 rounded-full" />
+              <motion.div
+                className="absolute -inset-1 bg-primary/30 rounded-full blur-xl"
+                animate={{
+                  scale: [1, 1.1, 1],
+                  opacity: [0.3, 0.5, 0.3],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            </motion.div>
+          )}
 
-          {/* Greeting */}
+          {/* Greeting with glow and accent-colored name */}
           <motion.h2
-            className="text-3xl font-semibold"
+            className="text-3xl font-semibold relative"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            {greeting}
+            <span className="relative inline-block">
+              {timeGreeting}
+              {name && (
+                <>
+                  <span>, </span>
+                  <span className="text-primary relative">
+                    {name}
+                    {/* Glow effect for name */}
+                    <motion.span
+                      className="absolute inset-0 text-primary blur-md opacity-50"
+                      animate={{
+                        opacity: [0.3, 0.6, 0.3],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    >
+                      {name}
+                    </motion.span>
+                  </span>
+                </>
+              )}
+              {/* Subtle glow for entire greeting */}
+              <motion.span
+                className="absolute inset-0 blur-lg opacity-20"
+                animate={{
+                  opacity: [0.15, 0.25, 0.15],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
+                {greeting}
+              </motion.span>
+            </span>
           </motion.h2>
 
           <motion.p
@@ -160,49 +207,43 @@ export function WelcomeSection({
               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
               className="relative"
             >
-              <img 
-                src="/arc-logo-cropped.png" 
-                alt="Loading" 
-                className="h-8 w-8 logo-accent-glow"
-              />
+              <img src="/arc-logo-cropped.png" alt="Loading" className="h-8 w-8 logo-accent-glow" />
             </motion.div>
             <p className="text-sm text-muted-foreground">Personalizing prompts for you...</p>
           </motion.div>
-        ) : smartSuggestions.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="w-full space-y-2"
-          >
-            {/* Refresh Button */}
-            <div className="flex justify-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-            
-            <SmartSuggestions
-              suggestions={smartSuggestions}
-              onSelectPrompt={onTriggerPrompt}
-              onShowMore={() => setShowLibrary(true)}
-            />
-          </motion.div>
+        ) : (
+          smartSuggestions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="w-full space-y-2"
+            >
+              {/* Refresh Button */}
+              <div className="flex justify-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <RefreshCw className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
+                </Button>
+              </div>
+
+              <SmartSuggestions
+                suggestions={smartSuggestions}
+                onSelectPrompt={onTriggerPrompt}
+                onShowMore={() => setShowLibrary(true)}
+              />
+            </motion.div>
+          )
         )}
 
         {/* Thinking Indicator */}
         {(isLoading || isGeneratingImage) && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-8"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-8">
             <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
           </motion.div>
         )}
