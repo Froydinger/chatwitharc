@@ -24,9 +24,8 @@ function getDaypartGreeting(d: Date = new Date()): "Good Morning" | "Good Aftern
 }
 
 /** Keep header logo as-is; use the head-only avatar above prompts */
-// Changed to use the cropped logo for consistent tinting
-const HEADER_LOGO = "/arc-logo-cropped.png";
-const HERO_AVATAR = "/arc-logo-cropped.png"; // Also changed to cropped logo
+const HEADER_LOGO = "/arc-logo.png";
+const HERO_AVATAR = "/arc-logo.png";
 
 export function MobileChatApp() {
   const navigate = useNavigate();
@@ -358,7 +357,7 @@ export function MobileChatApp() {
             <div className="flex items-center gap-1.5">
               <div className="relative logo-accent-glow header-logo-glow">
                 <motion.img
-                  src={HEADER_LOGO} /* Changed to use HEADER_LOGO variable */
+                  src={HERO_AVATAR}
                   alt="ArcAI"
                   className="h-12 w-12"
                   animate={{ y: [0, -2, 0] }}
@@ -421,7 +420,7 @@ export function MobileChatApp() {
               <div style={{ paddingTop: "3rem" }}>
                 <WelcomeSection
                   greeting={greeting}
-                  heroAvatar={HERO_AVATAR} /* Changed to use HERO_AVATAR variable */
+                  heroAvatar={HERO_AVATAR}
                   quickPrompts={quickPrompts}
                   onTriggerPrompt={triggerPrompt}
                   profile={profile}
