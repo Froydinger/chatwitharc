@@ -377,7 +377,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 } : { duration: 0.3 }
               }}
             >
-              <div className="relative logo-accent-glow">
+              <motion.div 
+                layoutId="arc-thinking-logo"
+                className="relative logo-accent-glow"
+              >
                 <img 
                   src="/arc-logo-ui.png" 
                   alt="Arc" 
@@ -399,7 +402,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     }}
                   />
                 )}
-              </div>
+              </motion.div>
             </motion.div>
           )}
         </div>

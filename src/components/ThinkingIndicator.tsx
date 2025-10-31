@@ -24,6 +24,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage }: ThinkingIndi
         aria-live="polite"
       >
         <motion.div 
+          layoutId="arc-thinking-logo"
           className="relative flex items-center justify-center"
           animate={{ 
             scale: [1, 1.15, 1]
