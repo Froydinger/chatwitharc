@@ -211,11 +211,23 @@ export function WelcomeSection({
             className="flex flex-col items-center gap-3 mt-4"
           >
             <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              animate={{ scale: [1, 1.15, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
               className="relative"
             >
-              <img src="/arc-logo-ui.png" alt="Loading" className="h-8 w-8 logo-accent-glow" />
+              <img src="/arc-logo-ui.png" alt="Loading" className="h-10 w-10 logo-accent-glow" />
+              <motion.div
+                className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
+                animate={{ 
+                  scale: [0.8, 1.2, 0.8],
+                  opacity: [0.3, 0.6, 0.3]
+                }}
+                transition={{ 
+                  duration: 1.5, 
+                  repeat: Infinity, 
+                  ease: "easeInOut" 
+                }}
+              />
             </motion.div>
             <p className="text-sm text-muted-foreground">Personalizing prompts for you...</p>
           </motion.div>

@@ -468,22 +468,20 @@ export function MobileChatApp() {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{
                           opacity: 1,
-                          scale: 1,
-                          rotate: 360,
+                          scale: [1, 1.15, 1]
                         }}
                         transition={{
                           opacity: { duration: 0.3 },
-                          scale: { duration: 0.3 },
-                          rotate: { duration: 2, repeat: Infinity, ease: "linear" },
+                          scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
                         }}
                       >
                         <div className="relative logo-accent-glow">
-                          <img src="/arc-logo-ui.png" alt="Arc" className="h-5 w-5" />
+                          <img src="/arc-logo-ui.png" alt="Arc" className="h-10 w-10" />
                           <motion.div
-                            className="absolute -inset-2 bg-primary/20 rounded-full blur-lg"
+                            className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
                             animate={{
-                              scale: [1, 1.3, 1],
-                              opacity: [0.2, 0.35, 0.2],
+                              scale: [0.8, 1.2, 0.8],
+                              opacity: [0.3, 0.6, 0.3],
                             }}
                             transition={{
                               duration: 1.5,
