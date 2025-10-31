@@ -26,11 +26,10 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage }: ThinkingIndi
         <motion.div 
           className="relative flex items-center justify-center"
           animate={{ 
-            scale: [1, 1.1, 1],
-            rotate: [0, 3, -3, 0]
+            scale: [1, 1.15, 1]
           }}
           transition={{ 
-            duration: 2,
+            duration: 1.5,
             repeat: Infinity,
             ease: "easeInOut"
           }}
@@ -38,7 +37,19 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage }: ThinkingIndi
           <img 
             src="/arc-logo-ui.png" 
             alt="Thinking" 
-            className="h-5 w-5 opacity-70"
+            className="h-10 w-10"
+          />
+          <motion.div
+            className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
+            animate={{ 
+              scale: [0.8, 1.2, 0.8],
+              opacity: [0.3, 0.6, 0.3]
+            }}
+            transition={{ 
+              duration: 1.5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
           />
           <motion.div
             animate={{ 
@@ -51,7 +62,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage }: ThinkingIndi
               ease: "easeInOut"
             }}
           >
-            <Sparkles className="h-2.5 w-2.5 absolute -top-0.5 -right-0.5 text-primary" />
+            <Sparkles className="h-3 w-3 absolute -top-1 -right-1 text-primary" />
           </motion.div>
         </motion.div>
         <span className="text-sm font-medium text-foreground/80">

@@ -366,28 +366,32 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ 
                 opacity: 1, 
-                scale: 1,
-                rotate: isThinking ? 360 : 0
+                scale: isThinking ? [1, 1.15, 1] : 1
               }}
               transition={{ 
                 opacity: { duration: 0.3 },
-                scale: { duration: 0.3 },
-                rotate: { duration: 2, repeat: isThinking ? Infinity : 0, ease: "linear" }
+                scale: isThinking ? { 
+                  duration: 1.5, 
+                  repeat: Infinity, 
+                  ease: "easeInOut" 
+                } : { duration: 0.3 }
               }}
             >
               <div className="relative logo-accent-glow">
                 <img 
                   src="/arc-logo-ui.png" 
                   alt="Arc" 
-                  className="h-8 w-8"
+                  className="h-10 w-10"
                 />
                 {isThinking && (
                   <motion.div
-                    className="absolute -inset-2 bg-primary/20 rounded-full blur-lg"
+                    className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
+                    initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ 
-                      scale: [1, 1.3, 1],
-                      opacity: [0.2, 0.35, 0.2]
+                      scale: [0.8, 1.2, 0.8],
+                      opacity: [0.3, 0.6, 0.3]
                     }}
+                    exit={{ opacity: 0 }}
                     transition={{ 
                       duration: 1.5, 
                       repeat: Infinity, 
