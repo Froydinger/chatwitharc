@@ -377,7 +377,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             >
               <div className="relative logo-accent-glow">
                 <img 
-                  src="/arc-logo-cropped.png" 
+                  src="/arc-logo-ui.png" 
                   alt="Arc" 
                   className="h-5 w-5"
                 />

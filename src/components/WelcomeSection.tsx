@@ -215,7 +215,7 @@ export function WelcomeSection({
               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
               className="relative"
             >
-              <img src="/arc-logo-cropped.png" alt="Loading" className="h-8 w-8 logo-accent-glow" />
+              <img src="/arc-logo-ui.png" alt="Loading" className="h-8 w-8 logo-accent-glow" />
             </motion.div>
             <p className="text-sm text-muted-foreground">Personalizing prompts for you...</p>
           </motion.div>

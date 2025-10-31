@@ -36,7 +36,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage }: ThinkingIndi
           }}
         >
           <img 
-            src="/arc-logo.png" 
+            src="/arc-logo-ui.png" 
             alt="Thinking" 
             className="h-5 w-5 opacity-70"
           />

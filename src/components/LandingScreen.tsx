@@ -65,7 +65,7 @@ export function LandingScreen() {
             >
               <div className="logo-accent-glow">
                 <img 
-                  src="/arc-logo.png" 
+                  src="/arc-logo-ui.png" 
                   alt="ArcAI" 
                   className="h-16 w-16 sm:h-20 sm:w-20"
                 />

@@ -103,7 +103,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               className="flex justify-center mb-4"
             >
-              <img src="/arc-logo.png" alt="ArcAI" className="h-16 w-16" />
+              <img src="/arc-logo-ui.png" alt="ArcAI" className="h-16 w-16" />
             </motion.div>
             <h1 className="text-2xl font-bold text-foreground mb-2">
               Welcome to ArcAI!

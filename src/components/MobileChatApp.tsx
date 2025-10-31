@@ -24,7 +24,7 @@ function getDaypartGreeting(d: Date = new Date()): "Good Morning" | "Good Aftern
 }
 
 /** Keep header logo as-is */
-const HEADER_LOGO = "/arc-logo.png";
+const HEADER_LOGO = "/arc-logo-ui.png";
 
 export function MobileChatApp() {
   const navigate = useNavigate();
@@ -478,7 +478,7 @@ export function MobileChatApp() {
                         }}
                       >
                         <div className="relative logo-accent-glow">
-                          <img src="/arc-logo-cropped.png" alt="Arc" className="h-5 w-5" />
+                          <img src="/arc-logo-ui.png" alt="Arc" className="h-5 w-5" />
                           <motion.div
                             className="absolute -inset-2 bg-primary/20 rounded-full blur-lg"
                             animate={{

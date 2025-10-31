@@ -161,8 +161,8 @@ export function useAccentColor() {
         width: 100%;
         height: 100%;
         background-color: hsl(${isLight ? config.lightPrimary : config.primary});
-        mask: url('/arc-logo-cropped.png') center / contain no-repeat;
-        -webkit-mask: url('/arc-logo-cropped.png') center / contain no-repeat;
+        mask: url('/arc-logo-ui.png') center / contain no-repeat;
+        -webkit-mask: url('/arc-logo-ui.png') center / contain no-repeat;
         pointer-events: none;
       }
       
@@ -197,8 +197,8 @@ export function useAccentColor() {
         width: 100%;
         height: 100%;
         background-color: hsl(${isLight ? config.lightPrimary : config.primary});
-        mask: url('/arc-logo.png') center / contain no-repeat;
-        -webkit-mask: url('/arc-logo.png') center / contain no-repeat;
+        mask: url('/arc-logo-ui.png') center / contain no-repeat;
+        -webkit-mask: url('/arc-logo-ui.png') center / contain no-repeat;
         pointer-events: none;
       }
       

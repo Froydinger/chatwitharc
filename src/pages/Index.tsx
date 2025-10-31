@@ -61,7 +61,7 @@ export function Index() {
         <div className="text-center">
           <div className="animate-pulse flex justify-center mb-4">
             <img
-              src="/arc-logo.png"
+              src="/arc-logo-ui.png"
               alt="ArcAI"
               className="h-12 w-12"
             />
