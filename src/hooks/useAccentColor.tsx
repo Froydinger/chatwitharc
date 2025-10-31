@@ -16,14 +16,14 @@ const accentColorConfigs = {
     lightPrimaryGlow: "0 90% 65%",
   },
   blue: {
-    primary: "203 100% 59%",
-    primaryGlow: "203 100% 69%",
+    primary: "203 100% 65%",
+    primaryGlow: "203 100% 75%",
     aiMessageBg: "203 15% 16%",
     aiMessageBorder: "203 20% 24%",
     lightAiMessageBg: "203 20% 97%",
     lightAiMessageBorder: "203 15% 92%",
-    lightPrimary: "203 100% 54%",
-    lightPrimaryGlow: "203 100% 64%",
+    lightPrimary: "203 100% 60%",
+    lightPrimaryGlow: "203 100% 70%",
   },
   green: {
     primary: "142 76% 42%",
