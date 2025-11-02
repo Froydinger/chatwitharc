@@ -101,6 +101,20 @@ export function MobileChatApp() {
     }
   }, [currentSessionId]);
 
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      // Check if this is a new message we haven't seen before
+      if (lastLoadedMessageIdRef.current !== lastMessage.id) {
+        // Small delay to ensure the message is rendered
+        setTimeout(() => {
+          scrollToBottom();
+        }, 100);
+      }
+    }
+  }, [messages]);
+
   // Clear the tracked ID when messages change (new message added)
   useEffect(() => {
     if (messages.length > 0) {
