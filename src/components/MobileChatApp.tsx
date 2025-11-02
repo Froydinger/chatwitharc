@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Menu, Sun, Moon, ArrowDown, X } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput, cancelCurrentRequest } from "@/components/ChatInput";
@@ -72,12 +72,19 @@ export function MobileChatApp() {
     return () => clearInterval(id);
   }, [profile?.display_name]);
 
-  // Sync URL with current session
+  // Sync URL with current session (but don't override URL params on initial load)
+  const hasInitiallyLoadedRef = useRef(false);
   useEffect(() => {
+    // Skip initial sync to allow URL params to load first
+    if (!hasInitiallyLoadedRef.current) {
+      hasInitiallyLoadedRef.current = true;
+      return;
+    }
+
     if (currentSessionId) {
       const currentPath = window.location.pathname;
       const expectedPath = `/chat/${currentSessionId}`;
-      if (currentPath !== expectedPath) {
+      if (currentPath !== expectedPath && currentPath !== '/') {
         navigate(expectedPath, { replace: true });
       }
     }
@@ -435,102 +442,131 @@ export function MobileChatApp() {
                   paddingRight: "1rem",
                 }}
               >
-                {messages.map((message, index) => {
-                  const isLastAssistantMessage = message.role === "assistant" && index === messages.length - 1;
-                  // Only animate if this is a new message (not loaded from history)
-                  const shouldAnimateTypewriter =
-                    isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current;
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {messages.map((message, index) => {
+                    const isLastAssistantMessage = message.role === "assistant" && index === messages.length - 1;
+                    // Only animate if this is a new message (not loaded from history)
+                    const shouldAnimateTypewriter =
+                      isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current;
 
-                  return (
-                    <MessageBubble
-                      key={message.id}
-                      message={message}
-                      isLatestAssistant={isLastAssistantMessage}
-                      shouldAnimateTypewriter={shouldAnimateTypewriter}
-                      isThinking={isLastAssistantMessage && isLoading && !isGeneratingImage}
-                      onEdit={async (messageId: string, newContent: string) => {
-                        const chatInputEvent = new CustomEvent("processEditedMessage", {
-                          detail: { content: newContent, editedMessageId: messageId },
-                        });
-                        window.dispatchEvent(chatInputEvent);
-                      }}
-                    />
-                  );
-                })}
-                {/* Show thinking logo when loading and no messages yet or last message is user */}
-                {isLoading &&
-                  !isGeneratingImage &&
-                  messages.length > 0 &&
-                  messages[messages.length - 1].role === "user" && (
-                    <div className="flex justify-start pl-4 ml-2">
+                    return (
                       <motion.div
-                        className="flex items-center justify-start"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{
-                          opacity: 1,
-                          scale: [1, 1.15, 1]
+                        key={message.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ 
+                          duration: 0.3,
+                          ease: "easeOut"
                         }}
-                        transition={{
-                          opacity: { duration: 0.3 },
-                          scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
-                        }}
+                        layout
                       >
-                        <div className="relative logo-accent-glow">
-                          <img src="/arc-logo-ui.png" alt="Arc" className="h-10 w-10" />
-                          <motion.div
-                            className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
-                            animate={{
-                              scale: [0.8, 1.2, 0.8],
-                              opacity: [0.3, 0.6, 0.3],
-                            }}
-                            transition={{
-                              duration: 1.5,
-                              repeat: Infinity,
-                              ease: "easeInOut",
-                            }}
-                          />
-                        </div>
+                        <MessageBubble
+                          message={message}
+                          isLatestAssistant={isLastAssistantMessage}
+                          shouldAnimateTypewriter={shouldAnimateTypewriter}
+                          isThinking={isLastAssistantMessage && isLoading && !isGeneratingImage}
+                          onEdit={async (messageId: string, newContent: string) => {
+                            const chatInputEvent = new CustomEvent("processEditedMessage", {
+                              detail: { content: newContent, editedMessageId: messageId },
+                            });
+                            window.dispatchEvent(chatInputEvent);
+                          }}
+                        />
                       </motion.div>
-                    </div>
-                  )}
+                    );
+                  })}
+                </AnimatePresence>
+                {/* Show thinking logo when loading and no messages yet or last message is user */}
+                <AnimatePresence>
+                  {isLoading &&
+                    !isGeneratingImage &&
+                    messages.length > 0 &&
+                    messages[messages.length - 1].role === "user" && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.3 }}
+                        className="flex justify-start pl-4 ml-2"
+                      >
+                        <motion.div
+                          className="flex items-center justify-start"
+                          animate={{
+                            scale: [1, 1.15, 1]
+                          }}
+                          transition={{
+                            scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
+                          }}
+                        >
+                          <div className="relative logo-accent-glow">
+                            <img src="/arc-logo-ui.png" alt="Arc" className="h-10 w-10" />
+                            <motion.div
+                              className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
+                              animate={{
+                                scale: [0.8, 1.2, 0.8],
+                                opacity: [0.3, 0.6, 0.3],
+                              }}
+                              transition={{
+                                duration: 1.5,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                              }}
+                            />
+                          </div>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                </AnimatePresence>
                 {/* Cancel button during loading */}
-                {isLoading && !isGeneratingImage && messages.length > 0 && (
-                  <div className="flex justify-start pl-4">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        cancelCurrentRequest();
-                      }}
-                      className="text-muted-foreground hover:text-destructive"
+                <AnimatePresence>
+                  {isLoading && !isGeneratingImage && messages.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex justify-start pl-4"
                     >
-                      <X className="h-3.5 w-3.5 mr-1.5" />
-                      Cancel
-                    </Button>
-                  </div>
-                )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          cancelCurrentRequest();
+                        }}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5 mr-1.5" />
+                        Cancel
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
           </div>
 
           {/* Scroll to bottom button */}
-          {showScrollButton && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="fixed bottom-32 left-[45%] -translate-x-1/2 z-40 pointer-events-auto"
-            >
-              <Button
-                size="icon"
-                variant="outline"
-                className="rounded-full shadow-lg bg-background/80 backdrop-blur-sm border border-primary/20"
-                onClick={scrollToBottom}
+          <AnimatePresence>
+            {showScrollButton && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="fixed bottom-32 left-[45%] -translate-x-1/2 z-40 pointer-events-auto"
               >
-                <ArrowDown className="h-4 w-4" />
-              </Button>
-            </motion.div>
-          )}
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="rounded-full shadow-lg bg-background/80 backdrop-blur-sm border border-primary/20 transition-all hover:scale-105"
+                  onClick={scrollToBottom}
+                >
+                  <ArrowDown className="h-4 w-4" />
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Free-floating input shelf */}
           <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-30 pointer-events-none px-4">

@@ -20,24 +20,26 @@ export function Index() {
 
   const [onboardingComplete, setOnboardingComplete] = useState(false);
 
-  // Keep URL in sync with current session on refresh
+  // Load session from URL if present (priority: URL takes precedence)
   useEffect(() => {
-    if (user && !sessionId && currentSessionId && isLoaded) {
-      // If we're on / but have a current session, navigate to it
-      navigate(`/chat/${currentSessionId}`, { replace: true });
-    }
-  }, [user, sessionId, currentSessionId, navigate, isLoaded]);
+    if (!user || !isLoaded) return;
 
-  // Load session from URL if present
-  useEffect(() => {
-    if (sessionId && user) {
+    if (sessionId) {
+      // We have a sessionId in URL - this takes priority
       const sessionExists = chatSessions.find(s => s.id === sessionId);
-      if (sessionExists && currentSessionId !== sessionId) {
-        loadSession(sessionId);
-      } else if (!sessionExists && isLoaded && sessionId !== currentSessionId) {
-        // Only redirect if session doesn't exist AND it's not our current session
-        // (prevents redirect loop when creating new chat)
+      if (sessionExists) {
+        // Load the session if it's not already loaded
+        if (currentSessionId !== sessionId) {
+          loadSession(sessionId);
+        }
+      } else {
+        // Session doesn't exist, redirect to home
         navigate('/', { replace: true });
+      }
+    } else {
+      // No sessionId in URL - if we have a current session, navigate to it
+      if (currentSessionId) {
+        navigate(`/chat/${currentSessionId}`, { replace: true });
       }
     }
   }, [sessionId, user, chatSessions, currentSessionId, loadSession, navigate, isLoaded]);

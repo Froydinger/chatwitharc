@@ -97,6 +97,41 @@ export function WelcomeSection({
 
   const { timeGreeting, name } = parseGreeting(greeting);
 
+  // Show loading state until prompts are ready
+  if (isLoadingSuggestions) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-full py-12 px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <motion.div
+            animate={{ scale: [1, 1.15, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            className="relative"
+          >
+            <img src="/arc-logo-ui.png" alt="Loading" className="h-12 w-12 logo-accent-glow" />
+            <motion.div
+              className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
+              animate={{ 
+                scale: [0.8, 1.2, 0.8],
+                opacity: [0.3, 0.6, 0.3]
+              }}
+              transition={{ 
+                duration: 1.5, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
+            />
+          </motion.div>
+          <p className="text-sm text-muted-foreground">Personalizing your experience...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="flex flex-col items-center justify-start min-h-full py-12 px-4 space-y-6">
@@ -105,19 +140,27 @@ export function WelcomeSection({
           className="flex flex-col items-center gap-6 text-center mt-16"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         >
           {/* Avatar - only render if heroAvatar is provided */}
           {heroAvatar && (
             <motion.div
               className="relative"
-              animate={{
-                y: [0, -8, 0],
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ 
+                opacity: 1,
+                scale: 1,
+                y: [0, -8, 0]
               }}
               transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut",
+                opacity: { duration: 0.4 },
+                scale: { duration: 0.4 },
+                y: {
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.4
+                }
               }}
             >
               <img src={heroAvatar} alt="Arc" className="h-24 w-24 rounded-full" />
@@ -141,7 +184,7 @@ export function WelcomeSection({
             className="text-4xl font-semibold relative"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
           >
             <span className="relative inline-block">
               {timeGreeting}
@@ -196,74 +239,50 @@ export function WelcomeSection({
             className="text-muted-foreground text-lg max-w-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
           >
             What would you like to explore today?
           </motion.p>
         </motion.div>
 
         {/* Smart Suggestions */}
-        {isLoadingSuggestions ? (
+        {smartSuggestions.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="flex flex-col items-center gap-3 mt-4"
+            transition={{ delay: 0.4, duration: 0.4 }}
+            className="w-full space-y-2"
           >
-            <motion.div
-              animate={{ scale: [1, 1.15, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              className="relative"
-            >
-              <img src="/arc-logo-ui.png" alt="Loading" className="h-10 w-10 logo-accent-glow" />
-              <motion.div
-                className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
-                animate={{ 
-                  scale: [0.8, 1.2, 0.8],
-                  opacity: [0.3, 0.6, 0.3]
-                }}
-                transition={{ 
-                  duration: 1.5, 
-                  repeat: Infinity, 
-                  ease: "easeInOut" 
-                }}
-              />
-            </motion.div>
-            <p className="text-sm text-muted-foreground">Personalizing prompts for you...</p>
-          </motion.div>
-        ) : (
-          smartSuggestions.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="w-full space-y-2"
-            >
-              {/* Refresh Button */}
-              <div className="flex justify-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <RefreshCw className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
-                </Button>
-              </div>
+            {/* Refresh Button */}
+            <div className="flex justify-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <RefreshCw className={`h-3 w-3 transition-transform ${isRefreshing ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
 
-              <SmartSuggestions
-                suggestions={smartSuggestions}
-                onSelectPrompt={onTriggerPrompt}
-                onShowMore={() => setShowLibrary(true)}
-              />
-            </motion.div>
-          )
+            <SmartSuggestions
+              suggestions={smartSuggestions}
+              onSelectPrompt={onTriggerPrompt}
+              onShowMore={() => setShowLibrary(true)}
+            />
+          </motion.div>
         )}
 
         {/* Thinking Indicator */}
         {(isLoading || isGeneratingImage) && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-8">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.3 }}
+            className="mt-8"
+          >
             <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
           </motion.div>
         )}
