@@ -33,14 +33,21 @@ export function Index() {
           loadSession(sessionId);
         }
       } else {
-        // Session doesn't exist, redirect to home
-        navigate('/', { replace: true });
+        // Session doesn't exist in Supabase - could be a new session or deleted session
+        // Just try to load it anyway, or redirect to home if truly doesn't exist
+        console.warn('Session from URL not found in synced sessions:', sessionId);
+        // Create a small delay to allow for potential race conditions in sync
+        const timeout = setTimeout(() => {
+          const recheckSession = useArcStore.getState().chatSessions.find(s => s.id === sessionId);
+          if (!recheckSession) {
+            navigate('/', { replace: true });
+          }
+        }, 500);
+        return () => clearTimeout(timeout);
       }
-    } else {
-      // No sessionId in URL - if we have a current session, navigate to it
-      if (currentSessionId) {
-        navigate(`/chat/${currentSessionId}`, { replace: true });
-      }
+    } else if (!sessionId && !currentSessionId) {
+      // No session in URL and no current session - stay on home page
+      return;
     }
   }, [sessionId, user, chatSessions, currentSessionId, loadSession, navigate, isLoaded]);
 

@@ -532,8 +532,7 @@ export const useArcStore = create<ArcState>()(
       partialize: (state) => ({
         selectedVoice: state.selectedVoice,
         isContinuousVoiceMode: state.isContinuousVoiceMode,
-        // Don't persist chat sessions - they'll be loaded from Supabase
-        currentSessionId: state.currentSessionId
+        // Don't persist chat sessions or currentSessionId - they'll be managed via URL/Supabase
       })
     }
   )

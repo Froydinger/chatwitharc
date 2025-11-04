@@ -72,21 +72,11 @@ export function MobileChatApp() {
     return () => clearInterval(id);
   }, [profile?.display_name]);
 
-  // Sync URL with current session (but don't override URL params on initial load)
-  const hasInitiallyLoadedRef = useRef(false);
+  // Sync URL with current session - only update URL when explicitly creating/switching sessions
   useEffect(() => {
-    // Skip initial sync to allow URL params to load first
-    if (!hasInitiallyLoadedRef.current) {
-      hasInitiallyLoadedRef.current = true;
-      return;
-    }
-
-    if (currentSessionId) {
-      const currentPath = window.location.pathname;
-      const expectedPath = `/chat/${currentSessionId}`;
-      if (currentPath !== expectedPath && currentPath !== '/') {
-        navigate(expectedPath, { replace: true });
-      }
+    // Only navigate if we have a current session and we're on the home page
+    if (currentSessionId && window.location.pathname === '/') {
+      navigate(`/chat/${currentSessionId}`, { replace: true });
     }
   }, [currentSessionId, navigate]);
 

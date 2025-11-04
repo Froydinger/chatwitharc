@@ -1,5 +1,5 @@
 // src/components/ChatInput.tsx
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { X, Paperclip, Plus, ArrowRight } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -224,6 +224,46 @@ export function ChatInput({ onImagesChange }: Props) {
     setImageEditModes((prev) => prev.map((mode, i) => (i === idx ? !mode : mode)));
   };
 
+  /* ---------- Handle edited message resend ---------- */
+  const handleEditedMessage = useCallback(async (newContent: string, editedMessageId: string) => {
+    if (!newContent.trim() || isLoading) return;
+
+    setLoading(true);
+
+    try {
+      const ai = new AIService();
+      // Get all messages up to the edited one, replace its content, and send to AI
+      const messageIndex = messages.findIndex((m) => m.id === editedMessageId);
+      if (messageIndex === -1) {
+        setLoading(false);
+        return;
+      }
+
+      // Remove all messages after the edited one
+      const messagesToKeep = messages.slice(0, messageIndex + 1);
+      
+      // Build conversation history for AI
+      const aiMessages = messagesToKeep
+        .filter((m) => m.type === "text")
+        .map((m) => ({
+          role: m.role,
+          content: m.id === editedMessageId ? newContent : m.content,
+        }));
+
+      const reply = await ai.sendMessage(aiMessages);
+      await addMessage({ content: reply, role: "assistant", type: "text" });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message || "Failed to get AI response", variant: "destructive" });
+      await addMessage({
+        content: "Sorry, I encountered an error. Please try again.",
+        role: "assistant",
+        type: "text",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [messages, isLoading, setLoading, addMessage, toast]);
+
   /* ---------- Quick prompt / edit event hooks ---------- */
   useEffect(() => {
     const quickHandler = (ev: Event) => {
@@ -261,7 +301,7 @@ export function ChatInput({ onImagesChange }: Props) {
       window.removeEventListener("processImageEdit", editHandler as EventListener);
       window.removeEventListener("processEditedMessage", editedMessageHandler as EventListener);
     };
-  }, [messages]);
+  }, [handleEditedMessage]);
 
   /* ---------- External image edit (modal) ---------- */
   const handleExternalImageEdit = async (
@@ -327,42 +367,6 @@ export function ChatInput({ onImagesChange }: Props) {
     }
   };
 
-  /* ---------- Handle edited message resend ---------- */
-  const handleEditedMessage = async (newContent: string, editedMessageId: string) => {
-    if (!newContent.trim() || isLoading) return;
-
-    setLoading(true);
-
-    try {
-      const ai = new AIService();
-      // Get all messages up to the edited one, replace its content, and send to AI
-      const messageIndex = messages.findIndex((m) => m.id === editedMessageId);
-      if (messageIndex === -1) return;
-
-      // Remove all messages after the edited one
-      const messagesToKeep = messages.slice(0, messageIndex + 1);
-      
-      // Build conversation history for AI
-      const aiMessages = messagesToKeep
-        .filter((m) => m.type === "text")
-        .map((m) => ({
-          role: m.role,
-          content: m.id === editedMessageId ? newContent : m.content,
-        }));
-
-      const reply = await ai.sendMessage(aiMessages);
-      await addMessage({ content: reply, role: "assistant", type: "text" });
-    } catch (err: any) {
-      toast({ title: "Error", description: err?.message || "Failed to get AI response", variant: "destructive" });
-      await addMessage({
-        content: "Sorry, I encountered an error. Please try again.",
-        role: "assistant",
-        type: "text",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   /* ---------- Submit ---------- */
   const handleSend = async () => {
