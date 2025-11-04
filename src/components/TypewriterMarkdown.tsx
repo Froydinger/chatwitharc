@@ -10,15 +10,21 @@ interface TypewriterMarkdownProps {
   onTyping?: () => void;
 }
 
-export const TypewriterMarkdown = ({ 
-  text, 
+export const TypewriterMarkdown = ({
+  text,
   speed = 2,
-  className = "", 
+  className = "",
   shouldAnimate = true,
-  onTyping
+  onTyping,
 }: TypewriterMarkdownProps) => {
   const [displayedText, setDisplayedText] = useState(shouldAnimate ? "" : text);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const onTypingRef = useRef(onTyping);
+
+  // Keep the ref updated without triggering re-renders
+  useEffect(() => {
+    onTypingRef.current = onTyping;
+  }, [onTyping]);
 
   useEffect(() => {
     if (!shouldAnimate) {
@@ -48,9 +54,9 @@ export const TypewriterMarkdown = ({
       const charsToAdd = Math.min(4, text.length - currentIndex);
       currentIndex += charsToAdd;
       setDisplayedText(text.slice(0, currentIndex));
-      
+
       // Trigger scroll callback during typing
-      onTyping?.();
+      onTypingRef.current?.();
     }, speed);
 
     return () => {
@@ -58,20 +64,20 @@ export const TypewriterMarkdown = ({
         clearInterval(intervalRef.current);
       }
     };
-  }, [text, speed, shouldAnimate, onTyping]);
+  }, [text, speed, shouldAnimate]);
 
   return (
     <div className={`relative z-10 text-foreground whitespace-pre-wrap break-words leading-relaxed ${className}`}>
-      <ReactMarkdown 
+      <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-          strong: ({node, ...props}) => <strong className="font-semibold text-foreground" {...props} />,
-          em: ({node, ...props}) => <em className="italic" {...props} />,
-          a: ({node, ...props}) => <a className="text-primary underline hover:text-primary/80" {...props} />,
-          ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2" {...props} />,
-          ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2" {...props} />,
-          li: ({node, ...props}) => <li className="mb-1" {...props} />,
+          p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+          strong: ({ node, ...props }) => <strong className="font-semibold text-foreground" {...props} />,
+          em: ({ node, ...props }) => <em className="italic" {...props} />,
+          a: ({ node, ...props }) => <a className="text-primary underline hover:text-primary/80" {...props} />,
+          ul: ({ node, ...props }) => <ul className="list-disc list-inside mb-2" {...props} />,
+          ol: ({ node, ...props }) => <ol className="list-decimal list-inside mb-2" {...props} />,
+          li: ({ node, ...props }) => <li className="mb-1" {...props} />,
         }}
       >
         {displayedText}
