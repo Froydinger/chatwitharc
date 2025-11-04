@@ -20,6 +20,8 @@ export const TypewriterMarkdown = ({
   const [displayedText, setDisplayedText] = useState(shouldAnimate ? "" : text);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const onTypingRef = useRef(onTyping);
+  const previousTextRef = useRef(text);
+  const isTypingRef = useRef(false);
 
   // Keep the ref updated without triggering re-renders
   useEffect(() => {
@@ -29,12 +31,25 @@ export const TypewriterMarkdown = ({
   useEffect(() => {
     if (!shouldAnimate) {
       setDisplayedText(text);
+      previousTextRef.current = text;
       return;
     }
+
+    // Only restart if text actually changed AND we're not currently typing
+    // OR if the new text is completely different (not just longer)
+    const textChanged = previousTextRef.current !== text;
+    const isNewMessage = !text.startsWith(previousTextRef.current) && !previousTextRef.current.startsWith(text);
+
+    if (!textChanged || (isTypingRef.current && !isNewMessage)) {
+      return;
+    }
+
+    previousTextRef.current = text;
 
     // Reset to start
     setDisplayedText("");
     let currentIndex = 0;
+    isTypingRef.current = true;
 
     // Clear any existing interval
     if (intervalRef.current) {
@@ -47,6 +62,7 @@ export const TypewriterMarkdown = ({
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
         }
+        isTypingRef.current = false;
         return;
       }
 
