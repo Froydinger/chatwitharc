@@ -103,28 +103,28 @@ export function WelcomeSection({
         {/* Hero Section - Always show */}
         <motion.div
           className="flex flex-col items-center gap-6 text-center mt-16"
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         >
           {/* Avatar - only render if heroAvatar is provided */}
           {heroAvatar && (
             <motion.div
               className="relative"
-              initial={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.9 }}
               animate={{ 
                 opacity: 1,
                 scale: 1,
                 y: [0, -8, 0]
               }}
               transition={{
-                opacity: { duration: 0.4 },
-                scale: { duration: 0.4 },
+                opacity: { duration: 0.3 },
+                scale: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
                 y: {
                   duration: 4,
                   repeat: Infinity,
                   ease: "easeInOut",
-                  delay: 0.4
+                  delay: 0.3
                 }
               }}
             >
@@ -149,7 +149,7 @@ export function WelcomeSection({
             className="text-4xl font-semibold relative"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
           >
             <span className="relative inline-block">
               {timeGreeting}
@@ -204,7 +204,7 @@ export function WelcomeSection({
             className="text-muted-foreground text-lg max-w-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.4 }}
+            transition={{ delay: 0.15, duration: 0.3 }}
           >
             What would you like to explore today?
           </motion.p>
@@ -215,7 +215,7 @@ export function WelcomeSection({
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
             className="flex flex-col items-center gap-3 mt-4"
           >
             <motion.div
@@ -244,7 +244,7 @@ export function WelcomeSection({
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.4 }}
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
               className="w-full space-y-2"
             >
               {/* Refresh Button */}

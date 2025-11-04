@@ -302,6 +302,11 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                             key={idx}
                             text={part.content}
                             shouldAnimate={shouldAnimateTypewriter && !isThinking}
+                            onTyping={() => {
+                              // Trigger scroll during typing
+                              const event = new CustomEvent('typewriter-typing');
+                              window.dispatchEvent(event);
+                            }}
                           />
                         );
                       })}

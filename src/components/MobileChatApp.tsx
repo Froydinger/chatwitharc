@@ -97,13 +97,31 @@ export function MobileChatApp() {
       const lastMessage = messages[messages.length - 1];
       // Check if this is a new message we haven't seen before
       if (lastLoadedMessageIdRef.current !== lastMessage.id) {
-        // Small delay to ensure the message is rendered
-        setTimeout(() => {
-          scrollToBottom();
-        }, 100);
+        // Immediate scroll for new messages
+        scrollToBottom();
       }
     }
   }, [messages]);
+
+  // Scroll during typewriter typing
+  useEffect(() => {
+    const handleTyping = () => {
+      const el = messagesContainerRef.current;
+      if (!el) return;
+      
+      // Smooth scroll to bottom during typing
+      const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 300;
+      if (isNearBottom || messages.length === 1) {
+        el.scrollTo({
+          top: el.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+    };
+
+    window.addEventListener('typewriter-typing', handleTyping);
+    return () => window.removeEventListener('typewriter-typing', handleTyping);
+  }, [messages.length]);
 
   // Clear the tracked ID when messages change (new message added)
   useEffect(() => {
@@ -446,7 +464,7 @@ export function MobileChatApp() {
                   paddingRight: "1rem",
                 }}
               >
-                <AnimatePresence mode="popLayout" initial={false}>
+                <AnimatePresence mode="sync" initial={false}>
                   {messages.map((message, index) => {
                     const isLastAssistantMessage = message.role === "assistant" && index === messages.length - 1;
                     // Only animate if this is a new message (not loaded from history)
@@ -456,14 +474,13 @@ export function MobileChatApp() {
                     return (
                       <motion.div
                         key={message.id}
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
+                        exit={{ opacity: 0, y: -8 }}
                         transition={{ 
-                          duration: 0.3,
-                          ease: "easeOut"
+                          duration: 0.2,
+                          ease: [0.4, 0, 0.2, 1]
                         }}
-                        layout
                       >
                         <MessageBubble
                           message={message}
