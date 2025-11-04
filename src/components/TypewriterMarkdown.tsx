@@ -17,67 +17,54 @@ export const TypewriterMarkdown = ({
   shouldAnimate = true,
   onTyping,
 }: TypewriterMarkdownProps) => {
-  const [displayedText, setDisplayedText] = useState(shouldAnimate ? "" : text);
+  const [displayedText, setDisplayedText] = useState("");
+  const currentIndexRef = useRef(0);
+  const fullTextRef = useRef(text);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const onTypingRef = useRef(onTyping);
-  const previousTextRef = useRef(text);
-  const isTypingRef = useRef(false);
 
-  // Keep the ref updated without triggering re-renders
   useEffect(() => {
     onTypingRef.current = onTyping;
   }, [onTyping]);
 
   useEffect(() => {
+    // Update the full text reference
+    fullTextRef.current = text;
+
     if (!shouldAnimate) {
       setDisplayedText(text);
-      previousTextRef.current = text;
+      currentIndexRef.current = text.length;
       return;
     }
 
-    // Only restart if text actually changed AND we're not currently typing
-    // OR if the new text is completely different (not just longer)
-    const textChanged = previousTextRef.current !== text;
-    const isNewMessage = !text.startsWith(previousTextRef.current) && !previousTextRef.current.startsWith(text);
+    // If no interval is running, start typing
+    if (!intervalRef.current) {
+      intervalRef.current = setInterval(() => {
+        const targetText = fullTextRef.current;
+        const currentIndex = currentIndexRef.current;
 
-    if (!textChanged || (isTypingRef.current && !isNewMessage)) {
-      return;
-    }
-
-    previousTextRef.current = text;
-
-    // Reset to start
-    setDisplayedText("");
-    let currentIndex = 0;
-    isTypingRef.current = true;
-
-    // Clear any existing interval
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
-    // Type characters quickly
-    intervalRef.current = setInterval(() => {
-      if (currentIndex >= text.length) {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
+        if (currentIndex >= targetText.length) {
+          // Finished typing
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          return;
         }
-        isTypingRef.current = false;
-        return;
-      }
 
-      // Add 4 characters at a time for fast typing
-      const charsToAdd = Math.min(4, text.length - currentIndex);
-      currentIndex += charsToAdd;
-      setDisplayedText(text.slice(0, currentIndex));
+        // Type multiple characters for speed
+        const charsToAdd = Math.min(4, targetText.length - currentIndex);
+        currentIndexRef.current += charsToAdd;
+        setDisplayedText(targetText.slice(0, currentIndexRef.current));
 
-      // Trigger scroll callback during typing
-      onTypingRef.current?.();
-    }, speed);
+        onTypingRef.current?.();
+      }, speed);
+    }
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [text, speed, shouldAnimate]);
