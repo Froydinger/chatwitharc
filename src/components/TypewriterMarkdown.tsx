@@ -1,20 +1,22 @@
 import { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-interface TypewriterTextProps {
+interface TypewriterMarkdownProps {
   text: string;
   speed?: number;
   className?: string;
   shouldAnimate?: boolean;
-  onTyping?: () => void; // Callback during typing for scroll
+  onTyping?: () => void;
 }
 
-export const TypewriterText = ({ 
+export const TypewriterMarkdown = ({ 
   text, 
-  speed = 2, // Very fast typing speed (2ms per batch)
+  speed = 2,
   className = "", 
   shouldAnimate = true,
   onTyping
-}: TypewriterTextProps) => {
+}: TypewriterMarkdownProps) => {
   const [displayedText, setDisplayedText] = useState(shouldAnimate ? "" : text);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -42,7 +44,7 @@ export const TypewriterText = ({
         return;
       }
 
-      // Add 3-5 characters at a time for fast typing
+      // Add 4 characters at a time for fast typing
       const charsToAdd = Math.min(4, text.length - currentIndex);
       currentIndex += charsToAdd;
       setDisplayedText(text.slice(0, currentIndex));
@@ -60,7 +62,20 @@ export const TypewriterText = ({
 
   return (
     <div className={`relative z-10 text-foreground whitespace-pre-wrap break-words leading-relaxed ${className}`}>
-      {displayedText}
+      <ReactMarkdown 
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+          strong: ({node, ...props}) => <strong className="font-semibold text-foreground" {...props} />,
+          em: ({node, ...props}) => <em className="italic" {...props} />,
+          a: ({node, ...props}) => <a className="text-primary underline hover:text-primary/80" {...props} />,
+          ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2" {...props} />,
+          ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2" {...props} />,
+          li: ({node, ...props}) => <li className="mb-1" {...props} />,
+        }}
+      >
+        {displayedText}
+      </ReactMarkdown>
       {shouldAnimate && displayedText.length < text.length && (
         <span className="inline-block w-[2px] h-5 bg-primary animate-pulse ml-0.5 align-middle" />
       )}

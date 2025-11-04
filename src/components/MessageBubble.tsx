@@ -1,6 +1,8 @@
 import { forwardRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Copy, Edit2, Check } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Message } from "@/store/useArcStore";
 import { useArcStore } from "@/store/useArcStore";
 import { useProfile } from "@/hooks/useProfile";
@@ -10,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { ImageGenerationPlaceholder } from "@/components/ImageGenerationPlaceholder";
 import { SmoothImage } from "@/components/ui/smooth-image";
-import { TypewriterText } from "@/components/TypewriterText";
+import { TypewriterMarkdown } from "@/components/TypewriterMarkdown";
 import { ImageModal } from "@/components/ImageModal";
 import { ImageEditModal } from "@/components/ImageEditModal";
 import { CodeBlock } from "@/components/CodeBlock";
@@ -285,8 +287,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                       {message.content}
                     </p>
                   ) : (
-                    // AI messages with code block support
-                    <div className="relative z-10 w-full min-w-0 overflow-hidden">
+                    // AI messages with code block support and markdown
+                    <div className="relative z-10 w-full min-w-0 overflow-hidden prose prose-invert max-w-none">
                       {contentParts.map((part, idx) => {
                         if (part.type === "code") {
                           return (
@@ -297,17 +299,41 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                             />
                           );
                         }
+                        
+                        // For text parts, render with markdown if not animating, otherwise use typewriter
+                        if (shouldAnimateTypewriter && !isThinking) {
+                          return (
+                            <TypewriterMarkdown
+                              key={idx}
+                              text={part.content}
+                              shouldAnimate={true}
+                              onTyping={() => {
+                                // Trigger scroll during typing
+                                const event = new CustomEvent('typewriter-typing');
+                                window.dispatchEvent(event);
+                              }}
+                            />
+                          );
+                        }
+                        
+                        // Static markdown rendering for non-animating messages
                         return (
-                          <TypewriterText
-                            key={idx}
-                            text={part.content}
-                            shouldAnimate={shouldAnimateTypewriter && !isThinking}
-                            onTyping={() => {
-                              // Trigger scroll during typing
-                              const event = new CustomEvent('typewriter-typing');
-                              window.dispatchEvent(event);
-                            }}
-                          />
+                          <div key={idx} className="text-foreground whitespace-pre-wrap break-words leading-relaxed">
+                            <ReactMarkdown 
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                                strong: ({node, ...props}) => <strong className="font-semibold text-foreground" {...props} />,
+                                em: ({node, ...props}) => <em className="italic" {...props} />,
+                                a: ({node, ...props}) => <a className="text-primary underline hover:text-primary/80" {...props} />,
+                                ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2" {...props} />,
+                                ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2" {...props} />,
+                                li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                              }}
+                            >
+                              {part.content}
+                            </ReactMarkdown>
+                          </div>
                         );
                       })}
                     </div>

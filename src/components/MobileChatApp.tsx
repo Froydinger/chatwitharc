@@ -103,25 +103,22 @@ export function MobileChatApp() {
     }
   }, [messages]);
 
-  // Scroll during typewriter typing
+  // Scroll during typewriter typing - more aggressive
   useEffect(() => {
     const handleTyping = () => {
       const el = messagesContainerRef.current;
       if (!el) return;
       
-      // Smooth scroll to bottom during typing
-      const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 300;
-      if (isNearBottom || messages.length === 1) {
-        el.scrollTo({
-          top: el.scrollHeight,
-          behavior: "smooth",
-        });
-      }
+      // Always scroll to bottom during typing
+      el.scrollTo({
+        top: el.scrollHeight,
+        behavior: "auto", // Instant scroll during typing
+      });
     };
 
     window.addEventListener('typewriter-typing', handleTyping);
     return () => window.removeEventListener('typewriter-typing', handleTyping);
-  }, [messages.length]);
+  }, []);
 
   // Clear the tracked ID when messages change (new message added)
   useEffect(() => {
