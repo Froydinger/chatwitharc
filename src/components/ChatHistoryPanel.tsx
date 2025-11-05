@@ -1,11 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, MessageSquare, Search } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
-import { GlassButton } from "@/components/ui/glass-button";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ChatHistoryPanel() {
   const navigate = useNavigate();
@@ -21,6 +22,13 @@ export function ChatHistoryPanel() {
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate loading state
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, [chatSessions]);
 
   /** Navigate back to chat - close panel */
   const goToChat = () => {
@@ -111,14 +119,28 @@ export function ChatHistoryPanel() {
             tabIndex={-1}
           />
         </div>
-        <GlassButton variant="glow" onClick={handleNewChat}>
+        <Button onClick={handleNewChat} className="bg-black text-white hover:bg-black/80">
           <Plus className="h-4 w-4 mr-2" />
           New chat
-        </GlassButton>
+        </Button>
       </div>
 
       {/* Chat Sessions */}
-      {visibleSessions.length === 0 ? (
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2, 3, 4].map((i) => (
+            <GlassCard key={i} className="p-4">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-3/4" />
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+      ) : visibleSessions.length === 0 ? (
         <div className="text-center py-12">
           <GlassCard className="p-8 max-w-md mx-auto">
             <MessageSquare className="h-12 w-12 text-primary-glow mx-auto mb-4" />
@@ -128,10 +150,10 @@ export function ChatHistoryPanel() {
             <p className="text-muted-foreground mb-6">
               Start your first conversation to see your chat history here.
             </p>
-            <GlassButton variant="glow" onClick={handleNewChat}>
+            <Button onClick={handleNewChat} className="bg-black text-white hover:bg-black/80">
               <Plus className="h-4 w-4 mr-2" />
               Create first chat
-            </GlassButton>
+            </Button>
           </GlassCard>
         </div>
       ) : (
@@ -156,17 +178,17 @@ export function ChatHistoryPanel() {
                     <span>{new Date(session.lastMessageAt).toLocaleDateString()}</span>
                   </div>
                 </div>
-                <GlassButton
+                <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-8 w-8 text-destructive hover:text-destructive flex-shrink-0 ${
+                  className={`h-8 w-8 text-destructive hover:text-destructive flex-shrink-0 bg-black text-white hover:bg-black/80 ${
                     deletingId === session.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                   }`}
                   onClick={(e) => handleDeleteSession(session.id, e)}
                   aria-label="Delete chat"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </GlassButton>
+                  <Trash2 className="h-4 w-4 text-red-400" />
+                </Button>
               </div>
             </GlassCard>
           ))}

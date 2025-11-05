@@ -1,12 +1,13 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Image, X, Download, Search, MessageCircle } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
-import { GlassButton } from "@/components/ui/glass-button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SmoothImage } from "@/components/ui/smooth-image";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface GeneratedImage {
   url: string;
@@ -39,6 +40,13 @@ export function MediaLibraryPanel() {
   const { chatSessions, loadSession, setRightPanelOpen } = useArcStore();
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate loading state
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, [chatSessions]);
 
   const goToChat = (sessionId: string) => {
     loadSession(sessionId);
@@ -154,7 +162,13 @@ export function MediaLibraryPanel() {
 
       {/* Image Grid */}
       <div className="space-y-6">
-        {filteredImages.length === 0 ? (
+        {isLoading ? (
+          <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="aspect-square rounded-lg" />
+            ))}
+          </div>
+        ) : filteredImages.length === 0 ? (
           <div className="text-center py-16">
             <GlassCard variant="bubble" glow className="p-12 max-w-md mx-auto">
               <div className="glass rounded-full p-6 w-fit mx-auto mb-6">
@@ -226,23 +240,21 @@ export function MediaLibraryPanel() {
                   </div>
 
                   <div className="flex flex-col gap-2 flex-shrink-0">
-                    <GlassButton
-                      variant="glow"
+                    <Button
                       onClick={() => goToChat(selectedImage.sessionId)}
-                      className="bg-white/10 hover:bg-white/20"
+                      className="bg-black text-white hover:bg-black/80"
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
                       Go to Chat
-                    </GlassButton>
+                    </Button>
                     
-                    <GlassButton
-                      variant="glow"
+                    <Button
                       onClick={() => downloadImage(selectedImage)}
-                      className="bg-white/10 hover:bg-white/20"
+                      className="bg-black text-white hover:bg-black/80"
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Save
-                    </GlassButton>
+                    </Button>
                   </div>
                 </div>
               </div>
