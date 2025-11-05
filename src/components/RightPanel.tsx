@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, History, Headphones, Image } from "lucide-react";
+import { X, History, Headphones, Image, Code } from "lucide-react";
 import { Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { MusicPlayerPanel } from "@/components/MusicPlayerPanel";
 import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
+import { CodeAppsPanel } from "@/components/CodeAppsPanel";
 import { ExportPanel } from "@/components/ExportPanel";
 import { cn } from "@/lib/utils";
 
@@ -38,8 +39,8 @@ const musicTracks = [
 interface RightPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  activeTab: "history" | "media" | "music" | "settings";
-  onTabChange: (tab: "history" | "media" | "music" | "settings") => void;
+  activeTab: "history" | "media" | "apps" | "music" | "settings";
+  onTabChange: (tab: "history" | "media" | "apps" | "music" | "settings") => void;
 }
 
 export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
@@ -170,12 +171,15 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/40 bg-background/95 backdrop-blur">
           <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="history" className="flex items-center justify-center">
                 <History className="h-4 w-4" />
               </TabsTrigger>
               <TabsTrigger value="media" className="flex items-center justify-center">
                 <Image className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="apps" className="flex items-center justify-center">
+                <Code className="h-4 w-4" />
               </TabsTrigger>
               <TabsTrigger value="music" className="flex items-center justify-center">
                 <Headphones className="h-4 w-4" />
@@ -206,9 +210,13 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
             <TabsContent value="media" className="h-full m-0">
               <MediaLibraryPanel />
             </TabsContent>
+
+            <TabsContent value="apps" className="h-full m-0">
+              <CodeAppsPanel />
+            </TabsContent>
             
             <TabsContent value="music" className="h-full m-0">
-              <MusicPlayerPanel 
+              <MusicPlayerPanel
                 audioRef={audioRef}
                 isPlaying={isPlaying}
                 setIsPlaying={setIsPlaying}

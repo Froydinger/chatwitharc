@@ -46,8 +46,8 @@ export interface ArcState {
   setCurrentTab: (tab: 'chat' | 'history' | 'settings') => void;
   rightPanelOpen: boolean;
   setRightPanelOpen: (open: boolean) => void;
-  rightPanelTab: 'history' | 'media' | 'music' | 'settings' | 'export';
-  setRightPanelTab: (tab: 'history' | 'media' | 'music' | 'settings' | 'export') => void;
+  rightPanelTab: 'history' | 'media' | 'apps' | 'music' | 'settings' | 'export';
+  setRightPanelTab: (tab: 'history' | 'media' | 'apps' | 'music' | 'settings' | 'export') => void;
 
   isVoiceMode: boolean;
   setVoiceMode: (enabled: boolean) => void;
