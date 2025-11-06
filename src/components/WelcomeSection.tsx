@@ -269,7 +269,6 @@ export function WelcomeSection({
           )
         )}
 
-        {/* Thinking Indicator */}
         {(isLoading || isGeneratingImage) && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }} 
@@ -278,7 +277,11 @@ export function WelcomeSection({
             transition={{ duration: 0.3 }}
             className="mt-8"
           >
-            <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
+            <ThinkingIndicator 
+              isLoading={isLoading} 
+              isGeneratingImage={isGeneratingImage}
+              accessingMemory={!!profile?.memory_info}
+            />
           </motion.div>
         )}
       </div>

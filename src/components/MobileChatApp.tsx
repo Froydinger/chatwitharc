@@ -495,45 +495,17 @@ export function MobileChatApp() {
                     );
                   })}
                 </AnimatePresence>
-                {/* Show thinking logo when loading and no messages yet or last message is user */}
+                {/* Show thinking indicator when loading */}
                 <AnimatePresence>
                   {isLoading &&
                     !isGeneratingImage &&
                     messages.length > 0 &&
                     messages[messages.length - 1].role === "user" && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.3 }}
-                        className="flex justify-start pl-4 ml-2"
-                      >
-                        <motion.div
-                          className="flex items-center justify-start"
-                          animate={{
-                            scale: [1, 1.15, 1]
-                          }}
-                          transition={{
-                            scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
-                          }}
-                        >
-                          <div className="relative logo-accent-glow">
-                            <img src="/arc-logo-ui.png" alt="Arc" className="h-10 w-10" />
-                            <motion.div
-                              className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
-                              animate={{
-                                scale: [0.8, 1.2, 0.8],
-                                opacity: [0.3, 0.6, 0.3],
-                              }}
-                              transition={{
-                                duration: 1.5,
-                                repeat: Infinity,
-                                ease: "easeInOut",
-                              }}
-                            />
-                          </div>
-                        </motion.div>
-                      </motion.div>
+                      <ThinkingIndicator 
+                        isLoading={isLoading} 
+                        isGeneratingImage={false}
+                        accessingMemory={!!profile?.memory_info}
+                      />
                     )}
                 </AnimatePresence>
                 {/* Cancel button during loading */}

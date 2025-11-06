@@ -263,7 +263,7 @@ export function CodeAppsPanel() {
         )}
       </div>
 
-      {/* Code Modal */}
+              {/* Code Modal */}
       <Dialog open={!!selectedCode} onOpenChange={() => setSelectedCode(null)}>
         <DialogContent className="max-w-5xl w-full max-h-[90vh] overflow-hidden p-0">
           {selectedCode && (
@@ -278,7 +278,26 @@ export function CodeAppsPanel() {
                     {selectedCode.sessionTitle}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                  {/* Preview Code Button */}
+                  {(selectedCode.language === 'html' || 
+                    selectedCode.language === 'javascript' || 
+                    selectedCode.language === 'css') && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        // Create blob with code content
+                        const blob = new Blob([selectedCode.code], { type: 'text/html' });
+                        const url = URL.createObjectURL(blob);
+                        window.open(url, '_blank');
+                        setTimeout(() => URL.revokeObjectURL(url), 1000);
+                      }}
+                      className="bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30"
+                    >
+                      <Code className="h-4 w-4 mr-2" />
+                      Preview
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     onClick={() => copyCode(selectedCode.code, selectedCode.messageId)}
@@ -302,7 +321,7 @@ export function CodeAppsPanel() {
                     className="bg-black text-white hover:bg-black/80"
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />
-                    Open Chat
+                    Go to Chat
                   </Button>
                 </div>
               </div>

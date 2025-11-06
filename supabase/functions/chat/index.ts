@@ -72,20 +72,36 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
     console.log('Searching past chats for:', query);
     
     if (!authHeader) {
+      console.error('No auth header provided for chat search');
       return "Unable to search past chats: Not authenticated.";
     }
 
-    // Extract user from auth header
+    // Create supabase client with auth token
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    const supabaseWithAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: {
+            Authorization: authHeader
+          }
+        }
+      }
+    );
+
+    // Get user from token
+    const { data: { user }, error: userError } = await supabaseWithAuth.auth.getUser(token);
     
     if (userError || !user) {
-      console.error('Auth error:', userError);
+      console.error('Auth error in chat search:', userError);
       return "Unable to search past chats: Authentication failed.";
     }
 
+    console.log('Authenticated user for chat search:', user.id);
+
     // Search chat sessions and messages
-    const { data: sessions, error: sessionsError } = await supabase
+    const { data: sessions, error: sessionsError } = await supabaseWithAuth
       .from('chat_sessions')
       .select('id, title, messages')
       .eq('user_id', user.id)
@@ -100,6 +116,8 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
     if (!sessions || sessions.length === 0) {
       return "No past chats found.";
     }
+
+    console.log(`Searching through ${sessions.length} sessions`);
 
     // Search through messages for relevant content
     const queryLower = query.toLowerCase();
@@ -120,6 +138,8 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
         }
       });
     });
+
+    console.log(`Found ${relevantChats.length} relevant messages`);
 
     if (relevantChats.length === 0) {
       return `No past conversations found about "${query}".`;
@@ -184,6 +204,7 @@ serve(async (req) => {
     
     if (profile?.memory_info?.trim()) {
       enhancedSystemPrompt += ` Remember these details: ${profile.memory_info}`;
+      console.log('Including memory info in system prompt');
     }
     
     if (globalContext) {
@@ -352,9 +373,9 @@ serve(async (req) => {
     let data = await response.json();
     let assistantMessage = data.choices[0].message;
 
-    // Check if the AI wants to use the web search tool
+    // Check if the AI wants to use tools (web search or chat search)
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-      console.log('AI requested web search:', assistantMessage.tool_calls[0].function.arguments);
+      console.log('AI requested tools:', assistantMessage.tool_calls.map((tc: any) => tc.function.name));
       
       // Add the assistant's tool call to conversation
       conversationMessages.push(assistantMessage);
@@ -373,7 +394,9 @@ serve(async (req) => {
           });
         } else if (toolCall.function.name === 'search_past_chats') {
           const args = JSON.parse(toolCall.function.arguments);
-          const chatResults = await searchPastChats(args.query, req.headers.get('Authorization'));
+          // Get auth token from request
+          const authHeader = req.headers.get('Authorization');
+          const chatResults = await searchPastChats(args.query, authHeader);
           
           // Add tool response to conversation
           conversationMessages.push({
