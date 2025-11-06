@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MessageCircle, Sparkles, PenTool, Code } from "lucide-react";
+import { X, MessageCircle, Sparkles, PenTool, Code, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface QuickPrompt {
   label: string;
@@ -16,10 +18,12 @@ interface PromptLibraryProps {
   onSelectPrompt: (prompt: string) => void;
 }
 
-type TabType = 'chat' | 'create' | 'write' | 'code';
+type TabType = 'chat' | 'create' | 'write' | 'code' | 'smart';
 
 export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: PromptLibraryProps) {
   const [activeTab, setActiveTab] = useState<TabType>('chat');
+  const [smartPrompts, setSmartPrompts] = useState<QuickPrompt[]>([]);
+  const [isLoadingSmartPrompts, setIsLoadingSmartPrompts] = useState(false);
 
   // Categorize prompts (6 per category based on order in MobileChatApp)
   const chatPrompts = prompts.slice(0, 6);
@@ -33,6 +37,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
       case 'create': return createPrompts;
       case 'write': return writePrompts;
       case 'code': return codePrompts;
+      case 'smart': return smartPrompts;
       default: return chatPrompts;
     }
   };
@@ -42,7 +47,34 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
     { id: 'create' as TabType, label: 'Create', icon: Sparkles },
     { id: 'write' as TabType, label: 'Write', icon: PenTool },
     { id: 'code' as TabType, label: 'Code', icon: Code },
+    { id: 'smart' as TabType, label: 'Smart', icon: Brain },
   ];
+
+  // Fetch smart prompts when Smart tab is clicked
+  useEffect(() => {
+    if (activeTab === 'smart' && smartPrompts.length === 0 && !isLoadingSmartPrompts) {
+      setIsLoadingSmartPrompts(true);
+      
+      supabase.functions
+        .invoke('generate-smart-prompts')
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Failed to generate smart prompts:', error);
+            toast.error('Failed to generate smart suggestions');
+            setSmartPrompts([
+              { label: '💬 Continue our last conversation', prompt: 'Can we continue where we left off in our last conversation?' },
+              { label: '📝 Summarize recent chats', prompt: 'Can you summarize what we\'ve discussed recently?' },
+              { label: '🔍 Find something we discussed', prompt: 'Help me find something we talked about before' },
+            ]);
+          } else if (data?.prompts) {
+            setSmartPrompts(data.prompts);
+          }
+        })
+        .finally(() => {
+          setIsLoadingSmartPrompts(false);
+        });
+    }
+  }, [activeTab]);
 
   return (
     <AnimatePresence>
@@ -110,35 +142,44 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
 
             {/* Prompt Grid */}
             <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
-              <motion.div
+              <div
                 key={activeTab}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
                 className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-4"
               >
-                {getCurrentPrompts().map((prompt, index) => (
-                  <motion.button
-                    key={index}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.05 }}
-                    onClick={() => {
-                      onSelectPrompt(prompt.prompt);
-                      onClose();
-                    }}
-                    className="group relative p-4 rounded-xl bg-background/40 backdrop-blur-sm border border-border/50 hover:border-primary/40 hover:bg-background/60 transition-all duration-300 text-left"
-                  >
-                    <span className="text-base font-medium">{prompt.label}</span>
-                    
-                    {/* Subtle hover effect */}
-                    <motion.div
-                      className="absolute inset-0 rounded-xl bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"
-                      initial={false}
-                    />
-                  </motion.button>
-                ))}
-              </motion.div>
+                {activeTab === 'smart' && isLoadingSmartPrompts ? (
+                  <div className="col-span-full flex items-center justify-center py-12">
+                    <div className="flex flex-col items-center gap-3">
+                      <Brain className="h-8 w-8 text-primary animate-pulse" />
+                      <p className="text-sm text-muted-foreground">Analyzing your conversations...</p>
+                    </div>
+                  </div>
+                ) : getCurrentPrompts().length === 0 && activeTab === 'smart' ? (
+                  <div className="col-span-full flex items-center justify-center py-12">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <Brain className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">Start chatting to get personalized suggestions!</p>
+                    </div>
+                  </div>
+                ) : (
+                  getCurrentPrompts().map((prompt, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        onSelectPrompt(prompt.prompt);
+                        onClose();
+                      }}
+                      className="group relative p-4 rounded-xl bg-background/40 backdrop-blur-sm border border-border/50 hover:border-primary/40 hover:bg-background/60 transition-all duration-200 text-left"
+                    >
+                      <span className="text-base font-medium">{prompt.label}</span>
+                      
+                      {/* Subtle hover effect */}
+                      <div
+                        className="absolute inset-0 rounded-xl bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      />
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
           </motion.div>
         </>

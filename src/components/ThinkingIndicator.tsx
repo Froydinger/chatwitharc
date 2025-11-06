@@ -4,12 +4,21 @@ import { motion } from "framer-motion";
 interface ThinkingIndicatorProps {
   isLoading: boolean;
   isGeneratingImage: boolean;
+  accessingMemory?: boolean;
+  searchingChats?: boolean;
 }
 
-export function ThinkingIndicator({ isLoading, isGeneratingImage }: ThinkingIndicatorProps) {
-  const showThinking = isLoading || isGeneratingImage;
+export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemory, searchingChats }: ThinkingIndicatorProps) {
+  const showThinking = isLoading || isGeneratingImage || accessingMemory || searchingChats;
   
   if (!showThinking) return null;
+
+  const getMessage = () => {
+    if (isGeneratingImage) return "Generating image...";
+    if (accessingMemory) return "Accessing memories...";
+    if (searchingChats) return "Searching past chats...";
+    return "Arc is thinking...";
+  };
   
   return (
     <motion.div 
@@ -67,7 +76,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage }: ThinkingIndi
           </motion.div>
         </motion.div>
         <span className="text-sm font-medium text-foreground/80">
-          {isGeneratingImage ? "Generating image..." : "Arc is thinking..."}
+          {getMessage()}
         </span>
       </div>
     </motion.div>

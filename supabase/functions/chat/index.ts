@@ -66,6 +66,79 @@ async function webSearch(query: string): Promise<string> {
   }
 }
 
+// Search past chats tool
+async function searchPastChats(query: string, authHeader: string | null): Promise<string> {
+  try {
+    console.log('Searching past chats for:', query);
+    
+    if (!authHeader) {
+      return "Unable to search past chats: Not authenticated.";
+    }
+
+    // Extract user from auth header
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    if (userError || !user) {
+      console.error('Auth error:', userError);
+      return "Unable to search past chats: Authentication failed.";
+    }
+
+    // Search chat sessions and messages
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('chat_sessions')
+      .select('id, title, messages')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(50);
+
+    if (sessionsError) {
+      console.error('Chat search error:', sessionsError);
+      return "Unable to search past chats.";
+    }
+
+    if (!sessions || sessions.length === 0) {
+      return "No past chats found.";
+    }
+
+    // Search through messages for relevant content
+    const queryLower = query.toLowerCase();
+    const relevantChats: Array<{ title: string; content: string; date: string }> = [];
+
+    sessions.forEach((session: any) => {
+      const messages = session.messages || [];
+      messages.forEach((msg: any) => {
+        if (msg.content && typeof msg.content === 'string') {
+          const contentLower = msg.content.toLowerCase();
+          if (contentLower.includes(queryLower)) {
+            relevantChats.push({
+              title: session.title || 'Untitled Chat',
+              content: msg.content.slice(0, 300) + (msg.content.length > 300 ? '...' : ''),
+              date: msg.timestamp ? new Date(msg.timestamp).toLocaleDateString() : 'Unknown date'
+            });
+          }
+        }
+      });
+    });
+
+    if (relevantChats.length === 0) {
+      return `No past conversations found about "${query}".`;
+    }
+
+    // Format results
+    let result = `Found ${relevantChats.length} relevant conversation${relevantChats.length > 1 ? 's' : ''}:\n\n`;
+    relevantChats.slice(0, 5).forEach((chat, idx) => {
+      result += `${idx + 1}. ${chat.title} (${chat.date})\n`;
+      result += `   ${chat.content}\n\n`;
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Past chat search error:', error);
+    return `Search error: ${error.message}`;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -120,7 +193,9 @@ serve(async (req) => {
       enhancedSystemPrompt += '\n\nIMPORTANT: This appears to be a wellness check or guidance request. Please provide clear, numbered step-by-step instructions and ask follow-up questions to guide the user through the process.';
     }
 
-    enhancedSystemPrompt += '\n\nYou have access to web search. Use it when you need current information, news, facts, or anything beyond your training data.';
+    enhancedSystemPrompt += '\n\nYou have access to:\n' +
+      '1. web_search: Use for current information, news, facts, or real-time data\n' +
+      '2. search_past_chats: Use to find relevant context from the user\'s previous conversations. Search this when they ask about past discussions or when past context would be helpful.';
     
     // Add explicit tool usage boundary
     enhancedSystemPrompt += '\n\n⚠️ TOOL USAGE RULE - CRITICAL:\n' +
@@ -206,7 +281,7 @@ serve(async (req) => {
       throw new Error('Lovable API key not configured');
     }
 
-    // Define the web search tool
+    // Define tools including web search and chat search
     const tools = [
       {
         type: "function",
@@ -219,6 +294,24 @@ serve(async (req) => {
               query: {
                 type: "string",
                 description: "The search query to look up on the web"
+              }
+            },
+            required: ["query"],
+            additionalProperties: false
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "search_past_chats",
+          description: "Search through the user's past chat conversations to find relevant context, previous discussions, or information mentioned before. Use this when the user asks about something from a past conversation or when you think past context would be helpful.",
+          parameters: {
+            type: "object",
+            properties: {
+              query: {
+                type: "string",
+                description: "What to search for in past conversations"
               }
             },
             required: ["query"],
@@ -277,6 +370,16 @@ serve(async (req) => {
             role: 'tool',
             tool_call_id: toolCall.id,
             content: searchResults
+          });
+        } else if (toolCall.function.name === 'search_past_chats') {
+          const args = JSON.parse(toolCall.function.arguments);
+          const chatResults = await searchPastChats(args.query, req.headers.get('Authorization'));
+          
+          // Add tool response to conversation
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: chatResults
           });
         }
       }
