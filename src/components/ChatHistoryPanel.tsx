@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, MessageSquare } from "lucide-react";
+import { Plus, Trash2, MessageSquare, Eraser } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,14 @@ export function ChatHistoryPanel() {
     createNewSession, 
     loadSession, 
     deleteSession,
+    deleteEmptySessions,
     setRightPanelOpen
   } = useArcStore();
 
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeletingEmpty, setIsDeletingEmpty] = useState(false);
 
   // Simulate loading state
   useEffect(() => {
@@ -62,6 +64,35 @@ export function ChatHistoryPanel() {
     }
   };
 
+  const handleCleanupEmpty = async () => {
+    const emptyCount = chatSessions.filter(s => s.messages.length === 0).length;
+    
+    if (emptyCount === 0) {
+      toast({
+        title: "Nothing to clean",
+        description: "No empty chats found",
+      });
+      return;
+    }
+
+    setIsDeletingEmpty(true);
+    try {
+      const deletedCount = await deleteEmptySessions();
+      toast({
+        title: "Cleanup complete",
+        description: `Deleted ${deletedCount} empty chat${deletedCount !== 1 ? 's' : ''}`,
+      });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to delete empty chats",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeletingEmpty(false);
+    }
+  };
+
   const formatDateGroup = (date: Date) => {
     const now = new Date();
     const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -95,12 +126,23 @@ export function ChatHistoryPanel() {
         <h2 className="text-2xl font-bold text-foreground">Chat History</h2>
       </div>
 
-      {/* New Chat Button */}
-      <div className="mb-4">
+      {/* Action Buttons */}
+      <div className="mb-4 space-y-2">
         <Button onClick={handleNewChat} className="w-full bg-black text-white hover:bg-black/80">
           <Plus className="h-4 w-4 mr-2" />
           New chat
         </Button>
+        {chatSessions.filter(s => s.messages.length === 0).length > 0 && (
+          <Button 
+            onClick={handleCleanupEmpty} 
+            variant="outline"
+            className="w-full"
+            disabled={isDeletingEmpty}
+          >
+            <Eraser className="h-4 w-4 mr-2" />
+            {isDeletingEmpty ? 'Cleaning...' : `Clean up ${chatSessions.filter(s => s.messages.length === 0).length} empty chat${chatSessions.filter(s => s.messages.length === 0).length !== 1 ? 's' : ''}`}
+          </Button>
+        )}
       </div>
 
       {/* Chat Sessions */}
