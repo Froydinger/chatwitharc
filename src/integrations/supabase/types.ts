@@ -71,24 +71,24 @@ export type Database = {
       chat_sessions: {
         Row: {
           created_at: string
-          encrypted_data: string
           id: string
+          messages: Json | null
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          encrypted_data: string
           id?: string
+          messages?: Json | null
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
-          encrypted_data?: string
           id?: string
+          messages?: Json | null
           title?: string
           updated_at?: string
           user_id?: string

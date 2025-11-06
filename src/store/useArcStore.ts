@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '@/integrations/supabase/client';
-import { ChatEncryption } from '@/utils/encryption';
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from '@/utils/memoryDetection';
 
 export interface ChatSession {
@@ -102,25 +101,16 @@ export const useArcStore = create<ArcState>()(
           }
 
           if (sessions) {
-            const decryptedSessions: ChatSession[] = [];
-            
-            for (const session of sessions) {
-              try {
-                const decryptedData = await ChatEncryption.decrypt(session.encrypted_data, user.id);
-                decryptedSessions.push({
-                  id: session.id,
-                  title: session.title,
-                  createdAt: new Date(session.created_at),
-                  lastMessageAt: new Date(session.updated_at),
-                  messages: decryptedData.messages || []
-                });
-              } catch (error) {
-                console.error('Error decrypting session:', session.id, error);
-              }
-            }
+            const loadedSessions: ChatSession[] = sessions.map(session => ({
+              id: session.id,
+              title: session.title,
+              createdAt: new Date(session.created_at),
+              lastMessageAt: new Date(session.updated_at),
+              messages: (session.messages as any) || []
+            }));
 
             set({
-              chatSessions: decryptedSessions,
+              chatSessions: loadedSessions,
               lastSyncAt: new Date()
             });
           }
@@ -134,18 +124,14 @@ export const useArcStore = create<ArcState>()(
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) return;
 
-          const encryptedData = await ChatEncryption.encrypt({
-            messages: session.messages
-          }, user.id);
-
           const { error } = await supabase
             .from('chat_sessions')
             .upsert({
-              id: session.id,
               user_id: user.id,
               title: session.title,
-              encrypted_data: encryptedData,
-              updated_at: new Date().toISOString()
+              messages: session.messages as any,
+              updated_at: new Date().toISOString(),
+              id: session.id
             });
 
           if (error) {
