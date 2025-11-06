@@ -27,27 +27,14 @@ export function Index() {
     if (sessionId) {
       // We have a sessionId in URL - this takes priority
       const sessionExists = chatSessions.find(s => s.id === sessionId);
-      if (sessionExists) {
+      if (sessionExists && currentSessionId !== sessionId) {
         // Load the session if it's not already loaded
-        if (currentSessionId !== sessionId) {
-          loadSession(sessionId);
-        }
-      } else {
-        // Session doesn't exist in Supabase - could be a new session or deleted session
-        // Just try to load it anyway, or redirect to home if truly doesn't exist
-        console.warn('Session from URL not found in synced sessions:', sessionId);
-        // Create a small delay to allow for potential race conditions in sync
-        const timeout = setTimeout(() => {
-          const recheckSession = useArcStore.getState().chatSessions.find(s => s.id === sessionId);
-          if (!recheckSession) {
-            navigate('/', { replace: true });
-          }
-        }, 500);
-        return () => clearTimeout(timeout);
+        loadSession(sessionId);
+      } else if (!sessionExists) {
+        // Session doesn't exist - redirect to home
+        console.warn('Session from URL not found:', sessionId);
+        navigate('/', { replace: true });
       }
-    } else if (!sessionId && !currentSessionId) {
-      // No session in URL and no current session - stay on home page
-      return;
     }
   }, [sessionId, user, chatSessions, currentSessionId, loadSession, navigate, isLoaded]);
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -42,6 +42,7 @@ export function MobileChatApp() {
     setRightPanelOpen,
     rightPanelTab,
     setRightPanelTab,
+    syncFromSupabase,
   } = useArcStore();
   const { profile } = useProfile();
   const { theme, toggleTheme } = useTheme();
@@ -51,6 +52,9 @@ export function MobileChatApp() {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isPullingToRefresh, setIsPullingToRefresh] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -264,8 +268,11 @@ export function MobileChatApp() {
 
     const handleScroll = () => {
       const currentScrollY = el.scrollTop;
+      const isScrollable = el.scrollHeight > el.clientHeight;
       const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
-      setShowScrollButton(!isNearBottom && messages.length > 0);
+      
+      // Only show button if content is scrollable, not near bottom, and has messages
+      setShowScrollButton(isScrollable && !isNearBottom && messages.length > 0);
 
       // Hide header when scrolling down, show when scrolling up (MOBILE ONLY)
       if (isMobile) {
@@ -282,6 +289,10 @@ export function MobileChatApp() {
     };
 
     el.addEventListener("scroll", handleScroll);
+    
+    // Also check on mount and when messages change
+    handleScroll();
+    
     return () => el.removeEventListener("scroll", handleScroll);
   }, [messages.length, lastScrollY, isMobile]);
 
@@ -306,6 +317,92 @@ export function MobileChatApp() {
       ro.disconnect();
     };
   }, []);
+
+  // Pull-to-refresh for mobile
+  useEffect(() => {
+    if (!isMobile) return;
+    
+    const el = messagesContainerRef.current;
+    if (!el) return;
+
+    let startY = 0;
+    let pulling = false;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (el.scrollTop === 0) {
+        startY = e.touches[0].clientY;
+        pulling = true;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!pulling) return;
+      
+      const currentY = e.touches[0].clientY;
+      const distance = currentY - startY;
+      
+      if (distance > 0 && el.scrollTop === 0) {
+        e.preventDefault();
+        const maxPull = 80;
+        const adjustedDistance = Math.min(distance * 0.5, maxPull);
+        setPullDistance(adjustedDistance);
+        setIsPullingToRefresh(adjustedDistance > 60);
+      }
+    };
+
+    const handleTouchEnd = async () => {
+      if (isPullingToRefresh) {
+        setIsSyncing(true);
+        try {
+          await syncFromSupabase();
+          toast({
+            title: "Synced",
+            description: "Chat history updated",
+          });
+        } catch {
+          toast({
+            title: "Sync failed",
+            variant: "destructive"
+          });
+        } finally {
+          setIsSyncing(false);
+        }
+      }
+      
+      setPullDistance(0);
+      setIsPullingToRefresh(false);
+      pulling = false;
+      startY = 0;
+    };
+
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isMobile, isPullingToRefresh, syncFromSupabase, toast]);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      await syncFromSupabase();
+      toast({
+        title: "Synced",
+        description: "Chat history updated",
+      });
+    } catch {
+      toast({
+        title: "Sync failed",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleNewChat = () => {
     const newSessionId = createNewSession();
@@ -400,6 +497,18 @@ export function MobileChatApp() {
             </div>
 
             <div className="flex items-center gap-2">
+              {!isMobile && (
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="rounded-full" 
+                  onClick={handleManualSync}
+                  disabled={isSyncing}
+                  title="Sync chat history"
+                >
+                  <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
+                </Button>
+              )}
               <Button variant="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
                 <Plus className="h-4 w-4" />
               </Button>
@@ -442,6 +551,25 @@ export function MobileChatApp() {
             className="absolute inset-x-0 bottom-0 top-0 overflow-y-auto"
             style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 6rem)` }}
           >
+            {/* Pull-to-refresh indicator (mobile only) */}
+            {isMobile && pullDistance > 0 && (
+              <div 
+                className="absolute top-0 left-0 right-0 flex justify-center items-center transition-opacity"
+                style={{ 
+                  height: pullDistance,
+                  opacity: Math.min(pullDistance / 60, 1)
+                }}
+              >
+                <RefreshCw 
+                  className={cn(
+                    "h-5 w-5 text-primary transition-transform",
+                    isPullingToRefresh && "rotate-180",
+                    isSyncing && "animate-spin"
+                  )} 
+                />
+              </div>
+            )}
+            
             {/* Empty state */}
             {messages.length === 0 ? (
               <div style={{ paddingTop: "3rem" }}>
