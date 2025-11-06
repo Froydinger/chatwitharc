@@ -253,16 +253,27 @@ export function ChatInput({ onImagesChange }: Props) {
           content: m.id === editedMessageId ? newContent : m.content,
         }));
 
+      let toolsUsedDuringCall: string[] = [];
+      
       const reply = await ai.sendMessage(aiMessages, undefined, (tools) => {
+        // Store which tools were used
+        toolsUsedDuringCall = tools;
+        
         // Set indicators based on tool usage
         if (tools.includes('search_past_chats')) {
           setSearchingChats(true);
         }
-        // Note: We don't set accessingMemory here because memory is always in the system prompt
-        // The backend will track if memory was actually used
+        if (tools.includes('web_search')) {
+          // Could add a web search indicator here if desired
+        }
       });
       
-      // Clear tool indicators after response
+      // Keep indicators visible for a moment so users can see them
+      if (toolsUsedDuringCall.length > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Show for 1.5 seconds
+      }
+      
+      // Clear tool indicators
       setSearchingChats(false);
       setAccessingMemory(false);
       

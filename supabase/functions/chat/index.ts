@@ -119,8 +119,41 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
 
     console.log(`Searching through ${sessions.length} chat sessions`);
 
+    // Detect broad/comprehensive queries that want all chats, not specific search
+    const queryLower = query.toLowerCase().trim();
+    const isBroadQuery = 
+      queryLower === 'all' ||
+      queryLower === 'everything' ||
+      queryLower === 'all chats' ||
+      queryLower === 'all our chats' ||
+      queryLower === 'past chats' ||
+      queryLower === 'chat history' ||
+      queryLower === 'previous conversations' ||
+      queryLower.includes('summarize all') ||
+      queryLower.includes('summary of all') ||
+      queryLower.includes('all of our');
+
+    // If it's a broad query, return recent chats with summaries
+    if (isBroadQuery) {
+      console.log('Broad query detected - returning recent chat summaries');
+      const recentChats = sessions.slice(0, 15); // Get 15 most recent
+      let result = `Here are summaries of your ${recentChats.length} most recent conversations:\n\n`;
+      
+      recentChats.forEach((session: any, idx) => {
+        const title = session.title || 'Untitled Chat';
+        const messages = Array.isArray(session.messages) ? session.messages : [];
+        const messageCount = messages.length;
+        const firstUserMsg = messages.find((m: any) => m.role === 'user')?.content || '';
+        const snippet = firstUserMsg.length > 150 ? firstUserMsg.slice(0, 150) + '...' : firstUserMsg;
+        
+        result += `${idx + 1}. "${title}" (${new Date(session.updated_at).toLocaleDateString()})\n`;
+        result += `   ${messageCount} messages - Started with: "${snippet}"\n\n`;
+      });
+      
+      return result;
+    }
+
     // Search through both titles and message content
-    const queryLower = query.toLowerCase();
     const relevantChats: Array<{ title: string; content: string; date: string; id: string }> = [];
 
     sessions.forEach((session: any) => {
