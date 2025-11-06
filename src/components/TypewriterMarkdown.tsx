@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { CodeBlock } from "@/components/CodeBlock";
 
 interface TypewriterMarkdownProps {
   text: string;
@@ -79,8 +80,29 @@ export const TypewriterMarkdown = ({
           em: ({ node, ...props }) => <em className="italic" {...props} />,
           a: ({ node, ...props }) => <a className="text-primary underline hover:text-primary/80" {...props} />,
           ul: ({ node, ...props }) => <ul className="list-disc list-inside mb-2" {...props} />,
-          ol: ({ node, ...props }) => <ol className="list-decimal list-inside mb-2" {...props} />,
           li: ({ node, ...props }) => <li className="mb-1" {...props} />,
+          code: ({ node, className, children, ...props }: any) => {
+            const match = /language-(\w+)/.exec(className || '');
+            const codeContent = String(children).replace(/\n$/, '');
+            const isInline = !className && !match;
+            
+            // Block code - use CodeBlock component
+            if (!isInline && match) {
+              return (
+                <CodeBlock
+                  code={codeContent}
+                  language={match[1]}
+                />
+              );
+            }
+            
+            // Inline code - use styled span
+            return (
+              <code className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-sm" {...props}>
+                {children}
+              </code>
+            );
+          },
         }}
       >
         {displayedText}
