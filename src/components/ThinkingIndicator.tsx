@@ -32,22 +32,19 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
         className="inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-muted/50 border border-border/40 backdrop-blur-sm"
         aria-live="polite"
       >
-        <motion.div 
-          layoutId="arc-thinking-logo"
-          className="relative flex items-center justify-center"
-          animate={{ 
-            scale: [1, 1.15, 1]
-          }}
-          transition={{ 
-            duration: 1.5,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        >
-          <img 
+        <div className="relative flex items-center justify-center">
+          <motion.img 
             src="/arc-logo-ui.png" 
             alt="Thinking" 
             className="h-10 w-10"
+            animate={{ 
+              scale: [1, 1.15, 1]
+            }}
+            transition={{ 
+              duration: 1.5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
           />
           <motion.div
             className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
@@ -62,6 +59,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
             }}
           />
           <motion.div
+            className="absolute -top-1 -right-1"
             animate={{ 
               scale: [0, 1, 0],
               opacity: [0, 1, 0]
@@ -72,9 +70,9 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
               ease: "easeInOut"
             }}
           >
-            <Sparkles className="h-3 w-3 absolute -top-1 -right-1 text-primary" />
+            <Sparkles className="h-3 w-3 text-primary" />
           </motion.div>
-        </motion.div>
+        </div>
         <span className="text-sm font-medium text-foreground/80">
           {getMessage()}
         </span>

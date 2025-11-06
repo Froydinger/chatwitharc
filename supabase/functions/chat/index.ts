@@ -100,13 +100,13 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
 
     console.log('Authenticated user for chat search:', user.id);
 
-    // Search chat sessions and messages
+    // Search chat sessions by title (messages are encrypted and can't be searched server-side)
     const { data: sessions, error: sessionsError } = await supabaseWithAuth
       .from('chat_sessions')
-      .select('id, title, messages')
+      .select('id, title, created_at, updated_at')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (sessionsError) {
       console.error('Chat search error:', sessionsError);
@@ -117,40 +117,36 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
       return "No past chats found.";
     }
 
-    console.log(`Searching through ${sessions.length} sessions`);
+    console.log(`Searching through ${sessions.length} chat sessions`);
 
-    // Search through messages for relevant content
+    // Search through chat titles for relevant content
     const queryLower = query.toLowerCase();
-    const relevantChats: Array<{ title: string; content: string; date: string }> = [];
+    const relevantChats: Array<{ title: string; date: string; id: string }> = [];
 
     sessions.forEach((session: any) => {
-      const messages = session.messages || [];
-      messages.forEach((msg: any) => {
-        if (msg.content && typeof msg.content === 'string') {
-          const contentLower = msg.content.toLowerCase();
-          if (contentLower.includes(queryLower)) {
-            relevantChats.push({
-              title: session.title || 'Untitled Chat',
-              content: msg.content.slice(0, 300) + (msg.content.length > 300 ? '...' : ''),
-              date: msg.timestamp ? new Date(msg.timestamp).toLocaleDateString() : 'Unknown date'
-            });
-          }
-        }
-      });
+      const title = session.title || 'Untitled Chat';
+      if (title.toLowerCase().includes(queryLower)) {
+        relevantChats.push({
+          title: title,
+          date: new Date(session.updated_at).toLocaleDateString(),
+          id: session.id
+        });
+      }
     });
 
-    console.log(`Found ${relevantChats.length} relevant messages`);
+    console.log(`Found ${relevantChats.length} relevant chat sessions`);
 
     if (relevantChats.length === 0) {
-      return `No past conversations found about "${query}".`;
+      return `No past conversations found with titles matching "${query}". Note: Message content is encrypted and cannot be searched. Try searching by conversation topic or title.`;
     }
 
     // Format results
-    let result = `Found ${relevantChats.length} relevant conversation${relevantChats.length > 1 ? 's' : ''}:\n\n`;
-    relevantChats.slice(0, 5).forEach((chat, idx) => {
-      result += `${idx + 1}. ${chat.title} (${chat.date})\n`;
-      result += `   ${chat.content}\n\n`;
+    let result = `Found ${relevantChats.length} past conversation${relevantChats.length > 1 ? 's' : ''} with titles matching your search:\n\n`;
+    relevantChats.slice(0, 10).forEach((chat, idx) => {
+      result += `${idx + 1}. "${chat.title}" - Last updated: ${chat.date}\n`;
     });
+    
+    result += '\n💡 Note: I can see conversation titles but not message content (it\'s encrypted for your privacy). If you need specific information from these chats, please let me know which one and what you\'re looking for.';
 
     return result;
   } catch (error) {
@@ -203,7 +199,7 @@ serve(async (req) => {
     }
     
     if (profile?.memory_info?.trim()) {
-      enhancedSystemPrompt += ` Remember these details: ${profile.memory_info}`;
+      enhancedSystemPrompt += `\n\n📝 USER MEMORIES (stored facts about the user):\n${profile.memory_info}`;
       console.log('Including memory info in system prompt');
     }
     
@@ -214,9 +210,13 @@ serve(async (req) => {
       enhancedSystemPrompt += '\n\nIMPORTANT: This appears to be a wellness check or guidance request. Please provide clear, numbered step-by-step instructions and ask follow-up questions to guide the user through the process.';
     }
 
-    enhancedSystemPrompt += '\n\nYou have access to:\n' +
-      '1. web_search: Use for current information, news, facts, or real-time data\n' +
-      '2. search_past_chats: Use to find relevant context from the user\'s previous conversations. Search this when they ask about past discussions or when past context would be helpful.';
+    enhancedSystemPrompt += '\n\n🔧 AVAILABLE TOOLS:\n' +
+      '1. web_search: Search the internet for current information, news, facts, or real-time data\n' +
+      '2. search_past_chats: Search through titles of the user\'s previous conversations. Note: Message content is encrypted and cannot be searched, only conversation titles are searchable. Use this when they mention a past conversation by topic.\n\n' +
+      '⚠️ IMPORTANT DISTINCTION:\n' +
+      '- MEMORIES (in system prompt above) = Specific facts the user asked you to remember (from "remember this" commands)\n' +
+      '- PAST CHATS (search_past_chats tool) = Titles of previous conversation sessions\n' +
+      'Memories are automatically available to you. Past chat titles can be searched using the tool.';
     
     // Add explicit tool usage boundary
     enhancedSystemPrompt += '\n\n⚠️ TOOL USAGE RULE - CRITICAL:\n' +
@@ -326,13 +326,13 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "search_past_chats",
-          description: "Search through the user's past chat conversations to find relevant context, previous discussions, or information mentioned before. Use this when the user asks about something from a past conversation or when you think past context would be helpful.",
+          description: "Search through titles of the user's past chat sessions. Note: Message content is encrypted for privacy and cannot be searched - only conversation titles are searchable. Use this when the user mentions a specific conversation topic or asks about past discussions by name.",
           parameters: {
             type: "object",
             properties: {
               query: {
                 type: "string",
-                description: "What to search for in past conversations"
+                description: "Search term to match against conversation titles"
               }
             },
             required: ["query"],
