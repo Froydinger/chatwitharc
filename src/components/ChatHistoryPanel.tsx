@@ -1,11 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, MessageSquare, Search } from "lucide-react";
+import { Plus, Trash2, MessageSquare } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function ChatHistoryPanel() {
@@ -21,7 +20,6 @@ export function ChatHistoryPanel() {
 
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   // Simulate loading state
@@ -77,23 +75,11 @@ export function ChatHistoryPanel() {
     return date.toLocaleDateString();
   };
 
-  const visibleSessions = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return chatSessions;
-    return chatSessions.filter(s => {
-      const last = s.messages[s.messages.length - 1]?.content || "";
-      return s.title.toLowerCase().includes(q) || last.toLowerCase().includes(q);
-    });
-  }, [chatSessions, query]);
-
-  const groupedSessions = useMemo(() => {
-    return visibleSessions.reduce((groups, session) => {
-      const dateKey = formatDateGroup(new Date(session.lastMessageAt));
-      if (!groups[dateKey]) groups[dateKey] = [];
-      groups[dateKey].push(session);
-      return groups;
-    }, {} as Record<string, typeof chatSessions>);
-  }, [visibleSessions]);
+  const sortedSessions = useMemo(() => {
+    return [...chatSessions].sort((a, b) => 
+      new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+    );
+  }, [chatSessions]);
 
   const totalMessages = useMemo(
     () => chatSessions.reduce((total, s) => total + s.messages.length, 0),
@@ -107,19 +93,9 @@ export function ChatHistoryPanel() {
         <h2 className="text-2xl font-bold text-foreground">Chat History</h2>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search chats..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-9"
-            tabIndex={-1}
-          />
-        </div>
-        <Button onClick={handleNewChat} className="bg-black text-white hover:bg-black/80">
+      {/* New Chat Button */}
+      <div className="mb-4">
+        <Button onClick={handleNewChat} className="w-full bg-black text-white hover:bg-black/80">
           <Plus className="h-4 w-4 mr-2" />
           New chat
         </Button>
@@ -140,7 +116,7 @@ export function ChatHistoryPanel() {
             </GlassCard>
           ))}
         </div>
-      ) : visibleSessions.length === 0 ? (
+      ) : sortedSessions.length === 0 ? (
         <div className="text-center py-12">
           <GlassCard className="p-8 max-w-md mx-auto">
             <MessageSquare className="h-12 w-12 text-primary-glow mx-auto mb-4" />
@@ -158,7 +134,7 @@ export function ChatHistoryPanel() {
         </div>
       ) : (
         <div className="space-y-2">
-          {visibleSessions.map((session) => (
+          {sortedSessions.map((session) => (
             <GlassCard
               key={session.id}
               variant={currentSessionId === session.id ? "bubble" : "default"}

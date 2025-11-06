@@ -568,8 +568,7 @@ export const useArcStore = create<ArcState>()(
       partialize: (state) => ({
         selectedVoice: state.selectedVoice,
         isContinuousVoiceMode: state.isContinuousVoiceMode,
-        chatSessions: state.chatSessions, // BACKUP: Keep local copy as failsafe
-        // Don't persist currentSessionId - managed via URL
+        // Cloud-only: no local storage backup
       })
     }
   )
