@@ -91,8 +91,12 @@ export const useArcStore = create<ArcState>()(
       syncFromSupabase: async () => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
+          if (!user) {
+            console.log('⚠️ No user found, skipping sync');
+            return;
+          }
 
+          console.log('🔄 Starting sync from Supabase...');
           const { data: sessions, error } = await supabase
             .from('chat_sessions')
             .select('*')
@@ -100,7 +104,8 @@ export const useArcStore = create<ArcState>()(
             .order('updated_at', { ascending: false });
 
           if (error) {
-            console.error('Error fetching sessions:', error);
+            console.error('❌ Sync error:', error);
+            set({ isOnline: false });
             return;
           }
 
@@ -110,23 +115,52 @@ export const useArcStore = create<ArcState>()(
               title: session.title,
               createdAt: new Date(session.created_at),
               lastMessageAt: new Date(session.updated_at),
-              messages: (session.messages as any) || []
+              messages: Array.isArray(session.messages) ? (session.messages as any) : []
             }));
 
+            console.log(`✅ Synced ${loadedSessions.length} sessions (${loadedSessions.reduce((sum, s) => sum + s.messages.length, 0)} total messages)`);
             set({
               chatSessions: loadedSessions,
-              lastSyncAt: new Date()
+              lastSyncAt: new Date(),
+              isOnline: true
             });
+          } else {
+            console.log('📭 No sessions found in Supabase');
           }
         } catch (error) {
-          console.error('Error syncing from Supabase:', error);
+          console.error('❌ Failed to sync from Supabase:', error);
+          set({ isOnline: false });
         }
       },
 
       saveChatToSupabase: async (session: ChatSession) => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
+          if (!user) {
+            console.warn('⚠️ No user found, cannot save to Supabase');
+            return;
+          }
+
+          // CRITICAL: Check if we're about to overwrite non-empty data with empty data
+          const { data: existingSession } = await supabase
+            .from('chat_sessions')
+            .select('messages')
+            .eq('id', session.id)
+            .maybeSingle();
+
+          const existingMessageCount = Array.isArray(existingSession?.messages) 
+            ? existingSession.messages.length 
+            : 0;
+          const newMessageCount = Array.isArray(session.messages) 
+            ? session.messages.length 
+            : 0;
+
+          if (existingMessageCount > 0 && newMessageCount === 0) {
+            console.error('🚨 PREVENTED DATA LOSS: Attempted to overwrite', existingMessageCount, 'messages with empty array for session:', session.id);
+            throw new Error('Cannot overwrite existing messages with empty array');
+          }
+
+          console.log('💾 Saving session:', session.id, '- Messages:', newMessageCount);
 
           const { error } = await supabase
             .from('chat_sessions')
@@ -139,12 +173,17 @@ export const useArcStore = create<ArcState>()(
             });
 
           if (error) {
-            console.error('Error saving session to Supabase:', error);
+            console.error('❌ Error saving session to Supabase:', error);
+            set({ isOnline: false });
+            throw error;
           } else {
-            set({ lastSyncAt: new Date() });
+            console.log('✅ Successfully saved session:', session.id);
+            set({ lastSyncAt: new Date(), isOnline: true });
           }
         } catch (error) {
-          console.error('Error saving to Supabase:', error);
+          console.error('❌ Failed to save to Supabase:', error);
+          set({ isOnline: false });
+          throw error; // Re-throw to let caller handle
         }
       },
       
@@ -328,8 +367,11 @@ export const useArcStore = create<ArcState>()(
             );
           }
           
-          // Save to Supabase asynchronously
-          get().saveChatToSupabase(sessionToSave);
+          // Save to Supabase asynchronously with error handling
+          get().saveChatToSupabase(sessionToSave).catch(error => {
+            console.error('❌ Failed to save message to Supabase:', error);
+            // Message is still in local state, will retry on next sync
+          });
           
           return {
             messages: updatedMessages,
@@ -526,7 +568,8 @@ export const useArcStore = create<ArcState>()(
       partialize: (state) => ({
         selectedVoice: state.selectedVoice,
         isContinuousVoiceMode: state.isContinuousVoiceMode,
-        // Don't persist chat sessions or currentSessionId - they'll be managed via URL/Supabase
+        chatSessions: state.chatSessions, // BACKUP: Keep local copy as failsafe
+        // Don't persist currentSessionId - managed via URL
       })
     }
   )
