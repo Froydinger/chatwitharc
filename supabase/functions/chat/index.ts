@@ -66,7 +66,7 @@ async function webSearch(query: string): Promise<string> {
   }
 }
 
-// Search past chats tool
+// Search past chats tool - AI-powered analysis
 async function searchPastChats(query: string, authHeader: string | null): Promise<string> {
   try {
     console.log('Searching past chats for:', query);
@@ -100,13 +100,13 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
 
     console.log('Authenticated user for chat search:', user.id);
 
-    // Search chat sessions and message content
+    // Get recent chat sessions with full content
     const { data: sessions, error: sessionsError } = await supabaseWithAuth
       .from('chat_sessions')
       .select('id, title, messages, created_at, updated_at')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
-      .limit(100);
+      .limit(20); // Get more chats for better analysis
 
     if (sessionsError) {
       console.error('Chat search error:', sessionsError);
@@ -117,98 +117,39 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
       return "No past chats found.";
     }
 
-    console.log(`Searching through ${sessions.length} chat sessions`);
+    console.log(`Analyzing ${sessions.length} recent conversations`);
 
-    // Detect broad/comprehensive queries that want all chats, not specific search
-    const queryLower = query.toLowerCase().trim();
-    const isBroadQuery = 
-      queryLower === 'all' ||
-      queryLower === 'everything' ||
-      queryLower.includes('all chat') ||
-      queryLower.includes('all of our chat') ||
-      queryLower.includes('all of my chat') ||
-      queryLower.includes('all my chat') ||
-      queryLower.includes('past chat') ||
-      queryLower.includes('chat history') ||
-      queryLower.includes('previous conversation') ||
-      queryLower.includes('tell me about myself') ||
-      queryLower.includes('what am i') ||
-      queryLower.includes('who am i') ||
-      queryLower.includes('about me based on') ||
-      queryLower.includes('summarize all') ||
-      queryLower.includes('summary of all') ||
-      queryLower.includes('based on all');
-
-    // If it's a broad query, return recent chats with summaries
-    if (isBroadQuery) {
-      console.log('Broad query detected - returning recent chat summaries');
-      const recentChats = sessions.slice(0, 15); // Get 15 most recent
-      let result = `Here are summaries of your ${recentChats.length} most recent conversations:\n\n`;
-      
-      recentChats.forEach((session: any, idx) => {
-        const title = session.title || 'Untitled Chat';
-        const messages = Array.isArray(session.messages) ? session.messages : [];
-        const messageCount = messages.length;
-        const firstUserMsg = messages.find((m: any) => m.role === 'user')?.content || '';
-        const snippet = firstUserMsg.length > 150 ? firstUserMsg.slice(0, 150) + '...' : firstUserMsg;
-        
-        result += `${idx + 1}. "${title}" (${new Date(session.updated_at).toLocaleDateString()})\n`;
-        result += `   ${messageCount} messages - Started with: "${snippet}"\n\n`;
-      });
-      
-      return result;
-    }
-
-    // Search through both titles and message content
-    const relevantChats: Array<{ title: string; content: string; date: string; id: string }> = [];
-
-    sessions.forEach((session: any) => {
-      const title = session.title || 'Untitled Chat';
+    // Build comprehensive context from conversations
+    let conversationContext = `I found ${sessions.length} recent conversations. Here's what I gathered:\n\n`;
+    
+    sessions.forEach((session: any, idx) => {
+      const title = session.title || 'Untitled';
       const messages = Array.isArray(session.messages) ? session.messages : [];
+      const date = new Date(session.updated_at).toLocaleDateString();
       
-      // Search in title
-      if (title.toLowerCase().includes(queryLower)) {
-        relevantChats.push({
-          title: title,
-          content: `Found in title: "${title}"`,
-          date: new Date(session.updated_at).toLocaleDateString(),
-          id: session.id
-        });
-      }
+      conversationContext += `--- Conversation ${idx + 1}: "${title}" (${date}) ---\n`;
       
-      // Search in message content
-      messages.forEach((msg: any) => {
-        if (msg.content && typeof msg.content === 'string') {
-          const contentLower = msg.content.toLowerCase();
-          if (contentLower.includes(queryLower)) {
-            const snippet = msg.content.length > 200 
-              ? msg.content.slice(0, 200) + '...' 
-              : msg.content;
-            relevantChats.push({
-              title: title,
-              content: snippet,
-              date: new Date(session.updated_at).toLocaleDateString(),
-              id: session.id
-            });
-          }
+      // Include actual conversation content (limit to keep under token limits)
+      const messagesToInclude = messages.slice(0, 10); // First 10 messages per chat
+      messagesToInclude.forEach((msg: any) => {
+        if (msg.role && msg.content) {
+          const prefix = msg.role === 'user' ? 'User' : 'Assistant';
+          const content = msg.content.length > 300 ? msg.content.slice(0, 300) + '...' : msg.content;
+          conversationContext += `${prefix}: ${content}\n`;
         }
       });
+      
+      if (messages.length > 10) {
+        conversationContext += `... and ${messages.length - 10} more messages\n`;
+      }
+      
+      conversationContext += '\n';
     });
 
-    console.log(`Found ${relevantChats.length} relevant messages/conversations`);
+    conversationContext += `\nNow analyze these conversations to answer: "${query}"\n`;
+    conversationContext += `Please synthesize insights, identify patterns, make inferences, and provide a thoughtful analysis based on what you see in these conversations.`;
 
-    if (relevantChats.length === 0) {
-      return `No past conversations found matching "${query}".`;
-    }
-
-    // Format results (limit to top 10 most relevant)
-    let result = `Found ${relevantChats.length} relevant match${relevantChats.length > 1 ? 'es' : ''} in past conversations:\n\n`;
-    relevantChats.slice(0, 10).forEach((chat, idx) => {
-      result += `${idx + 1}. "${chat.title}" (${chat.date})\n`;
-      result += `   ${chat.content}\n\n`;
-    });
-
-    return result;
+    return conversationContext;
   } catch (error) {
     console.error('Past chat search error:', error);
     return `Search error: ${error.message}`;
@@ -272,25 +213,26 @@ serve(async (req) => {
 
     enhancedSystemPrompt += '\n\n🔧 AVAILABLE TOOLS:\n' +
       '1. web_search: Search the internet for current information, news, facts, or real-time data\n' +
-      '2. search_past_chats: Search through the user\'s previous conversations including message content.\n\n' +
+      '2. search_past_chats: Retrieves actual conversation history for analysis and synthesis\n\n' +
       '⚠️ CRITICAL: WHEN TO USE search_past_chats TOOL:\n' +
-      'You MUST use the search_past_chats tool when the user:\n' +
-      '- Explicitly asks about "past chats", "previous conversations", "chat history", "what did we talk about"\n' +
-      '- Says things like "search our chats", "look through our conversations", "find when we discussed"\n' +
-      '- Asks "what did I say about...", "when did I mention...", "did we talk about..."\n' +
-      '- Requests information that would be in conversation history but not in memories\n' +
-      '- Says "not memories" or distinguishes between memories and chat history\n\n' +
+      'Use this tool when the user asks about:\n' +
+      '- Themselves, their interests, patterns, or characteristics ("what am I good at?", "tell me about myself")\n' +
+      '- Past conversations or chat history\n' +
+      '- Topics discussed before\n' +
+      '- Anything requiring context from their conversation history\n\n' +
       '⚠️ CRITICAL: HOW TO USE SEARCH RESULTS:\n' +
-      'When you receive tool results from search_past_chats:\n' +
-      '- DO NOT just repeat what is already in your memory (the 📝 USER MEMORIES section)\n' +
-      '- INSTEAD, synthesize and summarize information from the SEARCH RESULTS provided by the tool\n' +
-      '- Reference specific conversations, dates, and details from the search results\n' +
-      '- If search results show conversations, quote or reference those actual conversations\n' +
-      '- Make it clear you are pulling from "our past conversations" not just "what I remember"\n\n' +
+      'When you receive conversation history from search_past_chats:\n' +
+      '- READ and ANALYZE the actual conversation excerpts provided\n' +
+      '- SYNTHESIZE insights by identifying patterns, themes, and recurring topics\n' +
+      '- Make INFERENCES based on what you observe\n' +
+      '- Connect dots between different conversations\n' +
+      '- Provide thoughtful analysis, not just keyword matching\n' +
+      '- Say things like "Looking through your conversations, I noticed..." or "Based on what I\'ve seen in your chats..."\n' +
+      '- DO NOT just repeat memories - analyze the actual conversation content provided\n\n' +
       '⚠️ IMPORTANT DISTINCTION:\n' +
-      '- MEMORIES (in system prompt above) = Specific facts the user asked you to remember (from "remember this" commands)\n' +
-      '- PAST CHATS (search_past_chats tool) = Full searchable history of ALL previous conversation messages\n' +
-      'When the user asks about past conversations or chat history, you MUST use the search_past_chats tool - do not just rely on memories!';
+      '- MEMORIES = Specific facts saved from "remember this" commands (in system prompt)\n' +
+      '- PAST CHATS = Full conversation history you can analyze (via search_past_chats tool)\n' +
+      'The tool gives you real conversations to analyze, not just saved facts!';
     
     // Add explicit tool usage boundary
     enhancedSystemPrompt += '\n\n⚠️ TOOL USAGE RULE - CRITICAL:\n' +
@@ -400,13 +342,13 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "search_past_chats",
-          description: "Search through ALL of the user's past chat conversations including full message content. CRITICAL: Use this tool whenever the user explicitly mentions 'past chats', 'chat history', 'previous conversations', 'what did we talk about', or asks about something discussed before. This searches their entire conversation history, not just memories. Required when user distinguishes between 'past chats' and 'memories'.",
+          description: "Retrieves and analyzes the user's recent conversation history. This tool provides full conversation context (not just keyword matches) so you can synthesize insights, identify patterns, make inferences, and answer questions by actually reading through their chat history. Use this when the user asks questions about themselves, their interests, patterns, or anything that would require understanding their past conversations. The tool will provide you with actual conversation excerpts to analyze.",
           parameters: {
             type: "object",
             properties: {
               query: {
                 type: "string",
-                description: "Search query - what to look for in past conversations. Searches both chat titles and message content. Use broad terms to find relevant conversations."
+                description: "The question or topic to analyze from past conversations. This guides what you should look for and synthesize from the conversation history provided."
               }
             },
             required: ["query"],
