@@ -274,6 +274,13 @@ serve(async (req) => {
       '- Asks "what did I say about...", "when did I mention...", "did we talk about..."\n' +
       '- Requests information that would be in conversation history but not in memories\n' +
       '- Says "not memories" or distinguishes between memories and chat history\n\n' +
+      '⚠️ CRITICAL: HOW TO USE SEARCH RESULTS:\n' +
+      'When you receive tool results from search_past_chats:\n' +
+      '- DO NOT just repeat what is already in your memory (the 📝 USER MEMORIES section)\n' +
+      '- INSTEAD, synthesize and summarize information from the SEARCH RESULTS provided by the tool\n' +
+      '- Reference specific conversations, dates, and details from the search results\n' +
+      '- If search results show conversations, quote or reference those actual conversations\n' +
+      '- Make it clear you are pulling from "our past conversations" not just "what I remember"\n\n' +
       '⚠️ IMPORTANT DISTINCTION:\n' +
       '- MEMORIES (in system prompt above) = Specific facts the user asked you to remember (from "remember this" commands)\n' +
       '- PAST CHATS (search_past_chats tool) = Full searchable history of ALL previous conversation messages\n' +
