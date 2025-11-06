@@ -88,8 +88,21 @@ export class AIService {
       }
 
       // Notify about tool usage if callback provided
+      console.log('📦 Response data:', { 
+        hasToolCallsUsed: !!data.tool_calls_used, 
+        toolCallsUsed: data.tool_calls_used,
+        hasCallback: !!onToolUsage 
+      });
+      
       if (onToolUsage && data.tool_calls_used && data.tool_calls_used.length > 0) {
+        console.log('🔔 Triggering onToolUsage callback with:', data.tool_calls_used);
         onToolUsage(data.tool_calls_used);
+      } else {
+        console.log('⚠️ Not triggering callback - missing:', {
+          hasCallback: !!onToolUsage,
+          hasTools: !!data.tool_calls_used,
+          toolCount: data.tool_calls_used?.length
+        });
       }
 
       return data.choices[0]?.message?.content || 'Sorry, I could not generate a response.';

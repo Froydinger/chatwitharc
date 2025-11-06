@@ -124,14 +124,20 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
     const isBroadQuery = 
       queryLower === 'all' ||
       queryLower === 'everything' ||
-      queryLower === 'all chats' ||
-      queryLower === 'all our chats' ||
-      queryLower === 'past chats' ||
-      queryLower === 'chat history' ||
-      queryLower === 'previous conversations' ||
+      queryLower.includes('all chat') ||
+      queryLower.includes('all of our chat') ||
+      queryLower.includes('all of my chat') ||
+      queryLower.includes('all my chat') ||
+      queryLower.includes('past chat') ||
+      queryLower.includes('chat history') ||
+      queryLower.includes('previous conversation') ||
+      queryLower.includes('tell me about myself') ||
+      queryLower.includes('what am i') ||
+      queryLower.includes('who am i') ||
+      queryLower.includes('about me based on') ||
       queryLower.includes('summarize all') ||
       queryLower.includes('summary of all') ||
-      queryLower.includes('all of our');
+      queryLower.includes('based on all');
 
     // If it's a broad query, return recent chats with summaries
     if (isBroadQuery) {
