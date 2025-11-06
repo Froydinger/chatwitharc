@@ -253,29 +253,24 @@ export function ChatInput({ onImagesChange }: Props) {
           content: m.id === editedMessageId ? newContent : m.content,
         }));
 
-      let toolsUsedDuringCall: string[] = [];
-      
       const reply = await ai.sendMessage(aiMessages, undefined, (tools) => {
-        // Store which tools were used
-        toolsUsedDuringCall = tools;
+        console.log('🔧 Tools used:', tools);
         
-        // Set indicators based on tool usage
+        // Set indicators immediately when we get the response with tool info
         if (tools.includes('search_past_chats')) {
+          console.log('✅ Setting searchingChats to true');
           setSearchingChats(true);
+          
+          // Keep it visible for 2 seconds so user can see it
+          setTimeout(() => {
+            console.log('❌ Clearing searchingChats');
+            setSearchingChats(false);
+          }, 2000);
         }
         if (tools.includes('web_search')) {
-          // Could add a web search indicator here if desired
+          // Could add indicator for web search if desired
         }
       });
-      
-      // Keep indicators visible for a moment so users can see them
-      if (toolsUsedDuringCall.length > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Show for 1.5 seconds
-      }
-      
-      // Clear tool indicators
-      setSearchingChats(false);
-      setAccessingMemory(false);
       
       await addMessage({ content: reply, role: "assistant", type: "text" });
     } catch (err: any) {
@@ -287,6 +282,8 @@ export function ChatInput({ onImagesChange }: Props) {
       });
     } finally {
       setLoading(false);
+      setSearchingChats(false);
+      setAccessingMemory(false);
     }
   }, [messages, isLoading, setLoading, addMessage, toast]);
 
