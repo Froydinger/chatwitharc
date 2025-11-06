@@ -233,11 +233,18 @@ serve(async (req) => {
 
     enhancedSystemPrompt += '\n\n🔧 AVAILABLE TOOLS:\n' +
       '1. web_search: Search the internet for current information, news, facts, or real-time data\n' +
-      '2. search_past_chats: Search through the user\'s previous conversations including message content. Use this when they ask about past discussions or when past context would be helpful.\n\n' +
+      '2. search_past_chats: Search through the user\'s previous conversations including message content.\n\n' +
+      '⚠️ CRITICAL: WHEN TO USE search_past_chats TOOL:\n' +
+      'You MUST use the search_past_chats tool when the user:\n' +
+      '- Explicitly asks about "past chats", "previous conversations", "chat history", "what did we talk about"\n' +
+      '- Says things like "search our chats", "look through our conversations", "find when we discussed"\n' +
+      '- Asks "what did I say about...", "when did I mention...", "did we talk about..."\n' +
+      '- Requests information that would be in conversation history but not in memories\n' +
+      '- Says "not memories" or distinguishes between memories and chat history\n\n' +
       '⚠️ IMPORTANT DISTINCTION:\n' +
       '- MEMORIES (in system prompt above) = Specific facts the user asked you to remember (from "remember this" commands)\n' +
-      '- PAST CHATS (search_past_chats tool) = Full searchable history of previous conversation messages\n' +
-      'Memories are automatically available to you. Past chats can be searched using the tool.';
+      '- PAST CHATS (search_past_chats tool) = Full searchable history of ALL previous conversation messages\n' +
+      'When the user asks about past conversations or chat history, you MUST use the search_past_chats tool - do not just rely on memories!';
     
     // Add explicit tool usage boundary
     enhancedSystemPrompt += '\n\n⚠️ TOOL USAGE RULE - CRITICAL:\n' +
@@ -347,13 +354,13 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "search_past_chats",
-          description: "Search through the user's past chat conversations including full message content. Use this when the user asks about something from a past conversation or when you think past context would be helpful.",
+          description: "Search through ALL of the user's past chat conversations including full message content. CRITICAL: Use this tool whenever the user explicitly mentions 'past chats', 'chat history', 'previous conversations', 'what did we talk about', or asks about something discussed before. This searches their entire conversation history, not just memories. Required when user distinguishes between 'past chats' and 'memories'.",
           parameters: {
             type: "object",
             properties: {
               query: {
                 type: "string",
-                description: "What to search for in past conversations (searches both titles and message content)"
+                description: "Search query - what to look for in past conversations. Searches both chat titles and message content. Use broad terms to find relevant conversations."
               }
             },
             required: ["query"],
@@ -374,6 +381,7 @@ serve(async (req) => {
         model: model || 'google/gemini-2.5-flash',
         messages: conversationMessages,
         tools: tools,
+        tool_choice: "auto", // Explicitly enable automatic tool selection
       }),
     });
 
