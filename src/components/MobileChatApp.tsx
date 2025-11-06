@@ -497,18 +497,6 @@ export function MobileChatApp() {
             </div>
 
             <div className="flex items-center gap-2">
-              {!isMobile && (
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="rounded-full" 
-                  onClick={handleManualSync}
-                  disabled={isSyncing}
-                  title="Sync chat history"
-                >
-                  <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
-                </Button>
-              )}
               <Button variant="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
                 <Plus className="h-4 w-4" />
               </Button>

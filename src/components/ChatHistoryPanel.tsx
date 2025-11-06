@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useChatSync } from "@/hooks/useChatSync";
+import { cn } from "@/lib/utils";
 
 export function ChatHistoryPanel() {
   const navigate = useNavigate();
@@ -109,6 +110,16 @@ export function ChatHistoryPanel() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-foreground">Chat History</h2>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleManualSync}
+          disabled={isSyncing}
+          title="Sync from cloud"
+          className="h-8 w-8"
+        >
+          <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
+        </Button>
       </div>
 
       {/* New Chat Button */}
