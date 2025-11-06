@@ -280,7 +280,6 @@ export function WelcomeSection({
             <ThinkingIndicator 
               isLoading={isLoading} 
               isGeneratingImage={isGeneratingImage}
-              accessingMemory={!!profile?.memory_info}
             />
           </motion.div>
         )}

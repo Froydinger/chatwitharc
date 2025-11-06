@@ -32,6 +32,8 @@ export function MobileChatApp() {
     messages,
     isLoading,
     isGeneratingImage,
+    isSearchingChats,
+    isAccessingMemory,
     createNewSession,
     startChatWithMessage,
     currentSessionId,
@@ -450,6 +452,8 @@ export function MobileChatApp() {
                   onTriggerPrompt={triggerPrompt}
                   profile={profile}
                   chatSessions={chatSessions}
+                  isLoading={isLoading}
+                  isGeneratingImage={isGeneratingImage}
                 />
               </div>
             ) : (
@@ -504,7 +508,8 @@ export function MobileChatApp() {
                       <ThinkingIndicator 
                         isLoading={isLoading} 
                         isGeneratingImage={false}
-                        accessingMemory={!!profile?.memory_info}
+                        searchingChats={isSearchingChats}
+                        accessingMemory={isAccessingMemory}
                       />
                     )}
                 </AnimatePresence>

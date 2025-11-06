@@ -15,8 +15,8 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
 
   const getMessage = () => {
     if (isGeneratingImage) return "Generating image...";
-    if (accessingMemory) return "Accessing memories...";
     if (searchingChats) return "Searching past chats...";
+    if (accessingMemory) return "Accessing memories...";
     return "Arc is thinking...";
   };
   

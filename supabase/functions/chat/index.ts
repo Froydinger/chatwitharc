@@ -394,9 +394,17 @@ serve(async (req) => {
     let data = await response.json();
     let assistantMessage = data.choices[0].message;
 
+    // Track which tools were used
+    const toolsUsed: string[] = [];
+    
     // Check if the AI wants to use tools (web search or chat search)
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-      console.log('AI requested tools:', assistantMessage.tool_calls.map((tc: any) => tc.function.name));
+      assistantMessage.tool_calls.forEach((tc: any) => {
+        if (tc.function?.name) {
+          toolsUsed.push(tc.function.name);
+        }
+      });
+      console.log('AI requested tools:', toolsUsed);
       
       // Add the assistant's tool call to conversation
       conversationMessages.push(assistantMessage);
@@ -450,8 +458,14 @@ serve(async (req) => {
       data = await response.json();
     }
     
+    // Add tool usage metadata to the response
+    const finalResponse = {
+      ...data,
+      tool_calls_used: toolsUsed
+    };
+    
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify(finalResponse),
       { 
         headers: { 
           ...corsHeaders, 

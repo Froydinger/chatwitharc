@@ -18,6 +18,8 @@ export const cancelCurrentRequest = () => {
   const store = useArcStore.getState();
   store.setLoading(false);
   store.setGeneratingImage(false);
+  store.setSearchingChats(false);
+  store.setAccessingMemory(false);
 };
 
 /* ---------------- Helpers ---------------- */
@@ -113,8 +115,9 @@ export function ChatInput({ onImagesChange }: Props) {
   const portalRoot = useSafePortalRoot();
   const { toast } = useToast();
 
-  const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage } =
+  const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory } =
     useArcStore();
+  const { profile } = useProfile();
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -250,7 +253,19 @@ export function ChatInput({ onImagesChange }: Props) {
           content: m.id === editedMessageId ? newContent : m.content,
         }));
 
-      const reply = await ai.sendMessage(aiMessages);
+      const reply = await ai.sendMessage(aiMessages, undefined, (tools) => {
+        // Set indicators based on tool usage
+        if (tools.includes('search_past_chats')) {
+          setSearchingChats(true);
+        }
+        // Note: We don't set accessingMemory here because memory is always in the system prompt
+        // The backend will track if memory was actually used
+      });
+      
+      // Clear tool indicators after response
+      setSearchingChats(false);
+      setAccessingMemory(false);
+      
       await addMessage({ content: reply, role: "assistant", type: "text" });
     } catch (err: any) {
       toast({ title: "Error", description: err?.message || "Failed to get AI response", variant: "destructive" });
@@ -570,12 +585,27 @@ export function ChatInput({ onImagesChange }: Props) {
           return;
         }
         
-        const reply = await new AIService().sendMessage(aiMessages);
+        const reply = await new AIService().sendMessage(aiMessages, profile, (tools) => {
+          // Set indicators based on tool usage
+          if (tools.includes('search_past_chats')) {
+            setSearchingChats(true);
+          }
+          // Check if memory exists to potentially show memory indicator
+          if (profile?.memory_info?.trim()) {
+            setAccessingMemory(true);
+          }
+        });
         
         // Check if cancelled after getting response
         if (cancelRequested) {
+          setSearchingChats(false);
+          setAccessingMemory(false);
           return;
         }
+        
+        // Clear tool indicators after response
+        setSearchingChats(false);
+        setAccessingMemory(false);
         
         await addMessage({ content: reply, role: "assistant", type: "text" });
       } catch (err: any) {

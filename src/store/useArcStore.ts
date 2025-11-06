@@ -53,8 +53,12 @@ export interface ArcState {
   toggleVoiceMode: () => void;
   isLoading: boolean;
   isGeneratingImage: boolean;
+  isSearchingChats: boolean;
+  isAccessingMemory: boolean;
   setLoading: (loading: boolean) => void;
   setGeneratingImage: (generating: boolean) => void;
+  setSearchingChats: (searching: boolean) => void;
+  setAccessingMemory: (accessing: boolean) => void;
   
   // Quick Start
   startChatWithMessage: (message: string) => void;
@@ -451,8 +455,12 @@ export const useArcStore = create<ArcState>()(
 
       isLoading: false,
       isGeneratingImage: false,
+      isSearchingChats: false,
+      isAccessingMemory: false,
       setLoading: (loading) => set({ isLoading: loading }),
       setGeneratingImage: (generating) => set({ isGeneratingImage: generating }),
+      setSearchingChats: (searching) => set({ isSearchingChats: searching }),
+      setAccessingMemory: (accessing) => set({ isAccessingMemory: accessing }),
       
       // Quick Start - modified to trigger proper image detection
       startChatWithMessage: async (message) => {

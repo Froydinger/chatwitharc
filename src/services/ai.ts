@@ -11,6 +11,7 @@ interface AIResponse {
       content: string;
     };
   }>;
+  tool_calls_used?: string[];
 }
 
 export class AIService {
@@ -18,7 +19,11 @@ export class AIService {
     // No API key needed - using secure edge function with Lovable Cloud
   }
 
-  async sendMessage(messages: AIMessage[], profile?: { display_name?: string | null; context_info?: string | null, memory_info?: string | null, preferred_model?: string | null }): Promise<string> {
+  async sendMessage(
+    messages: AIMessage[], 
+    profile?: { display_name?: string | null; context_info?: string | null, memory_info?: string | null, preferred_model?: string | null },
+    onToolUsage?: (tools: string[]) => void
+  ): Promise<string> {
     try {
       // Always fetch the freshest profile to include latest memory/context
       let effectiveProfile = profile || {};
@@ -80,6 +85,11 @@ export class AIService {
 
       if (data.error) {
         throw new Error(data.error);
+      }
+
+      // Notify about tool usage if callback provided
+      if (onToolUsage && data.tool_calls_used && data.tool_calls_used.length > 0) {
+        onToolUsage(data.tool_calls_used);
       }
 
       return data.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
