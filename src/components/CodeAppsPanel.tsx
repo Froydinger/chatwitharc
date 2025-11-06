@@ -206,59 +206,55 @@ export function CodeAppsPanel() {
               <GlassCard
                 key={block.messageId}
                 variant="bubble"
-                className="p-0 cursor-pointer hover:border-primary/50 transition-all group overflow-hidden"
+                className="p-0 cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all group overflow-hidden"
                 onClick={() => setSelectedCode(block)}
               >
-                {/* Code Preview Thumbnail */}
-                <div className="relative bg-muted/30 overflow-hidden border-b border-border/40">
-                  <pre className="text-[10px] leading-tight text-foreground/60 p-3 overflow-hidden font-mono h-32">
-                    <code>{getPreview(block.code)}</code>
-                  </pre>
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80" />
-                  <div className="absolute top-2 right-2">
+                {/* Visual Code Thumbnail */}
+                <div className="relative bg-gradient-to-br from-muted/40 to-muted/20 overflow-hidden aspect-[4/3]">
+                  {/* Editor-style header */}
+                  <div className="absolute top-0 left-0 right-0 h-6 bg-muted/60 border-b border-border/40 flex items-center px-2 gap-1">
+                    <div className="w-2 h-2 rounded-full bg-red-500/60" />
+                    <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
+                    <div className="w-2 h-2 rounded-full bg-green-500/60" />
+                  </div>
+                  
+                  {/* Code preview with syntax-like styling */}
+                  <div className="absolute inset-0 top-6 p-3 overflow-hidden">
+                    <pre className="text-[9px] leading-relaxed font-mono">
+                      {getPreview(block.code).split('\n').map((line, i) => (
+                        <div key={i} className="flex gap-2">
+                          <span className="text-muted-foreground/40 select-none w-4 text-right">{i + 1}</span>
+                          <code className="text-foreground/70">{line || ' '}</code>
+                        </div>
+                      ))}
+                    </pre>
+                  </div>
+                  
+                  {/* Fade overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/90" />
+                  
+                  {/* Language badge */}
+                  <div className="absolute bottom-2 right-2">
                     <div className={`px-2 py-1 rounded-md text-[10px] font-mono backdrop-blur-sm ${getLanguageColor(block.language)}`}>
                       {block.language}
                     </div>
                   </div>
                 </div>
 
-                {/* Card Content */}
-                <div className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-sm text-foreground font-medium line-clamp-1">
-                      {block.sessionTitle}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        copyCode(block.code, block.messageId);
-                      }}
-                      className="p-1.5 hover:bg-muted rounded-md transition-colors flex-shrink-0 bg-black text-white"
-                    >
-                      {copiedId === block.messageId ? (
-                        <Check className="h-3.5 w-3.5" />
-                      ) : (
-                        <Copy className="h-3.5 w-3.5" />
-                      )}
-                    </button>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      {block.timestamp.toLocaleDateString()}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        goToChat(block.sessionId);
-                      }}
-                      className="h-7 text-xs bg-black text-white hover:bg-black/80"
-                    >
-                      <MessageCircle className="h-3 w-3 mr-1" />
-                      View Chat
-                    </Button>
+                {/* Card Footer */}
+                <div className="p-3 border-t border-border/40 bg-muted/20">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground font-medium line-clamp-1">
+                        {block.sessionTitle}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {block.timestamp.toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                      Click to view
+                    </div>
                   </div>
                 </div>
               </GlassCard>
