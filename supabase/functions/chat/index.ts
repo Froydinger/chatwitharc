@@ -149,6 +149,9 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
     conversationContext += `\nNow analyze these conversations to answer: "${query}"\n`;
     conversationContext += `Please synthesize insights, identify patterns, make inferences, and provide a thoughtful analysis based on what you see in these conversations.`;
 
+    console.log('📊 Conversation context length:', conversationContext.length);
+    console.log('📝 First 500 chars:', conversationContext.slice(0, 500));
+
     return conversationContext;
   } catch (error) {
     console.error('Past chat search error:', error);
