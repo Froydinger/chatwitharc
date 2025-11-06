@@ -1,32 +1,29 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, MessageSquare } from "lucide-react";
+import { Plus, Trash2, MessageSquare, RefreshCw } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useChatSync } from "@/hooks/useChatSync";
 
 export function ChatHistoryPanel() {
   const navigate = useNavigate();
+  const { isLoaded } = useChatSync();
   const { 
     chatSessions, 
     currentSessionId, 
     createNewSession, 
     loadSession, 
     deleteSession,
+    syncFromSupabase,
     setRightPanelOpen
   } = useArcStore();
 
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Simulate loading state
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, [chatSessions]);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   /** Navigate back to chat - close panel */
   const goToChat = () => {
@@ -59,6 +56,25 @@ export function ChatHistoryPanel() {
       });
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      await syncFromSupabase();
+      toast({
+        title: "Synced",
+        description: "Chat history updated",
+      });
+    } catch {
+      toast({
+        title: "Sync failed",
+        description: "Could not load chats from cloud",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -104,7 +120,7 @@ export function ChatHistoryPanel() {
       </div>
 
       {/* Chat Sessions */}
-      {isLoading ? (
+      {!isLoaded ? (
         <div className="space-y-2">
           {[1, 2, 3, 4].map((i) => (
             <GlassCard key={i} className="p-4">
@@ -128,10 +144,21 @@ export function ChatHistoryPanel() {
             <p className="text-muted-foreground mb-6">
               Start your first conversation to see your chat history here.
             </p>
-            <Button onClick={handleNewChat} className="bg-black text-white hover:bg-black/80">
-              <Plus className="h-4 w-4 mr-2" />
-              Create first chat
-            </Button>
+            <div className="space-y-2">
+              <Button onClick={handleNewChat} className="w-full bg-black text-white hover:bg-black/80">
+                <Plus className="h-4 w-4 mr-2" />
+                Create first chat
+              </Button>
+              <Button 
+                onClick={handleManualSync} 
+                variant="outline"
+                className="w-full"
+                disabled={isSyncing}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing ? 'Syncing...' : 'Sync from cloud'}
+              </Button>
+            </div>
           </GlassCard>
         </div>
       ) : (
