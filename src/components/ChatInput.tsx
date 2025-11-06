@@ -256,36 +256,40 @@ export function ChatInput({ onImagesChange }: Props) {
       const reply = await ai.sendMessage(aiMessages, undefined, (tools) => {
         console.log('🔧 Tools used:', tools);
         
-        // Set indicators immediately when we get the response with tool info
+        // Set indicators when we detect tool usage
         if (tools.includes('search_past_chats')) {
-          console.log('✅ Setting searchingChats to true');
+          console.log('✅ Setting searchingChats indicator');
           setSearchingChats(true);
-          
-          // Keep it visible for 2 seconds so user can see it
-          setTimeout(() => {
-            console.log('❌ Clearing searchingChats');
-            setSearchingChats(false);
-          }, 2000);
         }
         if (tools.includes('web_search')) {
-          // Could add indicator for web search if desired
+          // Could add web search indicator
         }
       });
       
+      // Clear the loading state
+      setLoading(false);
+      
+      // Keep tool indicators visible for 2 seconds so user sees them
+      setTimeout(() => {
+        setSearchingChats(false);
+        setAccessingMemory(false);
+      }, 2000);
+      
       await addMessage({ content: reply, role: "assistant", type: "text" });
     } catch (err: any) {
+      console.error('Chat error:', err);
+      setLoading(false);
+      setSearchingChats(false);
+      setAccessingMemory(false);
+      
       toast({ title: "Error", description: err?.message || "Failed to get AI response", variant: "destructive" });
       await addMessage({
         content: "Sorry, I encountered an error. Please try again.",
         role: "assistant",
         type: "text",
       });
-    } finally {
-      setLoading(false);
-      setSearchingChats(false);
-      setAccessingMemory(false);
     }
-  }, [messages, isLoading, setLoading, addMessage, toast]);
+  }, [messages, isLoading, setLoading, addMessage, toast, setSearchingChats, setAccessingMemory]);
 
   /* ---------- Quick prompt / edit event hooks ---------- */
   useEffect(() => {
@@ -594,13 +598,14 @@ export function ChatInput({ onImagesChange }: Props) {
         }
         
         const reply = await new AIService().sendMessage(aiMessages, profile, (tools) => {
+          console.log('🔧 Tools used in handleSend:', tools);
           // Set indicators based on tool usage
           if (tools.includes('search_past_chats')) {
+            console.log('✅ Setting searchingChats in handleSend');
             setSearchingChats(true);
           }
-          // Check if memory exists to potentially show memory indicator
-          if (profile?.memory_info?.trim()) {
-            setAccessingMemory(true);
+          if (tools.includes('web_search')) {
+            // Could add web search indicator
           }
         });
         
@@ -611,9 +616,11 @@ export function ChatInput({ onImagesChange }: Props) {
           return;
         }
         
-        // Clear tool indicators after response
-        setSearchingChats(false);
-        setAccessingMemory(false);
+        // Keep indicators visible for 2 seconds so user sees them
+        setTimeout(() => {
+          setSearchingChats(false);
+          setAccessingMemory(false);
+        }, 2000);
         
         await addMessage({ content: reply, role: "assistant", type: "text" });
       } catch (err: any) {
