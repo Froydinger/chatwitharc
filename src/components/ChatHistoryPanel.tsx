@@ -76,9 +76,11 @@ export function ChatHistoryPanel() {
   };
 
   const sortedSessions = useMemo(() => {
-    return [...chatSessions].sort((a, b) => 
-      new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-    );
+    return [...chatSessions]
+      .filter(session => session.messages.length > 0)
+      .sort((a, b) => 
+        new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+      );
   }, [chatSessions]);
 
   const totalMessages = useMemo(
