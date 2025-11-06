@@ -31,7 +31,6 @@ export interface ArcState {
   createNewSession: () => string;
   loadSession: (sessionId: string) => void;
   deleteSession: (sessionId: string) => void;
-  deleteEmptySessions: () => Promise<number>;
   clearAllSessions: () => void;
   
   // Current Chat State
@@ -189,6 +188,17 @@ export const useArcStore = create<ArcState>()(
       },
       
       createNewSession: () => {
+        const state = get();
+        
+        // If current session is empty, delete it first
+        if (state.currentSessionId) {
+          const currentSession = state.chatSessions.find(s => s.id === state.currentSessionId);
+          if (currentSession && currentSession.messages.length === 0) {
+            console.log('🗑️ Auto-deleting empty session before creating new one:', state.currentSessionId);
+            get().deleteSession(state.currentSessionId);
+          }
+        }
+        
         // Generate a proper UUID for Supabase compatibility
         const sessionId = crypto.randomUUID();
         const newSession: ChatSession = {
@@ -270,47 +280,6 @@ export const useArcStore = create<ArcState>()(
         } catch (error) {
           console.error('Error deleting session from Supabase:', error);
         }
-      },
-      
-      deleteEmptySessions: async () => {
-        const state = get();
-        const emptySessions = state.chatSessions.filter(s => s.messages.length === 0);
-        const emptySessionIds = emptySessions.map(s => s.id);
-        
-        if (emptySessionIds.length === 0) {
-          console.log('No empty sessions to delete');
-          return 0;
-        }
-
-        console.log(`🗑️ Deleting ${emptySessionIds.length} empty sessions...`);
-        
-        // Remove from local state first
-        const updatedSessions = state.chatSessions.filter(s => s.messages.length > 0);
-        set({ chatSessions: updatedSessions });
-
-        // Delete from Supabase
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { error } = await supabase
-              .from('chat_sessions')
-              .delete()
-              .in('id', emptySessionIds)
-              .eq('user_id', user.id);
-
-            if (error) {
-              console.error('❌ Error deleting empty sessions:', error);
-              throw error;
-            } else {
-              console.log(`✅ Successfully deleted ${emptySessionIds.length} empty sessions`);
-            }
-          }
-        } catch (error) {
-          console.error('Error deleting empty sessions from Supabase:', error);
-          throw error;
-        }
-        
-        return emptySessionIds.length;
       },
       
       clearAllSessions: async () => {
