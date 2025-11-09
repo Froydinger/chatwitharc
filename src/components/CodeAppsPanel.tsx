@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Code, Search, MessageCircle, Copy, Check } from "lucide-react";
+import { Code, Search, MessageCircle, Copy, Check, Eye, FileCode } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { CodePreview } from "@/components/CodePreview";
 
 interface CodeBlock {
   code: string;
@@ -58,6 +59,7 @@ export function CodeAppsPanel() {
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
 
   // Simulate loading state
   useEffect(() => {
@@ -140,6 +142,11 @@ export function CodeAppsPanel() {
     return colors[language.toLowerCase()] || 'bg-gray-500/20 text-gray-400';
   };
 
+  const canPreview = (language: string) => {
+    const previewable = ['html', 'css', 'javascript', 'js'];
+    return previewable.includes(language.toLowerCase());
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 p-6 h-full overflow-y-auto scrollbar-hide">
       {/* Header */}
@@ -212,29 +219,37 @@ export function CodeAppsPanel() {
                 {/* Visual Code Thumbnail */}
                 <div className="relative bg-gradient-to-br from-muted/40 to-muted/20 overflow-hidden aspect-[4/3]">
                   {/* Editor-style header */}
-                  <div className="absolute top-0 left-0 right-0 h-6 bg-muted/60 border-b border-border/40 flex items-center px-2 gap-1">
+                  <div className="absolute top-0 left-0 right-0 h-6 bg-muted/60 border-b border-border/40 flex items-center px-2 gap-1 z-10">
                     <div className="w-2 h-2 rounded-full bg-red-500/60" />
                     <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
                     <div className="w-2 h-2 rounded-full bg-green-500/60" />
                   </div>
                   
-                  {/* Code preview with syntax-like styling */}
-                  <div className="absolute inset-0 top-6 p-3 overflow-hidden">
-                    <pre className="text-[9px] leading-relaxed font-mono">
-                      {getPreview(block.code).split('\n').map((line, i) => (
-                        <div key={i} className="flex gap-2">
-                          <span className="text-muted-foreground/40 select-none w-4 text-right">{i + 1}</span>
-                          <code className="text-foreground/70">{line || ' '}</code>
-                        </div>
-                      ))}
-                    </pre>
-                  </div>
+                  {/* Rendered preview for supported languages or code preview */}
+                  {canPreview(block.language) ? (
+                    <div className="absolute inset-0 top-6 pointer-events-none">
+                      <div className="w-full h-full scale-[0.4] origin-top-left">
+                        <CodePreview code={block.code} language={block.language} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 top-6 p-3 overflow-hidden">
+                      <pre className="text-[9px] leading-relaxed font-mono">
+                        {getPreview(block.code).split('\n').map((line, i) => (
+                          <div key={i} className="flex gap-2">
+                            <span className="text-muted-foreground/40 select-none w-4 text-right">{i + 1}</span>
+                            <code className="text-foreground/70">{line || ' '}</code>
+                          </div>
+                        ))}
+                      </pre>
+                    </div>
+                  )}
                   
                   {/* Fade overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/90" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/90 pointer-events-none z-[5]" />
                   
                   {/* Language badge */}
-                  <div className="absolute bottom-2 right-2">
+                  <div className="absolute bottom-2 right-2 z-10">
                     <div className={`px-2 py-1 rounded-md text-[10px] font-mono backdrop-blur-sm ${getLanguageColor(block.language)}`}>
                       {block.language}
                     </div>
@@ -279,29 +294,30 @@ export function CodeAppsPanel() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                  {/* Preview Code Button */}
-                  {(selectedCode.language === 'html' || 
-                    selectedCode.language === 'javascript' || 
-                    selectedCode.language === 'css') && (
+                  {/* Preview/Code Toggle */}
+                  {canPreview(selectedCode.language) && (
                     <Button
                       size="sm"
-                      onClick={() => {
-                        // Create blob with code content
-                        const blob = new Blob([selectedCode.code], { type: 'text/html' });
-                        const url = URL.createObjectURL(blob);
-                        window.open(url, '_blank');
-                        setTimeout(() => URL.revokeObjectURL(url), 1000);
-                      }}
-                      className="bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30"
+                      variant={showPreview ? "default" : "outline"}
+                      onClick={() => setShowPreview(!showPreview)}
                     >
-                      <Code className="h-4 w-4 mr-2" />
-                      Preview
+                      {showPreview ? (
+                        <>
+                          <FileCode className="h-4 w-4 mr-2" />
+                          Code
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Preview
+                        </>
+                      )}
                     </Button>
                   )}
                   <Button
                     size="sm"
+                    variant="outline"
                     onClick={() => copyCode(selectedCode.code, selectedCode.messageId)}
-                    className="bg-black text-white hover:bg-black/80"
                   >
                     {copiedId === selectedCode.messageId ? (
                       <>
@@ -311,14 +327,13 @@ export function CodeAppsPanel() {
                     ) : (
                       <>
                         <Copy className="h-4 w-4 mr-2" />
-                        Copy Code
+                        Copy
                       </>
                     )}
                   </Button>
                   <Button
                     size="sm"
                     onClick={() => goToChat(selectedCode.sessionId)}
-                    className="bg-black text-white hover:bg-black/80"
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Go to Chat
@@ -326,11 +341,17 @@ export function CodeAppsPanel() {
                 </div>
               </div>
               
-              {/* Code Preview */}
+              {/* Code or Preview */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-background">
-                <pre className="text-xs sm:text-sm text-foreground font-mono bg-muted/30 p-3 sm:p-4 rounded-lg border border-border/40 overflow-x-auto">
-                  <code>{selectedCode.code}</code>
-                </pre>
+                {showPreview && canPreview(selectedCode.language) ? (
+                  <div className="w-full h-full min-h-[400px] border border-border/40 rounded-lg overflow-hidden">
+                    <CodePreview code={selectedCode.code} language={selectedCode.language} />
+                  </div>
+                ) : (
+                  <pre className="text-xs sm:text-sm text-foreground font-mono bg-muted/30 p-3 sm:p-4 rounded-lg border border-border/40 overflow-x-auto">
+                    <code>{selectedCode.code}</code>
+                  </pre>
+                )}
               </div>
 
               {/* Footer */}
