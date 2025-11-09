@@ -227,8 +227,8 @@ export function CodeAppsPanel() {
                   
                   {/* Rendered preview for supported languages or code preview */}
                   {canPreview(block.language) ? (
-                    <div className="absolute inset-0 top-6 pointer-events-none">
-                      <div className="w-full h-full scale-[0.4] origin-top-left">
+                    <div className="absolute inset-0 top-6 overflow-hidden pointer-events-none">
+                      <div className="w-[250%] h-[250%] scale-[0.4] origin-top-left">
                         <CodePreview code={block.code} language={block.language} />
                       </div>
                     </div>
@@ -284,32 +284,33 @@ export function CodeAppsPanel() {
           {selectedCode && (
             <div className="flex flex-col h-full max-h-[90vh]">
               {/* Header */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border-b border-border/40 bg-muted/30">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <div className={`px-3 py-1 rounded-md text-sm font-mono ${getLanguageColor(selectedCode.language)}`}>
+              <div className="flex flex-col gap-3 p-3 sm:p-4 border-b border-border/40 bg-muted/30">
+                <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                  <div className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-mono ${getLanguageColor(selectedCode.language)}`}>
                     {selectedCode.language}
                   </div>
-                  <span className="text-sm text-muted-foreground truncate">
+                  <span className="text-xs sm:text-sm text-muted-foreground truncate">
                     {selectedCode.sessionTitle}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
                   {/* Preview/Code Toggle */}
                   {canPreview(selectedCode.language) && (
                     <Button
                       size="sm"
                       variant={showPreview ? "default" : "outline"}
                       onClick={() => setShowPreview(!showPreview)}
+                      className="flex-1 sm:flex-none"
                     >
                       {showPreview ? (
                         <>
-                          <FileCode className="h-4 w-4 mr-2" />
-                          Code
+                          <FileCode className="h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Code</span>
                         </>
                       ) : (
                         <>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Preview
+                          <Eye className="h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Preview</span>
                         </>
                       )}
                     </Button>
@@ -318,25 +319,27 @@ export function CodeAppsPanel() {
                     size="sm"
                     variant="outline"
                     onClick={() => copyCode(selectedCode.code, selectedCode.messageId)}
+                    className="flex-1 sm:flex-none"
                   >
                     {copiedId === selectedCode.messageId ? (
                       <>
-                        <Check className="h-4 w-4 mr-2" />
-                        Copied!
+                        <Check className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Copied!</span>
                       </>
                     ) : (
                       <>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy
+                        <Copy className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Copy</span>
                       </>
                     )}
                   </Button>
                   <Button
                     size="sm"
                     onClick={() => goToChat(selectedCode.sessionId)}
+                    className="flex-1 sm:flex-none"
                   >
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Go to Chat
+                    <MessageCircle className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Go to Chat</span>
                   </Button>
                 </div>
               </div>
