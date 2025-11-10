@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { Copy, Play, Code, Maximize2, X } from "lucide-react";
+import { Copy, Play, Code, Maximize2, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { CodePreview } from "./CodePreview";
@@ -37,6 +37,74 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
     }
   };
 
+  const getFileExtension = (lang: string): string => {
+    const extensions: Record<string, string> = {
+      javascript: 'js',
+      typescript: 'ts',
+      jsx: 'jsx',
+      tsx: 'tsx',
+      python: 'py',
+      java: 'java',
+      cpp: 'cpp',
+      c: 'c',
+      csharp: 'cs',
+      php: 'php',
+      ruby: 'rb',
+      go: 'go',
+      rust: 'rs',
+      swift: 'swift',
+      kotlin: 'kt',
+      html: 'html',
+      css: 'css',
+      scss: 'scss',
+      sass: 'sass',
+      json: 'json',
+      xml: 'xml',
+      yaml: 'yaml',
+      yml: 'yml',
+      markdown: 'md',
+      sql: 'sql',
+      bash: 'sh',
+      shell: 'sh',
+      powershell: 'ps1',
+      latex: 'tex',
+      r: 'r',
+      matlab: 'm',
+      perl: 'pl',
+      lua: 'lua',
+      dart: 'dart',
+      scala: 'scala',
+      dockerfile: 'Dockerfile',
+      makefile: 'Makefile',
+    };
+    return extensions[lang.toLowerCase()] || 'txt';
+  };
+
+  const handleDownload = () => {
+    try {
+      const blob = new Blob([code], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `code.${getFileExtension(language)}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Downloaded!",
+        description: `File saved as code.${getFileExtension(language)}`,
+      });
+    } catch {
+      toast({
+        title: "Download failed",
+        description: "Could not download the file",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <div className="my-4 rounded-xl border border-border/40 bg-muted/20 backdrop-blur-sm w-full min-w-0 overflow-hidden">
@@ -66,6 +134,10 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
             >
               <Maximize2 className="h-3 w-3 mr-1.5" />
               Fullscreen
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleDownload} className="h-7 text-xs">
+              <Download className="h-3 w-3 mr-1.5" />
+              Download
             </Button>
             <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 text-xs">
               <Copy className="h-3 w-3 mr-1.5" />
@@ -124,6 +196,15 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
                     <span className="hidden sm:inline ml-2">{showPreview ? "Code" : "Preview"}</span>
                   </Button>
                 )}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleDownload}
+                  className="h-8 px-2 sm:px-3"
+                >
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline ml-2">Download</span>
+                </Button>
                 <Button 
                   variant="ghost" 
                   size="sm" 

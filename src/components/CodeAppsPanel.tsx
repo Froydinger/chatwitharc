@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Code, Search, MessageCircle, Copy, Check, Eye, FileCode } from "lucide-react";
+import { Code, Search, MessageCircle, Copy, Check, Eye, FileCode, Download } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -121,6 +121,67 @@ export function CodeAppsPanel() {
     setCopiedId(messageId);
     toast.success("Code copied to clipboard");
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const getFileExtension = (lang: string): string => {
+    const extensions: Record<string, string> = {
+      javascript: 'js',
+      typescript: 'ts',
+      jsx: 'jsx',
+      tsx: 'tsx',
+      python: 'py',
+      java: 'java',
+      cpp: 'cpp',
+      c: 'c',
+      csharp: 'cs',
+      php: 'php',
+      ruby: 'rb',
+      go: 'go',
+      rust: 'rs',
+      swift: 'swift',
+      kotlin: 'kt',
+      html: 'html',
+      css: 'css',
+      scss: 'scss',
+      sass: 'sass',
+      json: 'json',
+      xml: 'xml',
+      yaml: 'yaml',
+      yml: 'yml',
+      markdown: 'md',
+      sql: 'sql',
+      bash: 'sh',
+      shell: 'sh',
+      powershell: 'ps1',
+      latex: 'tex',
+      r: 'r',
+      matlab: 'm',
+      perl: 'pl',
+      lua: 'lua',
+      dart: 'dart',
+      scala: 'scala',
+      dockerfile: 'Dockerfile',
+      makefile: 'Makefile',
+    };
+    return extensions[lang.toLowerCase()] || 'txt';
+  };
+
+  const downloadCode = (code: string, language: string) => {
+    try {
+      const blob = new Blob([code], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `code.${getFileExtension(language)}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success(`File saved as code.${getFileExtension(language)}`);
+    } catch (error) {
+      toast.error("Failed to download file");
+    }
   };
 
   const getPreview = (code: string) => {
@@ -315,6 +376,15 @@ export function CodeAppsPanel() {
                       )}
                     </Button>
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => downloadCode(selectedCode.code, selectedCode.language)}
+                    className="flex-1 sm:flex-none"
+                  >
+                    <Download className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Download</span>
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
