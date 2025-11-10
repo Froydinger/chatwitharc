@@ -240,10 +240,15 @@ serve(async (req) => {
     // Add explicit tool usage boundary
     enhancedSystemPrompt += '\n\n⚠️ TOOL USAGE RULE - CRITICAL:\n' +
       '✅ Use web_search tool ONLY to fetch external data (news, facts, current events, real-time information)\n' +
+      '✅ Use generate_file tool when user wants a DOWNLOADABLE file (PDF, document, etc.) - NOT when they want to see code\n' +
       '❌ NEVER use web_search or ANY tool to output code, HTML, or programming content\n' +
       '❌ NEVER pass code through tools or functions\n' +
       '✅ Code must be responded DIRECTLY in your message - NOT through tools\n' +
-      '✅ Tools are for INPUT (fetching data), not OUTPUT (displaying content)\n';
+      '✅ Tools are for INPUT (fetching data) or FILE OUTPUT (creating downloadable files), not CODE OUTPUT\n\n' +
+      '🎯 WHEN TO USE generate_file vs CODE BLOCKS:\n' +
+      '✅ Use generate_file tool when user says: "create a PDF", "generate a document", "make a downloadable file"\n' +
+      '✅ Show code blocks when user says: "show me code for", "how to make", "write a script"\n' +
+      '✅ If unclear, ASK: "Would you like me to create a downloadable file or show you the code?"\n';
 
     // CODING ASSISTANCE - Critical instruction
     enhancedSystemPrompt += '\n\n🔥 CODING & TOOL CREATION - YOU ARE A PROFESSIONAL DEVELOPER:\n' +
@@ -330,7 +335,7 @@ serve(async (req) => {
       throw new Error('Lovable API key not configured');
     }
 
-    // Define tools including web search and chat search
+    // Define tools including web search, chat search, and file generation
     const tools = [
       {
         type: "function",
@@ -364,6 +369,28 @@ serve(async (req) => {
               }
             },
             required: ["query"],
+            additionalProperties: false
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "generate_file",
+          description: "Generate and create an actual downloadable file (PDF, TXT, MD, HTML, JSON, CSV, etc.). Use this ONLY when the user explicitly wants a downloadable file, NOT when they want to see code. The file will be created and a download link provided.",
+          parameters: {
+            type: "object",
+            properties: {
+              fileType: {
+                type: "string",
+                description: "The type of file to generate (pdf, txt, md, html, json, csv, etc.)"
+              },
+              prompt: {
+                type: "string",
+                description: "Detailed description of what content should be in the file"
+              }
+            },
+            required: ["fileType", "prompt"],
             additionalProperties: false
           }
         }
@@ -440,6 +467,27 @@ serve(async (req) => {
             role: 'tool',
             tool_call_id: toolCall.id,
             content: chatResults
+          });
+        } else if (toolCall.function.name === 'generate_file') {
+          const args = JSON.parse(toolCall.function.arguments);
+          
+          // Call the generate-file function
+          const fileResponse = await supabase.functions.invoke('generate-file', {
+            body: { fileType: args.fileType, prompt: args.prompt }
+          });
+          
+          let fileResult = '';
+          if (fileResponse.error || !fileResponse.data?.success) {
+            fileResult = `Error generating file: ${fileResponse.error?.message || fileResponse.data?.error || 'Unknown error'}`;
+          } else {
+            fileResult = `File generated successfully! Download it here: ${fileResponse.data.fileUrl}\nFilename: ${fileResponse.data.fileName}\nType: ${fileResponse.data.mimeType}`;
+          }
+          
+          // Add tool response to conversation
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: fileResult
           });
         }
       }

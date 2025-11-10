@@ -216,4 +216,32 @@ export class AIService {
       throw error;
     }
   }
+
+  async generateFile(fileType: string, prompt: string): Promise<{ fileUrl: string; fileName: string; mimeType: string }> {
+    try {
+      console.log('Generating file:', { fileType, prompt });
+
+      const { data, error } = await supabase.functions.invoke('generate-file', {
+        body: { fileType, prompt }
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(`File generation error: ${error.message}`);
+      }
+
+      if (!data.success || !data.fileUrl) {
+        throw new Error(data.error || 'Failed to generate file');
+      }
+
+      return {
+        fileUrl: data.fileUrl,
+        fileName: data.fileName,
+        mimeType: data.mimeType
+      };
+    } catch (error) {
+      console.error('File generation error:', error);
+      throw error;
+    }
+  }
 }
