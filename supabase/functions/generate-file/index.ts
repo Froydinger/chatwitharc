@@ -13,12 +13,30 @@ serve(async (req) => {
 
   try {
     const { fileType, content, prompt } = await req.json();
+    const authHeader = req.headers.get('Authorization');
+    
     console.log('Generating file:', { fileType, promptLength: prompt?.length });
 
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
-      throw new Error('Lovable API key not configured');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!lovableApiKey || !supabaseUrl || !supabaseKey) {
+      throw new Error('Server configuration error - missing environment variables');
     }
+
+    // Get user ID from auth token
+    const authClient = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader! } }
+    });
+    
+    const { data: { user }, error: authError } = await authClient.auth.getUser();
+    if (authError || !user) {
+      console.error('Authentication error:', authError);
+      throw new Error('Unauthorized - user must be logged in');
+    }
+
+    console.log('Authenticated user:', user.id);
 
     // Use AI to generate the file content based on the prompt
     const systemPrompt = `You are a file content generator. Generate complete, properly formatted content for ${fileType} files.
@@ -106,16 +124,15 @@ IMPORTANT: Output ONLY the file content, no explanations or markdown code blocks
         fileContent = new TextEncoder().encode(generatedContent);
     }
 
-    // Upload to Supabase Storage
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    const filePath = `generated-files/${crypto.randomUUID()}-${fileName}`;
+    // Upload to Supabase Storage in user's folder
+    const storageClient = createClient(supabaseUrl, supabaseKey);
+    const timestamp = Date.now();
+    const filePath = `${user.id}/generated-${timestamp}-${fileName}`;
     
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('media')
+    console.log('Uploading to generated-files bucket:', filePath);
+    
+    const { data: uploadData, error: uploadError } = await storageClient.storage
+      .from('generated-files')
       .upload(filePath, fileContent, {
         contentType: mimeType,
         upsert: false
@@ -127,18 +144,40 @@ IMPORTANT: Output ONLY the file content, no explanations or markdown code blocks
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('media')
+    const { data: { publicUrl } } = storageClient.storage
+      .from('generated-files')
       .getPublicUrl(filePath);
 
     console.log('File generated and uploaded:', publicUrl);
+
+    // Calculate file size
+    const fileSize = fileContent.byteLength;
+
+    // Store file metadata in database
+    const { error: dbError } = await authClient
+      .from('generated_files')
+      .insert({
+        user_id: user.id,
+        file_name: fileName.replace(/\.[^/.]+$/, ''),
+        file_url: publicUrl,
+        file_type: fileType.toLowerCase(),
+        file_size: fileSize,
+        mime_type: mimeType,
+        prompt: prompt
+      });
+
+    if (dbError) {
+      console.error('Database insert error:', dbError);
+      // Don't fail the request if metadata storage fails
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         fileUrl: publicUrl,
         fileName,
-        mimeType
+        mimeType,
+        fileSize
       }),
       { 
         headers: { 

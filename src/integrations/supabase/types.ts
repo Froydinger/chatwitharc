@@ -95,6 +95,45 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_files: {
+        Row: {
+          created_at: string | null
+          downloaded_count: number | null
+          file_name: string
+          file_size: number | null
+          file_type: string
+          file_url: string
+          id: string
+          mime_type: string | null
+          prompt: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          downloaded_count?: number | null
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          prompt?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          downloaded_count?: number | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          prompt?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           accent_color: string | null

@@ -16,10 +16,14 @@ export interface Message {
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
-  type: 'text' | 'voice' | 'image' | 'image-generating';
+  type: 'text' | 'voice' | 'image' | 'image-generating' | 'file';
   imageUrl?: string;
   imageUrls?: string[]; // Support for multiple images
   imagePrompt?: string; // For image generation placeholders
+  fileUrl?: string; // For file attachments
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
 }
 
 export interface ArcState {

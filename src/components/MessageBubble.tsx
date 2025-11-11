@@ -16,6 +16,7 @@ import { TypewriterMarkdown } from "@/components/TypewriterMarkdown";
 import { ImageModal } from "@/components/ImageModal";
 import { ImageEditModal } from "@/components/ImageEditModal";
 import { CodeBlock } from "@/components/CodeBlock";
+import { FileAttachment } from "@/components/FileAttachment";
 
 interface MessageBubbleProps {
   message: Message;
@@ -249,8 +250,26 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                         </div>
                       )
                     )}
-                  </motion.div>
+                   </motion.div>
                 )}
+
+              {/* File Attachment */}
+              {message.type === "file" && message.fileUrl && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.12 }}
+                  className="mb-2 relative z-10"
+                >
+                  <FileAttachment
+                    fileName={message.fileName || 'generated-file'}
+                    fileUrl={message.fileUrl}
+                    fileType={message.fileType || 'file'}
+                    fileSize={message.fileSize}
+                    className="max-w-md"
+                  />
+                </motion.div>
+              )}
 
               {/* Text */}
               {message.type !== "image-generating" &&

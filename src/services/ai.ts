@@ -217,12 +217,17 @@ export class AIService {
     }
   }
 
-  async generateFile(fileType: string, prompt: string): Promise<{ fileUrl: string; fileName: string; mimeType: string }> {
+  async generateFile(fileType: string, prompt: string): Promise<{ fileUrl: string; fileName: string; mimeType: string; fileSize?: number }> {
     try {
       console.log('Generating file:', { fileType, prompt });
 
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const { data, error } = await supabase.functions.invoke('generate-file', {
-        body: { fileType, prompt }
+        body: { fileType, prompt },
+        headers: session?.access_token ? {
+          Authorization: `Bearer ${session.access_token}`
+        } : undefined
       });
 
       if (error) {
@@ -237,11 +242,34 @@ export class AIService {
       return {
         fileUrl: data.fileUrl,
         fileName: data.fileName,
-        mimeType: data.mimeType
+        mimeType: data.mimeType,
+        fileSize: data.fileSize
       };
     } catch (error) {
       console.error('File generation error:', error);
       throw error;
     }
+  }
+
+  // Helper to detect if AI response contains file generation request
+  detectFileGeneration(content: string): { fileType?: string; prompt?: string } | null {
+    // Look for patterns like "generate a PDF about..." or "create a document for..."
+    const filePatterns = [
+      /generate (?:a |an )?(pdf|docx|txt|xlsx|csv|json|xml|html|md) (?:about |for |with |that |containing )?(.+)/i,
+      /create (?:a |an )?(pdf|docx|txt|xlsx|csv|json|xml|html|md) (?:about |for |with |that |containing )?(.+)/i,
+      /make (?:a |an )?(pdf|docx|txt|xlsx|csv|json|xml|html|md) (?:about |for |with |that |containing )?(.+)/i,
+    ];
+
+    for (const pattern of filePatterns) {
+      const match = content.match(pattern);
+      if (match) {
+        return {
+          fileType: match[1].toLowerCase(),
+          prompt: match[2].trim()
+        };
+      }
+    }
+
+    return null;
   }
 }
