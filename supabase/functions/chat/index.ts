@@ -471,16 +471,24 @@ serve(async (req) => {
         } else if (toolCall.function.name === 'generate_file') {
           const args = JSON.parse(toolCall.function.arguments);
           
-          // Call the generate-file function
+          // Get auth header from request
+          const authHeader = req.headers.get('Authorization');
+          
+          // Call the generate-file function with auth header
           const fileResponse = await supabase.functions.invoke('generate-file', {
-            body: { fileType: args.fileType, prompt: args.prompt }
+            body: { fileType: args.fileType, prompt: args.prompt },
+            headers: authHeader ? {
+              Authorization: authHeader
+            } : undefined
           });
           
           let fileResult = '';
           if (fileResponse.error || !fileResponse.data?.success) {
             fileResult = `Error generating file: ${fileResponse.error?.message || fileResponse.data?.error || 'Unknown error'}`;
+            console.error('File generation failed:', fileResponse.error || fileResponse.data);
           } else {
             fileResult = `File generated successfully! Download it here: ${fileResponse.data.fileUrl}\nFilename: ${fileResponse.data.fileName}\nType: ${fileResponse.data.mimeType}`;
+            console.log('File generated:', fileResponse.data.fileName);
           }
           
           // Add tool response to conversation
