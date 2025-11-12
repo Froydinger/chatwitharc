@@ -344,7 +344,31 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                                 p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
                                 strong: ({node, ...props}) => <strong className="font-semibold text-foreground" {...props} />,
                                 em: ({node, ...props}) => <em className="italic" {...props} />,
-                                a: ({node, ...props}) => <a className="text-primary underline hover:text-primary/80" {...props} />,
+                                a: ({node, href, children, ...props}: any) => {
+                                  // Detect file URLs from Supabase storage
+                                  if (href && href.includes('/storage/v1/object/public/generated-files/')) {
+                                    // Extract filename from URL
+                                    const urlParts = href.split('/');
+                                    const fullFileName = urlParts[urlParts.length - 1];
+                                    const fileName = fullFileName.replace(/^generated-\d+-/, ''); // Remove timestamp prefix
+                                    
+                                    // Determine file type from extension
+                                    const fileExt = fileName.split('.').pop()?.toLowerCase() || 'file';
+                                    
+                                    return (
+                                      <div className="my-4">
+                                        <FileAttachment
+                                          fileName={fileName}
+                                          fileUrl={href}
+                                          fileType={fileExt}
+                                          className="max-w-md"
+                                        />
+                                      </div>
+                                    );
+                                  }
+                                  // Regular link
+                                  return <a href={href} className="text-primary underline hover:text-primary/80" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
+                                },
                                 ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2" {...props} />,
                                 ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2" {...props} />,
                                 li: ({node, ...props}) => <li className="mb-1" {...props} />,

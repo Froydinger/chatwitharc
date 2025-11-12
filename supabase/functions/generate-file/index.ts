@@ -258,12 +258,11 @@ async function generateSimplePDF(content: string): Promise<Uint8Array> {
   // Build PDF objects
   let pdfObjects = '';
   let objectNumber = 1;
-  const objectOffsets: number[] = [0]; // First entry is always 0
+  const objectOffsets: number[] = [];
   
   // Catalog
-  let currentOffset = 0;
   pdfObjects += `${objectNumber} 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`;
-  objectOffsets.push(currentOffset + pdfObjects.length);
+  objectOffsets.push(pdfObjects.length);
   objectNumber++;
   
   // Pages object
@@ -324,17 +323,17 @@ async function generateSimplePDF(content: string): Promise<Uint8Array> {
   
   // Build xref table
   let xref = 'xref\n';
-  xref += `0 ${objectOffsets.length}\n`;
+  xref += `0 ${objectOffsets.length + 1}\n`;
   xref += '0000000000 65535 f \n';
   
-  for (let i = 1; i < objectOffsets.length; i++) {
+  for (let i = 0; i < objectOffsets.length; i++) {
     const offset = objectOffsets[i].toString().padStart(10, '0');
     xref += `${offset} 00000 n \n`;
   }
   
   // Build trailer
   const xrefOffset = pdfObjects.length;
-  const trailer = `trailer\n<< /Size ${objectOffsets.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  const trailer = `trailer\n<< /Size ${objectOffsets.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
   
   const fullPDF = `%PDF-1.4\n${pdfObjects}${xref}${trailer}`;
   return new TextEncoder().encode(fullPDF);
