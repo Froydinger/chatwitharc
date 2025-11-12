@@ -205,46 +205,117 @@ IMPORTANT: Output ONLY the file content, no explanations or markdown code blocks
   }
 });
 
-// Simple PDF generator (basic text PDF)
+// Improved PDF generator with proper text wrapping and formatting
 async function generateSimplePDF(content: string): Promise<Uint8Array> {
-  // This is a very basic PDF structure
-  // For production, you'd want to use a proper PDF library like jsPDF
-  const pdfContent = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /Resources 4 0 R /MediaBox [0 0 612 792] /Contents 5 0 R >>
-endobj
-4 0 obj
-<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>
-endobj
-5 0 obj
-<< /Length ${content.length + 100} >>
-stream
-BT
-/F1 12 Tf
-50 750 Td
-(${content.replace(/\n/g, ') Tj T* (')}) Tj
-ET
-endstream
-endobj
-xref
-0 6
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000214 00000 n 
-0000000304 00000 n 
-trailer
-<< /Size 6 /Root 1 0 R >>
-startxref
-${400 + content.length}
-%%EOF`;
-
-  return new TextEncoder().encode(pdfContent);
+  const pageWidth = 612; // 8.5 inches * 72 points/inch
+  const pageHeight = 792; // 11 inches * 72 points/inch
+  const margin = 50;
+  const lineHeight = 14;
+  const maxWidth = pageWidth - (margin * 2);
+  const charsPerLine = 80; // Approximate characters per line
+  
+  // Split content into lines and wrap long lines
+  const rawLines = content.split('\n');
+  const wrappedLines: string[] = [];
+  
+  for (const line of rawLines) {
+    if (line.length <= charsPerLine) {
+      wrappedLines.push(line);
+    } else {
+      // Wrap long lines
+      const words = line.split(' ');
+      let currentLine = '';
+      
+      for (const word of words) {
+        if ((currentLine + ' ' + word).length <= charsPerLine) {
+          currentLine += (currentLine ? ' ' : '') + word;
+        } else {
+          if (currentLine) wrappedLines.push(currentLine);
+          currentLine = word;
+        }
+      }
+      if (currentLine) wrappedLines.push(currentLine);
+    }
+  }
+  
+  // Calculate pages needed
+  const linesPerPage = Math.floor((pageHeight - (margin * 2)) / lineHeight);
+  const totalPages = Math.ceil(wrappedLines.length / linesPerPage);
+  
+  // Build PDF objects
+  let pdfObjects = '';
+  let objectNumber = 1;
+  const objectOffsets: number[] = [0]; // First entry is always 0
+  
+  // Catalog
+  let currentOffset = 0;
+  pdfObjects += `${objectNumber} 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`;
+  objectOffsets.push(currentOffset + pdfObjects.length);
+  objectNumber++;
+  
+  // Pages object
+  const pageRefs = Array.from({length: totalPages}, (_, i) => `${3 + i} 0 R`).join(' ');
+  pdfObjects += `${objectNumber} 0 obj\n<< /Type /Pages /Kids [${pageRefs}] /Count ${totalPages} >>\nendobj\n`;
+  objectOffsets.push(currentOffset + pdfObjects.length);
+  objectNumber++;
+  
+  // Font object
+  const fontObjNum = objectNumber;
+  pdfObjects += `${objectNumber} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n`;
+  objectOffsets.push(currentOffset + pdfObjects.length);
+  objectNumber++;
+  
+  // Create page objects and content streams
+  for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+    const startLine = pageNum * linesPerPage;
+    const endLine = Math.min(startLine + linesPerPage, wrappedLines.length);
+    const pageLines = wrappedLines.slice(startLine, endLine);
+    
+    // Build content stream
+    let contentStream = 'BT\n';
+    contentStream += '/F1 11 Tf\n';
+    contentStream += `${margin} ${pageHeight - margin} Td\n`;
+    contentStream += `${lineHeight} TL\n`; // Set leading (line height)
+    
+    for (const line of pageLines) {
+      // Escape special characters
+      const escapedLine = line
+        .replace(/\\/g, '\\\\')
+        .replace(/\(/g, '\\(')
+        .replace(/\)/g, '\\)')
+        .replace(/\r/g, '');
+      contentStream += `(${escapedLine}) Tj T*\n`;
+    }
+    contentStream += 'ET\n';
+    
+    const contentLength = contentStream.length;
+    
+    // Content stream object
+    const contentObjNum = objectNumber;
+    pdfObjects += `${objectNumber} 0 obj\n<< /Length ${contentLength} >>\nstream\n${contentStream}endstream\nendobj\n`;
+    objectOffsets.push(currentOffset + pdfObjects.length);
+    objectNumber++;
+    
+    // Page object
+    pdfObjects += `${3 + pageNum} 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 ${fontObjNum} 0 R >> >> /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents ${contentObjNum} 0 R >>\nendobj\n`;
+    objectOffsets.push(currentOffset + pdfObjects.length);
+    objectNumber++;
+  }
+  
+  // Build xref table
+  let xref = 'xref\n';
+  xref += `0 ${objectOffsets.length}\n`;
+  xref += '0000000000 65535 f \n';
+  
+  for (let i = 1; i < objectOffsets.length; i++) {
+    const offset = objectOffsets[i].toString().padStart(10, '0');
+    xref += `${offset} 00000 n \n`;
+  }
+  
+  // Build trailer
+  const xrefOffset = pdfObjects.length;
+  const trailer = `trailer\n<< /Size ${objectOffsets.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  
+  const fullPDF = `%PDF-1.4\n${pdfObjects}${xref}${trailer}`;
+  return new TextEncoder().encode(fullPDF);
 }
