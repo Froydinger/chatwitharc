@@ -41,7 +41,14 @@ serve(async (req) => {
     // Use AI to generate the file content based on the prompt
     const systemPrompt = `You are a file content generator. Generate complete, properly formatted content for ${fileType} files.
     
-For PDF content, output clean, well-structured text/markdown that would make a good PDF document.
+For PDF content:
+- Output clean, well-structured text that will be rendered in a PDF
+- Use simple text formatting - no markdown, no special characters
+- For blank spaces/lines for writing, use the word "________________" (exactly 16 underscores) as a placeholder for lines
+- For section headings, use clear text followed by a blank line
+- Ensure proper spacing between sections with blank lines
+- Keep it simple and printer-friendly
+
 For documents (DOCX, TXT, MD), output the complete document content.
 For data files (JSON, CSV, XML), output properly formatted data structures.
 
@@ -209,16 +216,22 @@ IMPORTANT: Output ONLY the file content, no explanations or markdown code blocks
 async function generateSimplePDF(content: string): Promise<Uint8Array> {
   const pageWidth = 612; // 8.5 inches * 72 points/inch
   const pageHeight = 792; // 11 inches * 72 points/inch
-  const margin = 50;
-  const lineHeight = 14;
+  const margin = 72; // 1 inch margins for printability
+  const lineHeight = 18; // Increased for better readability and writing space
   const maxWidth = pageWidth - (margin * 2);
-  const charsPerLine = 80; // Approximate characters per line
+  const charsPerLine = 70; // Slightly reduced for better margins
   
   // Split content into lines and wrap long lines
   const rawLines = content.split('\n');
   const wrappedLines: string[] = [];
   
   for (const line of rawLines) {
+    // Convert underscore placeholders to actual underscores for blank lines
+    if (line.includes('________________')) {
+      wrappedLines.push(line.replace(/_{16,}/g, '________________________________________'));
+      continue;
+    }
+    
     if (line.length <= charsPerLine) {
       wrappedLines.push(line);
     } else {
@@ -273,18 +286,25 @@ async function generateSimplePDF(content: string): Promise<Uint8Array> {
     
     // Build content stream
     let contentStream = 'BT\n';
-    contentStream += '/F1 11 Tf\n';
-    contentStream += `${margin} ${pageHeight - margin} Td\n`;
+    contentStream += '/F1 12 Tf\n'; // Slightly larger font
+    contentStream += `${margin} ${pageHeight - margin - 20} Td\n`; // Start a bit lower
     contentStream += `${lineHeight} TL\n`; // Set leading (line height)
     
     for (const line of pageLines) {
-      // Escape special characters
+      // Escape special characters and handle empty lines
       const escapedLine = line
         .replace(/\\/g, '\\\\')
         .replace(/\(/g, '\\(')
         .replace(/\)/g, '\\)')
-        .replace(/\r/g, '');
-      contentStream += `(${escapedLine}) Tj T*\n`;
+        .replace(/\r/g, '')
+        .trim();
+      
+      // For empty lines, just move down
+      if (escapedLine === '') {
+        contentStream += 'T*\n';
+      } else {
+        contentStream += `(${escapedLine}) Tj T*\n`;
+      }
     }
     contentStream += 'ET\n';
     
