@@ -32,11 +32,16 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
         className="inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-muted/50 border border-border/40 backdrop-blur-sm"
         aria-live="polite"
       >
-        <div className="relative flex items-center justify-center">
+        <div className="relative flex items-center justify-center" style={{ willChange: 'transform' }}>
           <motion.img 
             src="/arc-logo-ui.png" 
             alt="Thinking" 
             className="h-10 w-10"
+            style={{ 
+              backfaceVisibility: 'hidden',
+              transform: 'translateZ(0)',
+              willChange: 'transform'
+            }}
             animate={{ 
               scale: [1, 1.15, 1]
             }}
@@ -47,7 +52,13 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
             }}
           />
           <motion.div
-            className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
+            className="absolute inset-0 rounded-full bg-primary/30"
+            style={{ 
+              filter: 'blur(16px)',
+              backfaceVisibility: 'hidden',
+              transform: 'translateZ(0)',
+              willChange: 'transform, opacity'
+            }}
             animate={{ 
               scale: [0.8, 1.2, 0.8],
               opacity: [0.3, 0.6, 0.3]
@@ -60,6 +71,11 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
           />
           <motion.div
             className="absolute -top-1 -right-1"
+            style={{ 
+              backfaceVisibility: 'hidden',
+              transform: 'translateZ(0)',
+              willChange: 'transform, opacity'
+            }}
             animate={{ 
               scale: [0, 1, 0],
               opacity: [0, 1, 0]

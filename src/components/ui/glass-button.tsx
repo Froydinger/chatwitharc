@@ -73,13 +73,27 @@ const GlassButton = React.forwardRef<HTMLButtonElement, GlassButtonProps>(
       <motion.div
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        transition={{ type: "spring", damping: 15, stiffness: 300 }}
+        transition={{ 
+          type: "spring", 
+          damping: 20, 
+          stiffness: 400,
+          mass: 0.5
+        }}
         className="relative"
+        style={{
+          backfaceVisibility: 'hidden',
+          transform: 'translateZ(0)',
+          willChange: 'transform'
+        }}
       >
         <Comp
           className={cn(glassButtonVariants({ variant, size, className }), "relative overflow-hidden")}
           ref={ref}
           onClick={handleClick}
+          style={{
+            backfaceVisibility: 'hidden',
+            transform: 'translateZ(0)'
+          }}
           {...props}
         >
           {children}
@@ -94,6 +108,8 @@ const GlassButton = React.forwardRef<HTMLButtonElement, GlassButtonProps>(
                 top: ripple.y - 10,
                 width: 20,
                 height: 20,
+                backfaceVisibility: 'hidden',
+                transform: 'translateZ(0)'
               }}
             />
           ))}

@@ -1,4 +1,4 @@
-import { Download, FileText, Eye } from "lucide-react";
+import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FILE_TYPE_ICONS, FILE_TYPE_COLORS } from "@/types/file";
 import { cn } from "@/lib/utils";
@@ -26,17 +26,24 @@ export const FileAttachment = ({
     return `${mb.toFixed(1)} MB`;
   };
 
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = fileUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handlePreview = () => {
-    window.open(fileUrl, '_blank');
+  const handleDownload = async () => {
+    try {
+      // Fetch the file and trigger download
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback to direct link
+      window.open(fileUrl, '_blank');
+    }
   };
 
   const icon = FILE_TYPE_ICONS[fileType] || FILE_TYPE_ICONS.default;
@@ -72,28 +79,17 @@ export const FileAttachment = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="mt-4 flex gap-2">
+        {/* Action Button */}
+        <div className="mt-4">
           <Button
             size="sm"
             variant="outline"
             onClick={handleDownload}
-            className="flex-1 gap-2"
+            className="w-full gap-2"
           >
             <Download className="h-4 w-4" />
             Download
           </Button>
-          {['pdf', 'txt', 'html', 'json', 'xml', 'md'].includes(fileType) && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handlePreview}
-              className="gap-2"
-            >
-              <Eye className="h-4 w-4" />
-              Preview
-            </Button>
-          )}
         </div>
       </div>
 

@@ -39,7 +39,7 @@ serve(async (req) => {
     console.log('Authenticated user:', user.id);
 
     // Use AI to generate the file content based on the prompt
-    const systemPrompt = `You are a file content generator. Generate complete, properly formatted content for ${fileType} files.
+const systemPrompt = `You are a file content generator. Generate complete, properly formatted content for ${fileType} files.
     
 For PDF content:
 - Output clean, well-structured text that will be rendered in a PDF
@@ -52,7 +52,13 @@ For PDF content:
 For documents (DOCX, TXT, MD), output the complete document content.
 For data files (JSON, CSV, XML), output properly formatted data structures.
 
-IMPORTANT: Output ONLY the file content, no explanations or markdown code blocks.`;
+For ZIP files:
+- Output JSON with this structure: { "files": [{ "name": "filename.ext", "content": "file content here" }, ...] }
+- Create multiple files as needed based on the user's request
+- Use appropriate file names and extensions
+- Keep individual file contents concise but complete
+
+IMPORTANT: Output ONLY the file content (or JSON for ZIP), no explanations or markdown code blocks.`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -87,8 +93,6 @@ IMPORTANT: Output ONLY the file content, no explanations or markdown code blocks
 
     switch (fileType.toLowerCase()) {
       case 'pdf':
-        // For PDF, we'll create a simple text-based PDF
-        // In production, you'd use a proper PDF library
         mimeType = 'application/pdf';
         fileName = 'generated-document.pdf';
         fileContent = await generateSimplePDF(generatedContent);
@@ -123,6 +127,13 @@ IMPORTANT: Output ONLY the file content, no explanations or markdown code blocks
         mimeType = 'text/csv';
         fileName = 'generated-data.csv';
         fileContent = new TextEncoder().encode(generatedContent);
+        break;
+      
+      case 'zip':
+        mimeType = 'application/zip';
+        fileName = 'generated-file.zip';
+        // For ZIP files, we need to parse the AI's structured output
+        fileContent = await generateZipFile(generatedContent);
         break;
       
       default:
@@ -211,6 +222,169 @@ IMPORTANT: Output ONLY the file content, no explanations or markdown code blocks
     );
   }
 });
+
+// ZIP file generator using Deno's native APIs
+async function generateZipFile(content: string): Promise<Uint8Array> {
+  try {
+    // Parse the AI's structured output to get file structure
+    // Expected format: JSON with files array [{ name: "file.txt", content: "..." }]
+    let filesData: Array<{ name: string; content: string }>;
+    
+    try {
+      const parsed = JSON.parse(content);
+      filesData = parsed.files || [{ name: 'readme.txt', content: parsed.content || content }];
+    } catch {
+      // If not JSON, create a single file
+      filesData = [{ name: 'content.txt', content: content }];
+    }
+
+    // Create ZIP using simple ZIP format (no compression for simplicity and compatibility)
+    const encoder = new TextEncoder();
+    const files: Array<{ name: string; data: Uint8Array; offset: number }> = [];
+    let currentOffset = 0;
+
+    // Local file headers
+    const localHeaders: Uint8Array[] = [];
+    
+    for (const file of filesData) {
+      const fileData = encoder.encode(file.content);
+      const fileName = encoder.encode(file.name);
+      
+      // Local file header
+      const header = new Uint8Array(30 + fileName.length);
+      const view = new DataView(header.buffer);
+      
+      // Local file header signature
+      view.setUint32(0, 0x04034b50, true);
+      // Version needed to extract
+      view.setUint16(4, 10, true);
+      // General purpose bit flag (no compression)
+      view.setUint16(6, 0, true);
+      // Compression method (0 = no compression)
+      view.setUint16(8, 0, true);
+      // Last mod time & date (set to zero for simplicity)
+      view.setUint16(10, 0, true);
+      view.setUint16(12, 0, true);
+      // CRC-32 (simplified - using 0)
+      view.setUint32(14, 0, true);
+      // Compressed size
+      view.setUint32(18, fileData.length, true);
+      // Uncompressed size
+      view.setUint32(22, fileData.length, true);
+      // File name length
+      view.setUint16(26, fileName.length, true);
+      // Extra field length
+      view.setUint16(28, 0, true);
+      
+      // Copy file name
+      header.set(fileName, 30);
+      
+      localHeaders.push(header);
+      files.push({ name: file.name, data: fileData, offset: currentOffset });
+      currentOffset += header.length + fileData.length;
+    }
+
+    // Central directory
+    const centralDir: Uint8Array[] = [];
+    let centralDirSize = 0;
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const fileName = encoder.encode(file.name);
+      
+      const cdHeader = new Uint8Array(46 + fileName.length);
+      const view = new DataView(cdHeader.buffer);
+      
+      // Central directory file header signature
+      view.setUint32(0, 0x02014b50, true);
+      // Version made by
+      view.setUint16(4, 10, true);
+      // Version needed to extract
+      view.setUint16(6, 10, true);
+      // General purpose bit flag
+      view.setUint16(8, 0, true);
+      // Compression method
+      view.setUint16(10, 0, true);
+      // Last mod time & date
+      view.setUint16(12, 0, true);
+      view.setUint16(14, 0, true);
+      // CRC-32
+      view.setUint32(16, 0, true);
+      // Compressed size
+      view.setUint32(20, file.data.length, true);
+      // Uncompressed size
+      view.setUint32(24, file.data.length, true);
+      // File name length
+      view.setUint16(28, fileName.length, true);
+      // Extra field length
+      view.setUint16(30, 0, true);
+      // File comment length
+      view.setUint16(32, 0, true);
+      // Disk number start
+      view.setUint16(34, 0, true);
+      // Internal file attributes
+      view.setUint16(36, 0, true);
+      // External file attributes
+      view.setUint32(38, 0, true);
+      // Relative offset of local header
+      view.setUint32(42, file.offset, true);
+      
+      // Copy file name
+      cdHeader.set(fileName, 46);
+      
+      centralDir.push(cdHeader);
+      centralDirSize += cdHeader.length;
+    }
+
+    // End of central directory record
+    const eocd = new Uint8Array(22);
+    const eocdView = new DataView(eocd.buffer);
+    
+    // End of central directory signature
+    eocdView.setUint32(0, 0x06054b50, true);
+    // Number of this disk
+    eocdView.setUint16(4, 0, true);
+    // Disk where central directory starts
+    eocdView.setUint16(6, 0, true);
+    // Number of central directory records on this disk
+    eocdView.setUint16(8, files.length, true);
+    // Total number of central directory records
+    eocdView.setUint16(10, files.length, true);
+    // Size of central directory
+    eocdView.setUint32(12, centralDirSize, true);
+    // Offset of start of central directory
+    eocdView.setUint32(16, currentOffset, true);
+    // ZIP file comment length
+    eocdView.setUint16(20, 0, true);
+
+    // Combine all parts
+    const totalSize = currentOffset + centralDirSize + eocd.length;
+    const zipData = new Uint8Array(totalSize);
+    let offset = 0;
+    
+    // Write local file headers and data
+    for (let i = 0; i < files.length; i++) {
+      zipData.set(localHeaders[i], offset);
+      offset += localHeaders[i].length;
+      zipData.set(files[i].data, offset);
+      offset += files[i].data.length;
+    }
+    
+    // Write central directory
+    for (const cd of centralDir) {
+      zipData.set(cd, offset);
+      offset += cd.length;
+    }
+    
+    // Write end of central directory
+    zipData.set(eocd, offset);
+    
+    return zipData;
+  } catch (error) {
+    console.error('ZIP generation error:', error);
+    throw new Error('Failed to generate ZIP file');
+  }
+}
 
 // Improved PDF generator with proper text wrapping and formatting
 async function generateSimplePDF(content: string): Promise<Uint8Array> {
