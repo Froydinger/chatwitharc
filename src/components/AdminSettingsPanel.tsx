@@ -25,8 +25,6 @@ export function AdminSettingsPanel() {
   const [updating, setUpdating] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [systemPromptDraft, setSystemPromptDraft] = useState('');
-  const [globalContextDraft, setGlobalContextDraft] = useState('');
-  const [imageAnalysisPromptDraft, setImageAnalysisPromptDraft] = useState('');
 
   if (!isAdmin) {
     return (
@@ -50,25 +48,12 @@ export function AdminSettingsPanel() {
   const getSetting = (key: string) => settings.find(s => s.key === key);
 
   // Initialize drafts when settings load
-  if (settings.length > 0 && !systemPromptDraft && !globalContextDraft && !imageAnalysisPromptDraft) {
+  if (settings.length > 0 && !systemPromptDraft) {
     const systemPrompt = getSetting('system_prompt')?.value || '';
     const globalContext = getSetting('global_context')?.value || '';
-    const imageAnalysisPrompt = getSetting('image_analysis_prompt')?.value || `Analyze this prompt and respond with ONLY "image" or "text" based on whether the user wants image generation or text response:
-
-Rules for detecting IMAGE requests:
-- Visual creation keywords: create, generate, make, draw, design, show, visualize, render, produce, illustrate
-- Visual objects: image, photo, picture, art, illustration, diagram, chart, graphic, banner, logo, icon, wallpaper
-- Art styles: realistic, cartoon, abstract, minimalist, watercolor, oil painting, sketch, digital art, 3D render
-- Descriptive phrases: "I want to see", "Can you show me", "What would look like", "Picture this", "Imagine a"
-- Visual concepts: landscape, portrait, scene, background, character, building, object
-- Style descriptors: colorful, detailed, bright, dark, vibrant, soft, hard, smooth, rough
-
-Be VERY inclusive - even subtle visual requests should return "image"
-If they want text responses, explanations, conversations, or anything non-visual → respond "text"`;
-    
-    setSystemPromptDraft(systemPrompt);
-    setGlobalContextDraft(globalContext);
-    setImageAnalysisPromptDraft(imageAnalysisPrompt);
+    // Merge system prompt and global context
+    const mergedPrompt = globalContext ? `${systemPrompt}\n\n--- Global Context ---\n${globalContext}` : systemPrompt;
+    setSystemPromptDraft(mergedPrompt);
   }
 
   const handleUpdateSetting = async (key: string, value: string) => {
@@ -158,7 +143,7 @@ If they want text responses, explanations, conversations, or anything non-visual
             <CardHeader>
               <CardTitle>System Prompt</CardTitle>
               <CardDescription>
-                The main prompt that guides the AI's behavior and responses
+                The main prompt that guides the AI's behavior and responses. This includes both system instructions and global context.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -168,9 +153,12 @@ If they want text responses, explanations, conversations, or anything non-visual
                   id="system-prompt"
                   value={systemPromptDraft || getSetting('system_prompt')?.value || ''}
                   onChange={(e) => setSystemPromptDraft(e.target.value)}
-                  className="min-h-[200px]"
-                  placeholder="Enter the system prompt..."
+                  className="min-h-[300px]"
+                  placeholder="Enter the system prompt and global context..."
                 />
+                <p className="text-xs text-muted-foreground">
+                  Tip: Include both AI behavior instructions and any global context that should apply to all conversations.
+                </p>
               </div>
               <Button 
                 onClick={() => handleUpdateSetting('system_prompt', systemPromptDraft)}
@@ -178,69 +166,6 @@ If they want text responses, explanations, conversations, or anything non-visual
                 className="w-full"
               >
                 Save System Prompt
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Image Analysis Prompt</CardTitle>
-              <CardDescription>
-                The prompt used to analyze user messages and determine if they want image generation. Include keywords and phrases to improve detection accuracy.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="image-analysis-prompt">Image Analysis Prompt</Label>
-                <Textarea
-                  id="image-analysis-prompt"
-                  value={imageAnalysisPromptDraft || getSetting('image_analysis_prompt')?.value || ''}
-                  onChange={(e) => setImageAnalysisPromptDraft(e.target.value)}
-                  className="min-h-[300px]"
-                  placeholder="Enter the image analysis prompt..."
-                />
-              </div>
-              <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
-                <strong>Recommended keywords to include:</strong>
-                <br />• Visual creation: create, generate, make, draw, design, show, visualize, render, produce, illustrate
-                <br />• Visual objects: image, photo, picture, art, illustration, diagram, chart, graphic, banner, logo, icon
-                <br />• Art styles: realistic, cartoon, abstract, minimalist, watercolor, oil painting, sketch, digital art
-                <br />• Phrases: "I want to see", "Can you show me", "What would look like", "Picture this", "Imagine a"
-              </div>
-              <Button 
-                onClick={() => handleUpdateSetting('image_analysis_prompt', imageAnalysisPromptDraft)}
-                disabled={updating}
-                className="w-full"
-              >
-                Save Image Analysis Prompt
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Global Context</CardTitle>
-              <CardDescription>
-                Additional context that applies to all conversations
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="global-context">Global Context</Label>
-                <Textarea
-                  id="global-context"
-                  value={globalContextDraft || getSetting('global_context')?.value || ''}
-                  onChange={(e) => setGlobalContextDraft(e.target.value)}
-                  className="min-h-[150px]"
-                  placeholder="Enter global context..."
-                />
-              </div>
-              <Button 
-                onClick={() => handleUpdateSetting('global_context', globalContextDraft)}
-                disabled={updating}
-                className="w-full"
-              >
-                Save Global Context
               </Button>
             </CardContent>
           </Card>

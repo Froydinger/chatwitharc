@@ -45,21 +45,22 @@ export function LandingScreen() {
       <div className="flex-1 flex flex-col items-center px-6 relative z-10">
         {/* Top Section with Logo and Title */}
         <div className="flex-1 flex flex-col items-center justify-end pb-8">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center relative"
-          >
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.1 }}
+          className="text-center relative"
+        >
             {/* Logo positioned to slightly clip behind text */}
             <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
               animate={{ 
+                opacity: 1,
                 scale: [1, 1.05, 1]
               }}
               transition={{ 
-                duration: 10, 
-                repeat: Infinity, 
-                ease: "easeInOut" 
+                opacity: { duration: 0.4, delay: 0.15 },
+                scale: { duration: 10, repeat: Infinity, ease: "easeInOut" }
               }}
               className="flex justify-center mb-[-5px] relative z-0"
             >

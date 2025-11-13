@@ -156,7 +156,7 @@ export function AdminPanel() {
             <CardHeader>
               <CardTitle>AI System Prompt</CardTitle>
               <CardDescription>
-                Configure the main system prompt that guides AI behavior
+                Configure the system prompt that guides AI behavior. This includes both system instructions and global context.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -166,12 +166,12 @@ export function AdminPanel() {
                   id="system_prompt"
                   value={getCurrentValue('system_prompt')}
                   onChange={(e) => handleValueChange('system_prompt', e.target.value)}
-                  placeholder="Enter the system prompt for the AI assistant..."
-                  rows={8}
+                  placeholder="Enter the system prompt for the AI assistant, including any global context..."
+                  rows={12}
                   className="font-mono text-sm"
                 />
                 <p className="text-sm text-muted-foreground">
-                  This prompt defines how the AI assistant behaves and responds to users
+                  This prompt defines how the AI assistant behaves and responds to users. Include both behavior instructions and any context that should apply to all conversations.
                 </p>
                 <Button 
                   onClick={() => handleSave('system_prompt')}
@@ -179,38 +179,6 @@ export function AdminPanel() {
                   size="sm"
                 >
                   Save System Prompt
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Global Context</CardTitle>
-              <CardDescription>
-                Set global context that applies to all user conversations
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="global_context">Global Context</Label>
-                <Textarea
-                  id="global_context"
-                  value={getCurrentValue('global_context')}
-                  onChange={(e) => handleValueChange('global_context', e.target.value)}
-                  placeholder="Enter global context information..."
-                  rows={6}
-                  className="font-mono text-sm"
-                />
-                <p className="text-sm text-muted-foreground">
-                  This context is included in all conversations to provide consistent background information
-                </p>
-                <Button 
-                  onClick={() => handleSave('global_context')}
-                  disabled={updating}
-                  size="sm"
-                >
-                  Save Global Context
                 </Button>
               </div>
             </CardContent>
