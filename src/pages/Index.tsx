@@ -59,6 +59,13 @@ export function Index() {
     return <NamePrompt />;
   }
 
+  // Ensure theme-ready class is set
+  useEffect(() => {
+    if (!loading) {
+      document.documentElement.classList.add('theme-ready');
+    }
+  }, [loading]);
+
   // Only show loading screen during auth, never during chat switches
   if (loading) {
     return (

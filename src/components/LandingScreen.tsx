@@ -46,20 +46,20 @@ export function LandingScreen() {
         {/* Top Section with Logo and Title */}
         <div className="flex-1 flex flex-col items-center justify-end pb-8">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.1 }}
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1], delay: 0.15 }}
           className="text-center relative"
         >
             {/* Logo positioned to slightly clip behind text */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ 
                 opacity: 1,
                 scale: [1, 1.05, 1]
               }}
               transition={{ 
-                opacity: { duration: 0.4, delay: 0.15 },
+                opacity: { duration: 0.3, delay: 0.2 },
                 scale: { duration: 10, repeat: Infinity, ease: "easeInOut" }
               }}
               className="flex justify-center mb-[-5px] relative z-0"
@@ -74,15 +74,30 @@ export function LandingScreen() {
             </motion.div>
             
             <div className="relative z-10">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-3">
+              <motion.h1 
+                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+              >
                 <span className="font-thin">Arc</span><span className="font-semibold">AI</span>
-              </h1>
-              <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-2">
+              </motion.h1>
+              <motion.p 
+                className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              >
                 Ask, Reflect, Create
-              </p>
-              <p className="text-sm text-muted-foreground/70 max-w-xl mx-auto">
+              </motion.p>
+              <motion.p 
+                className="text-sm text-muted-foreground/70 max-w-xl mx-auto"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+              >
                 From morning check-ins to late-night ideas, AI that keeps up without the overwhelm
-              </p>
+              </motion.p>
             </div>
           </motion.div>
         </div>
@@ -90,9 +105,9 @@ export function LandingScreen() {
         {/* Center Section - Hero Chat Input */}
         <div className="flex-shrink-0 w-full lg:px-32">
           <motion.div 
-            initial={{ opacity: 0, y: 30 }} 
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
           >
             <LandingChatInput onSendAttempt={handleSendAttempt} />
           </motion.div>
@@ -101,9 +116,9 @@ export function LandingScreen() {
         {/* Bottom Section - Quick Prompts */}
         <div className="flex-1 flex flex-col items-center justify-start pt-8">
           <motion.div 
-            initial={{ opacity: 0, y: 40 }} 
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
             className="w-full max-w-6xl mb-3"
           >
             <QuickPrompts quickPrompts={quickPrompts} onTriggerPrompt={handleTriggerPrompt} />
@@ -111,9 +126,9 @@ export function LandingScreen() {
 
           {/* Login/Sign Up Button */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
           >
             <GlassButton
               variant="ghost"

@@ -98,13 +98,25 @@ export function useTheme() {
     setCssVar("--primary", colorHsL);
   };
 
-  // Apply theme + accent on any change
+  // Apply theme + accent on any change (skip if already applied by blocking script)
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(theme);
+    const currentTheme = root.classList.contains('dark') ? 'dark' : root.classList.contains('light') ? 'light' : null;
+    
+    // Only update if theme has actually changed
+    if (currentTheme !== theme) {
+      root.classList.remove("light", "dark");
+      root.classList.add(theme);
+    }
+    
+    // Always ensure accent color is applied
     setCssVar("--primary", accentColor);
-  }, [theme, accentColor]);
+    
+    // Mark as loaded after first application
+    if (!isLoaded) {
+      setIsLoaded(true);
+    }
+  }, [theme, accentColor, isLoaded]);
 
   // Load user preferences (theme + accent) on mount
   useEffect(() => {
