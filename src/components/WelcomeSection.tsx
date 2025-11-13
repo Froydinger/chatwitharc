@@ -103,28 +103,28 @@ export function WelcomeSection({
         {/* Hero Section - Always show */}
         <motion.div
           className="flex flex-col items-center gap-6 text-center mt-16"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.05 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1], delay: 0.1 }}
         >
           {/* Avatar - only render if heroAvatar is provided */}
           {heroAvatar && (
             <motion.div
               className="relative"
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ 
                 opacity: 1,
                 scale: 1,
                 y: [0, -8, 0]
               }}
               transition={{
-                opacity: { duration: 0.4, delay: 0.1 },
-                scale: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.1 },
+                opacity: { duration: 0.3, delay: 0.15 },
+                scale: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1], delay: 0.15 },
                 y: {
                   duration: 4,
                   repeat: Infinity,
                   ease: "easeInOut",
-                  delay: 0.4
+                  delay: 0.5
                 }
               }}
             >

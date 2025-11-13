@@ -3,6 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
+    
+    <!-- Blocking Theme Script - Prevents FOUC -->
+    <script>
+      (function() {
+        try {
+          const savedTheme = localStorage.getItem('theme');
+          const followSystem = localStorage.getItem('followSystemTheme');
+          const shouldFollowSystem = followSystem === null || followSystem === 'true';
+          
+          let theme = 'dark';
+          if (shouldFollowSystem) {
+            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          } else if (savedTheme === 'light' || savedTheme === 'dark') {
+            theme = savedTheme;
+          }
+          
+          // Apply theme immediately
+          document.documentElement.classList.add(theme);
+          
+          // Apply accent color if saved
+          const accentColor = localStorage.getItem('accentColor');
+          if (accentColor) {
+            document.documentElement.style.setProperty('--primary', accentColor);
+          }
+          
+          // Mark theme as ready
+          document.documentElement.classList.add('theme-ready');
+        } catch (e) {
+          console.warn('Failed to apply theme before render:', e);
+          document.documentElement.classList.add('dark', 'theme-ready');
+        }
+      })();
+    </script>
+    
     <title>ArcAi • Chat with Arc</title>
     <meta name="description" content="Ask, Reflect, Create with ArcAI - Advanced AI conversations powered by OpenAI GPT-5.">
     <meta name="author" content="ArcAI" />

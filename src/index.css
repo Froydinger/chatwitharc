@@ -136,6 +136,16 @@ All colors MUST be HSL for perfect glass effects.
   html {
     background: hsl(var(--background));
   }
+  
+  /* Prevent FOUC - initially hide content until theme is applied */
+  html:not(.theme-ready) body {
+    opacity: 0;
+  }
+  
+  html.theme-ready body {
+    opacity: 1;
+    transition: opacity 0.15s ease-out;
+  }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
