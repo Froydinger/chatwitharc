@@ -2,11 +2,12 @@ import { motion } from "framer-motion";
 import { Mic2, MessageSquare, Zap, Shield, Github, ImagePlus } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
+import { ThemedLogo } from "@/components/ThemedLogo";
 
 export function InfoPanel() {
   const features = [
     {
-      icon: () => <img src="/arc-logo-ui.png" alt="Arc AI" className="w-6 h-6" />,
+      icon: () => <ThemedLogo className="w-6 h-6" alt="Arc AI" />,
       title: "Liquid Glass UI",
       description: "Apple-inspired translucent interface with fluid animations and micro-interactions"
     },
@@ -57,18 +58,18 @@ export function InfoPanel() {
         className="text-center space-y-4"
       >
         <motion.div
-          animate={{ 
+          animate={{
             rotate: [0, 10, -10, 0],
             scale: [1, 1.1, 1]
           }}
-          transition={{ 
-            duration: 4, 
-            repeat: Infinity, 
-            ease: "easeInOut" 
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut"
           }}
           className="flex justify-center mb-4"
         >
-          <img src="/arc-logo-ui.png" alt="ArcAI" className="h-16 w-16" />
+          <ThemedLogo className="h-16 w-16" alt="ArcAI" />
         </motion.div>
         
         <h1 className="text-4xl font-bold text-foreground mb-2">
