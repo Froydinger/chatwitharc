@@ -604,7 +604,7 @@ export function MobileChatApp() {
                 }}
                 title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
               >
-                <motion.div
+                <motion.span
                   animate={{ rotate: isThemeSpinning ? 360 : 0 }}
                   transition={{
                     type: "spring",
@@ -612,9 +612,10 @@ export function MobileChatApp() {
                     stiffness: 200,
                     mass: 0.8,
                   }}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
                   {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </motion.div>
+                </motion.span>
               </Button>
               <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
                 <Button
