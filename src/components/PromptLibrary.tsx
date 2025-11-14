@@ -160,7 +160,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[9998]"
           />
 
           {/* Drawer */}
@@ -169,7 +169,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border rounded-t-3xl shadow-2xl max-h-[75vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[9999] bg-background border-t border-border rounded-t-3xl shadow-2xl max-h-[75vh] flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
