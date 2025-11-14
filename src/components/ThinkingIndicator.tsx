@@ -1,5 +1,6 @@
+import { useState, useEffect } from "react";
 import { Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ThinkingIndicatorProps {
   isLoading: boolean;
@@ -8,16 +9,48 @@ interface ThinkingIndicatorProps {
   searchingChats?: boolean;
 }
 
+const ARC_PUNS = [
+  "Arc is thinking...",
+  "Arc is arcing around...",
+  "Just arcing it...",
+  "Arcing through ideas...",
+  "Following the arc...",
+  "Arc-ing up a response...",
+  "Making an arc-gument...",
+  "Arc-hitecting a reply...",
+  "Arc-ticulating thoughts...",
+  "Arc and rolling...",
+];
+
 export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemory, searchingChats }: ThinkingIndicatorProps) {
   const showThinking = isLoading || isGeneratingImage || accessingMemory || searchingChats;
-  
+  const [currentPunIndex, setCurrentPunIndex] = useState(0);
+
+  // Rotate through puns every 2 seconds when thinking
+  useEffect(() => {
+    if (!showThinking || isGeneratingImage || searchingChats || accessingMemory) return;
+
+    const interval = setInterval(() => {
+      setCurrentPunIndex((prev) => (prev + 1) % ARC_PUNS.length);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [showThinking, isGeneratingImage, searchingChats, accessingMemory]);
+
+  // Reset to first pun when thinking starts
+  useEffect(() => {
+    if (showThinking && isLoading && !isGeneratingImage && !searchingChats && !accessingMemory) {
+      setCurrentPunIndex(0);
+    }
+  }, [showThinking, isLoading, isGeneratingImage, searchingChats, accessingMemory]);
+
   if (!showThinking) return null;
 
   const getMessage = () => {
     if (isGeneratingImage) return "Generating image...";
     if (searchingChats) return "Searching past chats...";
     if (accessingMemory) return "Accessing memories...";
-    return "Arc is thinking...";
+    return ARC_PUNS[currentPunIndex];
   };
   
   return (
@@ -89,9 +122,20 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
             <Sparkles className="h-3 w-3 text-primary" />
           </motion.div>
         </div>
-        <span className="text-sm font-medium text-foreground/80">
-          {getMessage()}
-        </span>
+        <div className="relative h-5 flex items-center">
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={getMessage()}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.3 }}
+              className="text-sm font-medium text-foreground/80 absolute whitespace-nowrap"
+            >
+              {getMessage()}
+            </motion.span>
+          </AnimatePresence>
+        </div>
       </div>
     </motion.div>
   );
