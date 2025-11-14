@@ -73,6 +73,8 @@ STRICT REQUIREMENTS:
 4. Use DIFFERENT emojis for each of the 6 items - NO repeating emojis
 5. NO repetition of themes, topics, or styles
 6. Be CREATIVE and UNEXPECTED - surprise the user!
+7. Use only regular straight quotes (") not smart/curly quotes
+8. Avoid backslashes, use forward slashes if needed
 
 LABEL FORMAT (MANDATORY):
 "[EMOJI] Short Title" - Example: "🎯 Dream Journal" or "🚀 Space Opera"
@@ -87,7 +89,7 @@ Return ONLY valid JSON array with 6 objects:
 FOR IMAGE PROMPTS: prompt MUST start with "Generate image:" (exactly)
 Example: {"label": "🎨 Neon City", "prompt": "Generate image: a cyberpunk cityscape with neon lights."}
 
-CRITICAL: Every single label MUST have an emoji at the start!`;
+CRITICAL: Every single label MUST have an emoji at the start! Use only regular quotes in JSON!`;
 
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!lovableApiKey) {
@@ -119,13 +121,35 @@ CRITICAL: Every single label MUST have an emoji at the start!`;
     const data = await response.json();
     const content = data.choices[0].message.content;
 
-    // Parse JSON from response
+    // Parse JSON from response with better error handling
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      throw new Error('Failed to parse AI response');
+      console.error('No JSON array found in AI response:', content);
+      throw new Error('Failed to parse AI response - no JSON array found');
     }
 
-    const prompts = JSON.parse(jsonMatch[0]);
+    let prompts;
+    try {
+      // Clean common problematic characters before parsing
+      let jsonString = jsonMatch[0];
+
+      // The AI might use fancy unicode characters - normalize them
+      jsonString = jsonString
+        .replace(/[\u201C\u201D]/g, '"')  // Replace smart quotes with regular quotes
+        .replace(/[\u2018\u2019]/g, "'")  // Replace smart single quotes
+        .replace(/[\u2013\u2014]/g, '-')  // Replace em/en dashes with regular dash
+        .replace(/\u2026/g, '...')        // Replace ellipsis character
+        .replace(/\r\n/g, ' ')            // Replace Windows line endings
+        .replace(/\n/g, ' ')              // Replace newlines with spaces
+        .replace(/\t/g, ' ')              // Replace tabs with spaces
+        .replace(/\s+/g, ' ');            // Normalize multiple spaces
+
+      prompts = JSON.parse(jsonString);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError.message);
+      console.error('Attempted to parse:', jsonMatch[0].substring(0, 500));
+      throw new Error(`Failed to parse AI response JSON: ${parseError.message}`);
+    }
 
     return new Response(
       JSON.stringify({ prompts }),
