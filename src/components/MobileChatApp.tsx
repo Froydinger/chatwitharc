@@ -18,12 +18,63 @@ import { cn } from "@/lib/utils";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { usePromptPreload } from "@/hooks/usePromptPreload";
 
-/** Time-of-day greeting (no name usage) */
-function getDaypartGreeting(d: Date = new Date()): "Good Morning" | "Good Afternoon" | "Good Evening" {
+/** Time-of-day greeting with fun Arc-related variations */
+function getDaypartGreeting(d: Date = new Date()): string {
   const h = d.getHours();
-  if (h >= 5 && h < 12) return "Good Morning";
-  if (h >= 12 && h < 18) return "Good Afternoon";
-  return "Good Evening";
+
+  const morningGreetings = [
+    "Good morning",
+    "Rise and arc",
+    "Arc and shine",
+    "Morning, sunshine",
+    "Wakey wakey",
+    "Top of the morning",
+    "Arc your day up",
+    "Ready to arc?",
+    "Let's arc this day",
+    "Fresh arc energy",
+    "New day, new arc",
+  ];
+
+  const afternoonGreetings = [
+    "Good afternoon",
+    "Afternoon arc",
+    "Still arcing strong",
+    "Hey there",
+    "Afternoon vibes",
+    "Mid-arc check-in",
+    "Arc o'clock",
+    "Peak arc hours",
+    "Ready for more?",
+    "Let's keep arcing",
+    "Afternoon energy",
+  ];
+
+  const eveningGreetings = [
+    "Good evening",
+    "Evening arc",
+    "Winding down the arc",
+    "Hey night owl",
+    "Evening vibes",
+    "Late arc hours",
+    "Arc after dark",
+    "Moonlight arc",
+    "Night time, best time",
+    "Still arcing?",
+    "Evening energy",
+  ];
+
+  let greetings: string[];
+  if (h >= 5 && h < 12) {
+    greetings = morningGreetings;
+  } else if (h >= 12 && h < 18) {
+    greetings = afternoonGreetings;
+  } else {
+    greetings = eveningGreetings;
+  }
+
+  // Pick a random greeting
+  return greetings[Math.floor(Math.random() * greetings.length)];
 }
 
 /** Keep header logo as-is */
