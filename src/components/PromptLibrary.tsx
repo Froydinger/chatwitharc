@@ -32,24 +32,65 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
   const [writePrompts, setWritePrompts] = useState<QuickPrompt[]>([]);
   const [codePrompts, setCodePrompts] = useState<QuickPrompt[]>([]);
 
+  // Loading states for each category
+  const [isLoadingChat, setIsLoadingChat] = useState(false);
+  const [isLoadingCreate, setIsLoadingCreate] = useState(false);
+  const [isLoadingWrite, setIsLoadingWrite] = useState(false);
+  const [isLoadingCode, setIsLoadingCode] = useState(false);
+
   // Generate initial prompts on mount
   useEffect(() => {
-    refreshPrompts('all');
-  }, []);
+    if (isOpen) {
+      refreshPrompts('all');
+    }
+  }, [isOpen]);
+
+  // Function to generate AI prompts for a category
+  const generateAIPrompts = async (category: 'chat' | 'create' | 'write' | 'code'): Promise<QuickPrompt[]> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-category-prompts', {
+        body: { category }
+      });
+
+      if (error) {
+        console.error(`Failed to generate ${category} prompts:`, error);
+        // Fallback to hardcoded prompts
+        return generatePromptsByCategory(category);
+      }
+
+      return data?.prompts || generatePromptsByCategory(category);
+    } catch (error) {
+      console.error(`Error generating ${category} prompts:`, error);
+      // Fallback to hardcoded prompts
+      return generatePromptsByCategory(category);
+    }
+  };
 
   // Function to refresh prompts for a specific category or all
-  const refreshPrompts = (category: TabType | 'all') => {
+  const refreshPrompts = async (category: TabType | 'all') => {
     if (category === 'all' || category === 'chat') {
-      setChatPrompts(generatePromptsByCategory('chat'));
+      setIsLoadingChat(true);
+      const prompts = await generateAIPrompts('chat');
+      setChatPrompts(prompts);
+      setIsLoadingChat(false);
     }
     if (category === 'all' || category === 'create') {
-      setCreatePrompts(generatePromptsByCategory('create'));
+      setIsLoadingCreate(true);
+      const prompts = await generateAIPrompts('create');
+      setCreatePrompts(prompts);
+      setIsLoadingCreate(false);
     }
     if (category === 'all' || category === 'write') {
-      setWritePrompts(generatePromptsByCategory('write'));
+      setIsLoadingWrite(true);
+      const prompts = await generateAIPrompts('write');
+      setWritePrompts(prompts);
+      setIsLoadingWrite(false);
     }
     if (category === 'all' || category === 'code') {
-      setCodePrompts(generatePromptsByCategory('code'));
+      setIsLoadingCode(true);
+      const prompts = await generateAIPrompts('code');
+      setCodePrompts(prompts);
+      setIsLoadingCode(false);
     }
   };
 
@@ -61,6 +102,17 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
       case 'code': return codePrompts;
       case 'smart': return smartPrompts;
       default: return chatPrompts;
+    }
+  };
+
+  const isCurrentTabLoading = () => {
+    switch (activeTab) {
+      case 'chat': return isLoadingChat;
+      case 'create': return isLoadingCreate;
+      case 'write': return isLoadingWrite;
+      case 'code': return isLoadingCode;
+      case 'smart': return isLoadingSmartPrompts;
+      default: return false;
     }
   };
 
@@ -184,11 +236,15 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                 key={activeTab}
                 className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-4"
               >
-                {activeTab === 'smart' && isLoadingSmartPrompts ? (
+                {isCurrentTabLoading() ? (
                   <div className="col-span-full flex items-center justify-center py-12">
                     <div className="flex flex-col items-center gap-3">
-                      <Brain className="h-8 w-8 text-primary animate-pulse" />
-                      <p className="text-sm text-muted-foreground">Analyzing your conversations...</p>
+                      <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+                      <p className="text-sm text-muted-foreground">
+                        {activeTab === 'smart'
+                          ? 'Analyzing your conversations...'
+                          : 'Generating fresh prompts...'}
+                      </p>
                     </div>
                   </div>
                 ) : getCurrentPrompts().length === 0 && activeTab === 'smart' ? (
@@ -209,7 +265,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                       className="group relative p-4 rounded-xl bg-background/40 backdrop-blur-sm border border-border/50 hover:border-primary/40 hover:bg-background/60 transition-all duration-200 text-left"
                     >
                       <span className="text-base font-medium">{prompt.label}</span>
-                      
+
                       {/* Subtle hover effect */}
                       <div
                         className="absolute inset-0 rounded-xl bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"
