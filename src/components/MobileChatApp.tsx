@@ -48,13 +48,33 @@ export function MobileChatApp() {
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile(); // This hook determines if the current device is mobile
 
-  // Initialize rightPanelOpen based on isMobile
+  // Initialize rightPanelOpen state based on device type and user's last preference
   useEffect(() => {
-    if (!isMobile && !rightPanelOpen) {
-      // If not mobile and panel is currently closed
-      setRightPanelOpen(true); // Open it by default for desktop
+    // We only care about desktop default behavior; mobile defaults to closed (which is current behavior)
+    if (!isMobile) {
+      // Check if user has a preference in localStorage
+      const userPreference = localStorage.getItem("arc_rightPanelOpen");
+      if (userPreference === null) {
+        // No preference, open by default on desktop
+        if (!rightPanelOpen) {
+          setRightPanelOpen(true);
+        }
+      } else {
+        // User has a preference, use it
+        setRightPanelOpen(userPreference === "true");
+      }
+    } else {
+      // Always close on mobile by default, if it happens to be open
+      if (rightPanelOpen) {
+        setRightPanelOpen(false);
+      }
     }
-  }, [isMobile, rightPanelOpen, setRightPanelOpen]);
+  }, [isMobile]); // Only run on mount and when isMobile changes
+
+  // Effect to save user's preference to localStorage whenever rightPanelOpen changes
+  useEffect(() => {
+    localStorage.setItem("arc_rightPanelOpen", String(rightPanelOpen));
+  }, [rightPanelOpen]);
 
   const [dragOver, setDragOver] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
@@ -416,7 +436,8 @@ export function MobileChatApp() {
   const handleNewChat = () => {
     const newSessionId = createNewSession();
     navigate(`/chat/${newSessionId}`);
-    setRightPanelOpen(false);
+    // When creating a new chat, respect existing sidebar visibility
+    // No explicit close here, user can decide
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -427,9 +448,9 @@ export function MobileChatApp() {
   const triggerPrompt = useCallback(
     (prompt: string) => {
       startChatWithMessage(prompt);
-      setRightPanelOpen(false);
+      // When triggering a prompt, respecting existing sidebar visibility seems appropriate
     },
-    [startChatWithMessage, setRightPanelOpen],
+    [startChatWithMessage],
   );
 
   /** AI avatar progressive fade in after load */
@@ -506,7 +527,7 @@ export function MobileChatApp() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
+              <Button varian t="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
                 <Plus className="h-4 w-4" />
               </Button>
               <Button
@@ -523,7 +544,7 @@ export function MobileChatApp() {
                 size="icon"
                 className="rounded-full"
                 onClick={() => {
-                  setRightPanelOpen(!rightPanelOpen);
+                  setRightPanelOpen(!rightPanelOpen); // User explicitly toggles
                 }}
               >
                 <Menu className="h-4 w-4" />
@@ -584,7 +605,7 @@ export function MobileChatApp() {
             ) : (
               <div className="w-full flex justify-center px-4">
                 <div
-                  className="space-y-4 chat-messages w-full max-w-xl" // Messages only, now max-w-xl (slightly wider than max-w-lg)
+                  className="space-y-4 chat-messages w-full max-w-xl" // Messages only, now max-w-xl
                   style={{
                     paddingTop: "6.5rem",
                   }}
@@ -675,7 +696,7 @@ export function MobileChatApp() {
           <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-30 pointer-events-none px-4">
             <div
               className={cn(
-                "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto", // Input bar styling, using max-w-4xl but then glass-dock in style tag sets max-width: 760px
+                "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto", // Input bar uses larger max-width
                 rightPanelOpen && "lg:mr-80 xl:mr-96",
               )}
             >
@@ -847,19 +868,19 @@ export function MobileChatApp() {
         .glass-dock::before{ display: none; }
         .glass-dock:hover{ transform: none; transition: none; }
         .dark .glass-dock:focus-within{ background: rgba(24, 24, 30, 0.78); box-shadow: none; }
-        
+
         /* Hide button borders inside dark mode input bar for unified appearance */
         .dark .glass-dock button{ border-color: transparent !important; }
         .dark .glass-dock .ci-menu-btn{ background: rgba(255, 255, 255, 0.05) !important; }
         .dark .glass-dock button:hover:not(:disabled){ background: rgba(255, 255, 255, 0.08) !important; }
-        
+
         /* Remove textarea background to prevent layered rectangle appearance */
         .dark .glass-dock textarea{ background: transparent !important; border-radius: 0 !important; }
         .glass-dock > *{ position: relative; z-index: 1; }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
-        .glass-dock .chat-input-halo{ 
-          background: transparent !important; 
-          border: none !important; 
+        .glass-dock .chat-input-halo{
+          background: transparent !important;
+          border: none !important;
           box-shadow: none !important;
           backdrop-filter: none !important;
           -webkit-backdrop-filter: none !important;
