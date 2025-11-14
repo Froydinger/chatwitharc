@@ -144,18 +144,6 @@ export function WelcomeSection({
 
   // Capture the initial greeting on mount - don't let it change during typewriter
   const [initialGreeting] = useState(greeting);
-  const [typewriterComplete, setTypewriterComplete] = useState(false);
-
-  // Parse greeting to separate time greeting from name for accent styling
-  const parseGreeting = (greetingText: string) => {
-    const parts = greetingText.split(", ");
-    if (parts.length === 2) {
-      return { timeGreeting: parts[0], name: parts[1] };
-    }
-    return { timeGreeting: greetingText, name: null };
-  };
-
-  const { timeGreeting, name } = parseGreeting(initialGreeting);
 
   return (
     <>
@@ -202,65 +190,15 @@ export function WelcomeSection({
             </motion.div>
           )}
 
-          {/* Greeting with typewriter - types full greeting then applies accent styling */}
+          {/* Snarky greeting with typewriter */}
           <h2 className="text-4xl font-semibold relative">
-            {typewriterComplete && name ? (
-              // After typing complete, show with accent styling on name
-              <span className="relative inline-block">
-                <span>{timeGreeting}, </span>
-                <span className="text-primary relative inline-block">
-                  {name}
-                  {/* Bright glow effect for name */}
-                  <motion.span
-                    className="absolute inset-0 text-primary blur-lg"
-                    style={{
-                      filter: "blur(16px)",
-                      opacity: 0.7,
-                    }}
-                    animate={{
-                      opacity: [0.5, 0.9, 0.5],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                  >
-                    {name}
-                  </motion.span>
-                  {/* Extra bright core glow */}
-                  <motion.span
-                    className="absolute inset-0 text-primary blur-md"
-                    style={{
-                      filter: "blur(8px)",
-                      opacity: 0.6,
-                    }}
-                    animate={{
-                      opacity: [0.4, 0.8, 0.4],
-                    }}
-                    transition={{
-                      duration: 2.5,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                  >
-                    {name}
-                  </motion.span>
-                </span>
-              </span>
-            ) : (
-              // Typewrite full greeting including name from initial greeting
-              <span className="relative inline-block">
-                <TypewriterText
-                  text={initialGreeting}
-                  delay={200}
-                  onComplete={() => {
-                    setTypewriterComplete(true);
-                    setShowSubtitle(true);
-                  }}
-                />
-              </span>
-            )}
+            <span className="relative inline-block">
+              <TypewriterText
+                text={initialGreeting}
+                delay={200}
+                onComplete={() => setShowSubtitle(true)}
+              />
+            </span>
           </h2>
 
           <motion.p
