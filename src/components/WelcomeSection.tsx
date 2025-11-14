@@ -83,7 +83,6 @@ export function WelcomeSection({
   const [smartSuggestions, setSmartSuggestions] = useState<QuickPrompt[] | null>(null);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showSubtitle, setShowSubtitle] = useState(false);
 
   // Convert prompts to categorized format
   const categorizedPrompts: QuickPrompt[] = useMemo(() => {
@@ -142,11 +141,6 @@ export function WelcomeSection({
     }
   };
 
-  // Reset subtitle when greeting changes (new chat)
-  useEffect(() => {
-    setShowSubtitle(false);
-  }, [greeting]);
-
   return (
     <>
       <div className="flex flex-col items-center justify-start min-h-full py-12 px-4 space-y-6">
@@ -200,23 +194,9 @@ export function WelcomeSection({
                 key={greeting}
                 text={greeting}
                 delay={200}
-                onComplete={() => setShowSubtitle(true)}
               />
             </span>
           </h2>
-
-          <motion.p
-            className="text-muted-foreground text-lg max-w-md"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: showSubtitle ? 1 : 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          >
-            <TypewriterText
-              key={`subtitle-${showSubtitle}`}
-              text={showSubtitle ? "What would you like to explore today?" : ""}
-              delay={0}
-            />
-          </motion.p>
         </motion.div>
 
         {/* Smart Suggestions or Loading State */}
