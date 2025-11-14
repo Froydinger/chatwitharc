@@ -855,20 +855,24 @@ export function ChatInput({ onImagesChange }: Props) {
           portalRoot,
         )}
 
-      {/* Prompt Library */}
-      <PromptLibrary
-        isOpen={showPromptLibrary}
-        onClose={() => setShowPromptLibrary(false)}
-        prompts={quickPrompts}
-        onSelectPrompt={(prompt) => {
-          setInputValue(prompt);
-          setShowPromptLibrary(false);
-          // Focus the textarea after selecting a prompt
-          setTimeout(() => {
-            textareaRef.current?.focus();
-          }, 100);
-        }}
-      />
+      {/* Prompt Library - rendered via portal to escape container */}
+      {portalRoot &&
+        createPortal(
+          <PromptLibrary
+            isOpen={showPromptLibrary}
+            onClose={() => setShowPromptLibrary(false)}
+            prompts={quickPrompts}
+            onSelectPrompt={(prompt) => {
+              setInputValue(prompt);
+              setShowPromptLibrary(false);
+              // Focus the textarea after selecting a prompt
+              setTimeout(() => {
+                textareaRef.current?.focus();
+              }, 100);
+            }}
+          />,
+          portalRoot
+        )}
 
       {/* hidden file input */}
       <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
