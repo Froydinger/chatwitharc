@@ -573,13 +573,11 @@ export function MobileChatApp() {
                 />
               </div>
             ) : (
-              <div className="w-full flex justify-center">
+              <div className="w-full flex justify-center px-4">
                 <div
                   className="space-y-4 chat-messages w-full max-w-4xl"
                   style={{
                     paddingTop: "6.5rem",
-                    paddingLeft: "1rem",
-                    paddingRight: "1rem",
                   }}
                 >
                   <AnimatePresence mode="sync" initial={false}>
