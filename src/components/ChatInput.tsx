@@ -895,18 +895,23 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
             prompts={quickPrompts}
             onSelectPrompt={(prompt) => {
               setShowPromptLibrary(false);
-              // Check if this is an image prompt and set image mode
+
+              // Code prompts auto-send immediately
+              if (prompt.toLowerCase().startsWith('code:')) {
+                handleSend(prompt);
+                return;
+              }
+
+              // Image prompts: set banana mode and populate input
               if (prompt.toLowerCase().includes('generate image')) {
                 setForceImageMode(true);
-                setInputValue(prompt);
-                // Wait for state update, then send
-                setTimeout(() => {
-                  handleSend();
-                }, 50);
-              } else {
-                // Auto-send the prompt immediately for non-image prompts
-                handleSend(prompt);
               }
+
+              // All non-code prompts: populate input and focus (user sends manually)
+              setInputValue(prompt);
+              setTimeout(() => {
+                textareaRef.current?.focus();
+              }, 100);
             }}
           />,
           portalRoot
