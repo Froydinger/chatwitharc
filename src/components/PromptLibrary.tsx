@@ -55,9 +55,12 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
         console.log(`⚡ Using cached ${category} prompts (instant load)`);
         return cached;
       }
+    } else {
+      console.log(`🔄 Force refreshing ${category} prompts - bypassing cache`);
     }
 
     try {
+      console.log(`🎲 Generating fresh AI prompts for ${category}...`);
       const { data, error } = await supabase.functions.invoke('generate-category-prompts', {
         body: { category }
       });
@@ -69,10 +72,12 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
       }
 
       const prompts = data?.prompts || generatePromptsByCategory(category);
+      console.log(`✨ Generated ${prompts.length} new ${category} prompts:`, prompts.map(p => p.label));
 
       // Cache the new prompts
       try {
         sessionStorage.setItem(`arc_prompts_cache_${category}`, JSON.stringify(prompts));
+        console.log(`💾 Cached new ${category} prompts`);
       } catch (e) {
         console.error('Failed to cache prompts:', e);
       }
