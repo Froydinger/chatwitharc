@@ -142,7 +142,8 @@ export function WelcomeSection({
     }
   };
 
-  // Track if greeting typewriter has completed
+  // Capture the initial greeting on mount - don't let it change during typewriter
+  const [initialGreeting] = useState(greeting);
   const [typewriterComplete, setTypewriterComplete] = useState(false);
 
   // Parse greeting to separate time greeting from name for accent styling
@@ -154,7 +155,7 @@ export function WelcomeSection({
     return { timeGreeting: greetingText, name: null };
   };
 
-  const { timeGreeting, name } = parseGreeting(greeting);
+  const { timeGreeting, name } = parseGreeting(initialGreeting);
 
   return (
     <>
@@ -248,10 +249,10 @@ export function WelcomeSection({
                 </span>
               </span>
             ) : (
-              // Typewrite full greeting including name
+              // Typewrite full greeting including name from initial greeting
               <span className="relative inline-block">
                 <TypewriterText
-                  text={greeting}
+                  text={initialGreeting}
                   delay={200}
                   onComplete={() => {
                     setTypewriterComplete(true);
