@@ -2,7 +2,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { X, Paperclip, ArrowRight, Sparkles } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
@@ -789,100 +788,82 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
       </div>
 
       {/* Tiles menu - bouncy popup above input */}
-      {portalRoot &&
+      {portalRoot && showMenu &&
         createPortal(
-          <AnimatePresence>
-            {showMenu && (
-              <div
-                className={cn(
-                  "fixed bottom-0 left-0 right-0 z-[35] pointer-events-none",
-                  "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-                )}
-                style={{ paddingBottom: "calc(90px + env(safe-area-inset-bottom, 0px))" }}
-              >
-                <div
-                  className={cn(
-                    "max-w-4xl mx-auto pointer-events-auto",
-                    "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                    rightPanelOpen && "lg:mr-80 xl:mr-96"
-                  )}
-                >
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 400,
-                      damping: 25,
-                      mass: 0.8,
+          <div
+            className="fixed bottom-0 left-0 right-0 z-[35] pointer-events-none"
+            style={{ paddingBottom: "calc(90px + env(safe-area-inset-bottom, 0px))" }}
+          >
+            <div
+              className={cn(
+                "max-w-4xl mx-auto pointer-events-auto",
+                "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                rightPanelOpen && "lg:mr-80 xl:mr-96"
+              )}
+            >
+              <div className="px-4">
+                <div className="flex flex-col gap-2 w-[200px] mx-auto">
+                  {/* Quick Prompts */}
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowPromptLibrary(true);
                     }}
-                    className="px-4"
+                    className="group rounded-xl border bg-background/90 backdrop-blur-xl px-4 py-3 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.02] active:scale-95"
+                    style={{
+                      borderColor: "rgba(139,92,246,0.4)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(139,92,246,.15) inset",
+                    }}
                   >
-                    <div className="flex flex-col gap-2 w-[200px] mx-auto">
-                      {/* Quick Prompts */}
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          setShowPromptLibrary(true);
-                        }}
-                        className="group rounded-xl border bg-background/90 backdrop-blur-xl px-4 py-3 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.02] active:scale-95"
-                        style={{
-                          borderColor: "rgba(139,92,246,0.4)",
-                          boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(139,92,246,.15) inset",
-                        }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 shrink-0">
-                            <Sparkles className="h-4 w-4 text-primary" />
-                          </span>
-                          <div className="text-sm font-semibold">Prompts</div>
-                        </div>
-                      </button>
-
-                      {/* Generate Image */}
-                      <button
-                        onClick={() => {
-                          setForceImageMode(true);
-                          setShowMenu(false);
-                        }}
-                        className="group rounded-xl border bg-background/90 backdrop-blur-xl px-4 py-3 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.02] active:scale-95"
-                        style={{
-                          borderColor: "rgba(250,204,21,0.4)",
-                          boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(250,204,21,.15) inset",
-                        }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl leading-none shrink-0">🍌</span>
-                          <div className="text-sm font-semibold">Image</div>
-                        </div>
-                      </button>
-
-                      {/* Attach */}
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          fileInputRef.current?.click();
-                        }}
-                        className="group rounded-xl border bg-background/90 backdrop-blur-xl px-4 py-3 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.02] active:scale-95"
-                        style={{
-                          borderColor: "rgba(59,130,246,0.4)",
-                          boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(59,130,246,.15) inset",
-                        }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 shrink-0">
-                            <Paperclip className="h-4 w-4 text-blue-500" />
-                          </span>
-                          <div className="text-sm font-semibold">Attach</div>
-                        </div>
-                      </button>
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 shrink-0">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                      </span>
+                      <div className="text-sm font-semibold">Prompts</div>
                     </div>
-                  </motion.div>
+                  </button>
+
+                  {/* Generate Image */}
+                  <button
+                    onClick={() => {
+                      setForceImageMode(true);
+                      setShowMenu(false);
+                    }}
+                    className="group rounded-xl border bg-background/90 backdrop-blur-xl px-4 py-3 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.02] active:scale-95"
+                    style={{
+                      borderColor: "rgba(250,204,21,0.4)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(250,204,21,.15) inset",
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl leading-none shrink-0">🍌</span>
+                      <div className="text-sm font-semibold">Image</div>
+                    </div>
+                  </button>
+
+                  {/* Attach */}
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      fileInputRef.current?.click();
+                    }}
+                    className="group rounded-xl border bg-background/90 backdrop-blur-xl px-4 py-3 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.02] active:scale-95"
+                    style={{
+                      borderColor: "rgba(59,130,246,0.4)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(59,130,246,.15) inset",
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 shrink-0">
+                        <Paperclip className="h-4 w-4 text-blue-500" />
+                      </span>
+                      <div className="text-sm font-semibold">Attach</div>
+                    </div>
+                  </button>
                 </div>
               </div>
-            )}
-          </AnimatePresence>,
+            </div>
+          </div>,
           portalRoot,
         )}
 
