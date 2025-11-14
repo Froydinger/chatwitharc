@@ -24,22 +24,22 @@ const chatPromptPool = [
 ];
 
 const createPromptPool = [
-  { label: "🎨 Dream Poster", prompt: "Generate an image: a wild, colorful retro 90s poster design concept. Think neon colors, geometric shapes, and absolute chaos in the best way." },
-  { label: "🌌 Cosmic Explorer", prompt: "Generate an image: a stunning cosmic landscape with planets, nebulae, and distant galaxies. Make it feel vast and awe-inspiring." },
-  { label: "🎬 Cult Classic", prompt: "Generate an image: a movie poster for a hidden gem 90s film. Make it visually striking and nostalgic." },
-  { label: "🌸 Nature's Canvas", prompt: "Generate an image: a beautiful, serene natural scene with lush details, perfect lighting, and a peaceful atmosphere." },
-  { label: "🎪 Fever Dream", prompt: "Generate an image: the most unhinged, beautiful, chaotic 90s vaporwave aesthetic scene. Neon lights, palm trees, abandoned malls." },
-  { label: "✨ Ethereal Portrait", prompt: "Generate an image: an artistic, ethereal portrait with dreamlike qualities, soft lighting, and beautiful composition." },
-  { label: "🌆 Cyberpunk City", prompt: "Generate an image: a futuristic cyberpunk cityscape at night with neon signs, rain-slicked streets, and towering skyscrapers." },
-  { label: "🏔️ Mountain Majesty", prompt: "Generate an image: majestic mountain peaks at sunrise with dramatic lighting, clouds, and epic scale." },
-  { label: "🌊 Ocean Dreams", prompt: "Generate an image: an underwater scene with vibrant coral reefs, exotic fish, and rays of sunlight piercing the water." },
-  { label: "🍄 Mushroom Forest", prompt: "Generate an image: a magical forest filled with giant, glowing mushrooms and mystical atmosphere." },
-  { label: "🚀 Space Station", prompt: "Generate an image: a detailed space station orbiting a colorful planet with stars and cosmic phenomena in the background." },
-  { label: "🎆 Neon Nights", prompt: "Generate an image: a vibrant street scene with neon signs, bustling energy, and electric atmosphere." },
-  { label: "🦋 Butterfly Garden", prompt: "Generate an image: a lush garden filled with colorful butterflies, exotic flowers, and warm sunlight." },
-  { label: "🏰 Fantasy Castle", prompt: "Generate an image: an epic fantasy castle on a cliff with dramatic clouds, waterfalls, and magical lighting." },
-  { label: "🌵 Desert Sunset", prompt: "Generate an image: a stunning desert landscape at sunset with dramatic colors, cacti, and vast open sky." },
-  { label: "🎮 Retro Game", prompt: "Generate an image: pixel art or vaporwave style scene inspired by classic 80s/90s video games with bold colors." },
+  { label: "🎨 Dream Poster", prompt: "Generate image: a wild, colorful retro 90s poster design concept. Think neon colors, geometric shapes, and absolute chaos in the best way." },
+  { label: "🌌 Cosmic Explorer", prompt: "Generate image: a stunning cosmic landscape with planets, nebulae, and distant galaxies. Make it feel vast and awe-inspiring." },
+  { label: "🎬 Cult Classic", prompt: "Generate image: a movie poster for a hidden gem 90s film. Make it visually striking and nostalgic." },
+  { label: "🌸 Nature's Canvas", prompt: "Generate image: a beautiful, serene natural scene with lush details, perfect lighting, and a peaceful atmosphere." },
+  { label: "🎪 Fever Dream", prompt: "Generate image: the most unhinged, beautiful, chaotic 90s vaporwave aesthetic scene. Neon lights, palm trees, abandoned malls." },
+  { label: "✨ Ethereal Portrait", prompt: "Generate image: an artistic, ethereal portrait with dreamlike qualities, soft lighting, and beautiful composition." },
+  { label: "🌆 Cyberpunk City", prompt: "Generate image: a futuristic cyberpunk cityscape at night with neon signs, rain-slicked streets, and towering skyscrapers." },
+  { label: "🏔️ Mountain Majesty", prompt: "Generate image: majestic mountain peaks at sunrise with dramatic lighting, clouds, and epic scale." },
+  { label: "🌊 Ocean Dreams", prompt: "Generate image: an underwater scene with vibrant coral reefs, exotic fish, and rays of sunlight piercing the water." },
+  { label: "🍄 Mushroom Forest", prompt: "Generate image: a magical forest filled with giant, glowing mushrooms and mystical atmosphere." },
+  { label: "🚀 Space Station", prompt: "Generate image: a detailed space station orbiting a colorful planet with stars and cosmic phenomena in the background." },
+  { label: "🎆 Neon Nights", prompt: "Generate image: a vibrant street scene with neon signs, bustling energy, and electric atmosphere." },
+  { label: "🦋 Butterfly Garden", prompt: "Generate image: a lush garden filled with colorful butterflies, exotic flowers, and warm sunlight." },
+  { label: "🏰 Fantasy Castle", prompt: "Generate image: an epic fantasy castle on a cliff with dramatic clouds, waterfalls, and magical lighting." },
+  { label: "🌵 Desert Sunset", prompt: "Generate image: a stunning desert landscape at sunset with dramatic colors, cacti, and vast open sky." },
+  { label: "🎮 Retro Game", prompt: "Generate image: pixel art or vaporwave style scene inspired by classic 80s/90s video games with bold colors." },
 ];
 
 const writePromptPool = [
