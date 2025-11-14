@@ -25,6 +25,8 @@ export function ChatHistoryPanel() {
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   /** Navigate back to chat - close panel */
   const goToChat = () => {
@@ -105,6 +107,52 @@ export function ChatHistoryPanel() {
     [chatSessions]
   );
 
+  // Scroll to top when panel opens
+  useEffect(() => {
+    const container = document.querySelector('.w-full.max-w-3xl.mx-auto.space-y-4');
+    if (container) {
+      container.scrollTop = 0;
+    }
+  }, []);
+
+  // Pagination
+  const totalPages = Math.ceil(sortedSessions.length / ITEMS_PER_PAGE);
+  const paginatedSessions = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return sortedSessions.slice(startIndex, endIndex);
+  }, [sortedSessions, currentPage]);
+
+  const PaginationButtons = () => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex items-center justify-between gap-2 px-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          className="backdrop-blur-xl bg-background/70 border-border/40"
+        >
+          Prev Page
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          Page {currentPage} of {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          disabled={currentPage === totalPages}
+          className="backdrop-blur-xl bg-background/70 border-border/40"
+        >
+          Next Page
+        </Button>
+      </div>
+    );
+  };
+
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4 pt-4 px-4 pb-4 h-full overflow-y-auto scrollbar-hide">
       {/* Header */}
@@ -173,8 +221,10 @@ export function ChatHistoryPanel() {
           </GlassCard>
         </div>
       ) : (
-        <div className="space-y-2">
-          {sortedSessions.map((session) => (
+        <>
+          <PaginationButtons />
+          <div className="space-y-2">
+            {paginatedSessions.map((session) => (
             <GlassCard
               key={session.id}
               variant={currentSessionId === session.id ? "bubble" : "default"}
@@ -209,6 +259,8 @@ export function ChatHistoryPanel() {
             </GlassCard>
           ))}
         </div>
+        <PaginationButtons />
+      </>
       )}
     </div>
   );

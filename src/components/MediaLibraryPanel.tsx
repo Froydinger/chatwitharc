@@ -41,6 +41,16 @@ export function MediaLibraryPanel() {
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  // Scroll to top when panel opens
+  useEffect(() => {
+    const container = document.querySelector('.media-library-container');
+    if (container) {
+      container.scrollTop = 0;
+    }
+  }, []);
 
   // Simulate loading state
   useEffect(() => {
@@ -103,6 +113,19 @@ export function MediaLibraryPanel() {
     );
   }, [generatedImages, searchQuery]);
 
+  // Pagination
+  const totalPages = Math.ceil(filteredImages.length / ITEMS_PER_PAGE);
+  const paginatedImages = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredImages.slice(startIndex, endIndex);
+  }, [filteredImages, currentPage]);
+
+  // Reset to page 1 when search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
   // Group images by date - removed for iOS-style grid
   // const groupedImages = useMemo(() => {
   //   const groups: Record<string, GeneratedImage[]> = {};
@@ -131,8 +154,38 @@ export function MediaLibraryPanel() {
     }
   };
 
+  const PaginationButtons = () => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex items-center justify-between gap-2 px-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          className="backdrop-blur-xl bg-background/70 border-border/40"
+        >
+          Prev Page
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          Page {currentPage} of {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          disabled={currentPage === totalPages}
+          className="backdrop-blur-xl bg-background/70 border-border/40"
+        >
+          Next Page
+        </Button>
+      </div>
+    );
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 p-6 h-full overflow-y-auto scrollbar-hide">
+    <div className="media-library-container w-full max-w-4xl mx-auto space-y-6 p-6 h-full overflow-y-auto scrollbar-hide">
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center gap-3">
@@ -183,8 +236,10 @@ export function MediaLibraryPanel() {
             </GlassCard>
           </div>
         ) : (
-          <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {filteredImages.map((image, index) => (
+          <>
+            <PaginationButtons />
+            <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {paginatedImages.map((image, index) => (
               <div
                 key={`${image.messageId}-${index}`}
                 className="aspect-square relative cursor-pointer group hover:scale-[1.02] transition-transform"
@@ -207,6 +262,8 @@ export function MediaLibraryPanel() {
               </div>
             ))}
           </div>
+          <PaginationButtons />
+        </>
         )}
       </div>
 
