@@ -74,33 +74,34 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
               transform: 'translateZ(0)',
               willChange: 'transform'
             }}
+            initial={{ opacity: 0 }}
             animate={{
+              opacity: 1,
               scale: [1, 1.15, 1]
             }}
             transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              ease: "easeInOut"
+              opacity: { duration: 0.4, ease: "easeOut" },
+              scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
             }}
           >
             <ThemedLogo className="h-full w-full" alt="Thinking" />
           </motion.div>
           <motion.div
             className="absolute inset-0 rounded-full bg-primary/30"
-            style={{ 
+            style={{
               filter: 'blur(16px)',
               backfaceVisibility: 'hidden',
               transform: 'translateZ(0)',
               willChange: 'transform, opacity'
             }}
-            animate={{ 
+            initial={{ opacity: 0 }}
+            animate={{
               scale: [0.8, 1.2, 0.8],
               opacity: [0.3, 0.6, 0.3]
             }}
-            transition={{ 
-              duration: 1.5,
-              repeat: Infinity,
-              ease: "easeInOut"
+            transition={{
+              opacity: { duration: 0.4, ease: "easeOut" },
+              scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
             }}
           />
           <motion.div
