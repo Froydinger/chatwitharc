@@ -223,68 +223,99 @@ IMPORTANT: Output ONLY the file content (or JSON for ZIP), no explanations or ma
   }
 });
 
-// ZIP file generator using Deno's native APIs
+// CRC-32 calculation for ZIP files
+function calculateCRC32(data: Uint8Array): number {
+  const crcTable = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let j = 0; j < 8; j++) {
+      c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    }
+    crcTable[i] = c;
+  }
+  
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < data.length; i++) {
+    crc = crcTable[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+// DOS date/time encoding for ZIP files
+function getDosDateTime(): { date: number; time: number } {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  const seconds = Math.floor(now.getSeconds() / 2);
+  
+  const date = ((year - 1980) << 9) | (month << 5) | day;
+  const time = (hours << 11) | (minutes << 5) | seconds;
+  
+  return { date, time };
+}
+
+// ZIP file generator with proper CRC-32 checksums
 async function generateZipFile(content: string): Promise<Uint8Array> {
   try {
     // Parse the AI's structured output to get file structure
-    // Expected format: JSON with files array [{ name: "file.txt", content: "..." }]
     let filesData: Array<{ name: string; content: string }>;
     
     try {
       const parsed = JSON.parse(content);
       filesData = parsed.files || [{ name: 'readme.txt', content: parsed.content || content }];
     } catch {
-      // If not JSON, create a single file
       filesData = [{ name: 'content.txt', content: content }];
     }
 
-    // Create ZIP using simple ZIP format (no compression for simplicity and compatibility)
     const encoder = new TextEncoder();
-    const files: Array<{ name: string; data: Uint8Array; offset: number }> = [];
+    const { date: dosDate, time: dosTime } = getDosDateTime();
+    const files: Array<{ 
+      name: string; 
+      data: Uint8Array; 
+      crc32: number;
+      offset: number 
+    }> = [];
     let currentOffset = 0;
 
-    // Local file headers
     const localHeaders: Uint8Array[] = [];
     
+    // Generate local file headers and calculate CRCs
     for (const file of filesData) {
       const fileData = encoder.encode(file.content);
       const fileName = encoder.encode(file.name);
+      const crc32 = calculateCRC32(fileData);
       
-      // Local file header
       const header = new Uint8Array(30 + fileName.length);
       const view = new DataView(header.buffer);
       
-      // Local file header signature
-      view.setUint32(0, 0x04034b50, true);
-      // Version needed to extract
-      view.setUint16(4, 10, true);
-      // General purpose bit flag (no compression)
-      view.setUint16(6, 0, true);
-      // Compression method (0 = no compression)
-      view.setUint16(8, 0, true);
-      // Last mod time & date (set to zero for simplicity)
-      view.setUint16(10, 0, true);
-      view.setUint16(12, 0, true);
-      // CRC-32 (simplified - using 0)
-      view.setUint32(14, 0, true);
-      // Compressed size
-      view.setUint32(18, fileData.length, true);
-      // Uncompressed size
-      view.setUint32(22, fileData.length, true);
-      // File name length
-      view.setUint16(26, fileName.length, true);
-      // Extra field length
-      view.setUint16(28, 0, true);
+      view.setUint32(0, 0x04034b50, true); // Local file header signature
+      view.setUint16(4, 20, true); // Version needed (2.0)
+      view.setUint16(6, 0, true); // General purpose bit flag
+      view.setUint16(8, 0, true); // No compression
+      view.setUint16(10, dosTime, true); // Last mod time
+      view.setUint16(12, dosDate, true); // Last mod date
+      view.setUint32(14, crc32, true); // CRC-32
+      view.setUint32(18, fileData.length, true); // Compressed size
+      view.setUint32(22, fileData.length, true); // Uncompressed size
+      view.setUint16(26, fileName.length, true); // File name length
+      view.setUint16(28, 0, true); // Extra field length
       
-      // Copy file name
       header.set(fileName, 30);
       
       localHeaders.push(header);
-      files.push({ name: file.name, data: fileData, offset: currentOffset });
+      files.push({ 
+        name: file.name, 
+        data: fileData, 
+        crc32,
+        offset: currentOffset 
+      });
       currentOffset += header.length + fileData.length;
     }
 
-    // Central directory
+    // Generate central directory
     const centralDir: Uint8Array[] = [];
     let centralDirSize = 0;
     
@@ -295,41 +326,24 @@ async function generateZipFile(content: string): Promise<Uint8Array> {
       const cdHeader = new Uint8Array(46 + fileName.length);
       const view = new DataView(cdHeader.buffer);
       
-      // Central directory file header signature
-      view.setUint32(0, 0x02014b50, true);
-      // Version made by
-      view.setUint16(4, 10, true);
-      // Version needed to extract
-      view.setUint16(6, 10, true);
-      // General purpose bit flag
-      view.setUint16(8, 0, true);
-      // Compression method
-      view.setUint16(10, 0, true);
-      // Last mod time & date
-      view.setUint16(12, 0, true);
-      view.setUint16(14, 0, true);
-      // CRC-32
-      view.setUint32(16, 0, true);
-      // Compressed size
-      view.setUint32(20, file.data.length, true);
-      // Uncompressed size
-      view.setUint32(24, file.data.length, true);
-      // File name length
-      view.setUint16(28, fileName.length, true);
-      // Extra field length
-      view.setUint16(30, 0, true);
-      // File comment length
-      view.setUint16(32, 0, true);
-      // Disk number start
-      view.setUint16(34, 0, true);
-      // Internal file attributes
-      view.setUint16(36, 0, true);
-      // External file attributes
-      view.setUint32(38, 0, true);
-      // Relative offset of local header
-      view.setUint32(42, file.offset, true);
+      view.setUint32(0, 0x02014b50, true); // Central directory signature
+      view.setUint16(4, 20, true); // Version made by
+      view.setUint16(6, 20, true); // Version needed
+      view.setUint16(8, 0, true); // General purpose bit flag
+      view.setUint16(10, 0, true); // Compression method
+      view.setUint16(12, dosTime, true); // Last mod time
+      view.setUint16(14, dosDate, true); // Last mod date
+      view.setUint32(16, file.crc32, true); // CRC-32
+      view.setUint32(20, file.data.length, true); // Compressed size
+      view.setUint32(24, file.data.length, true); // Uncompressed size
+      view.setUint16(28, fileName.length, true); // File name length
+      view.setUint16(30, 0, true); // Extra field length
+      view.setUint16(32, 0, true); // File comment length
+      view.setUint16(34, 0, true); // Disk number
+      view.setUint16(36, 0, true); // Internal file attributes
+      view.setUint32(38, 0x81A40000, true); // External file attributes (regular file)
+      view.setUint32(42, file.offset, true); // Local header offset
       
-      // Copy file name
       cdHeader.set(fileName, 46);
       
       centralDir.push(cdHeader);
@@ -340,29 +354,20 @@ async function generateZipFile(content: string): Promise<Uint8Array> {
     const eocd = new Uint8Array(22);
     const eocdView = new DataView(eocd.buffer);
     
-    // End of central directory signature
-    eocdView.setUint32(0, 0x06054b50, true);
-    // Number of this disk
-    eocdView.setUint16(4, 0, true);
-    // Disk where central directory starts
-    eocdView.setUint16(6, 0, true);
-    // Number of central directory records on this disk
-    eocdView.setUint16(8, files.length, true);
-    // Total number of central directory records
-    eocdView.setUint16(10, files.length, true);
-    // Size of central directory
-    eocdView.setUint32(12, centralDirSize, true);
-    // Offset of start of central directory
-    eocdView.setUint32(16, currentOffset, true);
-    // ZIP file comment length
-    eocdView.setUint16(20, 0, true);
+    eocdView.setUint32(0, 0x06054b50, true); // EOCD signature
+    eocdView.setUint16(4, 0, true); // Disk number
+    eocdView.setUint16(6, 0, true); // Central directory start disk
+    eocdView.setUint16(8, files.length, true); // Entries on this disk
+    eocdView.setUint16(10, files.length, true); // Total entries
+    eocdView.setUint32(12, centralDirSize, true); // Central directory size
+    eocdView.setUint32(16, currentOffset, true); // Central directory offset
+    eocdView.setUint16(20, 0, true); // Comment length
 
-    // Combine all parts
+    // Assemble the complete ZIP file
     const totalSize = currentOffset + centralDirSize + eocd.length;
     const zipData = new Uint8Array(totalSize);
     let offset = 0;
     
-    // Write local file headers and data
     for (let i = 0; i < files.length; i++) {
       zipData.set(localHeaders[i], offset);
       offset += localHeaders[i].length;
@@ -370,13 +375,11 @@ async function generateZipFile(content: string): Promise<Uint8Array> {
       offset += files[i].data.length;
     }
     
-    // Write central directory
     for (const cd of centralDir) {
       zipData.set(cd, offset);
       offset += cd.length;
     }
     
-    // Write end of central directory
     zipData.set(eocd, offset);
     
     return zipData;
