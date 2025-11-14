@@ -51,8 +51,13 @@ export function WelcomeSection({
       setIsLoadingSuggestions(true);
       try {
         const suggestions = await selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3, skipCache);
+
+        // Filter out the specific prompts that cause blips
+        const excludedLabels = ["💭 Reflect", "🙏 Gratitude", "🎨 Dream Poster"];
+        const filtered = suggestions.filter(s => !excludedLabels.includes(s.label));
+
         if (isMounted) {
-          setSmartSuggestions(suggestions);
+          setSmartSuggestions(filtered);
           setIsLoadingSuggestions(false);
         }
       } catch (error) {
@@ -73,7 +78,12 @@ export function WelcomeSection({
     setIsRefreshing(true);
     try {
       const suggestions = await selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3, true);
-      setSmartSuggestions(suggestions);
+
+      // Filter out the specific prompts that cause blips
+      const excludedLabels = ["💭 Reflect", "🙏 Gratitude", "🎨 Dream Poster"];
+      const filtered = suggestions.filter(s => !excludedLabels.includes(s.label));
+
+      setSmartSuggestions(filtered);
       setIsRefreshing(false);
     } catch (error) {
       console.error("Failed to refresh suggestions:", error);
@@ -206,8 +216,66 @@ export function WelcomeSection({
           </motion.p>
         </motion.div>
 
-        {/* Smart Suggestions - Hidden to prevent prompt blip */}
-        {/* Suggestions are loaded in background but not displayed */}
+        {/* Smart Suggestions or Loading State */}
+        {isLoadingSuggestions || isRefreshing || !smartSuggestions || smartSuggestions.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 1, y: 0 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0 }}
+            className="flex flex-col items-center gap-3 mt-4"
+          >
+            <motion.div
+              animate={{ scale: [1, 1.15, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              className="relative"
+            >
+              <img src="/arc-logo-ui.png" alt="Loading" className="h-10 w-10 logo-accent-glow" />
+              <motion.div
+                className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
+                animate={{
+                  scale: [0.8, 1.2, 0.8],
+                  opacity: [0.3, 0.6, 0.3]
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+            </motion.div>
+            <p className="text-sm text-muted-foreground">
+              {isRefreshing ? "Refreshing suggestions..." : "Personalizing prompts for you..."}
+            </p>
+          </motion.div>
+        ) : (
+          smartSuggestions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              className="w-full space-y-2"
+            >
+              {/* Refresh Button */}
+              <div className="flex justify-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <RefreshCw className={`h-3 w-3 transition-transform ${isRefreshing ? "animate-spin" : ""}`} />
+                </Button>
+              </div>
+
+              <SmartSuggestions
+                suggestions={smartSuggestions}
+                onSelectPrompt={onTriggerPrompt}
+                onShowMore={() => setShowLibrary(true)}
+              />
+            </motion.div>
+          )
+        )}
 
         {(isLoading || isGeneratingImage) && (
           <motion.div 
