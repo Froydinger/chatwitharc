@@ -575,7 +575,7 @@ export function MobileChatApp() {
             ) : (
               <div className="w-full flex justify-center px-4">
                 <div
-                  className="space-y-4 chat-messages w-full max-w-lg" // max-w-lg for messages only
+                  className="space-y-4 chat-messages w-full max-w-xl" // Now max-w-xl for messages only
                   style={{
                     paddingTop: "6.5rem",
                   }}
@@ -666,7 +666,7 @@ export function MobileChatApp() {
           <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-30 pointer-events-none px-4">
             <div
               className={cn(
-                "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto", // This was restored from original, but input is max-w-760px in style
+                "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto", // Input bar is using max-w-4xl which is then overridden by glass-dock's 'max-width: 760px;'
                 rightPanelOpen && "lg:mr-80 xl:mr-96",
               )}
             >
