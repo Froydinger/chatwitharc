@@ -51,8 +51,13 @@ export function WelcomeSection({
       setIsLoadingSuggestions(true);
       try {
         const suggestions = await selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3, skipCache);
+
+        // Filter out the specific prompts that cause blips
+        const excludedLabels = ["💭 Reflect", "🙏 Gratitude", "🎨 Dream Poster"];
+        const filtered = suggestions.filter(s => !excludedLabels.includes(s.label));
+
         if (isMounted) {
-          setSmartSuggestions(suggestions);
+          setSmartSuggestions(filtered);
           setIsLoadingSuggestions(false);
         }
       } catch (error) {
@@ -73,7 +78,12 @@ export function WelcomeSection({
     setIsRefreshing(true);
     try {
       const suggestions = await selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3, true);
-      setSmartSuggestions(suggestions);
+
+      // Filter out the specific prompts that cause blips
+      const excludedLabels = ["💭 Reflect", "🙏 Gratitude", "🎨 Dream Poster"];
+      const filtered = suggestions.filter(s => !excludedLabels.includes(s.label));
+
+      setSmartSuggestions(filtered);
       setIsRefreshing(false);
     } catch (error) {
       console.error("Failed to refresh suggestions:", error);
@@ -207,11 +217,11 @@ export function WelcomeSection({
         </motion.div>
 
         {/* Smart Suggestions or Loading State */}
-        {isLoadingSuggestions || isRefreshing || !smartSuggestions ? (
+        {isLoadingSuggestions || isRefreshing || !smartSuggestions || smartSuggestions.length === 0 ? (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 1, y: 0 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.3 }}
+            transition={{ duration: 0 }}
             className="flex flex-col items-center gap-3 mt-4"
           >
             <motion.div
@@ -222,14 +232,14 @@ export function WelcomeSection({
               <img src="/arc-logo-ui.png" alt="Loading" className="h-10 w-10 logo-accent-glow" />
               <motion.div
                 className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
-                animate={{ 
+                animate={{
                   scale: [0.8, 1.2, 0.8],
                   opacity: [0.3, 0.6, 0.3]
                 }}
-                transition={{ 
-                  duration: 1.5, 
-                  repeat: Infinity, 
-                  ease: "easeInOut" 
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut"
                 }}
               />
             </motion.div>

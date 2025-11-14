@@ -10,11 +10,6 @@ export interface QuickPrompt {
   fullPrompt?: string; // Full contextual prompt for personalized prompts
 }
 
-interface PromptScore {
-  prompt: QuickPrompt;
-  score: number;
-}
-
 // Cache for personalized prompts
 let personalizedPromptsCache: QuickPrompt[] = [];
 let lastCacheTime = 0;
@@ -77,7 +72,8 @@ export async function fetchPersonalizedPrompts(
 
 /**
  * Smart prompt selection algorithm with AI personalization
- * Prioritizes Chat/Reflect/Create prompts (70%) and mixes in personalized AI-generated prompts
+ * Returns ONLY AI-personalized prompts. Returns empty array if personalization is unavailable.
+ * This prevents showing generic fallback prompts and maintains the loading state.
  */
 export async function selectSmartPrompts(
   prompts: QuickPrompt[],
@@ -88,70 +84,16 @@ export async function selectSmartPrompts(
 ): Promise<QuickPrompt[]> {
   // Try to fetch personalized prompts
   const personalizedPrompts = await fetchPersonalizedPrompts(profile, chatSessions, skipCache);
-  
-  // If we have personalized prompts, mix them in
-  let allPrompts = [...prompts];
-  if (personalizedPrompts.length > 0) {
-    // Give personalized prompts a boost in scoring
-    allPrompts = [...personalizedPrompts, ...prompts];
+
+  // Only proceed if we have personalized prompts
+  // Don't fall back to generic prompts - return empty array to maintain loading state
+  if (personalizedPrompts.length === 0) {
+    return [];
   }
-  const now = new Date();
-  const hour = now.getHours();
-  
-  // Score all prompts (including personalized ones)
-  const scoredPrompts: PromptScore[] = allPrompts.map(prompt => {
-    let score = scorePrompt(prompt, profile, chatSessions, hour);
-    
-    // Boost personalized prompts significantly
-    if (prompt.isPersonalized) {
-      score += 40; // Strong boost for AI-generated prompts
-    }
-    
-    return { prompt, score };
-  });
-  
-  // Sort by score
-  scoredPrompts.sort((a, b) => b.score - a.score);
-  
-  // Selection strategy: Prioritize personalized + chat/create/write (70% weighting)
-  const selected: QuickPrompt[] = [];
-  const categoryCount = { chat: 0, create: 0, write: 0, code: 0 };
-  const personalizedCount = scoredPrompts.filter(s => s.prompt.isPersonalized).length;
-  
-  // Determine mix: if we have personalized prompts, show at least 1-2 of them
-  const minPersonalized = personalizedCount > 0 ? Math.min(2, personalizedCount) : 0;
-  let personalizedSelected = 0;
-  
-  // First pass: Select personalized prompts
-  if (minPersonalized > 0) {
-    for (const scored of scoredPrompts) {
-      if (personalizedSelected >= minPersonalized) break;
-      if (scored.prompt.isPersonalized) {
-        selected.push(scored.prompt);
-        categoryCount[scored.prompt.category]++;
-        personalizedSelected++;
-      }
-    }
-  }
-  
-  // Second pass: Fill remaining slots with high-scored generic prompts
-  for (const scored of scoredPrompts) {
-    if (selected.length >= count) break;
-    if (selected.includes(scored.prompt)) continue; // Skip already selected
-    
-    const cat = scored.prompt.category;
-    
-    // Limit code prompts (max 1 out of 3 unless personalized)
-    if (cat === 'code' && categoryCount.code >= 1 && !scored.prompt.isPersonalized) continue;
-    
-    // Ensure variety (max 2 from same category unless personalized)
-    if (categoryCount[cat] >= 2 && !scored.prompt.isPersonalized) continue;
-    
-    selected.push(scored.prompt);
-    categoryCount[cat]++;
-  }
-  
-  return selected.slice(0, count);
+
+  // Return only AI-personalized prompts (no generic fallbacks)
+  // Simply return the requested count from personalized prompts
+  return personalizedPrompts.slice(0, count);
 }
 
 /**
