@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { X, Paperclip, ArrowRight, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
+import { cn } from "@/lib/utils";
 
 // Global cancellation flag
 let cancelRequested = false;
@@ -110,9 +112,12 @@ const useSafePortalRoot = () => {
   return root;
 };
 
-type Props = { onImagesChange?: (hasImages: boolean) => void };
+type Props = {
+  onImagesChange?: (hasImages: boolean) => void;
+  rightPanelOpen?: boolean;
+};
 
-export function ChatInput({ onImagesChange }: Props) {
+export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
   useProfile();
   const portalRoot = useSafePortalRoot();
   const { toast } = useToast();
@@ -783,82 +788,91 @@ export function ChatInput({ onImagesChange }: Props) {
         </button>
       </div>
 
-      {/* Tiles popover (lower z-index than sidebar; fixed above dock) */}
+      {/* Tiles menu - bouncy popup above input */}
       {portalRoot &&
-        showMenu &&
         createPortal(
-          <div
-            className="ci-tiles fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[35]"
-            style={{ bottom: "calc(140px + env(safe-area-inset-bottom, 0px))" }}
-          >
-            <div className="grid grid-cols-3 gap-4 px-1">
-              {/* Quick Prompts tile (purple/primary glow) */}
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  setShowPromptLibrary(true);
+          <AnimatePresence>
+            {showMenu && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 25,
+                  mass: 0.8,
                 }}
-                className="rounded-2xl border bg-background/80 backdrop-blur-xl px-4 py-4 text-left transition-all hover:translate-y-[-2px] hover:scale-[1.01]"
-                style={{
-                  borderColor: "rgba(139,92,246,0.35)",
-                  boxShadow:
-                    "0 10px 30px rgba(0,0,0,.25), 0 0 0 1px rgba(139,92,246,.20) inset, 0 0 20px rgba(139,92,246,.18)",
-                }}
+                className={cn(
+                  "ci-tiles fixed z-[35] w-[min(420px,90vw)]",
+                  "left-1/2 -translate-x-1/2",
+                  "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                  rightPanelOpen && "lg:mr-80 xl:mr-96"
+                )}
+                style={{ bottom: "calc(90px + env(safe-area-inset-bottom, 0px))" }}
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                  </span>
-                  <div className="text-lg font-semibold">Quick Prompts</div>
-                </div>
-                <div className="text-sm text-muted-foreground leading-snug">Browse fun prompt ideas!</div>
-              </button>
+                <div className="grid grid-cols-3 gap-2 px-1">
+                  {/* Quick Prompts */}
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowPromptLibrary(true);
+                    }}
+                    className="group rounded-xl border bg-background/90 backdrop-blur-xl px-3 py-2.5 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.03] active:scale-95"
+                    style={{
+                      borderColor: "rgba(139,92,246,0.4)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(139,92,246,.15) inset",
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-1.5">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                      </span>
+                      <div className="text-sm font-semibold">Prompts</div>
+                    </div>
+                  </button>
 
-              {/* Generate Image tile (yellow glow) */}
-              <button
-                onClick={() => {
-                  setForceImageMode(true);
-                  setShowMenu(false);
-                }}
-                className="rounded-2xl border bg-background/80 backdrop-blur-xl px-4 py-4 text-left transition-all hover:translate-y-[-2px] hover:scale-[1.01]"
-                style={{
-                  borderColor: "rgba(250,204,21,0.35)",
-                  boxShadow:
-                    "0 10px 30px rgba(0,0,0,.25), 0 0 0 1px rgba(250,204,21,.20) inset, 0 0 20px rgba(250,204,21,.18)",
-                }}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-2xl">🍌</span>
-                  <div className="text-lg font-semibold">Generate Image</div>
-                </div>
-                <div className="text-sm text-muted-foreground leading-snug">
-                  Turn this prompt into an image using Nano Banana.
-                </div>
-              </button>
+                  {/* Generate Image */}
+                  <button
+                    onClick={() => {
+                      setForceImageMode(true);
+                      setShowMenu(false);
+                    }}
+                    className="group rounded-xl border bg-background/90 backdrop-blur-xl px-3 py-2.5 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.03] active:scale-95"
+                    style={{
+                      borderColor: "rgba(250,204,21,0.4)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(250,204,21,.15) inset",
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-1.5">
+                      <span className="text-2xl leading-none">🍌</span>
+                      <div className="text-sm font-semibold">Image</div>
+                    </div>
+                  </button>
 
-              {/* Attach Images tile (blue glow) */}
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  fileInputRef.current?.click();
-                }}
-                className="rounded-2xl border bg-background/80 backdrop-blur-xl px-4 py-4 text-left transition-all hover:translate-y-[-2px] hover:scale-[1.01]"
-                style={{
-                  borderColor: "rgba(59,130,246,0.35)",
-                  boxShadow:
-                    "0 10px 30px rgba(0,0,0,.25), 0 0 0 1px rgba(59,130,246,.20) inset, 0 0 20px rgba(59,130,246,.18)",
-                }}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted">
-                    <Paperclip className="h-4 w-4" />
-                  </span>
-                  <div className="text-lg font-semibold">Attach</div>
+                  {/* Attach */}
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      fileInputRef.current?.click();
+                    }}
+                    className="group rounded-xl border bg-background/90 backdrop-blur-xl px-3 py-2.5 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.03] active:scale-95"
+                    style={{
+                      borderColor: "rgba(59,130,246,0.4)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(59,130,246,.15) inset",
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-1.5">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10">
+                        <Paperclip className="h-4 w-4 text-blue-500" />
+                      </span>
+                      <div className="text-sm font-semibold">Attach</div>
+                    </div>
+                  </button>
                 </div>
-                <div className="text-sm text-muted-foreground leading-snug">Attach to analyze or edit!</div>
-              </button>
-            </div>
-          </div>,
+              </motion.div>
+            )}
+          </AnimatePresence>,
           portalRoot,
         )}
 
