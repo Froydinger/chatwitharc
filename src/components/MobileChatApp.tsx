@@ -90,6 +90,8 @@ export function MobileChatApp() {
   const [pullDistance, setPullDistance] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [snarkyMessage, setSnarkyMessage] = useState<string | null>(null);
+  const [isLogoSpinning, setIsLogoSpinning] = useState(false);
+  const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -406,13 +408,23 @@ export function MobileChatApp() {
               className="relative pointer-events-auto"
               whileHover={{ scale: 1.1, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
-              transition={{ type: "spring", damping: 15, stiffness: 300 }}
+              animate={isLogoSpinning ? { rotate: 360 } : { rotate: 0 }}
+              transition={isLogoSpinning ? { duration: 0.6, ease: "easeOut" } : { type: "spring", damping: 15, stiffness: 300 }}
             >
               <Button
                 variant="outline"
                 size="icon"
                 className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all overflow-hidden shadow-lg"
                 onClick={() => {
+                  // Clear any existing timeout
+                  if (snarkyTimeoutRef.current) {
+                    clearTimeout(snarkyTimeoutRef.current);
+                  }
+
+                  // Trigger spin animation
+                  setIsLogoSpinning(true);
+                  setTimeout(() => setIsLogoSpinning(false), 600);
+
                   const snarkyMessages = [
                     "I'm an Arc, not a miracle worker.",
                     "Still better than a straight line.",
@@ -447,7 +459,12 @@ export function MobileChatApp() {
                   ];
                   const randomMessage = snarkyMessages[Math.floor(Math.random() * snarkyMessages.length)];
                   setSnarkyMessage(randomMessage);
-                  setTimeout(() => setSnarkyMessage(null), 3000);
+
+                  // Set new timeout and store reference
+                  snarkyTimeoutRef.current = setTimeout(() => {
+                    setSnarkyMessage(null);
+                    snarkyTimeoutRef.current = null;
+                  }, 3000);
                 }}
                 title="Click for Arc wisdom"
               >
@@ -457,14 +474,23 @@ export function MobileChatApp() {
                   className="h-8 w-8 object-cover"
                 />
               </Button>
-
-              {/* Snarky message bubble */}
-              {snarkyMessage && (
-                <div className="fixed top-16 left-4 px-2 py-1 rounded-lg backdrop-blur-xl bg-background/90 border border-border/40 shadow-lg z-50 animate-in fade-in slide-in-from-left-1 duration-150 max-w-[200px]">
-                  <p className="text-[9pt] text-foreground/90 leading-snug">{snarkyMessage}</p>
-                </div>
-              )}
             </motion.div>
+
+            {/* Snarky message bubble - fixed position */}
+            <AnimatePresence mode="wait">
+              {snarkyMessage && (
+                <motion.div
+                  key={snarkyMessage}
+                  initial={{ opacity: 0, y: -10, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                  transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                  className="fixed top-20 left-4 px-3 py-2 rounded-xl backdrop-blur-2xl bg-background/95 border border-border/40 shadow-xl z-50 max-w-[220px]"
+                >
+                  <p className="text-[10pt] text-foreground/90 leading-snug">{snarkyMessage}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Right-side buttons */}
             <div className="flex items-center gap-2 pointer-events-auto">
