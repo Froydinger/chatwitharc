@@ -575,7 +575,7 @@ export function MobileChatApp() {
             ) : (
               <div className="w-full flex justify-center px-4">
                 <div
-                  className="space-y-4 chat-messages w-full max-w-xl" // Changed max-w-2xl to max-w-xl
+                  className="space-y-4 chat-messages w-full max-w-lg" // Changed max-w-xl to max-w-lg
                   style={{
                     paddingTop: "6.5rem",
                   }}
@@ -666,7 +666,7 @@ export function MobileChatApp() {
           <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-30 pointer-events-none px-4">
             <div
               className={cn(
-                "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-xl mx-auto", // Changed max-w-2xl to max-w-xl
+                "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-lg mx-auto", // Changed max-w-xl to max-w-lg
                 rightPanelOpen && "lg:mr-80 xl:mr-96",
               )}
             >
