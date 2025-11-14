@@ -469,7 +469,7 @@ export function MobileChatApp() {
                 }}
                 title="Click for Arc wisdom"
               >
-                <ThemedLogo className="h-8 w-8" alt="Arc" />
+                <ThemedLogo className="h-9 w-9" alt="Arc" />
               </Button>
             </motion.div>
 
