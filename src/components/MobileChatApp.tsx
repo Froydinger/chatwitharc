@@ -15,6 +15,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
+import { usePromptPreload } from "@/hooks/usePromptPreload";
 
 /** Time-of-day greeting (no name usage) */
 function getDaypartGreeting(d: Date = new Date()): "Good Morning" | "Good Afternoon" | "Good Evening" {
@@ -48,6 +49,9 @@ export function MobileChatApp() {
   const { profile } = useProfile();
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile(); // This hook determines if the current device is mobile
+
+  // Pre-generate prompts in background for instant access
+  usePromptPreload();
 
   // Initialize rightPanelOpen state based on device type and user's last preference
   useEffect(() => {

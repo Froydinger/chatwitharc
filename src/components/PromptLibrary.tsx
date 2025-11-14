@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generatePromptsByCategory } from "@/utils/promptGenerator";
+import { getCachedPrompts } from "@/hooks/usePromptPreload";
 
 interface QuickPrompt {
   label: string;
@@ -46,7 +47,16 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
   }, [isOpen]);
 
   // Function to generate AI prompts for a category
-  const generateAIPrompts = async (category: 'chat' | 'create' | 'write' | 'code'): Promise<QuickPrompt[]> => {
+  const generateAIPrompts = async (category: 'chat' | 'create' | 'write' | 'code', forceRefresh = false): Promise<QuickPrompt[]> => {
+    // Check cache first for instant load (unless forcing refresh)
+    if (!forceRefresh) {
+      const cached = getCachedPrompts(category);
+      if (cached) {
+        console.log(`⚡ Using cached ${category} prompts (instant load)`);
+        return cached;
+      }
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('generate-category-prompts', {
         body: { category }
@@ -58,7 +68,16 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
         return generatePromptsByCategory(category);
       }
 
-      return data?.prompts || generatePromptsByCategory(category);
+      const prompts = data?.prompts || generatePromptsByCategory(category);
+
+      // Cache the new prompts
+      try {
+        sessionStorage.setItem(`arc_prompts_cache_${category}`, JSON.stringify(prompts));
+      } catch (e) {
+        console.error('Failed to cache prompts:', e);
+      }
+
+      return prompts;
     } catch (error) {
       console.error(`Error generating ${category} prompts:`, error);
       // Fallback to hardcoded prompts
@@ -67,28 +86,28 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
   };
 
   // Function to refresh prompts for a specific category or all
-  const refreshPrompts = async (category: TabType | 'all') => {
+  const refreshPrompts = async (category: TabType | 'all', forceRefresh = false) => {
     if (category === 'all' || category === 'chat') {
       setIsLoadingChat(true);
-      const prompts = await generateAIPrompts('chat');
+      const prompts = await generateAIPrompts('chat', forceRefresh);
       setChatPrompts(prompts);
       setIsLoadingChat(false);
     }
     if (category === 'all' || category === 'create') {
       setIsLoadingCreate(true);
-      const prompts = await generateAIPrompts('create');
+      const prompts = await generateAIPrompts('create', forceRefresh);
       setCreatePrompts(prompts);
       setIsLoadingCreate(false);
     }
     if (category === 'all' || category === 'write') {
       setIsLoadingWrite(true);
-      const prompts = await generateAIPrompts('write');
+      const prompts = await generateAIPrompts('write', forceRefresh);
       setWritePrompts(prompts);
       setIsLoadingWrite(false);
     }
     if (category === 'all' || category === 'code') {
       setIsLoadingCode(true);
-      const prompts = await generateAIPrompts('code');
+      const prompts = await generateAIPrompts('code', forceRefresh);
       setCodePrompts(prompts);
       setIsLoadingCode(false);
     }
@@ -180,7 +199,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                     variant="ghost"
                     size="icon"
                     onClick={() => {
-                      refreshPrompts(activeTab);
+                      refreshPrompts(activeTab, true); // Force refresh bypasses cache
                       toast.success('Prompts refreshed!');
                     }}
                     className="rounded-full"

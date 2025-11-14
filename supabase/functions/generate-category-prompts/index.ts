@@ -86,7 +86,7 @@ Make each prompt unique, engaging, and different from common or generic options.
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-flash-lite',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Generate 6 fresh, creative ${category} prompts.` }
