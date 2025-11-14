@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Mic2, MessageSquare, Zap, Shield, Github } from "lucide-react";
+import { Mic2, MessageSquare, Zap, Shield, Github, ImagePlus } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 
@@ -16,9 +16,9 @@ export function InfoPanel() {
       description: "Powered by Google Gemini 2.5 Flash for lightning-fast, intelligent conversations"
     },
     {
-      icon: () => <span className="text-2xl">🍌</span>,
-      title: "Nano Banana Images",
-      description: "Generate stunning images using Google's Nano Banana image generation model"
+      icon: ImagePlus,
+      title: "AI Image Generation",
+      description: "Generate stunning images using Google's advanced image generation model"
     },
     // Voice feature temporarily hidden
     // {
@@ -79,7 +79,7 @@ export function InfoPanel() {
           and magical interactions.
         </p>
         <p className="text-sm text-muted-foreground/70">
-          Powered by Google Gemini 2.5 Flash for conversations • Nano Banana 🍌 for image generation
+          Powered by Google Gemini 2.5 Flash for conversations • Advanced AI for image generation
         </p>
       </motion.div>
 
