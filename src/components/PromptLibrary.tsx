@@ -263,10 +263,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
 
             {/* Prompt Grid */}
             <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
-              <div
-                key={activeTab}
-                className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-4"
-              >
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-4">
                 {isCurrentTabLoading() ? (
                   <div className="col-span-full flex items-center justify-center py-12">
                     <div className="flex flex-col items-center gap-3">
@@ -288,10 +285,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                 ) : (
                   getCurrentPrompts().map((prompt, index) => (
                     <motion.button
-                      key={index}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.03, type: "spring", damping: 20, stiffness: 300 }}
+                      key={`${activeTab}-${prompt.label}`}
                       whileHover={{ scale: 1.05, y: -2 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => {
