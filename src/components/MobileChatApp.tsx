@@ -573,16 +573,17 @@ export function MobileChatApp() {
                 />
               </div>
             ) : (
-              <div
-                className="space-y-4 chat-messages"
-                style={{
-                  paddingTop: "6.5rem",
-                  paddingLeft: "1rem",
-                  paddingRight: "1rem",
-                }}
-              >
-                <AnimatePresence mode="sync" initial={false}>
-                  {messages.map((message, index) => {
+              <div className="w-full flex justify-center">
+                <div
+                  className="space-y-4 chat-messages w-full max-w-4xl"
+                  style={{
+                    paddingTop: "6.5rem",
+                    paddingLeft: "1rem",
+                    paddingRight: "1rem",
+                  }}
+                >
+                  <AnimatePresence mode="sync" initial={false}>
+                    {messages.map((message, index) => {
                     const isLastAssistantMessage = message.role === "assistant" && index === messages.length - 1;
                     // Only animate if this is a new message (not loaded from history)
                     const shouldAnimateTypewriter =
@@ -613,46 +614,30 @@ export function MobileChatApp() {
                         />
                       </motion.div>
                     );
-                  })}
-                </AnimatePresence>
-                {/* Show thinking indicator when loading */}
-                <AnimatePresence>
-                  {isLoading &&
-                    !isGeneratingImage &&
-                    messages.length > 0 &&
-                    messages[messages.length - 1].role === "user" && (
-                      <ThinkingIndicator 
-                        isLoading={isLoading} 
-                        isGeneratingImage={false}
-                        searchingChats={isSearchingChats}
-                        accessingMemory={isAccessingMemory}
-                      />
-                    )}
-                </AnimatePresence>
-                {/* Cancel button during loading */}
-                <AnimatePresence>
-                  {isLoading && !isGeneratingImage && messages.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.2 }}
-                      className="flex justify-start pl-4"
-                    >
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          cancelCurrentRequest();
-                        }}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <X className="h-3.5 w-3.5 mr-1.5" />
-                        Cancel
-                      </Button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                    })}
+                  </AnimatePresence>
+                  {/* Show thinking indicator when loading */}
+                  <AnimatePresence>
+                    {isLoading &&
+                      !isGeneratingImage &&
+                      messages.length > 0 &&
+                      messages[messages.length - 1]?.role === "user" && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                        >
+                          <ThinkingIndicator
+                            isLoading={isLoading}
+                            isGeneratingImage={false}
+                            searchingChats={isSearchingChats}
+                            accessingMemory={isAccessingMemory}
+                          />
+                        </motion.div>
+                      )}
+                  </AnimatePresence>
+                </div>
               </div>
             )}
           </div>
