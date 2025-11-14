@@ -821,10 +821,9 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                         }}
                         exit={{ opacity: 0, y: 30, rotate: -5, scale: 0.9 }}
                         transition={{
-                          type: "spring",
-                          stiffness: 260,
-                          damping: 28,
-                          mass: 0.8,
+                          type: "tween",
+                          ease: "backInOut",
+                          duration: 0.5,
                           delay: 0,
                         }}
                         onClick={() => {
@@ -857,10 +856,9 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                         }}
                         exit={{ opacity: 0, y: 30, rotate: 0, scale: 0.9 }}
                         transition={{
-                          type: "spring",
-                          stiffness: 260,
-                          damping: 28,
-                          mass: 0.8,
+                          type: "tween",
+                          ease: "backInOut",
+                          duration: 0.5,
                           delay: 0.04,
                         }}
                         onClick={() => {
@@ -893,10 +891,9 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                         }}
                         exit={{ opacity: 0, y: 30, rotate: 5, scale: 0.9 }}
                         transition={{
-                          type: "spring",
-                          stiffness: 260,
-                          damping: 28,
-                          mass: 0.8,
+                          type: "tween",
+                          ease: "backInOut",
+                          duration: 0.5,
                           delay: 0.08,
                         }}
                         onClick={() => {
