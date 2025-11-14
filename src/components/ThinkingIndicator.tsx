@@ -122,7 +122,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
             <Sparkles className="h-3 w-3 text-primary" />
           </motion.div>
         </div>
-        <div className="relative h-5 flex items-center">
+        <div className="relative flex items-center min-w-0">
           <AnimatePresence mode="wait">
             <motion.span
               key={getMessage()}
@@ -130,7 +130,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
               transition={{ duration: 0.3 }}
-              className="text-sm font-medium text-foreground/80 absolute whitespace-nowrap"
+              className="text-sm font-medium text-foreground/80 whitespace-nowrap"
             >
               {getMessage()}
             </motion.span>

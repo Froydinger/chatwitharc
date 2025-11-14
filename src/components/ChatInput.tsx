@@ -1,7 +1,7 @@
 // src/components/ChatInput.tsx
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, Paperclip, Plus, ArrowRight } from "lucide-react";
+import { X, Paperclip, Plus, ArrowRight, Sparkles } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,8 @@ import { useProfile } from "@/hooks/useProfile";
 import { AIService } from "@/services/ai";
 import { supabase } from "@/integrations/supabase/client";
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
+import { PromptLibrary } from "@/components/PromptLibrary";
+import { getAllPromptsFlat } from "@/utils/promptGenerator";
 
 // Global cancellation flag
 let cancelRequested = false;
@@ -128,6 +130,10 @@ export function ChatInput({ onImagesChange }: Props) {
   // Tiles menu
   const [showMenu, setShowMenu] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Prompt library
+  const [showPromptLibrary, setShowPromptLibrary] = useState(false);
+  const quickPrompts = getAllPromptsFlat();
 
   // Banana toggle
   const [forceImageMode, setForceImageMode] = useState(false);
@@ -765,6 +771,17 @@ export function ChatInput({ onImagesChange }: Props) {
           />
         </div>
 
+        {/* Quick Prompts Button */}
+        <button
+          onClick={() => setShowPromptLibrary(true)}
+          disabled={isLoading}
+          className="shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="Quick Prompts"
+          title="Quick Prompts"
+        >
+          <Sparkles className="h-5 w-5" />
+        </button>
+
         {/* Send */}
         <button
           onClick={handleSend}
@@ -837,6 +854,21 @@ export function ChatInput({ onImagesChange }: Props) {
           </div>,
           portalRoot,
         )}
+
+      {/* Prompt Library */}
+      <PromptLibrary
+        isOpen={showPromptLibrary}
+        onClose={() => setShowPromptLibrary(false)}
+        prompts={quickPrompts}
+        onSelectPrompt={(prompt) => {
+          setInputValue(prompt);
+          setShowPromptLibrary(false);
+          // Focus the textarea after selecting a prompt
+          setTimeout(() => {
+            textareaRef.current?.focus();
+          }, 100);
+        }}
+      />
 
       {/* hidden file input */}
       <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
