@@ -812,25 +812,24 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                     <div className="relative flex items-center justify-center gap-1 h-44 max-w-sm mx-auto">
                       {/* Quick Prompts - Left card */}
                       <motion.button
-                        initial={{ opacity: 0, y: 50, rotate: 0, scale: 0.85 }}
+                        initial={{ opacity: 0, y: 40, rotate: -10, scale: 0.9 }}
                         animate={{
                           opacity: 1,
                           y: 0,
                           rotate: -10,
                           scale: 1,
                         }}
-                        exit={{ opacity: 0, y: 30, rotate: -5, scale: 0.9 }}
+                        exit={{ opacity: 0, y: 20, rotate: -10, scale: 0.95 }}
                         transition={{
                           type: "tween",
-                          ease: "backInOut",
-                          duration: 0.5,
-                          delay: 0,
+                          ease: [0.34, 1.56, 0.64, 1],
+                          duration: 0.3,
                         }}
                         onClick={() => {
                           setShowMenu(false);
                           setShowPromptLibrary(true);
                         }}
-                        className="group rounded-2xl border bg-background/95 backdrop-blur-xl px-3 py-5 transition-all hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40"
+                        className="group rounded-2xl border bg-background/95 backdrop-blur-xl px-3 py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40"
                         style={{
                           borderColor: "rgba(139,92,246,0.5)",
                           boxShadow: "0 8px 32px rgba(0,0,0,.2), 0 0 0 1px rgba(139,92,246,.2) inset, 0 4px 12px rgba(139,92,246,.15)",
@@ -847,25 +846,24 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
 
                       {/* Generate Image - Center card */}
                       <motion.button
-                        initial={{ opacity: 0, y: 50, rotate: 0, scale: 0.85 }}
+                        initial={{ opacity: 0, y: 40, rotate: 0, scale: 0.9 }}
                         animate={{
                           opacity: 1,
                           y: 0,
                           rotate: 0,
                           scale: 1,
                         }}
-                        exit={{ opacity: 0, y: 30, rotate: 0, scale: 0.9 }}
+                        exit={{ opacity: 0, y: 20, rotate: 0, scale: 0.95 }}
                         transition={{
                           type: "tween",
-                          ease: "backInOut",
-                          duration: 0.5,
-                          delay: 0.04,
+                          ease: [0.34, 1.56, 0.64, 1],
+                          duration: 0.3,
                         }}
                         onClick={() => {
                           setForceImageMode(true);
                           setShowMenu(false);
                         }}
-                        className="group rounded-2xl border bg-background/95 backdrop-blur-xl px-3 py-5 transition-all hover:scale-105 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 z-10"
+                        className="group rounded-2xl border bg-background/95 backdrop-blur-xl px-3 py-5 hover:scale-105 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 z-10"
                         style={{
                           borderColor: "rgba(34,197,94,0.5)",
                           boxShadow: "0 8px 32px rgba(0,0,0,.2), 0 0 0 1px rgba(34,197,94,.2) inset, 0 4px 12px rgba(34,197,94,.15)",
@@ -882,25 +880,24 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
 
                       {/* Attach - Right card */}
                       <motion.button
-                        initial={{ opacity: 0, y: 50, rotate: 0, scale: 0.85 }}
+                        initial={{ opacity: 0, y: 40, rotate: 10, scale: 0.9 }}
                         animate={{
                           opacity: 1,
                           y: 0,
                           rotate: 10,
                           scale: 1,
                         }}
-                        exit={{ opacity: 0, y: 30, rotate: 5, scale: 0.9 }}
+                        exit={{ opacity: 0, y: 20, rotate: 10, scale: 0.95 }}
                         transition={{
                           type: "tween",
-                          ease: "backInOut",
-                          duration: 0.5,
-                          delay: 0.08,
+                          ease: [0.34, 1.56, 0.64, 1],
+                          duration: 0.3,
                         }}
                         onClick={() => {
                           setShowMenu(false);
                           fileInputRef.current?.click();
                         }}
-                        className="group rounded-2xl border bg-background/95 backdrop-blur-xl px-3 py-5 transition-all hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40"
+                        className="group rounded-2xl border bg-background/95 backdrop-blur-xl px-3 py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40"
                         style={{
                           borderColor: "rgba(59,130,246,0.5)",
                           boxShadow: "0 8px 32px rgba(0,0,0,.2), 0 0 0 1px rgba(59,130,246,.2) inset, 0 4px 12px rgba(59,130,246,.15)",
