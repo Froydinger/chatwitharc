@@ -885,8 +885,18 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
             prompts={quickPrompts}
             onSelectPrompt={(prompt) => {
               setShowPromptLibrary(false);
-              // Auto-send the prompt immediately
-              handleSend(prompt);
+              // Check if this is an image prompt and set image mode
+              if (prompt.toLowerCase().includes('generate image')) {
+                setForceImageMode(true);
+                setInputValue(prompt);
+                // Wait for state update, then send
+                setTimeout(() => {
+                  handleSend();
+                }, 50);
+              } else {
+                // Auto-send the prompt immediately for non-image prompts
+                handleSend(prompt);
+              }
             }}
           />,
           portalRoot
