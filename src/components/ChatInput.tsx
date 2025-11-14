@@ -1,7 +1,7 @@
 // src/components/ChatInput.tsx
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, Paperclip, Plus, ArrowRight, Sparkles } from "lucide-react";
+import { X, Paperclip, ArrowRight, Sparkles } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
@@ -726,7 +726,7 @@ export function ChatInput({ onImagesChange }: Props) {
         <button
           ref={menuButtonRef}
           type="button"
-          aria-label={shouldShowBanana ? "Disable image mode" : showMenu ? "Close menu" : "Open menu"}
+          aria-label={shouldShowBanana ? "Disable image mode" : showMenu ? "Close menu" : "Quick options"}
           className={[
             "ci-menu-btn h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 relative",
             shouldShowBanana
@@ -746,12 +746,7 @@ export function ChatInput({ onImagesChange }: Props) {
               </span>
             </>
           ) : (
-            <span
-              className="inline-block transition-transform"
-              style={{ transform: `rotate(${showMenu ? 45 : 0}deg)` }}
-            >
-              <Plus className="h-5 w-5" />
-            </span>
+            <Sparkles className="h-5 w-5" />
           )}
         </button>
 
@@ -770,17 +765,6 @@ export function ChatInput({ onImagesChange }: Props) {
             rows={1}
           />
         </div>
-
-        {/* Quick Prompts Button */}
-        <button
-          onClick={() => setShowPromptLibrary(true)}
-          disabled={isLoading}
-          className="shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="Quick Prompts"
-          title="Quick Prompts"
-        >
-          <Sparkles className="h-5 w-5" />
-        </button>
 
         {/* Send */}
         <button
@@ -806,7 +790,29 @@ export function ChatInput({ onImagesChange }: Props) {
             className="ci-tiles fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[35]"
             style={{ bottom: "calc(140px + env(safe-area-inset-bottom, 0px))" }}
           >
-            <div className="grid grid-cols-2 gap-4 px-1">
+            <div className="grid grid-cols-3 gap-4 px-1">
+              {/* Quick Prompts tile (purple/primary glow) */}
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowPromptLibrary(true);
+                }}
+                className="rounded-2xl border bg-background/80 backdrop-blur-xl px-4 py-4 text-left transition-all hover:translate-y-[-2px] hover:scale-[1.01]"
+                style={{
+                  borderColor: "rgba(139,92,246,0.35)",
+                  boxShadow:
+                    "0 10px 30px rgba(0,0,0,.25), 0 0 0 1px rgba(139,92,246,.20) inset, 0 0 20px rgba(139,92,246,.18)",
+                }}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  </span>
+                  <div className="text-lg font-semibold">Quick Prompts</div>
+                </div>
+                <div className="text-sm text-muted-foreground leading-snug">Browse fun prompt ideas!</div>
+              </button>
+
               {/* Generate Image tile (yellow glow) */}
               <button
                 onClick={() => {
