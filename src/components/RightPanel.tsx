@@ -150,18 +150,18 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
             className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
             onClick={onClose}
           />
         )}
       </AnimatePresence>
 
-      {/* Panel */}
+      {/* Panel - snappy with rebound like pulling out a physical shelf */}
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: isOpen ? "0%" : "100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 200, mass: 0.8 }}
+        transition={{ type: "spring", damping: 18, stiffness: 320, mass: 0.65 }}
         className={cn(
           "fixed top-0 right-0 h-full z-50 backdrop-blur-2xl bg-background/50 border-l border-border/30",
           "w-full sm:w-96 lg:w-80 xl:w-96",
