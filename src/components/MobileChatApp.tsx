@@ -46,7 +46,16 @@ export function MobileChatApp() {
   } = useArcStore();
   const { profile } = useProfile();
   const { theme, toggleTheme } = useTheme();
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile(); // This hook determines if the current device is mobile
+
+  // Initialize rightPanelOpen based on isMobile
+  useEffect(() => {
+    if (!isMobile && !rightPanelOpen) {
+      // If not mobile and panel is currently closed
+      setRightPanelOpen(true); // Open it by default for desktop
+    }
+  }, [isMobile, rightPanelOpen, setRightPanelOpen]);
+
   const [dragOver, setDragOver] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -575,7 +584,7 @@ export function MobileChatApp() {
             ) : (
               <div className="w-full flex justify-center px-4">
                 <div
-                  className="space-y-4 chat-messages w-full max-w-xl" // Now max-w-xl for messages only
+                  className="space-y-4 chat-messages w-full max-w-xl" // Messages only, now max-w-xl (slightly wider than max-w-lg)
                   style={{
                     paddingTop: "6.5rem",
                   }}
@@ -666,7 +675,7 @@ export function MobileChatApp() {
           <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-30 pointer-events-none px-4">
             <div
               className={cn(
-                "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto", // Input bar is using max-w-4xl which is then overridden by glass-dock's 'max-width: 760px;'
+                "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto", // Input bar styling, using max-w-4xl but then glass-dock in style tag sets max-width: 760px
                 rightPanelOpen && "lg:mr-80 xl:mr-96",
               )}
             >
