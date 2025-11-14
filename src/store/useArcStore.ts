@@ -123,10 +123,18 @@ export const useArcStore = create<ArcState>()(
             }));
 
             console.log(`✅ Synced ${loadedSessions.length} sessions (${loadedSessions.reduce((sum, s) => sum + s.messages.length, 0)} total messages)`);
+
+            const state = get();
+            const currentSession = state.currentSessionId
+              ? loadedSessions.find(s => s.id === state.currentSessionId)
+              : null;
+
             set({
               chatSessions: loadedSessions,
               lastSyncAt: new Date(),
-              isOnline: true
+              isOnline: true,
+              // Restore messages for current session after sync
+              messages: currentSession ? JSON.parse(JSON.stringify(currentSession.messages)) : state.messages
             });
           } else {
             console.log('📭 No sessions found in Supabase');
@@ -583,7 +591,8 @@ export const useArcStore = create<ArcState>()(
       partialize: (state) => ({
         selectedVoice: state.selectedVoice,
         isContinuousVoiceMode: state.isContinuousVoiceMode,
-        // Cloud-only: no local storage backup
+        currentSessionId: state.currentSessionId, // Persist current session for reload
+        // Cloud-only: no local storage backup for messages
       })
     }
   )
