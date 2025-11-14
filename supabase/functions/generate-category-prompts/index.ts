@@ -38,7 +38,7 @@ Avoid generic labels - be creative and relatable!`,
 - Retro/vaporwave, cosmic/space, nature
 - Fantasy/surreal, cyberpunk, artistic
 
-CRITICAL: Labels SHORT (2-3 words). Each prompt starts with "Generate an image:" then 1-2 descriptive sentences.
+CRITICAL: Labels SHORT (2-3 words). Each prompt MUST start with "Generate image:" (exactly) then 1-2 descriptive sentences.
 Use VARIED emojis. Avoid repeating styles or themes!`,
 
       write: `Generate 6 COMPLETELY DIFFERENT prompts that HELP the user with their writing process:
@@ -83,6 +83,9 @@ Return ONLY valid JSON array with 6 objects:
   {"label": "🚀 Different Title", "prompt": "Another prompt."},
   ...
 ]
+
+FOR IMAGE PROMPTS: prompt MUST start with "Generate image:" (exactly)
+Example: {"label": "🎨 Neon City", "prompt": "Generate image: a cyberpunk cityscape with neon lights."}
 
 CRITICAL: Every single label MUST have an emoji at the start!`;
 
