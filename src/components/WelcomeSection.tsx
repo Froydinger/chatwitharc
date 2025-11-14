@@ -4,6 +4,7 @@ import { RefreshCw } from "lucide-react";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { SmartSuggestions } from "@/components/SmartSuggestions";
 import { PromptLibrary } from "@/components/PromptLibrary";
+import { ThemedLogo } from "@/components/ThemedLogo";
 import { selectSmartPrompts, QuickPrompt } from "@/utils/smartPrompts";
 import { Profile } from "@/hooks/useProfile";
 import { ChatSession } from "@/store/useArcStore";
@@ -229,7 +230,7 @@ export function WelcomeSection({
               transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
               className="relative"
             >
-              <img src="/arc-logo-ui.png" alt="Loading" className="h-10 w-10 logo-accent-glow" />
+              <ThemedLogo className="h-10 w-10 logo-accent-glow" alt="Loading" />
               <motion.div
                 className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
                 animate={{

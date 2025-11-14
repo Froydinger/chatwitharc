@@ -17,6 +17,7 @@ import { ImageModal } from "@/components/ImageModal";
 import { ImageEditModal } from "@/components/ImageEditModal";
 import { CodeBlock } from "@/components/CodeBlock";
 import { FileAttachment } from "@/components/FileAttachment";
+import { ThemedLogo } from "@/components/ThemedLogo";
 
 interface MessageBubbleProps {
   message: Message;
@@ -473,15 +474,11 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 } : { duration: 0.3 }
               }}
             >
-              <motion.div 
+              <motion.div
                 layoutId="arc-thinking-logo"
                 className="relative logo-accent-glow"
               >
-                <img 
-                  src="/arc-logo-ui.png" 
-                  alt="Arc" 
-                  className="h-10 w-10"
-                />
+                <ThemedLogo className="h-10 w-10" alt="Arc" />
                 {isThinking && (
                   <motion.div
                     className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
