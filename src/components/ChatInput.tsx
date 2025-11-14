@@ -833,8 +833,8 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                         }}
                       >
                         <div className="flex items-center gap-3">
-                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 shrink-0">
-                            <Sparkles className="h-4 w-4 text-primary" />
+                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10 shrink-0">
+                            <Sparkles className="h-4 w-4 text-violet-500" />
                           </span>
                           <div className="text-sm font-semibold">Prompts</div>
                         </div>
