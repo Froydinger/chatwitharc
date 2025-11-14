@@ -589,30 +589,33 @@ export function MobileChatApp() {
                   <Plus className="h-4 w-4" />
                 </Button>
               </motion.div>
-              <motion.div
-                animate={{ rotate: isThemeSpinning ? 360 : 0 }}
-                transition={{
-                  type: "spring",
-                  damping: 20,
-                  stiffness: 200,
-                  mass: 0.8,
-                }}
-                onAnimationComplete={() => setIsThemeSpinning(false)}
-              >
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all shadow-lg"
-                  onClick={() => {
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all shadow-lg"
+                onClick={() => {
+                  if (!isThemeSpinning) {
                     setIsThemeSpinning(true);
                     // Switch icon mid-spin by toggling theme after 180deg delay
                     setTimeout(() => toggleTheme(), 150);
+                    // Reset spin state after animation completes
+                    setTimeout(() => setIsThemeSpinning(false), 500);
+                  }
+                }}
+                title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+              >
+                <motion.div
+                  animate={{ rotate: isThemeSpinning ? 360 : 0 }}
+                  transition={{
+                    type: "spring",
+                    damping: 20,
+                    stiffness: 200,
+                    mass: 0.8,
                   }}
-                  title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
                 >
                   {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </Button>
-              </motion.div>
+                </motion.div>
+              </Button>
               <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
                 <Button
                   variant="outline"
