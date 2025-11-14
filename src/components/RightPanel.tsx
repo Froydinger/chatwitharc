@@ -161,15 +161,15 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: isOpen ? "0%" : "100%" }}
-        transition={{ type: "tween", duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+        transition={{ type: "spring", damping: 25, stiffness: 200, mass: 0.8 }}
         className={cn(
-          "fixed top-0 right-0 h-full z-50 backdrop-blur-xl bg-background/70 border-l border-border/40",
+          "fixed top-0 right-0 h-full z-50 backdrop-blur-2xl bg-background/50 border-l border-border/30",
           "w-full sm:w-96 lg:w-80 xl:w-96",
-          "flex flex-col overflow-hidden"
+          "flex flex-col overflow-hidden shadow-2xl"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border/40 backdrop-blur-xl bg-background/80">
+        <div className="flex items-center justify-between p-4 border-b border-border/30 backdrop-blur-xl bg-background/40">
           <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="history" className="flex items-center justify-center">
