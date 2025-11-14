@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { motion, useAnimation } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { SmartSuggestions } from "@/components/SmartSuggestions";
@@ -9,6 +9,36 @@ import { selectSmartPrompts, QuickPrompt } from "@/utils/smartPrompts";
 import { Profile } from "@/hooks/useProfile";
 import { ChatSession } from "@/store/useArcStore";
 import { Button } from "@/components/ui/button";
+
+// Typewriter component for smooth text reveal
+function TypewriterText({ text, delay = 0, onComplete }: { text: string; delay?: number; onComplete?: () => void }) {
+  const [displayedText, setDisplayedText] = useState("");
+  const indexRef = useRef(0);
+
+  useEffect(() => {
+    // Reset on text change
+    setDisplayedText("");
+    indexRef.current = 0;
+
+    const startDelay = setTimeout(() => {
+      const interval = setInterval(() => {
+        if (indexRef.current < text.length) {
+          setDisplayedText(text.slice(0, indexRef.current + 1));
+          indexRef.current++;
+        } else {
+          clearInterval(interval);
+          if (onComplete) onComplete();
+        }
+      }, 40); // 40ms per character for smooth typing
+
+      return () => clearInterval(interval);
+    }, delay);
+
+    return () => clearTimeout(startDelay);
+  }, [text, delay, onComplete]);
+
+  return <>{displayedText}</>;
+}
 
 interface WelcomeSectionProps {
   greeting: string;
@@ -35,6 +65,7 @@ export function WelcomeSection({
   const [smartSuggestions, setSmartSuggestions] = useState<QuickPrompt[] | null>(null);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showSubtitle, setShowSubtitle] = useState(false);
 
   // Convert prompts to categorized format
   const categorizedPrompts: QuickPrompt[] = useMemo(() => {
@@ -118,20 +149,18 @@ export function WelcomeSection({
           {heroAvatar && (
             <motion.div
               className="relative"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ 
+              initial={{ opacity: 0 }}
+              animate={{
                 opacity: 1,
-                scale: 1,
                 y: [0, -8, 0]
               }}
               transition={{
-                opacity: { duration: 0.3, delay: 0.15 },
-                scale: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1], delay: 0.15 },
+                opacity: { duration: 0.6, ease: "easeOut" },
                 y: {
                   duration: 4,
                   repeat: Infinity,
                   ease: "easeInOut",
-                  delay: 0.5
+                  delay: 0.8
                 }
               }}
             >
@@ -151,17 +180,20 @@ export function WelcomeSection({
             </motion.div>
           )}
 
-          {/* Greeting with glow and accent-colored name */}
-          <motion.h2
-            className="text-4xl font-semibold relative"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1, duration: 0.3 }}
-          >
+          {/* Greeting with typewriter and accent-colored name */}
+          <h2 className="text-4xl font-semibold relative">
             <span className="relative inline-block">
-              {timeGreeting}
+              <TypewriterText
+                text={timeGreeting}
+                delay={200}
+                onComplete={() => setShowSubtitle(true)}
+              />
               {name && (
-                <>
+                <motion.span
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                >
                   <span>, </span>
                   <span className="text-primary relative inline-block">
                     {name}
@@ -202,47 +234,67 @@ export function WelcomeSection({
                       {name}
                     </motion.span>
                   </span>
-                </>
+                </motion.span>
               )}
             </span>
-          </motion.h2>
+          </h2>
 
           <motion.p
             className="text-muted-foreground text-lg max-w-md"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.15, duration: 0.3 }}
+            animate={{ opacity: showSubtitle ? 1 : 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
           >
-            What would you like to explore today?
+            <TypewriterText
+              text={showSubtitle ? "What would you like to explore today?" : ""}
+              delay={0}
+            />
           </motion.p>
         </motion.div>
 
         {/* Smart Suggestions or Loading State */}
         {isLoadingSuggestions || isRefreshing || !smartSuggestions || smartSuggestions.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 mt-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="flex flex-col items-center gap-3 mt-4"
+          >
             <motion.div
-              animate={{ scale: [1, 1.15, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: 1,
+                scale: [1, 1.15, 1]
+              }}
+              transition={{
+                opacity: { duration: 0.4, ease: "easeOut" },
+                scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
+              }}
               className="relative"
             >
               <ThemedLogo className="h-10 w-10 logo-accent-glow" alt="Loading" />
               <motion.div
                 className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
+                initial={{ opacity: 0 }}
                 animate={{
-                  scale: [0.8, 1.2, 0.8],
-                  opacity: [0.3, 0.6, 0.3]
+                  opacity: [0.3, 0.6, 0.3],
+                  scale: [0.8, 1.2, 0.8]
                 }}
                 transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  ease: "easeInOut"
+                  opacity: { duration: 0.4, ease: "easeOut" },
+                  scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
                 }}
               />
             </motion.div>
-            <p className="text-sm text-muted-foreground">
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="text-sm text-muted-foreground"
+            >
               {isRefreshing ? "Refreshing suggestions..." : "Personalizing prompts for you..."}
-            </p>
-          </div>
+            </motion.p>
+          </motion.div>
         ) : (
           smartSuggestions.length > 0 && (
             <div className="w-full space-y-2">
