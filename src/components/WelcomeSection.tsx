@@ -31,7 +31,7 @@ export function WelcomeSection({
   isGeneratingImage = false,
 }: WelcomeSectionProps) {
   const [showLibrary, setShowLibrary] = useState(false);
-  const [smartSuggestions, setSmartSuggestions] = useState<QuickPrompt[]>([]);
+  const [smartSuggestions, setSmartSuggestions] = useState<QuickPrompt[] | null>(null);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -56,7 +56,7 @@ export function WelcomeSection({
         }
       } catch (error) {
         console.error("Failed to load smart suggestions:", error);
-        // Fallback to first 3 prompts
+        // On error, use fallback prompts
         if (isMounted) {
           setSmartSuggestions(categorizedPrompts.slice(0, 3));
         }
@@ -211,7 +211,7 @@ export function WelcomeSection({
         </motion.div>
 
         {/* Smart Suggestions or Loading State */}
-        {isLoadingSuggestions ? (
+        {isLoadingSuggestions || isRefreshing || !smartSuggestions ? (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -237,7 +237,9 @@ export function WelcomeSection({
                 }}
               />
             </motion.div>
-            <p className="text-sm text-muted-foreground">Personalizing prompts for you...</p>
+            <p className="text-sm text-muted-foreground">
+              {isRefreshing ? "Refreshing suggestions..." : "Personalizing prompts for you..."}
+            </p>
           </motion.div>
         ) : (
           smartSuggestions.length > 0 && (
