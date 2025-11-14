@@ -53,17 +53,12 @@ export function WelcomeSection({
         const suggestions = await selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3, skipCache);
         if (isMounted) {
           setSmartSuggestions(suggestions);
+          setIsLoadingSuggestions(false);
         }
       } catch (error) {
         console.error("Failed to load smart suggestions:", error);
-        // On error, use fallback prompts
-        if (isMounted) {
-          setSmartSuggestions(categorizedPrompts.slice(0, 3));
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingSuggestions(false);
-        }
+        // On error, keep showing loading state - don't show temporary prompts
+        // This prevents the "blip" of non-AI prompts appearing
       }
     };
 
@@ -79,10 +74,11 @@ export function WelcomeSection({
     try {
       const suggestions = await selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3, true);
       setSmartSuggestions(suggestions);
+      setIsRefreshing(false);
     } catch (error) {
       console.error("Failed to refresh suggestions:", error);
-    } finally {
-      setIsRefreshing(false);
+      // On error, keep showing loading state - don't show temporary prompts
+      // This prevents the "blip" of non-AI prompts appearing
     }
   };
 
