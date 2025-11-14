@@ -10,23 +10,33 @@ import { Profile } from "@/hooks/useProfile";
 import { ChatSession } from "@/store/useArcStore";
 import { Button } from "@/components/ui/button";
 
-// Typewriter component for smooth text reveal
+// Typewriter component for smooth text reveal - plays once only
 function TypewriterText({ text, delay = 0, onComplete }: { text: string; delay?: number; onComplete?: () => void }) {
   const [displayedText, setDisplayedText] = useState("");
+  const hasTypedRef = useRef(false);
   const indexRef = useRef(0);
+  const textRef = useRef(text);
 
   useEffect(() => {
-    // Reset on text change
+    // Only type once - never repeat
+    if (hasTypedRef.current) {
+      setDisplayedText(text);
+      return;
+    }
+
+    // Store the text we're typing
+    textRef.current = text;
     setDisplayedText("");
     indexRef.current = 0;
 
     const startDelay = setTimeout(() => {
       const interval = setInterval(() => {
-        if (indexRef.current < text.length) {
-          setDisplayedText(text.slice(0, indexRef.current + 1));
+        if (indexRef.current < textRef.current.length) {
+          setDisplayedText(textRef.current.slice(0, indexRef.current + 1));
           indexRef.current++;
         } else {
           clearInterval(interval);
+          hasTypedRef.current = true;
           if (onComplete) onComplete();
         }
       }, 40); // 40ms per character for smooth typing
@@ -35,7 +45,15 @@ function TypewriterText({ text, delay = 0, onComplete }: { text: string; delay?:
     }, delay);
 
     return () => clearTimeout(startDelay);
-  }, [text, delay, onComplete]);
+  }, []); // Only run once on mount
+
+  // If text changes after typing started, just update displayed text
+  useEffect(() => {
+    if (hasTypedRef.current && text !== textRef.current) {
+      setDisplayedText(text);
+      textRef.current = text;
+    }
+  }, [text]);
 
   return <>{displayedText}</>;
 }
@@ -124,7 +142,10 @@ export function WelcomeSection({
     }
   };
 
-  // Parse greeting to separate time greeting from name
+  // Track if typewriter has completed to apply accent styling
+  const [typewriterComplete, setTypewriterComplete] = useState(false);
+
+  // Parse greeting to separate time greeting from name for accent styling
   const parseGreeting = (greetingText: string) => {
     const parts = greetingText.split(", ");
     if (parts.length === 2) {
@@ -180,63 +201,65 @@ export function WelcomeSection({
             </motion.div>
           )}
 
-          {/* Greeting with typewriter and accent-colored name */}
+          {/* Greeting with typewriter - types full greeting including name */}
           <h2 className="text-4xl font-semibold relative">
-            <span className="relative inline-block">
-              <TypewriterText
-                text={timeGreeting}
-                delay={200}
-                onComplete={() => setShowSubtitle(true)}
-              />
-              {name && (
-                <motion.span
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                >
-                  <span>, </span>
-                  <span className="text-primary relative inline-block">
+            {typewriterComplete && name ? (
+              // After typewriter completes, render with accent styling on name
+              <span className="relative inline-block">
+                <span>{timeGreeting}, </span>
+                <span className="text-primary relative inline-block">
+                  {name}
+                  {/* Bright glow effect for name */}
+                  <motion.span
+                    className="absolute inset-0 text-primary blur-lg"
+                    style={{
+                      filter: "blur(16px)",
+                      opacity: 0.7,
+                    }}
+                    animate={{
+                      opacity: [0.5, 0.9, 0.5],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
                     {name}
-                    {/* Bright glow effect for name */}
-                    <motion.span
-                      className="absolute inset-0 text-primary blur-lg"
-                      style={{
-                        filter: "blur(16px)",
-                        opacity: 0.7,
-                      }}
-                      animate={{
-                        opacity: [0.5, 0.9, 0.5],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                    >
-                      {name}
-                    </motion.span>
-                    {/* Extra bright core glow */}
-                    <motion.span
-                      className="absolute inset-0 text-primary blur-md"
-                      style={{
-                        filter: "blur(8px)",
-                        opacity: 0.6,
-                      }}
-                      animate={{
-                        opacity: [0.4, 0.8, 0.4],
-                      }}
-                      transition={{
-                        duration: 2.5,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                    >
-                      {name}
-                    </motion.span>
-                  </span>
-                </motion.span>
-              )}
-            </span>
+                  </motion.span>
+                  {/* Extra bright core glow */}
+                  <motion.span
+                    className="absolute inset-0 text-primary blur-md"
+                    style={{
+                      filter: "blur(8px)",
+                      opacity: 0.6,
+                    }}
+                    animate={{
+                      opacity: [0.4, 0.8, 0.4],
+                    }}
+                    transition={{
+                      duration: 2.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    {name}
+                  </motion.span>
+                </span>
+              </span>
+            ) : (
+              // Typewriter types the full greeting
+              <span className="relative inline-block">
+                <TypewriterText
+                  text={greeting}
+                  delay={200}
+                  onComplete={() => {
+                    setTypewriterComplete(true);
+                    setShowSubtitle(true);
+                  }}
+                />
+              </span>
+            )}
           </h2>
 
           <motion.p
