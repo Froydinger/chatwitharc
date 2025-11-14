@@ -219,12 +219,7 @@ export function WelcomeSection({
 
         {/* Smart Suggestions or Loading State */}
         {isLoadingSuggestions || isRefreshing || !smartSuggestions || smartSuggestions.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 1, y: 0 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0 }}
-            className="flex flex-col items-center gap-3 mt-4"
-          >
+          <div className="flex flex-col items-center gap-3 mt-4">
             <motion.div
               animate={{ scale: [1, 1.15, 1] }}
               transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
@@ -247,15 +242,10 @@ export function WelcomeSection({
             <p className="text-sm text-muted-foreground">
               {isRefreshing ? "Refreshing suggestions..." : "Personalizing prompts for you..."}
             </p>
-          </motion.div>
+          </div>
         ) : (
           smartSuggestions.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-              className="w-full space-y-2"
-            >
+            <div className="w-full space-y-2">
               {/* Refresh Button */}
               <div className="flex justify-center">
                 <Button
@@ -274,7 +264,7 @@ export function WelcomeSection({
                 onSelectPrompt={onTriggerPrompt}
                 onShowMore={() => setShowLibrary(true)}
               />
-            </motion.div>
+            </div>
           )
         )}
 
