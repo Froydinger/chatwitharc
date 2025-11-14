@@ -17,61 +17,60 @@ serve(async (req) => {
       throw new Error('Invalid category');
     }
 
-    // Define prompts for each category
+    // Add timestamp to ensure different results each time
+    const timestamp = Date.now();
+    const randomSeed = Math.random().toString(36).substring(7);
+
+    // Define prompts for each category - KEEP CONCISE
     const categoryPrompts = {
-      chat: `Generate 6 fresh, creative chat prompt suggestions that encourage engaging conversations. Focus on:
-- Personal reflection and growth
-- Wellness and mental health
-- Goal setting and productivity
-- Casual conversations and connection
-- Problem-solving and advice
-- Gratitude and mindfulness
+      chat: `Generate 6 COMPLETELY DIFFERENT chat prompts. Be creative and unexpected! Mix topics like:
+- Self-reflection, mental wellness, focus
+- Casual chat, advice, life decisions
+- Gratitude, goal-setting, productivity
 
-Make them feel personal, supportive, and diverse. Use an emoji at the start of each label.`,
+CRITICAL: Labels should be SHORT (2-3 words max). Prompts should be concise (1-2 sentences).
+AVOID generic options like "Reflect", "Check-in", "Gratitude" - be creative and unique!`,
 
-      create: `Generate 6 fresh, creative image generation prompts. Mix different styles and themes:
-- Retro/90s aesthetics and vaporwave
-- Cosmic and space scenes
-- Nature and landscapes
-- Fantasy and surreal art
-- Cyberpunk and futuristic
-- Artistic portraits and compositions
+      create: `Generate 6 COMPLETELY DIFFERENT image prompts. Be wild and creative! Mix styles:
+- Retro/vaporwave, cosmic/space, nature
+- Fantasy/surreal, cyberpunk, artistic
 
-Each prompt should start with "Generate an image:" and be vivid and detailed. Use an emoji at the start of each label.`,
+CRITICAL: Labels SHORT (2-3 words). Each prompt starts with "Generate an image:" then 1-2 descriptive sentences.
+Use VARIED emojis. Avoid repeating styles or themes!`,
 
-      write: `Generate 6 fresh, creative writing prompt suggestions. Cover different writing styles:
-- Creative fiction (stories, scenes, scripts)
-- Personal writing (essays, letters, journals)
-- Poetry and artistic writing
-- Professional writing (blog posts, articles)
-- Structured content (outlines, briefs)
-- Expressive writing (manifestos, speeches)
+      write: `Generate 6 COMPLETELY DIFFERENT writing prompts. Be inventive! Mix types:
+- Fiction, personal essays, poetry
+- Blog posts, creative briefs, letters
 
-Make them inspiring and actionable. Use an emoji at the start of each label.`,
+CRITICAL: Labels SHORT (2-3 words). Prompts concise (1-2 sentences).
+Use VARIED emojis and topics. NO generic titles!`,
 
-      code: `Generate 6 fresh, creative coding project prompts. Focus on fun, interactive demos:
-- Interactive games and animations
-- Data visualizations and dashboards
-- UI components and form builders
-- Utility tools (calculators, timers, generators)
-- Creative coding (particle systems, generative art)
-- Practical web components
+      code: `Generate 6 COMPLETELY DIFFERENT coding prompts. Be fun and creative! Mix types:
+- Games, animations, visualizations
+- Tools, generators, interactive demos
 
-Each should specify using HTML, CSS, and JavaScript. Use an emoji at the start of each label.`,
+CRITICAL: Labels SHORT (2-3 words). Prompts concise, specify HTML/CSS/JS.
+Use VARIED emojis. Avoid common projects!`,
     };
 
-    const systemPrompt = `You are an AI assistant that generates creative, diverse prompt suggestions.
+    const systemPrompt = `You are a creative AI that generates UNIQUE, NEVER-REPEATED prompt suggestions.
+
+TIMESTAMP: ${timestamp} | SEED: ${randomSeed}
 
 ${categoryPrompts[category as keyof typeof categoryPrompts]}
 
-Return ONLY a JSON array with exactly 6 objects, each with "label" and "prompt" fields.
-Example format:
-[
-  {"label": "🎯 Topic name", "prompt": "Full prompt text here"},
-  ...
-]
+STRICT REQUIREMENTS:
+1. Every label must be SHORT (2-3 words maximum)
+2. Every prompt must be CONCISE (1-2 sentences)
+3. Use DIFFERENT emojis for each item
+4. NO repetition of themes, topics, or styles
+5. Be CREATIVE and UNEXPECTED - surprise the user!
 
-Make each prompt unique, engaging, and different from common or generic options. Be creative and varied!`;
+Return ONLY valid JSON array with 6 objects:
+[
+  {"label": "🎯 Short Title", "prompt": "Concise prompt text."},
+  ...
+]`;
 
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!lovableApiKey) {
@@ -89,9 +88,10 @@ Make each prompt unique, engaging, and different from common or generic options.
         model: 'google/gemini-2.5-flash-lite',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Generate 6 fresh, creative ${category} prompts.` }
+          { role: 'user', content: `Generate 6 completely unique, never-before-seen ${category} prompts. Be wildly creative! Timestamp: ${timestamp}` }
         ],
-        temperature: 0.9, // Higher temperature for more creativity/variety
+        temperature: 1.0, // Maximum creativity for variety
+        top_p: 0.95,
       }),
     });
 
