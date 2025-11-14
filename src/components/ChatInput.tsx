@@ -808,52 +808,18 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                   )}
                 >
                   <div className="px-4">
-                    {/* Playing card pyramid container */}
-                    <div className="relative flex items-end justify-center h-56 w-64 mx-auto">
-                      {/* Generate Image - Top center card */}
+                    {/* Fanned playing cards */}
+                    <div className="relative flex items-center justify-center gap-1 h-44 max-w-sm mx-auto">
+                      {/* Quick Prompts - Left card */}
                       <motion.button
-                        initial={{ opacity: 0, y: 60, scale: 0.85 }}
+                        initial={{ opacity: 0, y: 50, rotate: 0, scale: 0.85 }}
                         animate={{
                           opacity: 1,
                           y: 0,
+                          rotate: -10,
                           scale: 1,
                         }}
-                        exit={{ opacity: 0, y: 40, scale: 0.9 }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 260,
-                          damping: 28,
-                          mass: 0.8,
-                          delay: 0.08,
-                        }}
-                        onClick={() => {
-                          setForceImageMode(true);
-                          setShowMenu(false);
-                        }}
-                        className="absolute top-0 left-1/2 -translate-x-1/2 group rounded-2xl border bg-background/95 backdrop-blur-xl px-4 py-6 transition-all hover:scale-105 hover:z-30 active:scale-95 w-28 h-40 z-20"
-                        style={{
-                          borderColor: "rgba(34,197,94,0.5)",
-                          boxShadow: "0 8px 32px rgba(0,0,0,.2), 0 0 0 1px rgba(34,197,94,.2) inset, 0 4px 12px rgba(34,197,94,.15)",
-                          transformOrigin: "bottom center",
-                        }}
-                      >
-                        <div className="flex flex-col items-center justify-center gap-3 h-full">
-                          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-green-500/15 shrink-0">
-                            <ImagePlus className="h-6 w-6 text-green-400" />
-                          </span>
-                          <div className="text-sm font-semibold">Image</div>
-                        </div>
-                      </motion.button>
-
-                      {/* Quick Prompts - Bottom left card */}
-                      <motion.button
-                        initial={{ opacity: 0, y: 60, scale: 0.85 }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                          scale: 1,
-                        }}
-                        exit={{ opacity: 0, y: 40, scale: 0.9 }}
+                        exit={{ opacity: 0, y: 30, rotate: -5, scale: 0.9 }}
                         transition={{
                           type: "spring",
                           stiffness: 260,
@@ -865,30 +831,31 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                           setShowMenu(false);
                           setShowPromptLibrary(true);
                         }}
-                        className="absolute bottom-0 left-4 group rounded-2xl border bg-background/95 backdrop-blur-xl px-4 py-6 transition-all hover:scale-105 hover:z-30 active:scale-95 w-28 h-40 z-10"
+                        className="group rounded-2xl border bg-background/95 backdrop-blur-xl px-3 py-5 transition-all hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40"
                         style={{
                           borderColor: "rgba(139,92,246,0.5)",
                           boxShadow: "0 8px 32px rgba(0,0,0,.2), 0 0 0 1px rgba(139,92,246,.2) inset, 0 4px 12px rgba(139,92,246,.15)",
                           transformOrigin: "bottom center",
                         }}
                       >
-                        <div className="flex flex-col items-center justify-center gap-3 h-full">
-                          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-violet-500/15 shrink-0">
-                            <Sparkles className="h-6 w-6 text-violet-500" />
+                        <div className="flex flex-col items-center justify-center gap-2 h-full">
+                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-violet-500/15 shrink-0">
+                            <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-violet-500" />
                           </span>
-                          <div className="text-sm font-semibold">Prompts</div>
+                          <div className="text-xs sm:text-sm font-semibold">Prompts</div>
                         </div>
                       </motion.button>
 
-                      {/* Attach - Bottom right card */}
+                      {/* Generate Image - Center card */}
                       <motion.button
-                        initial={{ opacity: 0, y: 60, scale: 0.85 }}
+                        initial={{ opacity: 0, y: 50, rotate: 0, scale: 0.85 }}
                         animate={{
                           opacity: 1,
                           y: 0,
+                          rotate: 0,
                           scale: 1,
                         }}
-                        exit={{ opacity: 0, y: 40, scale: 0.9 }}
+                        exit={{ opacity: 0, y: 30, rotate: 0, scale: 0.9 }}
                         transition={{
                           type: "spring",
                           stiffness: 260,
@@ -897,21 +864,57 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                           delay: 0.04,
                         }}
                         onClick={() => {
+                          setForceImageMode(true);
+                          setShowMenu(false);
+                        }}
+                        className="group rounded-2xl border bg-background/95 backdrop-blur-xl px-3 py-5 transition-all hover:scale-105 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 z-10"
+                        style={{
+                          borderColor: "rgba(34,197,94,0.5)",
+                          boxShadow: "0 8px 32px rgba(0,0,0,.2), 0 0 0 1px rgba(34,197,94,.2) inset, 0 4px 12px rgba(34,197,94,.15)",
+                          transformOrigin: "bottom center",
+                        }}
+                      >
+                        <div className="flex flex-col items-center justify-center gap-2 h-full">
+                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-green-500/15 shrink-0">
+                            <ImagePlus className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" />
+                          </span>
+                          <div className="text-xs sm:text-sm font-semibold">Image</div>
+                        </div>
+                      </motion.button>
+
+                      {/* Attach - Right card */}
+                      <motion.button
+                        initial={{ opacity: 0, y: 50, rotate: 0, scale: 0.85 }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                          rotate: 10,
+                          scale: 1,
+                        }}
+                        exit={{ opacity: 0, y: 30, rotate: 5, scale: 0.9 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 260,
+                          damping: 28,
+                          mass: 0.8,
+                          delay: 0.08,
+                        }}
+                        onClick={() => {
                           setShowMenu(false);
                           fileInputRef.current?.click();
                         }}
-                        className="absolute bottom-0 right-4 group rounded-2xl border bg-background/95 backdrop-blur-xl px-4 py-6 transition-all hover:scale-105 hover:z-30 active:scale-95 w-28 h-40 z-10"
+                        className="group rounded-2xl border bg-background/95 backdrop-blur-xl px-3 py-5 transition-all hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40"
                         style={{
                           borderColor: "rgba(59,130,246,0.5)",
                           boxShadow: "0 8px 32px rgba(0,0,0,.2), 0 0 0 1px rgba(59,130,246,.2) inset, 0 4px 12px rgba(59,130,246,.15)",
                           transformOrigin: "bottom center",
                         }}
                       >
-                        <div className="flex flex-col items-center justify-center gap-3 h-full">
-                          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/15 shrink-0">
-                            <Paperclip className="h-6 w-6 text-blue-500" />
+                        <div className="flex flex-col items-center justify-center gap-2 h-full">
+                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-blue-500/15 shrink-0">
+                            <Paperclip className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
                           </span>
-                          <div className="text-sm font-semibold">Attach</div>
+                          <div className="text-xs sm:text-sm font-semibold">Attach</div>
                         </div>
                       </motion.button>
                     </div>
