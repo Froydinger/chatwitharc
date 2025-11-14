@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MessageCircle, Sparkles, PenTool, Code, Brain } from "lucide-react";
+import { X, MessageCircle, Sparkles, PenTool, Code, Brain, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { generatePromptsByCategory } from "@/utils/promptGenerator";
 
 interface QuickPrompt {
   label: string;
@@ -25,11 +26,32 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
   const [smartPrompts, setSmartPrompts] = useState<QuickPrompt[]>([]);
   const [isLoadingSmartPrompts, setIsLoadingSmartPrompts] = useState(false);
 
-  // Categorize prompts (6 per category based on order in MobileChatApp)
-  const chatPrompts = prompts.slice(0, 6);
-  const createPrompts = prompts.slice(6, 12);
-  const writePrompts = prompts.slice(12, 18);
-  const codePrompts = prompts.slice(18, 24);
+  // State for dynamically generated prompts
+  const [chatPrompts, setChatPrompts] = useState<QuickPrompt[]>([]);
+  const [createPrompts, setCreatePrompts] = useState<QuickPrompt[]>([]);
+  const [writePrompts, setWritePrompts] = useState<QuickPrompt[]>([]);
+  const [codePrompts, setCodePrompts] = useState<QuickPrompt[]>([]);
+
+  // Generate initial prompts on mount
+  useEffect(() => {
+    refreshPrompts('all');
+  }, []);
+
+  // Function to refresh prompts for a specific category or all
+  const refreshPrompts = (category: TabType | 'all') => {
+    if (category === 'all' || category === 'chat') {
+      setChatPrompts(generatePromptsByCategory('chat'));
+    }
+    if (category === 'all' || category === 'create') {
+      setCreatePrompts(generatePromptsByCategory('create'));
+    }
+    if (category === 'all' || category === 'write') {
+      setWritePrompts(generatePromptsByCategory('write'));
+    }
+    if (category === 'all' || category === 'code') {
+      setCodePrompts(generatePromptsByCategory('code'));
+    }
+  };
 
   const getCurrentPrompts = () => {
     switch (activeTab) {
@@ -100,14 +122,30 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
               <h3 className="text-lg font-semibold">Prompt Library</h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="rounded-full"
-              >
-                <X className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                {activeTab !== 'smart' && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      refreshPrompts(activeTab);
+                      toast.success('Prompts refreshed!');
+                    }}
+                    className="rounded-full"
+                    title="Refresh prompts"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  className="rounded-full"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
 
             {/* Tab Navigation */}
