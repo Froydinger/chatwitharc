@@ -79,7 +79,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
 
       toast({
         title: "Editing started",
-        description: "Nano Banana is working on your update 🍌",
+        description: "Working on your image update",
       });
 
       onClose();

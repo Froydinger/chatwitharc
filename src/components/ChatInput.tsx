@@ -1,7 +1,7 @@
 // src/components/ChatInput.tsx
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, Paperclip, ArrowRight, Sparkles } from "lucide-react";
+import { X, Paperclip, ArrowRight, Sparkles, ImagePlus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
@@ -736,7 +736,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
           className={[
             "ci-menu-btn h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 relative",
             shouldShowBanana
-              ? "bg-yellow-50/10 ring-1 ring-yellow-300/50 shadow-[0_0_24px_rgba(250,204,21,.18)]"
+              ? "bg-accent/20 ring-1 ring-accent/50 shadow-[0_0_24px_rgba(var(--accent-rgb),.18)]"
               : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
           ].join(" ")}
           onClick={() => {
@@ -746,7 +746,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
         >
           {shouldShowBanana ? (
             <>
-              <span className="text-lg leading-none">🍌</span>
+              <ImagePlus className="h-5 w-5 text-accent" />
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
                 ×
               </span>
@@ -848,12 +848,14 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                         }}
                         className="group rounded-xl border bg-background/90 backdrop-blur-xl px-4 py-3 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.02] active:scale-95"
                         style={{
-                          borderColor: "rgba(250,204,21,0.4)",
-                          boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(250,204,21,.15) inset",
+                          borderColor: "hsl(var(--accent) / 0.4)",
+                          boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px hsl(var(--accent) / 0.15) inset",
                         }}
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-2xl leading-none shrink-0">🍌</span>
+                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 shrink-0">
+                            <ImagePlus className="h-4 w-4 text-accent" />
+                          </span>
                           <div className="text-sm font-semibold">Image</div>
                         </div>
                       </button>
