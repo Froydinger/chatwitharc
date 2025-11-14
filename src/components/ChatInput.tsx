@@ -822,9 +822,9 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                         exit={{ opacity: 0, y: 20, rotate: -10, scale: 0.95 }}
                         transition={{
                           type: "spring",
-                          damping: 18,
-                          stiffness: 320,
-                          mass: 0.65,
+                          damping: 15,
+                          stiffness: 550,
+                          mass: 0.4,
                         }}
                         onClick={() => {
                           setShowMenu(false);
@@ -857,9 +857,9 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                         exit={{ opacity: 0, y: 20, rotate: 0, scale: 0.95 }}
                         transition={{
                           type: "spring",
-                          damping: 18,
-                          stiffness: 320,
-                          mass: 0.65,
+                          damping: 15,
+                          stiffness: 550,
+                          mass: 0.4,
                         }}
                         onClick={() => {
                           setForceImageMode(true);
@@ -892,9 +892,9 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                         exit={{ opacity: 0, y: 20, rotate: 10, scale: 0.95 }}
                         transition={{
                           type: "spring",
-                          damping: 18,
-                          stiffness: 320,
-                          mass: 0.65,
+                          damping: 15,
+                          stiffness: 550,
+                          mass: 0.4,
                         }}
                         onClick={() => {
                           setShowMenu(false);
