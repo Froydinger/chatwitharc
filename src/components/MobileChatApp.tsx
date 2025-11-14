@@ -402,11 +402,16 @@ export function MobileChatApp() {
         >
           <div className="flex h-16 items-center justify-between px-4 pt-2 pointer-events-none">
             {/* Logo Orb - clickable with snarky messages */}
-            <div className="relative pointer-events-auto">
+            <motion.div
+              className="relative pointer-events-auto"
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", damping: 15, stiffness: 300 }}
+            >
               <Button
                 variant="outline"
                 size="icon"
-                className="rounded-full backdrop-blur-xl bg-background/70 border-border/40 hover:bg-background/80 transition-all overflow-hidden"
+                className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all overflow-hidden shadow-lg"
                 onClick={() => {
                   const snarkyMessages = [
                     "I'm an Arc, not a miracle worker.",
@@ -459,37 +464,43 @@ export function MobileChatApp() {
                   <p className="text-[9pt] text-foreground/90 leading-snug">{snarkyMessage}</p>
                 </div>
               )}
-            </div>
+            </motion.div>
 
             {/* Right-side buttons */}
             <div className="flex items-center gap-2 pointer-events-auto">
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full backdrop-blur-xl bg-background/70 border-border/40 hover:bg-background/80 transition-all"
-                onClick={handleNewChat}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full backdrop-blur-xl bg-background/70 border-border/40 hover:bg-background/80 transition-all"
-                onClick={toggleTheme}
-                title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-              >
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full backdrop-blur-xl bg-background/70 border-border/40 hover:bg-background/80 transition-all"
-                onClick={() => {
-                  setRightPanelOpen(!rightPanelOpen);
-                }}
-              >
-                <Menu className="h-4 w-4" />
-              </Button>
+              <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all shadow-lg"
+                  onClick={handleNewChat}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.1, rotate: 180 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all shadow-lg"
+                  onClick={toggleTheme}
+                  title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+                >
+                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all shadow-lg"
+                  onClick={() => {
+                    setRightPanelOpen(!rightPanelOpen);
+                  }}
+                >
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </motion.div>
             </div>
           </div>
         </div>
