@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ThemedLogo } from "@/components/ThemedLogo";
 
 interface ThinkingIndicatorProps {
   isLoading: boolean;
@@ -66,24 +67,24 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
         aria-live="polite"
       >
         <div className="relative flex items-center justify-center" style={{ willChange: 'transform' }}>
-          <motion.img 
-            src="/arc-logo-ui.png" 
-            alt="Thinking" 
+          <motion.div
             className="h-10 w-10"
-            style={{ 
+            style={{
               backfaceVisibility: 'hidden',
               transform: 'translateZ(0)',
               willChange: 'transform'
             }}
-            animate={{ 
+            animate={{
               scale: [1, 1.15, 1]
             }}
-            transition={{ 
+            transition={{
               duration: 1.5,
               repeat: Infinity,
               ease: "easeInOut"
             }}
-          />
+          >
+            <ThemedLogo className="h-full w-full" alt="Thinking" />
+          </motion.div>
           <motion.div
             className="absolute inset-0 rounded-full bg-primary/30"
             style={{ 

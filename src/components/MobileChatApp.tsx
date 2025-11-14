@@ -8,6 +8,7 @@ import { ChatInput, cancelCurrentRequest } from "@/components/ChatInput";
 import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
+import { ThemedLogo } from "@/components/ThemedLogo";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
@@ -468,11 +469,7 @@ export function MobileChatApp() {
                 }}
                 title="Click for Arc wisdom"
               >
-                <img
-                  src={HEADER_LOGO}
-                  alt="Arc"
-                  className="h-8 w-8 object-cover"
-                />
+                <ThemedLogo className="h-8 w-8" alt="Arc" />
               </Button>
             </motion.div>
 
