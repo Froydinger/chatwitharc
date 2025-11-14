@@ -272,8 +272,16 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
             </div>
 
             {/* Prompt Grid */}
-            <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-4">
+            <motion.div
+              className="flex-1 overflow-y-auto p-4 overscroll-contain"
+              layout
+              transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.5 }}
+            >
+              <motion.div
+                className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-4"
+                layout
+                transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.5 }}
+              >
                 {isCurrentTabLoading() ? (
                   <div className="col-span-full flex items-center justify-center py-12">
                     <div className="flex flex-col items-center gap-3">
@@ -314,8 +322,8 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                     </motion.button>
                   ))
                 )}
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           </motion.div>
         </>
       )}
