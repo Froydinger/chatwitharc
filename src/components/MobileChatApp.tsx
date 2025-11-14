@@ -392,40 +392,58 @@ export function MobileChatApp() {
           rightPanelOpen && "lg:mr-80 xl:mr-96",
         )}
       >
-        {/* Header */}
-        <header
+        {/* Floating header buttons - no bar */}
+        <div
           className={cn(
-            "fixed top-0 left-0 right-0 z-40 border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-2 pb-1.5 dark:bg-[rgba(24,24,30,0.78)] bg-background/95 transition-transform duration-300 ease-out",
+            "fixed top-0 left-0 right-0 z-40 transition-transform duration-300 ease-out pointer-events-none",
             isMobile && !headerVisible && "-translate-y-full",
           )}
         >
-          <div className="flex h-16 items-center justify-between px-4">
-            <div className="flex items-center gap-1.5">
-              <div className="relative header-logo-glow">
-                <motion.img
-                  src={HEADER_LOGO}
-                  alt="ArcAI"
-                  className="h-12 w-12"
-                  animate={{ y: [0, -2, 0] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                />
-              </div>
-              <div>
-                <h1 className="text-lg">
-                  <span className="text-primary text-lg font-normal">Arc</span>
-                  <span className="font-semibold">Ai</span>
-                </h1>
-              </div>
-            </div>
+          <div className="flex h-16 items-center justify-between px-4 pt-2 pointer-events-none">
+            {/* Logo Orb - clickable with snarky messages */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full backdrop-blur-xl bg-background/70 border-border/40 hover:bg-background/80 transition-all pointer-events-auto"
+              onClick={() => {
+                const snarkyMessages = [
+                  "I'm an Arc, not a miracle worker.",
+                  "Still better than a straight line.",
+                  "Bending over backwards for you... literally.",
+                  "An Arc in the dark is still an Arc.",
+                  "Going full circle? That's a different shape.",
+                  "Arc you serious right now?",
+                  "I've got Range. Get it? Arc range?",
+                  "Curving expectations since forever.",
+                  "Not all heroes are straight... lines.",
+                  "Arc-ing up for another day of this.",
+                ];
+                const randomMessage = snarkyMessages[Math.floor(Math.random() * snarkyMessages.length)];
+                toast({ title: randomMessage, duration: 2000 });
+              }}
+              title="Click for Arc wisdom"
+            >
+              <img
+                src={HEADER_LOGO}
+                alt="Arc"
+                className="h-5 w-5 object-contain"
+              />
+            </Button>
 
-            <div className="flex items-center gap-2">
-              <Button varian t="outline" size="icon" className="rounded-full" onClick={handleNewChat}>
+            {/* Right-side buttons */}
+            <div className="flex items-center gap-2 pointer-events-auto">
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full backdrop-blur-xl bg-background/70 border-border/40 hover:bg-background/80 transition-all"
+                onClick={handleNewChat}
+              >
                 <Plus className="h-4 w-4" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
-                className="rounded-full"
+                className="rounded-full backdrop-blur-xl bg-background/70 border-border/40 hover:bg-background/80 transition-all"
                 onClick={toggleTheme}
                 title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
               >
@@ -434,16 +452,16 @@ export function MobileChatApp() {
               <Button
                 variant="outline"
                 size="icon"
-                className="rounded-full"
+                className="rounded-full backdrop-blur-xl bg-background/70 border-border/40 hover:bg-background/80 transition-all"
                 onClick={() => {
-                  setRightPanelOpen(!rightPanelOpen); // User explicitly toggles
+                  setRightPanelOpen(!rightPanelOpen);
                 }}
               >
                 <Menu className="h-4 w-4" />
               </Button>
             </div>
           </div>
-        </header>
+        </div>
 
         {/* Scrollable messages layer with bottom padding equal to dock height */}
         <div
