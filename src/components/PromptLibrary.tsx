@@ -188,17 +188,13 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
             className="fixed inset-0 bg-background/60 backdrop-blur-md z-[9998]"
           />
 
-          {/* Drawer - lightning fast with rebound and smooth height changes */}
+          {/* Drawer - lightning fast with rebound and fixed height */}
           <motion.div
-            layout
             initial={{ y: "100%", scale: 0.95 }}
             animate={{ y: 0, scale: 1 }}
             exit={{ y: "100%", scale: 0.95 }}
-            transition={{
-              layout: { type: "spring", damping: 15, stiffness: 550, mass: 0.4 },
-              default: { type: "spring", damping: 15, stiffness: 550, mass: 0.4 }
-            }}
-            className="fixed bottom-0 left-0 right-0 z-[9999] backdrop-blur-2xl bg-background/80 border-t border-border/30 rounded-t-3xl shadow-2xl max-h-[75vh] flex flex-col"
+            transition={{ type: "spring", damping: 15, stiffness: 550, mass: 0.4 }}
+            className="fixed bottom-0 left-0 right-0 z-[9999] backdrop-blur-2xl bg-background/80 border-t border-border/30 rounded-t-3xl shadow-2xl h-[75vh] flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 backdrop-blur-xl bg-background/40">
@@ -275,17 +271,9 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
               })}
             </div>
 
-            {/* Prompt Grid */}
-            <motion.div
-              className="flex-1 overflow-y-auto p-4 overscroll-contain"
-              layout
-              transition={{ type: "spring", damping: 15, stiffness: 550, mass: 0.4 }}
-            >
-              <motion.div
-                className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-4"
-                layout
-                transition={{ type: "spring", damping: 15, stiffness: 550, mass: 0.4 }}
-              >
+            {/* Prompt Grid - fixed height with scrolling */}
+            <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-4">
                 {isCurrentTabLoading() ? (
                   <div className="col-span-full flex items-center justify-center py-12">
                     <div className="flex flex-col items-center gap-3">
@@ -326,8 +314,8 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                     </motion.button>
                   ))
                 )}
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
           </motion.div>
         </>
       )}
