@@ -60,17 +60,24 @@ TIMESTAMP: ${timestamp} | SEED: ${randomSeed}
 ${categoryPrompts[category as keyof typeof categoryPrompts]}
 
 STRICT REQUIREMENTS:
-1. Every label must be SHORT (2-3 words maximum)
-2. Every prompt must be CONCISE (1-2 sentences)
-3. Use DIFFERENT emojis for each item
-4. NO repetition of themes, topics, or styles
-5. Be CREATIVE and UNEXPECTED - surprise the user!
+1. EVERY label MUST start with a unique emoji character (🎯, 🚀, 💡, etc.)
+2. Every label must be SHORT (2-3 words maximum) AFTER the emoji
+3. Every prompt must be CONCISE (1-2 sentences)
+4. Use DIFFERENT emojis for each of the 6 items - NO repeating emojis
+5. NO repetition of themes, topics, or styles
+6. Be CREATIVE and UNEXPECTED - surprise the user!
+
+LABEL FORMAT (MANDATORY):
+"[EMOJI] Short Title" - Example: "🎯 Dream Journal" or "🚀 Space Opera"
 
 Return ONLY valid JSON array with 6 objects:
 [
   {"label": "🎯 Short Title", "prompt": "Concise prompt text."},
+  {"label": "🚀 Different Title", "prompt": "Another prompt."},
   ...
-]`;
+]
+
+CRITICAL: Every single label MUST have an emoji at the start!`;
 
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!lovableApiKey) {
