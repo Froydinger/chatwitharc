@@ -81,7 +81,7 @@ export function MobileChatApp() {
   // Sync URL with current session - only update URL when explicitly creating/switching sessions
   useEffect(() => {
     // Only navigate if we have a current session and we're on the home page
-    if (currentSessionId && window.location.pathname === '/') {
+    if (currentSessionId && window.location.pathname === "/") {
       navigate(`/chat/${currentSessionId}`, { replace: true });
     }
   }, [currentSessionId, navigate]);
@@ -114,7 +114,7 @@ export function MobileChatApp() {
     const handleTyping = () => {
       const el = messagesContainerRef.current;
       if (!el) return;
-      
+
       // Always scroll to bottom during typing
       el.scrollTo({
         top: el.scrollHeight,
@@ -122,8 +122,8 @@ export function MobileChatApp() {
       });
     };
 
-    window.addEventListener('typewriter-typing', handleTyping);
-    return () => window.removeEventListener('typewriter-typing', handleTyping);
+    window.addEventListener("typewriter-typing", handleTyping);
+    return () => window.removeEventListener("typewriter-typing", handleTyping);
   }, []);
 
   // Clear the tracked ID when messages change (new message added)
@@ -270,7 +270,7 @@ export function MobileChatApp() {
       const currentScrollY = el.scrollTop;
       const isScrollable = el.scrollHeight > el.clientHeight;
       const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
-      
+
       // Only show button if content is scrollable, not near bottom, and has messages
       setShowScrollButton(isScrollable && !isNearBottom && messages.length > 0);
 
@@ -289,10 +289,10 @@ export function MobileChatApp() {
     };
 
     el.addEventListener("scroll", handleScroll);
-    
+
     // Also check on mount and when messages change
     handleScroll();
-    
+
     return () => el.removeEventListener("scroll", handleScroll);
   }, [messages.length, lastScrollY, isMobile]);
 
@@ -321,7 +321,7 @@ export function MobileChatApp() {
   // Pull-to-refresh for mobile
   useEffect(() => {
     if (!isMobile) return;
-    
+
     const el = messagesContainerRef.current;
     if (!el) return;
 
@@ -337,10 +337,10 @@ export function MobileChatApp() {
 
     const handleTouchMove = (e: TouchEvent) => {
       if (!pulling) return;
-      
+
       const currentY = e.touches[0].clientY;
       const distance = currentY - startY;
-      
+
       if (distance > 0 && el.scrollTop === 0) {
         e.preventDefault();
         const maxPull = 80;
@@ -362,27 +362,27 @@ export function MobileChatApp() {
         } catch {
           toast({
             title: "Sync failed",
-            variant: "destructive"
+            variant: "destructive",
           });
         } finally {
           setIsSyncing(false);
         }
       }
-      
+
       setPullDistance(0);
       setIsPullingToRefresh(false);
       pulling = false;
       startY = 0;
     };
 
-    el.addEventListener('touchstart', handleTouchStart, { passive: true });
-    el.addEventListener('touchmove', handleTouchMove, { passive: false });
-    el.addEventListener('touchend', handleTouchEnd);
+    el.addEventListener("touchstart", handleTouchStart, { passive: true });
+    el.addEventListener("touchmove", handleTouchMove, { passive: false });
+    el.addEventListener("touchend", handleTouchEnd);
 
     return () => {
-      el.removeEventListener('touchstart', handleTouchStart);
-      el.removeEventListener('touchmove', handleTouchMove);
-      el.removeEventListener('touchend', handleTouchEnd);
+      el.removeEventListener("touchstart", handleTouchStart);
+      el.removeEventListener("touchmove", handleTouchMove);
+      el.removeEventListener("touchend", handleTouchEnd);
     };
   }, [isMobile, isPullingToRefresh, syncFromSupabase, toast]);
 
@@ -397,7 +397,7 @@ export function MobileChatApp() {
     } catch {
       toast({
         title: "Sync failed",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsSyncing(false);
@@ -541,23 +541,23 @@ export function MobileChatApp() {
           >
             {/* Pull-to-refresh indicator (mobile only) */}
             {isMobile && pullDistance > 0 && (
-              <div 
+              <div
                 className="absolute top-0 left-0 right-0 flex justify-center items-center transition-opacity"
-                style={{ 
+                style={{
                   height: pullDistance,
-                  opacity: Math.min(pullDistance / 60, 1)
+                  opacity: Math.min(pullDistance / 60, 1),
                 }}
               >
-                <RefreshCw 
+                <RefreshCw
                   className={cn(
                     "h-5 w-5 text-primary transition-transform",
                     isPullingToRefresh && "rotate-180",
-                    isSyncing && "animate-spin"
-                  )} 
+                    isSyncing && "animate-spin",
+                  )}
                 />
               </div>
             )}
-            
+
             {/* Empty state */}
             {messages.length === 0 ? (
               <div style={{ paddingTop: "3rem" }}>
@@ -575,43 +575,43 @@ export function MobileChatApp() {
             ) : (
               <div className="w-full flex justify-center px-4">
                 <div
-                  className="space-y-4 chat-messages w-full max-w-4xl"
+                  className="space-y-4 chat-messages w-full max-w-2xl" // Changed max-w-4xl to max-w-2xl
                   style={{
                     paddingTop: "6.5rem",
                   }}
                 >
                   <AnimatePresence mode="sync" initial={false}>
                     {messages.map((message, index) => {
-                    const isLastAssistantMessage = message.role === "assistant" && index === messages.length - 1;
-                    // Only animate if this is a new message (not loaded from history)
-                    const shouldAnimateTypewriter =
-                      isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current;
+                      const isLastAssistantMessage = message.role === "assistant" && index === messages.length - 1;
+                      // Only animate if this is a new message (not loaded from history)
+                      const shouldAnimateTypewriter =
+                        isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current;
 
-                    return (
-                      <motion.div
-                        key={message.id}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        transition={{ 
-                          duration: 0.2,
-                          ease: [0.4, 0, 0.2, 1]
-                        }}
-                      >
-                        <MessageBubble
-                          message={message}
-                          isLatestAssistant={isLastAssistantMessage}
-                          shouldAnimateTypewriter={shouldAnimateTypewriter}
-                          isThinking={isLastAssistantMessage && isLoading && !isGeneratingImage}
-                          onEdit={async (messageId: string, newContent: string) => {
-                            const chatInputEvent = new CustomEvent("processEditedMessage", {
-                              detail: { content: newContent, editedMessageId: messageId },
-                            });
-                            window.dispatchEvent(chatInputEvent);
+                      return (
+                        <motion.div
+                          key={message.id}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{
+                            duration: 0.2,
+                            ease: [0.4, 0, 0.2, 1],
                           }}
-                        />
-                      </motion.div>
-                    );
+                        >
+                          <MessageBubble
+                            message={message}
+                            isLatestAssistant={isLastAssistantMessage}
+                            shouldAnimateTypewriter={shouldAnimateTypewriter}
+                            isThinking={isLastAssistantMessage && isLoading && !isGeneratingImage}
+                            onEdit={async (messageId: string, newContent: string) => {
+                              const chatInputEvent = new CustomEvent("processEditedMessage", {
+                                detail: { content: newContent, editedMessageId: messageId },
+                              });
+                              window.dispatchEvent(chatInputEvent);
+                            }}
+                          />
+                        </motion.div>
+                      );
                     })}
                   </AnimatePresence>
                   {/* Show thinking indicator when loading */}
@@ -666,7 +666,7 @@ export function MobileChatApp() {
           <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-30 pointer-events-none px-4">
             <div
               className={cn(
-                "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto",
+                "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-2xl mx-auto", // Changed max-w-4xl to max-w-2xl
                 rightPanelOpen && "lg:mr-80 xl:mr-96",
               )}
             >
