@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
@@ -22,7 +23,50 @@ serve(async (req) => {
     return new Response("Expected WebSocket connection", { status: 400 });
   }
 
-  console.log("Creating WebSocket connection to OpenAI Realtime API");
+  // Verify authentication BEFORE upgrading to WebSocket
+  const authHeader = headers.get('Authorization');
+  if (!authHeader) {
+    console.error("Missing authorization header");
+    return new Response(
+      JSON.stringify({ error: 'Missing authorization header' }),
+      {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+
+  // Verify user token
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error("Missing Supabase configuration");
+    return new Response(
+      JSON.stringify({ error: 'Server configuration error' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    console.error('Authentication failed:', authError);
+    return new Response(
+      JSON.stringify({ error: 'Invalid or expired token' }),
+      {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+
+  console.log("Authenticated user:", user.id, "- Creating WebSocket connection to OpenAI Realtime API");
 
   try {
     const { socket, response } = Deno.upgradeWebSocket(req);

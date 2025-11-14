@@ -14,7 +14,66 @@ serve(async (req) => {
   try {
     const { fileType, content, prompt } = await req.json();
     const authHeader = req.headers.get('Authorization');
-    
+
+    // Input validation
+    if (!fileType || typeof fileType !== 'string') {
+      return new Response(
+        JSON.stringify({ success: false, error: 'fileType is required and must be a string' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Validate fileType against allowlist (prevent arbitrary file types)
+    const allowedFileTypes = ['pdf', 'txt', 'md', 'markdown', 'html', 'json', 'csv', 'zip'];
+    if (!allowedFileTypes.includes(fileType.toLowerCase())) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Invalid file type. Allowed: ${allowedFileTypes.join(', ')}`
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Validate prompt
+    if (!prompt || typeof prompt !== 'string') {
+      return new Response(
+        JSON.stringify({ success: false, error: 'prompt is required and must be a string' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Limit prompt length (prevent DoS)
+    if (prompt.length > 10000) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Prompt too long (max 10000 characters)' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Validate content if provided
+    if (content !== undefined && typeof content !== 'string') {
+      return new Response(
+        JSON.stringify({ success: false, error: 'content must be a string if provided' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     console.log('Generating file:', { fileType, promptLength: prompt?.length });
 
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
