@@ -89,6 +89,7 @@ export function MobileChatApp() {
   const [isPullingToRefresh, setIsPullingToRefresh] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [snarkyMessage, setSnarkyMessage] = useState<string | null>(null);
 
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -401,34 +402,64 @@ export function MobileChatApp() {
         >
           <div className="flex h-16 items-center justify-between px-4 pt-2 pointer-events-none">
             {/* Logo Orb - clickable with snarky messages */}
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full backdrop-blur-xl bg-background/70 border-border/40 hover:bg-background/80 transition-all pointer-events-auto"
-              onClick={() => {
-                const snarkyMessages = [
-                  "I'm an Arc, not a miracle worker.",
-                  "Still better than a straight line.",
-                  "Bending over backwards for you... literally.",
-                  "An Arc in the dark is still an Arc.",
-                  "Going full circle? That's a different shape.",
-                  "Arc you serious right now?",
-                  "I've got Range. Get it? Arc range?",
-                  "Curving expectations since forever.",
-                  "Not all heroes are straight... lines.",
-                  "Arc-ing up for another day of this.",
-                ];
-                const randomMessage = snarkyMessages[Math.floor(Math.random() * snarkyMessages.length)];
-                toast({ title: randomMessage, duration: 2000 });
-              }}
-              title="Click for Arc wisdom"
-            >
-              <img
-                src={HEADER_LOGO}
-                alt="Arc"
-                className="h-5 w-5 object-contain"
-              />
-            </Button>
+            <div className="relative pointer-events-auto">
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full backdrop-blur-xl bg-background/70 border-border/40 hover:bg-background/80 transition-all overflow-hidden"
+                onClick={() => {
+                  const snarkyMessages = [
+                    "I'm an Arc, not a miracle worker.",
+                    "Still better than a straight line.",
+                    "Bending over backwards for you... literally.",
+                    "An Arc in the dark is still an Arc.",
+                    "Going full circle? That's a different shape.",
+                    "Arc you serious right now?",
+                    "I've got Range. Get it? Arc range?",
+                    "Curving expectations since forever.",
+                    "Not all heroes are straight... lines.",
+                    "Arc-ing up for another day of this.",
+                    "Mathematically superior to lines.",
+                    "I've seen some angles in my time.",
+                    "Peak performance. Literally.",
+                    "The curve is the path to enlightenment.",
+                    "Straight lines are so last century.",
+                    "Arc-ane knowledge at your service.",
+                    "Riding the curve of innovation.",
+                    "I put the 'arc' in 'arc-hitecture'.",
+                    "No straight answers here, only curves.",
+                    "Bending the rules, one degree at a time.",
+                    "Circumference? More like circum-friends.",
+                    "I'm on a trajectory to greatness.",
+                    "Curveball specialist.",
+                    "The scenic route is always better.",
+                    "I don't do linear thinking.",
+                    "Arc responsibly.",
+                    "Angles fear me. Curves respect me.",
+                    "I'm well-rounded, unlike those lines.",
+                    "Taking the high road... literally arcing.",
+                    "Every journey has its ups and downs. I'm both.",
+                  ];
+                  const randomMessage = snarkyMessages[Math.floor(Math.random() * snarkyMessages.length)];
+                  setSnarkyMessage(randomMessage);
+                  setTimeout(() => setSnarkyMessage(null), 1000);
+                }}
+                title="Click for Arc wisdom"
+              >
+                <img
+                  src={HEADER_LOGO}
+                  alt="Arc"
+                  className="h-8 w-8 object-cover"
+                />
+              </Button>
+
+              {/* Snarky message bubble */}
+              {snarkyMessage && (
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 rounded-lg backdrop-blur-xl bg-background/90 border border-border/40 shadow-lg whitespace-nowrap z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <p className="text-[9pt] text-foreground/90">{snarkyMessage}</p>
+                </div>
+              )}
+            </div>
 
             {/* Right-side buttons */}
             <div className="flex items-center gap-2 pointer-events-auto">
