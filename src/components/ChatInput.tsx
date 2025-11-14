@@ -807,21 +807,20 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                     rightPanelOpen && "lg:mr-80 xl:mr-96"
                   )}
                 >
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 400,
-                      damping: 25,
-                      mass: 0.8,
-                    }}
-                    className="px-4"
-                  >
+                  <div className="px-4">
                     <div className="flex flex-col gap-2 w-[200px] mx-auto">
                       {/* Quick Prompts */}
-                      <button
+                      <motion.button
+                        initial={{ opacity: 0, y: 40, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 350,
+                          damping: 20,
+                          mass: 0.5,
+                          delay: 0,
+                        }}
                         onClick={() => {
                           setShowMenu(false);
                           setShowPromptLibrary(true);
@@ -838,10 +837,20 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                           </span>
                           <div className="text-sm font-semibold">Prompts</div>
                         </div>
-                      </button>
+                      </motion.button>
 
                       {/* Generate Image */}
-                      <button
+                      <motion.button
+                        initial={{ opacity: 0, y: 40, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 350,
+                          damping: 20,
+                          mass: 0.5,
+                          delay: 0.05,
+                        }}
                         onClick={() => {
                           setForceImageMode(true);
                           setShowMenu(false);
@@ -858,10 +867,20 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                           </span>
                           <div className="text-sm font-semibold">Image</div>
                         </div>
-                      </button>
+                      </motion.button>
 
                       {/* Attach */}
-                      <button
+                      <motion.button
+                        initial={{ opacity: 0, y: 40, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 350,
+                          damping: 20,
+                          mass: 0.5,
+                          delay: 0.1,
+                        }}
                         onClick={() => {
                           setShowMenu(false);
                           fileInputRef.current?.click();
@@ -878,9 +897,9 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                           </span>
                           <div className="text-sm font-semibold">Attach</div>
                         </div>
-                      </button>
+                      </motion.button>
                     </div>
-                  </motion.div>
+                  </div>
                 </div>
               </div>
             )}
