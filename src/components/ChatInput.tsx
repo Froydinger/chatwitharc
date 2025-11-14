@@ -402,10 +402,11 @@ export function ChatInput({ onImagesChange }: Props) {
 
 
   /* ---------- Submit ---------- */
-  const handleSend = async () => {
-    if ((!inputValue.trim() && selectedImages.length === 0) || isLoading) return;
+  const handleSend = async (messageOverride?: string) => {
+    const messageToSend = messageOverride ?? inputValue;
+    if ((!messageToSend.trim() && selectedImages.length === 0) || isLoading) return;
 
-    const userMessage = inputValue.trim();
+    const userMessage = messageToSend.trim();
     const images = [...selectedImages];
 
     // Clear UI promptly
@@ -869,12 +870,9 @@ export function ChatInput({ onImagesChange }: Props) {
             onClose={() => setShowPromptLibrary(false)}
             prompts={quickPrompts}
             onSelectPrompt={(prompt) => {
-              setInputValue(prompt);
               setShowPromptLibrary(false);
-              // Focus the textarea after selecting a prompt
-              setTimeout(() => {
-                textareaRef.current?.focus();
-              }, 100);
+              // Auto-send the prompt immediately
+              handleSend(prompt);
             }}
           />,
           portalRoot

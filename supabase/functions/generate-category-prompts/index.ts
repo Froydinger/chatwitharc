@@ -23,13 +23,16 @@ serve(async (req) => {
 
     // Define prompts for each category - KEEP CONCISE
     const categoryPrompts = {
-      chat: `Generate 6 COMPLETELY DIFFERENT chat prompts. Be creative and unexpected! Mix topics like:
-- Self-reflection, mental wellness, focus
-- Casual chat, advice, life decisions
-- Gratitude, goal-setting, productivity
+      chat: `Generate 6 COMPLETELY DIFFERENT prompts where the USER is asking the AI for support. Think:
+- "I had a rough day" / "Let's check in" / "Help me focus"
+- "I'm feeling overwhelmed" / "I need motivation"
+- "Can we talk about [topic]?" / "Help me process [feeling]"
 
-CRITICAL: Labels should be SHORT (2-3 words max). Prompts should be concise (1-2 sentences).
-AVOID generic options like "Reflect", "Check-in", "Gratitude" - be creative and unique!`,
+The AI is a supportive assistant for the user's wellness and creative journey, NOT a human friend interviewing them.
+Prompts should be what the USER would SAY to get help, support, or guidance.
+
+CRITICAL: Labels SHORT (2-3 words). Prompts concise (1-2 sentences).
+Avoid generic labels - be creative and relatable!`,
 
       create: `Generate 6 COMPLETELY DIFFERENT image prompts. Be wild and creative! Mix styles:
 - Retro/vaporwave, cosmic/space, nature
@@ -38,12 +41,16 @@ AVOID generic options like "Reflect", "Check-in", "Gratitude" - be creative and 
 CRITICAL: Labels SHORT (2-3 words). Each prompt starts with "Generate an image:" then 1-2 descriptive sentences.
 Use VARIED emojis. Avoid repeating styles or themes!`,
 
-      write: `Generate 6 COMPLETELY DIFFERENT writing prompts. Be inventive! Mix types:
-- Fiction, personal essays, poetry
-- Blog posts, creative briefs, letters
+      write: `Generate 6 COMPLETELY DIFFERENT prompts that HELP the user with their writing process:
+- "Help me develop this character's backstory"
+- "Create lore for my fantasy world"
+- "Draft an outline for my blog post about [topic]"
+- "Polish this rough draft" / "Brainstorm plot twists"
 
-CRITICAL: Labels SHORT (2-3 words). Prompts concise (1-2 sentences).
-Use VARIED emojis and topics. NO generic titles!`,
+NOT just "write a story" - help them with THEIR writing, drafts, worldbuilding, and creative process.
+
+CRITICAL: Labels SHORT (2-3 words). Prompts practical and specific (1-2 sentences).
+Use VARIED emojis. Focus on supporting the writer!`,
 
       code: `Generate 6 COMPLETELY DIFFERENT coding prompts. Be fun and creative! Mix types:
 - Games, animations, visualizations
