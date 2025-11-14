@@ -60,6 +60,16 @@ export function CodeAppsPanel() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  // Scroll to top when panel opens
+  useEffect(() => {
+    const container = document.querySelector('.code-apps-container');
+    if (container) {
+      container.scrollTop = 0;
+    }
+  }, []);
 
   // Simulate loading state
   useEffect(() => {
@@ -115,6 +125,19 @@ export function CodeAppsPanel() {
         block.sessionTitle.toLowerCase().includes(query)
     );
   }, [codeBlocks, searchQuery]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredBlocks.length / ITEMS_PER_PAGE);
+  const paginatedBlocks = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredBlocks.slice(startIndex, endIndex);
+  }, [filteredBlocks, currentPage]);
+
+  // Reset to page 1 when search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const copyCode = (code: string, messageId: string) => {
     navigator.clipboard.writeText(code);
@@ -208,8 +231,38 @@ export function CodeAppsPanel() {
     return previewable.includes(language.toLowerCase());
   };
 
+  const PaginationButtons = () => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex items-center justify-between gap-2 px-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          className="backdrop-blur-xl bg-background/70 border-border/40"
+        >
+          Prev Page
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          Page {currentPage} of {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          disabled={currentPage === totalPages}
+          className="backdrop-blur-xl bg-background/70 border-border/40"
+        >
+          Next Page
+        </Button>
+      </div>
+    );
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 p-6 h-full overflow-y-auto scrollbar-hide">
+    <div className="code-apps-container w-full max-w-4xl mx-auto space-y-6 p-6 h-full overflow-y-auto scrollbar-hide">
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center gap-3">
@@ -236,6 +289,9 @@ export function CodeAppsPanel() {
           </div>
         </div>
       </div>
+
+      {/* Pagination - Top */}
+      {!isLoading && filteredBlocks.length > 0 && <PaginationButtons />}
 
       {/* Code Blocks Grid */}
       <div className="space-y-4">
@@ -270,7 +326,7 @@ export function CodeAppsPanel() {
           </div>
         ) : (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-            {filteredBlocks.map((block) => (
+            {paginatedBlocks.map((block) => (
               <GlassCard
                 key={block.messageId}
                 variant="bubble"
@@ -339,7 +395,10 @@ export function CodeAppsPanel() {
         )}
       </div>
 
-              {/* Code Modal */}
+      {/* Pagination - Bottom */}
+      {!isLoading && filteredBlocks.length > 0 && <PaginationButtons />}
+
+      {/* Code Modal */}
       <Dialog open={!!selectedCode} onOpenChange={() => setSelectedCode(null)}>
         <DialogContent className="max-w-5xl w-full max-h-[90vh] overflow-hidden p-0">
           {selectedCode && (
