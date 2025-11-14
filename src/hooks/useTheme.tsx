@@ -4,9 +4,25 @@ import { useAuth } from "./useAuth";
 
 type Theme = "dark" | "light";
 
-// Helper to set CSS custom properties
+// Default accent color (green)
+const DEFAULT_ACCENT = "142 76.0% 36.3%";
+
+// Validate HSL color format (e.g., "142 76.0% 36.3%")
+function isValidHslColor(color: string): boolean {
+  if (!color || typeof color !== "string") return false;
+  // Basic check: should have format "H S% L%" with numbers
+  const hslRegex = /^\d+(\.\d+)?\s+\d+(\.\d+)?%\s+\d+(\.\d+)?%$/;
+  return hslRegex.test(color.trim());
+}
+
+// Helper to set CSS custom properties with validation
 function setCssVar(name: string, value: string) {
-  document.documentElement.style.setProperty(name, value);
+  if (name === "--primary" && !isValidHslColor(value)) {
+    console.warn(`Invalid HSL color: "${value}", using default`);
+    document.documentElement.style.setProperty(name, DEFAULT_ACCENT);
+  } else {
+    document.documentElement.style.setProperty(name, value);
+  }
 }
 
 interface ProfileUpdatePayload {
@@ -50,10 +66,13 @@ export function useTheme() {
   const [accentColor, setAccentColorState] = useState<string>(() => {
     try {
       const savedAccent = localStorage.getItem("accentColor");
-      return savedAccent || "142 76.0% 36.3%";
+      if (savedAccent && isValidHslColor(savedAccent)) {
+        return savedAccent;
+      }
+      return DEFAULT_ACCENT;
     } catch (e) {
       console.warn("Failed to read accentColor from localStorage, defaulting to green.", e);
-      return "142 76.0% 36.3%";
+      return DEFAULT_ACCENT;
     }
   });
 
@@ -84,18 +103,28 @@ export function useTheme() {
 
   // Accent color setter for UI (exposed)
   const setAppAccentColor = async (colorHsL: string) => {
+    // Validate color format before applying
+    if (!isValidHslColor(colorHsL)) {
+      console.error("Invalid HSL color format:", colorHsL);
+      return;
+    }
+
     setAccentColorState(colorHsL);
+
+    // Immediately apply to DOM
+    setCssVar("--primary", colorHsL);
+
     try {
+      // Persist to localStorage
+      localStorage.setItem("accentColor", colorHsL);
+
       // Persist to DB using the existing column
       if (user) {
         await supabase.from("profiles").update({ accent_color: colorHsL }).eq("user_id", user.id);
       }
-      localStorage.setItem("accentColor", colorHsL);
     } catch (err) {
       console.error("Failed to save accent color:", err);
     }
-    // Immediately apply
-    setCssVar("--primary", colorHsL);
   };
 
   // Apply theme + accent on any change (skip if already applied by blocking script)
@@ -140,18 +169,24 @@ export function useTheme() {
           const themePref = (data as any).theme_preference as string | undefined;
           const accentPref = (data as any).accent_color as string | undefined;
 
+          // Load accent color FIRST before applying theme
+          if (accentPref && isValidHslColor(accentPref)) {
+            setAccentColorState(accentPref);
+            localStorage.setItem("accentColor", accentPref);
+            setCssVar("--primary", accentPref);
+          } else if (accentPref) {
+            console.warn("Invalid accent color from database:", accentPref);
+          }
+
+          // Then update theme state (useEffect will apply it)
           if (themePref === "system") {
             setFollowSystemState(true);
             const sysDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
             setThemeState(sysDark ? "dark" : "light");
           } else if (themePref === "dark" || themePref === "light") {
             setFollowSystemState(false);
-            setTheme(themePref as Theme);
-          }
-
-          if (accentPref) {
-            setAccentColorState(accentPref);
-            localStorage.setItem("accentColor", accentPref);
+            setThemeState(themePref as Theme);
+            localStorage.setItem("theme", themePref);
           }
         }
         setIsLoaded(true);
@@ -162,7 +197,7 @@ export function useTheme() {
     };
 
     loadUserPreferences();
-  }, [user, isLoaded, setTheme, setAppAccentColor]);
+  }, [user, isLoaded]);
 
   // React to system theme changes when following system
   useEffect(() => {
@@ -171,15 +206,15 @@ export function useTheme() {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = (e: MediaQueryListEvent) => {
       setThemeState(e.matches ? "dark" : "light");
-      // Accent color preserved via CSS var
-      // Do not touch accentColor here
+      // Re-apply accent color to ensure it persists across theme changes
+      setCssVar("--primary", accentColor);
     };
 
     mq.addEventListener("change", onChange);
     setThemeState(mq.matches ? "dark" : "light");
 
     return () => mq.removeEventListener("change", onChange);
-  }, [followSystem]);
+  }, [followSystem, accentColor]);
 
   // Public actions
   const toggleTheme = async () => {
@@ -205,7 +240,12 @@ export function useTheme() {
       if (enabled) {
         // Re-derive and apply system theme
         const sysTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-        setTheme(sysTheme);
+        setThemeState(sysTheme);
+        localStorage.removeItem("theme");
+        // Accent color is preserved, just re-apply to ensure consistency
+        setCssVar("--primary", accentColor);
+      } else {
+        localStorage.setItem("theme", theme);
       }
     } catch (e) {
       console.error("Failed to save followSystemTheme to localStorage:", e);
