@@ -774,7 +774,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
 
         {/* Send */}
         <button
-          onClick={handleSend}
+          onClick={() => handleSend()}
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
           className={[
             "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40",
