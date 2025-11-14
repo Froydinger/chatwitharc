@@ -142,14 +142,17 @@ export function WelcomeSection({
     }
   };
 
-  // Capture the initial greeting on mount - don't let it change during typewriter
-  const [initialGreeting] = useState(greeting);
+  // Reset subtitle when greeting changes (new chat)
+  useEffect(() => {
+    setShowSubtitle(false);
+  }, [greeting]);
 
   return (
     <>
       <div className="flex flex-col items-center justify-start min-h-full py-12 px-4 space-y-6">
-        {/* Hero Section - Always show */}
+        {/* Hero Section - Re-animates on new chat */}
         <motion.div
+          key={greeting}
           className="flex flex-col items-center gap-6 text-center mt-16"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -190,11 +193,12 @@ export function WelcomeSection({
             </motion.div>
           )}
 
-          {/* Snarky greeting with typewriter */}
+          {/* Snarky greeting with typewriter - remounts on new chat */}
           <h2 className="text-4xl font-semibold relative">
             <span className="relative inline-block">
               <TypewriterText
-                text={initialGreeting}
+                key={greeting}
+                text={greeting}
                 delay={200}
                 onComplete={() => setShowSubtitle(true)}
               />
@@ -208,6 +212,7 @@ export function WelcomeSection({
             transition={{ duration: 0.5, ease: "easeOut" }}
           >
             <TypewriterText
+              key={`subtitle-${showSubtitle}`}
               text={showSubtitle ? "What would you like to explore today?" : ""}
               delay={0}
             />
