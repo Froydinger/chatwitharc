@@ -593,7 +593,7 @@ export function MobileChatApp() {
               )}
             >
               <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
-                <ChatInput onImagesChange={setHasSelectedImages} />
+                <ChatInput onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
               </div>
             </div>
           </div>
