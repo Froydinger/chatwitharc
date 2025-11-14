@@ -24,44 +24,44 @@ function getDaypartGreeting(d: Date = new Date()): string {
 
   const morningGreetings = [
     "Good morning",
-    "Rise and arc",
-    "Arc and shine",
-    "Morning, sunshine",
-    "Wakey wakey",
+    "Rise and shine",
     "Top of the morning",
-    "Arc your day up",
-    "Ready to arc?",
-    "Let's arc this day",
-    "Fresh arc energy",
-    "New day, new arc",
+    "Morning vibes",
+    "Fresh start",
+    "New day, new possibilities",
+    "Bright and early",
+    "Hello sunshine",
+    "Time to shine",
+    "Arc and shine",
+    "Ready to arc",
   ];
 
   const afternoonGreetings = [
     "Good afternoon",
-    "Afternoon arc",
-    "Still arcing strong",
     "Hey there",
     "Afternoon vibes",
-    "Mid-arc check-in",
+    "Hope you're well",
+    "Nice to see you",
+    "Welcome back",
+    "Still going strong",
+    "Peak hours",
+    "Midday energy",
     "Arc o'clock",
-    "Peak arc hours",
-    "Ready for more?",
-    "Let's keep arcing",
-    "Afternoon energy",
+    "Keep arcing",
   ];
 
   const eveningGreetings = [
     "Good evening",
-    "Evening arc",
-    "Winding down the arc",
     "Hey night owl",
     "Evening vibes",
-    "Late arc hours",
+    "Hope you're well",
+    "Nice to see you",
+    "Welcome back",
+    "Late night energy",
+    "Burning the midnight oil",
+    "After hours",
     "Arc after dark",
-    "Moonlight arc",
-    "Night time, best time",
-    "Still arcing?",
-    "Evening energy",
+    "Evening arc",
   ];
 
   let greetings: string[];
@@ -73,8 +73,9 @@ function getDaypartGreeting(d: Date = new Date()): string {
     greetings = eveningGreetings;
   }
 
-  // Pick a random greeting
-  return greetings[Math.floor(Math.random() * greetings.length)];
+  // Pick a random greeting using current timestamp for better randomization
+  const randomIndex = Math.floor((Math.random() * 1000 + Date.now()) % greetings.length);
+  return greetings[randomIndex];
 }
 
 /** Keep header logo as-is */
@@ -166,6 +167,13 @@ export function MobileChatApp() {
     const id = setInterval(() => setGreeting(getPersonalizedGreeting()), 60_000);
     return () => clearInterval(id);
   }, [profile?.display_name]);
+
+  // Update greeting when starting a new chat
+  useEffect(() => {
+    if (!currentSessionId || messages.length === 0) {
+      setGreeting(getPersonalizedGreeting());
+    }
+  }, [currentSessionId]);
 
   // Sync URL with current session - only update URL when explicitly creating/switching sessions
   useEffect(() => {
