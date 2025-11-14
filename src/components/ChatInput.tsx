@@ -736,7 +736,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
           className={[
             "ci-menu-btn h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 relative",
             shouldShowBanana
-              ? "bg-accent/20 ring-1 ring-accent/50 shadow-[0_0_24px_rgba(var(--accent-rgb),.18)]"
+              ? "bg-green-500/20 ring-1 ring-green-400/50 shadow-[0_0_24px_rgba(34,197,94,0.25)]"
               : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
           ].join(" ")}
           onClick={() => {
@@ -746,7 +746,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
         >
           {shouldShowBanana ? (
             <>
-              <ImagePlus className="h-5 w-5 text-accent" />
+              <ImagePlus className="h-5 w-5 text-green-400" />
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
                 ×
               </span>
@@ -848,13 +848,13 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                         }}
                         className="group rounded-xl border bg-background/90 backdrop-blur-xl px-4 py-3 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.02] active:scale-95"
                         style={{
-                          borderColor: "hsl(var(--accent) / 0.4)",
-                          boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px hsl(var(--accent) / 0.15) inset",
+                          borderColor: "rgba(34,197,94,0.4)",
+                          boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(34,197,94,.15) inset",
                         }}
                       >
                         <div className="flex items-center gap-3">
-                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 shrink-0">
-                            <ImagePlus className="h-4 w-4 text-accent" />
+                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-green-500/10 shrink-0">
+                            <ImagePlus className="h-4 w-4 text-green-400" />
                           </span>
                           <div className="text-sm font-semibold">Image</div>
                         </div>
