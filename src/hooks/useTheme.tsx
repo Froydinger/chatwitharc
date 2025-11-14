@@ -32,7 +32,7 @@ interface ProfileUpdatePayload {
 
 export function useTheme() {
   const { user } = useAuth();
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
 
   // Follow system by default (persisted)
   const [followSystem, setFollowSystemState] = useState<boolean>(() => {
@@ -67,14 +67,24 @@ export function useTheme() {
     try {
       const savedAccent = localStorage.getItem("accentColor");
       if (savedAccent && isValidHslColor(savedAccent)) {
+        // Apply immediately on initialization
+        setCssVar("--primary", savedAccent);
         return savedAccent;
       }
+      // Apply default immediately
+      setCssVar("--primary", DEFAULT_ACCENT);
       return DEFAULT_ACCENT;
     } catch (e) {
       console.warn("Failed to read accentColor from localStorage, defaulting to green.", e);
+      setCssVar("--primary", DEFAULT_ACCENT);
       return DEFAULT_ACCENT;
     }
   });
+
+  // Ensure accent color is applied immediately on mount (before any async operations)
+  useEffect(() => {
+    setCssVar("--primary", accentColor);
+  }, []);
 
   // Save theme (with safe persistence)
   const setTheme = useCallback(
@@ -127,29 +137,21 @@ export function useTheme() {
     }
   };
 
-  // Apply theme + accent on any change (skip if already applied by blocking script)
+  // Apply theme class on theme change
   useEffect(() => {
     const root = document.documentElement;
-    const currentTheme = root.classList.contains('dark') ? 'dark' : root.classList.contains('light') ? 'light' : null;
-    
-    // Only update if theme has actually changed
-    if (currentTheme !== theme) {
-      root.classList.remove("light", "dark");
-      root.classList.add(theme);
-    }
-    
-    // Always ensure accent color is applied
-    setCssVar("--primary", accentColor);
-    
-    // Mark as loaded after first application
-    if (!isLoaded) {
-      setIsLoaded(true);
-    }
-  }, [theme, accentColor, isLoaded]);
+    root.classList.remove("light", "dark");
+    root.classList.add(theme);
+  }, [theme]);
 
-  // Load user preferences (theme + accent) on mount
+  // Apply accent color on every change (critical for consistency)
   useEffect(() => {
-    if (!user || isLoaded) return;
+    setCssVar("--primary", accentColor);
+  }, [accentColor]);
+
+  // Load user preferences (theme + accent) on mount - only loads from DB once
+  useEffect(() => {
+    if (!user || preferencesLoaded) return;
 
     const loadUserPreferences = async () => {
       try {
@@ -161,7 +163,7 @@ export function useTheme() {
 
         if (error) {
           console.error("Failed to load user preferences from Supabase:", error);
-          setIsLoaded(true);
+          setPreferencesLoaded(true);
           return;
         }
 
@@ -173,7 +175,7 @@ export function useTheme() {
           if (accentPref && isValidHslColor(accentPref)) {
             setAccentColorState(accentPref);
             localStorage.setItem("accentColor", accentPref);
-            setCssVar("--primary", accentPref);
+            // CSS var will be applied by the accentColor useEffect
           } else if (accentPref) {
             console.warn("Invalid accent color from database:", accentPref);
           }
@@ -181,23 +183,25 @@ export function useTheme() {
           // Then update theme state (useEffect will apply it)
           if (themePref === "system") {
             setFollowSystemState(true);
+            localStorage.setItem("followSystemTheme", "true");
             const sysDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
             setThemeState(sysDark ? "dark" : "light");
           } else if (themePref === "dark" || themePref === "light") {
             setFollowSystemState(false);
+            localStorage.setItem("followSystemTheme", "false");
             setThemeState(themePref as Theme);
             localStorage.setItem("theme", themePref);
           }
         }
-        setIsLoaded(true);
+        setPreferencesLoaded(true);
       } catch (err) {
         console.error("Failed to load user preferences due to unexpected error:", err);
-        setIsLoaded(true);
+        setPreferencesLoaded(true);
       }
     };
 
     loadUserPreferences();
-  }, [user, isLoaded]);
+  }, [user, preferencesLoaded]);
 
   // React to system theme changes when following system
   useEffect(() => {
@@ -206,15 +210,16 @@ export function useTheme() {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = (e: MediaQueryListEvent) => {
       setThemeState(e.matches ? "dark" : "light");
-      // Re-apply accent color to ensure it persists across theme changes
-      setCssVar("--primary", accentColor);
     };
 
     mq.addEventListener("change", onChange);
-    setThemeState(mq.matches ? "dark" : "light");
+
+    // Apply system theme on mount if following system
+    const sysTheme = mq.matches ? "dark" : "light";
+    setThemeState(sysTheme);
 
     return () => mq.removeEventListener("change", onChange);
-  }, [followSystem, accentColor]);
+  }, [followSystem]);
 
   // Public actions
   const toggleTheme = async () => {
@@ -242,8 +247,6 @@ export function useTheme() {
         const sysTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
         setThemeState(sysTheme);
         localStorage.removeItem("theme");
-        // Accent color is preserved, just re-apply to ensure consistency
-        setCssVar("--primary", accentColor);
       } else {
         localStorage.setItem("theme", theme);
       }
