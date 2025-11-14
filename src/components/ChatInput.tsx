@@ -793,84 +793,94 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
         createPortal(
           <AnimatePresence>
             {showMenu && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 25,
-                  mass: 0.8,
-                }}
+              <div
                 className={cn(
-                  "ci-tiles fixed z-[35] w-[min(420px,90vw)]",
-                  "left-1/2 -translate-x-1/2",
-                  "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                  rightPanelOpen && "lg:mr-80 xl:mr-96"
+                  "fixed bottom-0 left-0 right-0 z-[35] pointer-events-none",
+                  "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
                 )}
-                style={{ bottom: "calc(90px + env(safe-area-inset-bottom, 0px))" }}
+                style={{ paddingBottom: "calc(90px + env(safe-area-inset-bottom, 0px))" }}
               >
-                <div className="grid grid-cols-3 gap-2 px-1">
-                  {/* Quick Prompts */}
-                  <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      setShowPromptLibrary(true);
+                <div
+                  className={cn(
+                    "max-w-4xl mx-auto pointer-events-auto",
+                    "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                    rightPanelOpen && "lg:mr-80 xl:mr-96"
+                  )}
+                >
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 400,
+                      damping: 25,
+                      mass: 0.8,
                     }}
-                    className="group rounded-xl border bg-background/90 backdrop-blur-xl px-3 py-2.5 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.03] active:scale-95"
-                    style={{
-                      borderColor: "rgba(139,92,246,0.4)",
-                      boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(139,92,246,.15) inset",
-                    }}
+                    className="px-4"
                   >
-                    <div className="flex flex-col items-center gap-1.5">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                        <Sparkles className="h-4 w-4 text-primary" />
-                      </span>
-                      <div className="text-sm font-semibold">Prompts</div>
-                    </div>
-                  </button>
+                    <div className="flex flex-col gap-2 w-[200px] mx-auto">
+                      {/* Quick Prompts */}
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowPromptLibrary(true);
+                        }}
+                        className="group rounded-xl border bg-background/90 backdrop-blur-xl px-4 py-3 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.02] active:scale-95"
+                        style={{
+                          borderColor: "rgba(139,92,246,0.4)",
+                          boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(139,92,246,.15) inset",
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 shrink-0">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                          </span>
+                          <div className="text-sm font-semibold">Prompts</div>
+                        </div>
+                      </button>
 
-                  {/* Generate Image */}
-                  <button
-                    onClick={() => {
-                      setForceImageMode(true);
-                      setShowMenu(false);
-                    }}
-                    className="group rounded-xl border bg-background/90 backdrop-blur-xl px-3 py-2.5 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.03] active:scale-95"
-                    style={{
-                      borderColor: "rgba(250,204,21,0.4)",
-                      boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(250,204,21,.15) inset",
-                    }}
-                  >
-                    <div className="flex flex-col items-center gap-1.5">
-                      <span className="text-2xl leading-none">🍌</span>
-                      <div className="text-sm font-semibold">Image</div>
-                    </div>
-                  </button>
+                      {/* Generate Image */}
+                      <button
+                        onClick={() => {
+                          setForceImageMode(true);
+                          setShowMenu(false);
+                        }}
+                        className="group rounded-xl border bg-background/90 backdrop-blur-xl px-4 py-3 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.02] active:scale-95"
+                        style={{
+                          borderColor: "rgba(250,204,21,0.4)",
+                          boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(250,204,21,.15) inset",
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl leading-none shrink-0">🍌</span>
+                          <div className="text-sm font-semibold">Image</div>
+                        </div>
+                      </button>
 
-                  {/* Attach */}
-                  <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      fileInputRef.current?.click();
-                    }}
-                    className="group rounded-xl border bg-background/90 backdrop-blur-xl px-3 py-2.5 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.03] active:scale-95"
-                    style={{
-                      borderColor: "rgba(59,130,246,0.4)",
-                      boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(59,130,246,.15) inset",
-                    }}
-                  >
-                    <div className="flex flex-col items-center gap-1.5">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10">
-                        <Paperclip className="h-4 w-4 text-blue-500" />
-                      </span>
-                      <div className="text-sm font-semibold">Attach</div>
+                      {/* Attach */}
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          fileInputRef.current?.click();
+                        }}
+                        className="group rounded-xl border bg-background/90 backdrop-blur-xl px-4 py-3 text-center transition-all hover:translate-y-[-2px] hover:scale-[1.02] active:scale-95"
+                        style={{
+                          borderColor: "rgba(59,130,246,0.4)",
+                          boxShadow: "0 4px 12px rgba(0,0,0,.15), 0 0 0 1px rgba(59,130,246,.15) inset",
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 shrink-0">
+                            <Paperclip className="h-4 w-4 text-blue-500" />
+                          </span>
+                          <div className="text-sm font-semibold">Attach</div>
+                        </div>
+                      </button>
                     </div>
-                  </button>
+                  </motion.div>
                 </div>
-              </motion.div>
+              </div>
             )}
           </AnimatePresence>,
           portalRoot,
