@@ -18,50 +18,80 @@ import { cn } from "@/lib/utils";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { usePromptPreload } from "@/hooks/usePromptPreload";
 
-/** Time-of-day greeting with fun Arc-related variations */
+/** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
   const h = d.getHours();
 
   const morningGreetings = [
     "Good morning",
     "Rise and shine",
-    "Top of the morning",
-    "Morning vibes",
-    "Fresh start",
-    "New day, new possibilities",
-    "Bright and early",
-    "Hello sunshine",
-    "Time to shine",
     "Arc and shine",
-    "Ready to arc",
+    "Wakey wakey",
+    "Morning, sunshine",
+    "You're up early",
+    "Bright and early, huh?",
+    "Coffee time?",
+    "Let's make today count",
+    "Fresh start incoming",
+    "New day, new arc",
+    "Ready to crush it?",
+    "Time to be productive",
+    "The early bird gets the arc",
+    "Let's arc this day",
+    "Morning magic awaits",
+    "What are we building today?",
+    "Another day, another arc",
+    "The world is your canvas",
+    "Let's get after it",
+    "Time to make things happen",
   ];
 
   const afternoonGreetings = [
     "Good afternoon",
     "Hey there",
-    "Afternoon vibes",
-    "Hope you're well",
-    "Nice to see you",
-    "Welcome back",
-    "Still going strong",
-    "Peak hours",
-    "Midday energy",
+    "Still going strong?",
     "Arc o'clock",
-    "Keep arcing",
+    "Midday vibes",
+    "Hope you're crushing it",
+    "Afternoon energy",
+    "Peak productivity hours",
+    "Let's keep the momentum",
+    "Halfway through the day",
+    "What are we working on?",
+    "Time flies when you're arcing",
+    "Staying focused?",
+    "Power through mode activated",
+    "Coffee break or hustle?",
+    "The grind continues",
+    "Making progress?",
+    "Keep that flow going",
+    "Afternoon excellence",
+    "Let's finish strong",
+    "Ideas flowing?",
   ];
 
   const eveningGreetings = [
     "Good evening",
     "Hey night owl",
-    "Evening vibes",
-    "Hope you're well",
-    "Nice to see you",
-    "Welcome back",
-    "Late night energy",
-    "Burning the midnight oil",
-    "After hours",
     "Arc after dark",
-    "Evening arc",
+    "Burning the midnight oil?",
+    "Late night energy",
+    "The night is young",
+    "Still at it?",
+    "Evening grind",
+    "Moon's out, arc's out",
+    "Peak creative hours",
+    "Night mode activated",
+    "When everyone sleeps, you arc",
+    "Quiet hours, best hours",
+    "The evening shift",
+    "Late night brilliance",
+    "After hours excellence",
+    "Productivity knows no bedtime",
+    "Working late or starting early?",
+    "Night time, right time",
+    "Dark mode detected",
+    "Let's make tonight count",
   ];
 
   let greetings: string[];
@@ -155,23 +185,19 @@ export function MobileChatApp() {
   const lastLoadedMessageIdRef = useRef<string | null>(null);
   const { toast } = useToast();
 
-  // Greeting with user's name when available
-  const getPersonalizedGreeting = () => {
-    const timeGreeting = getDaypartGreeting();
-    const displayName = profile?.display_name;
-    return displayName ? `${timeGreeting}, ${displayName}` : timeGreeting;
-  };
-  const [greeting, setGreeting] = useState(getPersonalizedGreeting());
+  // Snarky greeting - no names, just personality
+  const [greeting, setGreeting] = useState(getDaypartGreeting());
+
+  // Update greeting every minute
   useEffect(() => {
-    setGreeting(getPersonalizedGreeting());
-    const id = setInterval(() => setGreeting(getPersonalizedGreeting()), 60_000);
+    const id = setInterval(() => setGreeting(getDaypartGreeting()), 60_000);
     return () => clearInterval(id);
-  }, [profile?.display_name]);
+  }, []);
 
   // Update greeting when starting a new chat
   useEffect(() => {
     if (!currentSessionId || messages.length === 0) {
-      setGreeting(getPersonalizedGreeting());
+      setGreeting(getDaypartGreeting());
     }
   }, [currentSessionId]);
 
