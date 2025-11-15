@@ -163,13 +163,11 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         animate={{ x: isOpen ? "0%" : "100%" }}
         transition={{ type: "spring", damping: 18, stiffness: 320, mass: 0.65 }}
         className={cn(
-          "fixed top-0 right-0 h-full z-50 backdrop-blur-2xl bg-gradient-to-br from-background/70 via-background/60 to-background/70 border-l border-border/30",
+          "fixed top-0 right-0 h-full z-50 backdrop-blur-2xl bg-background/50 border-l border-border/30",
           "w-full sm:w-96 lg:w-80 xl:w-96",
-          "flex flex-col overflow-hidden shadow-2xl relative"
+          "flex flex-col overflow-hidden shadow-2xl"
         )}
       >
-        {/* Ambient glow effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-primary/8 pointer-events-none" />
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/30 backdrop-blur-xl bg-background/40">
           <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
