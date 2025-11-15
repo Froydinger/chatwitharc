@@ -723,9 +723,9 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
       {/* Input Row */}
       <div
         className={[
-          "chat-input-halo flex items-center gap-3 transition-all duration-200 rounded-full backdrop-blur-xl bg-white/10 dark:bg-white/10 border border-white/20 dark:border-white/20 shadow-sm",
-          isActive ? "halo-active" : "",
-          shouldShowBanana ? "ring-2 ring-yellow-400/60 shadow-[0_0_24px_rgba(250,204,21,.18)]" : "ring-0",
+          "chat-input-halo flex items-center gap-3 transition-all duration-200 rounded-full backdrop-blur-xl bg-background shadow-xl ring-1 ring-border/40 hover:ring-border/60",
+          isActive ? "halo-active ring-2 ring-primary/40 shadow-[0_0_24px_rgba(var(--primary),.15)]" : "",
+          shouldShowBanana ? "ring-2 ring-yellow-400/60 shadow-[0_0_24px_rgba(250,204,21,.18)]" : "",
         ].join(" ")}
       >
         {/* LEFT BUTTON — Banana replaces + when active */}
