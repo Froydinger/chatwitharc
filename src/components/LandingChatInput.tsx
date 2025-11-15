@@ -83,8 +83,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
       <div
         className={[
           "flex items-center gap-3 transition-all duration-200 rounded-full",
-          "backdrop-blur-xl bg-background shadow-xl",
-          "ring-1 ring-border/40 hover:ring-border/60",
+          "backdrop-blur-2xl bg-background/60 border border-border/30 shadow-lg",
           isActive ? "ring-2 ring-primary/40 shadow-[0_0_24px_rgba(var(--primary),.15)]" : "",
         ].join(" ")}
       >
