@@ -58,10 +58,8 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
   return (
     <div
       className={[
-        "flex items-center gap-3 transition-all duration-200 rounded-full",
-        "ring-1 ring-border/40 hover:ring-border/60",
-        "backdrop-blur-xl bg-background/80 shadow-xl",
-        isActive ? "ring-2 ring-primary/40 shadow-[0_0_24px_rgba(var(--primary),.15)]" : "",
+        "chat-input-halo flex items-center gap-3 transition-all duration-200 rounded-full bg-transparent",
+        isActive ? "halo-active" : "",
       ].join(" ")}
     >
       {/* Left Button - Star/Sparkles */}
@@ -83,11 +81,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           onFocus={() => setIsActive(true)}
           onBlur={() => setIsActive(false)}
           placeholder="Message ArcAI..."
-          className="!border-0 border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 px-4 !outline-none focus:outline-none !ring-0 focus:ring-0 !ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 !shadow-none text-[16px] !rounded-none"
-          style={{
-            backgroundColor: 'rgba(0, 0, 0, 0)',
-            background: 'transparent'
-          }}
+          className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 px-4 focus:outline-none focus:ring-0 text-[16px]"
           rows={1}
         />
       </div>
