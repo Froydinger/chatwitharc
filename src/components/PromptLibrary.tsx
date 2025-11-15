@@ -296,8 +296,8 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
               </div>
 
               {/* Tab Navigation - elegant pill design */}
-              <div className="relative px-6 sm:px-8 pt-5 pb-4">
-                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+              <div className="relative px-6 sm:px-8 pt-6 pb-5 overflow-visible">
+                <div className="flex items-center gap-2 overflow-x-auto overflow-y-visible scrollbar-hide py-2 px-2 -mx-2 -my-2">
                   {tabs.map((tab, index) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -339,8 +339,8 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
               </div>
 
               {/* Prompt Grid - beautiful cards */}
-              <div className="flex-1 overflow-y-auto px-6 sm:px-8 pb-6 overscroll-contain">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div className="flex-1 overflow-y-auto overflow-x-visible px-6 sm:px-8 pb-6 overscroll-contain">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-2 -m-2">
                   {isCurrentTabLoading() ? (
                     <div className="col-span-full flex items-center justify-center py-16">
                       <motion.div
