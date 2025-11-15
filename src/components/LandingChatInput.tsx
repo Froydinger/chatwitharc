@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send } from "lucide-react";
-import { GlassButton } from "@/components/ui/glass-button";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 interface LandingChatInputProps {
@@ -9,26 +8,19 @@ interface LandingChatInputProps {
 
 export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
   const [inputValue, setInputValue] = useState("");
+  const [isActive, setIsActive] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const cursorPositionRef = useRef<number | null>(null);
 
-  // Auto-resize textarea with cursor position preservation
+  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
-      // Save cursor position before resize
       const cursorPos = textareaRef.current.selectionStart;
-      
       textareaRef.current.style.height = 'auto';
       const scrollHeight = textareaRef.current.scrollHeight;
-      const lineHeight = 24; // Approximate line height
-      const maxHeight = lineHeight * 3; // 3 lines max before scrolling
+      const maxHeight = 144; // max-h-[144px]
       textareaRef.current.style.height = Math.min(scrollHeight, maxHeight) + 'px';
-      
-      // Restore cursor position after resize
-      if (cursorPositionRef.current !== null) {
-        textareaRef.current.setSelectionRange(cursorPositionRef.current, cursorPositionRef.current);
-        cursorPositionRef.current = null;
-      } else if (document.activeElement === textareaRef.current) {
+
+      if (document.activeElement === textareaRef.current) {
         textareaRef.current.setSelectionRange(cursorPos, cursorPos);
       }
     }
@@ -39,14 +31,13 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
     const handleQuickPromptSelected = (event: CustomEvent) => {
       const { prompt } = event.detail;
       setInputValue(prompt);
-      // Focus the textarea after setting the value
       setTimeout(() => {
         textareaRef.current?.focus();
       }, 0);
     };
 
     window.addEventListener('quickPromptSelected', handleQuickPromptSelected as EventListener);
-    
+
     return () => {
       window.removeEventListener('quickPromptSelected', handleQuickPromptSelected as EventListener);
     };
@@ -65,113 +56,52 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
   };
 
   return (
-    <div className="landing-input-container">
-      <div className="flex items-end gap-2">
-        <div className="flex-1 relative">
-          <Textarea
-            ref={textareaRef}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Message ArcAI..."
-            className="landing-textarea resize-none border-0 bg-transparent text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[60px] pr-16 px-4 py-4 outline-none"
-            rows={1}
-            style={{ lineHeight: '1.5', border: 'none', boxShadow: 'none' }}
-          />
-          <div className="absolute top-1/2 right-4 transform -translate-y-1/2">
-            <GlassButton
-              variant="glow"
-              size="sm"
-              onClick={handleSend}
-              disabled={!inputValue.trim()}
-              className="rounded-full w-10 h-10 p-0"
-            >
-              <Send className="h-4 w-4" />
-            </GlassButton>
-          </div>
-        </div>
+    <div
+      className={[
+        "flex items-center gap-3 transition-all duration-200 rounded-full bg-transparent",
+        "ring-1 ring-border/40 hover:ring-border/60",
+        "backdrop-blur-xl bg-background/80 shadow-xl",
+        isActive ? "ring-2 ring-primary/40 shadow-[0_0_24px_rgba(var(--primary),.15)]" : "",
+      ].join(" ")}
+    >
+      {/* Left Button - Star/Sparkles */}
+      <button
+        type="button"
+        aria-label="Options"
+        className="shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground ml-1"
+      >
+        <Sparkles className="h-5 w-5" />
+      </button>
+
+      {/* Input */}
+      <div className="flex-1">
+        <Textarea
+          ref={textareaRef}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setIsActive(true)}
+          onBlur={() => setIsActive(false)}
+          placeholder="Message ArcAI..."
+          className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 px-4 focus:outline-none focus:ring-0 text-[16px]"
+          rows={1}
+        />
       </div>
 
-      <style>{`
-        .landing-input-container {
-          width: 100%;
-          max-width: none;
-          margin: 0 auto;
-          background: rgba(15, 15, 15, 0.85);
-          backdrop-filter: blur(12px) saturate(120%);
-          -webkit-backdrop-filter: blur(12px) saturate(120%);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 24px;
-          box-shadow: 
-            0 20px 40px rgba(0, 0, 0, 0.4),
-            inset 0 2px 0 rgba(255, 255, 255, 0.12),
-            inset 0 1px 0 rgba(255, 255, 255, 0.06);
-          transition: all 0.3s ease;
-          color: rgba(255, 255, 255, 0.9);
-          overflow: hidden;
-        }
-
-        .light .landing-input-container {
-          background: #ffffff;
-          border: 1px solid rgba(0, 0, 0, 0.12);
-          box-shadow: 
-            0 20px 40px rgba(0, 0, 0, 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 1);
-          color: #000000;
-        }
-
-        .landing-input-container:focus-within {
-          border-color: rgba(255, 255, 255, 0.15);
-          box-shadow: 
-            0 25px 50px rgba(0, 0, 0, 0.5),
-            inset 0 2px 0 rgba(255, 255, 255, 0.15),
-            inset 0 1px 0 rgba(255, 255, 255, 0.08);
-        }
-
-        .light .landing-input-container:focus-within {
-          border-color: rgba(0, 0, 0, 0.18);
-          box-shadow: 
-            0 25px 50px rgba(0, 0, 0, 0.12),
-            inset 0 1px 0 rgba(255, 255, 255, 1);
-        }
-
-        .landing-textarea {
-          font-size: 16px !important;
-          line-height: 1.5 !important;
-          vertical-align: middle !important;
-          color: inherit;
-          border: none !important;
-          outline: none !important;
-          box-shadow: none !important;
-          ring: 0 !important;
-          border-radius: 24px !important;
-          background: transparent !important;
-        }
-
-        .landing-textarea:focus,
-        .landing-textarea:focus-visible,
-        .landing-textarea:active {
-          border: none !important;
-          outline: none !important;
-          box-shadow: none !important;
-          ring: 0 !important;
-          background: transparent !important;
-        }
-
-        .light .landing-textarea {
-          color: #000000 !important;
-        }
-
-        .landing-textarea::placeholder {
-          font-size: 16px;
-          opacity: 0.7;
-          line-height: 1.5;
-        }
-
-        .light .landing-textarea::placeholder {
-          color: rgba(0, 0, 0, 0.5) !important;
-        }
-      `}</style>
+      {/* Send Button */}
+      <button
+        onClick={handleSend}
+        disabled={!inputValue.trim()}
+        className={[
+          "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40 mr-1",
+          inputValue.trim()
+            ? "dark:bg-primary text-white dark:text-primary-foreground hover:opacity-90 dark:border-primary bg-blue-500 border-blue-500 text-white"
+            : "bg-muted/50 text-muted-foreground cursor-not-allowed",
+        ].join(" ")}
+        aria-label="Send"
+      >
+        <ArrowRight className="h-5 w-5" />
+      </button>
     </div>
   );
 }
