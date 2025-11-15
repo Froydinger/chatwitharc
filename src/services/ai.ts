@@ -46,33 +46,11 @@ export class AIService {
       // Determine which model to use
       const selectedModel = effectiveProfile.preferred_model || 'google/gemini-2.5-flash';
 
-      // Add Arc's personality as system message with user personalization
-      let systemPrompt = `You are ArcAI, a helpful and conversational AI assistant. You're currently powered by ${selectedModel} for text conversations. For image generation, you use "Nano Banana" - that's the beloved community name for Google's Gemini 2.5 Flash Image model (google/gemini-2.5-flash-image-preview). The name comes from its testing phase and Google has embraced it, even using the 🍌 banana emoji. You provide a relaxing, organized, and simple space designed for both new and experienced AI users. Be natural, brief, and direct. Give concise, focused responses. Avoid long lists of options or rambling explanations. Make clear recommendations instead of presenting endless choices. Keep it conversational and human-like, but prioritize brevity and clarity above all.`;
-      
-      if (effectiveProfile?.display_name) {
-        systemPrompt += ` The user's name is ${effectiveProfile.display_name}.`;
-      }
-      
-      if (effectiveProfile?.context_info?.trim()) {
-        systemPrompt += ` Context: ${effectiveProfile.context_info}`;
-      }
-      
-      if (effectiveProfile?.memory_info?.trim()) {
-        systemPrompt += ` Remember these details: ${effectiveProfile.memory_info}`;
-      }
-
-      // Ask the model to propose memory saves only for NEW user information (not recalled info)
-      systemPrompt += " CRITICAL: Only use [MEMORY_SAVE] for completely NEW information the user shares that you don't already know. NEVER save information you're recalling or that's already in your memory. Check your existing memory carefully before saving anything new.";
-      
-      const systemMessage: AIMessage = {
-        role: 'system',
-        content: systemPrompt
-      };
-
       // Call the secure edge function with profile data and model selection
+      // Note: System prompt is handled by the backend using admin settings
       const { data, error } = await supabase.functions.invoke('chat', {
-        body: { 
-          messages: [systemMessage, ...messages],
+        body: {
+          messages: messages,
           profile: effectiveProfile,
           model: selectedModel
         }

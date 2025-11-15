@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
@@ -22,6 +23,27 @@ serve(async (req) => {
       throw new Error('Lovable API key not configured');
     }
 
+    // Get Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Fetch image restrictions from admin settings
+    const { data: settingsData } = await supabase
+      .from('admin_settings')
+      .select('value')
+      .eq('key', 'image_restrictions')
+      .maybeSingle();
+
+    const imageRestrictions = settingsData?.value || '';
+
+    // Append restrictions to prompt if they exist
+    const enhancedPrompt = imageRestrictions
+      ? `${prompt}\n\nIMPORTANT RESTRICTIONS: ${imageRestrictions}`
+      : prompt;
+
+    console.log('Enhanced prompt with restrictions:', enhancedPrompt);
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -33,7 +55,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'user',
-            content: prompt
+            content: enhancedPrompt
           }
         ],
         modalities: ['image', 'text']

@@ -16,7 +16,7 @@ export interface Message {
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
-  type: 'text' | 'voice' | 'image' | 'image-generating' | 'file';
+  type: 'text' | 'image' | 'image-generating' | 'file';
   imageUrl?: string;
   imageUrls?: string[]; // Support for multiple images
   imagePrompt?: string; // For image generation placeholders
@@ -52,9 +52,6 @@ export interface ArcState {
   rightPanelTab: 'history' | 'media' | 'apps' | 'music' | 'settings' | 'export';
   setRightPanelTab: (tab: 'history' | 'media' | 'apps' | 'music' | 'settings' | 'export') => void;
 
-  isVoiceMode: boolean;
-  setVoiceMode: (enabled: boolean) => void;
-  toggleVoiceMode: () => void;
   isLoading: boolean;
   isGeneratingImage: boolean;
   isSearchingChats: boolean;
@@ -63,15 +60,9 @@ export interface ArcState {
   setGeneratingImage: (generating: boolean) => void;
   setSearchingChats: (searching: boolean) => void;
   setAccessingMemory: (accessing: boolean) => void;
-  
+
   // Quick Start
   startChatWithMessage: (message: string) => void;
-  
-  // Voice Settings
-  selectedVoice: 'cedar' | 'marin';
-  setSelectedVoice: (voice: 'cedar' | 'marin') => void;
-  isContinuousVoiceMode: boolean;
-  setContinuousVoiceMode: (enabled: boolean) => void;
   
   // Supabase Sync
   syncFromSupabase: () => Promise<void>;
@@ -331,18 +322,6 @@ export const useArcStore = create<ArcState>()(
       messages: [],
       
       addMessage: async (message) => {
-        // Skip saving voice messages to chat history
-        if (message.type === 'voice') {
-          set((state) => ({
-            messages: [...state.messages, {
-              ...message,
-              id: Math.random().toString(36).substring(7),
-              timestamp: new Date()
-            }]
-          }));
-          return;
-        }
-
         const newMessage = {
           ...message,
           id: Math.random().toString(36).substring(7),
@@ -509,14 +488,6 @@ export const useArcStore = create<ArcState>()(
       setRightPanelOpen: (open) => set({ rightPanelOpen: open }),
       rightPanelTab: 'history',
       setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
-      
-      // Voice Mode
-      isVoiceMode: false,
-      setVoiceMode: (enabled) => set({ isVoiceMode: enabled }),
-      toggleVoiceMode: () => set((state) => ({ 
-        isVoiceMode: !state.isVoiceMode,
-        rightPanelOpen: false // Close panel when switching to voice mode
-      })),
 
       isLoading: false,
       isGeneratingImage: false,
@@ -578,19 +549,11 @@ export const useArcStore = create<ArcState>()(
           }));
         }
       },
-      
-      // Voice
-      selectedVoice: 'cedar',
-      setSelectedVoice: (voice) => set({ selectedVoice: voice }),
-      isContinuousVoiceMode: true,
-      setContinuousVoiceMode: (enabled) => set({ isContinuousVoiceMode: enabled }),
-      
+
     }),
     {
       name: 'arc-ai-storage',
       partialize: (state) => ({
-        selectedVoice: state.selectedVoice,
-        isContinuousVoiceMode: state.isContinuousVoiceMode,
         currentSessionId: state.currentSessionId, // Persist current session for reload
         // Cloud-only: no local storage backup for messages
       })

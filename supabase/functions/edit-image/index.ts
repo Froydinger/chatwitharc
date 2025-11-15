@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -88,12 +89,32 @@ serve(async (req) => {
       return finalPrompt;
     }
 
+    // Get Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Fetch image restrictions from admin settings
+    const { data: settingsData } = await supabase
+      .from('admin_settings')
+      .select('value')
+      .eq('key', 'image_restrictions')
+      .maybeSingle();
+
+    const imageRestrictions = settingsData?.value || '';
+
     const editPrompt = buildEditPrompt(prompt, imageArray.length);
-    console.log('Edit/combine prompt:', editPrompt);
+
+    // Append restrictions to prompt if they exist
+    const enhancedEditPrompt = imageRestrictions
+      ? `${editPrompt}\n\nIMPORTANT RESTRICTIONS: ${imageRestrictions}`
+      : editPrompt;
+
+    console.log('Edit/combine prompt with restrictions:', enhancedEditPrompt);
 
     // Build content array with text and all images
     const contentArray: any[] = [
-      { type: 'text', text: editPrompt }
+      { type: 'text', text: enhancedEditPrompt }
     ];
     
     // Add all images to the content array
