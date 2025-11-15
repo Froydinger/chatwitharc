@@ -82,14 +82,14 @@ export function AuthPage() {
 
   return (
     <div className="dark min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
-      {/* Background Effects */}
+      {/* Background Effects - Always Blue */}
       <div className="fixed inset-0 pointer-events-none">
         <motion.div
           animate={{
             background: [
-              "radial-gradient(circle at 20% 50%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%)",
-              "radial-gradient(circle at 80% 20%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%)",
-              "radial-gradient(circle at 40% 80%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%)",
+              "radial-gradient(circle at 20% 50%, hsl(217 91% 60% / 0.1) 0%, transparent 50%)",
+              "radial-gradient(circle at 80% 20%, hsl(217 91% 60% / 0.1) 0%, transparent 50%)",
+              "radial-gradient(circle at 40% 80%, hsl(217 91% 60% / 0.1) 0%, transparent 50%)",
             ],
           }}
           transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
