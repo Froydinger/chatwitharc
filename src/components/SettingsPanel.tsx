@@ -65,11 +65,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AdminSettingsPanel } from "@/components/AdminSettingsPanel";
-import { Brain } from "lucide-react";
+import { Brain, Shield } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export function SettingsPanel() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const navigate = useNavigate();
   const {
     clearAllSessions,
     lastSyncAt,
@@ -434,10 +435,9 @@ export function SettingsPanel() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className={`grid w-full ${isAdmin ? "grid-cols-3" : "grid-cols-2"}`}>
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
-          {isAdmin && <TabsTrigger value="admin">Admin</TabsTrigger>}
         </TabsList>
 
         {/* Profile Tab */}
@@ -910,14 +910,32 @@ export function SettingsPanel() {
               </AlertDialog>
             </div>
           </GlassCard>
+
+          {/* Admin Panel Access */}
+          {isAdmin && (
+            <GlassCard variant="bubble" className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <h3 className="font-medium text-foreground">Admin Panel</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Manage system settings and configuration</p>
+                </div>
+                <GlassButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/admin')}
+                  className="text-primary hover:text-primary"
+                >
+                  <SettingsIcon className="h-4 w-4 mr-1" />
+                  Open Admin
+                </GlassButton>
+              </div>
+            </GlassCard>
+          )}
         </TabsContent>
 
-        {/* Admin Tab */}
-        {isAdmin && (
-          <TabsContent value="admin" className="mt-6">
-            <AdminSettingsPanel />
-          </TabsContent>
-        )}
       </Tabs>
 
       {/* Delete Data Modal */}
