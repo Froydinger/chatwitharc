@@ -202,9 +202,9 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
               onClick={(e) => e.stopPropagation()}
             >
               {/* Glass card container */}
-              <div className="relative flex flex-col max-h-[90vh] sm:max-h-[85vh] rounded-3xl overflow-hidden border border-border/40 shadow-2xl backdrop-blur-2xl bg-gradient-to-br from-background/95 via-background/90 to-background/95">
+              <div className="relative flex flex-col max-h-[90vh] sm:max-h-[85vh] rounded-3xl overflow-hidden border border-border/30 shadow-2xl backdrop-blur-3xl bg-gradient-to-br from-background/70 via-background/60 to-background/70">
               {/* Ambient glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-primary/8 pointer-events-none" />
 
               {/* Header with elegant design */}
               <div className="relative flex items-center justify-between px-6 sm:px-8 py-5 sm:py-6 border-b border-border/30 backdrop-blur-xl bg-background/40">
@@ -297,7 +297,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
 
               {/* Tab Navigation - elegant pill design */}
               <div className="relative px-6 sm:px-8 pt-6 pb-5">
-                <div className="flex items-center gap-2 overflow-x-auto overflow-y-visible scrollbar-hide px-1 py-2 -mx-1 -my-2">
+                <div className="flex items-center gap-2 overflow-x-auto overflow-y-visible scrollbar-hide px-2 py-3 -mx-2 -my-3">
                   {tabs.map((tab, index) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
