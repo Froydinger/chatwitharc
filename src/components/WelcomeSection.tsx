@@ -147,67 +147,66 @@ function getDaypartGreetings(): string[] {
 function CyclingGreeting() {
   const [displayedText, setDisplayedText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [greetings, setGreetings] = useState(getDaypartGreetings());
+  const greetings = useMemo(() => getDaypartGreetings(), []);
 
-  // Update greetings when time of day changes
-  useEffect(() => {
-    const checkInterval = setInterval(() => {
-      const newGreetings = getDaypartGreetings();
-      // If time of day changed, update greetings and reset to index 0
-      if (newGreetings !== greetings) {
-        setGreetings(newGreetings);
-        setCurrentIndex(0);
-      }
-    }, 60000); // Check every minute
-
-    return () => clearInterval(checkInterval);
-  }, [greetings]);
-
-  // Main animation effect - type, pause, untype, cycle (all within ~5 seconds)
+  // Main animation effect - type, pause, untype, cycle
   useEffect(() => {
     const currentGreeting = greetings[currentIndex];
-    let timeoutId: NodeJS.Timeout;
     const timeouts: NodeJS.Timeout[] = [];
+    let cancelled = false;
 
-    // Phase 1: Type the greeting (40ms per character)
-    let charIndex = 0;
-    const type = () => {
-      if (charIndex < currentGreeting.length) {
-        charIndex++;
-        setDisplayedText(currentGreeting.slice(0, charIndex));
-        timeoutId = setTimeout(type, 40);
-        timeouts.push(timeoutId);
+    const scheduleTimeout = (callback: () => void, delay: number) => {
+      if (cancelled) return;
+      const id = setTimeout(callback, delay);
+      timeouts.push(id);
+    };
+
+    let currentCharIndex = 0;
+
+    // Phase 1: Type the greeting character by character
+    const typeNextChar = () => {
+      if (cancelled) return;
+      if (currentCharIndex < currentGreeting.length) {
+        currentCharIndex++;
+        setDisplayedText(currentGreeting.slice(0, currentCharIndex));
+        scheduleTimeout(typeNextChar, 40);
       } else {
-        // Phase 2: Pause to let user read (1.5 seconds)
-        timeoutId = setTimeout(() => {
-          // Phase 3: Un-type the greeting (30ms per character, slightly faster)
-          let unTypeIndex = currentGreeting.length;
-          const untype = () => {
-            if (unTypeIndex > 0) {
-              unTypeIndex--;
-              setDisplayedText(currentGreeting.slice(0, unTypeIndex));
-              timeoutId = setTimeout(untype, 30);
-              timeouts.push(timeoutId);
-            } else {
-              // Phase 4: Brief pause then move to next (200ms)
-              timeoutId = setTimeout(() => {
-                setCurrentIndex((prev) => (prev + 1) % greetings.length);
-              }, 200);
-              timeouts.push(timeoutId);
-            }
-          };
-          untype();
-        }, 1500);
-        timeouts.push(timeoutId);
+        // Done typing, move to pause phase
+        scheduleTimeout(startUntype, 1500);
       }
     };
 
-    // Start the cycle
-    type();
+    // Phase 2: Un-type the greeting character by character
+    const startUntype = () => {
+      if (cancelled) return;
+      let unTypeIndex = currentGreeting.length;
 
+      const unTypeNextChar = () => {
+        if (cancelled) return;
+        if (unTypeIndex > 0) {
+          unTypeIndex--;
+          setDisplayedText(currentGreeting.slice(0, unTypeIndex));
+          scheduleTimeout(unTypeNextChar, 30);
+        } else {
+          // Done un-typing, move to next greeting after brief pause
+          scheduleTimeout(() => {
+            if (!cancelled) {
+              setCurrentIndex((prev) => (prev + 1) % greetings.length);
+            }
+          }, 200);
+        }
+      };
+
+      unTypeNextChar();
+    };
+
+    // Start the animation
+    typeNextChar();
+
+    // Cleanup function
     return () => {
-      timeouts.forEach(t => clearTimeout(t));
-      clearTimeout(timeoutId);
+      cancelled = true;
+      timeouts.forEach(clearTimeout);
     };
   }, [currentIndex, greetings]);
 
