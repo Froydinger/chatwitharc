@@ -178,150 +178,259 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop with blur */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.1 }}
+            transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 bg-background/60 backdrop-blur-md z-[9998]"
+            className="fixed inset-0 bg-black/40 backdrop-blur-xl z-[9998] flex items-center justify-center p-4"
           />
 
-          {/* Drawer - lightning fast with rebound and fixed height */}
+          {/* Center Modal - gorgeous redesign */}
           <motion.div
-            initial={{ y: "100%", scale: 0.95 }}
-            animate={{ y: 0, scale: 1 }}
-            exit={{ y: "100%", scale: 0.95 }}
-            transition={{ type: "spring", damping: 15, stiffness: 550, mass: 0.4 }}
-            className="fixed bottom-0 left-0 right-0 z-[9999] backdrop-blur-2xl bg-background/80 border-t border-border/30 rounded-t-3xl shadow-2xl h-[70vh] lg:max-w-[760px] lg:mx-auto lg:mb-4 lg:left-1/2 lg:-translate-x-1/2 flex flex-col"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{
+              type: "spring",
+              damping: 25,
+              stiffness: 400,
+              mass: 0.8
+            }}
+            className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-[9999] w-auto sm:w-[90vw] sm:max-w-3xl h-auto sm:max-h-[85vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 backdrop-blur-xl bg-background/40">
-              <h3 className="text-lg font-semibold">Prompt Library</h3>
-              <div className="flex items-center gap-2">
-                {activeTab !== 'smart' && (
-                  <motion.div whileHover={{ scale: 1.1, rotate: 180 }} whileTap={{ scale: 0.9 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+            {/* Glass card container */}
+            <div className="relative flex flex-col h-full rounded-3xl overflow-hidden border border-border/40 shadow-2xl backdrop-blur-2xl bg-gradient-to-br from-background/95 via-background/90 to-background/95">
+              {/* Ambient glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
+
+              {/* Header with elegant design */}
+              <div className="relative flex items-center justify-between px-6 sm:px-8 py-5 sm:py-6 border-b border-border/30 backdrop-blur-xl bg-background/40">
+                <div className="flex items-center gap-3">
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{
+                      type: "spring",
+                      damping: 15,
+                      stiffness: 300,
+                      delay: 0.1
+                    }}
+                    className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center"
+                  >
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </motion.div>
+                  <div>
+                    <motion.h3
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.15 }}
+                      className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent"
+                    >
+                      Prompt Library
+                    </motion.h3>
+                    <motion.p
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="text-xs text-muted-foreground hidden sm:block"
+                    >
+                      {getCurrentPrompts().length} prompts available
+                    </motion.p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {activeTab !== 'smart' && (
+                    <motion.div
+                      initial={{ scale: 0, rotate: -90 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{
+                        type: "spring",
+                        damping: 15,
+                        stiffness: 300,
+                        delay: 0.2
+                      }}
+                      whileHover={{ scale: 1.05, rotate: 90 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          refreshPrompts(activeTab, true);
+                          toast.success('Prompts refreshed!');
+                        }}
+                        className="h-9 w-9 rounded-xl bg-background/60 hover:bg-background/80 border border-border/40 hover:border-primary/50 transition-all"
+                        title="Refresh prompts"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    </motion.div>
+                  )}
+
+                  <motion.div
+                    initial={{ scale: 0, rotate: 90 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{
+                      type: "spring",
+                      damping: 15,
+                      stiffness: 300,
+                      delay: 0.25
+                    }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        refreshPrompts(activeTab, true); // Force refresh bypasses cache
-                        toast.success('Prompts refreshed!');
-                      }}
-                      className="rounded-full backdrop-blur-xl bg-background/40 hover:bg-background/60"
-                      title="Refresh prompts"
+                      onClick={onClose}
+                      className="h-9 w-9 rounded-xl bg-background/60 hover:bg-background/80 border border-border/40 hover:border-destructive/50 transition-all"
                     >
-                      <RefreshCw className="h-4 w-4" />
+                      <X className="h-4 w-4" />
                     </Button>
                   </motion.div>
-                )}
-                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={onClose}
-                    className="rounded-full backdrop-blur-xl bg-background/40 hover:bg-background/60"
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
-                </motion.div>
+                </div>
               </div>
-            </div>
 
-            {/* Tab Navigation */}
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-border/20 overflow-x-auto scrollbar-hide backdrop-blur-lg bg-background/20">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <motion.button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={cn(
-                      "relative flex items-center gap-2 rounded-full transition-all duration-300 whitespace-nowrap",
-                      isActive
-                        ? "px-4 py-2 backdrop-blur-xl bg-background/90 text-foreground shadow-lg border border-primary/40 shadow-primary/20"
-                        : "px-2 py-2 text-muted-foreground hover:text-foreground hover:bg-background/40"
-                    )}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    {isActive && (
-                      <motion.span
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: "auto" }}
-                        exit={{ opacity: 0, width: 0 }}
-                        className="text-sm font-medium overflow-hidden"
+              {/* Tab Navigation - elegant pill design */}
+              <div className="relative px-6 sm:px-8 pt-5 pb-4">
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+                  {tabs.map((tab, index) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <motion.button
+                        key={tab.id}
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 + index * 0.05 }}
+                        onClick={() => setActiveTab(tab.id)}
+                        whileHover={{ scale: 1.03, y: -1 }}
+                        whileTap={{ scale: 0.97 }}
+                        className={cn(
+                          "relative flex items-center gap-2.5 px-4 py-2.5 rounded-xl transition-all duration-300 whitespace-nowrap font-medium text-sm",
+                          isActive
+                            ? "text-foreground shadow-lg"
+                            : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                        )}
                       >
-                        {tab.label}
-                      </motion.span>
-                    )}
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span>{tab.label}</span>
 
-                    {isActive && (
+                        {isActive && (
+                          <motion.div
+                            layoutId="activePromptTab"
+                            className="absolute inset-0 rounded-xl bg-gradient-to-br from-background/90 to-background/70 border border-primary/30 shadow-[0_0_30px_hsl(var(--primary)/0.15)]"
+                            style={{ zIndex: -1 }}
+                            transition={{
+                              type: "spring",
+                              damping: 20,
+                              stiffness: 300
+                            }}
+                          />
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Prompt Grid - beautiful cards */}
+              <div className="flex-1 overflow-y-auto px-6 sm:px-8 pb-6 overscroll-contain">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  {isCurrentTabLoading() ? (
+                    <div className="col-span-full flex items-center justify-center py-16">
                       <motion.div
-                        layoutId="activePromptTab"
-                        className="absolute inset-0 backdrop-blur-xl bg-background/90 rounded-full -z-10 border border-primary/40 shadow-[0_0_20px_hsl(var(--primary)/0.3)]"
-                        transition={{ type: "spring", damping: 20, stiffness: 300 }}
-                      />
-                    )}
-                  </motion.button>
-                );
-              })}
-            </div>
-
-            {/* Prompt Grid - fixed height with scrolling */}
-            <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 pb-4 auto-rows-fr">
-                {isCurrentTabLoading() ? (
-                  <div className="col-span-full flex items-center justify-center py-12">
-                    <div className="flex flex-col items-center gap-3">
-                      <Sparkles className="h-8 w-8 text-primary animate-pulse" />
-                      <p className="text-sm text-muted-foreground">
-                        {activeTab === 'smart'
-                          ? 'Analyzing your conversations...'
-                          : 'Generating fresh prompts...'}
-                      </p>
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex flex-col items-center gap-4"
+                      >
+                        <motion.div
+                          animate={{
+                            rotate: 360,
+                            scale: [1, 1.1, 1]
+                          }}
+                          transition={{
+                            rotate: { duration: 2, repeat: Infinity, ease: "linear" },
+                            scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
+                          }}
+                        >
+                          <Sparkles className="h-10 w-10 text-primary" />
+                        </motion.div>
+                        <p className="text-sm text-muted-foreground font-medium">
+                          {activeTab === 'smart'
+                            ? 'Analyzing your conversations...'
+                            : 'Generating fresh prompts...'}
+                        </p>
+                      </motion.div>
                     </div>
-                  </div>
-                ) : getCurrentPrompts().length === 0 && activeTab === 'smart' ? (
-                  <div className="col-span-full flex items-center justify-center py-12">
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <Brain className="h-8 w-8 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">Start chatting to get personalized suggestions!</p>
-                    </div>
-                  </div>
-                ) : (
-                  getCurrentPrompts().map((prompt, index) => (
-                    <motion.button
-                      key={`${activeTab}-${prompt.label}`}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{
-                        layout: { duration: 0.3, ease: "easeOut" },
-                        opacity: { duration: 0.2, delay: index * 0.03 },
-                        scale: { duration: 0.2, delay: index * 0.03 }
-                      }}
-                      whileHover={{ scale: 1.05, y: -2 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        onSelectPrompt(prompt.prompt);
-                        onClose();
-                      }}
-                      className="group relative p-4 rounded-xl backdrop-blur-xl bg-background/60 border border-border/40 hover:border-primary/50 hover:bg-background/80 hover:shadow-lg transition-all duration-300 text-left"
-                    >
-                      <span className="text-base font-medium relative z-10">{prompt.label}</span>
-
-                      {/* Subtle hover effect */}
+                  ) : getCurrentPrompts().length === 0 && activeTab === 'smart' ? (
+                    <div className="col-span-full flex items-center justify-center py-16">
                       <motion.div
-                        className="absolute inset-0 rounded-xl bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        initial={false}
-                      />
-                    </motion.button>
-                  ))
-                )}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex flex-col items-center gap-4 text-center max-w-xs"
+                      >
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                          <Brain className="h-8 w-8 text-primary/70" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold mb-1">No smart suggestions yet</h4>
+                          <p className="text-sm text-muted-foreground">Start chatting to get personalized suggestions!</p>
+                        </div>
+                      </motion.div>
+                    </div>
+                  ) : (
+                    getCurrentPrompts().map((prompt, index) => (
+                      <motion.button
+                        key={`${activeTab}-${prompt.label}`}
+                        layout
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{
+                          layout: { type: "spring", damping: 20, stiffness: 300 },
+                          opacity: { duration: 0.3, delay: index * 0.04 },
+                          scale: { duration: 0.3, delay: index * 0.04 },
+                          y: { duration: 0.3, delay: index * 0.04 }
+                        }}
+                        whileHover={{
+                          scale: 1.02,
+                          y: -4,
+                          transition: { duration: 0.2 }
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          onSelectPrompt(prompt.prompt);
+                          onClose();
+                        }}
+                        className="group relative p-5 rounded-2xl backdrop-blur-xl bg-gradient-to-br from-background/80 to-background/60 border border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 text-left overflow-hidden"
+                      >
+                        {/* Gradient overlay on hover */}
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                          initial={false}
+                        />
+
+                        {/* Content */}
+                        <span className="relative text-sm sm:text-base font-medium leading-relaxed block">
+                          {prompt.label}
+                        </span>
+
+                        {/* Subtle shine effect */}
+                        <motion.div
+                          className="absolute inset-0 opacity-0 group-hover:opacity-100"
+                          initial={false}
+                        >
+                          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+                        </motion.div>
+                      </motion.button>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </motion.div>
