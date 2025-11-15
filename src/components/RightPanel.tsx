@@ -172,6 +172,9 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         <div className="flex items-center justify-between p-4 border-b border-border/30 backdrop-blur-xl bg-background/40">
           <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
             <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="music" className="flex items-center justify-center">
+                <Headphones className="h-4 w-4" />
+              </TabsTrigger>
               <TabsTrigger value="history" className="flex items-center justify-center">
                 <History className="h-4 w-4" />
               </TabsTrigger>
@@ -180,9 +183,6 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
               </TabsTrigger>
               <TabsTrigger value="apps" className="flex items-center justify-center">
                 <Code className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger value="music" className="flex items-center justify-center">
-                <Headphones className="h-4 w-4" />
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center justify-center">
                 <Settings className="h-4 w-4" />
