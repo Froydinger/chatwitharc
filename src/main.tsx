@@ -1,5 +1,51 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Add global error handler
+window.addEventListener('error', (event) => {
+  console.error('Global error:', event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason);
+});
+
+// Attempt to render the app with error handling
+try {
+  const rootElement = document.getElementById("root");
+
+  if (!rootElement) {
+    throw new Error('Root element not found');
+  }
+
+  createRoot(rootElement).render(
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
+} catch (error) {
+  console.error('Failed to render app:', error);
+
+  // Show a basic error message
+  const rootElement = document.getElementById("root");
+  if (rootElement) {
+    rootElement.innerHTML = `
+      <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #1a1a1a; color: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 2rem; text-align: center;">
+        <div style="max-width: 400px;">
+          <h1 style="margin-bottom: 1rem; font-size: 1.5rem;">Unable to Load App</h1>
+          <p style="margin-bottom: 1rem; color: #999;">
+            The app failed to initialize. This might be due to corrupted data.
+          </p>
+          <button
+            onclick="try { localStorage.clear(); sessionStorage.clear(); } catch(e) {} window.location.reload();"
+            style="background: #00cdff; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; margin-top: 1rem;"
+          >
+            Clear Data & Reload
+          </button>
+        </div>
+      </div>
+    `;
+  }
+}

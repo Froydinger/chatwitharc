@@ -100,41 +100,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+    let mounted = true;
+    let subscription: any = null;
+
+    // Timeout to ensure we don't hang forever
+    const timeout = setTimeout(() => {
+      if (mounted) {
+        console.warn('Auth initialization timed out, continuing anyway');
+        setLoading(false);
+      }
+    }, 5000);
+
+    const initAuth = async () => {
+      try {
+        // Set up auth state listener
+        const { data } = supabase.auth.onAuthStateChange(
+          (event, session) => {
+            if (!mounted) return;
+
+            setSession(session);
+            setUser(session?.user ?? null);
+
+            if (session?.user) {
+              // Defer profile fetch to avoid deadlock
+              setTimeout(() => {
+                if (mounted) {
+                  fetchProfile(session.user.id);
+                }
+              }, 0);
+            } else {
+              setProfile(null);
+              setNeedsOnboarding(false);
+            }
+
+            setLoading(false);
+          }
+        );
+
+        subscription = data.subscription;
+
+        // Check for existing session
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!mounted) return;
+
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Defer profile fetch to avoid deadlock
           setTimeout(() => {
-            fetchProfile(session.user.id);
+            if (mounted) {
+              fetchProfile(session.user.id);
+            }
           }, 0);
-        } else {
-          setProfile(null);
-          setNeedsOnboarding(false);
         }
 
         setLoading(false);
+        clearTimeout(timeout);
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        if (mounted) {
+          setLoading(false);
+          clearTimeout(timeout);
+        }
       }
-    );
+    };
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    initAuth();
 
-      if (session?.user) {
-        setTimeout(() => {
-          fetchProfile(session.user.id);
-        }, 0);
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+      if (subscription) {
+        subscription.unsubscribe();
       }
-
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    };
   }, []);
 
   return (
