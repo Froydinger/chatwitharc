@@ -71,14 +71,8 @@ import { Brain } from "lucide-react";
 export function SettingsPanel() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const {
-    selectedVoice,
-    setSelectedVoice,
     clearAllSessions,
     lastSyncAt,
-    isVoiceMode,
-    setVoiceMode,
-    isContinuousVoiceMode,
-    setContinuousVoiceMode,
     createNewSession,
     setRightPanelTab,
   } = useArcStore();
@@ -107,7 +101,6 @@ export function SettingsPanel() {
   // Collapsible states
   const [openSections, setOpenSections] = useState({
     profile: true,
-    voice: false,
     data: false,
   });
 

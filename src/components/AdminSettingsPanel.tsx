@@ -25,6 +25,7 @@ export function AdminSettingsPanel() {
   const [updating, setUpdating] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [systemPromptDraft, setSystemPromptDraft] = useState('');
+  const [imageRestrictionsDraft, setImageRestrictionsDraft] = useState('');
 
   if (!isAdmin) {
     return (
@@ -54,6 +55,11 @@ export function AdminSettingsPanel() {
     // Merge system prompt and global context
     const mergedPrompt = globalContext ? `${systemPrompt}\n\n--- Global Context ---\n${globalContext}` : systemPrompt;
     setSystemPromptDraft(mergedPrompt);
+  }
+
+  if (settings.length > 0 && !imageRestrictionsDraft) {
+    const imageRestrictions = getSetting('image_restrictions')?.value || '';
+    setImageRestrictionsDraft(imageRestrictions);
   }
 
   const handleUpdateSetting = async (key: string, value: string) => {
@@ -166,6 +172,37 @@ export function AdminSettingsPanel() {
                 className="w-full"
               >
                 Save System Prompt
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Image Generation Restrictions</CardTitle>
+              <CardDescription>
+                Define negative prompts or content restrictions for image generation (e.g., specific likenesses, buildings, events to exclude).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="image-restrictions">Restrictions / Negative Prompts</Label>
+                <Textarea
+                  id="image-restrictions"
+                  value={imageRestrictionsDraft || getSetting('image_restrictions')?.value || ''}
+                  onChange={(e) => setImageRestrictionsDraft(e.target.value)}
+                  className="min-h-[150px]"
+                  placeholder="Enter image content to exclude (e.g., 'no real people faces, no specific landmarks, no copyrighted characters')..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  These restrictions will be automatically added to all image generation requests.
+                </p>
+              </div>
+              <Button
+                onClick={() => handleUpdateSetting('image_restrictions', imageRestrictionsDraft)}
+                disabled={updating}
+                className="w-full"
+              >
+                Save Image Restrictions
               </Button>
             </CardContent>
           </Card>
