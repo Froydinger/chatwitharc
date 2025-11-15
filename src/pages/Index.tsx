@@ -6,7 +6,6 @@ import { useChatSync } from "@/hooks/useChatSync";
 import { useArcStore } from "@/store/useArcStore";
 import { NamePrompt } from "@/components/NamePrompt";
 import { MobileChatApp } from "@/components/MobileChatApp";
-import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { LandingScreen } from "@/components/LandingScreen";
 
@@ -94,10 +93,5 @@ export function Index() {
     return <OnboardingScreen onComplete={() => setOnboardingComplete(true)} />;
   }
 
-  return (
-    <>
-      <MobileChatApp />
-      <PWAInstallPrompt />
-    </>
-  );
+  return <MobileChatApp />;
 }
