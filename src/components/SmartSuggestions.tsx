@@ -27,12 +27,20 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
   }
 
   return (
-    <div className="flex flex-col items-center gap-4 px-4">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="flex flex-col items-center gap-4 px-4"
+    >
       {/* Suggestion Chips */}
       <div className="flex flex-wrap items-center justify-center gap-2 max-w-xl">
         {suggestions.map((suggestion, index) => (
           <motion.button
             key={suggestion.label}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: index * 0.05, ease: "easeOut" }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => onSelectPrompt(suggestion.fullPrompt || suggestion.prompt)}
@@ -50,15 +58,21 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
       </div>
 
       {/* Expand Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onShowMore}
-        className="text-muted-foreground hover:text-foreground gap-2"
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, delay: suggestions.length * 0.05 + 0.2 }}
       >
-        <Sparkles className="h-4 w-4" />
-        More prompts
-      </Button>
-    </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onShowMore}
+          className="text-muted-foreground hover:text-foreground gap-2"
+        >
+          <Sparkles className="h-4 w-4" />
+          More prompts
+        </Button>
+      </motion.div>
+    </motion.div>
   );
 }
