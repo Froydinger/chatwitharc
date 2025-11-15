@@ -143,7 +143,7 @@ function getDaypartGreetings(): string[] {
   }
 }
 
-// Cycling greeting component - types each greeting then moves to next
+// Cycling greeting component - types, pauses, un-types, then cycles to next
 function CyclingGreeting() {
   const [displayedText, setDisplayedText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -163,30 +163,52 @@ function CyclingGreeting() {
     return () => clearInterval(checkInterval);
   }, [greetings]);
 
-  // Main animation effect - types greeting then waits 5s before next
+  // Main animation effect - type, pause, untype, cycle (all within ~5 seconds)
   useEffect(() => {
     const currentGreeting = greetings[currentIndex];
-    let charIndex = 0;
     let timeoutId: NodeJS.Timeout;
+    const timeouts: NodeJS.Timeout[] = [];
 
-    // Type one character at a time
+    // Phase 1: Type the greeting (40ms per character)
+    let charIndex = 0;
     const type = () => {
       if (charIndex < currentGreeting.length) {
         charIndex++;
         setDisplayedText(currentGreeting.slice(0, charIndex));
-        timeoutId = setTimeout(type, 40); // 40ms per character
+        timeoutId = setTimeout(type, 40);
+        timeouts.push(timeoutId);
       } else {
-        // Finished typing, wait 5 seconds then move to next greeting
+        // Phase 2: Pause to let user read (1.5 seconds)
         timeoutId = setTimeout(() => {
-          setCurrentIndex((prev) => (prev + 1) % greetings.length);
-        }, 5000);
+          // Phase 3: Un-type the greeting (30ms per character, slightly faster)
+          let unTypeIndex = currentGreeting.length;
+          const untype = () => {
+            if (unTypeIndex > 0) {
+              unTypeIndex--;
+              setDisplayedText(currentGreeting.slice(0, unTypeIndex));
+              timeoutId = setTimeout(untype, 30);
+              timeouts.push(timeoutId);
+            } else {
+              // Phase 4: Brief pause then move to next (200ms)
+              timeoutId = setTimeout(() => {
+                setCurrentIndex((prev) => (prev + 1) % greetings.length);
+              }, 200);
+              timeouts.push(timeoutId);
+            }
+          };
+          untype();
+        }, 1500);
+        timeouts.push(timeoutId);
       }
     };
 
-    // Start typing
+    // Start the cycle
     type();
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      timeouts.forEach(t => clearTimeout(t));
+      clearTimeout(timeoutId);
+    };
   }, [currentIndex, greetings]);
 
   return <>{displayedText}</>;
