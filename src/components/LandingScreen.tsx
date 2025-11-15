@@ -181,7 +181,7 @@ export function LandingScreen() {
         className="py-4 px-6 text-center relative z-10"
       >
         <p className="text-xs text-muted-foreground/60 mb-1">
-          Chat Powered by Gemini 2.5 Flash • Image Generation by Flux
+          Chat Powered by Gemini 2.5 Flash • Image Generation by Gemini 2.5 Flash Image
         </p>
         <p className="text-xs text-muted-foreground/50 mb-2">
           Switch to GPT-5 or other models anytime in settings
