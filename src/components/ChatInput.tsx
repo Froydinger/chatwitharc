@@ -723,18 +723,20 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
       {/* Input Row */}
       <div
         className={[
-          "chat-input-halo flex items-center gap-3 transition-all duration-200 rounded-full bg-transparent",
+          "chat-input-halo flex items-center gap-3 transition-all duration-200 rounded-full bg-gradient-to-br from-background/70 via-background/60 to-background/70 backdrop-blur-2xl relative border border-border/30",
           isActive ? "halo-active" : "",
           shouldShowBanana ? "ring-2 ring-yellow-400/60 shadow-[0_0_24px_rgba(250,204,21,.18)]" : "ring-0",
         ].join(" ")}
       >
+        {/* Ambient glow effect */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-primary/8 pointer-events-none rounded-full" />
         {/* LEFT BUTTON — Banana replaces + when active */}
         <button
           ref={menuButtonRef}
           type="button"
           aria-label={shouldShowBanana ? "Disable image mode" : showMenu ? "Close menu" : "Quick options"}
           className={[
-            "ci-menu-btn h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 relative",
+            "ci-menu-btn h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 relative z-10",
             shouldShowBanana
               ? "bg-green-500/20 ring-1 ring-green-400/50 shadow-[0_0_24px_rgba(34,197,94,0.25)]"
               : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -757,7 +759,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
         </button>
 
         {/* Input */}
-        <div className="flex-1">
+        <div className="flex-1 relative z-10">
           <Textarea
             ref={textareaRef}
             value={inputValue}
@@ -777,7 +779,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
           onClick={() => handleSend()}
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
           className={[
-            "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40",
+            "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40 relative z-10",
             inputValue.trim() || selectedImages.length
               ? "dark:bg-primary text-white dark:text-primary-foreground hover:opacity-90 dark:border-primary bg-blue-500 border-blue-500 text-white"
               : "bg-muted/50 text-muted-foreground cursor-not-allowed",
