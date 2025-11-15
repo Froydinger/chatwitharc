@@ -56,20 +56,23 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
   };
 
   return (
-    <>
+    <div className="w-full">
       <style>{`
-        .landing-input-invisible {
-          background: transparent !important;
+        /* Force the textarea and its wrapper to have absolutely no background */
+        .landing-textarea-container {
+          background: none !important;
+          background-color: transparent !important;
+        }
+        .landing-textarea-container textarea {
+          background: none !important;
           background-color: transparent !important;
           border: none !important;
-          border-radius: 0 !important;
           box-shadow: none !important;
           outline: none !important;
         }
-        .landing-input-invisible:focus,
-        .landing-input-invisible:focus-visible,
-        .landing-input-invisible:active {
-          background: transparent !important;
+        .landing-textarea-container textarea:focus,
+        .landing-textarea-container textarea:focus-visible {
+          background: none !important;
           background-color: transparent !important;
           border: none !important;
           box-shadow: none !important;
@@ -80,7 +83,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
       <div
         className={[
           "flex items-center gap-3 transition-all duration-200 rounded-full",
-          "backdrop-blur-xl bg-background/80 shadow-xl",
+          "backdrop-blur-xl bg-background shadow-xl",
           "ring-1 ring-border/40 hover:ring-border/60",
           isActive ? "ring-2 ring-primary/40 shadow-[0_0_24px_rgba(var(--primary),.15)]" : "",
         ].join(" ")}
@@ -94,8 +97,8 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           <Sparkles className="h-5 w-5" />
         </button>
 
-        {/* Input - completely transparent, no visible background */}
-        <div className="flex-1">
+        {/* Input - EXACT copy of ChatInput approach */}
+        <div className="flex-1 landing-textarea-container">
           <Textarea
             ref={textareaRef}
             value={inputValue}
@@ -104,7 +107,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
             onFocus={() => setIsActive(true)}
             onBlur={() => setIsActive(false)}
             placeholder="Message ArcAI..."
-            className="landing-input-invisible text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 px-4 text-[16px]"
+            className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 px-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
           />
         </div>
@@ -124,6 +127,6 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           <ArrowRight className="h-5 w-5" />
         </button>
       </div>
-    </>
+    </div>
   );
 }
