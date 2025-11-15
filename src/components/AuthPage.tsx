@@ -97,7 +97,8 @@ export function AuthPage() {
         />
       </div>
 
-      <GlassCard variant="bubble" glow className="w-full max-w-md p-8 relative z-10">
+      {/* Solid Black Card - no glass effects */}
+      <div className="w-full max-w-md p-8 relative z-10 bg-black border border-white/10 rounded-2xl shadow-2xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
           {/* Logo */}
           <div className="text-center">
@@ -108,8 +109,8 @@ export function AuthPage() {
             >
               <img src="/arc-logo-ui.png" alt="ArcAI" className="h-16 w-16" />
             </motion.div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">Welcome to ArcAI</h1>
-            <p className="text-muted-foreground">{isLogin ? "Sign in to continue" : "Create your account"}</p>
+            <h1 className="text-2xl font-bold text-white mb-2">Welcome to ArcAI</h1>
+            <p className="text-gray-400">{isLogin ? "Sign in to continue" : "Create your account"}</p>
           </div>
 
           <form
@@ -120,9 +121,9 @@ export function AuthPage() {
           >
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-white">Email</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-white/70" />
                 <Input
                   id="email"
                   name="email"
@@ -136,7 +137,7 @@ export function AuthPage() {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-black border-white/20 text-white placeholder:text-white/50"
                   disabled={loading}
                   required
                 />
@@ -145,9 +146,9 @@ export function AuthPage() {
 
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-white">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-white/70" />
                 <Input
                   id="password"
                   name="password"
@@ -155,7 +156,7 @@ export function AuthPage() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10"
+                  className="pl-10 pr-10 bg-black border-white/20 text-white placeholder:text-white/50"
                   disabled={loading}
                   // Crucial: prevents strong password suggestions on login
                   autoComplete={isLogin ? "current-password" : "new-password"}
@@ -164,7 +165,7 @@ export function AuthPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-3 text-white/70 hover:text-white"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   tabIndex={-1}
                 >
@@ -180,16 +181,16 @@ export function AuthPage() {
 
           {/* Divider */}
           <div className="flex items-center gap-4">
-            <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">OR</span>
-            <Separator className="flex-1" />
+            <Separator className="flex-1 bg-white/10" />
+            <span className="text-xs text-gray-400">OR</span>
+            <Separator className="flex-1 bg-white/10" />
           </div>
 
           {/* Google Sign In */}
-          <GlassButton 
-            variant="ghost" 
-            onClick={handleGoogleAuth} 
-            disabled={loading} 
+          <GlassButton
+            variant="ghost"
+            onClick={handleGoogleAuth}
+            disabled={loading}
             className="w-full border border-white/20"
             type="button"
           >
@@ -218,7 +219,7 @@ export function AuthPage() {
           <div className="text-center">
             <button
               onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm text-gray-400 hover:text-white transition-colors"
               disabled={loading}
               type="button"
             >
@@ -226,7 +227,7 @@ export function AuthPage() {
             </button>
           </div>
         </motion.div>
-      </GlassCard>
+      </div>
     </div>
   );
 }
