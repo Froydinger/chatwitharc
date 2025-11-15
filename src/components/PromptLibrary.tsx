@@ -183,20 +183,20 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
             onClick={onClose}
             className="fixed inset-0 bg-black/40 backdrop-blur-xl z-[9998] flex items-center justify-center p-4"
           >
             {/* Center Modal - gorgeous redesign */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               transition={{
                 type: "spring",
-                damping: 25,
-                stiffness: 400,
-                mass: 0.8
+                damping: 20,
+                stiffness: 500,
+                mass: 0.5
               }}
               className="w-full max-w-3xl"
               onClick={(e) => e.stopPropagation()}
@@ -214,9 +214,9 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{
                       type: "spring",
-                      damping: 15,
-                      stiffness: 300,
-                      delay: 0.1
+                      damping: 12,
+                      stiffness: 400,
+                      delay: 0.05
                     }}
                     className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center"
                   >
@@ -226,7 +226,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                     <motion.h3
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.15 }}
+                      transition={{ delay: 0.08, duration: 0.2 }}
                       className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent"
                     >
                       Prompt Library
@@ -234,7 +234,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                     <motion.p
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.2 }}
+                      transition={{ delay: 0.1, duration: 0.2 }}
                       className="text-xs text-muted-foreground hidden sm:block"
                     >
                       {getCurrentPrompts().length} prompts available
@@ -249,9 +249,9 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{
                         type: "spring",
-                        damping: 15,
-                        stiffness: 300,
-                        delay: 0.2
+                        damping: 12,
+                        stiffness: 400,
+                        delay: 0.1
                       }}
                       whileHover={{ scale: 1.05, rotate: 90 }}
                       whileTap={{ scale: 0.95 }}
@@ -276,9 +276,9 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{
                       type: "spring",
-                      damping: 15,
-                      stiffness: 300,
-                      delay: 0.25
+                      damping: 12,
+                      stiffness: 400,
+                      delay: 0.12
                     }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -306,7 +306,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                         key={tab.id}
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 + index * 0.05 }}
+                        transition={{ delay: 0.15 + index * 0.03, duration: 0.2 }}
                         onClick={() => setActiveTab(tab.id)}
                         whileHover={{ scale: 1.03, y: -1 }}
                         whileTap={{ scale: 0.97 }}
@@ -323,11 +323,11 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                         {isActive && (
                           <motion.div
                             layoutId="activePromptTab"
-                            className="absolute inset-0 rounded-xl bg-gradient-to-br from-background/90 to-background/70 border border-primary/30 shadow-[0_0_30px_hsl(var(--primary)/0.15)] -z-10"
+                            className="absolute inset-0 rounded-xl bg-gradient-to-br from-background/90 to-background/70 border border-primary/30 shadow-[0_0_15px_hsl(var(--primary)/0.15)] -z-10"
                             transition={{
                               type: "spring",
-                              damping: 20,
-                              stiffness: 300
+                              damping: 18,
+                              stiffness: 400
                             }}
                           />
                         )}
