@@ -16,6 +16,7 @@ export interface AdminUser {
   user_id: string;
   email: string;
   role: string;
+  is_primary_admin: boolean;
   created_at: string;
   updated_at: string;
 }
