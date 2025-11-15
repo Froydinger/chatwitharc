@@ -311,14 +311,14 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                         whileHover={{ scale: 1.03, y: -1 }}
                         whileTap={{ scale: 0.97 }}
                         className={cn(
-                          "relative flex items-center gap-2.5 px-4 py-2.5 rounded-xl transition-all duration-300 whitespace-nowrap font-medium text-sm",
+                          "relative flex items-center gap-2.5 py-2.5 rounded-xl transition-all duration-300 whitespace-nowrap font-medium text-sm",
                           isActive
-                            ? "text-foreground shadow-lg"
-                            : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                            ? "text-foreground shadow-lg px-4"
+                            : "text-muted-foreground hover:text-foreground hover:bg-background/40 px-3"
                         )}
                       >
                         <Icon className="h-4 w-4 shrink-0" />
-                        <span>{tab.label}</span>
+                        {isActive && <span>{tab.label}</span>}
 
                         {isActive && (
                           <motion.div
