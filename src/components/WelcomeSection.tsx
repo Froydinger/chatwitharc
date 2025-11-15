@@ -143,7 +143,7 @@ function getDaypartGreetings(): string[] {
   }
 }
 
-// Cycling greeting component with type/untype animation - uses time-based greetings
+// Cycling greeting component - types each greeting then moves to next
 function CyclingGreeting() {
   const [displayedText, setDisplayedText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -163,44 +163,28 @@ function CyclingGreeting() {
     return () => clearInterval(checkInterval);
   }, [greetings]);
 
-  // Main animation effect
+  // Main animation effect - types greeting then waits 5s before next
   useEffect(() => {
     const currentGreeting = greetings[currentIndex];
     let charIndex = 0;
     let timeoutId: NodeJS.Timeout;
 
-    const animate = () => {
-      // Type phase
-      const type = () => {
-        if (charIndex < currentGreeting.length) {
-          charIndex++;
-          setDisplayedText(currentGreeting.slice(0, charIndex));
-          timeoutId = setTimeout(type, 40); // 40ms per character
-        } else {
-          // Finished typing, wait 3 seconds then untype
-          timeoutId = setTimeout(untype, 3000);
-        }
-      };
-
-      // Untype phase
-      const untype = () => {
-        if (charIndex > 0) {
-          charIndex--;
-          setDisplayedText(currentGreeting.slice(0, charIndex));
-          timeoutId = setTimeout(untype, 25); // 25ms per character (faster)
-        } else {
-          // Finished untyping, wait 500ms then move to next greeting
-          timeoutId = setTimeout(() => {
-            setCurrentIndex((prev) => (prev + 1) % greetings.length);
-          }, 500);
-        }
-      };
-
-      // Start with initial delay
-      timeoutId = setTimeout(type, 200);
+    // Type one character at a time
+    const type = () => {
+      if (charIndex < currentGreeting.length) {
+        charIndex++;
+        setDisplayedText(currentGreeting.slice(0, charIndex));
+        timeoutId = setTimeout(type, 40); // 40ms per character
+      } else {
+        // Finished typing, wait 5 seconds then move to next greeting
+        timeoutId = setTimeout(() => {
+          setCurrentIndex((prev) => (prev + 1) % greetings.length);
+        }, 5000);
+      }
     };
 
-    animate();
+    // Start typing
+    type();
 
     return () => clearTimeout(timeoutId);
   }, [currentIndex, greetings]);
