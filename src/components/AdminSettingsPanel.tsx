@@ -130,21 +130,23 @@ export function AdminSettingsPanel() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-2 mb-6">
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center gap-2">
         <Settings className="h-6 w-6" />
-        <h1 className="text-2xl font-bold">Admin Settings</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Admin Settings</h1>
       </div>
 
       <Tabs defaultValue="prompts" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="prompts" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
-            AI Prompts
+            <span className="hidden sm:inline">AI Prompts</span>
+            <span className="sm:hidden">Prompts</span>
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Admin Users
+            <span className="hidden sm:inline">Admin Users</span>
+            <span className="sm:hidden">Users</span>
           </TabsTrigger>
         </TabsList>
 
