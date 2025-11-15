@@ -263,7 +263,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                           refreshPrompts(activeTab, true);
                           toast.success('Prompts refreshed!');
                         }}
-                        className="h-9 w-9 rounded-xl bg-background/60 hover:bg-background/80 border border-border/40 hover:border-primary/50 transition-all"
+                        className="h-9 w-9 rounded-xl bg-background/60 hover:bg-background/80 border border-border/40 hover:border-primary/50 transition-all z-20"
                         title="Refresh prompts"
                       >
                         <RefreshCw className="h-4 w-4" />
@@ -287,7 +287,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                       variant="ghost"
                       size="icon"
                       onClick={onClose}
-                      className="h-9 w-9 rounded-xl bg-background/60 hover:bg-background/80 border border-border/40 hover:border-destructive/50 transition-all"
+                      className="h-9 w-9 rounded-xl bg-background/60 hover:bg-background/80 border border-border/40 hover:border-destructive/50 transition-all z-20"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -297,7 +297,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
 
               {/* Tab Navigation - elegant pill design */}
               <div className="relative px-6 sm:px-8 pt-6 pb-5 overflow-visible">
-                <div className="flex items-center gap-2 overflow-x-auto overflow-y-visible scrollbar-hide py-2 px-2 -mx-2 -my-2">
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-4 px-2 -mx-2" style={{ overflowY: 'visible' }}>
                   {tabs.map((tab, index) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -311,7 +311,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                         whileHover={{ scale: 1.03, y: -1 }}
                         whileTap={{ scale: 0.97 }}
                         className={cn(
-                          "relative flex items-center gap-2.5 py-2.5 rounded-xl transition-all duration-300 whitespace-nowrap font-medium text-sm",
+                          "relative flex items-center gap-2.5 py-2.5 rounded-xl transition-all duration-300 whitespace-nowrap font-medium text-sm z-10",
                           isActive
                             ? "text-foreground shadow-lg px-4"
                             : "text-muted-foreground hover:text-foreground hover:bg-background/40 px-3"
@@ -323,8 +323,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                         {isActive && (
                           <motion.div
                             layoutId="activePromptTab"
-                            className="absolute inset-0 rounded-xl bg-gradient-to-br from-background/90 to-background/70 border border-primary/30 shadow-[0_0_30px_hsl(var(--primary)/0.15)]"
-                            style={{ zIndex: -1 }}
+                            className="absolute inset-0 rounded-xl bg-gradient-to-br from-background/90 to-background/70 border border-primary/30 shadow-[0_0_30px_hsl(var(--primary)/0.15)] -z-10"
                             transition={{
                               type: "spring",
                               damping: 20,
@@ -339,8 +338,8 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
               </div>
 
               {/* Prompt Grid - beautiful cards */}
-              <div className="flex-1 overflow-y-auto overflow-x-visible px-6 sm:px-8 pb-6 overscroll-contain">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-2 -m-2">
+              <div className="flex-1 overflow-y-auto px-6 sm:px-8 pb-6 overscroll-contain" style={{ overflowX: 'visible' }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-4">
                   {isCurrentTabLoading() ? (
                     <div className="col-span-full flex items-center justify-center py-16">
                       <motion.div
@@ -399,6 +398,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                         whileHover={{
                           scale: 1.02,
                           y: -4,
+                          zIndex: 50,
                           transition: { duration: 0.2 }
                         }}
                         whileTap={{ scale: 0.98 }}
@@ -406,7 +406,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                           onSelectPrompt(prompt.prompt);
                           onClose();
                         }}
-                        className="group relative p-5 rounded-2xl backdrop-blur-xl bg-gradient-to-br from-background/80 to-background/60 border border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 text-left overflow-hidden"
+                        className="group relative p-5 rounded-2xl backdrop-blur-xl bg-gradient-to-br from-background/80 to-background/60 border border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 text-left overflow-hidden z-10 hover:z-50"
                       >
                         {/* Gradient overlay on hover */}
                         <motion.div
