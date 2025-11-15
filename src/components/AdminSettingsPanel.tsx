@@ -12,39 +12,20 @@ import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { toast } from '@/hooks/use-toast';
 
 export function AdminSettingsPanel() {
-  const { 
-    settings, 
-    adminUsers, 
-    isAdmin, 
-    loading, 
-    updateSetting, 
-    addAdminUser, 
-    removeAdminUser 
+  const {
+    settings,
+    adminUsers,
+    isAdmin,
+    loading,
+    updateSetting,
+    addAdminUser,
+    removeAdminUser
   } = useAdminSettings();
-  
+
   const [updating, setUpdating] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [systemPromptDraft, setSystemPromptDraft] = useState('');
   const [imageRestrictionsDraft, setImageRestrictionsDraft] = useState('');
-
-  if (!isAdmin) {
-    return (
-      <div className="p-6 text-center text-muted-foreground">
-        <Settings className="mx-auto h-12 w-12 mb-4 opacity-50" />
-        <h3 className="text-lg font-medium mb-2">Access Denied</h3>
-        <p>You don't have permission to access admin settings.</p>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="p-6 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-        <p className="mt-2 text-sm text-muted-foreground">Loading admin settings...</p>
-      </div>
-    );
-  }
 
   const getSetting = (key: string) => settings.find(s => s.key === key);
 
@@ -65,6 +46,26 @@ export function AdminSettingsPanel() {
       setImageRestrictionsDraft(imageRestrictions);
     }
   }, [settings, imageRestrictionsDraft]);
+
+  // Early returns AFTER all hooks
+  if (!isAdmin) {
+    return (
+      <div className="p-6 text-center text-muted-foreground">
+        <Settings className="mx-auto h-12 w-12 mb-4 opacity-50" />
+        <h3 className="text-lg font-medium mb-2">Access Denied</h3>
+        <p>You don't have permission to access admin settings.</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+        <p className="mt-2 text-sm text-muted-foreground">Loading admin settings...</p>
+      </div>
+    );
+  }
 
   const handleUpdateSetting = async (key: string, value: string) => {
     try {
