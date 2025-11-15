@@ -58,6 +58,71 @@ function TypewriterText({ text, delay = 0, onComplete }: { text: string; delay?:
   return <>{displayedText}</>;
 }
 
+// Cycling greeting component with type/untype animation
+function CyclingGreeting({ greetings }: { greetings: string[] }) {
+  const [displayedText, setDisplayedText] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isTyping, setIsTyping] = useState(true);
+
+  useEffect(() => {
+    const currentGreeting = greetings[currentIndex];
+    let charIndex = 0;
+    let timeout: NodeJS.Timeout;
+
+    const typeNextChar = () => {
+      if (charIndex < currentGreeting.length) {
+        setDisplayedText(currentGreeting.slice(0, charIndex + 1));
+        charIndex++;
+        timeout = setTimeout(typeNextChar, 40); // 40ms per character
+      } else {
+        // Finished typing, wait 3 seconds then start untyping
+        timeout = setTimeout(() => {
+          setIsTyping(false);
+          untype();
+        }, 3000);
+      }
+    };
+
+    const untype = () => {
+      if (charIndex > 0) {
+        charIndex--;
+        setDisplayedText(currentGreeting.slice(0, charIndex));
+        timeout = setTimeout(untype, 25); // 25ms per character (faster untype)
+      } else {
+        // Finished untyping, wait 500ms then move to next greeting
+        timeout = setTimeout(() => {
+          setCurrentIndex((prev) => (prev + 1) % greetings.length);
+          setIsTyping(true);
+        }, 500);
+      }
+    };
+
+    if (isTyping) {
+      charIndex = 0;
+      setDisplayedText("");
+      timeout = setTimeout(typeNextChar, 200); // Initial delay
+    }
+
+    return () => clearTimeout(timeout);
+  }, [currentIndex, isTyping, greetings]);
+
+  return <>{displayedText}</>;
+}
+
+// Fun cycling greetings
+const CYCLING_GREETINGS = [
+  "Hey there!",
+  "What's up?",
+  "Ready to create?",
+  "Let's build something!",
+  "Feeling inspired?",
+  "What's on your mind?",
+  "Time to chat!",
+  "Got ideas?",
+  "Let's go!",
+  "Sup?",
+];
+
 interface WelcomeSectionProps {
   greeting: string;
   heroAvatar: string | null;
@@ -144,9 +209,8 @@ export function WelcomeSection({
   return (
     <>
       <div className="flex flex-col items-center justify-start min-h-full py-12 px-4 space-y-6">
-        {/* Hero Section - Re-animates on new chat */}
+        {/* Hero Section */}
         <motion.div
-          key={greeting}
           className="flex flex-col items-center gap-6 text-center mt-16"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -187,14 +251,10 @@ export function WelcomeSection({
             </motion.div>
           )}
 
-          {/* Snarky greeting with typewriter - remounts on new chat */}
+          {/* Cycling greeting with type/untype animation */}
           <h2 className="text-4xl font-semibold relative">
             <span className="relative inline-block">
-              <TypewriterText
-                key={greeting}
-                text={greeting}
-                delay={200}
-              />
+              <CyclingGreeting greetings={CYCLING_GREETINGS} />
             </span>
           </h2>
         </motion.div>
