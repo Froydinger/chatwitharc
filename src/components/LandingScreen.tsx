@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { LogIn, Zap, Sparkles, Settings, MessageCircle } from "lucide-react";
+import { LogIn, Zap, Sparkles, Settings, Code, Brain } from "lucide-react";
 import { LandingChatInput } from "./LandingChatInput";
 import { AuthModal } from "./AuthModal";
 import { PrivacyTermsModal } from "./PrivacyTermsModal";
@@ -17,24 +17,24 @@ export function LandingScreen() {
 
   const features = [
     {
-      icon: Zap,
-      title: "Lightning Fast",
-      description: "Powered by Gemini 2.5 Flash for instant, intelligent responses"
+      icon: Brain,
+      title: "Remembers Everything",
+      description: "Saves and recalls your conversations, preferences, and personal context automatically"
     },
     {
       icon: Settings,
-      title: "Customizable",
-      description: "Switch between GPT-5, Gemini models, and more in settings"
+      title: "Your Style, Your Way",
+      description: "Custom accent theming and model selection (Gemini 2.5, GPT-5, and more)"
     },
     {
-      icon: MessageCircle,
-      title: "Natural Conversations",
-      description: "From morning check-ins to late-night ideas without the overwhelm"
+      icon: Code,
+      title: "Code Like a Pro",
+      description: "Expert coding assistance from debugging to architecture in a slick GlassArc UI"
     },
     {
-      icon: Sparkles,
-      title: "Smart & Personal",
-      description: "AI that learns your style and keeps up with your pace"
+      icon: Zap,
+      title: "Lightning Fast & Personal",
+      description: "Instant responses that understand your context and adapt to your workflow"
     }
   ];
 
