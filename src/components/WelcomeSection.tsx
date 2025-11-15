@@ -147,7 +147,6 @@ function getDaypartGreetings(): string[] {
 function CyclingGreeting() {
   const [displayedText, setDisplayedText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTyping, setIsTyping] = useState(true);
   const [greetings, setGreetings] = useState(getDaypartGreetings());
 
   // Update greetings when time of day changes
@@ -158,54 +157,53 @@ function CyclingGreeting() {
       if (newGreetings !== greetings) {
         setGreetings(newGreetings);
         setCurrentIndex(0);
-        setIsTyping(true);
       }
     }, 60000); // Check every minute
 
     return () => clearInterval(checkInterval);
   }, [greetings]);
 
+  // Main animation effect
   useEffect(() => {
     const currentGreeting = greetings[currentIndex];
     let charIndex = 0;
-    let timeout: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout;
 
-    const typeNextChar = () => {
-      if (charIndex < currentGreeting.length) {
-        setDisplayedText(currentGreeting.slice(0, charIndex + 1));
-        charIndex++;
-        timeout = setTimeout(typeNextChar, 40); // 40ms per character
-      } else {
-        // Finished typing, wait 3 seconds then start untyping
-        timeout = setTimeout(() => {
-          setIsTyping(false);
-          untype();
-        }, 3000);
-      }
+    const animate = () => {
+      // Type phase
+      const type = () => {
+        if (charIndex < currentGreeting.length) {
+          charIndex++;
+          setDisplayedText(currentGreeting.slice(0, charIndex));
+          timeoutId = setTimeout(type, 40); // 40ms per character
+        } else {
+          // Finished typing, wait 3 seconds then untype
+          timeoutId = setTimeout(untype, 3000);
+        }
+      };
+
+      // Untype phase
+      const untype = () => {
+        if (charIndex > 0) {
+          charIndex--;
+          setDisplayedText(currentGreeting.slice(0, charIndex));
+          timeoutId = setTimeout(untype, 25); // 25ms per character (faster)
+        } else {
+          // Finished untyping, wait 500ms then move to next greeting
+          timeoutId = setTimeout(() => {
+            setCurrentIndex((prev) => (prev + 1) % greetings.length);
+          }, 500);
+        }
+      };
+
+      // Start with initial delay
+      timeoutId = setTimeout(type, 200);
     };
 
-    const untype = () => {
-      if (charIndex > 0) {
-        charIndex--;
-        setDisplayedText(currentGreeting.slice(0, charIndex));
-        timeout = setTimeout(untype, 25); // 25ms per character (faster untype)
-      } else {
-        // Finished untyping, wait 500ms then move to next greeting
-        timeout = setTimeout(() => {
-          setCurrentIndex((prev) => (prev + 1) % greetings.length);
-          setIsTyping(true);
-        }, 500);
-      }
-    };
+    animate();
 
-    if (isTyping) {
-      charIndex = 0;
-      setDisplayedText("");
-      timeout = setTimeout(typeNextChar, 200); // Initial delay
-    }
-
-    return () => clearTimeout(timeout);
-  }, [currentIndex, isTyping, greetings]);
+    return () => clearTimeout(timeoutId);
+  }, [currentIndex, greetings]);
 
   return <>{displayedText}</>;
 }
