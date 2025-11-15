@@ -94,8 +94,8 @@ export function AdminSettingsPanel() {
     }
   };
 
-  const handleRemoveAdmin = async (id: string, email: string) => {
-    if (email === 'j@froydinger.com') {
+  const handleRemoveAdmin = async (id: string, email: string, isPrimaryAdmin: boolean) => {
+    if (isPrimaryAdmin) {
       toast({
         title: "Cannot remove",
         description: "Cannot remove the primary admin account.",
@@ -200,11 +200,11 @@ export function AdminSettingsPanel() {
                       <p className="font-medium">{user.email}</p>
                       <p className="text-sm text-muted-foreground">Role: {user.role}</p>
                     </div>
-                    {user.email !== 'j@froydinger.com' && (
+                    {!user.is_primary_admin && (
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => handleRemoveAdmin(user.id, user.email)}
+                        onClick={() => handleRemoveAdmin(user.id, user.email, user.is_primary_admin)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
