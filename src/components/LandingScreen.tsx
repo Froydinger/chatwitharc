@@ -18,23 +18,23 @@ export function LandingScreen() {
   const features = [
     {
       icon: Brain,
-      title: "Remembers Everything",
-      description: "Saves and recalls your conversations, preferences, and personal context automatically"
+      title: "Ask Anything",
+      description: "Lightning-fast responses with memory that saves conversations and personal context"
     },
     {
-      icon: Settings,
-      title: "Your Style, Your Way",
-      description: "Custom accent theming and model selection (Gemini 2.5, GPT-5, and more)"
+      icon: Sparkles,
+      title: "Reflect Deeply",
+      description: "Recalls your preferences and adapts to your workflow with intelligent personal context"
     },
     {
       icon: Code,
-      title: "Code Like a Pro",
-      description: "Expert coding assistance from debugging to architecture in a slick GlassArc UI"
+      title: "Create Brilliantly",
+      description: "Expert coding, custom accent theming, and powerful tools in a slick GlassArc UI"
     },
     {
-      icon: Zap,
-      title: "Lightning Fast & Personal",
-      description: "Instant responses that understand your context and adapt to your workflow"
+      icon: Settings,
+      title: "Customize Everything",
+      description: "Switch between Gemini 2.5, GPT-5, and more with your personalized style"
     }
   ];
 
