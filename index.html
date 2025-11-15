@@ -67,16 +67,28 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- PWA Service Worker -->
+    <!-- PWA Service Worker - Emergency Cleanup -->
     <script>
       if ('serviceWorker' in navigator) {
+        // Listen for messages from service worker
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data && event.data.type === 'RELOAD') {
+            console.log('Service worker requested reload');
+            window.location.reload();
+          }
+        });
+
         window.addEventListener('load', () => {
+          // Register the cleanup service worker
           navigator.serviceWorker.register('/sw.js')
             .then((registration) => {
-              console.log('SW registered: ', registration);
+              console.log('Cleanup SW registered:', registration);
+
+              // Force update to activate the cleanup immediately
+              registration.update();
             })
             .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
+              console.log('SW registration failed:', registrationError);
             });
         });
       }
