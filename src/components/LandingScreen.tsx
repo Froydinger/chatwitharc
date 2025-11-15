@@ -19,22 +19,42 @@ export function LandingScreen() {
     {
       icon: Brain,
       title: "Ask Anything",
-      description: "Lightning-fast responses with memory that saves conversations and personal context"
+      description: "Lightning-fast responses with memory that saves conversations and personal context",
+      color: "blue",
+      bgColor: "bg-blue-500/10",
+      textColor: "text-blue-500",
+      borderColor: "border-blue-500/40",
+      hoverBg: "group-hover:bg-blue-500/5"
     },
     {
       icon: Sparkles,
       title: "Reflect Deeply",
-      description: "Recalls your preferences and adapts to your workflow with intelligent personal context"
+      description: "Recalls your preferences and adapts to your workflow with intelligent personal context",
+      color: "green",
+      bgColor: "bg-green-500/10",
+      textColor: "text-green-500",
+      borderColor: "border-green-500/40",
+      hoverBg: "group-hover:bg-green-500/5"
     },
     {
       icon: Code,
       title: "Create Brilliantly",
-      description: "Expert coding, custom accent theming, and powerful tools in a slick GlassArc UI"
+      description: "Expert coding, custom accent theming, and powerful tools in a slick GlassArc UI",
+      color: "red",
+      bgColor: "bg-red-500/10",
+      textColor: "text-red-500",
+      borderColor: "border-red-500/40",
+      hoverBg: "group-hover:bg-red-500/5"
     },
     {
       icon: Settings,
       title: "Customize Everything",
-      description: "Switch between Gemini 2.5, GPT-5, and more with your personalized style"
+      description: "Switch between Gemini 2.5, GPT-5, and more with your personalized style",
+      color: "orange",
+      bgColor: "bg-orange-500/10",
+      textColor: "text-orange-500",
+      borderColor: "border-orange-500/40",
+      hoverBg: "group-hover:bg-orange-500/5"
     }
   ];
 
@@ -131,10 +151,10 @@ export function LandingScreen() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.6 + index * 0.1 }}
-                    className="group relative p-5 rounded-2xl backdrop-blur-sm bg-background/40 border border-border/50 hover:border-primary/40 hover:bg-background/60 transition-all duration-300"
+                    className={`group relative p-5 rounded-2xl backdrop-blur-sm bg-background/40 border border-border/50 hover:${feature.borderColor} hover:bg-background/60 transition-all duration-300`}
                   >
                     <div className="flex items-start gap-4">
-                      <div className="shrink-0 p-2.5 rounded-xl bg-primary/10 text-primary">
+                      <div className={`shrink-0 p-2.5 rounded-xl ${feature.bgColor} ${feature.textColor}`}>
                         <Icon className="h-5 w-5" />
                       </div>
                       <div className="flex-1">
@@ -145,7 +165,7 @@ export function LandingScreen() {
 
                     {/* Subtle hover effect */}
                     <motion.div
-                      className="absolute inset-0 rounded-2xl bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className={`absolute inset-0 rounded-2xl ${feature.hoverBg} opacity-0 group-hover:opacity-100 transition-opacity`}
                       initial={false}
                     />
                   </motion.div>
