@@ -56,52 +56,74 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
   };
 
   return (
-    <div
-      className={[
-        "flex items-center gap-3 transition-all duration-200 rounded-full",
-        "backdrop-blur-xl bg-background/80 shadow-xl",
-        "ring-1 ring-border/40 hover:ring-border/60",
-        isActive ? "ring-2 ring-primary/40 shadow-[0_0_24px_rgba(var(--primary),.15)]" : "",
-      ].join(" ")}
-    >
-      {/* Left Button - Star/Sparkles */}
-      <button
-        type="button"
-        aria-label="Options"
-        className="shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground ml-1"
-      >
-        <Sparkles className="h-5 w-5" />
-      </button>
-
-      {/* Input - completely transparent, no visible background */}
-      <div className="flex-1">
-        <Textarea
-          ref={textareaRef}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onFocus={() => setIsActive(true)}
-          onBlur={() => setIsActive(false)}
-          placeholder="Message ArcAI..."
-          className="!border-0 !bg-transparent !rounded-none text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 px-4 !outline-none focus:outline-none !ring-0 focus:ring-0 !ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 !shadow-none text-[16px]"
-          rows={1}
-        />
-      </div>
-
-      {/* Send Button */}
-      <button
-        onClick={handleSend}
-        disabled={!inputValue.trim()}
+    <>
+      <style>{`
+        .landing-input-invisible {
+          background: transparent !important;
+          background-color: transparent !important;
+          border: none !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          outline: none !important;
+        }
+        .landing-input-invisible:focus,
+        .landing-input-invisible:focus-visible,
+        .landing-input-invisible:active {
+          background: transparent !important;
+          background-color: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          outline: none !important;
+          ring: 0 !important;
+        }
+      `}</style>
+      <div
         className={[
-          "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40 mr-1",
-          inputValue.trim()
-            ? "dark:bg-primary text-white dark:text-primary-foreground hover:opacity-90 dark:border-primary bg-blue-500 border-blue-500 text-white"
-            : "bg-muted/50 text-muted-foreground cursor-not-allowed",
+          "flex items-center gap-3 transition-all duration-200 rounded-full",
+          "backdrop-blur-xl bg-background/80 shadow-xl",
+          "ring-1 ring-border/40 hover:ring-border/60",
+          isActive ? "ring-2 ring-primary/40 shadow-[0_0_24px_rgba(var(--primary),.15)]" : "",
         ].join(" ")}
-        aria-label="Send"
       >
-        <ArrowRight className="h-5 w-5" />
-      </button>
-    </div>
+        {/* Left Button - Star/Sparkles */}
+        <button
+          type="button"
+          aria-label="Options"
+          className="shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground ml-1"
+        >
+          <Sparkles className="h-5 w-5" />
+        </button>
+
+        {/* Input - completely transparent, no visible background */}
+        <div className="flex-1">
+          <Textarea
+            ref={textareaRef}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setIsActive(true)}
+            onBlur={() => setIsActive(false)}
+            placeholder="Message ArcAI..."
+            className="landing-input-invisible text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 px-4 text-[16px]"
+            rows={1}
+          />
+        </div>
+
+        {/* Send Button */}
+        <button
+          onClick={handleSend}
+          disabled={!inputValue.trim()}
+          className={[
+            "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40 mr-1",
+            inputValue.trim()
+              ? "dark:bg-primary text-white dark:text-primary-foreground hover:opacity-90 dark:border-primary bg-blue-500 border-blue-500 text-white"
+              : "bg-muted/50 text-muted-foreground cursor-not-allowed",
+          ].join(" ")}
+          aria-label="Send"
+        >
+          <ArrowRight className="h-5 w-5" />
+        </button>
+      </div>
+    </>
   );
 }
