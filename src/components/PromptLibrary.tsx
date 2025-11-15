@@ -199,11 +199,11 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
               stiffness: 400,
               mass: 0.8
             }}
-            className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-[9999] w-auto sm:w-[90vw] sm:max-w-3xl h-auto sm:max-h-[85vh] flex flex-col"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] w-[calc(100vw-2rem)] max-w-3xl max-h-[90vh] sm:max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Glass card container */}
-            <div className="relative flex flex-col h-full rounded-3xl overflow-hidden border border-border/40 shadow-2xl backdrop-blur-2xl bg-gradient-to-br from-background/95 via-background/90 to-background/95">
+            <div className="relative flex flex-col h-full max-h-[90vh] sm:max-h-[85vh] rounded-3xl overflow-hidden border border-border/40 shadow-2xl backdrop-blur-2xl bg-gradient-to-br from-background/95 via-background/90 to-background/95">
               {/* Ambient glow effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
 
