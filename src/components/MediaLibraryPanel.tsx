@@ -42,7 +42,7 @@ export function MediaLibraryPanel() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 8;
 
   // Scroll to top when panel opens
   useEffect(() => {
