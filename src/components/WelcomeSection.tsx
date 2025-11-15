@@ -58,11 +58,112 @@ function TypewriterText({ text, delay = 0, onComplete }: { text: string; delay?:
   return <>{displayedText}</>;
 }
 
-// Cycling greeting component with type/untype animation
-function CyclingGreeting({ greetings }: { greetings: string[] }) {
+// Time-based snarky greetings
+const MORNING_GREETINGS = [
+  "Good morning.",
+  "Rise and shine.",
+  "Arc and shine.",
+  "Wakey wakey.",
+  "Morning, sunshine.",
+  "You're up early.",
+  "Bright and early, huh?",
+  "Coffee time?",
+  "Let's make today count.",
+  "Fresh start incoming.",
+  "New day, new arc.",
+  "Ready to crush it?",
+  "Time to be productive.",
+  "The early bird gets the arc.",
+  "Let's arc this day.",
+  "Morning magic awaits.",
+  "What are we building today?",
+  "Another day, another arc.",
+  "The world is your canvas.",
+  "Let's get after it.",
+  "Time to make things happen.",
+];
+
+const AFTERNOON_GREETINGS = [
+  "Good afternoon.",
+  "Hey there.",
+  "Still going strong?",
+  "Arc o'clock.",
+  "Midday vibes.",
+  "Hope you're crushing it.",
+  "Afternoon energy.",
+  "Peak productivity hours.",
+  "Let's keep the momentum.",
+  "Halfway through the day.",
+  "What are we working on?",
+  "Time flies when you're arcing.",
+  "Staying focused?",
+  "Power through mode activated.",
+  "Coffee break or hustle?",
+  "The grind continues.",
+  "Making progress?",
+  "Keep that flow going.",
+  "Afternoon excellence.",
+  "Let's finish strong.",
+  "Ideas flowing?",
+];
+
+const EVENING_GREETINGS = [
+  "Good evening.",
+  "Hey night owl.",
+  "Arc after dark.",
+  "Burning the midnight oil?",
+  "Late night energy.",
+  "The night is young.",
+  "Still at it?",
+  "Evening grind.",
+  "Moon's out, arc's out.",
+  "Peak creative hours.",
+  "Night mode activated.",
+  "When everyone sleeps, you arc.",
+  "Quiet hours, best hours.",
+  "The evening shift.",
+  "Late night brilliance.",
+  "After hours excellence.",
+  "Productivity knows no bedtime.",
+  "Working late or starting early?",
+  "Night time, right time.",
+  "Dark mode detected.",
+  "Let's make tonight count.",
+];
+
+// Get greetings for current time of day
+function getDaypartGreetings(): string[] {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) {
+    return MORNING_GREETINGS;
+  } else if (h >= 12 && h < 18) {
+    return AFTERNOON_GREETINGS;
+  } else {
+    return EVENING_GREETINGS;
+  }
+}
+
+// Cycling greeting component with type/untype animation - uses time-based greetings
+function CyclingGreeting() {
   const [displayedText, setDisplayedText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(true);
+  const [greetings, setGreetings] = useState(getDaypartGreetings());
+
+  // Update greetings when time of day changes
+  useEffect(() => {
+    const checkInterval = setInterval(() => {
+      const newGreetings = getDaypartGreetings();
+      // If time of day changed, update greetings and reset to index 0
+      if (newGreetings !== greetings) {
+        setGreetings(newGreetings);
+        setCurrentIndex(0);
+        setIsTyping(true);
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(checkInterval);
+  }, [greetings]);
 
   useEffect(() => {
     const currentGreeting = greetings[currentIndex];
@@ -108,20 +209,6 @@ function CyclingGreeting({ greetings }: { greetings: string[] }) {
 
   return <>{displayedText}</>;
 }
-
-// Fun cycling greetings
-const CYCLING_GREETINGS = [
-  "Hey there!",
-  "What's up?",
-  "Ready to create?",
-  "Let's build something!",
-  "Feeling inspired?",
-  "What's on your mind?",
-  "Time to chat!",
-  "Got ideas?",
-  "Let's go!",
-  "Sup?",
-];
 
 interface WelcomeSectionProps {
   greeting: string;
@@ -251,10 +338,10 @@ export function WelcomeSection({
             </motion.div>
           )}
 
-          {/* Cycling greeting with type/untype animation */}
+          {/* Cycling greeting with type/untype animation - time-based snarky greetings */}
           <h2 className="text-4xl font-semibold relative">
             <span className="relative inline-block">
-              <CyclingGreeting greetings={CYCLING_GREETINGS} />
+              <CyclingGreeting />
             </span>
           </h2>
         </motion.div>
