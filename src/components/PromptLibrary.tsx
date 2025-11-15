@@ -296,8 +296,8 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
               </div>
 
               {/* Tab Navigation - elegant pill design */}
-              <div className="relative px-6 sm:px-8 pt-5 pb-4">
-                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+              <div className="relative px-6 sm:px-8 pt-6 pb-5">
+                <div className="flex items-center gap-2 overflow-x-auto overflow-y-visible scrollbar-hide px-1 py-2 -mx-1 -my-2">
                   {tabs.map((tab, index) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
