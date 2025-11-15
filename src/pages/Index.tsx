@@ -35,7 +35,8 @@ export function Index() {
         navigate('/', { replace: true });
       }
     }
-  }, [sessionId, user, chatSessions, currentSessionId, loadSession, navigate, isLoaded]);
+    // Note: navigate and loadSession are stable and don't need to be in deps
+  }, [sessionId, user, chatSessions, currentSessionId, isLoaded]);
 
   // Initialize theme on app load
   useEffect(() => {
