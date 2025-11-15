@@ -67,30 +67,26 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- PWA Service Worker - Emergency Cleanup -->
+    <!-- Force Unregister All Service Workers -->
     <script>
       if ('serviceWorker' in navigator) {
-        // Listen for messages from service worker
-        navigator.serviceWorker.addEventListener('message', (event) => {
-          if (event.data && event.data.type === 'RELOAD') {
-            console.log('Service worker requested reload');
-            window.location.reload();
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (let registration of registrations) {
+            registration.unregister().then(function(success) {
+              console.log('Service worker unregistered:', success);
+            });
           }
         });
 
-        window.addEventListener('load', () => {
-          // Register the cleanup service worker
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('Cleanup SW registered:', registration);
-
-              // Force update to activate the cleanup immediately
-              registration.update();
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed:', registrationError);
-            });
-        });
+        // Clear all caches
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (let name of names) {
+              caches.delete(name);
+              console.log('Deleted cache:', name);
+            }
+          });
+        }
       }
     </script>
   </body>
