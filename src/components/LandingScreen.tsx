@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { LogIn } from "lucide-react";
+import { LogIn, Zap, Sparkles, Settings, MessageCircle } from "lucide-react";
 import { LandingChatInput } from "./LandingChatInput";
-import { QuickPrompts } from "./QuickPrompts";
 import { AuthModal } from "./AuthModal";
 import { PrivacyTermsModal } from "./PrivacyTermsModal";
 import { GlassButton } from "@/components/ui/glass-button";
@@ -10,33 +9,34 @@ import { GlassButton } from "@/components/ui/glass-button";
 export function LandingScreen() {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Quick Prompts - same as in MobileChatApp for consistency
-  const quickPrompts = [
-    { label: "🎯 Focus",     prompt: "Help me set up a focused work session. Guide me through planning a productive 25-minute sprint." },
-    { label: "🎨 Create",    prompt: "I need creative inspiration. Give me an interesting creative idea I can work on today." },
-    { label: "💭 Check-in",  prompt: "Help me do a quick wellness check. Ask me about my mood and energy level, then give me personalized advice." },
-    { label: "💬 Chat",      prompt: "I want to have a casual conversation. Ask me about my day and let's chat like friends." },
-    { label: "🤝 Advice",    prompt: "I have a situation I need advice on. Help me think through a decision or challenge I'm facing." },
-    { label: "🙏 Gratitude", prompt: "Lead me through a quick gratitude exercise to help me appreciate the good things in my life." },
-    { label: "📚 Learn",     prompt: "Help me understand something new. I want to learn about a topic that interests me." },
-    { label: "📋 Plan",      prompt: "Help me organize my day or week. Guide me through creating a structured plan for my goals." },
-    { label: "🪞 Reflect",   prompt: "Lead me through a guided reflection session about my recent experiences and growth." },
-    { label: "⚡ Motivate",  prompt: "I need encouragement and motivation. Help me feel inspired and energized." },
-    { label: "🤔 Decide",    prompt: "Help me make a decision. I have options to consider and need guidance on choosing the best path." },
-    { label: "🧘 Calm",      prompt: "I need stress relief and calming support. Guide me through a relaxation or mindfulness exercise." }
-  ];
-
   const handleSendAttempt = (message: string) => {
     // Store the message to be sent after authentication
     sessionStorage.setItem('pending-prompt', message);
     setShowAuthModal(true);
   };
 
-  const handleTriggerPrompt = (prompt: string) => {
-    // Store the prompt to be sent after authentication
-    sessionStorage.setItem('pending-prompt', prompt);
-    setShowAuthModal(true);
-  };
+  const features = [
+    {
+      icon: Zap,
+      title: "Lightning Fast",
+      description: "Powered by Gemini 2.5 Flash for instant, intelligent responses"
+    },
+    {
+      icon: Settings,
+      title: "Customizable",
+      description: "Switch between GPT-5, Gemini models, and more in settings"
+    },
+    {
+      icon: MessageCircle,
+      title: "Natural Conversations",
+      description: "From morning check-ins to late-night ideas without the overwhelm"
+    },
+    {
+      icon: Sparkles,
+      title: "Smart & Personal",
+      description: "AI that learns your style and keeps up with your pace"
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden pt-12">
@@ -45,8 +45,8 @@ export function LandingScreen() {
       <div className="flex-1 flex flex-col items-center px-6 relative z-10">
         {/* Top Section with Logo and Title */}
         <div className="flex-1 flex flex-col items-center justify-end pb-8">
-        <motion.div 
-          initial={{ opacity: 0 }} 
+        <motion.div
+          initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1], delay: 0.15 }}
           className="text-center relative"
@@ -54,27 +54,27 @@ export function LandingScreen() {
             {/* Logo positioned to slightly clip behind text */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ 
+              animate={{
                 opacity: 1,
                 scale: [1, 1.05, 1]
               }}
-              transition={{ 
+              transition={{
                 opacity: { duration: 0.3, delay: 0.2 },
                 scale: { duration: 10, repeat: Infinity, ease: "easeInOut" }
               }}
               className="flex justify-center mb-[-5px] relative z-0"
             >
               <div className="logo-accent-glow">
-                <img 
-                  src="/arc-logo-ui.png" 
-                  alt="ArcAI" 
+                <img
+                  src="/arc-logo-ui.png"
+                  alt="ArcAI"
                   className="h-16 w-16 sm:h-20 sm:w-20"
                 />
               </div>
             </motion.div>
-            
+
             <div className="relative z-10">
-              <motion.h1 
+              <motion.h1
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-3"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -82,7 +82,7 @@ export function LandingScreen() {
               >
                 <span className="font-thin">Arc</span><span className="font-semibold">AI</span>
               </motion.h1>
-              <motion.p 
+              <motion.p
                 className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-2"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -90,13 +90,13 @@ export function LandingScreen() {
               >
                 Ask, Reflect, Create
               </motion.p>
-              <motion.p 
+              <motion.p
                 className="text-sm text-muted-foreground/70 max-w-xl mx-auto"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3, delay: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
               >
-                From morning check-ins to late-night ideas, AI that keeps up without the overwhelm
+                A relaxing, organized space for both new and experienced AI users
               </motion.p>
             </div>
           </motion.div>
@@ -104,8 +104,8 @@ export function LandingScreen() {
 
         {/* Center Section - Hero Chat Input */}
         <div className="flex-shrink-0 w-full lg:px-32">
-          <motion.div 
-            initial={{ opacity: 0 }} 
+          <motion.div
+            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
           >
@@ -113,47 +113,78 @@ export function LandingScreen() {
           </motion.div>
         </div>
 
-        {/* Bottom Section - Quick Prompts */}
-        <div className="flex-1 flex flex-col items-center justify-start pt-8">
-          <motion.div 
-            initial={{ opacity: 0 }} 
+        {/* Bottom Section - Features Grid */}
+        <div className="flex-1 flex flex-col items-center justify-start pt-12 pb-8 w-full max-w-5xl">
+          <motion.div
+            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3, delay: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-            className="w-full max-w-6xl mb-3"
+            className="w-full"
           >
-            <QuickPrompts quickPrompts={quickPrompts} onTriggerPrompt={handleTriggerPrompt} />
-          </motion.div>
+            {/* Features Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              {features.map((feature, index) => {
+                const Icon = feature.icon;
+                return (
+                  <motion.div
+                    key={feature.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.6 + index * 0.1 }}
+                    className="group relative p-5 rounded-2xl backdrop-blur-sm bg-background/40 border border-border/50 hover:border-primary/40 hover:bg-background/60 transition-all duration-300"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="shrink-0 p-2.5 rounded-xl bg-primary/10 text-primary">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-foreground mb-1">{feature.title}</h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                      </div>
+                    </div>
 
-          {/* Login/Sign Up Button */}
-          <motion.div
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, delay: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-          >
-            <GlassButton
-              variant="ghost"
-              onClick={() => setShowAuthModal(true)}
-              className="border border-white/20 px-6 py-3"
+                    {/* Subtle hover effect */}
+                    <motion.div
+                      className="absolute inset-0 rounded-2xl bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      initial={false}
+                    />
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* Login/Sign Up Button */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3, delay: 1.0 }}
+              className="flex justify-center"
             >
-              <LogIn className="h-4 w-4 mr-2" />
-              Sign In / Sign Up
-            </GlassButton>
+              <GlassButton
+                variant="ghost"
+                onClick={() => setShowAuthModal(true)}
+                className="border border-white/20 px-6 py-3"
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                Sign In / Sign Up
+              </GlassButton>
+            </motion.div>
           </motion.div>
         </div>
       </div>
 
       {/* Footer */}
-      <motion.footer 
-        initial={{ opacity: 0 }} 
+      <motion.footer
+        initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.8 }}
         className="py-4 px-6 text-center relative z-10"
       >
         <p className="text-xs text-muted-foreground/60 mb-1">
-          A relaxing, organized space for both new and experienced AI users
+          Chat Powered by Gemini 2.5 Flash • Image Generation by Flux
         </p>
         <p className="text-xs text-muted-foreground/50 mb-2">
-          Chat Powered by Gemini 2.5 or GPT 5 • Create Powered by Nano Banana
+          Switch to GPT-5 or other models anytime in settings
         </p>
         <div className="mt-2">
           <PrivacyTermsModal />
@@ -161,9 +192,9 @@ export function LandingScreen() {
       </motion.footer>
 
       {/* Auth Modal */}
-      <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
       />
     </div>
   );
