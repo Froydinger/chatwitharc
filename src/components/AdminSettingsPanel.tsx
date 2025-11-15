@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -49,18 +49,22 @@ export function AdminSettingsPanel() {
   const getSetting = (key: string) => settings.find(s => s.key === key);
 
   // Initialize drafts when settings load
-  if (settings.length > 0 && !systemPromptDraft) {
-    const systemPrompt = getSetting('system_prompt')?.value || '';
-    const globalContext = getSetting('global_context')?.value || '';
-    // Merge system prompt and global context
-    const mergedPrompt = globalContext ? `${systemPrompt}\n\n--- Global Context ---\n${globalContext}` : systemPrompt;
-    setSystemPromptDraft(mergedPrompt);
-  }
+  useEffect(() => {
+    if (settings.length > 0 && !systemPromptDraft) {
+      const systemPrompt = getSetting('system_prompt')?.value || '';
+      const globalContext = getSetting('global_context')?.value || '';
+      // Merge system prompt and global context
+      const mergedPrompt = globalContext ? `${systemPrompt}\n\n--- Global Context ---\n${globalContext}` : systemPrompt;
+      setSystemPromptDraft(mergedPrompt);
+    }
+  }, [settings, systemPromptDraft]);
 
-  if (settings.length > 0 && !imageRestrictionsDraft) {
-    const imageRestrictions = getSetting('image_restrictions')?.value || '';
-    setImageRestrictionsDraft(imageRestrictions);
-  }
+  useEffect(() => {
+    if (settings.length > 0 && !imageRestrictionsDraft) {
+      const imageRestrictions = getSetting('image_restrictions')?.value || '';
+      setImageRestrictionsDraft(imageRestrictions);
+    }
+  }, [settings, imageRestrictionsDraft]);
 
   const handleUpdateSetting = async (key: string, value: string) => {
     try {
