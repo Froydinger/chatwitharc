@@ -6,7 +6,6 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { getTempSunoKey } from "@/config/temp-api";
 
 interface GeneratedTrack {
   id: string;
@@ -52,7 +51,7 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
 
     try {
       // TEMPORARY: Direct API call until Supabase Edge Function can be deployed
-      const apiKey = getTempSunoKey();
+      const apiKey = "af75bd257bae6573381e07ac5c7c0956";
 
       console.log('Attempting to generate music...');
 
