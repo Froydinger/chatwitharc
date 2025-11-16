@@ -39,14 +39,14 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
 
   // Poll for music generation completion
   const pollForCompletion = async (apiKey: string, taskIds: string[], corsProxy: string) => {
-    const maxAttempts = 30; // 30 attempts = ~60 seconds
+    const maxAttempts = 45; // 45 attempts = ~90 seconds
     const pollInterval = 2000; // 2 seconds
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise(resolve => setTimeout(resolve, pollInterval));
 
       try {
-        // Try to fetch status for the first task ID
+        // Try to fetch status for the task IDs
         const statusUrl = `https://api.sunoapi.org/api/v1/query?ids=${taskIds.join(',')}`;
         const statusResponse = await fetch(corsProxy + encodeURIComponent(statusUrl), {
           method: 'GET',
@@ -57,7 +57,7 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
 
         if (statusResponse.ok) {
           const statusData = await statusResponse.json();
-          console.log(`Poll attempt ${attempt + 1}:`, statusData);
+          console.log(`Poll attempt ${attempt + 1}/${maxAttempts}:`, statusData);
 
           let completedTracks = [];
 
@@ -67,16 +67,31 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
             completedTracks = statusData.data;
           } else if (statusData.clips && Array.isArray(statusData.clips)) {
             completedTracks = statusData.clips;
+          } else if (statusData.tracks && Array.isArray(statusData.tracks)) {
+            completedTracks = statusData.tracks;
           }
 
-          // Check if any tracks have audio URLs
-          const hasAudio = completedTracks.some((track: any) =>
+          console.log('Completed tracks:', completedTracks);
+
+          // Check if tracks are complete - look for both audio URLs and status
+          const allComplete = completedTracks.every((track: any) => {
+            const hasAudio = track.audio_url || track.url || track.audio;
+            const statusComplete = !track.status || track.status === 'complete' || track.status === 'completed';
+            console.log(`Track ${track.id}: hasAudio=${!!hasAudio}, status=${track.status}`);
+            return hasAudio || statusComplete;
+          });
+
+          // If we have at least one track with audio, return them all
+          const hasAnyAudio = completedTracks.some((track: any) =>
             track.audio_url || track.url || track.audio
           );
 
-          if (hasAudio) {
+          if (hasAnyAudio && completedTracks.length > 0) {
+            console.log('Found tracks with audio, returning...');
             return completedTracks;
           }
+        } else {
+          console.error(`Poll attempt ${attempt + 1} failed with status:`, statusResponse.status);
         }
       } catch (pollError) {
         console.error('Polling error:', pollError);
@@ -84,7 +99,7 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
       }
     }
 
-    throw new Error('Music generation timed out. The tracks may still be processing on the server.');
+    throw new Error('Music generation timed out after 90 seconds. The tracks may still be processing on the server.');
   };
 
   const generateMusic = async () => {
@@ -180,11 +195,12 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
       if (needsPolling && tracks.length > 0 && tracks[0].id) {
         toast({
           title: "Generating music...",
-          description: "This may take 30-60 seconds. Please wait.",
+          description: "This may take 60-90 seconds. Please wait while your music is being created.",
         });
 
         // Poll for completion
         const taskIds = tracks.map((t: any) => t.id).filter(Boolean);
+        console.log('Polling for task IDs:', taskIds);
         tracks = await pollForCompletion(apiKey, taskIds, corsProxy);
       }
 
