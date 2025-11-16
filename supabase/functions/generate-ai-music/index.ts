@@ -37,7 +37,7 @@ serve(async (req) => {
         title: title,
         customMode: true,
         instrumental: instrumental || false,
-        model: "V3_5",
+        model: "chirp-crow", // V5 - Latest Suno model (Sept 2025)
         ...(style && { style: style }), // Only include style if provided
       }),
     });
