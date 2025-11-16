@@ -3,10 +3,10 @@ import { Sparkles, Play, Pause, Download, Loader2, Music2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GlassCard } from "@/components/ui/glass-card";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { getTempSunoKey } from "@/config/temp-api";
 
 interface GeneratedTrack {
   id: string;
@@ -44,22 +44,49 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
     setIsGenerating(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-ai-music', {
-        body: {
+      // TEMPORARY: Direct API call until Supabase Edge Function can be deployed
+      const apiKey = getTempSunoKey();
+
+      const response = await fetch('https://api.sunoapi.com/api/v1/gateway/generate/music', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: '',
+          tags: prompt.trim(),
           prompt: prompt.trim(),
           make_instrumental: makeInstrumental,
-          wait_audio: true,
-        },
+          wait_audio: true
+        }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.text();
+        let errorMessage = 'Failed to generate music';
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to generate music');
+        try {
+          const errorJson = JSON.parse(errorData);
+          errorMessage = errorJson.error?.message || errorJson.message || errorData;
+        } catch (e) {
+          // Use status-based error
+        }
+
+        if (response.status === 429) {
+          errorMessage = 'Rate limit exceeded. Please try again later.';
+        } else if (response.status === 402 || response.status === 403) {
+          errorMessage = 'API credits required. Please check your Suno API account.';
+        }
+
+        throw new Error(errorMessage);
       }
 
+      const data = await response.json();
+      console.log('Suno API response:', data);
+
       // Extract tracks from response
-      const tracks = data.data?.data || data.data || [];
+      const tracks = data.data || data || [];
 
       if (tracks.length === 0) {
         throw new Error('No music tracks were generated');
