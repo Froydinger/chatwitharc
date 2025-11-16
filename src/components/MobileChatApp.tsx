@@ -947,7 +947,7 @@ export function MobileChatApp() {
          }
         .glass-dock::before{ display: none; }
         .glass-dock:hover{ transform: none; transition: none; }
-        .dark .glass-dock:focus-within{ background: rgba(24, 24, 30, 0.78); box-shadow: none; }
+        .dark .glass-dock:focus-within{ background: color-mix(in oklab, hsl(var(--background)) 60%, transparent); }
 
         /* Hide button borders inside dark mode input bar for unified appearance */
         .dark .glass-dock button{ border-color: transparent !important; }
