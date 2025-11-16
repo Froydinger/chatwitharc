@@ -74,7 +74,7 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
           title: title,
           customMode: true,
           instrumental: makeInstrumental,
-          model: "V3_5",
+          model: "chirp-crow", // V5 - Latest Suno model (Sept 2025)
           ...(style && { style: style }), // Only include style if selected
         }),
       }).catch((fetchError) => {
@@ -105,19 +105,34 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
       const data = await response.json();
       console.log('Suno API response:', data);
 
-      // Extract tracks from response
-      const tracks = data.data || data || [];
+      // Extract tracks from response - handle different possible structures
+      let tracks = [];
 
-      if (tracks.length === 0) {
-        throw new Error('No music tracks were generated');
+      if (Array.isArray(data)) {
+        tracks = data;
+      } else if (data.data && Array.isArray(data.data)) {
+        tracks = data.data;
+      } else if (data.clips && Array.isArray(data.clips)) {
+        tracks = data.clips;
+      } else if (data.tracks && Array.isArray(data.tracks)) {
+        tracks = data.tracks;
+      } else {
+        // Single track response
+        tracks = [data];
+      }
+
+      console.log('Extracted tracks:', tracks);
+
+      if (!tracks || tracks.length === 0) {
+        throw new Error('No music tracks were generated. The API may still be processing.');
       }
 
       const newTracks: GeneratedTrack[] = tracks.map((track: any) => ({
         id: track.id || track.song_id || Math.random().toString(36).substr(2, 9),
         title: track.title || track.name || prompt.substring(0, 30),
-        audio_url: track.audio_url || track.url || '',
-        image_url: track.image_url || track.cover_url,
-        tags: track.tags || prompt,
+        audio_url: track.audio_url || track.url || track.audio || '',
+        image_url: track.image_url || track.cover_url || track.image,
+        tags: track.tags || track.metadata?.tags || prompt,
         duration: track.duration,
       }));
 
