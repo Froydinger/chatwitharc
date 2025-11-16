@@ -37,6 +37,56 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
     "Ambient", "Lo-Fi", "Indie", "Soul", "Disco", "Funk"
   ];
 
+  // Poll for music generation completion
+  const pollForCompletion = async (apiKey: string, taskIds: string[], corsProxy: string) => {
+    const maxAttempts = 30; // 30 attempts = ~60 seconds
+    const pollInterval = 2000; // 2 seconds
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+      try {
+        // Try to fetch status for the first task ID
+        const statusUrl = `https://api.sunoapi.org/api/v1/query?ids=${taskIds.join(',')}`;
+        const statusResponse = await fetch(corsProxy + encodeURIComponent(statusUrl), {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+          },
+        });
+
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          console.log(`Poll attempt ${attempt + 1}:`, statusData);
+
+          let completedTracks = [];
+
+          if (Array.isArray(statusData)) {
+            completedTracks = statusData;
+          } else if (statusData.data && Array.isArray(statusData.data)) {
+            completedTracks = statusData.data;
+          } else if (statusData.clips && Array.isArray(statusData.clips)) {
+            completedTracks = statusData.clips;
+          }
+
+          // Check if any tracks have audio URLs
+          const hasAudio = completedTracks.some((track: any) =>
+            track.audio_url || track.url || track.audio
+          );
+
+          if (hasAudio) {
+            return completedTracks;
+          }
+        }
+      } catch (pollError) {
+        console.error('Polling error:', pollError);
+        // Continue polling even if one request fails
+      }
+    }
+
+    throw new Error('Music generation timed out. The tracks may still be processing on the server.');
+  };
+
   const generateMusic = async () => {
     if (!prompt.trim()) {
       toast({
@@ -102,9 +152,10 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
       }
 
       const data = await response.json();
-      console.log('Suno API response:', data);
+      console.log('Suno API initial response:', data);
 
-      // Extract tracks from response - handle different possible structures
+      // Suno API is async - it returns task IDs, not immediate audio
+      // We need to poll for completion
       let tracks = [];
 
       if (Array.isArray(data)) {
@@ -116,14 +167,31 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
       } else if (data.tracks && Array.isArray(data.tracks)) {
         tracks = data.tracks;
       } else {
-        // Single track response
         tracks = [data];
       }
 
-      console.log('Extracted tracks:', tracks);
+      console.log('Initial tracks (may need polling):', tracks);
+
+      // Check if we need to poll for completion
+      const needsPolling = tracks.some((track: any) =>
+        !track.audio_url && !track.url && !track.audio && track.id
+      );
+
+      if (needsPolling && tracks.length > 0 && tracks[0].id) {
+        toast({
+          title: "Generating music...",
+          description: "This may take 30-60 seconds. Please wait.",
+        });
+
+        // Poll for completion
+        const taskIds = tracks.map((t: any) => t.id).filter(Boolean);
+        tracks = await pollForCompletion(apiKey, taskIds, corsProxy);
+      }
+
+      console.log('Final tracks with audio:', tracks);
 
       if (!tracks || tracks.length === 0) {
-        throw new Error('No music tracks were generated. The API may still be processing.');
+        throw new Error('No music tracks were generated.');
       }
 
       const newTracks: GeneratedTrack[] = tracks.map((track: any) => ({
@@ -135,16 +203,23 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
         duration: track.duration,
       }));
 
-      setGeneratedTracks([...newTracks, ...generatedTracks]);
+      // Filter out tracks without audio URLs
+      const validTracks = newTracks.filter(t => t.audio_url);
+
+      if (validTracks.length === 0) {
+        throw new Error('Music generation is still processing. Please try again in a minute.');
+      }
+
+      setGeneratedTracks([...validTracks, ...generatedTracks]);
 
       toast({
         title: "Music generated!",
-        description: `Generated ${newTracks.length} track(s). Click to play.`,
+        description: `Generated ${validTracks.length} track(s). Click to play.`,
       });
 
       // Auto-play first track
-      if (newTracks.length > 0 && newTracks[0].audio_url) {
-        playAITrack(newTracks[0]);
+      if (validTracks.length > 0 && validTracks[0].audio_url) {
+        playAITrack(validTracks[0]);
       }
 
     } catch (error: any) {
