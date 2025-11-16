@@ -15,26 +15,30 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, make_instrumental, wait_audio } = await req.json();
+    const { prompt, instrumental, style } = await req.json();
     console.log('Generating AI music with prompt:', prompt);
 
     if (!sunoApiKey) {
       throw new Error('Suno API key not configured');
     }
 
-    // Call Suno API to generate music
-    const response = await fetch('https://api.sunoapi.com/api/v1/gateway/generate/music', {
+    // Generate title from prompt (first 50 chars)
+    const title = prompt.substring(0, 50);
+
+    // Call Suno API to generate music (correct endpoint)
+    const response = await fetch('https://api.sunoapi.org/api/v1/generate', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${sunoApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        title: '',
-        tags: prompt,
         prompt: prompt,
-        make_instrumental: make_instrumental || false,
-        wait_audio: wait_audio || true
+        title: title,
+        customMode: true,
+        instrumental: instrumental || false,
+        model: "V3_5",
+        ...(style && { style: style }), // Only include style if provided
       }),
     });
 

@@ -29,7 +29,14 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
   const [generatedTracks, setGeneratedTracks] = useState<GeneratedTrack[]>([]);
   const [currentAITrack, setCurrentAITrack] = useState<string | null>(null);
   const [makeInstrumental, setMakeInstrumental] = useState(false);
+  const [style, setStyle] = useState<string>("");
   const { toast } = useToast();
+
+  const musicStyles = [
+    "Pop", "Rock", "Hip Hop", "Electronic", "Classical", "Jazz",
+    "R&B", "Country", "Blues", "Reggae", "Folk", "Metal",
+    "Ambient", "Lo-Fi", "Indie", "Soul", "Disco", "Funk"
+  ];
 
   const generateMusic = async () => {
     if (!prompt.trim()) {
@@ -49,9 +56,12 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
 
       console.log('Attempting to generate music...');
 
-      // Try with CORS proxy first
+      // Use correct Suno API endpoint
       const corsProxy = 'https://corsproxy.io/?';
-      const apiUrl = 'https://api.sunoapi.com/api/v1/gateway/generate/music';
+      const apiUrl = 'https://api.sunoapi.org/api/v1/generate';
+
+      // Generate a title from the prompt (first 50 chars)
+      const title = prompt.trim().substring(0, 50);
 
       const response = await fetch(corsProxy + encodeURIComponent(apiUrl), {
         method: 'POST',
@@ -60,11 +70,12 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: '',
-          tags: prompt.trim(),
           prompt: prompt.trim(),
-          make_instrumental: makeInstrumental,
-          wait_audio: true
+          title: title,
+          customMode: true,
+          instrumental: makeInstrumental,
+          model: "V3_5",
+          ...(style && { style: style }), // Only include style if selected
         }),
       }).catch((fetchError) => {
         console.error('Fetch failed:', fetchError);
@@ -212,7 +223,7 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
             <Input
               id="music-prompt"
               type="text"
-              placeholder="e.g., upbeat electronic dance music, calm piano melody..."
+              placeholder="e.g., upbeat dance track, calm piano melody..."
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => {
@@ -223,6 +234,28 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
               className="glass border-glass-border"
               disabled={isGenerating}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              Style (optional)
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {musicStyles.map((musicStyle) => (
+                <button
+                  key={musicStyle}
+                  onClick={() => setStyle(style === musicStyle ? "" : musicStyle)}
+                  disabled={isGenerating}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                    style === musicStyle
+                      ? 'bg-primary text-primary-foreground shadow-lg scale-105'
+                      : 'glass border border-border/30 hover:border-primary/50 hover:bg-primary/10'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {musicStyle}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center justify-between">
