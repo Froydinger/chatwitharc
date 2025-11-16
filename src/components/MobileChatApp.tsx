@@ -939,11 +939,11 @@ export function MobileChatApp() {
           border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
         }
         .dark .glass-dock{
-          background: rgba(24, 24, 30, 0.78);
-          backdrop-filter: blur(10px) saturate(115%);
-          -webkit-backdrop-filter: blur(10px) saturate(115%);
-          border: none !important;
-          box-shadow: none !important;
+          background: color-mix(in oklab, hsl(var(--background)) 60%, transparent);
+          backdrop-filter: blur(24px) saturate(115%);
+          -webkit-backdrop-filter: blur(24px) saturate(115%);
+          border: 1px solid color-mix(in oklab, hsl(var(--border)) 30%, transparent);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
          }
         .glass-dock::before{ display: none; }
         .glass-dock:hover{ transform: none; transition: none; }
