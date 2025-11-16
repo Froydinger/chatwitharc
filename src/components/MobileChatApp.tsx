@@ -947,7 +947,10 @@ export function MobileChatApp() {
          }
         .glass-dock::before{ display: none; }
         .glass-dock:hover{ transform: none; transition: none; }
-        .dark .glass-dock:focus-within{ background: color-mix(in oklab, hsl(var(--background)) 60%, transparent); }
+        .dark .glass-dock:focus-within{ 
+          background: color-mix(in oklab, hsl(var(--background)) 60%, transparent); 
+          box-shadow: inset 0 0 20px rgba(var(--primary), 0.15);
+        }
 
         /* Hide button borders inside dark mode input bar for unified appearance */
         .dark .glass-dock button{ border-color: transparent !important; }
