@@ -3,6 +3,7 @@ import { Play, Pause, Volume2, VolumeX, SkipBack, SkipForward } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { GlassCard } from "@/components/ui/glass-card";
+import { AIMusicPlayerPanel } from "@/components/AIMusicPlayerPanel";
 
 const musicTracks = [
   { 
@@ -355,6 +356,13 @@ export function MusicPlayerPanel({
           </div>
         </div>
       </GlassCard>
+
+      {/* AI Music Player Section */}
+      <AIMusicPlayerPanel
+        audioRef={audioRef}
+        isPlaying={isPlaying}
+        setIsPlaying={setIsPlaying}
+      />
     </div>
   );
 }
