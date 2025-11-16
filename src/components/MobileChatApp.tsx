@@ -949,7 +949,10 @@ export function MobileChatApp() {
         .glass-dock:hover{ transform: none; transition: none; }
         .dark .glass-dock:focus-within{ 
           background: color-mix(in oklab, hsl(var(--background)) 60%, transparent); 
-          box-shadow: inset 0 0 20px rgba(var(--primary), 0.15);
+          box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.3),
+            inset 0 0 0 1px hsl(var(--primary) / 0.3),
+            inset 0 0 20px hsl(var(--primary) / 0.12);
         }
 
         /* Hide button borders inside dark mode input bar for unified appearance */
