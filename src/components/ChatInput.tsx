@@ -723,7 +723,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
       {/* Input Row */}
       <div
         className={[
-          "chat-input-halo flex items-center gap-3 transition-all duration-200 rounded-full backdrop-blur-2xl bg-background/30 border border-border/30 shadow-lg",
+          "chat-input-halo flex items-center gap-3 transition-all duration-200 rounded-full backdrop-blur-2xl bg-background/60 border border-border/30 shadow-lg",
           isActive ? "halo-active ring-2 ring-primary/40 shadow-[0_0_24px_rgba(var(--primary),.15)]" : "",
           shouldShowBanana ? "ring-2 ring-yellow-400/60 shadow-[0_0_24px_rgba(250,204,21,.18)]" : "",
         ].join(" ")}
