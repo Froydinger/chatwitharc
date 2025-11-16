@@ -47,7 +47,13 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
       // TEMPORARY: Direct API call until Supabase Edge Function can be deployed
       const apiKey = getTempSunoKey();
 
-      const response = await fetch('https://api.sunoapi.com/api/v1/gateway/generate/music', {
+      console.log('Attempting to generate music...');
+
+      // Try with CORS proxy first
+      const corsProxy = 'https://corsproxy.io/?';
+      const apiUrl = 'https://api.sunoapi.com/api/v1/gateway/generate/music';
+
+      const response = await fetch(corsProxy + encodeURIComponent(apiUrl), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -60,6 +66,9 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
           make_instrumental: makeInstrumental,
           wait_audio: true
         }),
+      }).catch((fetchError) => {
+        console.error('Fetch failed:', fetchError);
+        throw new Error(`Network error: ${fetchError.message}. The API server may be blocking browser requests (CORS).`);
       });
 
       if (!response.ok) {
@@ -115,9 +124,17 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
 
     } catch (error: any) {
       console.error('Error generating music:', error);
+
+      let errorMessage = error.message || "Failed to generate music. Please try again.";
+
+      // Check if it's a CORS/network error
+      if (error.message?.includes('CORS') || error.message?.includes('Network') || error.message?.includes('fetch')) {
+        errorMessage = "Unable to connect to the music API. This feature requires the Supabase Edge Function to be deployed. Please try again when Lovable credits are available.";
+      }
+
       toast({
         title: "Generation failed",
-        description: error.message || "Failed to generate music. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -176,6 +193,13 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
           <h2 className="text-xl font-bold text-foreground">AI Music Generator</h2>
         </div>
         <p className="text-sm text-muted-foreground">Create custom music with AI</p>
+
+        {/* Temporary Notice */}
+        <div className="glass rounded-lg p-3 border border-yellow-500/20 bg-yellow-500/5">
+          <p className="text-xs text-yellow-600 dark:text-yellow-400">
+            ⚠️ <strong>Beta Feature:</strong> Requires server deployment. If generation fails, the Edge Function needs to be deployed to Supabase (coming soon).
+          </p>
+        </div>
       </div>
 
       {/* Generation Controls */}
