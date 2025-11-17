@@ -210,7 +210,10 @@ export function MobileChatApp() {
     if (currentSessionId && window.location.pathname === "/") {
       navigate(`/chat/${currentSessionId}`, { replace: true });
     }
-  }, [currentSessionId, navigate]);
+    // Note: navigate is a stable function reference from React Router and doesn't need to be in deps
+    // Adding it causes infinite loops (SecurityError: history.replaceState called >100 times)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSessionId]);
 
   // Track the last message ID when loading a session to prevent typewriter animation on old messages
   useEffect(() => {
