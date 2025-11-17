@@ -100,13 +100,13 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
 
     console.log('Authenticated user for chat search:', user.id);
 
-    // Get recent chat sessions with full content
+    // Get ALL chat sessions with full content (no limits for better context)
     const { data: sessions, error: sessionsError } = await supabaseWithAuth
       .from('chat_sessions')
       .select('id, title, messages, created_at, updated_at')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
-      .limit(20); // Get more chats for better analysis
+      .limit(1000); // Very high limit to get all chats
 
     if (sessionsError) {
       console.error('Chat search error:', sessionsError);
@@ -128,20 +128,15 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
       const date = new Date(session.updated_at).toLocaleDateString();
       
       conversationContext += `--- Conversation ${idx + 1}: "${title}" (${date}) ---\n`;
-      
-      // Include actual conversation content (limit to keep under token limits)
-      const messagesToInclude = messages.slice(0, 10); // First 10 messages per chat
-      messagesToInclude.forEach((msg: any) => {
+
+      // Include ALL conversation content with NO limits for comprehensive context
+      messages.forEach((msg: any) => {
         if (msg.role && msg.content) {
           const prefix = msg.role === 'user' ? 'User' : 'Assistant';
-          const content = msg.content.length > 300 ? msg.content.slice(0, 300) + '...' : msg.content;
-          conversationContext += `${prefix}: ${content}\n`;
+          // Include full message content (no truncation)
+          conversationContext += `${prefix}: ${msg.content}\n`;
         }
       });
-      
-      if (messages.length > 10) {
-        conversationContext += `... and ${messages.length - 10} more messages\n`;
-      }
       
       conversationContext += '\n';
     });
