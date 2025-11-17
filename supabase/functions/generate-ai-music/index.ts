@@ -15,12 +15,45 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, instrumental, style } = await req.json();
-    console.log('Generating AI music with prompt:', prompt);
+    const { prompt, instrumental, style, poll, taskIds } = await req.json();
 
     if (!sunoApiKey) {
       throw new Error('Suno API key not configured');
     }
+
+    // Handle polling requests
+    if (poll && taskIds) {
+      console.log('Polling for task IDs:', taskIds);
+      const response = await fetch(`https://api.sunoapi.org/api/v1/query?ids=${taskIds.join(',')}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${sunoApiKey}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Polling error:', response.status, errorData);
+        return new Response(JSON.stringify({
+          error: 'Failed to poll music status',
+          success: false
+        }), {
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const data = await response.json();
+      return new Response(JSON.stringify({
+        data: data,
+        success: true
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Generate music
+    console.log('Generating AI music with prompt:', prompt);
 
     // Generate title from prompt (first 50 chars)
     const title = prompt.substring(0, 50);

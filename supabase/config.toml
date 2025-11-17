@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.generate-file]
 verify_jwt = false
+
+[functions.generate-ai-music]
+verify_jwt = false
