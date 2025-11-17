@@ -58,7 +58,7 @@ serve(async (req) => {
     // Generate title from prompt (first 50 chars)
     const title = prompt.substring(0, 50);
 
-    // Call Suno API to generate music (correct endpoint)
+    // Call Suno API to generate music
     const response = await fetch('https://api.sunoapi.org/api/v1/generate', {
       method: 'POST',
       headers: {
@@ -70,7 +70,8 @@ serve(async (req) => {
         title: title,
         customMode: true,
         instrumental: instrumental || false,
-        model: "chirp-crow", // V5 - Latest Suno model (Sept 2025)
+        model: "V5", // Latest Suno model - superior musical expression
+        callBackUrl: "https://placeholder.callback.url", // Required by API but we poll instead
         ...(style && { style: style }), // Only include style if provided
       }),
     });
