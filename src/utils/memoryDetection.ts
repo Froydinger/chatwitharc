@@ -59,7 +59,8 @@ What should be remembered from this message?`;
       return null;
     }
 
-    const extractedContent = data?.content?.trim();
+    // The chat API returns { choices: [{ message: { content: "..." } }] }
+    const extractedContent = data?.choices?.[0]?.message?.content?.trim();
 
     // If AI couldn't figure it out, return null
     if (!extractedContent || extractedContent === 'UNCLEAR' || extractedContent.length < 3) {
