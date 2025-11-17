@@ -44,10 +44,26 @@ export class ErrorBoundary extends React.Component<Props, State> {
             </p>
             <button
               onClick={() => {
-                // Clear everything and reload
+                // Clear non-auth storage and reload
                 try {
+                  // Preserve Supabase auth session
+                  const authKeys = Object.keys(localStorage).filter(key =>
+                    key.startsWith('sb-') || key.includes('supabase')
+                  );
+                  const preservedAuth: Record<string, string> = {};
+                  authKeys.forEach(key => {
+                    const value = localStorage.getItem(key);
+                    if (value) preservedAuth[key] = value;
+                  });
+
+                  // Clear everything
                   localStorage.clear();
                   sessionStorage.clear();
+
+                  // Restore auth
+                  Object.entries(preservedAuth).forEach(([key, value]) => {
+                    localStorage.setItem(key, value);
+                  });
                 } catch (e) {
                   console.error('Failed to clear storage:', e);
                 }
