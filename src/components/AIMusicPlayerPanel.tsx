@@ -6,6 +6,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GeneratedTrack {
   id: string;
@@ -37,70 +38,6 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
     "Ambient", "Lo-Fi", "Indie", "Soul", "Disco", "Funk"
   ];
 
-  // Poll for music generation completion
-  const pollForCompletion = async (apiKey: string, taskIds: string[], corsProxy: string) => {
-    const maxAttempts = 45; // 45 attempts = ~90 seconds
-    const pollInterval = 2000; // 2 seconds
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
-
-      try {
-        // Try to fetch status for the task IDs
-        const statusUrl = `https://api.sunoapi.org/api/v1/query?ids=${taskIds.join(',')}`;
-        const statusResponse = await fetch(corsProxy + encodeURIComponent(statusUrl), {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-          },
-        });
-
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json();
-          console.log(`Poll attempt ${attempt + 1}/${maxAttempts}:`, statusData);
-
-          let completedTracks = [];
-
-          if (Array.isArray(statusData)) {
-            completedTracks = statusData;
-          } else if (statusData.data && Array.isArray(statusData.data)) {
-            completedTracks = statusData.data;
-          } else if (statusData.clips && Array.isArray(statusData.clips)) {
-            completedTracks = statusData.clips;
-          } else if (statusData.tracks && Array.isArray(statusData.tracks)) {
-            completedTracks = statusData.tracks;
-          }
-
-          console.log('Completed tracks:', completedTracks);
-
-          // Check if tracks are complete - look for both audio URLs and status
-          const allComplete = completedTracks.every((track: any) => {
-            const hasAudio = track.audio_url || track.url || track.audio;
-            const statusComplete = !track.status || track.status === 'complete' || track.status === 'completed';
-            console.log(`Track ${track.id}: hasAudio=${!!hasAudio}, status=${track.status}`);
-            return hasAudio || statusComplete;
-          });
-
-          // If we have at least one track with audio, return them all
-          const hasAnyAudio = completedTracks.some((track: any) =>
-            track.audio_url || track.url || track.audio
-          );
-
-          if (hasAnyAudio && completedTracks.length > 0) {
-            console.log('Found tracks with audio, returning...');
-            return completedTracks;
-          }
-        } else {
-          console.error(`Poll attempt ${attempt + 1} failed with status:`, statusResponse.status);
-        }
-      } catch (pollError) {
-        console.error('Polling error:', pollError);
-        // Continue polling even if one request fails
-      }
-    }
-
-    throw new Error('Music generation timed out after 90 seconds. The tracks may still be processing on the server.');
-  };
 
   const generateMusic = async () => {
     if (!prompt.trim()) {
@@ -115,74 +52,47 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
     setIsGenerating(true);
 
     try {
-      // TEMPORARY: Direct API call until Supabase Edge Function can be deployed
-      const apiKey = "af75bd257bae6573381e07ac5c7c0956";
+      console.log('Calling edge function to generate music...');
 
-      console.log('Attempting to generate music...');
-
-      // Use correct Suno API endpoint
-      const corsProxy = 'https://corsproxy.io/?';
-      const apiUrl = 'https://api.sunoapi.org/api/v1/generate';
-
-      // Generate a title from the prompt (first 50 chars)
-      const title = prompt.trim().substring(0, 50);
-
-      const response = await fetch(corsProxy + encodeURIComponent(apiUrl), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('generate-ai-music', {
+        body: {
           prompt: prompt.trim(),
-          title: title,
-          customMode: true,
           instrumental: makeInstrumental,
-          model: "chirp-crow", // V5 - Latest Suno model (Sept 2025)
-          ...(style && { style: style }), // Only include style if selected
-        }),
-      }).catch((fetchError) => {
-        console.error('Fetch failed:', fetchError);
-        throw new Error(`Network error: ${fetchError.message}. The API server may be blocking browser requests (CORS).`);
+          style: style || undefined,
+        },
       });
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        let errorMessage = 'Failed to generate music';
-
-        try {
-          const errorJson = JSON.parse(errorData);
-          errorMessage = errorJson.error?.message || errorJson.message || errorData;
-        } catch (e) {
-          // Use status-based error
-        }
-
-        if (response.status === 429) {
-          errorMessage = 'Rate limit exceeded. Please try again later.';
-        } else if (response.status === 402 || response.status === 403) {
-          errorMessage = 'API credits required. Please check your Suno API account.';
-        }
-
-        throw new Error(errorMessage);
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to generate music');
       }
 
-      const data = await response.json();
-      console.log('Suno API initial response:', data);
+      if (!data.success) {
+        const errorType = data.errorType;
+        if (errorType === 'rate_limit') {
+          throw new Error('Rate limit exceeded. Please try again later.');
+        } else if (errorType === 'payment_required') {
+          throw new Error('API credits required. Please check your Suno API account.');
+        }
+        throw new Error(data.error || 'Failed to generate music');
+      }
 
-      // Suno API is async - it returns task IDs, not immediate audio
-      // We need to poll for completion
+      console.log('Music generation initial response:', data.data);
+
+      // Extract tracks from response
       let tracks = [];
+      const responseData = data.data;
 
-      if (Array.isArray(data)) {
-        tracks = data;
-      } else if (data.data && Array.isArray(data.data)) {
-        tracks = data.data;
-      } else if (data.clips && Array.isArray(data.clips)) {
-        tracks = data.clips;
-      } else if (data.tracks && Array.isArray(data.tracks)) {
-        tracks = data.tracks;
+      if (Array.isArray(responseData)) {
+        tracks = responseData;
+      } else if (responseData.data && Array.isArray(responseData.data)) {
+        tracks = responseData.data;
+      } else if (responseData.clips && Array.isArray(responseData.clips)) {
+        tracks = responseData.clips;
+      } else if (responseData.tracks && Array.isArray(responseData.tracks)) {
+        tracks = responseData.tracks;
       } else {
-        tracks = [data];
+        tracks = [responseData];
       }
 
       console.log('Initial tracks (may need polling):', tracks);
@@ -198,10 +108,41 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
           description: "This may take 60-90 seconds. Please wait while your music is being created.",
         });
 
-        // Poll for completion
+        // Poll for completion through edge function
         const taskIds = tracks.map((t: any) => t.id).filter(Boolean);
         console.log('Polling for task IDs:', taskIds);
-        tracks = await pollForCompletion(apiKey, taskIds, corsProxy);
+        
+        // Poll using the edge function's poll endpoint
+        const maxAttempts = 45;
+        const pollInterval = 2000;
+
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+          try {
+            const { data: pollData, error: pollError } = await supabase.functions.invoke('generate-ai-music', {
+              body: {
+                poll: true,
+                taskIds: taskIds,
+              },
+            });
+
+            if (!pollError && pollData?.success && pollData?.data) {
+              const pollTracks = Array.isArray(pollData.data) ? pollData.data : [pollData.data];
+              const hasAnyAudio = pollTracks.some((track: any) =>
+                track.audio_url || track.url || track.audio
+              );
+
+              if (hasAnyAudio && pollTracks.length > 0) {
+                console.log('Found tracks with audio, using polled results...');
+                tracks = pollTracks;
+                break;
+              }
+            }
+          } catch (pollError) {
+            console.error('Polling error:', pollError);
+          }
+        }
       }
 
       console.log('Final tracks with audio:', tracks);
@@ -240,17 +181,9 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
 
     } catch (error: any) {
       console.error('Error generating music:', error);
-
-      let errorMessage = error.message || "Failed to generate music. Please try again.";
-
-      // Check if it's a CORS/network error
-      if (error.message?.includes('CORS') || error.message?.includes('Network') || error.message?.includes('fetch')) {
-        errorMessage = "Unable to connect to the music API. This feature requires the Supabase Edge Function to be deployed. Please try again when Lovable credits are available.";
-      }
-
       toast({
         title: "Generation failed",
-        description: errorMessage,
+        description: error.message || "Failed to generate music. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -310,12 +243,6 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
         </div>
         <p className="text-sm text-muted-foreground">Create custom music with AI</p>
 
-        {/* Temporary Notice */}
-        <div className="glass rounded-lg p-3 border border-yellow-500/20 bg-yellow-500/5">
-          <p className="text-xs text-yellow-600 dark:text-yellow-400">
-            ⚠️ <strong>Beta Feature:</strong> Requires server deployment. If generation fails, the Edge Function needs to be deployed to Supabase (coming soon).
-          </p>
-        </div>
       </div>
 
       {/* Generation Controls */}
