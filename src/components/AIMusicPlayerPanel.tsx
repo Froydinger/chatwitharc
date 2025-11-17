@@ -27,79 +27,44 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedTracks, setGeneratedTracks] = useState<GeneratedTrack[]>([]);
   const [currentAITrack, setCurrentAITrack] = useState<string | null>(null);
-  const [makeInstrumental, setMakeInstrumental] = useState(false);
-  const [style, setStyle] = useState<string>("");
+  const [duration, setDuration] = useState(8);
   const { toast } = useToast();
 
-  const musicStyles = [
-    "Pop", "Rock", "Hip Hop", "Electronic", "Classical", "Jazz",
-    "R&B", "Country", "Blues", "Reggae", "Folk", "Metal",
-    "Ambient", "Lo-Fi", "Indie", "Soul", "Disco", "Funk"
-  ];
-
-  // Poll for music generation completion
-  const pollForCompletion = async (apiKey: string, taskIds: string[], corsProxy: string) => {
-    const maxAttempts = 45; // 45 attempts = ~90 seconds
+  // Poll for Replicate prediction completion
+  const pollForCompletion = async (predictionId: string, replicateToken: string) => {
+    const maxAttempts = 60; // 60 attempts = ~2 minutes
     const pollInterval = 2000; // 2 seconds
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise(resolve => setTimeout(resolve, pollInterval));
 
       try {
-        // Try to fetch status for the task IDs
-        const statusUrl = `https://api.sunoapi.org/api/v1/query?ids=${taskIds.join(',')}`;
-        const statusResponse = await fetch(corsProxy + encodeURIComponent(statusUrl), {
-          method: 'GET',
+        const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
           headers: {
-            'Authorization': `Bearer ${apiKey}`,
+            'Authorization': `Bearer ${replicateToken}`,
           },
         });
 
         if (statusResponse.ok) {
-          const statusData = await statusResponse.json();
-          console.log(`Poll attempt ${attempt + 1}/${maxAttempts}:`, statusData);
+          const prediction = await statusResponse.json();
+          console.log(`Poll attempt ${attempt + 1}/${maxAttempts}:`, prediction.status);
 
-          let completedTracks = [];
-
-          if (Array.isArray(statusData)) {
-            completedTracks = statusData;
-          } else if (statusData.data && Array.isArray(statusData.data)) {
-            completedTracks = statusData.data;
-          } else if (statusData.clips && Array.isArray(statusData.clips)) {
-            completedTracks = statusData.clips;
-          } else if (statusData.tracks && Array.isArray(statusData.tracks)) {
-            completedTracks = statusData.tracks;
+          if (prediction.status === 'succeeded') {
+            console.log('Generation succeeded:', prediction.output);
+            return prediction.output; // Returns audio URL
           }
 
-          console.log('Completed tracks:', completedTracks);
-
-          // Check if tracks are complete - look for both audio URLs and status
-          const allComplete = completedTracks.every((track: any) => {
-            const hasAudio = track.audio_url || track.url || track.audio;
-            const statusComplete = !track.status || track.status === 'complete' || track.status === 'completed';
-            console.log(`Track ${track.id}: hasAudio=${!!hasAudio}, status=${track.status}`);
-            return hasAudio || statusComplete;
-          });
-
-          // If we have at least one track with audio, return them all
-          const hasAnyAudio = completedTracks.some((track: any) =>
-            track.audio_url || track.url || track.audio
-          );
-
-          if (hasAnyAudio && completedTracks.length > 0) {
-            console.log('Found tracks with audio, returning...');
-            return completedTracks;
+          if (prediction.status === 'failed' || prediction.status === 'canceled') {
+            throw new Error(prediction.error || 'Music generation failed');
           }
-        } else {
-          console.error(`Poll attempt ${attempt + 1} failed with status:`, statusResponse.status);
         }
       } catch (pollError) {
         console.error('Polling error:', pollError);
-        // Continue polling even if one request fails
+        throw pollError;
       }
     }
 
-    throw new Error('Music generation timed out after 90 seconds. The tracks may still be processing on the server.');
+    throw new Error('Music generation timed out after 2 minutes.');
   };
 
   const generateMusic = async () => {
@@ -115,142 +80,72 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
     setIsGenerating(true);
 
     try {
-      // TEMPORARY: Direct API call until Supabase Edge Function can be deployed
-      const apiKey = "af75bd257bae6573381e07ac5c7c0956";
+      // Replicate API Token - get your own at replicate.com
+      const replicateToken = "r8_6YQ9bMZvT0X2dKfNpL1HjWcG3VxEsA4yRuB7i"; // Replace with actual token
 
-      console.log('Attempting to generate music...');
+      console.log('Generating music with Replicate MusicGen...');
 
-      // Use correct Suno API endpoint
-      const corsProxy = 'https://corsproxy.io/?';
-      const apiUrl = 'https://api.sunoapi.org/api/v1/generate';
-
-      // Generate a title from the prompt (first 50 chars)
-      const title = prompt.trim().substring(0, 50);
-
-      const response = await fetch(corsProxy + encodeURIComponent(apiUrl), {
+      // Create prediction
+      const response = await fetch('https://api.replicate.com/v1/predictions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${replicateToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: prompt.trim(),
-          title: title,
-          customMode: true,
-          instrumental: makeInstrumental,
-          model: "chirp-crow", // V5 - Latest Suno model (Sept 2025)
-          ...(style && { style: style }), // Only include style if selected
+          version: 'b05b1dff1d8c6dc63d14b0cdb42135378dcb87f6373b0d3d341ede46e59e2b38',
+          input: {
+            prompt: prompt.trim(),
+            model_version: 'stereo-large',
+            duration: duration,
+          },
         }),
-      }).catch((fetchError) => {
-        console.error('Fetch failed:', fetchError);
-        throw new Error(`Network error: ${fetchError.message}. The API server may be blocking browser requests (CORS).`);
       });
 
       if (!response.ok) {
         const errorData = await response.text();
-        let errorMessage = 'Failed to generate music';
-
-        try {
-          const errorJson = JSON.parse(errorData);
-          errorMessage = errorJson.error?.message || errorJson.message || errorData;
-        } catch (e) {
-          // Use status-based error
-        }
-
-        if (response.status === 429) {
-          errorMessage = 'Rate limit exceeded. Please try again later.';
-        } else if (response.status === 402 || response.status === 403) {
-          errorMessage = 'API credits required. Please check your Suno API account.';
-        }
-
-        throw new Error(errorMessage);
+        console.error('Replicate API error:', response.status, errorData);
+        throw new Error(`Failed to create prediction: ${errorData}`);
       }
 
-      const data = await response.json();
-      console.log('Suno API initial response:', data);
+      const prediction = await response.json();
+      console.log('Prediction created:', prediction);
 
-      // Suno API is async - it returns task IDs, not immediate audio
-      // We need to poll for completion
-      let tracks = [];
+      toast({
+        title: "Generating music...",
+        description: `This will take about ${duration * 2} seconds. Please wait.`,
+      });
 
-      if (Array.isArray(data)) {
-        tracks = data;
-      } else if (data.data && Array.isArray(data.data)) {
-        tracks = data.data;
-      } else if (data.clips && Array.isArray(data.clips)) {
-        tracks = data.clips;
-      } else if (data.tracks && Array.isArray(data.tracks)) {
-        tracks = data.tracks;
-      } else {
-        tracks = [data];
+      // Poll for completion
+      const audioUrl = await pollForCompletion(prediction.id, replicateToken);
+
+      if (!audioUrl) {
+        throw new Error('No audio URL returned from generation');
       }
 
-      console.log('Initial tracks (may need polling):', tracks);
+      const newTrack: GeneratedTrack = {
+        id: prediction.id,
+        title: prompt.substring(0, 30),
+        audio_url: audioUrl,
+        tags: prompt,
+        duration: duration,
+      };
 
-      // Check if we need to poll for completion
-      const needsPolling = tracks.some((track: any) =>
-        !track.audio_url && !track.url && !track.audio && track.id
-      );
-
-      if (needsPolling && tracks.length > 0 && tracks[0].id) {
-        toast({
-          title: "Generating music...",
-          description: "This may take 60-90 seconds. Please wait while your music is being created.",
-        });
-
-        // Poll for completion
-        const taskIds = tracks.map((t: any) => t.id).filter(Boolean);
-        console.log('Polling for task IDs:', taskIds);
-        tracks = await pollForCompletion(apiKey, taskIds, corsProxy);
-      }
-
-      console.log('Final tracks with audio:', tracks);
-
-      if (!tracks || tracks.length === 0) {
-        throw new Error('No music tracks were generated.');
-      }
-
-      const newTracks: GeneratedTrack[] = tracks.map((track: any) => ({
-        id: track.id || track.song_id || Math.random().toString(36).substr(2, 9),
-        title: track.title || track.name || prompt.substring(0, 30),
-        audio_url: track.audio_url || track.url || track.audio || '',
-        image_url: track.image_url || track.cover_url || track.image,
-        tags: track.tags || track.metadata?.tags || prompt,
-        duration: track.duration,
-      }));
-
-      // Filter out tracks without audio URLs
-      const validTracks = newTracks.filter(t => t.audio_url);
-
-      if (validTracks.length === 0) {
-        throw new Error('Music generation is still processing. Please try again in a minute.');
-      }
-
-      setGeneratedTracks([...validTracks, ...generatedTracks]);
+      setGeneratedTracks([newTrack, ...generatedTracks]);
 
       toast({
         title: "Music generated!",
-        description: `Generated ${validTracks.length} track(s). Click to play.`,
+        description: "Your track is ready. Click to play.",
       });
 
-      // Auto-play first track
-      if (validTracks.length > 0 && validTracks[0].audio_url) {
-        playAITrack(validTracks[0]);
-      }
+      // Auto-play
+      playAITrack(newTrack);
 
     } catch (error: any) {
       console.error('Error generating music:', error);
-
-      let errorMessage = error.message || "Failed to generate music. Please try again.";
-
-      // Check if it's a CORS/network error
-      if (error.message?.includes('CORS') || error.message?.includes('Network') || error.message?.includes('fetch')) {
-        errorMessage = "Unable to connect to the music API. This feature requires the Supabase Edge Function to be deployed. Please try again when Lovable credits are available.";
-      }
-
       toast({
         title: "Generation failed",
-        description: errorMessage,
+        description: error.message || "Failed to generate music. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -311,9 +206,9 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
         <p className="text-sm text-muted-foreground">Create custom music with AI</p>
 
         {/* Temporary Notice */}
-        <div className="glass rounded-lg p-3 border border-yellow-500/20 bg-yellow-500/5">
-          <p className="text-xs text-yellow-600 dark:text-yellow-400">
-            ⚠️ <strong>Beta Feature:</strong> Requires server deployment. If generation fails, the Edge Function needs to be deployed to Supabase (coming soon).
+        <div className="glass rounded-lg p-3 border border-green-500/20 bg-green-500/5">
+          <p className="text-xs text-green-600 dark:text-green-400">
+            ✨ Powered by <strong>Replicate MusicGen</strong> - Meta's AI music model
           </p>
         </div>
       </div>
@@ -328,7 +223,7 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
             <Input
               id="music-prompt"
               type="text"
-              placeholder="e.g., upbeat dance track, calm piano melody..."
+              placeholder="e.g., calm ambient background music, upbeat electronic..."
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => {
@@ -342,39 +237,23 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              Style (optional)
-            </Label>
-            <div className="flex flex-wrap gap-2">
-              {musicStyles.map((musicStyle) => (
-                <button
-                  key={musicStyle}
-                  onClick={() => setStyle(style === musicStyle ? "" : musicStyle)}
-                  disabled={isGenerating}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                    style === musicStyle
-                      ? 'bg-primary text-primary-foreground shadow-lg scale-105'
-                      : 'glass border border-border/30 hover:border-primary/50 hover:bg-primary/10'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  {musicStyle}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="instrumental"
-                checked={makeInstrumental}
-                onCheckedChange={setMakeInstrumental}
-                disabled={isGenerating}
-              />
-              <Label htmlFor="instrumental" className="text-sm cursor-pointer">
-                Instrumental only
+            <div className="flex items-center justify-between">
+              <Label htmlFor="duration" className="text-sm font-medium">
+                Duration
               </Label>
+              <span className="text-xs text-muted-foreground">{duration} seconds</span>
             </div>
+            <input
+              id="duration"
+              type="range"
+              min="5"
+              max="30"
+              step="1"
+              value={duration}
+              onChange={(e) => setDuration(parseInt(e.target.value))}
+              disabled={isGenerating}
+              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+            />
           </div>
 
           <Button
