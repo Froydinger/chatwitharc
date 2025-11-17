@@ -11,10 +11,9 @@ import { supabase } from "@/integrations/supabase/client";
 interface GeneratedTrack {
   id: string;
   title: string;
-  audio_url: string;
-  image_url?: string;
-  tags?: string;
-  duration?: number;
+  audioUrl: string;
+  imageUrl?: string;
+  tags?: string[];
 }
 
 interface AIMusicPlayerPanelProps {
@@ -28,14 +27,15 @@ export function AIMusicPlayerPanel({ audioRef, isPlaying, setIsPlaying }: AIMusi
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedTracks, setGeneratedTracks] = useState<GeneratedTrack[]>([]);
   const [currentAITrack, setCurrentAITrack] = useState<string | null>(null);
-  const [makeInstrumental, setMakeInstrumental] = useState(false);
-  const [style, setStyle] = useState<string>("");
+  const [selectedStyle, setSelectedStyle] = useState<string>("");
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const musicStyles = [
-    "Pop", "Rock", "Hip Hop", "Electronic", "Classical", "Jazz",
-    "R&B", "Country", "Blues", "Reggae", "Folk", "Metal",
-    "Ambient", "Lo-Fi", "Indie", "Soul", "Disco", "Funk"
+    { value: "ambient", label: "Ambient (30s)" },
+    { value: "electronic", label: "Electronic (20s)" },
+    { value: "cinematic", label: "Cinematic (25s)" },
+    { value: "lofi", label: "Lo-Fi (10s)" },
   ];
 
 
