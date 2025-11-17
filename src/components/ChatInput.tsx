@@ -592,7 +592,13 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
 
       // Plain text
       if (userMessage) {
-        const memoryItem = detectMemoryCommand(userMessage);
+        // Build conversation context for memory extraction
+        const conversationContext = messages
+          .filter((m) => m.type === "text")
+          .map((m) => ({ role: m.role, content: m.content }));
+
+        // Use AI-powered memory detection
+        const memoryItem = await detectMemoryCommand(userMessage, conversationContext);
         if (memoryItem) {
           const wasNew = await addToMemoryBank(memoryItem);
           if (wasNew) formatMemoryConfirmation(memoryItem.content);
