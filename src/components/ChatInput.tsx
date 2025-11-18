@@ -740,7 +740,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
           type="button"
           aria-label={shouldShowBanana ? "Disable image mode" : showMenu ? "Close menu" : "Quick options"}
           className={[
-            "ci-menu-btn h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 relative",
+            "ci-menu-btn h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 relative",
             shouldShowBanana
               ? "bg-green-500/20 ring-1 ring-green-400/50 shadow-[0_0_24px_rgba(34,197,94,0.25)]"
               : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -773,7 +773,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
             onBlur={() => setIsActive(false)}
             placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe" : "Ask"}
             disabled={isLoading}
-            className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[40px] max-h-[144px] leading-6 py-3 px-4 focus:outline-none focus:ring-0 text-[16px]"
+            className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 px-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
           />
         </div>
@@ -783,7 +783,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
           onClick={() => handleSend()}
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
           className={[
-            "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40",
+            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40",
             inputValue.trim() || selectedImages.length
               ? "dark:bg-primary text-white dark:text-primary-foreground hover:opacity-90 dark:border-primary bg-blue-500 border-blue-500 text-white"
               : "bg-muted/50 text-muted-foreground cursor-not-allowed",
