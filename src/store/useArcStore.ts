@@ -505,16 +505,36 @@ export const useArcStore = create<ArcState>()(
         // Check if this is an image generation request
         const isImageRequest = (() => {
           const lowerMessage = message.toLowerCase();
-          
-          // Explicit image keywords
-          if (/^generate\s+an?\s+image\s+of/i.test(lowerMessage) ||
-              lowerMessage.includes('create an image') ||
-              lowerMessage.includes('generate image')) {
+
+          // Must contain explicit image-related words
+          const hasImageWord = /\b(image|picture|photo|illustration|artwork|graphic|visual|drawing|painting)\b/i.test(lowerMessage);
+
+          // Explicit image generation patterns with "image" or visual nouns
+          if (/^(generate|create|make|draw|paint|design|render|produce)\s+(an?\s+)?(image|picture|photo|illustration|artwork|graphic|drawing|painting)/i.test(lowerMessage)) {
             return true;
           }
-          
-          // Visual creation verbs combined with visual subjects
-          const visualVerbs = ['generate', 'create', 'make', 'design', 'draw', 'paint', 'render', 'produce'];
+
+          if (/^(generate|create|make)\s+an?\s+image\s+of/i.test(lowerMessage)) {
+            return true;
+          }
+
+          // Drawing-specific triggers (draw implies visual content)
+          if (/^draw\s+(a|an|me|something)/i.test(lowerMessage)) {
+            return true;
+          }
+
+          // Paint-specific triggers (paint implies visual content)
+          if (/^paint\s+(a|an|me|something)/i.test(lowerMessage)) {
+            return true;
+          }
+
+          // Only proceed with visual subjects if we have an image word
+          if (!hasImageWord) {
+            return false;
+          }
+
+          // Visual creation verbs combined with visual subjects (only if "image" word present)
+          const visualVerbs = ['generate', 'create', 'make', 'design', 'render', 'produce'];
           const visualSubjects = [
             'landscape', 'portrait', 'character', 'scene', 'artwork', 'art piece', 'illustration',
             'painting', 'drawing', 'digital art', 'concept art', 'fantasy', 'abstract', 'logo',
@@ -524,16 +544,16 @@ export const useArcStore = create<ArcState>()(
             'magical', 'mystical', 'ethereal', 'futuristic', 'sci-fi', 'fantasy world',
             'comic book', 'anime', 'cartoon', 'realistic photo', 'photorealistic'
           ];
-          
-          const hasVisualVerb = visualVerbs.some(verb => 
+
+          const hasVisualVerb = visualVerbs.some(verb =>
             new RegExp(`^${verb}\\s+a\\s+`, 'i').test(lowerMessage) ||
             new RegExp(`^${verb}\\s+an\\s+`, 'i').test(lowerMessage)
           );
-          
-          const hasVisualSubject = visualSubjects.some(subject => 
+
+          const hasVisualSubject = visualSubjects.some(subject =>
             lowerMessage.includes(subject)
           );
-          
+
           return hasVisualVerb && hasVisualSubject;
         })();
         

@@ -61,21 +61,27 @@ function isImageEditRequest(message: string): boolean {
 function checkForImageRequest(message: string): boolean {
   if (!message) return false;
   const m = message.toLowerCase().trim();
-  
-  // Require explicit image-related words to be present
+
+  // Check for explicit image generation patterns with "image" or visual nouns
+  if (
+    /^(generate|create|make|draw|paint|design|render|produce)\s+(an?\s+)?(image|picture|photo|illustration|artwork|graphic|drawing|painting)/i.test(m)
+  ) return true;
+
+  if (/^(generate|create|make)\s+an?\s+image\s+of/i.test(m)) return true;
+
+  // Drawing-specific triggers (draw implies visual content)
+  if (/^draw\s+(a|an|me|something)/i.test(m)) return true;
+
+  // Paint-specific triggers (paint implies visual content)
+  if (/^paint\s+(a|an|me|something)/i.test(m)) return true;
+
+  if (/^(show\s+me|give\s+me|i\s+want|i\s+need)\s+(an?\s+)?(image|picture|photo)/i.test(m)) return true;
+
+  // Require explicit image-related words for keyword matching
   const hasImageWord = /\b(image|picture|photo|illustration|artwork|graphic|visual|drawing|painting)\b/i.test(m);
   if (!hasImageWord) return false;
-  
-  // Check for explicit image generation patterns
-  if (
-    /^(generate|create|make|draw|paint|design|render|produce)\s+(an?\s+)?(image|picture|photo|illustration|artwork|graphic)/i.test(m)
-  ) return true;
-  
-  if (/^(generate|create|make)\s+an?\s+image\s+of/i.test(m)) return true;
-  
-  if (/^(show\s+me|give\s+me|i\s+want|i\s+need)\s+(an?\s+)?(image|picture|photo)/i.test(m)) return true;
-  
-  // More specific keyword combinations
+
+  // More specific keyword combinations (only if image word present)
   const imageKeywords = [
     "generate image",
     "create image",
@@ -88,9 +94,43 @@ function checkForImageRequest(message: string): boolean {
     "picture of",
     "photo of",
   ];
-  
+
   return imageKeywords.some((keyword) => m.includes(keyword));
 }
+function checkForCodingRequest(message: string): boolean {
+  if (!message) return false;
+  const m = message.toLowerCase().trim();
+
+  // Explicit coding/programming keywords
+  const codingKeywords = [
+    "code", "program", "script", "function", "class", "component",
+    "algorithm", "implement", "develop", "build", "write code",
+    "refactor", "debug", "fix the code", "add a feature",
+    "create a function", "create a class", "create a component",
+    "build an app", "build a website", "develop a",
+    "programming", "software", "application"
+  ];
+
+  // Check for explicit coding patterns
+  if (/^(write|create|build|make|develop|implement)\s+(a|an|some|the)?\s*(code|program|script|function|class|component|algorithm|app|application|website|software)/i.test(m)) {
+    return true;
+  }
+
+  // Check for coding keywords
+  if (codingKeywords.some((keyword) => m.includes(keyword))) {
+    return true;
+  }
+
+  // Check for programming language mentions
+  const programmingLanguages = [
+    "javascript", "python", "java", "typescript", "react", "vue", "angular",
+    "node", "nodejs", "c++", "c#", "ruby", "php", "swift", "kotlin", "go",
+    "rust", "html", "css", "sql"
+  ];
+
+  return programmingLanguages.some((lang) => m.includes(lang));
+}
+
 function extractImagePrompt(message: string): string {
   let prompt = (message || "").trim();
   prompt = prompt.replace(/^(please\s+)?(?:can|could|would)\s+you\s+/i, "").trim();
@@ -608,7 +648,12 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
       await addMessage({ content: userMessage, role: "user", type: "text" });
       try {
         const aiMessages = messages.filter((m) => m.type === "text").map((m) => ({ role: m.role, content: m.content }));
-        aiMessages.push({ role: "user", content: userMessage });
+
+        // Check if this is a coding request and add prefix
+        const isCodingRequest = checkForCodingRequest(userMessage);
+        const messageToSend = isCodingRequest ? `Code the following: ${userMessage}` : userMessage;
+
+        aiMessages.push({ role: "user", content: messageToSend });
         
         // Check if cancelled before making the call
         if (cancelRequested) {
