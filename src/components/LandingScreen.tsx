@@ -49,7 +49,7 @@ export function LandingScreen() {
     {
       icon: Settings,
       title: "Customize Everything",
-      description: "Switch between Gemini 2.5, GPT-5, and more with your personalized style",
+      description: "Switch between Gemini 3 Pro, GPT-5.1, and more with your personalized style",
       color: "orange",
       bgColor: "bg-orange-500/10",
       textColor: "text-orange-500",
@@ -204,7 +204,7 @@ export function LandingScreen() {
           Chat Powered by Gemini 2.5 Flash • Image Generation by Gemini 2.5 Flash Image
         </p>
         <p className="text-xs text-muted-foreground/50 mb-2">
-          Switch to GPT-5 or other models anytime in settings
+          Switch to Gemini 3 Pro, GPT-5.1 or other models anytime in settings
         </p>
         <div className="mt-2">
           <PrivacyTermsModal />
