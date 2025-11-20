@@ -172,7 +172,7 @@ function CyclingGreeting() {
         scheduleTimeout(typeNextChar, 40);
       } else {
         // Done typing, move to pause phase
-        scheduleTimeout(startUntype, 3000);
+        scheduleTimeout(startUntype, 8000);
       }
     };
 
