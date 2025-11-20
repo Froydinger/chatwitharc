@@ -662,16 +662,22 @@ export function SettingsPanel() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="glass border-glass-border">
-                <SelectItem value="google/gemini-2.5-flash">
+                <SelectItem value="google/gemini-3-pro-preview">
                   <div className="flex flex-col">
-                    <span className="font-medium">Gemini 2.5 Flash</span>
-                    <span className="text-xs text-muted-foreground">Balanced - Fast & smart (default)</span>
+                    <span className="font-medium">Gemini 3 Pro</span>
+                    <span className="text-xs text-muted-foreground">🌟 Most intelligent - Best multimodal understanding</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="google/gemini-2.5-pro">
                   <div className="flex flex-col">
                     <span className="font-medium">Gemini 2.5 Pro</span>
-                    <span className="text-xs text-muted-foreground">Most capable - Best reasoning</span>
+                    <span className="text-xs text-muted-foreground">Advanced thinking - Complex reasoning</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="google/gemini-2.5-flash">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Gemini 2.5 Flash</span>
+                    <span className="text-xs text-muted-foreground">Balanced - Fast & smart (default)</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="google/gemini-2.5-flash-lite">
@@ -680,10 +686,22 @@ export function SettingsPanel() {
                     <span className="text-xs text-muted-foreground">Fastest - Simple tasks</span>
                   </div>
                 </SelectItem>
+                <SelectItem value="openai/gpt-5.1">
+                  <div className="flex flex-col">
+                    <span className="font-medium">GPT-5.1</span>
+                    <span className="text-xs text-muted-foreground">🌟 Best for coding & agentic tasks</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="openai/gpt-5-pro">
+                  <div className="flex flex-col">
+                    <span className="font-medium">GPT-5 Pro</span>
+                    <span className="text-xs text-muted-foreground">Smarter & more precise responses</span>
+                  </div>
+                </SelectItem>
                 <SelectItem value="openai/gpt-5">
                   <div className="flex flex-col">
                     <span className="font-medium">GPT-5</span>
-                    <span className="text-xs text-muted-foreground">Premium - Highest quality</span>
+                    <span className="text-xs text-muted-foreground">Premium - High quality</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="openai/gpt-5-mini">
