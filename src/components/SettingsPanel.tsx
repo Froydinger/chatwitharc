@@ -680,12 +680,6 @@ export function SettingsPanel() {
                     <span className="text-xs text-muted-foreground">Fastest - Simple tasks</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="google/gemini-2.5-flash-image">
-                  <div className="flex flex-col">
-                    <span className="font-medium">Gemini 2.5 Flash Image</span>
-                    <span className="text-xs text-muted-foreground">Image generation</span>
-                  </div>
-                </SelectItem>
                 <SelectItem value="openai/gpt-5">
                   <div className="flex flex-col">
                     <span className="font-medium">GPT-5</span>
