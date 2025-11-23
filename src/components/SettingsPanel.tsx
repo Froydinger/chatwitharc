@@ -21,7 +21,6 @@ import {
   Download,
   Monitor,
   Palette,
-  Cpu,
   Check,
 } from "lucide-react";
 import { MemoryBankAccordion, parseMemoriesFromText, formatMemoriesToText } from "@/components/MemoryBankAccordion";
@@ -33,7 +32,6 @@ import { useArcStore } from "@/store/useArcStore";
 import { useAuth } from "@/hooks/useAuth";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -113,9 +111,6 @@ export function SettingsPanel() {
   const [memoryDraft, setMemoryDraft] = useState("");
   const [memoryDirty, setMemoryDirty] = useState(false);
 
-  // Ensure model selection from profile
-  const [selectedModel, setSelectedModel] = useState((profile as any)?.preferred_model || "google/gemini-2.5-flash");
-
   // Structured memories state
   const [memories, setMemories] = useState<Array<{ id: string; date: string; content: string }>>([]);
   const [memoriesDirty, setMemoriesDirty] = useState(false);
@@ -149,12 +144,6 @@ export function SettingsPanel() {
       setMemories(parsed);
     }
   }, [profile?.memory_info, memoriesDirty]);
-
-  useEffect(() => {
-    if ((profile as any)?.preferred_model) {
-      setSelectedModel((profile as any).preferred_model);
-    }
-  }, [(profile as any)?.preferred_model]);
 
   const handleSaveDisplayName = async () => {
     try {
@@ -214,23 +203,6 @@ export function SettingsPanel() {
   const handleMemoriesChange = (newMemories: Array<{ id: string; date: string; content: string }>) => {
     setMemories(newMemories);
     setMemoriesDirty(true);
-  };
-
-  const handleModelChange = async (model: string) => {
-    try {
-      setSelectedModel(model);
-      await updateProfile({ preferred_model: model } as any);
-      toast({
-        title: "Model updated",
-        description: `Now using ${model.includes("gemini") ? "Google Gemini" : "OpenAI GPT"}`,
-      });
-    } catch (e) {
-      toast({
-        title: "Update failed",
-        description: "Could not update model preference",
-        variant: "destructive",
-      });
-    }
   };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -648,65 +620,6 @@ export function SettingsPanel() {
             </div>
           </GlassCard>
 
-          {/* AI Model */}
-          <GlassCard variant="bubble" className="p-6 space-y-3">
-            <div className="flex items-center gap-3">
-              <Cpu className="h-5 w-5 text-primary-glow" />
-              <div>
-                <h3 className="text-lg font-semibold text-foreground">AI Model</h3>
-                <p className="text-sm text-muted-foreground">Choose which model powers your conversations</p>
-              </div>
-            </div>
-            <Select value={selectedModel} onValueChange={handleModelChange}>
-              <SelectTrigger className="glass border-glass-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="glass border-glass-border">
-                <SelectItem value="google/gemini-3-pro-preview">
-                  <div className="flex flex-col">
-                    <span className="font-medium">Gemini 3 Pro Preview</span>
-                    <span className="text-xs text-muted-foreground">Next-generation - Latest & most advanced</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="google/gemini-2.5-pro">
-                  <div className="flex flex-col">
-                    <span className="font-medium">Gemini 2.5 Pro</span>
-                    <span className="text-xs text-muted-foreground">Most capable - Best reasoning</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="google/gemini-2.5-flash">
-                  <div className="flex flex-col">
-                    <span className="font-medium">Gemini 2.5 Flash</span>
-                    <span className="text-xs text-muted-foreground">Balanced - Fast & smart (default)</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="google/gemini-2.5-flash-lite">
-                  <div className="flex flex-col">
-                    <span className="font-medium">Gemini 2.5 Flash Lite</span>
-                    <span className="text-xs text-muted-foreground">Fastest - Simple tasks</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="openai/gpt-5">
-                  <div className="flex flex-col">
-                    <span className="font-medium">GPT-5</span>
-                    <span className="text-xs text-muted-foreground">Premium - Highest quality</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="openai/gpt-5-mini">
-                  <div className="flex flex-col">
-                    <span className="font-medium">GPT-5 Mini</span>
-                    <span className="text-xs text-muted-foreground">Cost-effective - Good performance</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="openai/gpt-5-nano">
-                  <div className="flex flex-col">
-                    <span className="font-medium">GPT-5 Nano</span>
-                    <span className="text-xs text-muted-foreground">Budget-friendly - Quick responses</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </GlassCard>
         </TabsContent>
 
         {/* Account Tab */}

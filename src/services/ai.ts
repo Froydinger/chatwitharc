@@ -43,8 +43,8 @@ export class AIService {
         console.warn('Falling back to provided profile:', e);
       }
 
-      // Determine which model to use
-      const selectedModel = effectiveProfile.preferred_model || 'google/gemini-2.5-flash';
+      // Determine which model to use - defaulting to Gemini 3 Pro
+      const selectedModel = effectiveProfile.preferred_model || 'google/gemini-3-pro-preview';
 
       // Call the secure edge function with profile data and model selection
       // Note: System prompt is handled by the backend using admin settings
