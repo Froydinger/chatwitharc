@@ -662,6 +662,12 @@ export function SettingsPanel() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="glass border-glass-border">
+                <SelectItem value="google/gemini-3-pro-preview">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Gemini 3 Pro Preview</span>
+                    <span className="text-xs text-muted-foreground">Next-generation - Latest & most advanced</span>
+                  </div>
+                </SelectItem>
                 <SelectItem value="google/gemini-2.5-pro">
                   <div className="flex flex-col">
                     <span className="font-medium">Gemini 2.5 Pro</span>
