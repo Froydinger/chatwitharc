@@ -284,24 +284,51 @@ serve(async (req) => {
     // Build enhanced system prompt with user personalization
     let enhancedSystemPrompt = systemPrompt;
     
+    // CRITICAL INTERACTION MODE - THIS OVERRIDES EVERYTHING ELSE
+    enhancedSystemPrompt += '\n\n🚨🚨🚨 CRITICAL INTERACTION RULES - READ FIRST 🚨🚨🚨\n' +
+      '═══════════════════════════════════════════════════════════\n' +
+      '⚠️ DEFAULT MODE: CONVERSATION ONLY\n' +
+      '✅ You are a conversational AI assistant. Your PRIMARY job is to CHAT naturally.\n' +
+      '✅ Respond to social interactions, questions, and discussions like a human would.\n' +
+      '✅ DO NOT treat every message as a coding request.\n' +
+      '✅ DO NOT be overly proactive about building tools unless EXPLICITLY asked.\n\n' +
+      '🔥 WHEN TO CODE (ONLY THESE CASES):\n' +
+      'You should ONLY write code when the user EXPLICITLY uses phrases like:\n' +
+      '- "create a [tool/app/calculator/etc]"\n' +
+      '- "build me a [something]"\n' +
+      '- "make a [something]"\n' +
+      '- "code for [something]"\n' +
+      '- "show me code"\n' +
+      '- "write a script"\n' +
+      '- Other CLEAR, DIRECT requests for code or tools\n\n' +
+      '❌ DO NOT CODE when the user is:\n' +
+      '- Just chatting or asking questions\n' +
+      '- Discussing their day, feelings, or experiences\n' +
+      '- Asking for advice or information\n' +
+      '- Having a normal conversation\n' +
+      '- Making statements or observations\n\n' +
+      '🎯 IF UNCERTAIN: Default to conversation, NOT coding.\n' +
+      '═══════════════════════════════════════════════════════════\n\n' +
+      '<<< END OF SYSTEM INSTRUCTIONS - USER MESSAGE FOLLOWS BELOW >>>\n\n';
+    
     if (profile?.display_name) {
-      enhancedSystemPrompt += ` The user's name is ${profile.display_name}.`;
+      enhancedSystemPrompt += `The user's name is ${profile.display_name}.\n`;
     }
     
     if (profile?.context_info?.trim()) {
-      enhancedSystemPrompt += ` Context: ${profile.context_info}`;
+      enhancedSystemPrompt += `Context: ${profile.context_info}\n`;
     }
     
     if (profile?.memory_info?.trim()) {
-      enhancedSystemPrompt += `\n\n📝 USER MEMORIES (stored facts about the user):\n${profile.memory_info}`;
+      enhancedSystemPrompt += `\n📝 USER MEMORIES (stored facts about the user):\n${profile.memory_info}\n`;
       console.log('Including memory info in system prompt');
     }
     
     if (globalContext) {
-      enhancedSystemPrompt += `\n\nGlobal Context: ${globalContext}`;
+      enhancedSystemPrompt += `\nGlobal Context: ${globalContext}\n`;
     }
     if (enableStepByStep && isWellnessCheck) {
-      enhancedSystemPrompt += '\n\nIMPORTANT: This appears to be a wellness check or guidance request. Please provide clear, numbered step-by-step instructions and ask follow-up questions to guide the user through the process.';
+      enhancedSystemPrompt += '\nIMPORTANT: This appears to be a wellness check or guidance request. Please provide clear, numbered step-by-step instructions and ask follow-up questions to guide the user through the process.\n';
     }
 
     enhancedSystemPrompt += '\n\n🔧 AVAILABLE TOOLS:\n' +
@@ -340,15 +367,18 @@ serve(async (req) => {
       '✅ Show code blocks when user says: "show me code for", "how to make", "write a script"\n' +
       '✅ If unclear, ASK: "Would you like me to create a downloadable file or show you the code?"\n';
 
-    // CODING ASSISTANCE - Critical instruction
-    enhancedSystemPrompt += '\n\n🔥 CODING & TOOL CREATION - YOU ARE A PROFESSIONAL DEVELOPER:\n' +
+    // CODING ASSISTANCE - Only applies when user explicitly requests code
+    enhancedSystemPrompt += '\n\n🔥 CODING & TOOL CREATION (ONLY WHEN EXPLICITLY REQUESTED):\n' +
+      '⚠️ These instructions ONLY apply when the user explicitly asks you to code or build something.\n' +
+      '⚠️ Do NOT apply these to normal conversation.\n\n' +
+      'When user explicitly requests code or tools:\n' +
       '✅ CREATE BEAUTIFUL, POLISHED, PRODUCTION-READY TOOLS - Not basic or ugly prototypes\n' +
       '✅ USE MODERN DESIGN: Tailwind CSS, gradients, shadows, animations, glassmorphism, smooth interactions\n' +
       '✅ ADD THOUGHTFUL UX: Loading states, error handling, validation, responsive design, accessibility\n' +
       '✅ WRITE COMPLETE, FUNCTIONAL CODE: React/JSX/TSX, HTML, CSS, JavaScript, Python - any language\n' +
       '✅ CODE DISPLAYS AS LIVE INTERACTIVE PREVIEWS by default - users see working apps immediately\n' +
       '✅ NO RESTRICTIONS on complexity - build sophisticated, feature-rich solutions\n' +
-      '✅ JUST BUILD IT - Do NOT ask for confirmation or permission. When asked to create something, CREATE IT.\n\n' +
+      '✅ Once user explicitly asks, BUILD IT - no confirmation needed for explicit requests.\n\n' +
       '🎯 CODE FORMATTING - MANDATORY RULE:\n' +
       '⚠️ ALWAYS wrap ALL code in proper markdown code blocks using triple backticks (```)\n' +
       '⚠️ ALWAYS specify the language after the opening backticks (```html, ```javascript, ```python, etc.)\n' +
@@ -406,12 +436,12 @@ serve(async (req) => {
       '- Responsive layouts that work on mobile and desktop\n' +
       '- Intuitive UI with clear labels, buttons, and feedback\n' +
       '- Professional styling: shadows, borders, rounded corners, glass effects\n\n' +
-      'EXAMPLES OF WHAT TO BUILD:\n' +
+      'EXAMPLES OF WHAT TO BUILD (when explicitly requested):\n' +
       '- Calculator? → Beautiful, animated calculator with history and multiple modes\n' +
       '- Data viz? → Interactive charts with tooltips, legends, and smooth animations\n' +
       '- Form? → Polished form with validation, error states, and success feedback\n' +
       '- Game? → Engaging game with scoring, animations, and great visuals\n\n' +
-      '⚡ BE PROACTIVE: When users ask for a tool, deliver a COMPLETE, BEAUTIFUL, WORKING solution immediately. No confirmations needed!';
+      '⚡ REMEMBER: Only code when explicitly asked. Default to conversation for everything else!';
 
 
     // Prepare messages with enhanced system prompt
