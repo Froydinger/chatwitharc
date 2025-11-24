@@ -833,10 +833,12 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
               : "google/gemini-3-pro-preview";
             try {
               await updateProfile({ preferred_model: newModel });
+              // Get button center position
+              const rect = e.currentTarget.getBoundingClientRect();
               showPopup(
                 newModel === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast",
-                e.clientX,
-                e.clientY
+                rect.left + rect.width / 2,
+                rect.top + rect.height / 2
               );
             } catch (e) {
               console.error("Failed to toggle model:", e);
