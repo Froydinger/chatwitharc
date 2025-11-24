@@ -141,13 +141,17 @@ export function CodePreview({ code, language }: CodePreviewProps) {
       // Transpile JSX/TSX to JavaScript using Babel
       const transformed = Babel.transform(reactCode, {
         presets: [
-          ['react', { runtime: 'automatic' }],
+          'react',
           ...(lang === 'tsx' ? ['typescript'] : [])
         ],
         filename: `component.${lang === 'tsx' ? 'tsx' : 'jsx'}`
       });
 
       const transpiledCode = transformed.code || '';
+
+      // Extract component name from the original code
+      const componentMatch = reactCode.match(/(?:export\s+default\s+)?(?:function|const|class)\s+(\w+)/);
+      const componentName = componentMatch ? componentMatch[1] : 'App';
 
       const html = `
         <!DOCTYPE html>
@@ -165,41 +169,52 @@ export function CodePreview({ code, language }: CodePreviewProps) {
           </head>
           <body>
             <div id="root"></div>
-            <script type="module">
-              try {
-                const { createElement: h, useState, useEffect, useRef, useMemo, useCallback } = React;
-                const { createRoot } = ReactDOM;
+            <script>
+              (function() {
+                try {
+                  const { createElement, useState, useEffect, useRef, useMemo, useCallback, Fragment } = React;
+                  const { createRoot } = ReactDOM;
 
-                // Create jsx runtime for automatic runtime
-                const jsx = (type, props, key) => h(type, { ...props, key });
-                const jsxs = jsx;
-                const Fragment = React.Fragment;
+                  // Execute the transpiled code
+                  ${transpiledCode}
 
-                ${transpiledCode}
+                  // Try to render the component
+                  const root = createRoot(document.getElementById('root'));
 
-                // Try to find and render the default export or the last component
-                const root = createRoot(document.getElementById('root'));
+                  // Try different component names and patterns
+                  let ComponentToRender = null;
 
-                // Look for default export or App component
-                if (typeof App !== 'undefined') {
-                  root.render(h(App));
-                } else {
-                  // Try to render any component found in the code
-                  const componentMatch = reactCode.match(/(?:function|const)\\s+(\\w+)\\s*(?:=|\\()/);
-                  if (componentMatch) {
-                    const componentName = componentMatch[1];
-                    if (typeof window[componentName] !== 'undefined') {
-                      root.render(h(window[componentName]));
-                    } else {
-                      root.render(h('div', { className: 'p-4' }, 'Component rendered successfully'));
+                  // Check for common component names
+                  if (typeof ${componentName} !== 'undefined') {
+                    ComponentToRender = ${componentName};
+                  } else if (typeof App !== 'undefined') {
+                    ComponentToRender = App;
+                  } else if (typeof Component !== 'undefined') {
+                    ComponentToRender = Component;
+                  } else {
+                    // Try to find any function that looks like a component
+                    const globalKeys = Object.keys(window);
+                    for (const key of globalKeys) {
+                      if (typeof window[key] === 'function' && key[0] === key[0].toUpperCase()) {
+                        ComponentToRender = window[key];
+                        break;
+                      }
                     }
                   }
+
+                  if (ComponentToRender) {
+                    root.render(createElement(ComponentToRender));
+                  } else {
+                    root.render(createElement('div', {
+                      style: { padding: '16px', color: '#666' }
+                    }, 'No component found to render. Make sure your component is exported or defined.'));
+                  }
+                } catch (err) {
+                  console.error('Render error:', err);
+                  document.getElementById('root').innerHTML =
+                    '<div style="padding: 16px; color: red; background: #fee; border: 1px solid red; border-radius: 8px; margin: 16px;"><strong>Error:</strong> ' + err.message + '<pre style="margin-top: 8px; font-size: 12px; overflow: auto;">' + (err.stack || '') + '</pre></div>';
                 }
-              } catch (err) {
-                document.getElementById('root').innerHTML =
-                  '<div style="padding: 16px; color: red; background: #fee; border: 1px solid red; border-radius: 8px; margin: 16px;">Error: ' + err.message + '<pre style="margin-top: 8px; font-size: 12px;">' + err.stack + '</pre></div>';
-                console.error(err);
-              }
+              })();
             </script>
           </body>
         </html>
@@ -215,6 +230,7 @@ export function CodePreview({ code, language }: CodePreviewProps) {
       }
     } catch (err: any) {
       setError(`Transpilation error: ${err.message}`);
+      console.error('Transpilation error:', err);
     }
   };
 
