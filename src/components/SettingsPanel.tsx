@@ -41,6 +41,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { fadeInVariants, staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
 import {
@@ -85,6 +86,7 @@ export function SettingsPanel() {
   const { user } = useAuth();
   const { profile, updateProfile, updating } = useProfile();
   const { toast } = useToast();
+  const showPopup = useFingerPopup((state) => state.showPopup);
   // Use Theme hook for theme and accent color
   const { theme, toggleTheme, followSystem, toggleFollowSystem, accentColor, setAppAccentColor } = useTheme();
   // Accent color is driven via Theme; no separate hook needed
@@ -122,6 +124,9 @@ export function SettingsPanel() {
   const [memories, setMemories] = useState<Array<{ id: string; date: string; content: string }>>([]);
   const [memoriesDirty, setMemoriesDirty] = useState(false);
   const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
+
+  // Model selector ref for popup positioning
+  const modelSelectorRef = useRef<HTMLButtonElement>(null);
 
   // Online/offline detection
   useEffect(() => {
@@ -637,10 +642,15 @@ export function SettingsPanel() {
                 onValueChange={async (value) => {
                   try {
                     await updateProfile({ preferred_model: value });
-                    toast({
-                      title: "Model updated",
-                      description: value === "google/gemini-3-pro-preview" ? "Using Smarter & Thoughtful mode" : "Using Smart & Fast mode",
-                    });
+                    // Get position from the selector trigger
+                    const rect = modelSelectorRef.current?.getBoundingClientRect();
+                    if (rect) {
+                      showPopup(
+                        value === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast",
+                        rect.left + rect.width / 2,
+                        rect.top + rect.height / 2
+                      );
+                    }
                   } catch (e) {
                     toast({
                       title: "Update failed",
@@ -650,7 +660,7 @@ export function SettingsPanel() {
                   }
                 }}
               >
-                <SelectTrigger className="glass border-glass-border">
+                <SelectTrigger ref={modelSelectorRef} className="glass border-glass-border">
                   <SelectValue placeholder="Select model" />
                 </SelectTrigger>
                 <SelectContent className="glass border-glass-border">
@@ -662,8 +672,8 @@ export function SettingsPanel() {
                   </SelectItem>
                   <SelectItem value="google/gemini-3-pro-preview">
                     <div className="flex flex-col items-start">
-                      <span className="font-medium">Smarter & Thoughtful</span>
-                      <span className="text-xs text-muted-foreground">More thoughtful for complex questions</span>
+                      <span className="font-medium">Wise & Thoughtful</span>
+                      <span className="text-xs text-muted-foreground">Deep thinking for complex questions</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
