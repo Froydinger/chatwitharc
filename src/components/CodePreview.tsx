@@ -138,8 +138,17 @@ export function CodePreview({ code, language }: CodePreviewProps) {
     if (!iframeRef.current) return;
 
     try {
+      // Extract component name from the original code
+      const componentMatch = reactCode.match(/(?:export\s+default\s+)?(?:function|const|class)\s+(\w+)/);
+      const componentName = componentMatch ? componentMatch[1] : 'App';
+
+      // Prepare code by removing export statements for global scope
+      let codeToTranspile = reactCode
+        .replace(/export\s+default\s+/g, '')
+        .replace(/export\s+/g, '');
+
       // Transpile JSX/TSX to JavaScript using Babel
-      const transformed = Babel.transform(reactCode, {
+      const transformed = Babel.transform(codeToTranspile, {
         presets: [
           'react',
           ...(lang === 'tsx' ? ['typescript'] : [])
@@ -148,10 +157,6 @@ export function CodePreview({ code, language }: CodePreviewProps) {
       });
 
       const transpiledCode = transformed.code || '';
-
-      // Extract component name from the original code
-      const componentMatch = reactCode.match(/(?:export\s+default\s+)?(?:function|const|class)\s+(\w+)/);
-      const componentName = componentMatch ? componentMatch[1] : 'App';
 
       const html = `
         <!DOCTYPE html>
@@ -170,51 +175,55 @@ export function CodePreview({ code, language }: CodePreviewProps) {
           <body>
             <div id="root"></div>
             <script>
-              (function() {
-                try {
-                  const { createElement, useState, useEffect, useRef, useMemo, useCallback, Fragment } = React;
-                  const { createRoot } = ReactDOM;
+              const { createElement, useState, useEffect, useRef, useMemo, useCallback, Fragment } = React;
+              const { createRoot } = ReactDOM;
 
-                  // Execute the transpiled code
-                  ${transpiledCode}
+              try {
+                // Execute the transpiled code in global scope
+                ${transpiledCode}
 
-                  // Try to render the component
-                  const root = createRoot(document.getElementById('root'));
+                // Render the component
+                const root = createRoot(document.getElementById('root'));
 
-                  // Try different component names and patterns
-                  let ComponentToRender = null;
+                // Try to find and render the component
+                if (typeof ${componentName} !== 'undefined') {
+                  console.log('Rendering component: ${componentName}');
+                  root.render(createElement(${componentName}));
+                } else if (typeof App !== 'undefined') {
+                  console.log('Rendering component: App');
+                  root.render(createElement(App));
+                } else {
+                  // Search for any React component in global scope
+                  const componentNames = Object.keys(window).filter(key =>
+                    typeof window[key] === 'function' &&
+                    key[0] === key[0].toUpperCase() &&
+                    key !== 'React' &&
+                    key !== 'ReactDOM'
+                  );
 
-                  // Check for common component names
-                  if (typeof ${componentName} !== 'undefined') {
-                    ComponentToRender = ${componentName};
-                  } else if (typeof App !== 'undefined') {
-                    ComponentToRender = App;
-                  } else if (typeof Component !== 'undefined') {
-                    ComponentToRender = Component;
+                  if (componentNames.length > 0) {
+                    console.log('Found component:', componentNames[0]);
+                    root.render(createElement(window[componentNames[0]]));
                   } else {
-                    // Try to find any function that looks like a component
-                    const globalKeys = Object.keys(window);
-                    for (const key of globalKeys) {
-                      if (typeof window[key] === 'function' && key[0] === key[0].toUpperCase()) {
-                        ComponentToRender = window[key];
-                        break;
-                      }
-                    }
-                  }
-
-                  if (ComponentToRender) {
-                    root.render(createElement(ComponentToRender));
-                  } else {
+                    console.error('No component found to render');
                     root.render(createElement('div', {
-                      style: { padding: '16px', color: '#666' }
-                    }, 'No component found to render. Make sure your component is exported or defined.'));
+                      style: {
+                        padding: '16px',
+                        background: '#fff3cd',
+                        border: '1px solid #ffc107',
+                        borderRadius: '8px',
+                        margin: '16px'
+                      }
+                    }, 'No React component found. Define a component like: function App() { return <div>Hello</div>; }'));
                   }
-                } catch (err) {
-                  console.error('Render error:', err);
-                  document.getElementById('root').innerHTML =
-                    '<div style="padding: 16px; color: red; background: #fee; border: 1px solid red; border-radius: 8px; margin: 16px;"><strong>Error:</strong> ' + err.message + '<pre style="margin-top: 8px; font-size: 12px; overflow: auto;">' + (err.stack || '') + '</pre></div>';
                 }
-              })();
+              } catch (err) {
+                console.error('Render error:', err);
+                const root = document.getElementById('root');
+                if (root) {
+                  root.innerHTML = '<div style="padding: 16px; color: red; background: #fee; border: 1px solid red; border-radius: 8px; margin: 16px;"><strong>Error:</strong> ' + err.message + '<pre style="margin-top: 8px; font-size: 12px; overflow: auto; white-space: pre-wrap;">' + (err.stack || '') + '</pre></div>';
+                }
+              }
             </script>
           </body>
         </html>
