@@ -41,10 +41,8 @@ function FingerPopup({ message, x, y }: FingerPopupProps) {
     return () => clearTimeout(fadeOutTimer);
   }, []);
 
-  // Position the popup near the click but offset so it doesn't cover the finger
-  // Offset upward and to the right slightly
-  const offsetX = 20;
-  const offsetY = -50;
+  // Position the popup directly above the button
+  const offsetY = -60;
 
   return (
     <div
@@ -58,9 +56,9 @@ function FingerPopup({ message, x, y }: FingerPopupProps) {
         ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}
       `}
       style={{
-        left: `${x + offsetX}px`,
+        left: `${x}px`,
         top: `${y + offsetY}px`,
-        transform: 'translate(-50%, -50%)',
+        transform: 'translate(-50%, -100%)',
       }}
     >
       {message}
