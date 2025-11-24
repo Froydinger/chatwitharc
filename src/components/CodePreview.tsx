@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as React from "react";
 import { AlertCircle } from "lucide-react";
-import * as Babel from '@babel/standalone';
 
 interface CodePreviewProps {
   code: string;
@@ -22,10 +21,8 @@ export function CodePreview({ code, language }: CodePreviewProps) {
         renderCSS(code);
       } else if (language === "javascript" || language === "js") {
         renderJS(code);
-      } else if (language === "jsx" || language === "tsx" || language === "react") {
-        renderReact(code, language);
       } else {
-        // For other languages (Python, TypeScript, etc.), just show the code
+        // For other languages (React, Python, TypeScript, etc.), just show the code
         renderCodeOnly(code);
       }
     } catch (err: any) {
@@ -131,115 +128,6 @@ export function CodePreview({ code, language }: CodePreviewProps) {
       doc.open();
       doc.write(html);
       doc.close();
-    }
-  };
-
-  const renderReact = (reactCode: string, lang: string) => {
-    if (!iframeRef.current) return;
-
-    try {
-      // Extract component name from the original code
-      const componentMatch = reactCode.match(/(?:export\s+default\s+)?(?:function|const|class)\s+(\w+)/);
-      const componentName = componentMatch ? componentMatch[1] : 'App';
-
-      // Prepare code by removing export statements for global scope
-      let codeToTranspile = reactCode
-        .replace(/export\s+default\s+/g, '')
-        .replace(/export\s+/g, '');
-
-      // Transpile JSX/TSX to JavaScript using Babel
-      const transformed = Babel.transform(codeToTranspile, {
-        presets: [
-          'react',
-          ...(lang === 'tsx' ? ['typescript'] : [])
-        ],
-        filename: `component.${lang === 'tsx' ? 'tsx' : 'jsx'}`
-      });
-
-      const transpiledCode = transformed.code || '';
-
-      const html = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-            <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-            <script src="https://cdn.tailwindcss.com"></script>
-            <style>
-              body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-              * { box-sizing: border-box; }
-            </style>
-          </head>
-          <body>
-            <div id="root"></div>
-            <script>
-              const { createElement, useState, useEffect, useRef, useMemo, useCallback, Fragment } = React;
-              const { createRoot } = ReactDOM;
-
-              try {
-                // Execute the transpiled code in global scope
-                ${transpiledCode}
-
-                // Render the component
-                const root = createRoot(document.getElementById('root'));
-
-                // Try to find and render the component
-                if (typeof ${componentName} !== 'undefined') {
-                  console.log('Rendering component: ${componentName}');
-                  root.render(createElement(${componentName}));
-                } else if (typeof App !== 'undefined') {
-                  console.log('Rendering component: App');
-                  root.render(createElement(App));
-                } else {
-                  // Search for any React component in global scope
-                  const componentNames = Object.keys(window).filter(key =>
-                    typeof window[key] === 'function' &&
-                    key[0] === key[0].toUpperCase() &&
-                    key !== 'React' &&
-                    key !== 'ReactDOM'
-                  );
-
-                  if (componentNames.length > 0) {
-                    console.log('Found component:', componentNames[0]);
-                    root.render(createElement(window[componentNames[0]]));
-                  } else {
-                    console.error('No component found to render');
-                    root.render(createElement('div', {
-                      style: {
-                        padding: '16px',
-                        background: '#fff3cd',
-                        border: '1px solid #ffc107',
-                        borderRadius: '8px',
-                        margin: '16px'
-                      }
-                    }, 'No React component found. Define a component like: function App() { return <div>Hello</div>; }'));
-                  }
-                }
-              } catch (err) {
-                console.error('Render error:', err);
-                const root = document.getElementById('root');
-                if (root) {
-                  root.innerHTML = '<div style="padding: 16px; color: red; background: #fee; border: 1px solid red; border-radius: 8px; margin: 16px;"><strong>Error:</strong> ' + err.message + '<pre style="margin-top: 8px; font-size: 12px; overflow: auto; white-space: pre-wrap;">' + (err.stack || '') + '</pre></div>';
-                }
-              }
-            </script>
-          </body>
-        </html>
-      `;
-
-      const iframe = iframeRef.current;
-      const doc = iframe.contentDocument || iframe.contentWindow?.document;
-
-      if (doc) {
-        doc.open();
-        doc.write(html);
-        doc.close();
-      }
-    } catch (err: any) {
-      setError(`Transpilation error: ${err.message}`);
-      console.error('Transpilation error:', err);
     }
   };
 

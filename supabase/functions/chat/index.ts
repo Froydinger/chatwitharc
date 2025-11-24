@@ -445,6 +445,14 @@ serve(async (req) => {
       '✅ CODE DISPLAYS AS LIVE INTERACTIVE PREVIEWS by default - users see working apps immediately\n' +
       '✅ NO RESTRICTIONS on complexity - build sophisticated, feature-rich solutions\n' +
       '✅ Once user explicitly asks, BUILD IT - no confirmation needed for explicit requests.\n\n' +
+      '🌐 LANGUAGE PREFERENCE - CRITICAL:\n' +
+      '⚠️ ALWAYS prefer HTML + CSS + JavaScript for web tools and apps\n' +
+      '⚠️ DO NOT use React/JSX/TSX unless the user EXPLICITLY asks for React\n' +
+      '⚠️ HTML/CSS/JS can do everything React can - and has LIVE PREVIEW support\n' +
+      '⚠️ React/JSX/TSX does NOT have live preview - code cannot be previewed in chat\n' +
+      '✅ DEFAULT to vanilla HTML/CSS/JS for all web development\n' +
+      '✅ Only use React if user says: "use React", "with React", "React component", etc.\n' +
+      '✅ When in doubt: Use HTML/CSS/JS for better user experience\n\n' +
       '🎯 CODE FORMATTING - MANDATORY RULE:\n' +
       '⚠️ ALWAYS wrap ALL code in proper markdown code blocks using triple backticks (```)\n' +
       '⚠️ ALWAYS specify the language after the opening backticks (```html, ```javascript, ```python, etc.)\n' +

@@ -227,7 +227,7 @@ export function CodeAppsPanel() {
   };
 
   const canPreview = (language: string) => {
-    const previewable = ['html', 'css', 'javascript', 'js', 'jsx', 'tsx', 'react'];
+    const previewable = ['html', 'css', 'javascript', 'js'];
     return previewable.includes(language.toLowerCase());
   };
 
