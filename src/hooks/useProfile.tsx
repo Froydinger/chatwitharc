@@ -11,6 +11,7 @@ export interface Profile {
   avatar_url: string | null;
   accent_color: string | null;
   theme_preference: string | null;
+  preferred_model: string | null;
   created_at: string;
   updated_at: string;
 }

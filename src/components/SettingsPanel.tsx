@@ -63,6 +63,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Brain, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -617,6 +624,50 @@ export function SettingsPanel() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* AI Model Selector */}
+            <div className="space-y-3">
+              <div>
+                <Label className="text-foreground font-medium">AI Model</Label>
+                <p className="text-sm text-muted-foreground mt-1">Choose response speed and quality</p>
+              </div>
+              <Select
+                value={profile?.preferred_model || "google/gemini-2.5-flash"}
+                onValueChange={async (value) => {
+                  try {
+                    await updateProfile({ preferred_model: value });
+                    toast({
+                      title: "Model updated",
+                      description: value === "google/gemini-3-pro-preview" ? "Using Smarter & Thoughtful mode" : "Using Smart & Fast mode",
+                    });
+                  } catch (e) {
+                    toast({
+                      title: "Update failed",
+                      description: "Could not update AI model preference",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
+                <SelectTrigger className="glass border-glass-border">
+                  <SelectValue placeholder="Select model" />
+                </SelectTrigger>
+                <SelectContent className="glass border-glass-border">
+                  <SelectItem value="google/gemini-2.5-flash">
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">Smart & Fast</span>
+                      <span className="text-xs text-muted-foreground">Quick responses, great for most tasks</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="google/gemini-3-pro-preview">
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">Smarter & Thoughtful</span>
+                      <span className="text-xs text-muted-foreground">More thoughtful for complex questions</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </GlassCard>
 

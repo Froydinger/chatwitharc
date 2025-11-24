@@ -1,7 +1,7 @@
 // src/components/ChatInput.tsx
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, Paperclip, ArrowRight, Sparkles, ImagePlus } from "lucide-react";
+import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Brain } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
@@ -164,7 +164,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
 
   const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory } =
     useArcStore();
-  const { profile } = useProfile();
+  const { profile, updateProfile } = useProfile();
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -822,6 +822,36 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
             rows={1}
           />
         </div>
+
+        {/* Brain Icon Toggle */}
+        <button
+          onClick={async () => {
+            const newModel = profile?.preferred_model === "google/gemini-3-pro-preview" 
+              ? "google/gemini-2.5-flash" 
+              : "google/gemini-3-pro-preview";
+            try {
+              await updateProfile({ preferred_model: newModel });
+              toast({
+                title: newModel === "google/gemini-3-pro-preview" ? "Smarter mode" : "Fast mode",
+                description: newModel === "google/gemini-3-pro-preview" 
+                  ? "Using thoughtful AI for complex questions" 
+                  : "Using fast AI for quick responses",
+              });
+            } catch (e) {
+              console.error("Failed to toggle model:", e);
+            }
+          }}
+          className={[
+            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40",
+            profile?.preferred_model === "google/gemini-3-pro-preview"
+              ? "bg-primary/20 text-primary border-primary/40 shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted/70",
+          ].join(" ")}
+          aria-label="Toggle AI model"
+          title={profile?.preferred_model === "google/gemini-3-pro-preview" ? "Smarter & Thoughtful mode" : "Smart & Fast mode"}
+        >
+          <Brain className="h-5 w-5" />
+        </button>
 
         {/* Send */}
         <button
