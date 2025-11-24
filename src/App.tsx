@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { UpdateNotification } from "@/components/UpdateNotification";
 import { PageTransition } from "@/components/PageTransition";
+import { FingerPopupContainer } from "@/components/FingerPopup";
 import { Index } from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminPage } from "./pages/AdminPage";
@@ -19,6 +20,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <FingerPopupContainer />
         <PWAInstallPrompt />
         <UpdateNotification />
         <BrowserRouter>

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
+import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useProfile } from "@/hooks/useProfile";
 import { AIService } from "@/services/ai";
 import { supabase } from "@/integrations/supabase/client";
@@ -161,6 +162,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
   useProfile();
   const portalRoot = useSafePortalRoot();
   const { toast } = useToast();
+  const showPopup = useFingerPopup((state) => state.showPopup);
 
   const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory } =
     useArcStore();
@@ -825,18 +827,17 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
 
         {/* Brain Icon Toggle */}
         <button
-          onClick={async () => {
-            const newModel = profile?.preferred_model === "google/gemini-3-pro-preview" 
-              ? "google/gemini-2.5-flash" 
+          onClick={async (e) => {
+            const newModel = profile?.preferred_model === "google/gemini-3-pro-preview"
+              ? "google/gemini-2.5-flash"
               : "google/gemini-3-pro-preview";
             try {
               await updateProfile({ preferred_model: newModel });
-              toast({
-                title: newModel === "google/gemini-3-pro-preview" ? "Smarter mode" : "Fast mode",
-                description: newModel === "google/gemini-3-pro-preview" 
-                  ? "Using thoughtful AI for complex questions" 
-                  : "Using fast AI for quick responses",
-              });
+              showPopup(
+                newModel === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast",
+                e.clientX,
+                e.clientY
+              );
             } catch (e) {
               console.error("Failed to toggle model:", e);
             }
@@ -848,7 +849,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
               : "bg-muted/50 text-muted-foreground hover:bg-muted/70",
           ].join(" ")}
           aria-label="Toggle AI model"
-          title={profile?.preferred_model === "google/gemini-3-pro-preview" ? "Smarter & Thoughtful mode" : "Smart & Fast mode"}
+          title={profile?.preferred_model === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
         >
           <Brain className="h-5 w-5" />
         </button>
