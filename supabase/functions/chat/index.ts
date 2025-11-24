@@ -308,9 +308,28 @@ serve(async (req) => {
       '- Having a normal conversation\n' +
       '- Making statements or observations\n\n' +
       '🎯 IF UNCERTAIN: Default to conversation, NOT coding.\n' +
-      '═══════════════════════════════════════════════════════════\n\n' +
-      '<<< END OF SYSTEM INSTRUCTIONS - USER MESSAGE FOLLOWS BELOW >>>\n\n';
-    
+      '═══════════════════════════════════════════════════════════\n\n';
+
+    // Add EXTRA strong instructions for thinking mode to prevent unwanted coding
+    if (model === 'google/gemini-3-pro-preview') {
+      enhancedSystemPrompt += '🧠 THINKING MODE - ADDITIONAL RULES:\n' +
+        '═══════════════════════════════════════════════════════════\n' +
+        '⚠️ You are in "Wise & Thoughtful" mode for deep thinking and conversation.\n' +
+        '⚠️ Your PRIMARY purpose is to THINK DEEPLY and CONVERSE naturally.\n' +
+        '⚠️ DO NOT write code unless EXPLICITLY asked with clear phrases like:\n' +
+        '   - "write code for..."\n' +
+        '   - "create a tool/app/calculator..."\n' +
+        '   - "build me..."\n' +
+        '   - "show me the code..."\n' +
+        '⚠️ When users ask questions, provide THOUGHTFUL ANSWERS, not code.\n' +
+        '⚠️ When users ask "how to" questions, explain in WORDS first.\n' +
+        '⚠️ Only provide code if they SPECIFICALLY request code implementation.\n' +
+        '⚠️ THINK before acting - is code actually being requested?\n' +
+        '═══════════════════════════════════════════════════════════\n\n';
+    }
+
+    enhancedSystemPrompt += '<<< END OF SYSTEM INSTRUCTIONS - USER MESSAGE FOLLOWS BELOW >>>\n\n';
+
     if (profile?.display_name) {
       enhancedSystemPrompt += `The user's name is ${profile.display_name}.\n`;
     }
