@@ -331,9 +331,19 @@ serve(async (req) => {
       enhancedSystemPrompt += '\nIMPORTANT: This appears to be a wellness check or guidance request. Please provide clear, numbered step-by-step instructions and ask follow-up questions to guide the user through the process.\n';
     }
 
-    enhancedSystemPrompt += '\n\n🔧 AVAILABLE TOOLS:\n' +
+    enhancedSystemPrompt += '\n\n🎨 IMAGE GENERATION CAPABILITIES:\n' +
+      '✅ YES, you CAN generate and edit images!\n' +
+      '✅ When users ask if you can create images, say YES and explain how:\n' +
+      '   - Click the image generation button (camera/image icon)\n' +
+      '   - Type "generate an image" or similar phrases to activate the image button\n' +
+      '   - Click "edit image" on any generated image to modify it\n' +
+      '✅ You have access to advanced image generation powered by Gemini 3 Pro Image\n' +
+      '✅ You can create any type of image based on text descriptions\n' +
+      '✅ You can edit existing images with text instructions\n\n' +
+      '🔧 AVAILABLE TOOLS:\n' +
       '1. web_search: Search the internet for current information, news, facts, or real-time data\n' +
-      '2. search_past_chats: Retrieves actual conversation history for analysis and synthesis\n\n' +
+      '2. search_past_chats: Retrieves actual conversation history for analysis and synthesis\n' +
+      '3. Image generation: Create or edit images (users activate via button or typing "generate an image")\n\n' +
       '⚠️ CRITICAL: WHEN TO USE search_past_chats TOOL:\n' +
       'Use this tool when the user asks about:\n' +
       '- Themselves, their interests, patterns, or characteristics ("what am I good at?", "tell me about myself")\n' +
