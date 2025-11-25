@@ -1067,12 +1067,11 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
         )}
 
       {/* Model label pill - rendered via portal to escape container */}
-      {portalRoot && brainButtonRef.current && (showModelLabel || isHoveringBrain) &&
+      {portalRoot &&
         createPortal(
           <AnimatePresence>
-            {(showModelLabel || isHoveringBrain) && (() => {
-              const rect = brainButtonRef.current?.getBoundingClientRect();
-              if (!rect) return null;
+            {(showModelLabel || isHoveringBrain) && brainButtonRef.current && (() => {
+              const rect = brainButtonRef.current.getBoundingClientRect();
 
               return (
                 <motion.div
@@ -1080,11 +1079,12 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 5 }}
                   transition={{ duration: 0.2 }}
-                  className="fixed pointer-events-none z-[60]"
+                  className="fixed pointer-events-none"
                   style={{
-                    left: rect.left + rect.width / 2,
-                    top: rect.top - 8,
-                    transform: 'translate(-50%, -100%)'
+                    left: `${rect.left + rect.width / 2}px`,
+                    top: `${rect.top - 28}px`,
+                    transform: 'translateX(-50%)',
+                    zIndex: 9999
                   }}
                 >
                   <div className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-background/95 backdrop-blur-sm border border-border/50 text-foreground shadow-lg whitespace-nowrap">
