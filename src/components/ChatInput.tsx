@@ -190,6 +190,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
   const [showModelLabel, setShowModelLabel] = useState(false);
   const [isHoveringBrain, setIsHoveringBrain] = useState(false);
   const modelLabelTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const brainButtonRef = useRef<HTMLButtonElement>(null);
 
   // Textarea auto-resize with cursor position preservation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -840,66 +841,48 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
         </div>
 
         {/* Brain Icon Toggle */}
-        <div className="relative">
-          {/* Model label pill above button */}
-          <AnimatePresence>
-            {(showModelLabel || isHoveringBrain) && (
-              <motion.div
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 5 }}
-                transition={{ duration: 0.2 }}
-                className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none z-50"
-              >
-                <div className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-background/95 backdrop-blur-sm border border-border/50 text-foreground shadow-lg">
-                  {profile?.preferred_model === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        <button
+          ref={brainButtonRef}
+          onMouseEnter={() => setIsHoveringBrain(true)}
+          onMouseLeave={() => setIsHoveringBrain(false)}
+          onClick={async (e) => {
+            const newModel = profile?.preferred_model === "google/gemini-3-pro-preview"
+              ? "google/gemini-2.5-flash"
+              : "google/gemini-3-pro-preview";
+            try {
+              await updateProfile({ preferred_model: newModel });
 
-          <button
-            onMouseEnter={() => setIsHoveringBrain(true)}
-            onMouseLeave={() => setIsHoveringBrain(false)}
-            onClick={async (e) => {
-              const newModel = profile?.preferred_model === "google/gemini-3-pro-preview"
-                ? "google/gemini-2.5-flash"
-                : "google/gemini-3-pro-preview";
-              try {
-                await updateProfile({ preferred_model: newModel });
-
-                // Show label for 3 seconds after model change
-                setShowModelLabel(true);
-                if (modelLabelTimeoutRef.current) {
-                  clearTimeout(modelLabelTimeoutRef.current);
-                }
-                modelLabelTimeoutRef.current = setTimeout(() => {
-                  setShowModelLabel(false);
-                }, 3000);
-
-                // Get button center position
-                const rect = e.currentTarget.getBoundingClientRect();
-                showPopup(
-                  newModel === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast",
-                  rect.left + rect.width / 2,
-                  rect.top + rect.height / 2
-                );
-              } catch (e) {
-                console.error("Failed to toggle model:", e);
+              // Show label for 3 seconds after model change
+              setShowModelLabel(true);
+              if (modelLabelTimeoutRef.current) {
+                clearTimeout(modelLabelTimeoutRef.current);
               }
-            }}
-            className={[
-              "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40",
-              profile?.preferred_model === "google/gemini-3-pro-preview"
-                ? "bg-primary/20 text-primary border-primary/40 shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted/70",
-            ].join(" ")}
-            aria-label="Toggle AI model"
-            title={profile?.preferred_model === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
-          >
-            <Brain className="h-5 w-5" />
-          </button>
-        </div>
+              modelLabelTimeoutRef.current = setTimeout(() => {
+                setShowModelLabel(false);
+              }, 3000);
+
+              // Get button center position
+              const rect = e.currentTarget.getBoundingClientRect();
+              showPopup(
+                newModel === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast",
+                rect.left + rect.width / 2,
+                rect.top + rect.height / 2
+              );
+            } catch (e) {
+              console.error("Failed to toggle model:", e);
+            }
+          }}
+          className={[
+            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40",
+            profile?.preferred_model === "google/gemini-3-pro-preview"
+              ? "bg-primary/20 text-primary border-primary/40 shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted/70",
+          ].join(" ")}
+          aria-label="Toggle AI model"
+          title={profile?.preferred_model === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
+        >
+          <Brain className="h-5 w-5" />
+        </button>
 
         {/* Send */}
         <button
@@ -1080,6 +1063,37 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
               }, 100);
             }}
           />,
+          portalRoot
+        )}
+
+      {/* Model label pill - rendered via portal to escape container */}
+      {portalRoot && brainButtonRef.current && (showModelLabel || isHoveringBrain) &&
+        createPortal(
+          <AnimatePresence>
+            {(showModelLabel || isHoveringBrain) && (() => {
+              const rect = brainButtonRef.current?.getBoundingClientRect();
+              if (!rect) return null;
+
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 5 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed pointer-events-none z-[60]"
+                  style={{
+                    left: rect.left + rect.width / 2,
+                    top: rect.top - 8,
+                    transform: 'translate(-50%, -100%)'
+                  }}
+                >
+                  <div className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-background/95 backdrop-blur-sm border border-border/50 text-foreground shadow-lg whitespace-nowrap">
+                    {profile?.preferred_model === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
+                  </div>
+                </motion.div>
+              );
+            })()}
+          </AnimatePresence>,
           portalRoot
         )}
 
