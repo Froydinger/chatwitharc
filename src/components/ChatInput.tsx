@@ -1075,10 +1075,15 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
 
               return (
                 <motion.div
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 5 }}
-                  transition={{ duration: 0.2 }}
+                  initial={{ opacity: 0, scale: 0, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, y: -5 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 600,
+                    damping: 20,
+                    mass: 0.8
+                  }}
                   className="fixed pointer-events-none"
                   style={{
                     left: `${rect.left + rect.width / 2}px`,
