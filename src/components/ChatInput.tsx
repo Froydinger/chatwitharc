@@ -186,6 +186,11 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
   const [forceImageMode, setForceImageMode] = useState(false);
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
 
+  // Model label pill visibility
+  const [showModelLabel, setShowModelLabel] = useState(false);
+  const [isHoveringBrain, setIsHoveringBrain] = useState(false);
+  const modelLabelTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Textarea auto-resize with cursor position preservation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cursorPositionRef = useRef<number | null>(null);
@@ -246,6 +251,15 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
       document.removeEventListener("keydown", onEsc);
     };
   }, [showMenu]);
+
+  // Cleanup model label timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (modelLabelTimeoutRef.current) {
+        clearTimeout(modelLabelTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // File input
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -828,19 +842,41 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
         {/* Brain Icon Toggle */}
         <div className="relative">
           {/* Model label pill above button */}
-          <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none">
-            <div className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-background/80 backdrop-blur-sm border border-border/50 text-foreground shadow-sm">
-              {profile?.preferred_model === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
-            </div>
-          </div>
+          <AnimatePresence>
+            {(showModelLabel || isHoveringBrain) && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 5 }}
+                transition={{ duration: 0.2 }}
+                className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none z-50"
+              >
+                <div className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-background/95 backdrop-blur-sm border border-border/50 text-foreground shadow-lg">
+                  {profile?.preferred_model === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <button
+            onMouseEnter={() => setIsHoveringBrain(true)}
+            onMouseLeave={() => setIsHoveringBrain(false)}
             onClick={async (e) => {
               const newModel = profile?.preferred_model === "google/gemini-3-pro-preview"
                 ? "google/gemini-2.5-flash"
                 : "google/gemini-3-pro-preview";
               try {
                 await updateProfile({ preferred_model: newModel });
+
+                // Show label for 3 seconds after model change
+                setShowModelLabel(true);
+                if (modelLabelTimeoutRef.current) {
+                  clearTimeout(modelLabelTimeoutRef.current);
+                }
+                modelLabelTimeoutRef.current = setTimeout(() => {
+                  setShowModelLabel(false);
+                }, 3000);
+
                 // Get button center position
                 const rect = e.currentTarget.getBoundingClientRect();
                 showPopup(
