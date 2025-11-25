@@ -195,17 +195,17 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
   // Textarea auto-resize with cursor position preservation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cursorPositionRef = useRef<number | null>(null);
-  
+
   useEffect(() => {
     if (!textareaRef.current) return;
-    
+
     // Save cursor position before resize
     const cursorPos = textareaRef.current.selectionStart;
-    
+
     textareaRef.current.style.height = "auto";
     const h = textareaRef.current.scrollHeight;
     textareaRef.current.style.height = Math.min(h, 24 * 3) + "px";
-    
+
     // Restore cursor position after resize
     if (cursorPositionRef.current !== null) {
       textareaRef.current.setSelectionRange(cursorPositionRef.current, cursorPositionRef.current);
@@ -214,6 +214,19 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
       textareaRef.current.setSelectionRange(cursorPos, cursorPos);
     }
   }, [inputValue]);
+
+  // Handle mobile keyboard opening - scroll input into view
+  const handleInputFocus = useCallback(() => {
+    // Small delay to let keyboard animation start
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }
+    }, 300);
+  }, []);
 
   // Create and cleanup object URLs for image previews
   useEffect(() => {
@@ -831,7 +844,10 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyPress}
-            onFocus={() => setIsActive(true)}
+            onFocus={() => {
+              setIsActive(true);
+              handleInputFocus();
+            }}
             onBlur={() => setIsActive(false)}
             placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe" : "Ask"}
             disabled={isLoading}
