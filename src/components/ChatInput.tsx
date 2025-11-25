@@ -826,35 +826,44 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
         </div>
 
         {/* Brain Icon Toggle */}
-        <button
-          onClick={async (e) => {
-            const newModel = profile?.preferred_model === "google/gemini-3-pro-preview"
-              ? "google/gemini-2.5-flash"
-              : "google/gemini-3-pro-preview";
-            try {
-              await updateProfile({ preferred_model: newModel });
-              // Get button center position
-              const rect = e.currentTarget.getBoundingClientRect();
-              showPopup(
-                newModel === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast",
-                rect.left + rect.width / 2,
-                rect.top + rect.height / 2
-              );
-            } catch (e) {
-              console.error("Failed to toggle model:", e);
-            }
-          }}
-          className={[
-            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40",
-            profile?.preferred_model === "google/gemini-3-pro-preview"
-              ? "bg-primary/20 text-primary border-primary/40 shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
-              : "bg-muted/50 text-muted-foreground hover:bg-muted/70",
-          ].join(" ")}
-          aria-label="Toggle AI model"
-          title={profile?.preferred_model === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
-        >
-          <Brain className="h-5 w-5" />
-        </button>
+        <div className="relative">
+          {/* Model label pill above button */}
+          <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none">
+            <div className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-background/80 backdrop-blur-sm border border-border/50 text-foreground shadow-sm">
+              {profile?.preferred_model === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
+            </div>
+          </div>
+
+          <button
+            onClick={async (e) => {
+              const newModel = profile?.preferred_model === "google/gemini-3-pro-preview"
+                ? "google/gemini-2.5-flash"
+                : "google/gemini-3-pro-preview";
+              try {
+                await updateProfile({ preferred_model: newModel });
+                // Get button center position
+                const rect = e.currentTarget.getBoundingClientRect();
+                showPopup(
+                  newModel === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast",
+                  rect.left + rect.width / 2,
+                  rect.top + rect.height / 2
+                );
+              } catch (e) {
+                console.error("Failed to toggle model:", e);
+              }
+            }}
+            className={[
+              "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40",
+              profile?.preferred_model === "google/gemini-3-pro-preview"
+                ? "bg-primary/20 text-primary border-primary/40 shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
+                : "bg-muted/50 text-muted-foreground hover:bg-muted/70",
+            ].join(" ")}
+            aria-label="Toggle AI model"
+            title={profile?.preferred_model === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
+          >
+            <Brain className="h-5 w-5" />
+          </button>
+        </div>
 
         {/* Send */}
         <button
