@@ -1,11 +1,20 @@
 import { useTheme } from "@/hooks/useTheme";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 export const BackgroundGradients = () => {
   const { theme, accentColor } = useTheme();
   const isLight = theme === "light";
 
-  // Get the HSL value from CSS variable and force re-read on theme/accent change
+  // Force re-computation of CSS variable on every render to ensure we get latest value
+  const [, forceUpdate] = useState(0);
+  
+  useEffect(() => {
+    // Force component update when theme or accent changes
+    forceUpdate(prev => prev + 1);
+  }, [theme, accentColor]);
+
+  // Get the HSL value from CSS variable - always get fresh value
   const primaryGlow = getComputedStyle(document.documentElement)
     .getPropertyValue('--primary-glow')
     .trim();
