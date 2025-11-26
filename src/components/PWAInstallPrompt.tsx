@@ -102,7 +102,8 @@ export function PWAInstallPrompt() {
   };
 
   const handleMacDownload = () => {
-    window.open('https://froydinger.com/downloads/', '_blank');
+    // Direct download of the DMG file
+    window.location.href = 'https://froydinger.com/wp-content/uploads/2025/11/ArcAi.dmg_.zip';
     handleDismiss();
   };
 
