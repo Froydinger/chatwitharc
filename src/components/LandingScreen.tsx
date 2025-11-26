@@ -147,7 +147,7 @@ const AppMockup = () => {
       </div>
 
       {/* Background Glow behind Mockup */}
-      <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-green-500/20 blur-3xl rounded-[3rem] -z-10 animate-pulse"></div>
+      <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-cyan-500/20 to-blue-900/20 blur-3xl rounded-[3rem] -z-10 animate-pulse"></div>
     </div>
   );
 };
@@ -164,9 +164,9 @@ export function LandingScreen() {
 
       {/* Animated Background Blobs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="liquid-blob w-[500px] h-[500px] bg-purple-900 top-[-100px] left-[20%] rounded-full opacity-40"></div>
-        <div className="liquid-blob liquid-blob-2 w-[600px] h-[600px] bg-blue-900 bottom-[-100px] right-[10%] rounded-full opacity-30"></div>
-        <div className="liquid-blob w-[400px] h-[400px] bg-emerald-900 top-[40%] left-[-100px] rounded-full opacity-20"></div>
+        <div className="liquid-blob w-[500px] h-[500px] bg-blue-900 top-[-100px] left-[20%] rounded-full opacity-40"></div>
+        <div className="liquid-blob liquid-blob-2 w-[600px] h-[600px] bg-blue-700 bottom-[-100px] right-[10%] rounded-full opacity-35"></div>
+        <div className="liquid-blob w-[400px] h-[400px] bg-cyan-900 top-[40%] left-[-100px] rounded-full opacity-25"></div>
       </div>
 
       {/* Navigation */}
@@ -267,7 +267,7 @@ export function LandingScreen() {
       {/* Bottom CTA */}
       <section className="relative z-10 py-20 px-6 text-center">
         <div className="glass-panel max-w-4xl mx-auto rounded-3xl p-12 md:p-20 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-green-500"></div>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-700"></div>
 
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to shine?</h2>
           <p className="text-gray-400 mb-10 max-w-lg mx-auto">
