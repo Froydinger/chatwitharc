@@ -210,6 +210,7 @@ export function LandingScreen() {
   const [isPWAMode, setIsPWAMode] = useState(false);
   const [snarkyMessage, setSnarkyMessage] = useState<string | null>(null);
   const [isLogoSpinning, setIsLogoSpinning] = useState(false);
+  const [showStickyHeader, setShowStickyHeader] = useState(false);
   const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi-for-Mac-1.0.2.zip";
@@ -222,6 +223,14 @@ export function LandingScreen() {
     setIsMobile(isMobileDevice());
     setIsWindowsDevice(isWindows());
     setIsPWAMode(isPWA());
+
+    // Handle scroll for sticky header
+    const handleScroll = () => {
+      setShowStickyHeader(window.scrollY > 100);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Cleanup timeout on unmount
@@ -275,17 +284,46 @@ export function LandingScreen() {
         <div className="liquid-blob w-[400px] h-[400px] bg-cyan-900 top-[40%] left-[-100px] rounded-full opacity-25"></div>
       </div>
 
+      {/* Bottom Blur Edge */}
+      <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background via-background/50 to-transparent pointer-events-none z-40" />
+
+      {/* Sticky Header */}
+      <AnimatePresence>
+        {showStickyHeader && (
+          <motion.nav
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/10 backdrop-blur-xl"
+          >
+            <div className="flex items-center justify-between px-4 py-3 md:px-8 max-w-7xl mx-auto">
+              <div className="flex items-center space-x-3">
+                <ThemedLogo keepOriginal className="w-6 h-6" />
+                <span className="text-lg tracking-tight text-white">
+                  <span className="font-thin">Arc</span>
+                  <span className="font-light">Ai</span>
+                </span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <a href="#features" className="hidden md:block text-sm font-medium text-gray-400 hover:text-white transition-colors">Features</a>
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity"
+                >
+                  Sign In / Sign Up
+                </button>
+              </div>
+            </div>
+          </motion.nav>
+        )}
+      </AnimatePresence>
+
       {/* Navigation */}
       <nav className="relative z-50 flex items-center justify-between px-4 py-4 md:px-8 max-w-7xl mx-auto">
         <div className="flex items-center space-x-3">
           {/* Logo Orb - clickable with snarky messages */}
-          <motion.div
-            className="relative"
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            whileTap={{ scale: 0.95 }}
-            animate={isLogoSpinning ? { rotate: 360 } : { rotate: 0 }}
-            transition={isLogoSpinning ? { duration: 0.6, ease: "easeOut" } : { type: "spring", damping: 15, stiffness: 300 }}
-          >
+          <div className="relative">
             <Button
               variant="outline"
               size="icon"
@@ -342,7 +380,12 @@ export function LandingScreen() {
                 }, 2500);
               }}
             >
-              <ThemedLogo keepOriginal className="w-8 h-8" />
+              <motion.div
+                animate={isLogoSpinning ? { rotate: 360 } : { rotate: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              >
+                <ThemedLogo keepOriginal className="w-8 h-8" />
+              </motion.div>
             </Button>
 
             {/* Snarky Message Popup */}
@@ -360,7 +403,7 @@ export function LandingScreen() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </div>
           <span className="text-xl tracking-tight text-white">
             <span className="font-thin">Arc</span>
             <span className="font-light">Ai</span>

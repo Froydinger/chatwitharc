@@ -607,13 +607,13 @@ body::before {
     pointer-events: none;
   }
 
-  /* iPad: Always apply 30px top padding regardless of viewport size, window mode, or standalone status */
-  body.is-ipad #root {
+  /* iPad PWA: Apply 30px top padding only in standalone mode */
+  body.standalone-app.is-ipad #root {
     padding-top: 30px !important;
   }
 
-  /* iPad: Adjust min-height to account for padding */
-  body.is-ipad #root > div:first-child {
+  /* iPad PWA: Adjust min-height to account for padding */
+  body.standalone-app.is-ipad #root > div:first-child {
     min-height: calc(100vh - 30px) !important;
   }
 }
