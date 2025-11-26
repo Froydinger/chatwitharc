@@ -1,8 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-
-type Theme = "dark" | "light";
 
 // Default accent color (blue for consistency)
 const DEFAULT_ACCENT = "210 95.0% 50.0%";
@@ -31,42 +29,14 @@ function setCssVar(name: string, value: string) {
   }
 }
 
-interface ProfileUpdatePayload {
-  theme_preference?: string;
-  accent_color?: string; // use the existing column
-}
-
 export function useTheme() {
   const { user } = useAuth();
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
 
-  // Follow system by default (persisted)
-  const [followSystem, setFollowSystemState] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem("followSystemTheme");
-      return saved === null ? true : saved === "true";
-    } catch (e) {
-      console.warn("Failed to read followSystemTheme from localStorage, defaulting to true.", e);
-      return true;
-    }
-  });
-
-  // Theme initialization: respects followSystem or explicit theme
-  const [theme, setThemeState] = useState<Theme>(() => {
-    try {
-      const savedTheme = localStorage.getItem("theme");
-      const shouldFollowSystem = localStorage.getItem("followSystemTheme") === "true";
-      if (shouldFollowSystem) {
-        return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      }
-      if (savedTheme === "dark" || savedTheme === "light") {
-        return savedTheme;
-      }
-    } catch (e) {
-      console.warn("Failed to read theme from localStorage, defaulting to light.", e);
-    }
-    return "light";
-  });
+  // Dark mode only - always set to dark
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+  }, []);
 
   // Accent color state (default to green-ish)
   const [accentColor, setAccentColorState] = useState<string>(() => {
@@ -91,31 +61,6 @@ export function useTheme() {
   useEffect(() => {
     setCssVar("--primary", accentColor);
   }, []);
-
-  // Save theme (with safe persistence)
-  const setTheme = useCallback(
-    (newTheme: Theme) => {
-      setThemeState(newTheme);
-
-      try {
-        const shouldFollowSystem = localStorage.getItem("followSystemTheme") === "true";
-        if (!shouldFollowSystem) {
-          localStorage.setItem("theme", newTheme);
-        } else {
-          localStorage.removeItem("theme");
-        }
-      } catch (e) {
-        console.error("Failed to save theme to localStorage:", e);
-      }
-
-      // Always re-apply theme + accent to DOM
-      const root = document.documentElement;
-      root.classList.remove("light", "dark");
-      root.classList.add(newTheme);
-      setCssVar("--primary", accentColor);
-    },
-    [accentColor],
-  );
 
   // Accent color setter for UI (exposed)
   const setAppAccentColor = async (colorHsL: string) => {
@@ -143,29 +88,12 @@ export function useTheme() {
     }
   };
 
-  // Apply theme class on theme change with forced synchronous updates
-  useEffect(() => {
-    const root = document.documentElement;
-    
-    // Force synchronous DOM update
-    requestAnimationFrame(() => {
-      root.classList.remove("light", "dark");
-      root.classList.add(theme);
-      
-      // Force re-apply accent color immediately after theme class change
-      setCssVar("--primary", accentColor);
-      
-      // Force repaint
-      void root.offsetHeight;
-    });
-  }, [theme, accentColor]);
-
   // Apply accent color on every change (critical for consistency)
   useEffect(() => {
     setCssVar("--primary", accentColor);
   }, [accentColor]);
 
-  // Load user preferences (theme + accent) on mount - only loads from DB once
+  // Load user preferences (accent only) on mount - only loads from DB once
   useEffect(() => {
     if (!user || preferencesLoaded) return;
 
@@ -173,7 +101,7 @@ export function useTheme() {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("theme_preference, accent_color")
+          .select("accent_color")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -184,29 +112,15 @@ export function useTheme() {
         }
 
         if (data) {
-          const themePref = (data as any).theme_preference as string | undefined;
           const accentPref = (data as any).accent_color as string | undefined;
 
-          // Load accent color FIRST before applying theme
+          // Load accent color
           if (accentPref && isValidHslColor(accentPref)) {
             setAccentColorState(accentPref);
             localStorage.setItem("accentColor", accentPref);
             // CSS var will be applied by the accentColor useEffect
           } else if (accentPref) {
             console.warn("Invalid accent color from database:", accentPref);
-          }
-
-          // Then update theme state (useEffect will apply it)
-          if (themePref === "system") {
-            setFollowSystemState(true);
-            localStorage.setItem("followSystemTheme", "true");
-            const sysDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
-            setThemeState(sysDark ? "dark" : "light");
-          } else if (themePref === "dark" || themePref === "light") {
-            setFollowSystemState(false);
-            localStorage.setItem("followSystemTheme", "false");
-            setThemeState(themePref as Theme);
-            localStorage.setItem("theme", themePref);
           }
         }
         setPreferencesLoaded(true);
@@ -219,91 +133,5 @@ export function useTheme() {
     loadUserPreferences();
   }, [user, preferencesLoaded]);
 
-  // React to system theme changes when following system
-  useEffect(() => {
-    if (!followSystem || !window.matchMedia) return;
-
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = (e: MediaQueryListEvent) => {
-      setThemeState(e.matches ? "dark" : "light");
-    };
-
-    mq.addEventListener("change", onChange);
-
-    // Apply system theme on mount if following system
-    const sysTheme = mq.matches ? "dark" : "light";
-    setThemeState(sysTheme);
-
-    return () => mq.removeEventListener("change", onChange);
-  }, [followSystem]);
-
-  // Public actions
-  const toggleTheme = async () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    
-    // Stop following system when toggling manually
-    setFollowSystemState(false);
-    
-    // Apply theme immediately and synchronously
-    const root = document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(newTheme);
-    
-    // Re-apply accent color with new theme
-    setCssVar("--primary", accentColor);
-    
-    // Update state
-    setThemeState(newTheme);
-    
-    // Persist to localStorage
-    try {
-      localStorage.setItem("theme", newTheme);
-      localStorage.setItem("followSystemTheme", "false");
-    } catch (e) {
-      console.error("Failed to save theme to localStorage:", e);
-    }
-
-    // Persist to DB (async, non-blocking)
-    if (user) {
-      try {
-        await supabase.from("profiles").update({ theme_preference: newTheme }).eq("user_id", user.id);
-      } catch (err) {
-        console.error("Failed to save theme to profile:", err);
-      }
-    }
-  };
-
-  const toggleFollowSystem = async (enabled: boolean) => {
-    setFollowSystemState(enabled);
-
-    try {
-      localStorage.setItem("followSystemTheme", enabled.toString());
-      if (enabled) {
-        // Re-derive and apply system theme
-        const sysTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-        setThemeState(sysTheme);
-        localStorage.removeItem("theme");
-      } else {
-        localStorage.setItem("theme", theme);
-      }
-    } catch (e) {
-      console.error("Failed to save followSystemTheme to localStorage:", e);
-    }
-
-    if (user) {
-      try {
-        const payload: ProfileUpdatePayload = { theme_preference: enabled ? "system" : theme };
-        await supabase.from("profiles").update(payload).eq("user_id", user.id);
-      } catch (err) {
-        console.error("Failed to save theme preference to profile:", err);
-      }
-    }
-  };
-
-  // Accent color setter for UI (exposed)
-  // (we keep the same function name for compatibility)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const {} = {};
-
-  return { theme, toggleTheme, followSystem, toggleFollowSystem, accentColor, setAppAccentColor };
+  return { accentColor, setAppAccentColor };
 }

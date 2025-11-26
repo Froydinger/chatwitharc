@@ -130,7 +130,6 @@ export function MobileChatApp() {
     syncFromSupabase,
   } = useArcStore();
   const { profile } = useProfile();
-  const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile(); // This hook determines if the current device is mobile
 
   // Pre-generate prompts in background for instant access
@@ -199,9 +198,6 @@ export function MobileChatApp() {
 
   // Snarky greeting - no names, just personality
   const [greeting, setGreeting] = useState(getDaypartGreeting());
-
-  // Theme toggle spin animation
-  const [isThemeSpinning, setIsThemeSpinning] = useState(false);
 
   // Update greeting every minute
   useEffect(() => {
@@ -492,13 +488,11 @@ export function MobileChatApp() {
   // Main chat interface
   return (
     <div className={cn("min-h-screen bg-background flex relative", (isPWAMode || isElectronApp) && "pt-[28px]")}>
-      {/* Breathing gradient background - dark mode only */}
-      {theme === 'dark' && (
-        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-          <div className="chat-breathing-blob chat-breathing-blob-1"></div>
-          <div className="chat-breathing-blob chat-breathing-blob-2"></div>
-        </div>
-      )}
+      {/* Breathing gradient background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="chat-breathing-blob chat-breathing-blob-1"></div>
+        <div className="chat-breathing-blob chat-breathing-blob-2"></div>
+      </div>
 
       {/* Main Content */}
       <div
@@ -612,34 +606,6 @@ export function MobileChatApp() {
                   <Plus className="h-4 w-4" />
                 </Button>
               </motion.div>
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all shadow-lg"
-                onClick={() => {
-                  if (!isThemeSpinning) {
-                    setIsThemeSpinning(true);
-                    // Switch icon mid-spin by toggling theme after 180deg delay
-                    setTimeout(() => toggleTheme(), 150);
-                    // Reset spin state after animation completes
-                    setTimeout(() => setIsThemeSpinning(false), 500);
-                  }
-                }}
-                title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-              >
-                <motion.span
-                  animate={{ rotate: isThemeSpinning ? 360 : 0 }}
-                  transition={{
-                    type: "spring",
-                    damping: 20,
-                    stiffness: 200,
-                    mass: 0.8,
-                  }}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
-                >
-                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </motion.span>
-              </Button>
               <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
                 <Button
                   variant="outline"

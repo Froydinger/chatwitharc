@@ -14,7 +14,6 @@ export function Index() {
   const navigate = useNavigate();
   const { user, loading, needsOnboarding } = useAuth();
   const { isLoaded } = useChatSync();
-  const { theme } = useTheme();
   const { currentSessionId, loadSession, chatSessions } = useArcStore();
 
   const [onboardingComplete, setOnboardingComplete] = useState(false);
