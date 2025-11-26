@@ -6,6 +6,7 @@ import { AuthModal } from "./AuthModal";
 import { PrivacyTermsModal } from "./PrivacyTermsModal";
 import { AppleLogo } from "./icons/AppleLogo";
 import { WindowsLogo } from "./icons/WindowsLogo";
+import { ThemedLogo } from "./ThemedLogo";
 
 // Helper to detect Electron app
 const isElectron = () => {
@@ -289,10 +290,9 @@ export function LandingScreen() {
         <div className="text-center max-w-3xl mx-auto mb-16 animate-fade-in">
           {/* Main Logo */}
           <div className="mb-8 flex justify-center">
-            <img
-              src={logoUrl}
+            <ThemedLogo
+              className="w-32 h-32 md:w-40 md:h-40 logo-glow-breathe animate-fade-in"
               alt="ArcAi Logo"
-              className="w-32 h-32 md:w-40 md:h-40 object-contain logo-glow-breathe animate-fade-in"
             />
           </div>
 

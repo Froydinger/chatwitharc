@@ -258,6 +258,11 @@ export function SettingsPanel() {
 
   const handleSignOut = async () => {
     try {
+      // Clear all theme-related cache
+      localStorage.removeItem('theme');
+      localStorage.removeItem('followSystem');
+      localStorage.removeItem('accentColor');
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
 
