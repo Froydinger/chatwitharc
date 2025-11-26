@@ -186,13 +186,6 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
   const [forceImageMode, setForceImageMode] = useState(false);
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
 
-  // Model label pill visibility
-  const [showModelLabel, setShowModelLabel] = useState(false);
-  const [isHoveringBrain, setIsHoveringBrain] = useState(false);
-  const [targetModel, setTargetModel] = useState<string | null>(null); // Track model we're switching to
-  const modelLabelTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const brainButtonRef = useRef<HTMLButtonElement>(null);
-
   // Textarea auto-resize with cursor position preservation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cursorPositionRef = useRef<number | null>(null);
@@ -859,45 +852,25 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
 
         {/* Brain Icon Toggle - hidden on mobile when typing */}
         <button
-          ref={brainButtonRef}
-          onMouseEnter={() => setIsHoveringBrain(true)}
-          onMouseLeave={() => setIsHoveringBrain(false)}
           onClick={async (e) => {
             const newModel = profile?.preferred_model === "google/gemini-3-pro-preview"
               ? "google/gemini-2.5-flash"
               : "google/gemini-3-pro-preview";
             try {
-              // Clear any existing timeout first
-              if (modelLabelTimeoutRef.current) {
-                clearTimeout(modelLabelTimeoutRef.current);
-              }
-
-              // Set BOTH states BEFORE async profile update to avoid race condition
-              setTargetModel(newModel);
-              setShowModelLabel(true);
-
               // Get button center position for popup
               const rect = e.currentTarget.getBoundingClientRect();
 
-              // Update profile (async)
+              // Update profile
               await updateProfile({ preferred_model: newModel });
 
-              // Show popup after successful update
+              // Show bouncy popup from brain icon
               showPopup(
                 newModel === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast",
                 rect.left + rect.width / 2,
                 rect.top + rect.height / 2
               );
-
-              // Set timeout to clear label after 3 seconds
-              modelLabelTimeoutRef.current = setTimeout(() => {
-                setShowModelLabel(false);
-                setTargetModel(null);
-              }, 3000);
             } catch (e) {
               console.error("Failed to toggle model:", e);
-              setTargetModel(null);
-              setShowModelLabel(false);
             }
           }}
           className={[
@@ -1093,57 +1066,6 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
               }, 100);
             }}
           />,
-          portalRoot
-        )}
-
-      {/* Model label pill - rendered via portal to escape container */}
-      {portalRoot &&
-        createPortal(
-          <AnimatePresence>
-            {(showModelLabel || isHoveringBrain) && brainButtonRef.current && (() => {
-              const rect = brainButtonRef.current.getBoundingClientRect();
-
-              return (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0, y: 28, x: '-50%' }}
-                  animate={{ opacity: 1, scale: 1, y: 0, x: '-50%' }}
-                  exit={{ opacity: 0, scale: 0.8, y: -10, x: '-50%' }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 500,
-                    damping: 15,
-                    mass: 0.5
-                  }}
-                  className="fixed pointer-events-none"
-                  style={{
-                    left: `${rect.left + rect.width / 2}px`,
-                    top: `${rect.top - 28}px`,
-                    zIndex: 9999
-                  }}
-                >
-                  <div className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-background/95 backdrop-blur-sm border border-border/50 text-foreground shadow-lg">
-                    {(() => {
-                      // Use target model if switching, otherwise current model
-                      const displayModel = targetModel || profile?.preferred_model || "google/gemini-2.5-flash";
-                      const modelName = displayModel === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast";
-                      // Show "Switched to" above model name when clicked, just model name on hover
-                      const showSwitchedTo = showModelLabel && targetModel;
-
-                      if (showSwitchedTo) {
-                        return (
-                          <div className="flex flex-col items-center text-center">
-                            <div className="text-[9px] text-muted-foreground">Switched to</div>
-                            <div className="whitespace-nowrap">{modelName}</div>
-                          </div>
-                        );
-                      }
-                      return <div className="whitespace-nowrap">{modelName}</div>;
-                    })()}
-                  </div>
-                </motion.div>
-              );
-            })()}
-          </AnimatePresence>,
           portalRoot
         )}
 

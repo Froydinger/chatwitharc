@@ -21,12 +21,12 @@ export const useFingerPopup = create<FingerPopupStore>((set) => ({
       popups: [...state.popups, { id, message, x, y }],
     }));
 
-    // Auto-remove after 1.5 seconds
+    // Auto-remove after 3 seconds
     setTimeout(() => {
       set((state) => ({
         popups: state.popups.filter((p) => p.id !== id),
       }));
-    }, 1500);
+    }, 3000);
   },
   removePopup: (id) =>
     set((state) => ({
