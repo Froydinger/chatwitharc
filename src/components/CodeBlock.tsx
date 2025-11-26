@@ -120,28 +120,24 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowPreview(!showPreview)}
-                className="h-7 text-xs"
+                className="h-7 px-2"
               >
-                <Play className="h-3 w-3 mr-1.5" />
-                {showPreview ? "Hide" : "Preview"}
+                <Play className="h-3 w-3" />
               </Button>
             )}
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={() => setIsFullscreen(true)} 
-              className="h-7 text-xs"
+              className="h-7 px-2"
             >
-              <Maximize2 className="h-3 w-3 mr-1.5" />
-              Fullscreen
+              <Maximize2 className="h-3 w-3" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleDownload} className="h-7 text-xs">
-              <Download className="h-3 w-3 mr-1.5" />
-              Download
+            <Button variant="ghost" size="sm" onClick={handleDownload} className="h-7 px-2">
+              <Download className="h-3 w-3" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 text-xs">
-              <Copy className="h-3 w-3 mr-1.5" />
-              Copy
+            <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 px-2">
+              <Copy className="h-3 w-3" />
             </Button>
           </div>
         </div>
@@ -190,29 +186,26 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowPreview(!showPreview)}
-                    className="h-8 px-2 sm:px-3"
+                    className="h-8 px-2"
                   >
-                    <Play className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline ml-2">{showPreview ? "Code" : "Preview"}</span>
+                    <Play className="h-4 w-4" />
                   </Button>
                 )}
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={handleDownload}
-                  className="h-8 px-2 sm:px-3"
+                  className="h-8 px-2"
                 >
-                  <Download className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline ml-2">Download</span>
+                  <Download className="h-4 w-4" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={handleCopy}
-                  className="h-8 px-2 sm:px-3"
+                  className="h-8 px-2"
                 >
-                  <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline ml-2">Copy</span>
+                  <Copy className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
