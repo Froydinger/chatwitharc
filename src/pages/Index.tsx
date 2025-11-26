@@ -86,6 +86,12 @@ export function Index() {
 
   // Show landing screen if user is not authenticated
   if (!user) {
+    // Force dark mode for landing page
+    useEffect(() => {
+      document.documentElement.classList.remove('light');
+      document.documentElement.classList.add('dark');
+    }, []);
+    
     return <LandingScreen />;
   }
 
