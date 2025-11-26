@@ -196,26 +196,26 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-xl z-[9998] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/40 backdrop-blur-md z-[9998] flex items-center justify-center p-4"
           >
             {/* Center Modal - gorgeous redesign */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
               transition={{
                 type: "spring",
-                damping: 20,
-                stiffness: 500,
-                mass: 0.5
+                damping: 28,
+                stiffness: 350
               }}
               className="w-full max-w-3xl"
               onClick={(e) => e.stopPropagation()}
+              style={{ willChange: 'transform, opacity' }}
             >
-              {/* Glass card container */}
-              <div className="relative flex flex-col max-h-[90vh] sm:max-h-[85vh] rounded-3xl overflow-hidden border border-border/40 shadow-2xl backdrop-blur-2xl bg-gradient-to-br from-background/95 via-background/90 to-background/95">
+              {/* Glass card container with proper glass theming */}
+              <div className="glass-panel relative flex flex-col max-h-[80vh] rounded-3xl overflow-hidden border border-white/[0.08] shadow-2xl">
               {/* Ambient glow effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
 
@@ -309,8 +309,8 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
               </div>
 
               {/* Tab Navigation - elegant pill design */}
-              <div className="relative px-6 sm:px-8 pt-6 pb-5 overflow-visible">
-                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-4 px-2 -mx-2" style={{ overflowY: 'visible' }}>
+              <div className="relative px-6 sm:px-8 pt-6 pb-3 border-b border-border/20">
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-2 px-2" style={{ touchAction: 'pan-x' }}>
                   {tabs.map((tab, index) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -350,10 +350,17 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                 </div>
               </div>
 
-              {/* Prompt Grid - beautiful cards */}
-              <div className="flex-1 overflow-y-auto px-6 sm:px-8 pb-6 overscroll-contain" style={{ overflowX: 'visible' }}>
+              {/* Prompt Grid - beautiful cards with single scroll container */}
+              <div 
+                className="flex-1 overflow-y-auto px-6 sm:px-8 pb-6" 
+                style={{ 
+                  WebkitOverflowScrolling: 'touch',
+                  touchAction: 'pan-y',
+                  overscrollBehavior: 'contain'
+                }}
+              >
                 <AnimatePresence mode="wait">
-                  <div key={activeTab} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-4">
+                  <div key={activeTab} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 py-4">
                     {isCurrentTabLoading() ? (
                     <div className="col-span-full flex items-center justify-center py-16">
                       <motion.div
