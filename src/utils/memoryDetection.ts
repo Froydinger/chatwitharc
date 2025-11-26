@@ -89,8 +89,7 @@ export function sanitizeMemoryText(text: string): string {
   if (!/[.!?]$/.test(t) && t.split(' ').length > 3) {
     t = t + '.';
   }
-  // limit to reasonable length
-  if (t.length > 200) t = t.slice(0, 200).trim() + '...';
+  // No length limit - preserve full context for memories
   return t;
 }
 
