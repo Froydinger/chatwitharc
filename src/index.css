@@ -109,17 +109,19 @@ All colors MUST be HSL for perfect glass effects.
     position: relative;
   }
 
-  /* Global animated background - dark mode only */
+  /* Global animated background - dark mode only - GPU accelerated */
   body::before {
     content: '';
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
     pointer-events: none;
     z-index: -1;
-    background: radial-gradient(circle at 20% 50%, hsl(var(--primary-glow) / 0.08) 0%, hsl(var(--primary-glow) / 0.06) 20%, hsl(var(--primary-glow) / 0.03) 40%, hsl(var(--primary-glow) / 0.01) 60%, transparent 80%);
+    background: radial-gradient(circle at center, hsl(var(--primary-glow) / 0.08) 0%, hsl(var(--primary-glow) / 0.06) 20%, hsl(var(--primary-glow) / 0.03) 40%, hsl(var(--primary-glow) / 0.01) 60%, transparent 80%);
+    will-change: transform;
+    transform: translateZ(0);
     animation: global-background-drift 20s linear infinite;
   }
 
@@ -158,21 +160,11 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   @keyframes global-background-drift {
-    0% {
-      background: radial-gradient(circle at 20% 50%, hsl(var(--primary-glow) / 0.08) 0%, hsl(var(--primary-glow) / 0.06) 20%, hsl(var(--primary-glow) / 0.03) 40%, hsl(var(--primary-glow) / 0.01) 60%, transparent 80%);
-    }
-    25% {
-      background: radial-gradient(circle at 80% 20%, hsl(var(--primary-glow) / 0.08) 0%, hsl(var(--primary-glow) / 0.06) 20%, hsl(var(--primary-glow) / 0.03) 40%, hsl(var(--primary-glow) / 0.01) 60%, transparent 80%);
-    }
-    50% {
-      background: radial-gradient(circle at 40% 80%, hsl(var(--primary-glow) / 0.08) 0%, hsl(var(--primary-glow) / 0.06) 20%, hsl(var(--primary-glow) / 0.03) 40%, hsl(var(--primary-glow) / 0.01) 60%, transparent 80%);
-    }
-    75% {
-      background: radial-gradient(circle at 10% 30%, hsl(var(--primary-glow) / 0.08) 0%, hsl(var(--primary-glow) / 0.06) 20%, hsl(var(--primary-glow) / 0.03) 40%, hsl(var(--primary-glow) / 0.01) 60%, transparent 80%);
-    }
-    100% {
-      background: radial-gradient(circle at 20% 50%, hsl(var(--primary-glow) / 0.08) 0%, hsl(var(--primary-glow) / 0.06) 20%, hsl(var(--primary-glow) / 0.03) 40%, hsl(var(--primary-glow) / 0.01) 60%, transparent 80%);
-    }
+    0% { transform: translate(0%, 0%); }
+    25% { transform: translate(30%, -15%); }
+    50% { transform: translate(10%, 15%); }
+    75% { transform: translate(-10%, -5%); }
+    100% { transform: translate(0%, 0%); }
   }
 
   /* Text Selection Styles - Force override all elements */
@@ -379,6 +371,23 @@ All colors MUST be HSL for perfect glass effects.
     100% {
       box-shadow: inset 0 0 0 1px hsla(0, 0%, 100%, 0.3);
     }
+  }
+
+  /* Background drift animations - GPU accelerated with transforms */
+  @keyframes background-drift-primary {
+    0% { transform: translate(0%, 0%); }
+    25% { transform: translate(35%, -18%); }
+    50% { transform: translate(12%, 18%); }
+    75% { transform: translate(-12%, -8%); }
+    100% { transform: translate(0%, 0%); }
+  }
+
+  @keyframes background-drift-secondary {
+    0% { transform: translate(0%, 0%); }
+    25% { transform: translate(-20%, 15%); }
+    50% { transform: translate(25%, -20%); }
+    75% { transform: translate(-15%, 10%); }
+    100% { transform: translate(0%, 0%); }
   }
 
   /* Landing Page - Liquid Animation */

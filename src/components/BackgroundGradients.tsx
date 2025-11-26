@@ -20,28 +20,40 @@ export const BackgroundGradients = () => {
 
   return (
     <>
-      {/* Primary gradient */}
+      {/* Primary gradient - GPU accelerated */}
       <motion.div
         key={`bg-primary-${accentColor}`}
-        className="fixed inset-0 pointer-events-none -z-10"
+        className="fixed pointer-events-none -z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
         style={{
-          background: `radial-gradient(circle at 20% 50%, hsl(${primaryGlow} / 0.2) 0%, hsl(${primaryGlow} / 0.15) 20%, hsl(${primaryGlow} / 0.08) 40%, hsl(${primaryGlow} / 0.03) 60%, hsl(${primaryGlow} / 0.01) 80%, transparent 100%)`,
-          animation: 'global-background-drift 20s linear infinite',
+          top: '-50%',
+          left: '-50%',
+          width: '200%',
+          height: '200%',
+          background: `radial-gradient(circle at center, hsl(${primaryGlow} / 0.2) 0%, hsl(${primaryGlow} / 0.15) 20%, hsl(${primaryGlow} / 0.08) 40%, hsl(${primaryGlow} / 0.03) 60%, hsl(${primaryGlow} / 0.01) 80%, transparent 100%)`,
+          willChange: 'transform',
+          transform: 'translateZ(0)',
+          animation: 'background-drift-primary 22s linear infinite',
         }}
       />
 
-      {/* Secondary gradient */}
+      {/* Secondary gradient - GPU accelerated */}
       <motion.div
         key={`bg-secondary-${accentColor}`}
-        className="fixed inset-0 pointer-events-none -z-10"
+        className="fixed pointer-events-none -z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.1 }}
         style={{
-          background: `radial-gradient(circle at 80% 80%, hsl(${primaryGlow} / 0.15) 0%, hsl(${primaryGlow} / 0.11) 20%, hsl(${primaryGlow} / 0.06) 40%, hsl(${primaryGlow} / 0.02) 60%, hsl(${primaryGlow} / 0.005) 80%, transparent 100%)`,
+          top: '-50%',
+          left: '-50%',
+          width: '200%',
+          height: '200%',
+          background: `radial-gradient(circle at center, hsl(${primaryGlow} / 0.15) 0%, hsl(${primaryGlow} / 0.11) 20%, hsl(${primaryGlow} / 0.06) 40%, hsl(${primaryGlow} / 0.02) 60%, hsl(${primaryGlow} / 0.005) 80%, transparent 100%)`,
+          willChange: 'transform',
+          transform: 'translateZ(0)',
           animation: 'background-drift-secondary 25s linear infinite',
         }}
       />
