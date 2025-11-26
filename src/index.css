@@ -557,7 +557,7 @@ All colors MUST be HSL for perfect glass effects.
     top: 0;
     left: 0;
     right: 0;
-    height: 50px;
+    height: 30px;
     z-index: 9999;
     -webkit-app-region: drag;
     background: transparent;

@@ -246,7 +246,7 @@ export function LandingScreen() {
   };
 
   return (
-    <div className="dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white md:pt-[50px]">
+    <div className="dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white md:pt-[30px]">
       {/* Background Gradients */}
       <BackgroundGradients />
 
