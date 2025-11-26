@@ -33,8 +33,8 @@ const isWindows = () => {
 };
 
 // Prompt Pill Component
-const PromptPill = ({ icon, text, delay }: { icon: string; text: string; delay: string }) => (
-  <div className={`flex items-center space-x-2 px-4 py-2 rounded-full glass-card cursor-pointer hover:bg-white/10 text-sm text-gray-300 animate-fade-in ${delay}`}>
+const PromptPill = ({ icon, text }: { icon: string; text: string }) => (
+  <div className="flex items-center space-x-2 px-4 py-2 rounded-full glass-card cursor-pointer hover:bg-white/10 text-sm text-gray-300">
     <span className="opacity-70">{icon}</span>
     <span>{text}</span>
   </div>
@@ -112,21 +112,36 @@ const AppMockup = () => {
 
           {/* Floating Prompts */}
           <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-8 md:mb-12 max-w-2xl px-4">
-            <PromptPill
-              icon="💬"
-              text="Ask"
-              delay="delay-100"
-            />
-            <PromptPill
-              icon="💭"
-              text="Reflect"
-              delay="delay-200"
-            />
-            <PromptPill
-              icon="✨"
-              text="Create"
-              delay="delay-300"
-            />
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <PromptPill
+                icon="💬"
+                text="Ask"
+              />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <PromptPill
+                icon="💭"
+                text="Reflect"
+              />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <PromptPill
+                icon="✨"
+                text="Create"
+              />
+            </motion.div>
           </div>
 
           {/* Center Cards */}
@@ -149,7 +164,10 @@ const AppMockup = () => {
               )}
             </AnimatePresence>
 
-            <div
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
               onClick={() => handleCardClick('prompts')}
               className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-purple-500/30 hover:border-purple-500/60 transition-all cursor-pointer group hover:scale-105"
             >
@@ -157,8 +175,11 @@ const AppMockup = () => {
                 <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
               </div>
               <span className="text-[10px] md:text-xs font-medium text-gray-300">Prompts</span>
-            </div>
-            <div
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
               onClick={() => handleCardClick('image')}
               className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-green-500/30 hover:border-green-500/60 transition-all cursor-pointer group bg-white/5 relative hover:scale-105"
             >
@@ -167,8 +188,11 @@ const AppMockup = () => {
               </div>
               <span className="text-[10px] md:text-xs font-medium text-gray-300">Image</span>
               <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse"></div>
-            </div>
-            <div
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
               onClick={() => handleCardClick('attach')}
               className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-blue-500/30 hover:border-blue-500/60 transition-all cursor-pointer group hover:scale-105"
             >
@@ -176,11 +200,16 @@ const AppMockup = () => {
                 <Paperclip className="w-4 h-4 md:w-5 md:h-5" />
               </div>
               <span className="text-[10px] md:text-xs font-medium text-gray-300">Attach</span>
-            </div>
+            </motion.div>
           </div>
 
           {/* Bottom Input Bar */}
-          <div className="w-full max-w-2xl rounded-full h-14 flex items-center px-5 relative group transition-all bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/20 hover:bg-white/8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+            className="w-full max-w-2xl rounded-full h-14 flex items-center px-5 relative group transition-all bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/20 hover:bg-white/8"
+          >
             <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-gray-400 cursor-pointer hover:text-white hover:bg-white/15 transition-all">
               <Sparkles className="w-5 h-5" />
             </div>
@@ -190,7 +219,7 @@ const AppMockup = () => {
             <div className="w-9 h-9 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center cursor-pointer hover:bg-blue-500/30 transition-all">
               <Brain className="w-5 h-5" />
             </div>
-          </div>
+          </motion.div>
 
         </div>
       </div>
