@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, X } from "lucide-react";
+import { FileText } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -31,19 +31,9 @@ export function PrivacyTermsModal({ trigger }: PrivacyTermsModalProps) {
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Privacy Policy & Terms of Service
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsOpen(false)}
-              className="h-6 w-6 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Privacy Policy & Terms of Service
           </DialogTitle>
         </DialogHeader>
         
@@ -56,10 +46,11 @@ export function PrivacyTermsModal({ trigger }: PrivacyTermsModalProps) {
               
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-medium mb-2">Data Collection</h3>
+                  <h3 className="font-medium mb-2">No Data Collection</h3>
                   <p className="text-muted-foreground">
-                    We collect only the information necessary to provide our AI chat service, including your conversations, 
-                    profile information, and basic account details.
+                    <strong>We do not collect any data in-app.</strong> Your conversations and information are stored 
+                    locally or on secure servers solely to provide the service to you. We do not track, analyze, or 
+                    share your personal information with third parties.
                   </p>
                 </div>
 
@@ -81,10 +72,13 @@ export function PrivacyTermsModal({ trigger }: PrivacyTermsModalProps) {
                 </div>
 
                 <div>
-                  <h3 className="font-medium mb-2">Legal Requests</h3>
+                  <h3 className="font-medium mb-2">Updates & Changelogs</h3>
                   <p className="text-muted-foreground">
-                    If legally required, we may provide authorities with any data we have on file. However, if you have 
-                    deleted your data, we will have nothing to provide.
+                    For the latest downloads and updates, visit our main site at{" "}
+                    <a href="https://chatwitharc.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                      chatwitharc.com
+                    </a>. When we start listing changelogs, they will be available on both the main page and in your 
+                    settings panel in a popup.
                   </p>
                 </div>
 
