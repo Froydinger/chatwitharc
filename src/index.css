@@ -110,7 +110,7 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   /* Global animated background - dark mode only - GPU accelerated */
-  body::before {
+body::before {
     content: '';
     position: fixed;
     top: -50%;
@@ -134,6 +134,16 @@ All colors MUST be HSL for perfect glass effects.
     will-change: transform;
     transform: translateZ(0);
     animation: global-background-drift 20s linear infinite;
+  }
+
+  /* iPad PWA: Simplify background to prevent rendering issues */
+  body.standalone-app.is-ipad::before {
+    animation: none;
+    background: radial-gradient(circle at center, 
+      hsl(var(--primary-glow) / 0.06) 0%, 
+      hsl(var(--primary-glow) / 0.03) 40%, 
+      transparent 70%);
+    will-change: auto;
   }
 
 
@@ -259,6 +269,13 @@ All colors MUST be HSL for perfect glass effects.
       0 4px 32px hsla(var(--glass-glow), 0.12),
       0 2px 16px hsla(var(--glass-glow), 0.08),
       inset 0 1px 0 hsla(var(--foreground), 0.1);
+  }
+
+  /* Glass panel styling for modals */
+  .glass-panel {
+    background: rgba(20, 20, 25, 0.6);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
   }
 
   .card {

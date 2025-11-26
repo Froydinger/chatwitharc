@@ -3,6 +3,31 @@ import App from './App.tsx'
 import './index.css'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 
+// Device detection for iPad PWA
+const isIpad = () => {
+  const ua = navigator.userAgent;
+  return (
+    (ua.includes('iPad') || 
+    (ua.includes('Macintosh') && navigator.maxTouchPoints > 1)) &&
+    !ua.includes('iPhone')
+  );
+};
+
+const isStandalone = () => {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         (window.navigator as any).standalone === true ||
+         document.referrer.includes('android-app://');
+};
+
+// Apply device-specific classes
+if (isStandalone()) {
+  document.body.classList.add('standalone-app');
+}
+
+if (isIpad()) {
+  document.body.classList.add('is-ipad');
+}
+
 // Add global error handler
 window.addEventListener('error', (event) => {
   console.error('Global error:', event.error);
