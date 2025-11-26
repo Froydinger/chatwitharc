@@ -666,4 +666,21 @@ All colors MUST be HSL for perfect glass effects.
   .logo-glow-breathe {
     animation: logo-breathe 6s ease-in-out infinite;
   }
+
+  /* Mac PWA/Electron Draggable Top Bar */
+  html, body, * {
+    -webkit-app-region: no-drag;
+  }
+
+  .arcai-drag-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 28px;
+    z-index: 9999;
+    -webkit-app-region: drag;
+    background: transparent;
+    pointer-events: auto;
+  }
 }

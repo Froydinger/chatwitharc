@@ -26,6 +26,7 @@ const App = () => (
     <AuthProvider>
       <TooltipProvider>
         <div className={needsMacTopPadding() ? "pt-7" : ""}>
+          {needsMacTopPadding() && <div className="arcai-drag-bar" />}
           <BackgroundGradients />
           <Toaster />
           <Sonner />
