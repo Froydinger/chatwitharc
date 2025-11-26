@@ -303,9 +303,9 @@ export function LandingScreen() {
           {/* Main Logo */}
           <div className="mb-8 flex justify-center">
             <img
-              src="/arc-logo-ui.png"
+              src="/arc-logo.svg"
               alt="ArcAi Logo"
-              className="w-32 h-32 md:w-40 md:h-40 object-contain logo-glow-breathe animate-fade-in"
+              className="w-32 h-32 md:w-40 md:h-40 object-contain animate-fade-in"
             />
           </div>
 
