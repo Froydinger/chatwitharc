@@ -262,7 +262,7 @@ export function LandingScreen() {
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-50 flex items-center justify-between px-6 py-4 md:px-12 max-w-7xl mx-auto">
+      <nav className="relative z-50 flex items-center justify-between px-4 py-4 md:px-8 max-w-7xl mx-auto">
         <div className="flex items-center space-x-3">
           <img src="/arc-logo-ui.png" alt="ArcAi Icon" className="w-10 h-10 rounded-xl" />
           <span className="text-xl font-bold tracking-tight text-white">ArcAi</span>
