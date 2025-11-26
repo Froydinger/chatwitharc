@@ -212,7 +212,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                           "backdrop-blur-sm text-white placeholder:text-white/40",
                           "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50",
                           "transition-all duration-200",
-                          "hover:bg-white/[0.07] hover:border-white/20"
+                          "hover:bg-white/[0.07] hover:border-white/20",
+                          "autofill:bg-black autofill:text-white autofill:shadow-[inset_0_0_0px_1000px_rgb(0,0,0)]"
                         )}
                         disabled={loading}
                         autoFocus={false}
@@ -239,7 +240,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                           "backdrop-blur-sm text-white placeholder:text-white/40",
                           "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50",
                           "transition-all duration-200",
-                          "hover:bg-white/[0.07] hover:border-white/20"
+                          "hover:bg-white/[0.07] hover:border-white/20",
+                          "autofill:bg-black autofill:text-white autofill:shadow-[inset_0_0_0px_1000px_rgb(0,0,0)]"
                         )}
                         disabled={loading}
                         autoComplete={isLogin ? "current-password" : "new-password"}
@@ -327,6 +329,17 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </motion.div>
         </DialogContent>
       </Dialog>
+      <style>{`
+        /* Autofill styling to keep inputs dark with white text */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px rgb(0, 0, 0) inset !important;
+          -webkit-text-fill-color: white !important;
+          caret-color: white !important;
+        }
+      `}</style>
     </div>
   );
 }
