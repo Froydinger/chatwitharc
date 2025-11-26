@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { AuthModal } from "./AuthModal";
 import { PrivacyTermsModal } from "./PrivacyTermsModal";
 import { AppleLogo } from "./icons/AppleLogo";
@@ -41,10 +42,22 @@ const FeatureCard = ({
 // App Mockup Component
 const AppMockup = () => {
   const [activeCardPopup, setActiveCardPopup] = useState<string | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleCardClick = (cardType: string) => {
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Set the new active popup
     setActiveCardPopup(cardType);
-    setTimeout(() => setActiveCardPopup(null), 8000);
+
+    // Set a new timeout and store the reference
+    timeoutRef.current = setTimeout(() => {
+      setActiveCardPopup(null);
+      timeoutRef.current = null;
+    }, 8000);
   };
 
   const cardMessages = {
@@ -97,13 +110,22 @@ const AppMockup = () => {
           {/* Center Cards */}
           <div className="flex gap-3 md:gap-6 mb-8 md:mb-12 scale-90 md:scale-100 relative">
             {/* Popup Message */}
-            {activeCardPopup && (
-              <div className="absolute -top-20 md:-top-16 left-0 right-0 z-20 animate-fade-in flex justify-center px-4">
-                <div className="bg-gradient-to-r from-blue-600 to-cyan-600 backdrop-blur-xl border-2 border-cyan-400/60 text-white px-5 py-3 rounded-2xl text-sm md:text-base font-medium text-center shadow-[0_0_32px_rgba(59,130,246,0.5)] max-w-xs md:max-w-md">
-                  {cardMessages[activeCardPopup as keyof typeof cardMessages]}
-                </div>
-              </div>
-            )}
+            <AnimatePresence mode="wait">
+              {activeCardPopup && (
+                <motion.div
+                  key={activeCardPopup}
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="absolute -top-20 md:-top-16 left-0 right-0 z-20 flex justify-center px-4"
+                >
+                  <div className="bg-gradient-to-r from-blue-600 to-cyan-600 backdrop-blur-xl border-2 border-cyan-400/60 text-white px-5 py-3 rounded-2xl text-sm md:text-base font-medium text-center shadow-[0_0_32px_rgba(59,130,246,0.5)] max-w-xs md:max-w-md">
+                    {cardMessages[activeCardPopup as keyof typeof cardMessages]}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div
               onClick={() => handleCardClick('prompts')}
