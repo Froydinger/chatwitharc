@@ -192,6 +192,7 @@ export function LandingScreen() {
 
   const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi.dmg_.zip";
   const iconUrl = "https://froydinger.com/wp-content/uploads/2025/11/icon.png";
+  const logoUrl = "https://froydinger.com/wp-content/uploads/2025/11/download-1.png";
 
   // Create mailto link for mobile users
   const mailtoLink = `mailto:?subject=ArcAi for Mac&body=Download ArcAi for Mac:%0D%0A%0D%0A${encodeURIComponent(downloadUrl)}`;
@@ -250,6 +251,15 @@ export function LandingScreen() {
       {/* Hero Section */}
       <main className="relative z-10 pt-10 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center">
         <div className="text-center max-w-3xl mx-auto mb-16 animate-fade-in">
+          {/* Main Logo */}
+          <div className="mb-8 flex justify-center">
+            <img
+              src={logoUrl}
+              alt="ArcAi Logo"
+              className="w-32 h-32 md:w-40 md:h-40 object-contain drop-shadow-[0_0_40px_rgba(59,130,246,0.3)] animate-fade-in"
+            />
+          </div>
+
           <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight leading-tight">
             Your mind, <span className="gradient-text">amplified.</span>
           </h1>
