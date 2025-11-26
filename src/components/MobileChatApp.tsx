@@ -136,6 +136,18 @@ export function MobileChatApp() {
   // Pre-generate prompts in background for instant access
   usePromptPreload();
 
+  // Track if running as PWA or Electron app
+  const [isPWAMode, setIsPWAMode] = useState(false);
+  const [isElectronApp, setIsElectronApp] = useState(false);
+
+  useEffect(() => {
+    const checkPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                     (window.navigator as any).standalone === true;
+    const checkElectron = /electron/i.test(navigator.userAgent);
+    setIsPWAMode(checkPWA);
+    setIsElectronApp(checkElectron);
+  }, []);
+
   // Initialize rightPanelOpen state based on device type and user's last preference
   useEffect(() => {
     // We only care about desktop default behavior; mobile defaults to closed (which is current behavior)
@@ -479,7 +491,7 @@ export function MobileChatApp() {
 
   // Main chat interface
   return (
-    <div className="min-h-screen bg-background flex relative">
+    <div className={cn("min-h-screen bg-background flex relative", (isPWAMode || isElectronApp) && "pt-[28px]")}>
       {/* Breathing gradient background - dark mode only */}
       {theme === 'dark' && (
         <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
