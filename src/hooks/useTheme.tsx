@@ -20,8 +20,14 @@ function setCssVar(name: string, value: string) {
   if (name === "--primary" && !isValidHslColor(value)) {
     console.warn(`Invalid HSL color: "${value}", using default`);
     document.documentElement.style.setProperty(name, DEFAULT_ACCENT);
+    // Also set primary-glow for gradients
+    document.documentElement.style.setProperty("--primary-glow", DEFAULT_ACCENT);
   } else {
     document.documentElement.style.setProperty(name, value);
+    // When setting --primary, also set --primary-glow for gradients
+    if (name === "--primary") {
+      document.documentElement.style.setProperty("--primary-glow", value);
+    }
   }
 }
 

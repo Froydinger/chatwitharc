@@ -178,25 +178,25 @@ All colors MUST be HSL for perfect glass effects.
     height: 100%;
     pointer-events: none;
     z-index: -1;
-    background: radial-gradient(circle at 20% 50%, transparent 0%, hsl(var(--primary-glow) / 0.15) 100%);
+    background: radial-gradient(circle at 20% 50%, transparent 0%, hsl(var(--primary-glow) / 0.25) 100%);
     animation: global-background-drift-light 20s linear infinite;
   }
 
   @keyframes global-background-drift-light {
     0% {
-      background: radial-gradient(circle at 20% 50%, transparent 0%, hsl(var(--primary-glow) / 0.15) 100%);
+      background: radial-gradient(circle at 20% 50%, transparent 0%, hsl(var(--primary-glow) / 0.25) 100%);
     }
     25% {
-      background: radial-gradient(circle at 80% 20%, transparent 0%, hsl(var(--primary-glow) / 0.15) 100%);
+      background: radial-gradient(circle at 80% 20%, transparent 0%, hsl(var(--primary-glow) / 0.25) 100%);
     }
     50% {
-      background: radial-gradient(circle at 40% 80%, transparent 0%, hsl(var(--primary-glow) / 0.15) 100%);
+      background: radial-gradient(circle at 40% 80%, transparent 0%, hsl(var(--primary-glow) / 0.25) 100%);
     }
     75% {
-      background: radial-gradient(circle at 10% 30%, transparent 0%, hsl(var(--primary-glow) / 0.15) 100%);
+      background: radial-gradient(circle at 10% 30%, transparent 0%, hsl(var(--primary-glow) / 0.25) 100%);
     }
     100% {
-      background: radial-gradient(circle at 20% 50%, transparent 0%, hsl(var(--primary-glow) / 0.15) 100%);
+      background: radial-gradient(circle at 20% 50%, transparent 0%, hsl(var(--primary-glow) / 0.25) 100%);
     }
   }
 
@@ -232,25 +232,25 @@ All colors MUST be HSL for perfect glass effects.
     height: 100%;
     pointer-events: none;
     z-index: -1;
-    background: radial-gradient(circle at 70% 30%, transparent 0%, hsl(var(--primary-glow) / 0.12) 100%);
+    background: radial-gradient(circle at 70% 30%, transparent 0%, hsl(var(--primary-glow) / 0.2) 100%);
     animation: light-background-drift-secondary 25s linear infinite;
   }
 
   @keyframes light-background-drift-secondary {
     0% {
-      background: radial-gradient(circle at 70% 30%, transparent 0%, hsl(var(--primary-glow) / 0.12) 100%);
+      background: radial-gradient(circle at 70% 30%, transparent 0%, hsl(var(--primary-glow) / 0.2) 100%);
     }
     25% {
-      background: radial-gradient(circle at 30% 70%, transparent 0%, hsl(var(--primary-glow) / 0.12) 100%);
+      background: radial-gradient(circle at 30% 70%, transparent 0%, hsl(var(--primary-glow) / 0.2) 100%);
     }
     50% {
-      background: radial-gradient(circle at 60% 60%, transparent 0%, hsl(var(--primary-glow) / 0.12) 100%);
+      background: radial-gradient(circle at 60% 60%, transparent 0%, hsl(var(--primary-glow) / 0.2) 100%);
     }
     75% {
-      background: radial-gradient(circle at 80% 40%, transparent 0%, hsl(var(--primary-glow) / 0.12) 100%);
+      background: radial-gradient(circle at 80% 40%, transparent 0%, hsl(var(--primary-glow) / 0.2) 100%);
     }
     100% {
-      background: radial-gradient(circle at 70% 30%, transparent 0%, hsl(var(--primary-glow) / 0.12) 100%);
+      background: radial-gradient(circle at 70% 30%, transparent 0%, hsl(var(--primary-glow) / 0.2) 100%);
     }
   }
 
