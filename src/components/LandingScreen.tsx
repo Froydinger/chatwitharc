@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Mail } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
 import { AuthModal } from "./AuthModal";
 import { PrivacyTermsModal } from "./PrivacyTermsModal";
 import { AppleLogo } from "./icons/AppleLogo";
+import { WindowsLogo } from "./icons/WindowsLogo";
 
 // Helper to detect Electron app
 const isElectron = () => {
@@ -13,6 +15,11 @@ const isElectron = () => {
 // Helper to detect mobile device
 const isMobileDevice = () => {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
+// Helper to detect Windows
+const isWindows = () => {
+  return /Win/i.test(navigator.platform) || /Windows/i.test(navigator.userAgent);
 };
 
 // Prompt Pill Component
@@ -170,7 +177,7 @@ const AppMockup = () => {
             <div className="flex-1 px-4 text-gray-400 font-light text-base">
               Ask...
             </div>
-            <div className="w-9 h-9 rounded-full bg-primary/20 text-primary flex items-center justify-center cursor-pointer hover:bg-primary/30 transition-all">
+            <div className="w-9 h-9 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center cursor-pointer hover:bg-blue-500/30 transition-all">
               <Brain className="w-5 h-5" />
             </div>
           </div>
@@ -189,8 +196,9 @@ export function LandingScreen() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isElectronApp, setIsElectronApp] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isWindowsDevice, setIsWindowsDevice] = useState(false);
 
-  const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi.dmg_.zip";
+  const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi-for-Mac.dmg_.zip";
   const iconUrl = "https://froydinger.com/wp-content/uploads/2025/11/icon.png";
   const logoUrl = "https://froydinger.com/wp-content/uploads/2025/11/download-1.png";
 
@@ -200,10 +208,38 @@ export function LandingScreen() {
   useEffect(() => {
     setIsElectronApp(isElectron());
     setIsMobile(isMobileDevice());
+    setIsWindowsDevice(isWindows());
   }, []);
 
+  const handleWindowsClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (rect.left + rect.width / 2) / window.innerWidth;
+    const y = (rect.top + rect.height / 2) / window.innerHeight;
+
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { x, y },
+      colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00'],
+      ticks: 200,
+      gravity: 1.5,
+      drift: 0,
+      startVelocity: 30,
+      shapes: ['square'],
+      scalar: 1.2,
+    });
+
+    // Show "I'm Sorry" text briefly
+    const button = e.currentTarget;
+    const originalText = button.innerHTML;
+    button.innerHTML = "I'm Sorry";
+    setTimeout(() => {
+      button.innerHTML = originalText;
+    }, 500);
+  };
+
   return (
-    <div className="relative min-h-screen w-full selection:bg-purple-500 selection:text-white">
+    <div className="dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white">
 
       {/* Animated Background Blobs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -213,7 +249,7 @@ export function LandingScreen() {
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-50 flex items-center justify-between px-6 py-6 md:px-12 max-w-7xl mx-auto">
+      <nav className="relative z-50 flex items-center justify-between px-6 py-4 md:px-12 max-w-7xl mx-auto">
         <div className="flex items-center space-x-3">
           <img src={iconUrl} alt="ArcAi Icon" className="w-10 h-10 rounded-xl shadow-lg border border-white/10" />
           <span className="text-xl font-bold tracking-tight text-white">ArcAi</span>
@@ -249,7 +285,7 @@ export function LandingScreen() {
       )}
 
       {/* Hero Section */}
-      <main className="relative z-10 pt-10 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center">
+      <main className="relative z-10 pt-4 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center">
         <div className="text-center max-w-3xl mx-auto mb-16 animate-fade-in">
           {/* Main Logo */}
           <div className="mb-8 flex justify-center">
@@ -300,6 +336,14 @@ export function LandingScreen() {
                       <AppleLogo className="w-5 h-5" />
                       <span>Send to Mac</span>
                     </a>
+                   ) : isWindowsDevice ? (
+                    <button
+                      onClick={handleWindowsClick}
+                      className="w-full sm:w-auto px-8 py-4 bg-white text-black rounded-full font-bold text-lg flex items-center justify-center space-x-2 cursor-default shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
+                    >
+                      <WindowsLogo className="w-5 h-5" />
+                      <span>ArcAi for Windows Coming Soon!</span>
+                    </button>
                   ) : (
                     <a
                       href={downloadUrl}
@@ -311,7 +355,7 @@ export function LandingScreen() {
                   )}
                 </div>
                 <span className="text-xs text-gray-500">
-                  {isMobile ? 'Free on web • Email Mac app link' : 'Free on web • Native Mac app available'}
+                  {isMobile ? 'Free on web • Email Mac app link' : isWindowsDevice ? 'Free on web • Windows app coming soon' : 'Free on web • Native Mac app available'}
                 </span>
               </>
             )}
@@ -351,9 +395,9 @@ export function LandingScreen() {
         <div className="glass-panel max-w-4xl mx-auto rounded-3xl p-12 md:p-20 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-700"></div>
 
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to shine?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">Always Free, Forever.</h2>
           <p className="text-gray-400 mb-10 max-w-lg mx-auto">
-            Experience AI conversations that adapt to you—whether you're coding, creating, or just thinking out loud.
+            Experience AI conversations that adapt to you—whether you're coding, creating, or need to think out loud. Always free, no subscriptions. Ever. We mean it.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -385,6 +429,14 @@ export function LandingScreen() {
                     <AppleLogo className="w-5 h-5" />
                     <span>Send to Mac</span>
                   </a>
+                ) : isWindowsDevice ? (
+                  <button
+                    onClick={handleWindowsClick}
+                    className="inline-flex items-center space-x-2 bg-white text-black px-8 py-4 rounded-full font-bold text-lg cursor-default"
+                  >
+                    <WindowsLogo className="w-5 h-5" />
+                    <span>Windows App Coming Soon!</span>
+                  </button>
                 ) : (
                   <a
                     href={downloadUrl}
@@ -396,6 +448,18 @@ export function LandingScreen() {
                 )}
               </>
             )}
+          </div>
+
+          {/* Support Link */}
+          <div className="mt-8">
+            <a
+              href="https://winthenight.productions/support"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-gray-400 hover:text-white transition-colors underline"
+            >
+              Support ArcAi
+            </a>
           </div>
         </div>
       </section>
