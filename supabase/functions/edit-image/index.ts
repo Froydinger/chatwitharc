@@ -42,9 +42,9 @@ serve(async (req) => {
       );
     }
 
-    if (imageArray.length > 2) {
+    if (imageArray.length > 14) {
       return new Response(
-        JSON.stringify({ error: 'Maximum 2 images allowed for combining' }),
+        JSON.stringify({ error: 'Maximum 14 images allowed for combining' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }

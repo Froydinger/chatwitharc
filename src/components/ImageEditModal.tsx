@@ -10,7 +10,7 @@ import { X, Sparkles } from "lucide-react";
 interface ImageEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  imageUrl: string;
+  imageUrl: string | string[];
   originalPrompt?: string;
 }
 
@@ -33,6 +33,10 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
   const [activeChips, setActiveChips] = useState<string[]>([]);
   const { addMessage } = useArcStore();
   const { toast } = useToast();
+  
+  // Normalize imageUrl to always be an array for easier handling
+  const imageUrls = Array.isArray(imageUrl) ? imageUrl : [imageUrl];
+  const isMultipleImages = imageUrls.length > 1;
 
   const charsLeft = useMemo(() => Math.max(0, MAX_CHARS - editInstruction.length), [editInstruction]);
 
@@ -64,14 +68,14 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
     try {
       // Compose a clean edit prompt for the transcript
       const editPrompt = originalPrompt
-        ? `Edit this image (originally: "${originalPrompt}"): ${textWithChips}`
-        : `Edit this image: ${textWithChips}`;
+        ? `Edit ${isMultipleImages ? 'these images' : 'this image'} (originally: "${originalPrompt}"): ${textWithChips}`
+        : `Edit ${isMultipleImages ? 'these images' : 'this image'}: ${textWithChips}`;
 
       // Signal ChatInput to do the actual edit
       const editEvent = new CustomEvent("processImageEdit", {
         detail: {
           content: editPrompt,
-          baseImageUrl: imageUrl,
+          baseImageUrl: imageUrls, // Pass all image URLs
           editInstruction: textWithChips,
         },
       });
@@ -121,11 +125,15 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
               <div className="p-2 rounded-full bg-primary/10">
                 <Sparkles className="h-5 w-5 text-primary" />
               </div>
-              <h2 className="text-xl font-semibold">Edit Image</h2>
+              <h2 className="text-xl font-semibold">
+                {isMultipleImages ? `Edit ${imageUrls.length} Images` : 'Edit Image'}
+              </h2>
             </div>
             
             <p className="text-sm text-muted-foreground">
-              Use quick suggestions or describe your changes
+              {isMultipleImages 
+                ? 'Describe changes to apply to all images or combine them'
+                : 'Use quick suggestions or describe your changes'}
             </p>
           </div>
 
@@ -139,10 +147,30 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
               </div>
             )}
 
-            {/* Image Preview */}
+            {/* Image Preview(s) */}
             <div className="rounded-xl overflow-hidden border border-border/50 bg-muted/20">
-              <div className="w-full aspect-video sm:aspect-[4/3]">
-                <SmoothImage src={imageUrl} alt="Image to edit" className="w-full h-full object-contain" />
+              <div className="w-full">
+                {isMultipleImages ? (
+                  <div className={`grid gap-3 p-3 ${imageUrls.length === 2 ? 'grid-cols-2' : imageUrls.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'}`}>
+                    {imageUrls.map((url, idx) => (
+                      <div key={idx} className="aspect-square rounded-lg overflow-hidden border border-border/30">
+                        <SmoothImage 
+                          src={url} 
+                          alt={`Image ${idx + 1} to edit`} 
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="aspect-video sm:aspect-[4/3]">
+                    <SmoothImage 
+                      src={imageUrls[0]} 
+                      alt="Image to edit" 
+                      className="w-full h-full object-contain" 
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -172,7 +200,9 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
 
             {/* Main Edit Textarea */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Describe your changes</label>
+              <label className="text-sm font-medium mb-2 block">
+                Describe your changes {isMultipleImages && '(applies to all images)'}
+              </label>
               <Textarea
                 value={editInstruction}
                 onChange={(e) => setEditInstruction(e.target.value.slice(0, MAX_CHARS))}

@@ -171,12 +171,13 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]); // Store object URLs
-  const [imageEditModes, setImageEditModes] = useState<boolean[]>([]); // Track which images are in edit mode
+  const [allImagesEditMode, setAllImagesEditMode] = useState(false); // Single toggle for all images
   const [isActive, setIsActive] = useState(false);
 
   // Tiles menu
   const [showMenu, setShowMenu] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const modelLabelTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Prompt library
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
@@ -278,28 +279,22 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
   };
   const handleImageUploadFiles = (files: File[]) => {
     const images = files.filter((f) => f.type.startsWith("image/"));
-    const max = 4;
+    const max = 14;
     setSelectedImages((prev) => {
       const merged = [...prev, ...images].slice(0, max);
       if (merged.length >= max && images.length > 0 && merged.length > prev.length) {
         toast({ title: "Max images", description: `Up to ${max} images supported`, variant: "default" });
       }
-      // Initialize edit modes for new images (default to analyze mode)
-      setImageEditModes(prevModes => [...prevModes, ...new Array(merged.length - prev.length).fill(false)]);
       return merged;
     });
   };
   const removeImage = (idx: number) => {
     setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
-    setImageEditModes((prev) => prev.filter((_, i) => i !== idx));
   };
   const clearSelected = () => {
     setSelectedImages([]);
-    setImageEditModes([]);
     setImagePreviewUrls([]);
-  };
-  const toggleImageEditMode = (idx: number) => {
-    setImageEditModes((prev) => prev.map((mode, i) => (i === idx ? !mode : mode)));
+    setAllImagesEditMode(false);
   };
 
   /* ---------- Handle edited message resend ---------- */
@@ -515,10 +510,10 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
           imageUrls = images.map((f) => URL.createObjectURL(f));
         }
 
-        // Check if ANY images are in edit mode
-        const hasEditModeImages = imageEditModes.some((mode) => mode);
+        // Check if images are in edit mode
+        const isEditMode = allImagesEditMode;
 
-        if (hasEditModeImages || (userMessage && isImageEditRequest(userMessage))) {
+        if (isEditMode || (userMessage && isImageEditRequest(userMessage))) {
           await addMessage({ content: userMessage, role: "user", type: "image", imageUrls });
           await addMessage({
             content: `Editing image: ${userMessage}`,
@@ -747,9 +742,11 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
             className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
             style={{ bottom: "calc(110px + env(safe-area-inset-bottom, 0px))" }}
           >
-            <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
+            <div
+              className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3"
+            >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/4)</span>
+                <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/14)</span>
                 <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">
                   Clear All
                 </button>
@@ -757,7 +754,6 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {selectedImages.map((f, i) => {
                   const url = imagePreviewUrls[i];
-                  const isEditMode = imageEditModes[i] || false;
                   return (
                     <div key={i} className="relative group shrink-0">
                       <img
@@ -765,19 +761,6 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                         alt={`sel-${i}`}
                         className="w-16 h-16 object-cover rounded-full border border-border/40"
                       />
-                      
-                      {/* Mode toggle badge */}
-                      <button
-                        type="button"
-                        onClick={() => toggleImageEditMode(i)}
-                        className={`absolute bottom-0 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all backdrop-blur-sm border ${
-                          isEditMode
-                            ? "bg-primary/90 border-primary text-primary-foreground"
-                            : "bg-muted/90 border-border/50 text-muted-foreground hover:bg-muted"
-                        }`}
-                      >
-                        {isEditMode ? "Edit" : "Analyze"}
-                      </button>
                       
                       <button
                         onClick={() => removeImage(i)}
@@ -790,6 +773,23 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                   );
                 })}
               </div>
+              
+              {/* Single mode toggle for all images */}
+              {selectedImages.length > 1 && (
+                <div className="mt-3 pt-2 border-t border-border/30">
+                  <button
+                    type="button"
+                    onClick={() => setAllImagesEditMode(!allImagesEditMode)}
+                    className={`w-full px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      allImagesEditMode
+                        ? "bg-primary/90 text-primary-foreground"
+                        : "bg-muted/90 text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {allImagesEditMode ? `✏️ Edit All ${selectedImages.length} Images` : `🔍 Analyze All ${selectedImages.length} Images`}
+                  </button>
+                </div>
+              )}
             </div>
           </div>,
           portalRoot,

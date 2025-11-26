@@ -36,7 +36,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [editContent, setEditContent] = useState(message.content);
     const [showActions, setShowActions] = useState(false);
     const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
-    const [editImageUrl, setEditImageUrl] = useState<string | null>(null);
+    const [editImageUrls, setEditImageUrls] = useState<string[] | null>(null);
     const isUser = message.role === "user";
 
     const handleCopy = async () => {
@@ -188,7 +188,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                           }`}
                         >
                           {message.imageUrls.map((url, index) => (
-                            <div key={index} className="flex flex-col items-center space-y-2">
+                            <div key={index} className="flex flex-col items-center">
                               <div 
                                 className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden cursor-pointer hover:border-white/20 transition-colors max-w-sm mx-auto"
                                 onClick={() => setSelectedImageUrl(url)}
@@ -200,24 +200,26 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                                   loadingClassName="w-full h-48"
                                 />
                               </div>
-                              
-                              {/* Edit button below image for AI-generated images */}
-                              {!isUser && (
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  className="bg-black/50 hover:bg-black/70 text-white border-white/20"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditImageUrl(url);
-                                  }}
-                                >
-                                  Edit Image
-                                </Button>
-                              )}
                             </div>
                           ))}
                         </div>
+                        
+                        {/* Single edit button for all images - only for AI-generated images */}
+                        {!isUser && (
+                          <div className="flex justify-center mt-4">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="bg-black/50 hover:bg-black/70 text-white border-white/20"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditImageUrls(message.imageUrls!);
+                              }}
+                            >
+                              {message.imageUrls.length > 1 ? 'Edit All Images' : 'Edit Image'}
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       message.imageUrl && (
@@ -242,7 +244,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                               className="bg-black/50 hover:bg-black/70 text-white border-white/20"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setEditImageUrl(message.imageUrl!);
+                                setEditImageUrls([message.imageUrl!]);
                               }}
                             >
                               Edit Image
@@ -510,9 +512,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
         {/* Image Edit Modal */}
         <ImageEditModal
-          isOpen={editImageUrl !== null}
-          onClose={() => setEditImageUrl(null)}
-          imageUrl={editImageUrl || ""}
+          isOpen={editImageUrls !== null}
+          onClose={() => setEditImageUrls(null)}
+          imageUrl={editImageUrls || []}
           originalPrompt={message.content}
         />
       </motion.div>
