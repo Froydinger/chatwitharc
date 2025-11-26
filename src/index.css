@@ -80,52 +80,6 @@ All colors MUST be HSL for perfect glass effects.
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
-  .light {
-    /* Light Glass Theme */
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    
-    /* Card & Surface Colors */
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --surface: 0 0% 98%;
-    --surface-foreground: 240 10% 3.9%;
-    
-    --glass: 0 0% 100%;
-    --glass-bg: 0 0% 100%;
-    --glass-border: 240 25% 85%;
-    --glass-glow: 240 100% 60%;
-    --glass-overlay: 0 0% 98%;
-    
-    /* Message Bubble Colors - Very light gray with blue hue for AI */
-    --ai-message-bg: 220 20% 97%;
-    --ai-message-border: 220 15% 92%;
-    
-    --primary: 200 100% 50%;
-    --primary-foreground: 0 0% 98%;
-    --primary-glow: 200 100% 60%;
-    
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    
-    /* Status Colors */
-    --destructive: 0 80% 58%;
-    --destructive-foreground: 0 0% 98%;
-    --success: 142 76% 42%;
-    --success-foreground: 0 0% 98%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 240 10% 3.9%;
-    
-    --border: 240 5.9% 90%;
-    --input: 0 0% 100%;
-    --ring: 240 100% 60%;
-  }
 }
 
 @layer base {
@@ -169,36 +123,6 @@ All colors MUST be HSL for perfect glass effects.
     animation: global-background-drift 20s linear infinite;
   }
 
-  .light body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: -1;
-    background: radial-gradient(circle at 20% 50%, transparent 0%, hsl(var(--primary-glow) / 0.25) 100%);
-    animation: global-background-drift-light 20s linear infinite;
-  }
-
-  @keyframes global-background-drift-light {
-    0% {
-      background: radial-gradient(circle at 20% 50%, transparent 0%, hsl(var(--primary-glow) / 0.5) 100%);
-    }
-    25% {
-      background: radial-gradient(circle at 80% 20%, transparent 0%, hsl(var(--primary-glow) / 0.5) 100%);
-    }
-    50% {
-      background: radial-gradient(circle at 40% 80%, transparent 0%, hsl(var(--primary-glow) / 0.5) 100%);
-    }
-    75% {
-      background: radial-gradient(circle at 10% 30%, transparent 0%, hsl(var(--primary-glow) / 0.5) 100%);
-    }
-    100% {
-      background: radial-gradient(circle at 20% 50%, transparent 0%, hsl(var(--primary-glow) / 0.5) 100%);
-    }
-  }
 
   /* Subtle twinkling starfield - dark mode only */
   body::after {
@@ -223,36 +147,6 @@ All colors MUST be HSL for perfect glass effects.
     animation: twinkle 8s ease-in-out infinite;
   }
 
-  .light body::after {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: -1;
-    background: radial-gradient(circle at 70% 30%, transparent 0%, hsl(var(--primary-glow) / 0.4) 100%);
-    animation: light-background-drift-secondary 25s linear infinite;
-  }
-
-  @keyframes light-background-drift-secondary {
-    0% {
-      background: radial-gradient(circle at 70% 30%, transparent 0%, hsl(var(--primary-glow) / 0.4) 100%);
-    }
-    25% {
-      background: radial-gradient(circle at 30% 70%, transparent 0%, hsl(var(--primary-glow) / 0.4) 100%);
-    }
-    50% {
-      background: radial-gradient(circle at 60% 60%, transparent 0%, hsl(var(--primary-glow) / 0.4) 100%);
-    }
-    75% {
-      background: radial-gradient(circle at 80% 40%, transparent 0%, hsl(var(--primary-glow) / 0.4) 100%);
-    }
-    100% {
-      background: radial-gradient(circle at 70% 30%, transparent 0%, hsl(var(--primary-glow) / 0.4) 100%);
-    }
-  }
 
   @keyframes twinkle {
     0%, 100% {
@@ -323,14 +217,6 @@ All colors MUST be HSL for perfect glass effects.
     box-sizing: border-box;
   }
 
-  .light .glass-dock {
-    background: hsl(var(--background) / 0.95);
-    box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.08),
-      0 2px 8px rgba(0, 0, 0, 0.04),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    border: 1px solid hsl(var(--border) / 0.6);
-  }
 
   .glass-dock[data-has-images="true"] {
     box-shadow: 
@@ -339,12 +225,6 @@ All colors MUST be HSL for perfect glass effects.
       inset 0 1px 0 hsl(var(--foreground) / 0.1);
   }
 
-  .light .glass-dock[data-has-images="true"] {
-    box-shadow: 
-      0 12px 40px rgba(0, 0, 0, 0.12),
-      0 4px 12px rgba(0, 0, 0, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 1);
-  }
 
   input::-moz-selection,
   textarea::-moz-selection {

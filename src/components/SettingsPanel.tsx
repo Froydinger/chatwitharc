@@ -88,7 +88,7 @@ export function SettingsPanel() {
   const { toast } = useToast();
   const showPopup = useFingerPopup((state) => state.showPopup);
   // Use Theme hook for theme and accent color
-  const { theme, toggleTheme, followSystem, toggleFollowSystem, accentColor, setAppAccentColor } = useTheme();
+  const { accentColor, setAppAccentColor } = useTheme();
   // Accent color is driven via Theme; no separate hook needed
 
   const handleDataDeleted = () => {
@@ -580,32 +580,6 @@ export function SettingsPanel() {
                 <p className="text-sm text-muted-foreground">Customize your visual experience</p>
               </div>
             </div>
-
-            {/* Follow System Theme */}
-            <div className="flex items-center justify-between p-4 glass rounded-lg">
-              <div className="flex-1">
-                <Label htmlFor="follow-system" className="text-foreground font-medium">
-                  Follow System Theme
-                </Label>
-                <p className="text-sm text-muted-foreground mt-1">Automatically match your device's theme</p>
-              </div>
-              <Switch id="follow-system" checked={followSystem} onCheckedChange={toggleFollowSystem} />
-            </div>
-
-            {/* Theme Toggle */}
-            {!followSystem && (
-              <div className="flex items-center justify-between p-4 glass rounded-lg">
-                <div className="flex-1">
-                  <Label htmlFor="theme-toggle" className="text-foreground font-medium">
-                    Theme
-                  </Label>
-                  <p className="text-sm text-muted-foreground mt-1">Choose between light and dark mode</p>
-                </div>
-                <Button id="theme-toggle" variant="outline" size="icon" onClick={toggleTheme} className="glass-strong">
-                  {theme === "dark" ? <Monitor className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
-                </Button>
-              </div>
-            )}
 
             {/* Accent Color Picker */}
             <div className="space-y-3">
