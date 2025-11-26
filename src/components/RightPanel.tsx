@@ -163,7 +163,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         animate={{ x: isOpen ? "0%" : "100%" }}
         transition={{ type: "spring", damping: 18, stiffness: 320, mass: 0.65 }}
         className={cn(
-          "fixed top-0 right-0 h-full z-50 backdrop-blur-2xl bg-background/50 border-l border-border/30",
+          "fixed top-0 md:top-[30px] right-0 h-full md:h-[calc(100vh-30px)] z-50 backdrop-blur-2xl bg-background/50 border-l border-border/30",
           "w-full sm:w-96 lg:w-80 xl:w-96",
           "flex flex-col overflow-hidden shadow-2xl"
         )}
