@@ -867,30 +867,37 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
               ? "google/gemini-2.5-flash"
               : "google/gemini-3-pro-preview";
             try {
-              // Set target model BEFORE updating profile so label shows new model
-              setTargetModel(newModel);
-              await updateProfile({ preferred_model: newModel });
-
-              // Show label for 5 seconds after model change
-              setShowModelLabel(true);
+              // Clear any existing timeout first
               if (modelLabelTimeoutRef.current) {
                 clearTimeout(modelLabelTimeoutRef.current);
               }
-              modelLabelTimeoutRef.current = setTimeout(() => {
-                setShowModelLabel(false);
-                setTargetModel(null); // Clear target after label hides
-              }, 5000);
 
-              // Get button center position
+              // Set BOTH states BEFORE async profile update to avoid race condition
+              setTargetModel(newModel);
+              setShowModelLabel(true);
+
+              // Get button center position for popup
               const rect = e.currentTarget.getBoundingClientRect();
+
+              // Update profile (async)
+              await updateProfile({ preferred_model: newModel });
+
+              // Show popup after successful update
               showPopup(
                 newModel === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast",
                 rect.left + rect.width / 2,
                 rect.top + rect.height / 2
               );
+
+              // Set timeout to clear label after 5 seconds
+              modelLabelTimeoutRef.current = setTimeout(() => {
+                setShowModelLabel(false);
+                setTargetModel(null);
+              }, 5000);
             } catch (e) {
               console.error("Failed to toggle model:", e);
-              setTargetModel(null); // Clear on error
+              setTargetModel(null);
+              setShowModelLabel(false);
             }
           }}
           className={[
