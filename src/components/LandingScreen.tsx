@@ -34,6 +34,19 @@ const FeatureCard = ({
 
 // App Mockup Component
 const AppMockup = () => {
+  const [activeCardPopup, setActiveCardPopup] = useState<string | null>(null);
+
+  const handleCardClick = (cardType: string) => {
+    setActiveCardPopup(cardType);
+    setTimeout(() => setActiveCardPopup(null), 5000);
+  };
+
+  const cardMessages = {
+    prompts: "Generate fresh prompts to get the convo going",
+    image: "Generate images with Gemini 3 Pro",
+    attach: "Attach images to analyze and dig deeper or edit"
+  };
+
   return (
     <div className="relative w-full max-w-4xl mx-auto animate-fade-in delay-200">
       <div className="glass-panel rounded-xl overflow-hidden border border-white/10 relative z-10">
@@ -76,21 +89,39 @@ const AppMockup = () => {
           </div>
 
           {/* Center Cards */}
-          <div className="flex gap-3 md:gap-6 mb-8 md:mb-12 scale-90 md:scale-100">
-            <div className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-purple-500/30 hover:border-purple-500/60 transition-colors cursor-pointer group">
+          <div className="flex gap-3 md:gap-6 mb-8 md:mb-12 scale-90 md:scale-100 relative">
+            {/* Popup Message */}
+            {activeCardPopup && (
+              <div className="absolute -top-16 left-1/2 -translate-x-1/2 z-20 animate-fade-in">
+                <div className="bg-primary/20 backdrop-blur-xl border-2 border-primary/60 text-white px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-[0_0_24px_hsl(var(--primary)/0.4)]">
+                  {cardMessages[activeCardPopup as keyof typeof cardMessages]}
+                </div>
+              </div>
+            )}
+
+            <div
+              onClick={() => handleCardClick('prompts')}
+              className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-purple-500/30 hover:border-purple-500/60 transition-all cursor-pointer group hover:scale-105"
+            >
               <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:text-purple-300">
                 <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
               </div>
               <span className="text-[10px] md:text-xs font-medium text-gray-300">Prompts</span>
             </div>
-            <div className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-green-500/30 hover:border-green-500/60 transition-colors cursor-pointer group bg-white/5 relative">
+            <div
+              onClick={() => handleCardClick('image')}
+              className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-green-500/30 hover:border-green-500/60 transition-all cursor-pointer group bg-white/5 relative hover:scale-105"
+            >
               <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 group-hover:text-green-300">
                 <Image className="w-4 h-4 md:w-5 md:h-5" />
               </div>
               <span className="text-[10px] md:text-xs font-medium text-gray-300">Image</span>
               <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse"></div>
             </div>
-            <div className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-blue-500/30 hover:border-blue-500/60 transition-colors cursor-pointer group">
+            <div
+              onClick={() => handleCardClick('attach')}
+              className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-blue-500/30 hover:border-blue-500/60 transition-all cursor-pointer group hover:scale-105"
+            >
               <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:text-blue-300">
                 <Paperclip className="w-4 h-4 md:w-5 md:h-5" />
               </div>
