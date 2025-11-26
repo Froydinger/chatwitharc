@@ -99,17 +99,14 @@ const AppMockup = () => {
           </div>
 
           {/* Bottom Input Bar */}
-          <div className="w-full max-w-2xl glass-input rounded-full h-14 flex items-center px-4 relative group hover:border-white/20 transition-colors">
-            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 cursor-pointer hover:text-white">
+          <div className="w-full max-w-2xl rounded-full h-14 flex items-center px-5 relative group transition-all bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/20 hover:bg-white/8">
+            <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-gray-400 cursor-pointer hover:text-white hover:bg-white/15 transition-all">
               <Sparkles className="w-5 h-5" />
             </div>
-            <input
-              type="text"
-              placeholder="Ask..."
-              className="bg-transparent border-none outline-none flex-1 px-4 text-white placeholder-gray-500 font-light"
-              readOnly
-            />
-            <div className="w-8 h-8 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center cursor-pointer hover:bg-blue-600 hover:text-white transition-all">
+            <div className="flex-1 px-4 text-gray-400 font-light text-base">
+              Ask...
+            </div>
+            <div className="w-9 h-9 rounded-full bg-primary/20 text-primary flex items-center justify-center cursor-pointer hover:bg-primary/30 transition-all">
               <Brain className="w-5 h-5" />
             </div>
           </div>
@@ -242,7 +239,7 @@ export function LandingScreen() {
 
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to shine?</h2>
           <p className="text-gray-400 mb-10 max-w-lg mx-auto">
-            Join thousands of creators, developers, and thinkers who've found their AI companion.
+            Experience AI conversations that adapt to you—whether you're coding, creating, or just thinking out loud.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
