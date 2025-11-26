@@ -1,8 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu } from "lucide-react";
 import { AuthModal } from "./AuthModal";
 import { PrivacyTermsModal } from "./PrivacyTermsModal";
 import { AppleLogo } from "./icons/AppleLogo";
+
+// Helper to detect Electron app
+const isElectron = () => {
+  return /electron/i.test(navigator.userAgent);
+};
 
 // Prompt Pill Component
 const PromptPill = ({ icon, text, delay }: { icon: string; text: string; delay: string }) => (
@@ -93,8 +98,8 @@ const AppMockup = () => {
           <div className="flex gap-3 md:gap-6 mb-8 md:mb-12 scale-90 md:scale-100 relative">
             {/* Popup Message */}
             {activeCardPopup && (
-              <div className="absolute -top-16 left-1/2 -translate-x-1/2 z-20 animate-fade-in flex justify-center w-full">
-                <div className="bg-primary/20 backdrop-blur-xl border-2 border-primary/60 text-white px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-[0_0_24px_hsl(var(--primary)/0.4)]">
+              <div className="absolute -top-16 left-0 right-0 z-20 animate-fade-in flex justify-center px-4">
+                <div className="bg-primary/20 backdrop-blur-xl border-2 border-primary/60 text-white px-4 py-2 rounded-full text-sm md:text-base font-medium whitespace-nowrap shadow-[0_0_24px_hsl(var(--primary)/0.4)] max-w-full overflow-hidden text-ellipsis">
                   {cardMessages[activeCardPopup as keyof typeof cardMessages]}
                 </div>
               </div>
@@ -155,9 +160,14 @@ const AppMockup = () => {
 export function LandingScreen() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isElectronApp, setIsElectronApp] = useState(false);
 
   const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi.dmg_.zip";
   const iconUrl = "https://froydinger.com/wp-content/uploads/2025/11/icon.png";
+
+  useEffect(() => {
+    setIsElectronApp(isElectron());
+  }, []);
 
   return (
     <div className="relative min-h-screen w-full selection:bg-purple-500 selection:text-white">
@@ -216,23 +226,40 @@ export function LandingScreen() {
           </p>
 
           <div className="flex flex-col items-center justify-center space-y-4">
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 w-full">
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(139,92,246,0.3)]"
-              >
-                <Sparkles className="w-6 h-6" />
-                <span>Start Chatting on Web</span>
-              </button>
-              <a
-                href={downloadUrl}
-                className="shine-button w-full sm:w-auto px-8 py-4 bg-white text-black rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
-              >
-                <AppleLogo className="w-5 h-5" />
-                <span>Download for Mac</span>
-              </a>
-            </div>
-            <span className="text-xs text-gray-500">Free on web • Native Mac app available</span>
+            {isElectronApp ? (
+              // Electron app: Only show sign in button
+              <>
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(139,92,246,0.3)]"
+                >
+                  <Sparkles className="w-6 h-6" />
+                  <span>Sign In to Get Started</span>
+                </button>
+                <span className="text-xs text-gray-500">Sign in to start chatting with ArcAi</span>
+              </>
+            ) : (
+              // Web: Show both web and download options
+              <>
+                <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 w-full">
+                  <button
+                    onClick={() => setShowAuthModal(true)}
+                    className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(139,92,246,0.3)]"
+                  >
+                    <Sparkles className="w-6 h-6" />
+                    <span>Start Chatting on Web</span>
+                  </button>
+                  <a
+                    href={downloadUrl}
+                    className="shine-button w-full sm:w-auto px-8 py-4 bg-white text-black rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
+                  >
+                    <AppleLogo className="w-5 h-5" />
+                    <span>Download for Mac</span>
+                  </a>
+                </div>
+                <span className="text-xs text-gray-500">Free on web • Native Mac app available</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -275,20 +302,34 @@ export function LandingScreen() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
-            >
-              <span>Start on Web</span>
-              <ArrowRight className="w-5 h-5" />
-            </button>
-            <a
-              href={downloadUrl}
-              className="inline-flex items-center space-x-2 bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg transition-all duration-300"
-            >
-              <AppleLogo className="w-5 h-5" />
-              <span>Get Mac App</span>
-            </a>
+            {isElectronApp ? (
+              // Electron app: Only sign in button
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
+              >
+                <span>Sign In to Continue</span>
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            ) : (
+              // Web: Both buttons
+              <>
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
+                >
+                  <span>Start on Web</span>
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+                <a
+                  href={downloadUrl}
+                  className="inline-flex items-center space-x-2 bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg transition-all duration-300"
+                >
+                  <AppleLogo className="w-5 h-5" />
+                  <span>Get Mac App</span>
+                </a>
+              </>
+            )}
           </div>
         </div>
       </section>
