@@ -143,13 +143,21 @@ export function useTheme() {
     }
   };
 
-  // Apply theme class on theme change and re-apply accent color
+  // Apply theme class on theme change with forced synchronous updates
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(theme);
-    // Force re-apply accent color when theme changes
-    setCssVar("--primary", accentColor);
+    
+    // Force synchronous DOM update
+    requestAnimationFrame(() => {
+      root.classList.remove("light", "dark");
+      root.classList.add(theme);
+      
+      // Force re-apply accent color immediately after theme class change
+      setCssVar("--primary", accentColor);
+      
+      // Force repaint
+      void root.offsetHeight;
+    });
   }, [theme, accentColor]);
 
   // Apply accent color on every change (critical for consistency)
@@ -232,10 +240,30 @@ export function useTheme() {
   // Public actions
   const toggleTheme = async () => {
     const newTheme = theme === "dark" ? "light" : "dark";
-    // When user toggles manually, stop following system
+    
+    // Stop following system when toggling manually
     setFollowSystemState(false);
-    setTheme(newTheme);
+    
+    // Apply theme immediately and synchronously
+    const root = document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(newTheme);
+    
+    // Re-apply accent color with new theme
+    setCssVar("--primary", accentColor);
+    
+    // Update state
+    setThemeState(newTheme);
+    
+    // Persist to localStorage
+    try {
+      localStorage.setItem("theme", newTheme);
+      localStorage.setItem("followSystemTheme", "false");
+    } catch (e) {
+      console.error("Failed to save theme to localStorage:", e);
+    }
 
+    // Persist to DB (async, non-blocking)
     if (user) {
       try {
         await supabase.from("profiles").update({ theme_preference: newTheme }).eq("user_id", user.id);
