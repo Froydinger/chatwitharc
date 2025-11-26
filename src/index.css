@@ -606,4 +606,9 @@ body::before {
     background: transparent;
     pointer-events: none;
   }
+
+  /* iPad PWA: Always apply 30px top padding regardless of viewport size */
+  body.standalone-app.is-ipad {
+    padding-top: 30px !important;
+  }
 }
