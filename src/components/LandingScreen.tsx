@@ -189,7 +189,7 @@ export function LandingScreen() {
           <a href="#features" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Features</a>
           <button
             onClick={() => setShowAuthModal(true)}
-            className="px-5 py-2.5 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition-opacity"
+            className="px-5 py-2.5 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity"
           >
             Sign In / Sign Up
           </button>
@@ -208,7 +208,7 @@ export function LandingScreen() {
           <a href="#features" className="block text-gray-400 hover:text-white transition-colors">Features</a>
           <button
             onClick={() => { setShowAuthModal(true); setShowMobileMenu(false); }}
-            className="w-full px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white text-center"
+            className="w-full px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-center"
           >
             Sign In / Sign Up
           </button>
@@ -231,7 +231,7 @@ export function LandingScreen() {
               <>
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(139,92,246,0.3)]"
+                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]"
                 >
                   <Sparkles className="w-6 h-6" />
                   <span>Sign In to Get Started</span>
@@ -244,7 +244,7 @@ export function LandingScreen() {
                 <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 w-full">
                   <button
                     onClick={() => setShowAuthModal(true)}
-                    className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(139,92,246,0.3)]"
+                    className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]"
                   >
                     <Sparkles className="w-6 h-6" />
                     <span>Start Chatting on Web</span>
@@ -306,7 +306,7 @@ export function LandingScreen() {
               // Electron app: Only sign in button
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
+                className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300"
               >
                 <span>Sign In to Continue</span>
                 <ArrowRight className="w-5 h-5" />
@@ -316,7 +316,7 @@ export function LandingScreen() {
               <>
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
+                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300"
                 >
                   <span>Start on Web</span>
                   <ArrowRight className="w-5 h-5" />
