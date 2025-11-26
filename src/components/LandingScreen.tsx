@@ -1,215 +1,271 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { LogIn, Zap, Sparkles, Settings, Code, Brain } from "lucide-react";
-import { LandingChatInput } from "./LandingChatInput";
+import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Apple } from "lucide-react";
 import { AuthModal } from "./AuthModal";
 import { PrivacyTermsModal } from "./PrivacyTermsModal";
-import { GlassButton } from "@/components/ui/glass-button";
 
-export function LandingScreen() {
-  const [showAuthModal, setShowAuthModal] = useState(false);
+// Prompt Pill Component
+const PromptPill = ({ icon, text, delay }: { icon: string; text: string; delay: string }) => (
+  <div className={`flex items-center space-x-2 px-4 py-2 rounded-full glass-card cursor-pointer hover:bg-white/10 text-sm text-gray-300 animate-fade-in ${delay}`}>
+    <span className="opacity-70">{icon}</span>
+    <span>{text}</span>
+  </div>
+);
 
-  const handleSendAttempt = (message: string) => {
-    // Store the message to be sent after authentication
-    sessionStorage.setItem('pending-prompt', message);
-    setShowAuthModal(true);
-  };
+// Feature Card Component
+const FeatureCard = ({
+  icon: Icon,
+  title,
+  description,
+  color
+}: {
+  icon: React.ComponentType<any>;
+  title: string;
+  description: string;
+  color: string;
+}) => (
+  <div className="glass-card p-6 rounded-2xl flex flex-col items-start space-y-3 h-full group">
+    <div className={`p-3 rounded-xl bg-gradient-to-br ${color} bg-opacity-10 group-hover:scale-110 transition-transform duration-300`}>
+      <Icon className="w-5 h-5" />
+    </div>
+    <h3 className="text-xl font-semibold text-white">{title}</h3>
+    <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
+  </div>
+);
 
-  const features = [
-    {
-      icon: Brain,
-      title: "Ask Anything",
-      description: "Lightning-fast responses with memory that saves conversations and personal context",
-      color: "blue",
-      bgColor: "bg-blue-500/10",
-      textColor: "text-blue-500",
-      borderColor: "border-blue-500/40",
-      hoverBg: "group-hover:bg-blue-500/5"
-    },
-    {
-      icon: Sparkles,
-      title: "Reflect Deeply",
-      description: "Recalls your preferences and adapts to your workflow with intelligent personal context",
-      color: "green",
-      bgColor: "bg-green-500/10",
-      textColor: "text-green-500",
-      borderColor: "border-green-500/40",
-      hoverBg: "group-hover:bg-green-500/5"
-    },
-    {
-      icon: Code,
-      title: "Create Brilliantly",
-      description: "Expert coding, custom accent theming, and powerful tools in a slick GlassArc UI",
-      color: "red",
-      bgColor: "bg-red-500/10",
-      textColor: "text-red-500",
-      borderColor: "border-red-500/40",
-      hoverBg: "group-hover:bg-red-500/5"
-    },
-    {
-      icon: Settings,
-      title: "Customize Everything",
-      description: "Switch between Gemini 2.5 Pro, GPT-5, and more with your personalized style",
-      color: "orange",
-      bgColor: "bg-orange-500/10",
-      textColor: "text-orange-500",
-      borderColor: "border-orange-500/40",
-      hoverBg: "group-hover:bg-orange-500/5"
-    }
-  ];
-
+// App Mockup Component
+const AppMockup = () => {
   return (
-    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden pt-12">
+    <div className="relative w-full max-w-4xl mx-auto animate-fade-in delay-200">
+      <div className="glass-panel rounded-xl overflow-hidden border border-white/10 relative z-10">
+        {/* Title Bar */}
+        <div className="h-10 bg-black/20 flex items-center px-4 space-x-2 border-b border-white/5">
+          <div className="flex space-x-1.5">
+            <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
+            <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+            <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+          </div>
+          <div className="flex-1 text-center text-xs text-gray-500 font-medium">ArcAi</div>
+          <div className="w-10"></div>
+        </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center px-6 relative z-10">
-        {/* Top Section with Logo and Title */}
-        <div className="flex-1 flex flex-col items-center justify-end pb-8">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1], delay: 0.15 }}
-          className="text-center relative"
-        >
-            {/* Logo positioned to slightly clip behind text */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{
-                opacity: 1,
-                scale: [1, 1.05, 1]
-              }}
-              transition={{
-                opacity: { duration: 0.3, delay: 0.2 },
-                scale: { duration: 10, repeat: Infinity, ease: "easeInOut" }
-              }}
-              className="flex justify-center mb-[-5px] relative z-0"
-            >
-              <div className="logo-accent-glow">
-                <img
-                  src="/arc-logo-ui.png"
-                  alt="ArcAI"
-                  className="h-16 w-16 sm:h-20 sm:w-20"
-                />
+        {/* Main Content Area */}
+        <div className="p-8 md:p-16 flex flex-col items-center justify-center min-h-[400px] md:min-h-[500px] relative">
+
+          {/* Hero Text inside App */}
+          <h2 className="text-3xl md:text-5xl font-bold mb-8 text-center text-white tracking-tight">
+            Arc and shine.
+          </h2>
+
+          {/* Floating Prompts */}
+          <div className="flex flex-wrap justify-center gap-3 mb-12 max-w-2xl">
+            <PromptPill
+              icon="🎨"
+              text="Creative writing prompt for me?"
+              delay="delay-100"
+            />
+            <PromptPill
+              icon="💻"
+              text="Help me code a video editor tool"
+              delay="delay-200"
+            />
+            <PromptPill
+              icon="ℹ️"
+              text="Tips for balancing work and family"
+              delay="delay-300"
+            />
+          </div>
+
+          {/* Center Cards */}
+          <div className="flex gap-4 md:gap-6 mb-12">
+            <div className="w-24 h-32 md:w-32 md:h-40 rounded-2xl glass-card flex flex-col items-center justify-center space-y-2 border border-purple-500/30 hover:border-purple-500/60 transition-colors cursor-pointer group">
+              <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:text-purple-300">
+                <Sparkles className="w-5 h-5" />
               </div>
-            </motion.div>
-
-            <div className="relative z-10">
-              <motion.h1
-                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-3"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3, delay: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
-              >
-                <span className="font-thin">Arc</span><span className="font-semibold">AI</span>
-              </motion.h1>
-              <motion.p
-                className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-              >
-                Ask, Reflect, Create
-              </motion.p>
-              <motion.p
-                className="text-sm text-muted-foreground/70 max-w-xl mx-auto"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3, delay: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-              >
-                A relaxing, organized space for both new and experienced AI users
-              </motion.p>
+              <span className="text-xs font-medium text-gray-300">Prompts</span>
             </div>
-          </motion.div>
-        </div>
-
-        {/* Center Section - Hero Chat Input */}
-        <div className="flex-shrink-0 w-full lg:px-32">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-          >
-            <LandingChatInput onSendAttempt={handleSendAttempt} />
-          </motion.div>
-        </div>
-
-        {/* Bottom Section - Features Grid */}
-        <div className="flex-1 flex flex-col items-center justify-start pt-12 pb-8 w-full max-w-5xl">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, delay: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-            className="w-full"
-          >
-            {/* Features Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-              {features.map((feature, index) => {
-                const Icon = feature.icon;
-                return (
-                  <motion.div
-                    key={feature.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.6 + index * 0.1 }}
-                    className={`group relative p-5 rounded-2xl backdrop-blur-sm bg-background/40 border border-border/50 hover:${feature.borderColor} hover:bg-background/60 transition-all duration-300`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className={`shrink-0 p-2.5 rounded-xl ${feature.bgColor} ${feature.textColor}`}>
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-foreground mb-1">{feature.title}</h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
-                      </div>
-                    </div>
-
-                    {/* Subtle hover effect */}
-                    <motion.div
-                      className={`absolute inset-0 rounded-2xl ${feature.hoverBg} opacity-0 group-hover:opacity-100 transition-opacity`}
-                      initial={false}
-                    />
-                  </motion.div>
-                );
-              })}
+            <div className="w-24 h-32 md:w-32 md:h-40 rounded-2xl glass-card flex flex-col items-center justify-center space-y-2 border border-green-500/30 hover:border-green-500/60 transition-colors cursor-pointer group bg-white/5 relative">
+              <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 group-hover:text-green-300">
+                <Image className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-medium text-gray-300">Image</span>
+              <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             </div>
+            <div className="w-24 h-32 md:w-32 md:h-40 rounded-2xl glass-card flex flex-col items-center justify-center space-y-2 border border-blue-500/30 hover:border-blue-500/60 transition-colors cursor-pointer group">
+              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:text-blue-300">
+                <Paperclip className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-medium text-gray-300">Attach</span>
+            </div>
+          </div>
 
-            {/* Login/Sign Up Button */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3, delay: 1.0 }}
-              className="flex justify-center"
-            >
-              <GlassButton
-                variant="ghost"
-                onClick={() => setShowAuthModal(true)}
-                className="border border-white/20 px-6 py-3"
-              >
-                <LogIn className="h-4 w-4 mr-2" />
-                Sign In / Sign Up
-              </GlassButton>
-            </motion.div>
-          </motion.div>
+          {/* Bottom Input Bar */}
+          <div className="w-full max-w-2xl glass-input rounded-full h-14 flex items-center px-4 relative group hover:border-white/20 transition-colors">
+            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 cursor-pointer hover:text-white">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <input
+              type="text"
+              placeholder="Ask..."
+              className="bg-transparent border-none outline-none flex-1 px-4 text-white placeholder-gray-500 font-light"
+              readOnly
+            />
+            <div className="w-8 h-8 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center cursor-pointer hover:bg-blue-600 hover:text-white transition-all">
+              <Brain className="w-5 h-5" />
+            </div>
+          </div>
+
         </div>
       </div>
 
+      {/* Background Glow behind Mockup */}
+      <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-green-500/20 blur-3xl rounded-[3rem] -z-10 animate-pulse"></div>
+    </div>
+  );
+};
+
+export function LandingScreen() {
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi.dmg_.zip";
+  const iconUrl = "https://froydinger.com/wp-content/uploads/2025/11/icon.png";
+
+  return (
+    <div className="relative min-h-screen w-full selection:bg-purple-500 selection:text-white">
+
+      {/* Animated Background Blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="liquid-blob w-[500px] h-[500px] bg-purple-900 top-[-100px] left-[20%] rounded-full opacity-40"></div>
+        <div className="liquid-blob liquid-blob-2 w-[600px] h-[600px] bg-blue-900 bottom-[-100px] right-[10%] rounded-full opacity-30"></div>
+        <div className="liquid-blob w-[400px] h-[400px] bg-emerald-900 top-[40%] left-[-100px] rounded-full opacity-20"></div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="relative z-50 flex items-center justify-between px-6 py-6 md:px-12 max-w-7xl mx-auto">
+        <div className="flex items-center space-x-3">
+          <img src={iconUrl} alt="ArcAi Icon" className="w-10 h-10 rounded-xl shadow-lg border border-white/10" />
+          <span className="text-xl font-bold tracking-tight text-white">ArcAi</span>
+        </div>
+        <div className="hidden md:flex items-center space-x-8 text-sm font-medium text-gray-400">
+          <a href="#features" className="hover:text-white transition-colors">Features</a>
+          <button onClick={() => setShowAuthModal(true)} className="hover:text-white transition-colors">Sign In</button>
+        </div>
+        <a
+          href={downloadUrl}
+          className="hidden md:flex items-center space-x-2 bg-white text-black px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-gray-200 transition-colors shine-button"
+        >
+          <Download className="w-4 h-4" />
+          <span>Download</span>
+        </a>
+        <button
+          className="md:hidden text-white"
+          onClick={() => setShowMobileMenu(!showMobileMenu)}
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+      </nav>
+
+      {/* Mobile Menu */}
+      {showMobileMenu && (
+        <div className="md:hidden fixed top-20 right-6 z-50 glass-panel rounded-2xl p-4 space-y-3 min-w-[200px]">
+          <a href="#features" className="block text-gray-400 hover:text-white transition-colors">Features</a>
+          <button onClick={() => { setShowAuthModal(true); setShowMobileMenu(false); }} className="block text-gray-400 hover:text-white transition-colors w-full text-left">Sign In</button>
+          <a
+            href={downloadUrl}
+            className="flex items-center space-x-2 bg-white text-black px-4 py-2 rounded-full text-sm font-semibold hover:bg-gray-200 transition-colors justify-center"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download</span>
+          </a>
+        </div>
+      )}
+
+      {/* Hero Section */}
+      <main className="relative z-10 pt-10 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center">
+        <div className="text-center max-w-3xl mx-auto mb-16 animate-fade-in">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight leading-tight">
+            Your mind, <span className="gradient-text">amplified.</span>
+          </h1>
+          <p className="text-lg md:text-xl text-gray-400 mb-8 max-w-xl mx-auto leading-relaxed">
+            The intelligent companion for your Mac. Experience the fluid, intuitive way to create, code, and think.
+          </p>
+
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 w-full">
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(139,92,246,0.3)]"
+              >
+                <Sparkles className="w-6 h-6" />
+                <span>Chat with Arc for Web</span>
+              </button>
+              <a
+                href={downloadUrl}
+                className="shine-button w-full sm:w-auto px-8 py-4 bg-white text-black rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
+              >
+                <Apple className="w-6 h-6" />
+                <span>Download for macOS</span>
+              </a>
+            </div>
+            <span className="text-xs text-gray-500">Free for web • v1.0.2 for macOS (Apple Silicon & Intel)</span>
+          </div>
+        </div>
+
+        {/* App Showcase */}
+        <AppMockup />
+      </main>
+
+      {/* Features Grid */}
+      <section className="relative z-10 py-24 px-6 max-w-7xl mx-auto" id="features">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <FeatureCard
+            icon={Zap}
+            title="Lightning Fast"
+            description="Built natively for macOS to deliver instant responses. No lag, just pure thought-to-text fluidity."
+            color="from-yellow-400 to-orange-500"
+          />
+          <FeatureCard
+            icon={Brain}
+            title="Deep Understanding"
+            description="ArcAi understands context like no other. From complex codebases to creative writing nuances."
+            color="from-purple-400 to-pink-500"
+          />
+          <FeatureCard
+            icon={Sparkles}
+            title="Multimodal Magic"
+            description="Generate images, analyze files, and brainstorm ideas in one unified, liquid interface."
+            color="from-blue-400 to-cyan-500"
+          />
+        </div>
+      </section>
+
+      {/* Bottom CTA */}
+      <section className="relative z-10 py-20 px-6 text-center">
+        <div className="glass-panel max-w-4xl mx-auto rounded-3xl p-12 md:p-20 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-green-500"></div>
+
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to shine?</h2>
+          <p className="text-gray-400 mb-10 max-w-lg mx-auto">
+            Join thousands of creators who have upgraded their workflow with ArcAi.
+          </p>
+
+          <button
+            onClick={() => setShowAuthModal(true)}
+            className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
+          >
+            <span>Get Started Free</span>
+            <ArrowRight className="w-5 h-5" />
+          </button>
+        </div>
+      </section>
+
       {/* Footer */}
-      <motion.footer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.8 }}
-        className="py-4 px-6 text-center relative z-10"
-      >
-        <p className="text-xs text-muted-foreground/60 mb-1">
-          Chat Powered by Gemini 2.5 Flash • Image Generation by Gemini 2.5 Flash Image
-        </p>
-        <p className="text-xs text-muted-foreground/50 mb-2">
-          Switch to GPT-5 or other models anytime in settings
-        </p>
-        <div className="mt-2">
+      <footer className="relative z-10 py-12 px-6 border-t border-white/5 text-center text-gray-600 text-sm">
+        <p>&copy; 2025 ArcAi Inc. All rights reserved.</p>
+        <div className="mt-4 space-x-6">
           <PrivacyTermsModal />
         </div>
-      </motion.footer>
+      </footer>
 
       {/* Auth Modal */}
       <AuthModal
