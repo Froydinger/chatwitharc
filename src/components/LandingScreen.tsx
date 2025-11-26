@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu } from "lucide-react";
+import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Mail } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthModal } from "./AuthModal";
 import { PrivacyTermsModal } from "./PrivacyTermsModal";
@@ -8,6 +8,11 @@ import { AppleLogo } from "./icons/AppleLogo";
 // Helper to detect Electron app
 const isElectron = () => {
   return /electron/i.test(navigator.userAgent);
+};
+
+// Helper to detect mobile device
+const isMobileDevice = () => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 };
 
 // Prompt Pill Component
@@ -183,12 +188,17 @@ export function LandingScreen() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isElectronApp, setIsElectronApp] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi.dmg_.zip";
   const iconUrl = "https://froydinger.com/wp-content/uploads/2025/11/icon.png";
 
+  // Create mailto link for mobile users
+  const mailtoLink = `mailto:?subject=ArcAi for Mac&body=Download ArcAi for Mac:%0D%0A%0D%0A${encodeURIComponent(downloadUrl)}`;
+
   useEffect(() => {
     setIsElectronApp(isElectron());
+    setIsMobile(isMobileDevice());
   }, []);
 
   return (
@@ -271,15 +281,27 @@ export function LandingScreen() {
                     <Sparkles className="w-6 h-6" />
                     <span>Start Chatting on Web</span>
                   </button>
-                  <a
-                    href={downloadUrl}
-                    className="shine-button w-full sm:w-auto px-8 py-4 bg-white text-black rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
-                  >
-                    <AppleLogo className="w-5 h-5" />
-                    <span>Download for Mac</span>
-                  </a>
+                  {isMobile ? (
+                    <a
+                      href={mailtoLink}
+                      className="shine-button w-full sm:w-auto px-8 py-4 bg-white text-black rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
+                    >
+                      <Mail className="w-5 h-5" />
+                      <span>Send to Mac</span>
+                    </a>
+                  ) : (
+                    <a
+                      href={downloadUrl}
+                      className="shine-button w-full sm:w-auto px-8 py-4 bg-white text-black rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
+                    >
+                      <AppleLogo className="w-5 h-5" />
+                      <span>Download for Mac</span>
+                    </a>
+                  )}
                 </div>
-                <span className="text-xs text-gray-500">Free on web • Native Mac app available</span>
+                <span className="text-xs text-gray-500">
+                  {isMobile ? 'Free on web • Email Mac app link' : 'Free on web • Native Mac app available'}
+                </span>
               </>
             )}
           </div>
@@ -343,13 +365,23 @@ export function LandingScreen() {
                   <span>Start on Web</span>
                   <ArrowRight className="w-5 h-5" />
                 </button>
-                <a
-                  href={downloadUrl}
-                  className="inline-flex items-center space-x-2 bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg transition-all duration-300"
-                >
-                  <AppleLogo className="w-5 h-5" />
-                  <span>Get Mac App</span>
-                </a>
+                {isMobile ? (
+                  <a
+                    href={mailtoLink}
+                    className="inline-flex items-center space-x-2 bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg transition-all duration-300"
+                  >
+                    <Mail className="w-5 h-5" />
+                    <span>Send to Mac</span>
+                  </a>
+                ) : (
+                  <a
+                    href={downloadUrl}
+                    className="inline-flex items-center space-x-2 bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg transition-all duration-300"
+                  >
+                    <AppleLogo className="w-5 h-5" />
+                    <span>Get Mac App</span>
+                  </a>
+                )}
               </>
             )}
           </div>
