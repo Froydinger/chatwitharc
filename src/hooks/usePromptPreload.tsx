@@ -32,19 +32,29 @@ export function getCachedPrompts(category: string): QuickPrompt[] | null {
 async function generateAIPrompts(category: 'chat' | 'create' | 'write' | 'code'): Promise<QuickPrompt[]> {
   try {
     const { data, error } = await supabase.functions.invoke('generate-category-prompts', {
-      body: { category }
+      body: {
+        category,
+        timestamp: Date.now()
+      }
     });
 
     if (error) {
       console.error(`Failed to generate ${category} prompts:`, error);
+      // Don't cache fallback prompts - let them be freshly randomized each time
       return generatePromptsByCategory(category);
     }
 
     const prompts = data?.prompts || generatePromptsByCategory(category);
-    cachePrompts(category, prompts);
+
+    // Only cache successful API responses, not fallbacks
+    if (data?.prompts && data.prompts.length > 0) {
+      cachePrompts(category, prompts);
+    }
+
     return prompts;
   } catch (error) {
     console.error(`Error generating ${category} prompts:`, error);
+    // Don't cache fallback prompts - let them be freshly randomized each time
     return generatePromptsByCategory(category);
   }
 }
