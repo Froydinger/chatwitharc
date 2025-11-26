@@ -36,7 +36,7 @@ function FingerPopup({ message, x, y }: FingerPopupProps) {
         damping: 15,
         mass: 0.5
       }}
-      className="fixed z-[9999] pointer-events-none px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap backdrop-blur-xl bg-green-500/20 border-2 border-green-400/60 text-white shadow-[0_0_24px_rgba(34,197,94,0.4)]"
+      className="fixed z-[9999] pointer-events-none px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap backdrop-blur-xl bg-primary/20 border-2 border-primary/60 text-white shadow-[0_0_24px_hsl(var(--primary)/0.4)]"
       style={{
         left: `${x - 60}px`,
         top: `${y - 70}px`,
