@@ -889,11 +889,11 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                 rect.top + rect.height / 2
               );
 
-              // Set timeout to clear label after 5 seconds
+              // Set timeout to clear label after 3 seconds
               modelLabelTimeoutRef.current = setTimeout(() => {
                 setShowModelLabel(false);
                 setTargetModel(null);
-              }, 5000);
+              }, 3000);
             } catch (e) {
               console.error("Failed to toggle model:", e);
               setTargetModel(null);
@@ -1107,12 +1107,12 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                 <motion.div
                   initial={{ opacity: 0, scale: 0, y: 28, x: '-50%' }}
                   animate={{ opacity: 1, scale: 1, y: 0, x: '-50%' }}
-                  exit={{ opacity: 0, scale: 0, y: 28, x: '-50%' }}
+                  exit={{ opacity: 0, scale: 0.8, y: -10, x: '-50%' }}
                   transition={{
                     type: "spring",
-                    stiffness: 600,
-                    damping: 20,
-                    mass: 0.8
+                    stiffness: 500,
+                    damping: 15,
+                    mass: 0.5
                   }}
                   className="fixed pointer-events-none"
                   style={{
