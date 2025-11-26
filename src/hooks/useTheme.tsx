@@ -38,7 +38,7 @@ export function useTheme() {
     document.documentElement.classList.add("dark");
   }, []);
 
-  // Accent color state (default to green-ish)
+  // Accent color state (default to blue)
   const [accentColor, setAccentColorState] = useState<string>(() => {
     try {
       const savedAccent = localStorage.getItem("accentColor");
@@ -51,11 +51,16 @@ export function useTheme() {
       setCssVar("--primary", DEFAULT_ACCENT);
       return DEFAULT_ACCENT;
     } catch (e) {
-      console.warn("Failed to read accentColor from localStorage, defaulting to green.", e);
+      console.warn("Failed to read accentColor from localStorage, defaulting to blue.", e);
       setCssVar("--primary", DEFAULT_ACCENT);
       return DEFAULT_ACCENT;
     }
   });
+
+  // Reset preferencesLoaded flag when user changes (login/logout)
+  useEffect(() => {
+    setPreferencesLoaded(false);
+  }, [user?.id]);
 
   // Ensure accent color is applied immediately on mount (before any async operations)
   useEffect(() => {
@@ -93,7 +98,7 @@ export function useTheme() {
     setCssVar("--primary", accentColor);
   }, [accentColor]);
 
-  // Load user preferences (accent only) on mount - only loads from DB once
+  // Load user preferences immediately on login
   useEffect(() => {
     if (!user || preferencesLoaded) return;
 
@@ -114,11 +119,12 @@ export function useTheme() {
         if (data) {
           const accentPref = (data as any).accent_color as string | undefined;
 
-          // Load accent color
+          // Load accent color - apply immediately
           if (accentPref && isValidHslColor(accentPref)) {
             setAccentColorState(accentPref);
             localStorage.setItem("accentColor", accentPref);
-            // CSS var will be applied by the accentColor useEffect
+            // Immediately apply to DOM for instant theme loading
+            setCssVar("--primary", accentPref);
           } else if (accentPref) {
             console.warn("Invalid accent color from database:", accentPref);
           }
@@ -130,6 +136,7 @@ export function useTheme() {
       }
     };
 
+    // Load immediately without any delay
     loadUserPreferences();
   }, [user, preferencesLoaded]);
 
