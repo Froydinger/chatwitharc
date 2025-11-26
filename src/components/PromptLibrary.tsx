@@ -352,8 +352,9 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
 
               {/* Prompt Grid - beautiful cards */}
               <div className="flex-1 overflow-y-auto px-6 sm:px-8 pb-6 overscroll-contain" style={{ overflowX: 'visible' }}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-4">
-                  {isCurrentTabLoading() ? (
+                <AnimatePresence mode="wait">
+                  <div key={activeTab} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-4">
+                    {isCurrentTabLoading() ? (
                     <div className="col-span-full flex items-center justify-center py-16">
                       <motion.div
                         initial={{ opacity: 0, scale: 0.8 }}
@@ -399,27 +400,24 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                     getCurrentPrompts().map((prompt, index) => (
                       <motion.button
                         key={`${activeTab}-${prompt.label}`}
-                        layout
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
                         transition={{
-                          layout: { type: "spring", damping: 20, stiffness: 300 },
-                          opacity: { duration: 0.3, delay: index * 0.04 },
-                          scale: { duration: 0.3, delay: index * 0.04 },
-                          y: { duration: 0.3, delay: index * 0.04 }
+                          duration: 0.2,
+                          delay: index * 0.03,
+                          ease: "easeOut"
                         }}
                         whileHover={{
-                          scale: 1.02,
-                          y: -4,
-                          zIndex: 50,
-                          transition: { duration: 0.2 }
+                          y: -2,
+                          transition: { duration: 0.15, ease: "easeOut" }
                         }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => {
                           onSelectPrompt(prompt.prompt);
                           onClose();
                         }}
-                        className="group relative p-5 rounded-2xl backdrop-blur-xl bg-gradient-to-br from-background/80 to-background/60 border border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 text-left overflow-hidden z-10 hover:z-50"
+                        className="group relative p-5 rounded-2xl backdrop-blur-xl bg-gradient-to-br from-background/80 to-background/60 border border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-200 text-left overflow-hidden"
                       >
                         {/* Gradient overlay on hover */}
                         <motion.div
@@ -442,7 +440,8 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                       </motion.button>
                     ))
                   )}
-                </div>
+                  </div>
+                </AnimatePresence>
               </div>
             </div>
           </motion.div>
