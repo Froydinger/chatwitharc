@@ -15,18 +15,16 @@ import { AdminPage } from "./pages/AdminPage";
 
 const queryClient = new QueryClient();
 
-// Detect if running as PWA or Electron on Mac
-const isStandalonePWA = () => window.matchMedia('(display-mode: standalone)').matches;
-const isElectron = () => /electron/i.test(navigator.userAgent);
-const isMacOS = () => /mac/i.test(navigator.platform);
-const needsMacTopPadding = () => (isStandalonePWA() || isElectron()) && isMacOS();
+// Detect if mobile device (don't add top padding on mobile)
+const isMobileDevice = () => window.innerWidth < 768;
+const needsTopPadding = () => !isMobileDevice();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        {needsMacTopPadding() && <div className="arcai-drag-bar" />}
-        <div className={needsMacTopPadding() ? "pt-7" : ""}>
+        {needsTopPadding() && <div className="arcai-drag-bar" />}
+        <div className={needsTopPadding() ? "pt-7" : ""}>
           <BackgroundGradients />
           <Toaster />
           <Sonner />
