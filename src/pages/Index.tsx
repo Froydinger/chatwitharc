@@ -66,6 +66,14 @@ export function Index() {
     }
   }, [loading]);
 
+  // Force dark mode for landing page when not authenticated
+  useEffect(() => {
+    if (!user && !loading) {
+      document.documentElement.classList.remove('light');
+      document.documentElement.classList.add('dark');
+    }
+  }, [user, loading]);
+
   // Only show loading screen during auth, never during chat switches
   if (loading) {
     return (
@@ -86,12 +94,6 @@ export function Index() {
 
   // Show landing screen if user is not authenticated
   if (!user) {
-    // Force dark mode for landing page
-    useEffect(() => {
-      document.documentElement.classList.remove('light');
-      document.documentElement.classList.add('dark');
-    }, []);
-    
     return <LandingScreen />;
   }
 
