@@ -1,11 +1,11 @@
 import { useFingerPopup } from '@/hooks/use-finger-popup';
-import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function FingerPopupContainer() {
   const popups = useFingerPopup((state) => state.popups);
 
   return (
-    <>
+    <AnimatePresence>
       {popups.map((popup) => (
         <FingerPopup
           key={popup.id}
@@ -14,7 +14,7 @@ export function FingerPopupContainer() {
           y={popup.y}
         />
       ))}
-    </>
+    </AnimatePresence>
   );
 }
 
@@ -25,43 +25,28 @@ interface FingerPopupProps {
 }
 
 function FingerPopup({ message, x, y }: FingerPopupProps) {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    // Trigger animation shortly after mount
-    requestAnimationFrame(() => {
-      setIsVisible(true);
-    });
-
-    // Start fade out before removal
-    const fadeOutTimer = setTimeout(() => {
-      setIsVisible(false);
-    }, 1200);
-
-    return () => clearTimeout(fadeOutTimer);
-  }, []);
-
   // Position the popup directly above the button
   const offsetY = -60;
 
   return (
-    <div
-      className={`
-        fixed z-[9999] pointer-events-none
-        px-4 py-2 rounded-full
-        bg-primary/95 text-primary-foreground
-        shadow-lg border border-primary/20
-        text-sm font-medium whitespace-nowrap
-        transition-all duration-300
-        ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}
-      `}
+    <motion.div
+      initial={{ opacity: 0, scale: 0, y: 0 }}
+      animate={{ opacity: 1, scale: 1, y: offsetY }}
+      exit={{ opacity: 0, scale: 0.8, y: offsetY - 10 }}
+      transition={{
+        type: "spring",
+        stiffness: 500,
+        damping: 15,
+        mass: 0.5
+      }}
+      className="fixed z-[9999] pointer-events-none px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap backdrop-blur-xl bg-green-500/20 border-2 border-green-400/60 text-white shadow-[0_0_24px_rgba(34,197,94,0.4)]"
       style={{
         left: `${x}px`,
-        top: `${y + offsetY}px`,
+        top: `${y}px`,
         transform: 'translate(-50%, -100%)',
       }}
     >
       {message}
-    </div>
+    </motion.div>
   );
 }
