@@ -143,12 +143,14 @@ export function useTheme() {
     }
   };
 
-  // Apply theme class on theme change
+  // Apply theme class on theme change and re-apply accent color
   useEffect(() => {
     const root = document.documentElement;
     root.classList.remove("light", "dark");
     root.classList.add(theme);
-  }, [theme]);
+    // Force re-apply accent color when theme changes
+    setCssVar("--primary", accentColor);
+  }, [theme, accentColor]);
 
   // Apply accent color on every change (critical for consistency)
   useEffect(() => {
