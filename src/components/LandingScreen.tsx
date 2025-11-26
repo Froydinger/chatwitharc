@@ -57,44 +57,44 @@ const AppMockup = () => {
           </h2>
 
           {/* Floating Prompts */}
-          <div className="flex flex-wrap justify-center gap-3 mb-12 max-w-2xl">
+          <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-8 md:mb-12 max-w-2xl px-4">
             <PromptPill
-              icon="🎨"
-              text="Creative writing prompt for me?"
+              icon="💬"
+              text="Ask"
               delay="delay-100"
             />
             <PromptPill
-              icon="💻"
-              text="Help me code a video editor tool"
+              icon="💭"
+              text="Reflect"
               delay="delay-200"
             />
             <PromptPill
-              icon="ℹ️"
-              text="Tips for balancing work and family"
+              icon="✨"
+              text="Create"
               delay="delay-300"
             />
           </div>
 
           {/* Center Cards */}
-          <div className="flex gap-4 md:gap-6 mb-12">
-            <div className="w-24 h-32 md:w-32 md:h-40 rounded-2xl glass-card flex flex-col items-center justify-center space-y-2 border border-purple-500/30 hover:border-purple-500/60 transition-colors cursor-pointer group">
-              <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:text-purple-300">
-                <Sparkles className="w-5 h-5" />
+          <div className="flex gap-3 md:gap-6 mb-8 md:mb-12 scale-90 md:scale-100">
+            <div className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-purple-500/30 hover:border-purple-500/60 transition-colors cursor-pointer group">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:text-purple-300">
+                <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
               </div>
-              <span className="text-xs font-medium text-gray-300">Prompts</span>
+              <span className="text-[10px] md:text-xs font-medium text-gray-300">Prompts</span>
             </div>
-            <div className="w-24 h-32 md:w-32 md:h-40 rounded-2xl glass-card flex flex-col items-center justify-center space-y-2 border border-green-500/30 hover:border-green-500/60 transition-colors cursor-pointer group bg-white/5 relative">
-              <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 group-hover:text-green-300">
-                <Image className="w-5 h-5" />
+            <div className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-green-500/30 hover:border-green-500/60 transition-colors cursor-pointer group bg-white/5 relative">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 group-hover:text-green-300">
+                <Image className="w-4 h-4 md:w-5 md:h-5" />
               </div>
-              <span className="text-xs font-medium text-gray-300">Image</span>
-              <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-[10px] md:text-xs font-medium text-gray-300">Image</span>
+              <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse"></div>
             </div>
-            <div className="w-24 h-32 md:w-32 md:h-40 rounded-2xl glass-card flex flex-col items-center justify-center space-y-2 border border-blue-500/30 hover:border-blue-500/60 transition-colors cursor-pointer group">
-              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:text-blue-300">
-                <Paperclip className="w-5 h-5" />
+            <div className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-blue-500/30 hover:border-blue-500/60 transition-colors cursor-pointer group">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:text-blue-300">
+                <Paperclip className="w-4 h-4 md:w-5 md:h-5" />
               </div>
-              <span className="text-xs font-medium text-gray-300">Attach</span>
+              <span className="text-[10px] md:text-xs font-medium text-gray-300">Attach</span>
             </div>
           </div>
 
