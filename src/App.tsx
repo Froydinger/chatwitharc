@@ -25,8 +25,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
+        {needsMacTopPadding() && <div className="arcai-drag-bar" />}
         <div className={needsMacTopPadding() ? "pt-7" : ""}>
-          {needsMacTopPadding() && <div className="arcai-drag-bar" />}
           <BackgroundGradients />
           <Toaster />
           <Sonner />

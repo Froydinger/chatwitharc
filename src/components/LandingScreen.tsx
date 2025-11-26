@@ -200,7 +200,7 @@ export function LandingScreen() {
 
   const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi-for-Mac.dmg_.zip";
   const iconUrl = "https://froydinger.com/wp-content/uploads/2025/11/icon.png";
-  const logoUrl = "https://froydinger.com/wp-content/uploads/2025/11/download-1.png";
+  const logoUrl = "/arc-logo-ui.png";
 
   // Create mailto link for mobile users
   const mailtoLink = `mailto:?subject=ArcAi for Mac&body=Download ArcAi for Mac:%0D%0A%0D%0A${encodeURIComponent(downloadUrl)}`;
