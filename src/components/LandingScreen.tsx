@@ -6,6 +6,7 @@ import { AuthModal } from "./AuthModal";
 import { PrivacyTermsModal } from "./PrivacyTermsModal";
 import { AppleLogo } from "./icons/AppleLogo";
 import { WindowsLogo } from "./icons/WindowsLogo";
+import { BackgroundGradients } from "./BackgroundGradients";
 
 // Helper to detect Electron app
 const isElectron = () => {
@@ -199,7 +200,6 @@ export function LandingScreen() {
   const [isWindowsDevice, setIsWindowsDevice] = useState(false);
 
   const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi-for-Mac.dmg_.zip";
-  const iconUrl = "https://froydinger.com/wp-content/uploads/2025/11/icon.png";
 
   // Create mailto link for mobile users
   const mailtoLink = `mailto:?subject=ArcAi for Mac&body=Download ArcAi for Mac:%0D%0A%0D%0A${encodeURIComponent(downloadUrl)}`;
@@ -239,6 +239,8 @@ export function LandingScreen() {
 
   return (
     <div className="dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white">
+      {/* Background Gradients */}
+      <BackgroundGradients />
 
       {/* Animated Background Blobs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -250,7 +252,7 @@ export function LandingScreen() {
       {/* Navigation */}
       <nav className="relative z-50 flex items-center justify-between px-6 py-4 md:px-12 max-w-7xl mx-auto">
         <div className="flex items-center space-x-3">
-          <img src={iconUrl} alt="ArcAi Icon" className="w-10 h-10 rounded-xl shadow-lg border border-white/10" />
+          <img src="/arc-logo-ui.png" alt="ArcAi Icon" className="w-10 h-10 rounded-xl" />
           <span className="text-xl font-bold tracking-tight text-white">ArcAi</span>
         </div>
         <div className="hidden md:flex items-center space-x-6">

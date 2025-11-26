@@ -22,7 +22,7 @@ export const BackgroundGradients = () => {
         style={{
           background: isLight
             ? `radial-gradient(circle at 20% 50%, transparent 0%, hsl(${primaryGlow} / 0.9) 100%)`
-            : `radial-gradient(circle at 20% 50%, hsl(${primaryGlow} / 0.1) 0%, transparent 100%)`,
+            : `radial-gradient(circle at 20% 50%, hsl(${primaryGlow} / 0.25) 0%, transparent 100%)`,
           animation: isLight 
             ? 'global-background-drift-light 20s linear infinite' 
             : 'global-background-drift 20s linear infinite',
@@ -39,7 +39,7 @@ export const BackgroundGradients = () => {
         style={{
           background: isLight
             ? `radial-gradient(circle at 70% 30%, transparent 0%, hsl(${primaryGlow} / 0.8) 100%)`
-            : `radial-gradient(circle at 80% 80%, hsl(${primaryGlow} / 0.08) 0%, transparent 100%)`,
+            : `radial-gradient(circle at 80% 80%, hsl(${primaryGlow} / 0.2) 0%, transparent 100%)`,
           animation: isLight
             ? 'light-background-drift-secondary 25s linear infinite'
             : 'background-drift-secondary 25s linear infinite',
