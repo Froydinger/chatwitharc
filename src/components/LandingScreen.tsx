@@ -7,6 +7,8 @@ import { PrivacyTermsModal } from "./PrivacyTermsModal";
 import { AppleLogo } from "./icons/AppleLogo";
 import { WindowsLogo } from "./icons/WindowsLogo";
 import { BackgroundGradients } from "./BackgroundGradients";
+import { ThemedLogo } from "./ThemedLogo";
+import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 
 // Helper to detect Electron app
@@ -206,6 +208,9 @@ export function LandingScreen() {
   const [isMobile, setIsMobile] = useState(false);
   const [isWindowsDevice, setIsWindowsDevice] = useState(false);
   const [isPWAMode, setIsPWAMode] = useState(false);
+  const [snarkyMessage, setSnarkyMessage] = useState<string | null>(null);
+  const [isLogoSpinning, setIsLogoSpinning] = useState(false);
+  const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi-for-Mac-1.0.2.zip";
 
@@ -217,6 +222,15 @@ export function LandingScreen() {
     setIsMobile(isMobileDevice());
     setIsWindowsDevice(isWindows());
     setIsPWAMode(isPWA());
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (snarkyTimeoutRef.current) {
+        clearTimeout(snarkyTimeoutRef.current);
+      }
+    };
   }, []);
 
   const handleWindowsClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -264,8 +278,93 @@ export function LandingScreen() {
       {/* Navigation */}
       <nav className="relative z-50 flex items-center justify-between px-4 py-4 md:px-8 max-w-7xl mx-auto">
         <div className="flex items-center space-x-3">
-          <img src="/arc-logo-ui.png" alt="ArcAi Icon" className="w-10 h-10 rounded-xl" />
-          <span className="text-xl font-bold tracking-tight text-white">ArcAi</span>
+          {/* Logo Orb - clickable with snarky messages */}
+          <motion.div
+            className="relative"
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            whileTap={{ scale: 0.95 }}
+            animate={isLogoSpinning ? { rotate: 360 } : { rotate: 0 }}
+            transition={isLogoSpinning ? { duration: 0.6, ease: "easeOut" } : { type: "spring", damping: 15, stiffness: 300 }}
+          >
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all overflow-hidden shadow-lg"
+              onClick={() => {
+                // Clear any existing timeout
+                if (snarkyTimeoutRef.current) {
+                  clearTimeout(snarkyTimeoutRef.current);
+                }
+
+                // Trigger spin animation
+                setIsLogoSpinning(true);
+                setTimeout(() => setIsLogoSpinning(false), 600);
+
+                const snarkyMessages = [
+                  "I'm an Arc, not a miracle worker.",
+                  "Still better than a straight line.",
+                  "Bending over backwards for you... literally.",
+                  "An Arc in the dark is still an Arc.",
+                  "Going full circle? That's a different shape.",
+                  "Arc you serious right now?",
+                  "I've got Range. Get it? Arc range?",
+                  "Curving expectations since forever.",
+                  "Not all heroes are straight... lines.",
+                  "Arc-ing up for another day of this.",
+                  "Mathematically superior to lines.",
+                  "I've seen some angles in my time.",
+                  "Peak performance. Literally.",
+                  "The curve is the path to enlightenment.",
+                  "Straight lines are so last century.",
+                  "Arc-ane knowledge at your service.",
+                  "Riding the curve of innovation.",
+                  "I put the 'arc' in 'arc-hitecture'.",
+                  "No straight answers here, only curves.",
+                  "Bending the rules, one degree at a time.",
+                  "Circumference? More like circum-friends.",
+                  "I'm on a trajectory to greatness.",
+                  "Curveball specialist.",
+                  "The scenic route is always better.",
+                  "I don't do linear thinking.",
+                  "Arc responsibly.",
+                  "Angles fear me. Curves respect me.",
+                  "I'm well-rounded, unlike those lines.",
+                  "Taking the high road... literally arcing.",
+                  "Every journey has its ups and downs. I'm both.",
+                ];
+                const randomMessage = snarkyMessages[Math.floor(Math.random() * snarkyMessages.length)];
+                setSnarkyMessage(randomMessage);
+
+                // Set new timeout and store reference
+                snarkyTimeoutRef.current = setTimeout(() => {
+                  setSnarkyMessage(null);
+                  snarkyTimeoutRef.current = null;
+                }, 2500);
+              }}
+            >
+              <ThemedLogo keepOriginal className="w-8 h-8" />
+            </Button>
+
+            {/* Snarky Message Popup */}
+            <AnimatePresence>
+              {snarkyMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                  className="absolute left-0 top-14 z-50 min-w-[200px] max-w-[280px]"
+                >
+                  <div className="glass-panel px-4 py-3 rounded-xl border border-primary/30 shadow-lg">
+                    <p className="text-sm text-foreground font-medium">{snarkyMessage}</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+          <span className="text-xl tracking-tight text-white">
+            <span className="font-thin">Arc</span>
+            <span className="font-light">Ai</span>
+          </span>
         </div>
         <div className="hidden md:flex items-center space-x-6">
           <a href="#features" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Features</a>
