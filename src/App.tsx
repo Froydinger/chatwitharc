@@ -8,6 +8,7 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { UpdateNotification } from "@/components/UpdateNotification";
 import { PageTransition } from "@/components/PageTransition";
 import { FingerPopupContainer } from "@/components/FingerPopup";
+import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { Index } from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminPage } from "./pages/AdminPage";
@@ -18,6 +19,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
+        <BackgroundGradients />
         <Toaster />
         <Sonner />
         <FingerPopupContainer />
