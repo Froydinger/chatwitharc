@@ -13,6 +13,12 @@ const isElectron = () => {
   return /electron/i.test(navigator.userAgent);
 };
 
+// Helper to detect PWA mode
+const isPWA = () => {
+  return window.matchMedia('(display-mode: standalone)').matches || 
+         (window.navigator as any).standalone === true;
+};
+
 // Helper to detect mobile device
 const isMobileDevice = () => {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -198,6 +204,7 @@ export function LandingScreen() {
   const [isElectronApp, setIsElectronApp] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isWindowsDevice, setIsWindowsDevice] = useState(false);
+  const [isPWAMode, setIsPWAMode] = useState(false);
 
   const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi-for-Mac-1.0.2.zip";
 
@@ -208,6 +215,7 @@ export function LandingScreen() {
     setIsElectronApp(isElectron());
     setIsMobile(isMobileDevice());
     setIsWindowsDevice(isWindows());
+    setIsPWAMode(isPWA());
   }, []);
 
   const handleWindowsClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -238,7 +246,7 @@ export function LandingScreen() {
   };
 
   return (
-    <div className="dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white">
+    <div className={`dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white ${(isPWAMode || isElectronApp) ? 'pt-[28px]' : ''}`}>
       {/* Background Gradients */}
       <BackgroundGradients />
 
