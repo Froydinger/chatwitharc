@@ -475,6 +475,52 @@ All colors MUST be HSL for perfect glass effects.
     animation: drift-reverse 18s infinite ease-in-out;
   }
 
+  /* Chat Breathing Gradient Background - Dark Mode Only */
+  @keyframes breathe-slow {
+    0%, 100% {
+      transform: translate(0px, 0px) scale(1);
+      opacity: 0.25;
+    }
+    50% {
+      transform: translate(30px, -40px) scale(1.15);
+      opacity: 0.4;
+    }
+  }
+
+  @keyframes breathe-slow-reverse {
+    0%, 100% {
+      transform: translate(0px, 0px) scale(1);
+      opacity: 0.2;
+    }
+    50% {
+      transform: translate(-40px, 30px) scale(1.2);
+      opacity: 0.35;
+    }
+  }
+
+  .chat-breathing-blob {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: hsl(var(--primary));
+    filter: blur(120px);
+    mix-blend-mode: screen;
+    will-change: transform, opacity;
+  }
+
+  .chat-breathing-blob-1 {
+    top: 10%;
+    left: 15%;
+    animation: breathe-slow 25s ease-in-out infinite;
+  }
+
+  .chat-breathing-blob-2 {
+    bottom: 15%;
+    right: 20%;
+    animation: breathe-slow-reverse 30s ease-in-out infinite;
+  }
+
   /* Glass Panel and Card for Landing */
   .glass-panel {
     background: rgba(20, 20, 25, 0.4);
