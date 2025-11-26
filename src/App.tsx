@@ -23,9 +23,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        {needsTopPadding() && <div className="arcai-drag-bar" />}
-        <div className={needsTopPadding() ? "pt-[50px]" : ""}>
-          <BackgroundGradients />
+        <div className="arcai-drag-bar hidden md:block" />
+        <BackgroundGradients />
           <Toaster />
           <Sonner />
           <FingerPopupContainer />
@@ -42,7 +41,6 @@ const App = () => (
               </Routes>
             </PageTransition>
           </BrowserRouter>
-        </div>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
