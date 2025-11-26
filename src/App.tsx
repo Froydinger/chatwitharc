@@ -25,7 +25,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        <div className={needsMacTopPadding() ? "pt-5" : ""}>
+        <div className={needsMacTopPadding() ? "pt-7" : ""}>
           <BackgroundGradients />
           <Toaster />
           <Sonner />
