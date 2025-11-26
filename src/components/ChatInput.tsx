@@ -871,7 +871,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
               setTargetModel(newModel);
               await updateProfile({ preferred_model: newModel });
 
-              // Show label for 3 seconds after model change
+              // Show label for 5 seconds after model change
               setShowModelLabel(true);
               if (modelLabelTimeoutRef.current) {
                 clearTimeout(modelLabelTimeoutRef.current);
@@ -879,7 +879,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
               modelLabelTimeoutRef.current = setTimeout(() => {
                 setShowModelLabel(false);
                 setTargetModel(null); // Clear target after label hides
-              }, 3000);
+              }, 5000);
 
               // Get button center position
               const rect = e.currentTarget.getBoundingClientRect();
