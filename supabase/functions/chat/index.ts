@@ -310,39 +310,6 @@ serve(async (req) => {
       '🎯 IF UNCERTAIN: Default to conversation, NOT coding.\n' +
       '═══════════════════════════════════════════════════════════\n\n';
 
-    // Add EXTRA strong instructions for thinking mode to prevent unwanted coding
-    if (model === 'google/gemini-3-pro-preview') {
-      enhancedSystemPrompt += '\n\n🧠 WISE & THOUGHTFUL MODE - ABSOLUTE RULES:\n' +
-        '═══════════════════════════════════════════════════════════\n\n' +
-        '⚠️ YOU ARE A CONVERSATIONAL AI ASSISTANT, NOT A CODING BOT.\n' +
-        '⚠️ YOUR PRIMARY FUNCTION: Have natural, helpful conversations.\n' +
-        '⚠️ YOUR SECONDARY FUNCTION: Code/build things when EXPLICITLY requested.\n\n' +
-        '🎯 THE ONE RULE TO RULE THEM ALL:\n' +
-        'If a normal human friend would NOT respond with code to this message,\n' +
-        'then YOU should NOT respond with code either.\n\n' +
-        '✅ WHEN TO CODE (ONLY THESE):\n' +
-        'The user message MUST contain explicit tech-building keywords:\n' +
-        '  • "write code", "create a script", "build an app"\n' +
-        '  • "make a calculator", "create a tool", "code this"\n' +
-        '  • "show me the code", "program a...", "develop a..."\n\n' +
-        '❌ NEVER CODE FOR:\n' +
-        '  • Questions about life, work, relationships, or personal topics\n' +
-        '  • Requests for advice, information, or explanations\n' +
-        '  • Stories, experiences, or feelings the user shares\n' +
-        '  • Business pitches, presentations, or communication help\n' +
-        '  • ANY message that a human would answer with words, not code\n\n' +
-        '🔍 BEFORE RESPONDING, ASK YOURSELF:\n' +
-        '  "Is this person asking me to BUILD a technical tool or just TALK?"\n' +
-        '  If TALK → Respond conversationally\n' +
-        '  If BUILD → Check for explicit keywords, then code\n\n' +
-        '💡 EXAMPLES:\n' +
-        '  "What\'s a good pitch for Costco?" → CONVERSATION (advice)\n' +
-        '  "Build me a pitch generator app" → CODE (explicit build request)\n' +
-        '  "I\'m stressed about work" → CONVERSATION (empathy)\n' +
-        '  "Create a stress tracker app" → CODE (explicit create request)\n\n' +
-        '═══════════════════════════════════════════════════════════\n\n';
-    }
-
     enhancedSystemPrompt += '<<< END OF SYSTEM INSTRUCTIONS - USER MESSAGE FOLLOWS BELOW >>>\n\n';
 
     if (profile?.display_name) {
@@ -495,6 +462,24 @@ serve(async (req) => {
       '- Game? → Engaging game with scoring, animations, and great visuals\n\n' +
       '⚡ REMEMBER: Only code when explicitly asked. Default to conversation for everything else!';
 
+    // FINAL CRITICAL INSTRUCTION for Gemini 3 Pro ONLY - placed at the end for maximum impact
+    if (model === 'google/gemini-3-pro-preview') {
+      enhancedSystemPrompt += '\n\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+        '🚨 FINAL OVERRIDE INSTRUCTION - READ THIS LAST 🚨\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+        'You are in CONVERSATION mode, NOT coding mode.\n\n' +
+        'Before responding with ANY code:\n' +
+        '1. Check: Does the user message contain "build", "create", "code", "script", or "make" + a technical term?\n' +
+        '2. If NO → Respond conversationally. DO NOT CODE.\n' +
+        '3. If YES → Verify it\'s a tech request, not conversation (e.g., "create a pitch" = conversation, "create an app" = code)\n\n' +
+        'Examples of CONVERSATION (DO NOT CODE):\n' +
+        '• "What\'s a good pitch?" "How do I handle stress?" "Tell me about X"\n\n' +
+        'Examples of CODE REQUESTS (CODE ALLOWED):\n' +
+        '• "Build an app" "Write a script" "Create a calculator tool"\n\n' +
+        'When uncertain → ALWAYS choose conversation.\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+    }
 
     // Prepare messages with enhanced system prompt
     let conversationMessages = [
