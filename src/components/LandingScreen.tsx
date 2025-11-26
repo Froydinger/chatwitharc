@@ -199,7 +199,7 @@ export function LandingScreen() {
   const [isMobile, setIsMobile] = useState(false);
   const [isWindowsDevice, setIsWindowsDevice] = useState(false);
 
-  const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi-for-Mac.dmg_.zip";
+  const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi-for-Mac-1.0.2.zip";
 
   // Create mailto link for mobile users
   const mailtoLink = `mailto:?subject=ArcAi for Mac&body=Download ArcAi for Mac:%0D%0A%0D%0A${encodeURIComponent(downloadUrl)}`;
