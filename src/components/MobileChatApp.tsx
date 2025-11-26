@@ -487,7 +487,7 @@ export function MobileChatApp() {
 
   // Main chat interface
   return (
-    <div className={cn("min-h-screen bg-background flex relative", !isMobile && "pt-[50px]")}>
+    <div className="min-h-screen bg-background flex relative md:pt-[50px]">
       {/* Breathing gradient background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="chat-breathing-blob chat-breathing-blob-1"></div>
