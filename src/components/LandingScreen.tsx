@@ -44,7 +44,7 @@ const AppMockup = () => {
 
   const handleCardClick = (cardType: string) => {
     setActiveCardPopup(cardType);
-    setTimeout(() => setActiveCardPopup(null), 5000);
+    setTimeout(() => setActiveCardPopup(null), 8000);
   };
 
   const cardMessages = {
@@ -99,7 +99,7 @@ const AppMockup = () => {
             {/* Popup Message */}
             {activeCardPopup && (
               <div className="absolute -top-20 md:-top-16 left-0 right-0 z-20 animate-fade-in flex justify-center px-4">
-                <div className="bg-primary/20 backdrop-blur-xl border-2 border-primary/60 text-white px-4 py-2 rounded-2xl text-sm md:text-base font-medium text-center shadow-[0_0_24px_hsl(var(--primary)/0.4)] max-w-xs md:max-w-md">
+                <div className="bg-gradient-to-r from-blue-600 to-cyan-600 backdrop-blur-xl border-2 border-cyan-400/60 text-white px-5 py-3 rounded-2xl text-sm md:text-base font-medium text-center shadow-[0_0_32px_rgba(59,130,246,0.5)] max-w-xs md:max-w-md">
                   {cardMessages[activeCardPopup as keyof typeof cardMessages]}
                 </div>
               </div>
