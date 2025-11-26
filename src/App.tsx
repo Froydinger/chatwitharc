@@ -15,27 +15,35 @@ import { AdminPage } from "./pages/AdminPage";
 
 const queryClient = new QueryClient();
 
+// Detect if running as PWA or Electron on Mac
+const isStandalonePWA = () => window.matchMedia('(display-mode: standalone)').matches;
+const isElectron = () => /electron/i.test(navigator.userAgent);
+const isMacOS = () => /mac/i.test(navigator.platform);
+const needsMacTopPadding = () => (isStandalonePWA() || isElectron()) && isMacOS();
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        <BackgroundGradients />
-        <Toaster />
-        <Sonner />
-        <FingerPopupContainer />
-        <PWAInstallPrompt />
-        <UpdateNotification />
-        <BrowserRouter>
-          <PageTransition>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/chat/:sessionId" element={<Index />} />
-              <Route path="/admin" element={<AdminPage />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </PageTransition>
-        </BrowserRouter>
+        <div className={needsMacTopPadding() ? "pt-5" : ""}>
+          <BackgroundGradients />
+          <Toaster />
+          <Sonner />
+          <FingerPopupContainer />
+          <PWAInstallPrompt />
+          <UpdateNotification />
+          <BrowserRouter>
+            <PageTransition>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/chat/:sessionId" element={<Index />} />
+                <Route path="/admin" element={<AdminPage />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </PageTransition>
+          </BrowserRouter>
+        </div>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
