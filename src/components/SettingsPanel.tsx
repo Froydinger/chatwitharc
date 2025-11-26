@@ -365,42 +365,42 @@ export function SettingsPanel() {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Accent color options
+  // Accent color options (match exact HSL format used in storage)
   const colorOptions = [
     {
       id: "red",
       label: "Red",
-      value: "0 85% 60%",
+      value: "0 85.0% 60.0%",
       gradient: "linear-gradient(135deg, hsl(0,85%,60%), hsl(0,85%,70%))",
     },
     {
       id: "blue",
       label: "Blue",
-      value: "210 95% 50%",
+      value: "210 95.0% 50.0%",
       gradient: "linear-gradient(135deg, hsl(210,95%,55%), hsl(210,90%,65%))",
     },
     {
       id: "green",
       label: "Green",
-      value: "142 76% 42%",
+      value: "142 76.0% 36.3%",
       gradient: "linear-gradient(135deg, hsl(142,76%,42%), hsl(142,76%,52%))",
     },
     {
       id: "yellow",
       label: "Yellow",
-      value: "48 100% 50%",
+      value: "48 100.0% 50.0%",
       gradient: "linear-gradient(135deg, hsl(48,85%,55%), hsl(48,85%,65%))",
     },
     {
       id: "purple",
       label: "Purple",
-      value: "270 80% 60%",
+      value: "270 80.0% 60.0%",
       gradient: "linear-gradient(135deg, hsl(270,75%,60%), hsl(270,75%,70%))",
     },
     {
       id: "orange",
       label: "Orange",
-      value: "25 90% 58%",
+      value: "25 90.0% 58.0%",
       gradient: "linear-gradient(135deg, hsl(25,90%,58%), hsl(25,90%,68%))",
     },
   ];
@@ -614,25 +614,31 @@ export function SettingsPanel() {
                 <p className="text-sm text-muted-foreground mt-1">Customize the app's accent color</p>
               </div>
               <div className="grid grid-cols-6 gap-3">
-                {colorOptions.map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => handleAccentClick(opt.value)}
-                    className={`aspect-square rounded-xl relative transition-all ${
-                      accentColor === opt.value
-                        ? "ring-2 ring-offset-2 ring-offset-background scale-110"
-                        : "hover:scale-105"
-                    }`}
-                    style={{
-                      background: opt.gradient,
-                    }}
-                    aria-label={`Select ${opt.label} accent color`}
-                  >
-                    {accentColor === opt.value && (
-                      <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-lg" />
-                    )}
-                  </button>
-                ))}
+                {colorOptions.map((opt) => {
+                  // Normalize both strings for comparison (remove extra spaces and format)
+                  const normalizeHsl = (hsl: string) => hsl.trim().replace(/\s+/g, ' ');
+                  const isActive = normalizeHsl(accentColor) === normalizeHsl(opt.value);
+                  
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => handleAccentClick(opt.value)}
+                      className={`aspect-square rounded-xl relative transition-all ${
+                        isActive
+                          ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110"
+                          : "hover:scale-105"
+                      }`}
+                      style={{
+                        background: opt.gradient,
+                      }}
+                      aria-label={`Select ${opt.label} accent color`}
+                    >
+                      {isActive && (
+                        <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-lg" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
