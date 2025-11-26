@@ -4,8 +4,8 @@ import { useAuth } from "./useAuth";
 
 type Theme = "dark" | "light";
 
-// Default accent color (green)
-const DEFAULT_ACCENT = "142 76.0% 36.3%";
+// Default accent color (blue for consistency)
+const DEFAULT_ACCENT = "210 95.0% 50.0%";
 
 // Validate HSL color format (e.g., "142 76.0% 36.3%")
 function isValidHslColor(color: string): boolean {
