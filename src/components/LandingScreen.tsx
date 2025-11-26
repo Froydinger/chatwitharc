@@ -303,7 +303,7 @@ export function LandingScreen() {
           {/* Main Logo */}
           <div className="mb-8 flex justify-center">
             <img
-              src="/arc-logo.svg"
+              src="/arc-logo-ui.png"
               alt="ArcAi Logo"
               className="w-32 h-32 md:w-40 md:h-40 object-contain animate-fade-in"
             />
@@ -338,7 +338,7 @@ export function LandingScreen() {
                     className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]"
                   >
                     <Sparkles className="w-6 h-6" />
-                    <span>Start Chatting on Web</span>
+                    <span>{isPWAMode ? "Get Started" : "Start Chatting on Web"}</span>
                   </button>
                   {isMobile ? (
                     <a
