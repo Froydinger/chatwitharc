@@ -138,7 +138,6 @@ export function MobileChatApp() {
   // Track if running as PWA or Electron app
   const [isPWAMode, setIsPWAMode] = useState(false);
   const [isElectronApp, setIsElectronApp] = useState(false);
-  const [isIpad, setIsIpad] = useState(false);
 
   useEffect(() => {
     const checkPWA = window.matchMedia('(display-mode: standalone)').matches || 
@@ -146,10 +145,6 @@ export function MobileChatApp() {
     const checkElectron = /electron/i.test(navigator.userAgent);
     setIsPWAMode(checkPWA);
     setIsElectronApp(checkElectron);
-    // Detect iPad
-    const ua = navigator.userAgent;
-    const isIpadDevice = (ua.includes('iPad') || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1)) && !ua.includes('iPhone');
-    setIsIpad(isIpadDevice);
   }, []);
 
   // Initialize rightPanelOpen state based on device type and user's last preference
@@ -494,10 +489,7 @@ export function MobileChatApp() {
   return (
     <div className={cn(
       "min-h-screen bg-background flex relative",
-      // iPad PWA: Always apply 30px padding regardless of window size
-      (isPWAMode || isElectronApp) && isIpad && "pt-[30px]",
-      // Other devices: Only apply on medium+ screens
-      (isPWAMode || isElectronApp) && !isIpad && "md:pt-[30px]"
+      (isPWAMode || isElectronApp) && "md:pt-[30px]"
     )}>
       {/* Breathing gradient background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">

@@ -608,7 +608,12 @@ body::before {
   }
 
   /* iPad PWA: Always apply 30px top padding regardless of viewport size */
-  body.standalone-app.is-ipad {
+  body.standalone-app.is-ipad #root {
     padding-top: 30px !important;
+  }
+
+  /* iPad PWA: Adjust min-height to account for padding */
+  body.standalone-app.is-ipad #root > div:first-child {
+    min-height: calc(100vh - 30px) !important;
   }
 }

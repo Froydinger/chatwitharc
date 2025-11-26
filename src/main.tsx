@@ -19,13 +19,20 @@ const isStandalone = () => {
          document.referrer.includes('android-app://');
 };
 
-// Apply device-specific classes
-if (isStandalone()) {
-  document.body.classList.add('standalone-app');
-}
+// Apply device-specific classes after DOM is ready
+const applyDeviceClasses = () => {
+  if (isStandalone()) {
+    document.body.classList.add('standalone-app');
+  }
+  if (isIpad()) {
+    document.body.classList.add('is-ipad');
+  }
+};
 
-if (isIpad()) {
-  document.body.classList.add('is-ipad');
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', applyDeviceClasses);
+} else {
+  applyDeviceClasses();
 }
 
 // Add global error handler
