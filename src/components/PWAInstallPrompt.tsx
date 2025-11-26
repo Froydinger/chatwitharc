@@ -109,8 +109,8 @@ export function PWAInstallPrompt() {
   };
 
   const handleMacDownload = () => {
-    // Direct download of the DMG file
-    window.location.href = 'https://froydinger.com/wp-content/uploads/2025/11/ArcAi.dmg_.zip';
+    // Direct download of the Mac app
+    window.location.href = 'https://froydinger.com/wp-content/uploads/2025/11/ArcAi-for-Mac-1.0.2.zip';
     handleDismiss();
   };
 

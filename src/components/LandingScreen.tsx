@@ -246,7 +246,7 @@ export function LandingScreen() {
   };
 
   return (
-    <div className={`dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white ${(isPWAMode || isElectronApp) ? 'pt-[28px]' : ''}`}>
+    <div className={`dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white ${(isPWAMode || isElectronApp) && !isMobile ? 'pt-[50px]' : ''}`}>
       {/* Background Gradients */}
       <BackgroundGradients />
 
