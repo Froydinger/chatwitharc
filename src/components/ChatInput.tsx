@@ -856,7 +856,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
           />
         </div>
 
-        {/* Brain Icon Toggle */}
+        {/* Brain Icon Toggle - hidden on mobile when typing */}
         <button
           ref={brainButtonRef}
           onMouseEnter={() => setIsHoveringBrain(true)}
@@ -893,6 +893,8 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
             profile?.preferred_model === "google/gemini-3-pro-preview"
               ? "bg-primary/20 text-primary border-primary/40 shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
               : "bg-muted/50 text-muted-foreground hover:bg-muted/70",
+            // Hide on mobile when typing (isActive), show on desktop always
+            isActive ? "hidden sm:flex" : "flex",
           ].join(" ")}
           aria-label="Toggle AI model"
           title={profile?.preferred_model === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
