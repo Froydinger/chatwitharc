@@ -57,35 +57,48 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
       }
     } else {
       console.log(`🔄 Force refreshing ${category} prompts - bypassing cache`);
+      // Clear cache when force refreshing
+      try {
+        sessionStorage.removeItem(`arc_prompts_cache_${category}`);
+      } catch (e) {
+        console.error('Failed to clear cache:', e);
+      }
     }
 
     try {
       console.log(`🎲 Generating fresh AI prompts for ${category}...`);
       const { data, error } = await supabase.functions.invoke('generate-category-prompts', {
-        body: { category }
+        body: {
+          category,
+          // Pass timestamp to ensure backend generates fresh prompts
+          timestamp: Date.now(),
+          forceRefresh: forceRefresh
+        }
       });
 
       if (error) {
         console.error(`Failed to generate ${category} prompts:`, error);
-        // Fallback to hardcoded prompts
+        // Fallback to freshly randomized hardcoded prompts (never cache fallbacks)
         return generatePromptsByCategory(category);
       }
 
       const prompts = data?.prompts || generatePromptsByCategory(category);
       console.log(`✨ Generated ${prompts.length} new ${category} prompts:`, prompts.map(p => p.label));
 
-      // Cache the new prompts
-      try {
-        sessionStorage.setItem(`arc_prompts_cache_${category}`, JSON.stringify(prompts));
-        console.log(`💾 Cached new ${category} prompts`);
-      } catch (e) {
-        console.error('Failed to cache prompts:', e);
+      // Only cache successful API responses, not fallbacks
+      if (data?.prompts && data.prompts.length > 0) {
+        try {
+          sessionStorage.setItem(`arc_prompts_cache_${category}`, JSON.stringify(prompts));
+          console.log(`💾 Cached new ${category} prompts`);
+        } catch (e) {
+          console.error('Failed to cache prompts:', e);
+        }
       }
 
       return prompts;
     } catch (error) {
       console.error(`Error generating ${category} prompts:`, error);
-      // Fallback to hardcoded prompts
+      // Fallback to freshly randomized hardcoded prompts (never cache fallbacks)
       return generatePromptsByCategory(category);
     }
   };
