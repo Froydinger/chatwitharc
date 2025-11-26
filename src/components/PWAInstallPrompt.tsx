@@ -134,7 +134,7 @@ export function PWAInstallPrompt() {
               </h3>
               <p className="text-sm text-muted-foreground mb-3">
                 {isMacDesktop
-                  ? 'Get the native Mac app for the best experience with offline support and system integration.'
+                  ? 'Get the native Mac app for the best experience with ArcAi!'
                   : 'Add ArcAI to your home screen for quick access and a native app experience.'
                 }
               </p>
