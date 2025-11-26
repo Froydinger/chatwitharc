@@ -173,9 +173,9 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         animate={{ x: isOpen ? "0%" : "100%" }}
         transition={{ type: "spring", damping: 18, stiffness: 320, mass: 0.65 }}
         className={cn(
-          "fixed top-0 right-0 h-full z-50 backdrop-blur-2xl bg-background/50 border-l border-border/30",
+          "fixed top-0 right-0 h-full z-50 glass-strong border-l border-border/40 shadow-2xl",
           "w-full sm:w-96 lg:w-80 xl:w-96",
-          "flex flex-col overflow-hidden shadow-2xl"
+          "flex flex-col overflow-hidden"
         )}
       >
         {/* Internal wrapper with conditional padding */}
@@ -184,22 +184,22 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           isStandaloneApp && "md:pt-[30px]"
         )}>
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border/30 backdrop-blur-xl bg-background/40">
+          <div className="flex items-center justify-between p-4 border-b border-border/40 glass-panel">
           <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="music" className="flex items-center justify-center">
+            <TabsList className="grid w-full grid-cols-5 glass border border-border/30">
+              <TabsTrigger value="music" className="flex items-center justify-center data-[state=active]:glass-glow">
                 <Headphones className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center justify-center">
+              <TabsTrigger value="history" className="flex items-center justify-center data-[state=active]:glass-glow">
                 <History className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="media" className="flex items-center justify-center">
+              <TabsTrigger value="media" className="flex items-center justify-center data-[state=active]:glass-glow">
                 <Image className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="apps" className="flex items-center justify-center">
+              <TabsTrigger value="apps" className="flex items-center justify-center data-[state=active]:glass-glow">
                 <Code className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center justify-center">
+              <TabsTrigger value="settings" className="flex items-center justify-center data-[state=active]:glass-glow">
                 <Settings className="h-4 w-4" />
               </TabsTrigger>
             </TabsList>
@@ -209,7 +209,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="ml-2 rounded-full"
+              className="ml-2 rounded-full glass hover:glass-glow"
             >
               <X className="h-4 w-4" />
             </Button>
