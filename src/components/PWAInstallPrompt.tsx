@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Download, X, Smartphone, MonitorSmartphone } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
+import { useAuth } from "@/hooks/useAuth";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -28,11 +29,17 @@ const isDesktop = () => {
 };
 
 export function PWAInstallPrompt() {
+  const { user } = useAuth();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isMacDesktop, setIsMacDesktop] = useState(false);
 
   useEffect(() => {
+    // Don't show anything if user is not logged in
+    if (!user) {
+      return;
+    }
+
     // Don't show anything if running in Electron app
     if (isElectron()) {
       return;
@@ -73,7 +80,7 @@ export function PWAInstallPrompt() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
-  }, []);
+  }, [user]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
