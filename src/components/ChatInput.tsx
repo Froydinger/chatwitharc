@@ -189,6 +189,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
   // Model label pill visibility
   const [showModelLabel, setShowModelLabel] = useState(false);
   const [isHoveringBrain, setIsHoveringBrain] = useState(false);
+  const [targetModel, setTargetModel] = useState<string | null>(null); // Track model we're switching to
   const modelLabelTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const brainButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -866,6 +867,8 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
               ? "google/gemini-2.5-flash"
               : "google/gemini-3-pro-preview";
             try {
+              // Set target model BEFORE updating profile so label shows new model
+              setTargetModel(newModel);
               await updateProfile({ preferred_model: newModel });
 
               // Show label for 3 seconds after model change
@@ -875,6 +878,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
               }
               modelLabelTimeoutRef.current = setTimeout(() => {
                 setShowModelLabel(false);
+                setTargetModel(null); // Clear target after label hides
               }, 3000);
 
               // Get button center position
@@ -886,6 +890,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
               );
             } catch (e) {
               console.error("Failed to toggle model:", e);
+              setTargetModel(null); // Clear on error
             }
           }}
           className={[
@@ -1109,8 +1114,24 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                     zIndex: 9999
                   }}
                 >
-                  <div className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-background/95 backdrop-blur-sm border border-border/50 text-foreground shadow-lg whitespace-nowrap">
-                    {profile?.preferred_model === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
+                  <div className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-background/95 backdrop-blur-sm border border-border/50 text-foreground shadow-lg">
+                    {(() => {
+                      // Use target model if switching, otherwise current model
+                      const displayModel = targetModel || profile?.preferred_model || "google/gemini-2.5-flash";
+                      const modelName = displayModel === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast";
+                      // Show "Switched to" above model name when clicked, just model name on hover
+                      const showSwitchedTo = showModelLabel && targetModel;
+
+                      if (showSwitchedTo) {
+                        return (
+                          <div className="flex flex-col items-center text-center">
+                            <div className="text-[9px] text-muted-foreground">Switched to</div>
+                            <div className="whitespace-nowrap">{modelName}</div>
+                          </div>
+                        );
+                      }
+                      return <div className="whitespace-nowrap">{modelName}</div>;
+                    })()}
                   </div>
                 </motion.div>
               );
