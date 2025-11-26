@@ -25,14 +25,11 @@ interface FingerPopupProps {
 }
 
 function FingerPopup({ message, x, y }: FingerPopupProps) {
-  // Position the popup directly above the button
-  const offsetY = -60;
-
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0, y: 0 }}
-      animate={{ opacity: 1, scale: 1, y: offsetY }}
-      exit={{ opacity: 0, scale: 0.8, y: offsetY - 10 }}
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8 }}
       transition={{
         type: "spring",
         stiffness: 500,
@@ -42,8 +39,8 @@ function FingerPopup({ message, x, y }: FingerPopupProps) {
       className="fixed z-[9999] pointer-events-none px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap backdrop-blur-xl bg-green-500/20 border-2 border-green-400/60 text-white shadow-[0_0_24px_rgba(34,197,94,0.4)]"
       style={{
         left: `${x}px`,
-        top: `${y}px`,
-        transform: 'translate(-50%, -100%)',
+        top: `${y - 70}px`,
+        transform: 'translateX(-50%)',
       }}
     >
       {message}
