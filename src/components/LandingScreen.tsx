@@ -256,7 +256,7 @@ export function LandingScreen() {
             <img
               src={logoUrl}
               alt="ArcAi Logo"
-              className="w-32 h-32 md:w-40 md:h-40 object-contain drop-shadow-[0_0_40px_rgba(59,130,246,0.3)] animate-fade-in"
+              className="w-32 h-32 md:w-40 md:h-40 object-contain logo-glow-breathe animate-fade-in"
             />
           </div>
 

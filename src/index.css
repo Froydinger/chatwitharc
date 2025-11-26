@@ -598,4 +598,18 @@ All colors MUST be HSL for perfect glass effects.
   .delay-200 { animation-delay: 0.2s; }
   .delay-300 { animation-delay: 0.3s; }
   .delay-500 { animation-delay: 0.5s; }
+
+  /* Logo Breathing Glow */
+  @keyframes logo-breathe {
+    0%, 100% {
+      filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.3)) brightness(1);
+    }
+    50% {
+      filter: drop-shadow(0 0 60px rgba(59, 130, 246, 0.8)) drop-shadow(0 0 80px rgba(6, 182, 212, 0.4)) brightness(1.15);
+    }
+  }
+
+  .logo-glow-breathe {
+    animation: logo-breathe 6s ease-in-out infinite;
+  }
 }
