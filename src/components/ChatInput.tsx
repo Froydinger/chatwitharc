@@ -780,13 +780,13 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
                   <button
                     type="button"
                     onClick={() => setAllImagesEditMode(!allImagesEditMode)}
-                    className={`w-full px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                    className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                       allImagesEditMode
                         ? "bg-primary/90 text-primary-foreground"
                         : "bg-muted/90 text-muted-foreground hover:bg-muted"
                     }`}
                   >
-                    {allImagesEditMode ? `✏️ Edit All ${selectedImages.length} Images` : `🔍 Analyze All ${selectedImages.length} Images`}
+                    {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
                   </button>
                 </div>
               )}

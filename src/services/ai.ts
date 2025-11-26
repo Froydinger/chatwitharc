@@ -156,11 +156,11 @@ export class AIService {
 
   async editImage(prompt: string, baseImageUrls: string | string[]): Promise<string> {
     try {
-      // Support both single image and array of images (max 2 for combining)
+      // Support both single image and array of images (max 14 for combining with Gemini 3 Pro)
       const images = Array.isArray(baseImageUrls) ? baseImageUrls : [baseImageUrls];
       
-      if (images.length > 2) {
-        throw new Error('Maximum 2 images allowed for combining');
+      if (images.length > 14) {
+        throw new Error('Maximum 14 images allowed for combining');
       }
       
       // Editing/combining image(s) with Gemini
