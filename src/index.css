@@ -119,7 +119,18 @@ All colors MUST be HSL for perfect glass effects.
     height: 200%;
     pointer-events: none;
     z-index: -1;
-    background: radial-gradient(circle at center, hsl(var(--primary-glow) / 0.08) 0%, hsl(var(--primary-glow) / 0.06) 20%, hsl(var(--primary-glow) / 0.03) 40%, hsl(var(--primary-glow) / 0.01) 60%, transparent 80%);
+    background: radial-gradient(circle at center, 
+      hsl(var(--primary-glow) / 0.08) 0%, 
+      hsl(var(--primary-glow) / 0.075) 10%,
+      hsl(var(--primary-glow) / 0.07) 15%,
+      hsl(var(--primary-glow) / 0.06) 20%, 
+      hsl(var(--primary-glow) / 0.05) 25%,
+      hsl(var(--primary-glow) / 0.04) 30%,
+      hsl(var(--primary-glow) / 0.03) 40%, 
+      hsl(var(--primary-glow) / 0.02) 50%,
+      hsl(var(--primary-glow) / 0.01) 60%, 
+      hsl(var(--primary-glow) / 0.005) 70%,
+      transparent 80%);
     will-change: transform;
     transform: translateZ(0);
     animation: global-background-drift 20s linear infinite;
