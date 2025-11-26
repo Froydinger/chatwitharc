@@ -146,17 +146,15 @@ export function LandingScreen() {
           <img src={iconUrl} alt="ArcAi Icon" className="w-10 h-10 rounded-xl shadow-lg border border-white/10" />
           <span className="text-xl font-bold tracking-tight text-white">ArcAi</span>
         </div>
-        <div className="hidden md:flex items-center space-x-8 text-sm font-medium text-gray-400">
-          <a href="#features" className="hover:text-white transition-colors">Features</a>
-          <button onClick={() => setShowAuthModal(true)} className="hover:text-white transition-colors">Sign In</button>
+        <div className="hidden md:flex items-center space-x-6">
+          <a href="#features" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Features</a>
+          <button
+            onClick={() => setShowAuthModal(true)}
+            className="px-5 py-2.5 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition-opacity"
+          >
+            Sign In / Sign Up
+          </button>
         </div>
-        <a
-          href={downloadUrl}
-          className="hidden md:flex items-center space-x-2 bg-white text-black px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-gray-200 transition-colors shine-button"
-        >
-          <Download className="w-4 h-4" />
-          <span>Download</span>
-        </a>
         <button
           className="md:hidden text-white"
           onClick={() => setShowMobileMenu(!showMobileMenu)}
@@ -169,14 +167,12 @@ export function LandingScreen() {
       {showMobileMenu && (
         <div className="md:hidden fixed top-20 right-6 z-50 glass-panel rounded-2xl p-4 space-y-3 min-w-[200px]">
           <a href="#features" className="block text-gray-400 hover:text-white transition-colors">Features</a>
-          <button onClick={() => { setShowAuthModal(true); setShowMobileMenu(false); }} className="block text-gray-400 hover:text-white transition-colors w-full text-left">Sign In</button>
-          <a
-            href={downloadUrl}
-            className="flex items-center space-x-2 bg-white text-black px-4 py-2 rounded-full text-sm font-semibold hover:bg-gray-200 transition-colors justify-center"
+          <button
+            onClick={() => { setShowAuthModal(true); setShowMobileMenu(false); }}
+            className="w-full px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white text-center"
           >
-            <Download className="w-4 h-4" />
-            <span>Download</span>
-          </a>
+            Sign In / Sign Up
+          </button>
         </div>
       )}
 
@@ -187,7 +183,7 @@ export function LandingScreen() {
             Your mind, <span className="gradient-text">amplified.</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-400 mb-8 max-w-xl mx-auto leading-relaxed">
-            The intelligent companion for your Mac. Experience the fluid, intuitive way to create, code, and think.
+            The intelligent AI companion that adapts to you. Create, code, and think with fluid, intuitive conversations.
           </p>
 
           <div className="flex flex-col items-center justify-center space-y-4">
@@ -197,17 +193,17 @@ export function LandingScreen() {
                 className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(139,92,246,0.3)]"
               >
                 <Sparkles className="w-6 h-6" />
-                <span>Chat with Arc for Web</span>
+                <span>Start Chatting on Web</span>
               </button>
               <a
                 href={downloadUrl}
                 className="shine-button w-full sm:w-auto px-8 py-4 bg-white text-black rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
               >
                 <Apple className="w-6 h-6" />
-                <span>Download for macOS</span>
+                <span>Download for Mac</span>
               </a>
             </div>
-            <span className="text-xs text-gray-500">Free for web • v1.0.2 for macOS (Apple Silicon & Intel)</span>
+            <span className="text-xs text-gray-500">Free on web • Native Mac app available</span>
           </div>
         </div>
 
@@ -221,19 +217,19 @@ export function LandingScreen() {
           <FeatureCard
             icon={Zap}
             title="Lightning Fast"
-            description="Built natively for macOS to deliver instant responses. No lag, just pure thought-to-text fluidity."
+            description="Instant responses with cutting-edge AI models. Choose between speed and depth—switch models anytime."
             color="from-yellow-400 to-orange-500"
           />
           <FeatureCard
             icon={Brain}
-            title="Deep Understanding"
-            description="ArcAi understands context like no other. From complex codebases to creative writing nuances."
+            title="Personal Memory"
+            description="ArcAi remembers your preferences and context. Your conversations adapt to your unique workflow and style."
             color="from-purple-400 to-pink-500"
           />
           <FeatureCard
             icon={Sparkles}
             title="Multimodal Magic"
-            description="Generate images, analyze files, and brainstorm ideas in one unified, liquid interface."
+            description="Chat, generate images, analyze files, and code—all in one fluid, beautiful interface."
             color="from-blue-400 to-cyan-500"
           />
         </div>
@@ -246,16 +242,25 @@ export function LandingScreen() {
 
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to shine?</h2>
           <p className="text-gray-400 mb-10 max-w-lg mx-auto">
-            Join thousands of creators who have upgraded their workflow with ArcAi.
+            Join thousands of creators, developers, and thinkers who've found their AI companion.
           </p>
 
-          <button
-            onClick={() => setShowAuthModal(true)}
-            className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
-          >
-            <span>Get Started Free</span>
-            <ArrowRight className="w-5 h-5" />
-          </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
+            >
+              <span>Start Free on Web</span>
+              <ArrowRight className="w-5 h-5" />
+            </button>
+            <a
+              href={downloadUrl}
+              className="inline-flex items-center space-x-2 bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg transition-all duration-300"
+            >
+              <Apple className="w-5 h-5" />
+              <span>Get Mac App</span>
+            </a>
+          </div>
         </div>
       </section>
 
