@@ -487,7 +487,10 @@ export function MobileChatApp() {
 
   // Main chat interface
   return (
-    <div className="min-h-screen bg-background flex relative md:pt-[30px]">
+    <div className={cn(
+      "min-h-screen bg-background flex relative",
+      (isPWAMode || isElectronApp) && "md:pt-[30px]"
+    )}>
       {/* Breathing gradient background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="chat-breathing-blob chat-breathing-blob-1"></div>
@@ -504,7 +507,8 @@ export function MobileChatApp() {
         {/* Floating header buttons - no bar */}
         <div
           className={cn(
-            "fixed top-0 md:top-[30px] left-0 right-0 z-40 transition-transform duration-300 ease-out pointer-events-none",
+            "fixed left-0 right-0 z-40 transition-transform duration-300 ease-out pointer-events-none",
+            (isPWAMode || isElectronApp) ? "top-0 md:top-[30px]" : "top-0",
             isMobile && !headerVisible && "-translate-y-full",
           )}
         >

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,35 +16,51 @@ import { AdminPage } from "./pages/AdminPage";
 
 const queryClient = new QueryClient();
 
-// Detect if mobile device (don't add top padding on mobile)
-const isMobileDevice = () => window.innerWidth < 768;
-const needsTopPadding = () => !isMobileDevice();
+// Detect PWA/Electron mode and add class to body
+const detectStandaloneMode = () => {
+  const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                (window.navigator as any).standalone === true;
+  const isElectron = /electron/i.test(navigator.userAgent);
+  
+  if (isPWA || isElectron) {
+    document.body.classList.add('standalone-app');
+  } else {
+    document.body.classList.remove('standalone-app');
+  }
+};
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <div className="arcai-drag-bar hidden md:block" />
-        <BackgroundGradients />
-          <Toaster />
-          <Sonner />
-          <FingerPopupContainer />
-          <PWAInstallPrompt />
-          <UpdateNotification />
-          <BrowserRouter>
-            <PageTransition>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/chat/:sessionId" element={<Index />} />
-                <Route path="/admin" element={<AdminPage />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </PageTransition>
-          </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Detect standalone mode on mount
+  useEffect(() => {
+    detectStandaloneMode();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <div className="arcai-drag-bar hidden md:block" />
+          <BackgroundGradients />
+            <Toaster />
+            <Sonner />
+            <FingerPopupContainer />
+            <PWAInstallPrompt />
+            <UpdateNotification />
+            <BrowserRouter>
+              <PageTransition>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/chat/:sessionId" element={<Index />} />
+                  <Route path="/admin" element={<AdminPage />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </PageTransition>
+            </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

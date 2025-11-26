@@ -44,6 +44,16 @@ interface RightPanelProps {
 }
 
 export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
+  // Detect PWA/Electron mode for conditional spacing
+  const [isStandaloneApp, setIsStandaloneApp] = useState(false);
+
+  useEffect(() => {
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                  (window.navigator as any).standalone === true;
+    const isElectron = /electron/i.test(navigator.userAgent);
+    setIsStandaloneApp(isPWA || isElectron);
+  }, []);
+
   // Audio state management (persists across tab switches)
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(() => {
@@ -163,13 +173,18 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         animate={{ x: isOpen ? "0%" : "100%" }}
         transition={{ type: "spring", damping: 18, stiffness: 320, mass: 0.65 }}
         className={cn(
-          "fixed top-0 md:top-[30px] right-0 h-full md:h-[calc(100vh-30px)] z-50 backdrop-blur-2xl bg-background/50 border-l border-border/30",
+          "fixed top-0 right-0 h-full z-50 backdrop-blur-2xl bg-background/50 border-l border-border/30",
           "w-full sm:w-96 lg:w-80 xl:w-96",
           "flex flex-col overflow-hidden shadow-2xl"
         )}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border/30 backdrop-blur-xl bg-background/40">
+        {/* Internal wrapper with conditional padding */}
+        <div className={cn(
+          "flex flex-col h-full",
+          isStandaloneApp && "md:pt-[30px]"
+        )}>
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-border/30 backdrop-blur-xl bg-background/40">
           <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="music" className="flex items-center justify-center">
@@ -190,18 +205,18 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
             </TabsList>
           </Tabs>
           
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="ml-2 rounded-full"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="ml-2 rounded-full"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-hidden">
+          {/* Content */}
+          <div className="flex-1 overflow-hidden">
           <Tabs value={activeTab} className="h-full">
             <TabsContent value="history" className="h-full m-0">
               <ChatHistoryPanel />
@@ -237,19 +252,20 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
               <SettingsPanel />
             </TabsContent>
 
-            <TabsContent value="export" className="h-full m-0">
-              <ExportPanel />
-            </TabsContent>
-          </Tabs>
-        </div>
+              <TabsContent value="export" className="h-full m-0">
+                <ExportPanel />
+              </TabsContent>
+            </Tabs>
+          </div>
 
-        {/* Audio element - persists across all tabs */}
-        <audio
-          ref={audioRef}
-          src={track.url}
-          loop
-          preload="metadata"
-        />
+          {/* Audio element - persists across all tabs */}
+          <audio
+            ref={audioRef}
+            src={track.url}
+            loop
+            preload="metadata"
+          />
+        </div>
       </motion.div>
     </>
   );
