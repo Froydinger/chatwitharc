@@ -13,6 +13,7 @@ import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { Index } from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminPage } from "./pages/AdminPage";
+import { DownloadPage } from "./pages/DownloadPage";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const App = () => {
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/chat/:sessionId" element={<Index />} />
+                  <Route path="/download" element={<DownloadPage />} />
                   <Route path="/admin" element={<AdminPage />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
