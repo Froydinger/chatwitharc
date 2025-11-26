@@ -552,7 +552,13 @@ All colors MUST be HSL for perfect glass effects.
     -webkit-app-region: no-drag;
   }
 
+  /* Only show drag bar in PWA/Electron mode */
   .arcai-drag-bar {
+    display: none;
+  }
+
+  .standalone-app .arcai-drag-bar {
+    display: block;
     position: fixed;
     top: 0;
     left: 0;

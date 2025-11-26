@@ -7,6 +7,7 @@ import { PrivacyTermsModal } from "./PrivacyTermsModal";
 import { AppleLogo } from "./icons/AppleLogo";
 import { WindowsLogo } from "./icons/WindowsLogo";
 import { BackgroundGradients } from "./BackgroundGradients";
+import { cn } from "@/lib/utils";
 
 // Helper to detect Electron app
 const isElectron = () => {
@@ -246,7 +247,10 @@ export function LandingScreen() {
   };
 
   return (
-    <div className="dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white md:pt-[30px]">
+    <div className={cn(
+      "dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white",
+      (isPWAMode || isElectronApp) && "md:pt-[30px]"
+    )}>
       {/* Background Gradients */}
       <BackgroundGradients />
 
