@@ -98,8 +98,8 @@ const AppMockup = () => {
           <div className="flex gap-3 md:gap-6 mb-8 md:mb-12 scale-90 md:scale-100 relative">
             {/* Popup Message */}
             {activeCardPopup && (
-              <div className="absolute -top-16 left-0 right-0 z-20 animate-fade-in flex justify-center px-4">
-                <div className="bg-primary/20 backdrop-blur-xl border-2 border-primary/60 text-white px-4 py-2 rounded-full text-sm md:text-base font-medium whitespace-nowrap shadow-[0_0_24px_hsl(var(--primary)/0.4)] max-w-full overflow-hidden text-ellipsis">
+              <div className="absolute -top-20 md:-top-16 left-0 right-0 z-20 animate-fade-in flex justify-center px-4">
+                <div className="bg-primary/20 backdrop-blur-xl border-2 border-primary/60 text-white px-4 py-2 rounded-2xl text-sm md:text-base font-medium text-center shadow-[0_0_24px_hsl(var(--primary)/0.4)] max-w-xs md:max-w-md">
                   {cardMessages[activeCardPopup as keyof typeof cardMessages]}
                 </div>
               </div>
