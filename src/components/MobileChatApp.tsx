@@ -479,11 +479,19 @@ export function MobileChatApp() {
 
   // Main chat interface
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex relative">
+      {/* Breathing gradient background - dark mode only */}
+      {theme === 'dark' && (
+        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="chat-breathing-blob chat-breathing-blob-1"></div>
+          <div className="chat-breathing-blob chat-breathing-blob-2"></div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div
         className={cn(
-          "flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+          "flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10",
           rightPanelOpen && "lg:mr-80 xl:mr-96",
         )}
       >

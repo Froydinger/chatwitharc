@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Apple } from "lucide-react";
+import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu } from "lucide-react";
 import { AuthModal } from "./AuthModal";
 import { PrivacyTermsModal } from "./PrivacyTermsModal";
+import { AppleLogo } from "./icons/AppleLogo";
 
 // Prompt Pill Component
 const PromptPill = ({ icon, text, delay }: { icon: string; text: string; delay: string }) => (
@@ -92,7 +93,7 @@ const AppMockup = () => {
           <div className="flex gap-3 md:gap-6 mb-8 md:mb-12 scale-90 md:scale-100 relative">
             {/* Popup Message */}
             {activeCardPopup && (
-              <div className="absolute -top-16 left-1/2 -translate-x-1/2 z-20 animate-fade-in">
+              <div className="absolute -top-16 left-1/2 -translate-x-1/2 z-20 animate-fade-in flex justify-center w-full">
                 <div className="bg-primary/20 backdrop-blur-xl border-2 border-primary/60 text-white px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-[0_0_24px_hsl(var(--primary)/0.4)]">
                   {cardMessages[activeCardPopup as keyof typeof cardMessages]}
                 </div>
@@ -227,7 +228,7 @@ export function LandingScreen() {
                 href={downloadUrl}
                 className="shine-button w-full sm:w-auto px-8 py-4 bg-white text-black rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
               >
-                <Apple className="w-6 h-6" />
+                <AppleLogo className="w-5 h-5" />
                 <span>Download for Mac</span>
               </a>
             </div>
@@ -278,14 +279,14 @@ export function LandingScreen() {
               onClick={() => setShowAuthModal(true)}
               className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
             >
-              <span>Start Free on Web</span>
+              <span>Start on Web</span>
               <ArrowRight className="w-5 h-5" />
             </button>
             <a
               href={downloadUrl}
               className="inline-flex items-center space-x-2 bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg transition-all duration-300"
             >
-              <Apple className="w-5 h-5" />
+              <AppleLogo className="w-5 h-5" />
               <span>Get Mac App</span>
             </a>
           </div>
