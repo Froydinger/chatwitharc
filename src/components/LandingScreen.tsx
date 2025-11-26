@@ -6,7 +6,6 @@ import { AuthModal } from "./AuthModal";
 import { PrivacyTermsModal } from "./PrivacyTermsModal";
 import { AppleLogo } from "./icons/AppleLogo";
 import { WindowsLogo } from "./icons/WindowsLogo";
-import { ThemedLogo } from "./ThemedLogo";
 
 // Helper to detect Electron app
 const isElectron = () => {
@@ -201,7 +200,6 @@ export function LandingScreen() {
 
   const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi-for-Mac.dmg_.zip";
   const iconUrl = "https://froydinger.com/wp-content/uploads/2025/11/icon.png";
-  const logoUrl = "/arc-logo-ui.png";
 
   // Create mailto link for mobile users
   const mailtoLink = `mailto:?subject=ArcAi for Mac&body=Download ArcAi for Mac:%0D%0A%0D%0A${encodeURIComponent(downloadUrl)}`;
@@ -290,9 +288,10 @@ export function LandingScreen() {
         <div className="text-center max-w-3xl mx-auto mb-16 animate-fade-in">
           {/* Main Logo */}
           <div className="mb-8 flex justify-center">
-            <ThemedLogo
-              className="w-32 h-32 md:w-40 md:h-40 logo-glow-breathe animate-fade-in"
+            <img
+              src="/arc-logo-ui.png"
               alt="ArcAi Logo"
+              className="w-32 h-32 md:w-40 md:h-40 object-contain logo-glow-breathe animate-fade-in"
             />
           </div>
 
