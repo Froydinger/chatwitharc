@@ -206,6 +206,7 @@ export function LandingScreen() {
   const [isMobile, setIsMobile] = useState(false);
   const [isWindowsDevice, setIsWindowsDevice] = useState(false);
   const [isPWAMode, setIsPWAMode] = useState(false);
+  const [isIpad, setIsIpad] = useState(false);
 
   const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi-for-Mac-1.0.2.zip";
 
@@ -217,6 +218,10 @@ export function LandingScreen() {
     setIsMobile(isMobileDevice());
     setIsWindowsDevice(isWindows());
     setIsPWAMode(isPWA());
+    // Detect iPad
+    const ua = navigator.userAgent;
+    const isIpadDevice = (ua.includes('iPad') || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1)) && !ua.includes('iPhone');
+    setIsIpad(isIpadDevice);
   }, []);
 
   const handleWindowsClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -249,7 +254,10 @@ export function LandingScreen() {
   return (
     <div className={cn(
       "dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white",
-      (isPWAMode || isElectronApp) && "md:pt-[30px]"
+      // iPad PWA: Always apply 30px padding regardless of window size
+      (isPWAMode || isElectronApp) && isIpad && "pt-[30px]",
+      // Other devices: Only apply on medium+ screens
+      (isPWAMode || isElectronApp) && !isIpad && "md:pt-[30px]"
     )}>
       {/* Background Gradients */}
       <BackgroundGradients />
