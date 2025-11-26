@@ -358,7 +358,7 @@ export function LandingScreen() {
 
       {/* Footer */}
       <footer className="relative z-10 py-12 px-6 border-t border-white/5 text-center text-gray-600 text-sm">
-        <p>&copy; 2025 ArcAi Inc. All rights reserved.</p>
+        <p>&copy; 2025 <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Win The Night Productions</a>. All rights reserved.</p>
         <div className="mt-4 space-x-6">
           <PrivacyTermsModal />
         </div>
