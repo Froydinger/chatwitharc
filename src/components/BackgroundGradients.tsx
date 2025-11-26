@@ -28,7 +28,7 @@ export const BackgroundGradients = () => {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
         style={{
-          background: `radial-gradient(circle at 20% 50%, hsl(${primaryGlow} / 0.25) 0%, transparent 100%)`,
+          background: `radial-gradient(circle at 20% 50%, hsl(${primaryGlow} / 0.2) 0%, hsl(${primaryGlow} / 0.15) 20%, hsl(${primaryGlow} / 0.08) 40%, hsl(${primaryGlow} / 0.03) 60%, hsl(${primaryGlow} / 0.01) 80%, transparent 100%)`,
           animation: 'global-background-drift 20s linear infinite',
         }}
       />
@@ -41,7 +41,7 @@ export const BackgroundGradients = () => {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.1 }}
         style={{
-          background: `radial-gradient(circle at 80% 80%, hsl(${primaryGlow} / 0.2) 0%, transparent 100%)`,
+          background: `radial-gradient(circle at 80% 80%, hsl(${primaryGlow} / 0.15) 0%, hsl(${primaryGlow} / 0.11) 20%, hsl(${primaryGlow} / 0.06) 40%, hsl(${primaryGlow} / 0.02) 60%, hsl(${primaryGlow} / 0.005) 80%, transparent 100%)`,
           animation: 'background-drift-secondary 25s linear infinite',
         }}
       />
