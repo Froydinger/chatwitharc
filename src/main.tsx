@@ -23,9 +23,11 @@ const isStandalone = () => {
 const applyDeviceClasses = () => {
   if (isStandalone()) {
     document.body.classList.add('standalone-app');
+    console.log('Applied standalone-app class');
   }
   if (isIpad()) {
     document.body.classList.add('is-ipad');
+    console.log('Applied is-ipad class - 30px padding will be applied');
   }
 };
 
