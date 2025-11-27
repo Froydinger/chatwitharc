@@ -1,7 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { addWatermark } from '../_shared/watermark.ts';
 
 const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
@@ -52,8 +51,11 @@ serve(async (req) => {
     const enhancedPrompt = imageRestrictions
       ? `${prompt}\n\nIMPORTANT RESTRICTIONS: ${imageRestrictions}`
       : prompt;
+    
+    // Add watermark instruction to prompt
+    const finalPrompt = `${enhancedPrompt}\n\nIMPORTANT: Add a small, subtle watermark 'A✨' in the bottom-right corner of the image. The watermark should be white, semi-transparent, small and unobtrusive.`;
 
-    console.log('Enhanced prompt with restrictions:', enhancedPrompt);
+    console.log('Enhanced prompt with restrictions:', finalPrompt);
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -66,7 +68,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'user',
-            content: enhancedPrompt
+            content: finalPrompt
           }
         ],
         modalities: ['image', 'text']
@@ -128,11 +130,8 @@ serve(async (req) => {
       throw new Error('No image data received from Lovable AI');
     }
 
-    // Add watermark to the generated image
-    const watermarkedImageUrl = await addWatermark(imageUrl);
-
     return new Response(JSON.stringify({ 
-      imageUrl: watermarkedImageUrl,
+      imageUrl: imageUrl,
       model: imageModel,
       success: true 
     }), {
