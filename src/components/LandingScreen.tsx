@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Mail } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { AuthModal } from "./AuthModal";
 import { PrivacyTermsModal } from "./PrivacyTermsModal";
@@ -512,14 +513,14 @@ export function LandingScreen() {
                     <span>{isPWAMode ? "Get Started" : "Start Chatting on Web"}</span>
                   </button>
                   {isMobile ? (
-                    <a
-                      href={mailtoLink}
+                    <Link
+                      to="/download"
                       className="shine-button w-full sm:w-auto px-8 py-4 bg-white text-black rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
                     >
                       <ArrowRight className="w-4 h-4" />
                       <AppleLogo className="w-5 h-5" />
-                      <span>Send to Mac</span>
-                    </a>
+                      <span>Get for Mac</span>
+                    </Link>
                    ) : isWindowsDevice ? (
                     <button
                       onClick={handleWindowsClick}
@@ -529,17 +530,17 @@ export function LandingScreen() {
                       <span>ArcAi for Windows Coming Soon!</span>
                     </button>
                   ) : (
-                    <a
-                      href={downloadUrl}
+                    <Link
+                      to="/download"
                       className="shine-button w-full sm:w-auto px-8 py-4 bg-white text-black rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
                     >
                       <AppleLogo className="w-5 h-5" />
                       <span>Download for Mac</span>
-                    </a>
+                    </Link>
                   )}
                 </div>
                 <span className="text-xs text-gray-500">
-                  {isMobile ? 'Free on web • Email Mac app link' : isWindowsDevice ? 'Free on web • Windows app coming soon' : 'Free on web • Native Mac app available'}
+                  {isMobile ? 'Free on web • Mac app available' : isWindowsDevice ? 'Free on web • Windows app coming soon' : 'Free on web • Native Mac app available'}
                 </span>
               </>
             )}
