@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { addWatermark } from '../_shared/watermark.ts';
 
 const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
@@ -127,8 +128,11 @@ serve(async (req) => {
       throw new Error('No image data received from Lovable AI');
     }
 
+    // Add watermark to the generated image
+    const watermarkedImageUrl = await addWatermark(imageUrl);
+
     return new Response(JSON.stringify({ 
-      imageUrl: imageUrl,
+      imageUrl: watermarkedImageUrl,
       model: imageModel,
       success: true 
     }), {
