@@ -115,7 +115,7 @@ serve(async (req) => {
       : editPrompt;
     
     // Add watermark instruction to prompt
-    const finalEditPrompt = `${enhancedEditPrompt}\n\nIMPORTANT: Add a small watermark in the bottom-right corner of the actual image (not on objects within the scene, but overlaid on the image itself like a photo watermark). The watermark should be: a bold sans-serif letter "A" (no italics, no cursive, no serifs, just clean and simple) followed by a four-point star (like a plus sign or cross shape with points at top, bottom, left, and right - NOT a five-point star). The star should be exactly the same size as the letter A. Make it white at only 10% opacity (very subtle and barely visible).`;
+    const finalEditPrompt = `${enhancedEditPrompt}\n\nIMPORTANT: Add a very small watermark in the bottom-right corner of the actual image (not on objects within the scene, but overlaid on the image itself like a photo watermark). The watermark should be the text "ArcAi" in sans-serif font, where "Arc" is rendered in ultra-thin font weight and "Ai" is rendered in regular thin font weight. Make it white at only 10% opacity (very subtle and barely visible). Keep it very small.`;
 
     console.log('Edit/combine prompt with restrictions:', finalEditPrompt);
 
