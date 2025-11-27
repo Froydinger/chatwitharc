@@ -1,17 +1,20 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
+import { useProfile } from "@/hooks/useProfile";
 import { SmoothImage } from "@/components/ui/smooth-image";
-import { X, Sparkles } from "lucide-react";
+import { X, Sparkles, Zap, Brain } from "lucide-react";
 
 interface ImageEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   imageUrl: string | string[];
   originalPrompt?: string;
+  lastUsedModel?: string; // Track last model used for this image
 }
 
 const MAX_CHARS = 500;
@@ -27,12 +30,31 @@ const SUGGESTIONS = [
   "Remove background clutter",
 ];
 
-export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: ImageEditModalProps) {
+export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, lastUsedModel }: ImageEditModalProps) {
   const [editInstruction, setEditInstruction] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeChips, setActiveChips] = useState<string[]>([]);
+  const { profile } = useProfile();
   const { addMessage } = useArcStore();
   const { toast } = useToast();
+  
+  // Model selection - defaults to last used model, or user's preferred model
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    if (lastUsedModel) return lastUsedModel;
+    return profile?.preferred_model === 'google/gemini-3-pro-preview' 
+      ? 'google/gemini-3-pro-image-preview' 
+      : 'google/gemini-2.5-flash-image';
+  });
+
+  // Update selected model if profile changes and no last used model
+  useEffect(() => {
+    if (!lastUsedModel) {
+      const newModel = profile?.preferred_model === 'google/gemini-3-pro-preview' 
+        ? 'google/gemini-3-pro-image-preview' 
+        : 'google/gemini-2.5-flash-image';
+      setSelectedModel(newModel);
+    }
+  }, [profile?.preferred_model, lastUsedModel]);
   
   // Normalize imageUrl to always be an array for easier handling
   const imageUrls = Array.isArray(imageUrl) ? imageUrl : [imageUrl];
@@ -77,6 +99,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
           content: editPrompt,
           baseImageUrl: imageUrls, // Pass all image URLs
           editInstruction: textWithChips,
+          imageModel: selectedModel, // Pass selected model
         },
       });
       window.dispatchEvent(editEvent);
@@ -196,6 +219,41 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt }: Im
                   );
                 })}
               </div>
+            </div>
+
+            {/* Model Selection */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Image Model</label>
+              <Select value={selectedModel} onValueChange={setSelectedModel}>
+                <SelectTrigger className="w-full bg-background border-border/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="google/gemini-2.5-flash-image">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4" />
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">Fast Generation</span>
+                        <span className="text-xs text-muted-foreground">Gemini 2.5 Flash Image</span>
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="google/gemini-3-pro-image-preview">
+                    <div className="flex items-center gap-2">
+                      <Brain className="h-4 w-4" />
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">High Quality</span>
+                        <span className="text-xs text-muted-foreground">Gemini 3 Pro Image</span>
+                      </div>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                {selectedModel === 'google/gemini-2.5-flash-image' 
+                  ? 'Faster processing, good quality' 
+                  : 'Slower processing, highest quality'}
+              </p>
             </div>
 
             {/* Main Edit Textarea */}

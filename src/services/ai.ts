@@ -123,12 +123,33 @@ export class AIService {
     }
   }
 
-  async generateImage(prompt: string): Promise<string> {
+  async generateImage(prompt: string, preferredModel?: string): Promise<string> {
     try {
       // Generating image with Gemini
+      // If no model specified, fetch from profile
+      let modelToUse = preferredModel;
+      if (!modelToUse) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('preferred_model')
+              .eq('user_id', user.id)
+              .maybeSingle();
+            modelToUse = data?.preferred_model || 'google/gemini-2.5-flash';
+          }
+        } catch (e) {
+          console.warn('Could not fetch profile model, using default:', e);
+          modelToUse = 'google/gemini-2.5-flash';
+        }
+      }
       
       const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { prompt }
+        body: { 
+          prompt,
+          preferredModel: modelToUse
+        }
       });
 
       if (error) {
@@ -147,6 +168,7 @@ export class AIService {
         throw new Error('Failed to generate image');
       }
 
+      // Return both imageUrl and model used
       return data.imageUrl;
     } catch (error) {
       console.error('Image generation error:', error);
@@ -154,7 +176,7 @@ export class AIService {
     }
   }
 
-  async editImage(prompt: string, baseImageUrls: string | string[]): Promise<string> {
+  async editImage(prompt: string, baseImageUrls: string | string[], imageModel?: string): Promise<string> {
     try {
       // Support both single image and array of images (max 14 for combining with Gemini 3 Pro)
       const images = Array.isArray(baseImageUrls) ? baseImageUrls : [baseImageUrls];
@@ -168,7 +190,8 @@ export class AIService {
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: { 
           prompt, 
-          baseImageUrls: images
+          baseImageUrls: images,
+          imageModel: imageModel || undefined
         }
       });
 

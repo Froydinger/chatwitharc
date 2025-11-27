@@ -16,12 +16,22 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt } = await req.json();
+    const { prompt, preferredModel } = await req.json();
     console.log('Generating image with prompt:', prompt);
+    console.log('Preferred model:', preferredModel);
 
     if (!lovableApiKey) {
       throw new Error('Lovable API key not configured');
     }
+
+    // Map chat model preference to image model
+    // google/gemini-2.5-flash (Smart & Fast) → google/gemini-2.5-flash-image
+    // google/gemini-3-pro-preview (Wise & Thoughtful) → google/gemini-3-pro-image-preview
+    const imageModel = preferredModel === 'google/gemini-3-pro-preview' 
+      ? 'google/gemini-3-pro-image-preview'
+      : 'google/gemini-2.5-flash-image';
+    
+    console.log('Using image model:', imageModel);
 
     // Get Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -51,7 +61,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-pro-image-preview',
+        model: imageModel,
         messages: [
           {
             role: 'user',
@@ -119,6 +129,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       imageUrl: imageUrl,
+      model: imageModel,
       success: true 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

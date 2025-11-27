@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, baseImageUrl, baseImageUrls } = await req.json();
+    const { prompt, baseImageUrl, baseImageUrls, imageModel } = await req.json();
 
     if (!prompt) {
       return new Response(
@@ -31,6 +31,10 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
+
+    // Use provided model or default to Gemini 3 Pro
+    const selectedModel = imageModel || 'google/gemini-3-pro-image-preview';
+    console.log('Using image model:', selectedModel);
 
     // Support both single image and multiple images (up to 2 for combining)
     const imageArray = baseImageUrls || (baseImageUrl ? [baseImageUrl] : []);
@@ -130,7 +134,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-pro-image-preview',
+        model: selectedModel,
         messages: [
           {
             role: 'user',
@@ -201,7 +205,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        imageUrl: imageUrl 
+        imageUrl: imageUrl,
+        model: selectedModel
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
