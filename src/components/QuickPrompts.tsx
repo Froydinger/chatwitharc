@@ -14,12 +14,7 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="flex flex-col items-center gap-4 px-4"
-    >
+    <div className="flex flex-col items-center gap-4 px-4">
       {/* Prompt Chips */}
       <div className="flex flex-wrap items-center justify-center gap-2 max-w-4xl">
         {quickPrompts.map((prompt, index) => (
@@ -43,6 +38,6 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
           </motion.button>
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 }
