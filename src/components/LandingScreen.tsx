@@ -501,6 +501,18 @@ export function LandingScreen() {
                 </button>
                 <span className="text-xs text-gray-500">Sign in to start chatting with ArcAi</span>
               </>
+            ) : isPWAMode ? (
+              // PWA: Only show Get Started button
+              <>
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]"
+                >
+                  <Sparkles className="w-6 h-6" />
+                  <span>Get Started</span>
+                </button>
+                <span className="text-xs text-gray-500">Free on web</span>
+              </>
             ) : (
               // Web: Show both web and download options
               <>
@@ -510,7 +522,7 @@ export function LandingScreen() {
                     className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]"
                   >
                     <Sparkles className="w-6 h-6" />
-                    <span>{isPWAMode ? "Get Started" : "Start Chatting on Web"}</span>
+                    <span>Start Chatting on Web</span>
                   </button>
                   {isMobile ? (
                     <a
@@ -531,7 +543,7 @@ export function LandingScreen() {
                     </button>
                   ) : (
                     <Link
-                      to="/download"
+                      to="/downloads"
                       className="shine-button w-full sm:w-auto px-8 py-4 bg-white text-black rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
                     >
                       <AppleLogo className="w-5 h-5" />
@@ -595,6 +607,15 @@ export function LandingScreen() {
                 <span>Sign In to Continue</span>
                 <ArrowRight className="w-5 h-5" />
               </button>
+            ) : isPWAMode ? (
+              // PWA: Only show Get Started button
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300"
+              >
+                <span>Get Started</span>
+                <ArrowRight className="w-5 h-5" />
+              </button>
             ) : (
               // Web: Both buttons
               <>
@@ -624,7 +645,7 @@ export function LandingScreen() {
                   </button>
                 ) : (
                   <Link
-                    to="/download"
+                    to="/downloads"
                     className="inline-flex items-center space-x-2 bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg transition-all duration-300"
                   >
                     <AppleLogo className="w-5 h-5" />

@@ -52,7 +52,7 @@ const App = () => {
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/chat/:sessionId" element={<Index />} />
-                  <Route path="/download" element={<DownloadPage />} />
+                  <Route path="/downloads" element={<DownloadPage />} />
                   <Route path="/admin" element={<AdminPage />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
