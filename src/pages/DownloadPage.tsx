@@ -121,7 +121,7 @@ export function DownloadPage() {
                   <p>If you experience issues after an update:</p>
                   <ol className="space-y-2 list-decimal list-inside ml-4">
                     <li>Drag ArcAi from Applications to Trash</li>
-                    <li>Visit chatwitharc.com/download for the latest version</li>
+                    <li>Visit chatwitharc.com/downloads for the latest version</li>
                     <li>Reinstall following the instructions above</li>
                   </ol>
                 </div>
