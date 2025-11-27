@@ -339,8 +339,8 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                             className="absolute inset-0 rounded-xl bg-gradient-to-br from-background/90 to-background/70 border border-primary/30 shadow-[0_0_15px_hsl(var(--primary)/0.15)] -z-10"
                             transition={{
                               type: "spring",
-                              damping: 18,
-                              stiffness: 400
+                              damping: 25,
+                              stiffness: 300
                             }}
                           />
                         )}
@@ -356,11 +356,19 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                 style={{ 
                   WebkitOverflowScrolling: 'touch',
                   touchAction: 'pan-y',
-                  overscrollBehavior: 'contain'
+                  overscrollBehavior: 'contain',
+                  willChange: 'scroll-position'
                 }}
               >
                 <AnimatePresence mode="wait">
-                  <div key={activeTab} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 py-4">
+                  <motion.div 
+                    key={activeTab} 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15, ease: "easeInOut" }}
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 py-4"
+                  >
                     {isCurrentTabLoading() ? (
                     <div className="col-span-full flex items-center justify-center py-16">
                       <motion.div
@@ -406,13 +414,12 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                   ) : (
                     getCurrentPrompts().map((prompt, index) => (
                       <motion.button
-                        key={`${activeTab}-${prompt.label}`}
-                        initial={{ opacity: 0, y: 10 }}
+                        key={`${activeTab}-${index}-${prompt.label}`}
+                        initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
                         transition={{
                           duration: 0.2,
-                          delay: index * 0.03,
+                          delay: Math.min(index * 0.025, 0.3),
                           ease: "easeOut"
                         }}
                         whileHover={{
@@ -447,7 +454,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                       </motion.button>
                     ))
                   )}
-                  </div>
+                  </motion.div>
                 </AnimatePresence>
               </div>
             </div>
