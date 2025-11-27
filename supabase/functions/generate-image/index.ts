@@ -53,7 +53,7 @@ serve(async (req) => {
       : prompt;
     
     // Add watermark instruction to prompt
-    const finalPrompt = `${enhancedPrompt}\n\nIMPORTANT: Add a small watermark in the bottom-right corner of the actual image (not on objects within the scene, but overlaid on the image itself like a photo watermark). The watermark should be: a bold sans-serif letter "A" (no italics, no cursive, no serifs, just clean and simple) followed by a simple four-point star ★. Make it white, semi-transparent, small and unobtrusive.`;
+    const finalPrompt = `${enhancedPrompt}\n\nIMPORTANT: Add a small watermark in the bottom-right corner of the actual image (not on objects within the scene, but overlaid on the image itself like a photo watermark). The watermark should be: a bold sans-serif letter "A" (no italics, no cursive, no serifs, just clean and simple) followed by a four-point star (like a plus sign or cross shape with points at top, bottom, left, and right - NOT a five-point star). The star should be exactly the same size as the letter A. Make it white at only 10% opacity (very subtle and barely visible).`;
 
     console.log('Enhanced prompt with restrictions:', finalPrompt);
 
