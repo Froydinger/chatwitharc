@@ -1,7 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { addWatermark } from '../_shared/watermark.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -114,12 +113,15 @@ serve(async (req) => {
     const enhancedEditPrompt = imageRestrictions
       ? `${editPrompt}\n\nIMPORTANT RESTRICTIONS: ${imageRestrictions}`
       : editPrompt;
+    
+    // Add watermark instruction to prompt
+    const finalEditPrompt = `${enhancedEditPrompt}\n\nIMPORTANT: Add a small, subtle watermark 'A✨' in the bottom-right corner of the image. The watermark should be white, semi-transparent, small and unobtrusive.`;
 
-    console.log('Edit/combine prompt with restrictions:', enhancedEditPrompt);
+    console.log('Edit/combine prompt with restrictions:', finalEditPrompt);
 
     // Build content array with text and all images
     const contentArray: any[] = [
-      { type: 'text', text: enhancedEditPrompt }
+      { type: 'text', text: finalEditPrompt }
     ];
     
     // Add all images to the content array
@@ -203,13 +205,10 @@ serve(async (req) => {
       );
     }
 
-    // Add watermark to the edited image
-    const watermarkedImageUrl = await addWatermark(imageUrl);
-
     return new Response(
       JSON.stringify({ 
         success: true, 
-        imageUrl: watermarkedImageUrl,
+        imageUrl: imageUrl,
         model: selectedModel
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -228,7 +228,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
                 <SelectTrigger className="w-full bg-background border-border/50">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[100]">
                   <SelectItem value="google/gemini-2.5-flash-image">
                     <div className="flex items-center gap-2">
                       <Zap className="h-4 w-4" />
