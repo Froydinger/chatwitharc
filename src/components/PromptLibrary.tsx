@@ -415,11 +415,11 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                     getCurrentPrompts().map((prompt, index) => (
                       <motion.button
                         key={`${activeTab}-${index}-${prompt.label}`}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={false}
+                        animate={{ opacity: 1 }}
                         transition={{
-                          duration: 0.2,
-                          delay: Math.min(index * 0.025, 0.3),
+                          duration: 0.15,
+                          delay: Math.min(index * 0.02, 0.2),
                           ease: "easeOut"
                         }}
                         whileHover={{

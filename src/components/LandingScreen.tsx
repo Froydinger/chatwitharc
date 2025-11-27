@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Mail } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { AuthModal } from "./AuthModal";
 import { PrivacyTermsModal } from "./PrivacyTermsModal";
@@ -529,13 +530,13 @@ export function LandingScreen() {
                       <span>ArcAi for Windows Coming Soon!</span>
                     </button>
                   ) : (
-                    <a
-                      href={downloadUrl}
+                    <Link
+                      to="/download"
                       className="shine-button w-full sm:w-auto px-8 py-4 bg-white text-black rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
                     >
                       <AppleLogo className="w-5 h-5" />
                       <span>Download for Mac</span>
-                    </a>
+                    </Link>
                   )}
                 </div>
                 <span className="text-xs text-gray-500">
@@ -622,13 +623,13 @@ export function LandingScreen() {
                     <span>Windows App Coming Soon!</span>
                   </button>
                 ) : (
-                  <a
-                    href={downloadUrl}
+                  <Link
+                    to="/download"
                     className="inline-flex items-center space-x-2 bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg transition-all duration-300"
                   >
                     <AppleLogo className="w-5 h-5" />
                     <span>Get Mac App</span>
-                  </a>
+                  </Link>
                 )}
               </>
             )}
