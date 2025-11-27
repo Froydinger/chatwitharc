@@ -776,7 +776,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
               </div>
               
               {/* Single mode toggle for all images */}
-              {selectedImages.length > 1 && (
+              {selectedImages.length > 0 && (
                 <div className="mt-3 pt-2 border-t border-border/30">
                   <button
                     type="button"
