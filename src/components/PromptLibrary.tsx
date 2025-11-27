@@ -360,15 +360,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                   willChange: 'scroll-position'
                 }}
               >
-                <AnimatePresence mode="wait">
-                  <motion.div 
-                    key={activeTab} 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15, ease: "easeInOut" }}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 py-4"
-                  >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 py-4">
                     {isCurrentTabLoading() ? (
                     <div className="col-span-full flex items-center justify-center py-16">
                       <motion.div
@@ -415,11 +407,10 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                     getCurrentPrompts().map((prompt, index) => (
                       <motion.button
                         key={`${activeTab}-${index}-${prompt.label}`}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={false}
+                        animate={{ opacity: 1 }}
                         transition={{
-                          duration: 0.2,
-                          delay: Math.min(index * 0.025, 0.3),
+                          duration: 0.15,
                           ease: "easeOut"
                         }}
                         whileHover={{
@@ -454,8 +445,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                       </motion.button>
                     ))
                   )}
-                  </motion.div>
-                </AnimatePresence>
+                  </div>
               </div>
             </div>
           </motion.div>
