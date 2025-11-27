@@ -379,9 +379,9 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
       } catch {}
     };
     const editHandler = (ev: Event) => {
-      const e = ev as CustomEvent<{ content: string; baseImageUrl: string | string[]; editInstruction: string }>;
+      const e = ev as CustomEvent<{ content: string; baseImageUrl: string | string[]; editInstruction: string; imageModel?: string }>;
       if (!e?.detail) return;
-      handleExternalImageEdit(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction);
+      handleExternalImageEdit(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction, e.detail.imageModel);
     };
     const editedMessageHandler = (ev: Event) => {
       const e = ev as CustomEvent<{ content: string; editedMessageId: string }>;
@@ -405,6 +405,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
     userMessage: string,
     baseImageUrl: string | string[],
     editInstruction: string,
+    imageModel?: string,
   ) => {
     try {
       const ai = new AIService();
@@ -424,7 +425,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
         imagePrompt: editInstruction,
       });
 
-      const url = await ai.editImage(editInstruction, Array.isArray(baseImageUrl) ? baseImageUrl : [baseImageUrl]);
+      const url = await ai.editImage(editInstruction, Array.isArray(baseImageUrl) ? baseImageUrl : [baseImageUrl], imageModel);
 
       // persist best-effort
       let finalUrl = url;
@@ -524,7 +525,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
           setGeneratingImage(true);
 
           try {
-            const editedUrl = await ai.editImage(userMessage, imageUrls);
+            const editedUrl = await ai.editImage(userMessage, imageUrls, undefined);
             let finalUrl = editedUrl;
             try {
               const resp = await fetch(editedUrl);
@@ -611,7 +612,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
 
         try {
           const apiPrompt = `Generate an image: ${imagePrompt}`;
-          const genUrl = await ai.generateImage(apiPrompt);
+          const genUrl = await ai.generateImage(apiPrompt, profile?.preferred_model || undefined);
           let finalUrl = genUrl;
           try {
             const resp = await fetch(genUrl);
