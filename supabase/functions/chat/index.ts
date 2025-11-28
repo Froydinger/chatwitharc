@@ -192,6 +192,12 @@ serve(async (req) => {
 
     const { messages, profile, model } = await req.json();
 
+    console.log('📊 Request details:', {
+      model: model || 'google/gemini-2.5-flash (default)',
+      messageCount: messages?.length || 0,
+      hasProfile: !!profile
+    });
+
     // Input validation
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -555,6 +561,7 @@ serve(async (req) => {
     ];
 
     // First AI call with tools
+    console.log('🤖 Making AI request with model:', model || 'google/gemini-2.5-flash');
     let response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
