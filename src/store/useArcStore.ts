@@ -231,6 +231,10 @@ export const useArcStore = create<ArcState>()(
         const session = get().chatSessions.find(s => s.id === sessionId);
         if (session) {
           console.log('Loading session:', sessionId, 'with', session.messages.length, 'messages');
+
+          // Reset model selection to default (Smart & Fast) when switching to any chat
+          sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash');
+
           set({
             currentSessionId: sessionId,
             messages: JSON.parse(JSON.stringify(session.messages)) // Deep clone to prevent reference issues

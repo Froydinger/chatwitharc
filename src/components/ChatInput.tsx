@@ -187,6 +187,11 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
   const [forceImageMode, setForceImageMode] = useState(false);
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
 
+  // Track current session model for brain icon state
+  const [sessionModel, setSessionModel] = useState<string>(() =>
+    sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash'
+  );
+
   // Textarea auto-resize with cursor position preservation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cursorPositionRef = useRef<number | null>(null);
@@ -242,6 +247,20 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
   useEffect(() => {
     onImagesChange?.(selectedImages.length > 0);
   }, [selectedImages.length, onImagesChange]);
+
+  // Sync session model state with sessionStorage (for chat switching)
+  useEffect(() => {
+    const syncSessionModel = () => {
+      const storedModel = sessionStorage.getItem('arc_session_model');
+      if (storedModel && storedModel !== sessionModel) {
+        setSessionModel(storedModel);
+      }
+    };
+
+    // Check periodically to detect external changes (e.g., from chat switching)
+    const interval = setInterval(syncSessionModel, 300);
+    return () => clearInterval(interval);
+  }, [sessionModel]);
 
   // Close tiles on outside click / esc
   useEffect(() => {
@@ -854,14 +873,18 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
         {/* Brain Icon Toggle - hidden on mobile when typing */}
         <button
           onClick={async (e) => {
-            const newModel = profile?.preferred_model === "google/gemini-3-pro-preview"
+            const newModel = sessionModel === "google/gemini-3-pro-preview"
               ? "google/gemini-2.5-flash"
               : "google/gemini-3-pro-preview";
             try {
               // Get button center position for popup
               const rect = e.currentTarget.getBoundingClientRect();
 
-              // Update profile
+              // Update sessionStorage so the model is actually used for API calls
+              sessionStorage.setItem('arc_session_model', newModel);
+              setSessionModel(newModel);
+
+              // Update profile for UI persistence (optional)
               await updateProfile({ preferred_model: newModel });
 
               // Show bouncy popup from brain icon
@@ -876,14 +899,14 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
           }}
           className={[
             "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40",
-            profile?.preferred_model === "google/gemini-3-pro-preview"
+            sessionModel === "google/gemini-3-pro-preview"
               ? "bg-primary/20 text-primary border-primary/40 shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
               : "bg-muted/50 text-muted-foreground hover:bg-muted/70",
             // Hide on mobile when typing (isActive), show on desktop always
             isActive ? "hidden sm:flex" : "flex",
           ].join(" ")}
           aria-label="Toggle AI model"
-          title={profile?.preferred_model === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
+          title={sessionModel === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
         >
           <Brain className="h-5 w-5" />
         </button>
