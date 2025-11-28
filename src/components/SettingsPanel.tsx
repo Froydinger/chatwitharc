@@ -634,6 +634,13 @@ export function SettingsPanel() {
                   sessionStorage.setItem('arc_session_model', value);
                   setSessionModel(value);
 
+                  console.log('⚙️ Model changed in Settings:', {
+                    newModel: value,
+                    isWise: value === 'google/gemini-3-pro-preview',
+                    isFast: value === 'google/gemini-2.5-flash',
+                    sessionStorageValue: sessionStorage.getItem('arc_session_model')
+                  });
+
                   // Get position from the selector trigger
                   const rect = modelSelectorRef.current?.getBoundingClientRect();
                   if (rect) {
