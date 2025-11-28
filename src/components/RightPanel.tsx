@@ -306,21 +306,6 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                   </motion.div>
                 </TabsContent>
               )}
-
-              {activeTab === "export" && (
-                <TabsContent value="export" className="h-full m-0" asChild>
-                  <motion.div
-                    key="export"
-                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
-                    className="h-full"
-                  >
-                    <ExportPanel />
-                  </motion.div>
-                </TabsContent>
-              )}
             </AnimatePresence>
             </Tabs>
           </div>
