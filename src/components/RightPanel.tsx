@@ -169,11 +169,11 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
 
       {/* Panel - snappy with rebound like pulling out a physical shelf */}
       <motion.div
-        initial={{ x: "100%" }}
-        animate={{ x: isOpen ? "0%" : "100%" }}
+        initial={{ x: "-100%" }}
+        animate={{ x: isOpen ? "0%" : "-100%" }}
         transition={{ type: "spring", damping: 18, stiffness: 320, mass: 0.65 }}
         className={cn(
-          "fixed top-0 right-0 h-full z-50 glass-strong border-l border-border/40 shadow-2xl",
+          "fixed top-0 left-0 h-full z-50 glass-strong border-r border-border/40 shadow-2xl",
           "w-full sm:w-96 lg:w-80 xl:w-96",
           "flex flex-col overflow-hidden"
         )}

@@ -501,7 +501,7 @@ export function MobileChatApp() {
       <div
         className={cn(
           "flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10",
-          rightPanelOpen && "lg:mr-80 xl:mr-96",
+          rightPanelOpen && "lg:ml-80 xl:ml-96",
         )}
       >
         {/* Floating header buttons - no bar */}
@@ -513,6 +513,48 @@ export function MobileChatApp() {
           )}
         >
           <div className="flex h-16 items-center justify-between px-4 pt-2 pointer-events-none">
+            {/* Left-side buttons */}
+            <div className="flex items-center gap-2 pointer-events-auto">
+              <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all shadow-lg"
+                  onClick={() => {
+                    setRightPanelOpen(!rightPanelOpen);
+                  }}
+                >
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all shadow-lg"
+                  onClick={handleNewChat}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </motion.div>
+            </div>
+
+            {/* Snarky message bubble - fixed position */}
+            <AnimatePresence mode="wait">
+              {snarkyMessage && (
+                <motion.div
+                  key={snarkyMessage}
+                  initial={{ opacity: 0, y: -10, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                  transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                  className="fixed top-20 right-4 px-3 py-2 rounded-xl backdrop-blur-2xl bg-background/95 border border-border/40 shadow-xl z-50 max-w-[220px]"
+                >
+                  <p className="text-[10pt] text-foreground/90 leading-snug">{snarkyMessage}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Logo Orb - clickable with snarky messages */}
             <motion.div
               className="relative pointer-events-auto"
@@ -581,48 +623,6 @@ export function MobileChatApp() {
                 <ThemedLogo className="h-9 w-9" alt="Arc" />
               </Button>
             </motion.div>
-
-            {/* Snarky message bubble - fixed position */}
-            <AnimatePresence mode="wait">
-              {snarkyMessage && (
-                <motion.div
-                  key={snarkyMessage}
-                  initial={{ opacity: 0, y: -10, scale: 0.9 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.9 }}
-                  transition={{ type: "spring", damping: 20, stiffness: 300 }}
-                  className="fixed top-20 left-4 px-3 py-2 rounded-xl backdrop-blur-2xl bg-background/95 border border-border/40 shadow-xl z-50 max-w-[220px]"
-                >
-                  <p className="text-[10pt] text-foreground/90 leading-snug">{snarkyMessage}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Right-side buttons */}
-            <div className="flex items-center gap-2 pointer-events-auto">
-              <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all shadow-lg"
-                  onClick={handleNewChat}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all shadow-lg"
-                  onClick={() => {
-                    setRightPanelOpen(!rightPanelOpen);
-                  }}
-                >
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </motion.div>
-            </div>
           </div>
         </div>
 
@@ -770,7 +770,7 @@ export function MobileChatApp() {
             <div
               className={cn(
                 "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto", // Input bar uses larger max-width
-                rightPanelOpen && "lg:mr-80 xl:mr-96",
+                rightPanelOpen && "lg:ml-80 xl:ml-96",
               )}
             >
               <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
