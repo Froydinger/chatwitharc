@@ -32,8 +32,18 @@ serve(async (req) => {
       );
     }
 
-    // Use provided model or default to Gemini 3 Pro
-    const selectedModel = imageModel || 'google/gemini-3-pro-image-preview';
+    // Map chat model to image model (same as generate-image)
+    // google/gemini-2.5-flash (Smart & Fast) → google/gemini-2.5-flash-image
+    // google/gemini-3-pro-preview (Wise & Thoughtful) → google/gemini-3-pro-image-preview
+    let selectedModel = imageModel || 'google/gemini-2.5-flash-image';
+    
+    // If chat model was passed, map it to image model
+    if (imageModel === 'google/gemini-2.5-flash') {
+      selectedModel = 'google/gemini-2.5-flash-image';
+    } else if (imageModel === 'google/gemini-3-pro-preview') {
+      selectedModel = 'google/gemini-3-pro-image-preview';
+    }
+    
     console.log('Using image model:', selectedModel);
 
     // Support both single image and multiple images (up to 2 for combining)

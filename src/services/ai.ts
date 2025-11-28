@@ -128,23 +128,11 @@ export class AIService {
   async generateImage(prompt: string, preferredModel?: string): Promise<string> {
     try {
       // Generating image with Gemini
-      // If no model specified, fetch from profile
+      // Use session model if no specific model provided
       let modelToUse = preferredModel;
       if (!modelToUse) {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data } = await supabase
-              .from('profiles')
-              .select('preferred_model')
-              .eq('user_id', user.id)
-              .maybeSingle();
-            modelToUse = data?.preferred_model || 'google/gemini-2.5-flash';
-          }
-        } catch (e) {
-          console.warn('Could not fetch profile model, using default:', e);
-          modelToUse = 'google/gemini-2.5-flash';
-        }
+        // Get model from sessionStorage (same as chat)
+        modelToUse = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
       }
       
       const { data, error } = await supabase.functions.invoke('generate-image', {
@@ -187,13 +175,14 @@ export class AIService {
         throw new Error('Maximum 14 images allowed for combining');
       }
       
-      // Editing/combining image(s) with Gemini
+      // Use session model if no specific model provided
+      const modelToUse = imageModel || sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
       
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: { 
           prompt, 
           baseImageUrls: images,
-          imageModel: imageModel || undefined
+          imageModel: modelToUse
         }
       });
 
