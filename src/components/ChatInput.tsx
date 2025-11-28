@@ -631,7 +631,9 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
 
         try {
           const apiPrompt = `Generate an image: ${imagePrompt}`;
-          const genUrl = await ai.generateImage(apiPrompt, profile?.preferred_model || undefined);
+          // Use sessionStorage for model selection (same as chat)
+          const currentModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
+          const genUrl = await ai.generateImage(apiPrompt, currentModel);
           let finalUrl = genUrl;
           try {
             const resp = await fetch(genUrl);
@@ -883,9 +885,6 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
               // Update sessionStorage so the model is actually used for API calls
               sessionStorage.setItem('arc_session_model', newModel);
               setSessionModel(newModel);
-
-              // Update profile for UI persistence (optional)
-              await updateProfile({ preferred_model: newModel });
 
               // Show bouncy popup from brain icon
               showPopup(
