@@ -56,10 +56,12 @@ export interface ArcState {
   isGeneratingImage: boolean;
   isSearchingChats: boolean;
   isAccessingMemory: boolean;
+  isSwitchingChat: boolean;
   setLoading: (loading: boolean) => void;
   setGeneratingImage: (generating: boolean) => void;
   setSearchingChats: (searching: boolean) => void;
   setAccessingMemory: (accessing: boolean) => void;
+  setSwitchingChat: (switching: boolean) => void;
 
   // Quick Start
   startChatWithMessage: (message: string) => void;
@@ -232,13 +234,24 @@ export const useArcStore = create<ArcState>()(
         if (session) {
           console.log('Loading session:', sessionId, 'with', session.messages.length, 'messages');
 
+          // Show loading state for smooth transition
+          set({ isSwitchingChat: true });
+
           // Reset model selection to default (Smart & Fast) when switching to any chat
           sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash');
 
-          set({
-            currentSessionId: sessionId,
-            messages: JSON.parse(JSON.stringify(session.messages)) // Deep clone to prevent reference issues
-          });
+          // Small delay to show loader and let content position
+          setTimeout(() => {
+            set({
+              currentSessionId: sessionId,
+              messages: JSON.parse(JSON.stringify(session.messages)) // Deep clone to prevent reference issues
+            });
+
+            // Brief delay before fading in content
+            setTimeout(() => {
+              set({ isSwitchingChat: false });
+            }, 100);
+          }, 200);
         } else {
           console.warn('Session not found:', sessionId);
         }
@@ -500,10 +513,12 @@ export const useArcStore = create<ArcState>()(
       isGeneratingImage: false,
       isSearchingChats: false,
       isAccessingMemory: false,
+      isSwitchingChat: false,
       setLoading: (loading) => set({ isLoading: loading }),
       setGeneratingImage: (generating) => set({ isGeneratingImage: generating }),
       setSearchingChats: (searching) => set({ isSearchingChats: searching }),
       setAccessingMemory: (accessing) => set({ isAccessingMemory: accessing }),
+      setSwitchingChat: (switching) => set({ isSwitchingChat: switching }),
       
       // Quick Start - modified to trigger proper image detection
       startChatWithMessage: async (message) => {

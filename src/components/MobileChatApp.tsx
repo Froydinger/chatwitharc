@@ -119,6 +119,7 @@ export function MobileChatApp() {
     isGeneratingImage,
     isSearchingChats,
     isAccessingMemory,
+    isSwitchingChat,
     createNewSession,
     startChatWithMessage,
     currentSessionId,
@@ -688,8 +689,29 @@ export function MobileChatApp() {
                   isGeneratingImage={isGeneratingImage}
                 />
               </div>
+            ) : isSwitchingChat ? (
+              // Show loader during chat switch
+              <div className="w-full flex justify-center items-center" style={{ paddingTop: "10rem" }}>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.15 }}
+                  className="flex flex-col items-center gap-3"
+                >
+                  <div className="relative">
+                    <div className="h-8 w-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Loading chat...</p>
+                </motion.div>
+              </div>
             ) : (
-              <div className="w-full flex justify-center px-4">
+              <motion.div
+                className="w-full flex justify-center px-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              >
                 <div
                   className="space-y-4 chat-messages w-full max-w-xl" // Messages only, now max-w-xl
                   style={{
@@ -752,7 +774,7 @@ export function MobileChatApp() {
                       )}
                   </AnimatePresence>
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
 
