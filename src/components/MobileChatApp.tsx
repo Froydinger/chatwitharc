@@ -255,21 +255,43 @@ export function MobileChatApp() {
     }
   }, [messages]);
 
-  // Scroll during typewriter typing - more aggressive
+  // Scroll during typewriter typing - buttery smooth
   useEffect(() => {
+    let rafId: number | null = null;
+
     const handleTyping = () => {
       const el = messagesContainerRef.current;
       if (!el) return;
 
-      // Always scroll to bottom during typing
-      el.scrollTo({
-        top: el.scrollHeight,
-        behavior: "auto", // Instant scroll during typing
+      // Cancel any pending animation frame
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+
+      // Use requestAnimationFrame for smoother scroll
+      rafId = requestAnimationFrame(() => {
+        const target = el.scrollHeight;
+        const current = el.scrollTop;
+        const maxScroll = el.scrollHeight - el.clientHeight;
+
+        // Only scroll if we're near the bottom (within 100px) or already at bottom
+        if (maxScroll - current < 200) {
+          el.scrollTo({
+            top: el.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+        rafId = null;
       });
     };
 
     window.addEventListener("typewriter-typing", handleTyping);
-    return () => window.removeEventListener("typewriter-typing", handleTyping);
+    return () => {
+      window.removeEventListener("typewriter-typing", handleTyping);
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+    };
   }, []);
 
   // Clear the tracked ID when messages change (new message added)
@@ -724,12 +746,13 @@ export function MobileChatApp() {
                       return (
                         <motion.div
                           key={message.id}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
+                          initial={{ opacity: 0, y: 12, scale: 0.97 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -8, scale: 0.98 }}
                           transition={{
-                            duration: 0.2,
-                            ease: [0.4, 0, 0.2, 1],
+                            duration: 0.35,
+                            ease: [0.25, 0.1, 0.25, 1],
+                            scale: { duration: 0.25 }
                           }}
                         >
                           <MessageBubble
@@ -755,10 +778,14 @@ export function MobileChatApp() {
                       messages.length > 0 &&
                       messages[messages.length - 1]?.role === "user" && (
                         <motion.div
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                          initial={{ opacity: 0, y: 12, scale: 0.97 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                          transition={{
+                            duration: 0.35,
+                            ease: [0.25, 0.1, 0.25, 1],
+                            scale: { duration: 0.25 }
+                          }}
                         >
                           <ThinkingIndicator
                             isLoading={isLoading}
