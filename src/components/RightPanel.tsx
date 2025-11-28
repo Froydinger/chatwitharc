@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, History, Headphones, Image, Code } from "lucide-react";
-import { Settings } from "lucide-react";
+import { X, History, Headphones, Image, LayoutGrid, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -187,20 +186,20 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           <div className="flex items-center justify-between p-4 border-b border-border/40 glass-panel">
           <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
             <TabsList className="grid w-full grid-cols-5 glass border border-border/30">
+              <TabsTrigger value="settings" className="flex items-center justify-center data-[state=active]:glass-glow">
+                <Settings className="h-4 w-4" />
+              </TabsTrigger>
               <TabsTrigger value="music" className="flex items-center justify-center data-[state=active]:glass-glow">
                 <Headphones className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center justify-center data-[state=active]:glass-glow">
-                <History className="h-4 w-4" />
+              <TabsTrigger value="apps" className="flex items-center justify-center data-[state=active]:glass-glow">
+                <LayoutGrid className="h-4 w-4" />
               </TabsTrigger>
               <TabsTrigger value="media" className="flex items-center justify-center data-[state=active]:glass-glow">
                 <Image className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="apps" className="flex items-center justify-center data-[state=active]:glass-glow">
-                <Code className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center justify-center data-[state=active]:glass-glow">
-                <Settings className="h-4 w-4" />
+              <TabsTrigger value="history" className="flex items-center justify-center data-[state=active]:glass-glow">
+                <History className="h-4 w-4" />
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -218,43 +217,111 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           {/* Content */}
           <div className="flex-1 overflow-hidden">
           <Tabs value={activeTab} className="h-full">
-            <TabsContent value="history" className="h-full m-0">
-              <ChatHistoryPanel />
-            </TabsContent>
-            
-            <TabsContent value="media" className="h-full m-0">
-              <MediaLibraryPanel />
-            </TabsContent>
+            <AnimatePresence mode="wait">
+              {activeTab === "settings" && (
+                <TabsContent value="settings" className="h-full m-0" asChild>
+                  <motion.div
+                    key="settings"
+                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
+                    className="h-full"
+                  >
+                    <SettingsPanel />
+                  </motion.div>
+                </TabsContent>
+              )}
 
-            <TabsContent value="apps" className="h-full m-0">
-              <CodeAppsPanel />
-            </TabsContent>
-            
-            <TabsContent value="music" className="h-full m-0">
-              <MusicPlayerPanel
-                audioRef={audioRef}
-                isPlaying={isPlaying}
-                setIsPlaying={setIsPlaying}
-                volume={volume}
-                setVolume={setVolume}
-                currentTrack={currentTrack}
-                setCurrentTrack={setCurrentTrack}
-                isMuted={isMuted}
-                setIsMuted={setIsMuted}
-                currentTime={currentTime}
-                setCurrentTime={setCurrentTime}
-                duration={duration}
-                isLoading={isLoading}
-              />
-            </TabsContent>
-            
-            <TabsContent value="settings" className="h-full m-0">
-              <SettingsPanel />
-            </TabsContent>
+              {activeTab === "music" && (
+                <TabsContent value="music" className="h-full m-0" asChild>
+                  <motion.div
+                    key="music"
+                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
+                    className="h-full"
+                  >
+                    <MusicPlayerPanel
+                      audioRef={audioRef}
+                      isPlaying={isPlaying}
+                      setIsPlaying={setIsPlaying}
+                      volume={volume}
+                      setVolume={setVolume}
+                      currentTrack={currentTrack}
+                      setCurrentTrack={setCurrentTrack}
+                      isMuted={isMuted}
+                      setIsMuted={setIsMuted}
+                      currentTime={currentTime}
+                      setCurrentTime={setCurrentTime}
+                      duration={duration}
+                      isLoading={isLoading}
+                    />
+                  </motion.div>
+                </TabsContent>
+              )}
 
-              <TabsContent value="export" className="h-full m-0">
-                <ExportPanel />
-              </TabsContent>
+              {activeTab === "apps" && (
+                <TabsContent value="apps" className="h-full m-0" asChild>
+                  <motion.div
+                    key="apps"
+                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
+                    className="h-full"
+                  >
+                    <CodeAppsPanel />
+                  </motion.div>
+                </TabsContent>
+              )}
+
+              {activeTab === "media" && (
+                <TabsContent value="media" className="h-full m-0" asChild>
+                  <motion.div
+                    key="media"
+                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
+                    className="h-full"
+                  >
+                    <MediaLibraryPanel />
+                  </motion.div>
+                </TabsContent>
+              )}
+
+              {activeTab === "history" && (
+                <TabsContent value="history" className="h-full m-0" asChild>
+                  <motion.div
+                    key="history"
+                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
+                    className="h-full"
+                  >
+                    <ChatHistoryPanel />
+                  </motion.div>
+                </TabsContent>
+              )}
+
+              {activeTab === "export" && (
+                <TabsContent value="export" className="h-full m-0" asChild>
+                  <motion.div
+                    key="export"
+                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
+                    className="h-full"
+                  >
+                    <ExportPanel />
+                  </motion.div>
+                </TabsContent>
+              )}
+            </AnimatePresence>
             </Tabs>
           </div>
 
