@@ -129,11 +129,27 @@ export function MobileChatApp() {
     setRightPanelTab,
     syncFromSupabase,
   } = useArcStore();
-  const { profile } = useProfile();
+  const { profile, updateProfile } = useProfile();
   const isMobile = useIsMobile(); // This hook determines if the current device is mobile
 
   // Pre-generate prompts in background for instant access
   usePromptPreload();
+
+  // Reset model to Smart & Fast on app load/refresh
+  useEffect(() => {
+    const resetModel = async () => {
+      if (profile && profile.preferred_model !== "google/gemini-2.5-flash") {
+        try {
+          await updateProfile({ preferred_model: "google/gemini-2.5-flash" });
+          console.log("✅ Model reset to Smart & Fast on app load");
+        } catch (error) {
+          console.error("Failed to reset model on load:", error);
+        }
+      }
+    };
+
+    resetModel();
+  }, []); // Only run once on mount
 
   // Track if running as PWA or Electron app
   const [isPWAMode, setIsPWAMode] = useState(false);
@@ -428,11 +444,19 @@ export function MobileChatApp() {
     }
   };
 
-  const handleNewChat = () => {
+  const handleNewChat = async () => {
     const newSessionId = createNewSession();
     navigate(`/chat/${newSessionId}`);
-    // When creating a new chat, respect existing sidebar visibility
-    // No explicit close here, user can decide
+
+    // Reset model to Smart & Fast on new chat
+    if (profile && profile.preferred_model !== "google/gemini-2.5-flash") {
+      try {
+        await updateProfile({ preferred_model: "google/gemini-2.5-flash" });
+        console.log("✅ Model reset to Smart & Fast on new chat");
+      } catch (error) {
+        console.error("Failed to reset model on new chat:", error);
+      }
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
