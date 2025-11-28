@@ -129,27 +129,11 @@ export function MobileChatApp() {
     setRightPanelTab,
     syncFromSupabase,
   } = useArcStore();
-  const { profile, updateProfile } = useProfile();
+  const { profile } = useProfile();
   const isMobile = useIsMobile(); // This hook determines if the current device is mobile
 
   // Pre-generate prompts in background for instant access
   usePromptPreload();
-
-  // Reset model to Smart & Fast on app load/refresh
-  useEffect(() => {
-    const resetModel = async () => {
-      if (profile && profile.preferred_model !== "google/gemini-2.5-flash") {
-        try {
-          await updateProfile({ preferred_model: "google/gemini-2.5-flash" });
-          console.log("✅ Model reset to Smart & Fast on app load");
-        } catch (error) {
-          console.error("Failed to reset model on load:", error);
-        }
-      }
-    };
-
-    resetModel();
-  }, []); // Only run once on mount
 
   // Track if running as PWA or Electron app
   const [isPWAMode, setIsPWAMode] = useState(false);
@@ -165,21 +149,20 @@ export function MobileChatApp() {
 
   // Initialize rightPanelOpen state based on device type and user's last preference
   useEffect(() => {
-    // We only care about desktop default behavior; mobile defaults to closed (which is current behavior)
-    if (!isMobile) {
-      // Check if user has a preference in localStorage
+    // Check window width for large screens (1024px+) - these should have persistent sidebar
+    const isLargeScreen = window.innerWidth >= 1024;
+
+    if (isLargeScreen) {
+      // On large screens, always keep sidebar open by default
       const userPreference = localStorage.getItem("arc_rightPanelOpen");
-      if (userPreference === null) {
-        // No preference, open by default on desktop
+      // Default to open on large screens, unless user explicitly closed it
+      if (userPreference === null || userPreference === "true") {
         if (!rightPanelOpen) {
           setRightPanelOpen(true);
         }
-      } else {
-        // User has a preference, use it
-        setRightPanelOpen(userPreference === "true");
       }
-    } else {
-      // Always close on mobile by default, if it happens to be open
+    } else if (isMobile) {
+      // Always close on mobile/tablet by default
       if (rightPanelOpen) {
         setRightPanelOpen(false);
       }
@@ -444,19 +427,12 @@ export function MobileChatApp() {
     }
   };
 
-  const handleNewChat = async () => {
+  const handleNewChat = () => {
     const newSessionId = createNewSession();
     navigate(`/chat/${newSessionId}`);
 
-    // Reset model to Smart & Fast on new chat
-    if (profile && profile.preferred_model !== "google/gemini-2.5-flash") {
-      try {
-        await updateProfile({ preferred_model: "google/gemini-2.5-flash" });
-        console.log("✅ Model reset to Smart & Fast on new chat");
-      } catch (error) {
-        console.error("Failed to reset model on new chat:", error);
-      }
-    }
+    // Reset model to Smart & Fast for new chat (session only)
+    sessionStorage.setItem("arc_session_model", "google/gemini-2.5-flash");
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -790,13 +766,15 @@ export function MobileChatApp() {
           </AnimatePresence>
 
           {/* Free-floating input shelf */}
-          <div ref={inputDockRef} className="fixed inset-x-0 bottom-6 z-30 pointer-events-none px-4">
-            <div
-              className={cn(
-                "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-w-4xl mx-auto", // Input bar uses larger max-width
-                rightPanelOpen && "lg:ml-80 xl:ml-96",
-              )}
-            >
+          <div
+            ref={inputDockRef}
+            className={cn(
+              "fixed bottom-6 z-30 pointer-events-none px-4 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+              "left-0 right-0",
+              rightPanelOpen && "lg:left-80 xl:left-96"
+            )}
+          >
+            <div className="max-w-4xl mx-auto">
               <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
                 <ChatInput onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
               </div>
