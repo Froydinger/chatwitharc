@@ -48,6 +48,13 @@ export class AIService {
       // Always defaults to Smart & Fast on refresh (sessionStorage is cleared)
       const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
 
+      console.log('🤖 AI Model Selection:', {
+        fromSessionStorage: sessionStorage.getItem('arc_session_model'),
+        selectedModel: selectedModel,
+        isWise: selectedModel === 'google/gemini-3-pro-preview',
+        isFast: selectedModel === 'google/gemini-2.5-flash'
+      });
+
       // Call the secure edge function with profile data and model selection
       // Note: System prompt is handled by the backend using admin settings
       const { data, error } = await supabase.functions.invoke('chat', {
