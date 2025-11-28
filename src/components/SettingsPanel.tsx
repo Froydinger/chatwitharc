@@ -106,6 +106,11 @@ export function SettingsPanel() {
   const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
+  // Session-only model preference (resets on refresh/new session)
+  const [sessionModel, setSessionModel] = useState<string>(() => {
+    return sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
+  });
+
   // Collapsible states
   const [openSections, setOpenSections] = useState({
     profile: true,
@@ -623,25 +628,20 @@ export function SettingsPanel() {
                 <p className="text-sm text-muted-foreground mt-1">Choose response speed and quality</p>
               </div>
               <Select
-                value={profile?.preferred_model || "google/gemini-2.5-flash"}
-                onValueChange={async (value) => {
-                  try {
-                    await updateProfile({ preferred_model: value });
-                    // Get position from the selector trigger
-                    const rect = modelSelectorRef.current?.getBoundingClientRect();
-                    if (rect) {
-                      showPopup(
-                        value === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast",
-                        rect.left + rect.width / 2,
-                        rect.top + rect.height / 2
-                      );
-                    }
-                  } catch (e) {
-                    toast({
-                      title: "Update failed",
-                      description: "Could not update AI model preference",
-                      variant: "destructive",
-                    });
+                value={sessionModel}
+                onValueChange={(value) => {
+                  // Store in sessionStorage only (not database)
+                  sessionStorage.setItem('arc_session_model', value);
+                  setSessionModel(value);
+
+                  // Get position from the selector trigger
+                  const rect = modelSelectorRef.current?.getBoundingClientRect();
+                  if (rect) {
+                    showPopup(
+                      value === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast",
+                      rect.left + rect.width / 2,
+                      rect.top + rect.height / 2
+                    );
                   }
                 }}
               >
