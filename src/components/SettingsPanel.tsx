@@ -107,9 +107,28 @@ export function SettingsPanel() {
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Session-only model preference (resets on refresh/new session)
-  const [sessionModel, setSessionModel] = useState<string>(() => {
-    return sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
-  });
+  // Always default to Smart & Fast - no persistence across sessions/refreshes
+  const [sessionModel, setSessionModel] = useState<string>('google/gemini-2.5-flash');
+  
+  // Initialize and sync session model
+  useEffect(() => {
+    // Clear any stored model on component mount to ensure fresh start
+    sessionStorage.removeItem('arc_session_model');
+    sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash');
+    
+    // Sync local state with sessionStorage when it changes (e.g., when new chat is created)
+    const handleStorageSync = () => {
+      const storedModel = sessionStorage.getItem('arc_session_model');
+      if (storedModel) {
+        setSessionModel(storedModel);
+      }
+    };
+    
+    // Check periodically to detect external changes
+    const interval = setInterval(handleStorageSync, 500);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Collapsible states
   const [openSections, setOpenSections] = useState({

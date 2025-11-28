@@ -202,6 +202,9 @@ export const useArcStore = create<ArcState>()(
           }
         }
         
+        // Reset model selection to default (Smart & Fast) for new chat
+        sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash');
+        
         // Generate a proper UUID for Supabase compatibility
         const sessionId = crypto.randomUUID();
         const newSession: ChatSession = {
