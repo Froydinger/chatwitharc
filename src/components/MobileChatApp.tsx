@@ -516,9 +516,10 @@ export function MobileChatApp() {
         {/* Floating header buttons - no bar */}
         <div
           className={cn(
-            "fixed left-0 right-0 z-40 transition-transform duration-300 ease-out pointer-events-none",
+            "fixed left-0 right-0 z-40 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pointer-events-none",
             (isPWAMode || isElectronApp) ? "top-0 md:top-[30px]" : "top-0",
             isMobile && !headerVisible && "-translate-y-full",
+            rightPanelOpen && "lg:left-80 xl:left-96"
           )}
         >
           <div className="flex h-16 items-center justify-between px-4 pt-2 pointer-events-none">
@@ -648,7 +649,10 @@ export function MobileChatApp() {
           {/* Chat Messages */}
           <div
             ref={messagesContainerRef}
-            className="absolute inset-x-0 bottom-0 top-0 overflow-y-auto"
+            className={cn(
+              "absolute inset-x-0 bottom-0 top-0 overflow-y-auto transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+              rightPanelOpen && "lg:left-80 xl:left-96"
+            )}
             style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 6rem)` }}
           >
             {/* Pull-to-refresh indicator (mobile only) */}
@@ -760,7 +764,10 @@ export function MobileChatApp() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="fixed bottom-32 left-[45%] -translate-x-1/2 z-40 pointer-events-auto"
+                className={cn(
+                  "fixed bottom-32 left-[45%] -translate-x-1/2 z-40 pointer-events-auto transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                  rightPanelOpen && "lg:left-[52.5%] xl:left-[54%]"
+                )}
               >
                 <Button
                   size="icon"
