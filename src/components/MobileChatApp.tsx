@@ -135,6 +135,15 @@ export function MobileChatApp() {
   // Pre-generate prompts in background for instant access
   usePromptPreload();
 
+  // Initialize session model to Smart & Fast on mount (resets on refresh)
+  useEffect(() => {
+    // Only set if not already set - this ensures it defaults to Smart & Fast on refresh
+    // but preserves user changes during the session
+    if (!sessionStorage.getItem('arc_session_model')) {
+      sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash');
+    }
+  }, []);
+
   // Track if running as PWA or Electron app
   const [isPWAMode, setIsPWAMode] = useState(false);
   const [isElectronApp, setIsElectronApp] = useState(false);
