@@ -7,18 +7,16 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useChatSync } from "@/hooks/useChatSync";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 export function ChatHistoryPanel() {
   const navigate = useNavigate();
   const { isLoaded } = useChatSync();
-  const isMobile = useIsMobile();
-  const {
-    chatSessions,
-    currentSessionId,
-    createNewSession,
-    loadSession,
+  const { 
+    chatSessions, 
+    currentSessionId, 
+    createNewSession, 
+    loadSession, 
     deleteSession,
     syncFromSupabase,
     setRightPanelOpen
@@ -30,11 +28,9 @@ export function ChatHistoryPanel() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
-  /** Navigate back to chat - close panel only on mobile/tablet */
+  /** Navigate back to chat - close panel */
   const goToChat = () => {
-    if (isMobile) {
-      setRightPanelOpen(false);
-    }
+    setRightPanelOpen(false);
   };
 
   const handleNewChat = () => {

@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface GeneratedImage {
   url: string;
@@ -38,7 +37,6 @@ function toDate(ts: unknown): Date | null {
 
 export function MediaLibraryPanel() {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
   const { chatSessions, loadSession, setRightPanelOpen } = useArcStore();
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -63,10 +61,7 @@ export function MediaLibraryPanel() {
   const goToChat = (sessionId: string) => {
     loadSession(sessionId);
     navigate(`/chat/${sessionId}`);
-    // Only close panel on mobile/tablet
-    if (isMobile) {
-      setRightPanelOpen(false);
-    }
+    setRightPanelOpen(false);
     setSelectedImage(null);
   };
 

@@ -119,7 +119,6 @@ export function MobileChatApp() {
     isGeneratingImage,
     isSearchingChats,
     isAccessingMemory,
-    isSwitchingChat,
     createNewSession,
     startChatWithMessage,
     currentSessionId,
@@ -255,43 +254,21 @@ export function MobileChatApp() {
     }
   }, [messages]);
 
-  // Scroll during typewriter typing - buttery smooth
+  // Scroll during typewriter typing - more aggressive
   useEffect(() => {
-    let rafId: number | null = null;
-
     const handleTyping = () => {
       const el = messagesContainerRef.current;
       if (!el) return;
 
-      // Cancel any pending animation frame
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-
-      // Use requestAnimationFrame for smoother scroll
-      rafId = requestAnimationFrame(() => {
-        const target = el.scrollHeight;
-        const current = el.scrollTop;
-        const maxScroll = el.scrollHeight - el.clientHeight;
-
-        // Only scroll if we're near the bottom (within 100px) or already at bottom
-        if (maxScroll - current < 200) {
-          el.scrollTo({
-            top: el.scrollHeight,
-            behavior: "smooth",
-          });
-        }
-        rafId = null;
+      // Always scroll to bottom during typing
+      el.scrollTo({
+        top: el.scrollHeight,
+        behavior: "auto", // Instant scroll during typing
       });
     };
 
     window.addEventListener("typewriter-typing", handleTyping);
-    return () => {
-      window.removeEventListener("typewriter-typing", handleTyping);
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-    };
+    return () => window.removeEventListener("typewriter-typing", handleTyping);
   }, []);
 
   // Clear the tracked ID when messages change (new message added)
@@ -541,7 +518,7 @@ export function MobileChatApp() {
           className={cn(
             "fixed left-0 right-0 z-40 transition-transform duration-300 ease-out pointer-events-none",
             (isPWAMode || isElectronApp) ? "top-0 md:top-[30px]" : "top-0",
-            isMobile && !headerVisible && "-translate-y-full"
+            isMobile && !headerVisible && "-translate-y-full",
           )}
         >
           <div className="flex h-16 items-center justify-between px-4 pt-2 pointer-events-none">
@@ -707,29 +684,8 @@ export function MobileChatApp() {
                   isGeneratingImage={isGeneratingImage}
                 />
               </div>
-            ) : isSwitchingChat ? (
-              // Show loader during chat switch
-              <div className="w-full flex justify-center items-center" style={{ paddingTop: "10rem" }}>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.15 }}
-                  className="flex flex-col items-center gap-3"
-                >
-                  <div className="relative">
-                    <div className="h-8 w-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">Loading chat...</p>
-                </motion.div>
-              </div>
             ) : (
-              <motion.div
-                className="w-full flex justify-center px-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-              >
+              <div className="w-full flex justify-center px-4">
                 <div
                   className="space-y-4 chat-messages w-full max-w-xl" // Messages only, now max-w-xl
                   style={{
@@ -746,13 +702,12 @@ export function MobileChatApp() {
                       return (
                         <motion.div
                           key={message.id}
-                          initial={{ opacity: 0, y: 12, scale: 0.97 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
                           transition={{
-                            duration: 0.35,
-                            ease: [0.25, 0.1, 0.25, 1],
-                            scale: { duration: 0.25 }
+                            duration: 0.2,
+                            ease: [0.4, 0, 0.2, 1],
                           }}
                         >
                           <MessageBubble
@@ -778,14 +733,10 @@ export function MobileChatApp() {
                       messages.length > 0 &&
                       messages[messages.length - 1]?.role === "user" && (
                         <motion.div
-                          initial={{ opacity: 0, y: 12, scale: 0.97 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                          transition={{
-                            duration: 0.35,
-                            ease: [0.25, 0.1, 0.25, 1],
-                            scale: { duration: 0.25 }
-                          }}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                         >
                           <ThinkingIndicator
                             isLoading={isLoading}
@@ -797,7 +748,7 @@ export function MobileChatApp() {
                       )}
                   </AnimatePresence>
                 </div>
-              </motion.div>
+              </div>
             )}
           </div>
 
@@ -826,7 +777,11 @@ export function MobileChatApp() {
           {/* Free-floating input shelf */}
           <div
             ref={inputDockRef}
-            className="fixed bottom-6 left-0 right-0 z-30 pointer-events-none px-4"
+            className={cn(
+              "fixed bottom-6 z-30 pointer-events-none px-4 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+              "left-0 right-0",
+              rightPanelOpen && "lg:left-80 xl:left-96"
+            )}
           >
             <div className="max-w-4xl mx-auto">
               <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>

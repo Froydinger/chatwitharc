@@ -13,7 +13,7 @@ interface TypewriterMarkdownProps {
 
 export const TypewriterMarkdown = ({
   text,
-  speed = 8,
+  speed = 2,
   className = "",
   shouldAnimate = true,
   onTyping,
@@ -21,8 +21,7 @@ export const TypewriterMarkdown = ({
   const [displayedText, setDisplayedText] = useState("");
   const currentIndexRef = useRef(0);
   const fullTextRef = useRef(text);
-  const animationFrameRef = useRef<number | null>(null);
-  const lastUpdateTimeRef = useRef<number>(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const onTypingRef = useRef(onTyping);
 
   useEffect(() => {
@@ -39,40 +38,34 @@ export const TypewriterMarkdown = ({
       return;
     }
 
-    // Use requestAnimationFrame for smoother, more performant typing
-    const animate = (currentTime: number) => {
-      const targetText = fullTextRef.current;
-      const currentIndex = currentIndexRef.current;
+    // If no interval is running, start typing
+    if (!intervalRef.current) {
+      intervalRef.current = setInterval(() => {
+        const targetText = fullTextRef.current;
+        const currentIndex = currentIndexRef.current;
 
-      if (currentIndex >= targetText.length) {
-        // Finished typing
-        animationFrameRef.current = null;
-        return;
-      }
+        if (currentIndex >= targetText.length) {
+          // Finished typing
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          return;
+        }
 
-      // Only update every `speed` milliseconds for controlled speed
-      if (currentTime - lastUpdateTimeRef.current >= speed) {
-        // Type multiple characters for speed (more = faster)
-        const charsToAdd = Math.min(6, targetText.length - currentIndex);
+        // Type multiple characters for speed
+        const charsToAdd = Math.min(4, targetText.length - currentIndex);
         currentIndexRef.current += charsToAdd;
         setDisplayedText(targetText.slice(0, currentIndexRef.current));
-        lastUpdateTimeRef.current = currentTime;
+
         onTypingRef.current?.();
-      }
-
-      animationFrameRef.current = requestAnimationFrame(animate);
-    };
-
-    // Start animation if not already running
-    if (!animationFrameRef.current) {
-      lastUpdateTimeRef.current = performance.now();
-      animationFrameRef.current = requestAnimationFrame(animate);
+      }, speed);
     }
 
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [text, speed, shouldAnimate]);

@@ -38,26 +38,23 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { addMessage } = useArcStore();
   const { toast } = useToast();
   
-  // Model selection - defaults to last used model, or current session model
+  // Model selection - defaults to last used model, or user's preferred model
   const [selectedModel, setSelectedModel] = useState<string>(() => {
     if (lastUsedModel) return lastUsedModel;
-    // Use sessionStorage for model selection (same as chat)
-    const sessionModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
-    return sessionModel === 'google/gemini-3-pro-preview'
-      ? 'google/gemini-3-pro-image-preview'
+    return profile?.preferred_model === 'google/gemini-3-pro-preview' 
+      ? 'google/gemini-3-pro-image-preview' 
       : 'google/gemini-2.5-flash-image';
   });
 
-  // Update selected model if session model changes and no last used model
+  // Update selected model if profile changes and no last used model
   useEffect(() => {
     if (!lastUsedModel) {
-      const sessionModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
-      const newModel = sessionModel === 'google/gemini-3-pro-preview'
-        ? 'google/gemini-3-pro-image-preview'
+      const newModel = profile?.preferred_model === 'google/gemini-3-pro-preview' 
+        ? 'google/gemini-3-pro-image-preview' 
         : 'google/gemini-2.5-flash-image';
       setSelectedModel(newModel);
     }
-  }, [lastUsedModel]);
+  }, [profile?.preferred_model, lastUsedModel]);
   
   // Normalize imageUrl to always be an array for easier handling
   const imageUrls = Array.isArray(imageUrl) ? imageUrl : [imageUrl];
