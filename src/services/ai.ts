@@ -43,10 +43,10 @@ export class AIService {
         console.warn('Falling back to provided profile:', e);
       }
 
-      // Determine which model to use - check sessionStorage first (session-only), then default to Gemini 2.5 Flash
+      // Determine which model to use - check sessionStorage (session-only)
       // This allows model changes within a session without persisting to database
-      const sessionModel = typeof window !== 'undefined' ? sessionStorage.getItem('arc_session_model') : null;
-      const selectedModel = sessionModel || 'google/gemini-2.5-flash';
+      // Always defaults to Smart & Fast on refresh (sessionStorage is cleared)
+      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
 
       // Call the secure edge function with profile data and model selection
       // Note: System prompt is handled by the backend using admin settings
