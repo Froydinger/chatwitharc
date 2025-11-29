@@ -398,9 +398,9 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
       } catch {}
     };
     const editHandler = (ev: Event) => {
-      const e = ev as CustomEvent<{ content: string; baseImageUrl: string | string[]; editInstruction: string; imageModel?: string }>;
+      const e = ev as CustomEvent<{ content: string; baseImageUrl: string | string[]; additionalImages?: string[]; editInstruction: string; imageModel?: string }>;
       if (!e?.detail) return;
-      handleExternalImageEdit(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction, e.detail.imageModel);
+      handleExternalImageEdit(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction, e.detail.imageModel, e.detail.additionalImages);
     };
     const editedMessageHandler = (ev: Event) => {
       const e = ev as CustomEvent<{ content: string; editedMessageId: string }>;
@@ -425,16 +425,23 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
     baseImageUrl: string | string[],
     editInstruction: string,
     imageModel?: string,
+    additionalImages?: string[],
   ) => {
     try {
       const ai = new AIService();
       setGeneratingImage(true);
 
+      // Merge base images with additional images
+      const baseUrls = Array.isArray(baseImageUrl) ? baseImageUrl : [baseImageUrl];
+      const allImageUrls = additionalImages && additionalImages.length > 0
+        ? [...baseUrls, ...additionalImages]
+        : baseUrls;
+
       await addMessage({
         content: userMessage || editInstruction || "Edit request",
         role: "user",
         type: "image",
-        imageUrls: Array.isArray(baseImageUrl) ? baseImageUrl : [baseImageUrl],
+        imageUrls: baseUrls, // Show original images in user message
       });
 
       await addMessage({
@@ -444,7 +451,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
         imagePrompt: editInstruction,
       });
 
-      const url = await ai.editImage(editInstruction, Array.isArray(baseImageUrl) ? baseImageUrl : [baseImageUrl], imageModel);
+      const url = await ai.editImage(editInstruction, allImageUrls, imageModel);
 
       // persist best-effort
       let finalUrl = url;

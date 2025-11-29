@@ -1,13 +1,12 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
 import { SmoothImage } from "@/components/ui/smooth-image";
-import { X, Sparkles, Zap, Brain } from "lucide-react";
+import { X, Sparkles, Zap, Brain, ImagePlus } from "lucide-react";
 
 interface ImageEditModalProps {
   isOpen: boolean;
@@ -34,6 +33,8 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const [editInstruction, setEditInstruction] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeChips, setActiveChips] = useState<string[]>([]);
+  const [additionalImages, setAdditionalImages] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { profile } = useProfile();
   const { addMessage } = useArcStore();
   const { toast } = useToast();
@@ -66,6 +67,41 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
     setActiveChips((prev) => (prev.includes(text) ? prev.filter((t) => t !== text) : [...prev, text]));
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const images = files.filter((f) => f.type.startsWith("image/"));
+    const max = 14;
+    const currentTotal = imageUrls.length + additionalImages.length;
+
+    setAdditionalImages((prev) => {
+      const merged = [...prev, ...images].slice(0, max - imageUrls.length);
+      const newTotal = imageUrls.length + merged.length;
+
+      if (newTotal >= max && images.length > 0 && merged.length > prev.length) {
+        toast({
+          title: "Max images",
+          description: `Up to ${max} images supported`,
+          variant: "default"
+        });
+      }
+      return merged;
+    });
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeAdditionalImage = (idx: number) => {
+    setAdditionalImages((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const toggleModel = () => {
+    setSelectedModel((prev) =>
+      prev === 'google/gemini-2.5-flash-image'
+        ? 'google/gemini-3-pro-image-preview'
+        : 'google/gemini-2.5-flash-image'
+    );
+  };
+
   const applyChipsToText = (base: string) => {
     if (activeChips.length === 0) return base.trim();
     const chips = activeChips.filter((c) => !base.toLowerCase().includes(c.toLowerCase()));
@@ -88,16 +124,36 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
     setIsSubmitting(true);
 
     try {
+      // Convert additional File objects to base64 strings
+      let additionalBase64s: string[] = [];
+      if (additionalImages.length > 0) {
+        additionalBase64s = await Promise.all(
+          additionalImages.map(
+            (file) =>
+              new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = () => reject(new Error("Failed to read file"));
+                reader.readAsDataURL(file);
+              })
+          )
+        );
+      }
+
+      const totalImageCount = imageUrls.length + additionalImages.length;
+      const hasMultipleImages = totalImageCount > 1;
+
       // Compose a clean edit prompt for the transcript
       const editPrompt = originalPrompt
-        ? `Edit ${isMultipleImages ? 'these images' : 'this image'} (originally: "${originalPrompt}"): ${textWithChips}`
-        : `Edit ${isMultipleImages ? 'these images' : 'this image'}: ${textWithChips}`;
+        ? `Edit ${hasMultipleImages ? 'these images' : 'this image'} (originally: "${originalPrompt}"): ${textWithChips}`
+        : `Edit ${hasMultipleImages ? 'these images' : 'this image'}: ${textWithChips}`;
 
       // Signal ChatInput to do the actual edit
       const editEvent = new CustomEvent("processImageEdit", {
         detail: {
           content: editPrompt,
-          baseImageUrl: imageUrls, // Pass all image URLs
+          baseImageUrl: imageUrls, // Pass all original image URLs
+          additionalImages: additionalBase64s, // Pass additional images as base64
           editInstruction: textWithChips,
           imageModel: selectedModel, // Pass selected model
         },
@@ -112,6 +168,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
       onClose();
       setEditInstruction("");
       setActiveChips([]);
+      setAdditionalImages([]);
     } catch (error) {
       console.error("Error starting image edit:", error);
       toast({
@@ -177,25 +234,66 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
                   <div className={`grid gap-3 p-3 ${imageUrls.length === 2 ? 'grid-cols-2' : imageUrls.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'}`}>
                     {imageUrls.map((url, idx) => (
                       <div key={idx} className="aspect-square rounded-lg overflow-hidden border border-border/30">
-                        <SmoothImage 
-                          src={url} 
-                          alt={`Image ${idx + 1} to edit`} 
-                          className="w-full h-full object-cover" 
+                        <SmoothImage
+                          src={url}
+                          alt={`Image ${idx + 1} to edit`}
+                          className="w-full h-full object-cover"
                         />
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="aspect-video sm:aspect-[4/3]">
-                    <SmoothImage 
-                      src={imageUrls[0]} 
-                      alt="Image to edit" 
-                      className="w-full h-full object-contain" 
+                    <SmoothImage
+                      src={imageUrls[0]}
+                      alt="Image to edit"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Additional Images Section */}
+            {additionalImages.length > 0 && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  Additional Images ({additionalImages.length})
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {additionalImages.map((file, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-border/30 bg-muted/20">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Additional image ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeAdditionalImage(idx)}
+                        className="absolute top-1 right-1 p-1 rounded-full bg-background/80 hover:bg-background transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Attach Images Button */}
+            {imageUrls.length + additionalImages.length < 14 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                <ImagePlus className="h-4 w-4 mr-2" />
+                Attach More Images
+              </Button>
+            )}
 
             {/* Quick Edit Chips */}
             <div>
@@ -221,37 +319,40 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
               </div>
             </div>
 
-            {/* Model Selection */}
+            {/* Model Selection - Toggle Button */}
             <div>
               <label className="text-sm font-medium mb-2 block">Image Model</label>
-              <Select value={selectedModel} onValueChange={setSelectedModel}>
-                <SelectTrigger className="w-full bg-background border-border/50">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="z-[100]">
-                  <SelectItem value="google/gemini-2.5-flash-image">
-                    <div className="flex items-center gap-2">
-                      <Zap className="h-4 w-4" />
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">Fast Generation</span>
-                        <span className="text-xs text-muted-foreground">Gemini 2.5 Flash Image</span>
-                      </div>
+              <button
+                type="button"
+                onClick={toggleModel}
+                className="w-full p-4 rounded-lg border border-border/50 bg-background hover:bg-muted/50 transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  {selectedModel === 'google/gemini-2.5-flash-image' ? (
+                    <Zap className="h-5 w-5 text-primary" />
+                  ) : (
+                    <Brain className="h-5 w-5 text-primary" />
+                  )}
+                  <div className="flex-1">
+                    <div className="font-medium">
+                      {selectedModel === 'google/gemini-2.5-flash-image'
+                        ? 'Fast Generation'
+                        : 'High Quality'}
                     </div>
-                  </SelectItem>
-                  <SelectItem value="google/gemini-3-pro-image-preview">
-                    <div className="flex items-center gap-2">
-                      <Brain className="h-4 w-4" />
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">High Quality</span>
-                        <span className="text-xs text-muted-foreground">Gemini 3 Pro Image</span>
-                      </div>
+                    <div className="text-xs text-muted-foreground">
+                      {selectedModel === 'google/gemini-2.5-flash-image'
+                        ? 'Gemini 2.5 Flash Image'
+                        : 'Gemini 3 Pro Image'}
                     </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Tap to switch
+                  </div>
+                </div>
+              </button>
               <p className="text-xs text-muted-foreground mt-1.5">
-                {selectedModel === 'google/gemini-2.5-flash-image' 
-                  ? 'Faster processing, good quality' 
+                {selectedModel === 'google/gemini-2.5-flash-image'
+                  ? 'Faster processing, good quality'
                   : 'Slower processing, highest quality'}
               </p>
             </div>
@@ -306,6 +407,16 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
           </div>
         </div>
       </DialogContent>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleFileSelect}
+      />
     </Dialog>
   );
 }
