@@ -1,0 +1,60 @@
+// Temporary script to apply the admin banner migration
+// Run this with: node apply-banner-migration.js
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL || 'YOUR_SUPABASE_URL';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'YOUR_SERVICE_ROLE_KEY';
+
+if (!supabaseUrl.startsWith('http') || !supabaseServiceKey.startsWith('eyJ')) {
+  console.error('\n❌ Error: Missing Supabase credentials!');
+  console.error('\nPlease set the following environment variables:');
+  console.error('  VITE_SUPABASE_URL=your_supabase_url');
+  console.error('  SUPABASE_SERVICE_ROLE_KEY=your_service_role_key');
+  console.error('\nOr edit this file and replace YOUR_SUPABASE_URL and YOUR_SERVICE_ROLE_KEY');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+async function applyMigration() {
+  console.log('🚀 Applying admin banner migration...\n');
+
+  const settings = [
+    {
+      key: 'banner_enabled',
+      value: 'false',
+      description: 'Enable or disable the admin announcement banner'
+    },
+    {
+      key: 'banner_message',
+      value: '',
+      description: 'Message to display in the admin banner'
+    },
+    {
+      key: 'banner_icon',
+      value: 'alert',
+      description: 'Icon to display in the banner (construction, alert, or celebrate)'
+    }
+  ];
+
+  for (const setting of settings) {
+    console.log(`Inserting setting: ${setting.key}...`);
+
+    const { data, error } = await supabase
+      .from('admin_settings')
+      .upsert(setting, { onConflict: 'key' })
+      .select();
+
+    if (error) {
+      console.error(`❌ Error inserting ${setting.key}:`, error.message);
+    } else {
+      console.log(`✅ Successfully inserted ${setting.key}`);
+    }
+  }
+
+  console.log('\n✨ Migration complete! The admin banner feature is now ready to use.');
+  console.log('Go to /admin and click the "Banner" tab to configure it.\n');
+}
+
+applyMigration().catch(console.error);
