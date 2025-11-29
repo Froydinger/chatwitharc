@@ -934,7 +934,7 @@ export function SettingsPanel() {
         <div className="text-center space-y-2 text-sm text-muted-foreground">
           <div className="flex items-center justify-center gap-4">
             <a
-              href="https://winthenight.org/support"
+              href="https://winthenight.productions/support"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-primary-glow transition-colors underline"
