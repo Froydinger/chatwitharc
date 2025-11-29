@@ -929,6 +929,31 @@ export function SettingsPanel() {
 
       </Tabs>
 
+      {/* Footer with Support Links */}
+      <div className="mt-8 pt-6 border-t border-border/30">
+        <div className="text-center space-y-2 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center gap-4">
+            <a
+              href="https://winthenight.org/support"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-primary-glow transition-colors underline"
+            >
+              Support
+            </a>
+            <span>•</span>
+            <a
+              href="https://winthenight.productions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-primary-glow transition-colors underline"
+            >
+              Win the Night Productions
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Delete Data Modal */}
       <DeleteDataModal
         isOpen={showDeleteModal}
