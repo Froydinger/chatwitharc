@@ -85,7 +85,7 @@ export const TypewriterMarkdown = ({
             const match = /language-(\w+)/.exec(className || '');
             const codeContent = String(children).replace(/\n$/, '');
             const isInline = !className && !match;
-            
+
             // Block code - use CodeBlock component
             if (!isInline && match) {
               return (
@@ -95,7 +95,7 @@ export const TypewriterMarkdown = ({
                 />
               );
             }
-            
+
             // Inline code - use styled span
             return (
               <code className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-sm" {...props}>
@@ -107,9 +107,6 @@ export const TypewriterMarkdown = ({
       >
         {displayedText}
       </ReactMarkdown>
-      {shouldAnimate && displayedText.length < text.length && (
-        <span className="inline-block w-[2px] h-5 bg-primary animate-pulse ml-0.5 align-middle" />
-      )}
     </div>
   );
 };

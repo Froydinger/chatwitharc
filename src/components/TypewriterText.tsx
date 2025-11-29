@@ -61,9 +61,6 @@ export const TypewriterText = ({
   return (
     <div className={`relative z-10 text-foreground whitespace-pre-wrap break-words leading-relaxed ${className}`}>
       {displayedText}
-      {shouldAnimate && displayedText.length < text.length && (
-        <span className="inline-block w-[2px] h-5 bg-primary animate-pulse ml-0.5 align-middle" />
-      )}
     </div>
   );
 };
