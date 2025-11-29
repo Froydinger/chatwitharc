@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { UpdateNotification } from "@/components/UpdateNotification";
+import { AdminBanner } from "@/components/AdminBanner";
 import { PageTransition } from "@/components/PageTransition";
 import { FingerPopupContainer } from "@/components/FingerPopup";
 import { BackgroundGradients } from "@/components/BackgroundGradients";
@@ -47,6 +48,7 @@ const App = () => {
             <FingerPopupContainer />
             <PWAInstallPrompt />
             <UpdateNotification />
+            <AdminBanner />
             <BrowserRouter>
               <PageTransition>
                 <Routes>

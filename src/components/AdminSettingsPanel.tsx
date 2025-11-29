@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Users, MessageSquare, Trash2, Plus } from 'lucide-react';
+import { Settings, Users, MessageSquare, Trash2, Plus, Megaphone, Construction, AlertTriangle, PartyPopper } from 'lucide-react';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { toast } from '@/hooks/use-toast';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export function AdminSettingsPanel() {
   const {
@@ -26,6 +27,9 @@ export function AdminSettingsPanel() {
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [systemPromptDraft, setSystemPromptDraft] = useState('');
   const [imageRestrictionsDraft, setImageRestrictionsDraft] = useState('');
+  const [bannerEnabled, setBannerEnabled] = useState(false);
+  const [bannerMessage, setBannerMessage] = useState('');
+  const [bannerIcon, setBannerIcon] = useState<'construction' | 'alert' | 'celebrate'>('alert');
 
   const getSetting = (key: string) => settings.find(s => s.key === key);
 
@@ -46,6 +50,19 @@ export function AdminSettingsPanel() {
       setImageRestrictionsDraft(imageRestrictions);
     }
   }, [settings, imageRestrictionsDraft]);
+
+  // Initialize banner settings when settings load
+  useEffect(() => {
+    if (settings.length > 0) {
+      const enabled = getSetting('banner_enabled')?.value === 'true';
+      const message = getSetting('banner_message')?.value || '';
+      const icon = (getSetting('banner_icon')?.value || 'alert') as 'construction' | 'alert' | 'celebrate';
+
+      setBannerEnabled(enabled);
+      setBannerMessage(message);
+      setBannerIcon(icon);
+    }
+  }, [settings]);
 
   // Early returns AFTER all hooks
   if (!isAdmin) {
@@ -130,6 +147,27 @@ export function AdminSettingsPanel() {
     }
   };
 
+  const handleUpdateBanner = async () => {
+    try {
+      setUpdating(true);
+      await updateSetting('banner_enabled', bannerEnabled.toString());
+      await updateSetting('banner_message', bannerMessage);
+      await updateSetting('banner_icon', bannerIcon);
+      toast({
+        title: "Banner updated",
+        description: "The announcement banner has been successfully updated.",
+      });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: error instanceof Error ? error.message : "Failed to update banner",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-2">
@@ -138,11 +176,16 @@ export function AdminSettingsPanel() {
       </div>
 
       <Tabs defaultValue="prompts" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="prompts" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
             <span className="hidden sm:inline">AI Prompts</span>
             <span className="sm:hidden">Prompts</span>
+          </TabsTrigger>
+          <TabsTrigger value="banner" className="flex items-center gap-2">
+            <Megaphone className="h-4 w-4" />
+            <span className="hidden sm:inline">Banner</span>
+            <span className="sm:hidden">Banner</span>
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -210,6 +253,110 @@ export function AdminSettingsPanel() {
                 className="w-full"
               >
                 Save Image Restrictions
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="banner" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Announcement Banner</CardTitle>
+              <CardDescription>
+                Create a site-wide banner for announcements, maintenance notices, or celebrations
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="banner-enabled" className="text-base">Enable Banner</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Show the announcement banner across the entire app
+                  </p>
+                </div>
+                <Switch
+                  id="banner-enabled"
+                  checked={bannerEnabled}
+                  onCheckedChange={setBannerEnabled}
+                />
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label htmlFor="banner-message">Banner Message</Label>
+                <Textarea
+                  id="banner-message"
+                  value={bannerMessage}
+                  onChange={(e) => setBannerMessage(e.target.value)}
+                  placeholder="Enter your announcement message..."
+                  className="min-h-[100px]"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This message will be displayed in the banner when enabled
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Banner Icon</Label>
+                <RadioGroup value={bannerIcon} onValueChange={(value) => setBannerIcon(value as 'construction' | 'alert' | 'celebrate')}>
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent cursor-pointer">
+                    <RadioGroupItem value="construction" id="icon-construction" />
+                    <Label htmlFor="icon-construction" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <Construction className="h-5 w-5" />
+                      <div>
+                        <p className="font-medium">Construction</p>
+                        <p className="text-xs text-muted-foreground">For maintenance or work in progress</p>
+                      </div>
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent cursor-pointer">
+                    <RadioGroupItem value="alert" id="icon-alert" />
+                    <Label htmlFor="icon-alert" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <AlertTriangle className="h-5 w-5" />
+                      <div>
+                        <p className="font-medium">Alert</p>
+                        <p className="text-xs text-muted-foreground">For important announcements or warnings</p>
+                      </div>
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent cursor-pointer">
+                    <RadioGroupItem value="celebrate" id="icon-celebrate" />
+                    <Label htmlFor="icon-celebrate" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <PartyPopper className="h-5 w-5" />
+                      <div>
+                        <p className="font-medium">Celebrate</p>
+                        <p className="text-xs text-muted-foreground">For positive announcements or events</p>
+                      </div>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {bannerEnabled && bannerMessage && (
+                <div className="space-y-2">
+                  <Label>Preview</Label>
+                  <div className="bg-[#00f0ff] border-2 border-black rounded-lg p-4 shadow-lg">
+                    <div className="flex items-center justify-center gap-3 text-black">
+                      {bannerIcon === 'construction' && <Construction className="w-5 h-5 flex-shrink-0" />}
+                      {bannerIcon === 'alert' && <AlertTriangle className="w-5 h-5 flex-shrink-0" />}
+                      {bannerIcon === 'celebrate' && <PartyPopper className="w-5 h-5 flex-shrink-0" />}
+                      <p className="text-sm md:text-base font-semibold text-center">
+                        {bannerMessage}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <Button
+                onClick={handleUpdateBanner}
+                disabled={updating}
+                className="w-full"
+              >
+                Save Banner Settings
               </Button>
             </CardContent>
           </Card>
