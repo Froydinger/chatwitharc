@@ -36,10 +36,10 @@ export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerati
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="relative w-full max-w-lg mx-auto"
+      className="relative w-full max-w-2xl mx-auto"
     >
       {/* Glass container with themed gradient */}
-      <div className="relative aspect-square rounded-3xl overflow-hidden backdrop-blur-xl bg-gradient-to-br from-background/60 via-background/40 to-background/60 border border-border/40 shadow-2xl">
+      <div className="relative w-full aspect-square rounded-3xl overflow-hidden backdrop-blur-xl bg-gradient-to-br from-background/60 via-background/40 to-background/60 border border-border/40 shadow-2xl">
 
         {/* Animated orbs in background */}
         <motion.div
