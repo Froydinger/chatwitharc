@@ -13,7 +13,7 @@ interface TypewriterMarkdownProps {
 
 export const TypewriterMarkdown = ({
   text,
-  speed = 2,
+  speed = 15,
   className = "",
   shouldAnimate = true,
   onTyping,
@@ -53,8 +53,8 @@ export const TypewriterMarkdown = ({
           return;
         }
 
-        // Type multiple characters for speed
-        const charsToAdd = Math.min(4, targetText.length - currentIndex);
+        // Type 2 characters at a time for smooth, readable speed
+        const charsToAdd = Math.min(2, targetText.length - currentIndex);
         currentIndexRef.current += charsToAdd;
         setDisplayedText(targetText.slice(0, currentIndexRef.current));
 
