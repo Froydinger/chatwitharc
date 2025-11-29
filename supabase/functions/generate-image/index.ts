@@ -48,12 +48,9 @@ serve(async (req) => {
     const imageRestrictions = settingsData?.value || '';
 
     // Append restrictions to prompt if they exist
-    const enhancedPrompt = imageRestrictions
+    const finalPrompt = imageRestrictions
       ? `${prompt}\n\nIMPORTANT RESTRICTIONS: ${imageRestrictions}`
       : prompt;
-    
-    // Add watermark instruction to prompt
-    const finalPrompt = `${enhancedPrompt}\n\nIMPORTANT: Add a very small watermark in the bottom-right corner of the actual image (not on objects within the scene, but overlaid on the image itself like a photo watermark). The watermark should be the text "ArcAi" in sans-serif font, where "Arc" is rendered in ultra-thin font weight and "Ai" is rendered in regular thin font weight. Make it white at only 10% opacity (very subtle and barely visible). Keep it very small.`;
 
     console.log('Enhanced prompt with restrictions:', finalPrompt);
 
