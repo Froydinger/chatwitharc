@@ -9,6 +9,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { CodePreview } from "@/components/CodePreview";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface CodeBlock {
   code: string;
@@ -54,6 +55,7 @@ function extractCodeBlocks(content: string): Array<{ code: string; language: str
 
 export function CodeAppsPanel() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { chatSessions, loadSession, setRightPanelOpen } = useArcStore();
   const [selectedCode, setSelectedCode] = useState<CodeBlock | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,7 +82,10 @@ export function CodeAppsPanel() {
   const goToChat = (sessionId: string) => {
     loadSession(sessionId);
     navigate(`/chat/${sessionId}`);
-    setRightPanelOpen(false);
+    // Only auto-close on mobile and small tablets (< 1024px)
+    if (isMobile || window.innerWidth < 1024) {
+      setRightPanelOpen(false);
+    }
     setSelectedCode(null);
   };
 

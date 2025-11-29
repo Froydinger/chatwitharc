@@ -127,9 +127,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     return (
       <motion.div
         ref={ref}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.15, ease: "easeOut" }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
         className={`flex ${isUser ? "justify-end" : "justify-start"} group`}
       >
         <div className={`flex flex-col gap-2 max-w-[85%] ${isUser ? "ml-auto items-end" : "mr-auto items-start"}`}>
@@ -461,39 +461,39 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           {/* Arc Logo - only show for latest assistant message */}
           {!isUser && isLatestAssistant && (
             <motion.div
-              className="flex items-center justify-start mt-2 ml-2"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ 
-                opacity: 1, 
-                scale: isThinking ? [1, 1.15, 1] : 1
-              }}
-              transition={{ 
-                opacity: { duration: 0.3 },
-                scale: isThinking ? { 
-                  duration: 1.5, 
-                  repeat: Infinity, 
-                  ease: "easeInOut" 
-                } : { duration: 0.3 }
+              className="flex items-center justify-start mt-2 ml-2 h-10"
+              layout
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{
+                opacity: { duration: 0.3, ease: "easeOut" },
+                layout: { duration: 0.2, ease: "easeOut" }
               }}
             >
               <motion.div
-                layoutId="arc-thinking-logo"
                 className="relative logo-accent-glow"
+                animate={{
+                  scale: isThinking ? [1, 1.08, 1] : 1
+                }}
+                transition={isThinking ? {
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                } : { duration: 0.2 }}
               >
                 <ThemedLogo className="h-10 w-10" alt="Arc" />
                 {isThinking && (
                   <motion.div
-                    className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ 
-                      scale: [0.8, 1.2, 0.8],
-                      opacity: [0.3, 0.6, 0.3]
+                    className="absolute inset-0 rounded-full bg-primary/20 blur-xl"
+                    animate={{
+                      scale: [0.9, 1.15, 0.9],
+                      opacity: [0.2, 0.5, 0.2]
                     }}
-                    exit={{ opacity: 0 }}
-                    transition={{ 
-                      duration: 1.5, 
-                      repeat: Infinity, 
-                      ease: "easeInOut" 
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
                     }}
                   />
                 )}
