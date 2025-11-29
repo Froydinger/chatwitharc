@@ -150,9 +150,9 @@ export function AdminSettingsPanel() {
   const handleUpdateBanner = async () => {
     try {
       setUpdating(true);
-      await updateSetting('banner_enabled', bannerEnabled.toString());
-      await updateSetting('banner_message', bannerMessage);
-      await updateSetting('banner_icon', bannerIcon);
+      await updateSetting('banner_enabled', bannerEnabled.toString(), 'Enable or disable the admin announcement banner');
+      await updateSetting('banner_message', bannerMessage, 'Message to display in the admin banner');
+      await updateSetting('banner_icon', bannerIcon, 'Icon to display in the banner (construction, alert, or celebrate)');
       toast({
         title: "Banner updated",
         description: "The announcement banner has been successfully updated.",

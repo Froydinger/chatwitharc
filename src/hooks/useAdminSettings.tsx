@@ -100,25 +100,27 @@ export function useAdminSettings() {
     return settings.find(s => s.key === key)?.value || '';
   };
 
-  const updateSetting = async (key: string, value: string) => {
+  const updateSetting = async (key: string, value: string, description: string = '') => {
     if (!isAdmin) throw new Error('Not authorized');
 
     try {
       setUpdating(true);
       const { data, error } = await supabase
         .from('admin_settings')
-        .update({ value })
-        .eq('key', key)
+        .upsert({ key, value, description }, { onConflict: 'key' })
         .select()
         .single();
 
       if (error) throw error;
 
-      setSettings(prev => 
-        prev.map(setting => 
-          setting.key === key ? data : setting
-        )
-      );
+      setSettings(prev => {
+        const existingIndex = prev.findIndex(s => s.key === key);
+        if (existingIndex >= 0) {
+          return prev.map(setting => setting.key === key ? data : setting);
+        } else {
+          return [...prev, data];
+        }
+      });
 
       return data;
     } catch (err) {
