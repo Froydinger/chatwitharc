@@ -37,13 +37,27 @@ if (document.readyState === 'loading') {
   applyDeviceClasses();
 }
 
-// Add global error handler
+// Add global error handler with bug report integration
 window.addEventListener('error', (event) => {
   console.error('Global error:', event.error);
+
+  // Import the bug report store dynamically
+  import('./hooks/useBugReport').then(({ useBugReport }) => {
+    const errorMessage = event.error?.message || 'Unknown error';
+    const errorStack = event.error?.stack || '';
+    useBugReport.getState().openBugReport(errorMessage, errorStack);
+  });
 });
 
 window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled promise rejection:', event.reason);
+
+  // Import the bug report store dynamically
+  import('./hooks/useBugReport').then(({ useBugReport }) => {
+    const errorMessage = event.reason?.message || String(event.reason) || 'Promise rejection';
+    const errorStack = event.reason?.stack || '';
+    useBugReport.getState().openBugReport(errorMessage, errorStack);
+  });
 });
 
 // Attempt to render the app with error handling
