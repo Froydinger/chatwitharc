@@ -191,12 +191,12 @@ serve(async (req) => {
         errorMessage = 'Image edit blocked. The request may violate content policies.';
       }
       
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: errorMessage,
         errorType: errorType,
-        success: false 
+        success: false
       }), {
-        status: response.status,
+        status: 200, // Always return 200 so Supabase client can parse the error details
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
