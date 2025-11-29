@@ -10,6 +10,8 @@ import { UpdateNotification } from "@/components/UpdateNotification";
 import { PageTransition } from "@/components/PageTransition";
 import { FingerPopupContainer } from "@/components/FingerPopup";
 import { BackgroundGradients } from "@/components/BackgroundGradients";
+import { BugReportModal } from "@/components/BugReportModal";
+import { useBugReport } from "@/hooks/useBugReport";
 import { Index } from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminPage } from "./pages/AdminPage";
@@ -31,6 +33,8 @@ const detectStandaloneMode = () => {
 };
 
 const App = () => {
+  const { isOpen, errorMessage, errorStack, closeBugReport } = useBugReport();
+
   // Detect standalone mode on mount
   useEffect(() => {
     detectStandaloneMode();
@@ -47,6 +51,12 @@ const App = () => {
             <FingerPopupContainer />
             <PWAInstallPrompt />
             <UpdateNotification />
+            <BugReportModal
+              isOpen={isOpen}
+              onClose={closeBugReport}
+              errorMessage={errorMessage}
+              errorStack={errorStack}
+            />
             <BrowserRouter>
               <PageTransition>
                 <Routes>
