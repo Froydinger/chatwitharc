@@ -11,6 +11,7 @@ import { BackgroundGradients } from "./BackgroundGradients";
 import { ThemedLogo } from "./ThemedLogo";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
+import { useAdminBanner } from "@/components/AdminBanner";
 
 // Helper to detect Electron app
 const isElectron = () => {
@@ -237,6 +238,7 @@ export function LandingScreen() {
   const [isElectronApp, setIsElectronApp] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isWindowsDevice, setIsWindowsDevice] = useState(false);
+  const isAdminBannerActive = useAdminBanner();
   const [isPWAMode, setIsPWAMode] = useState(false);
   const [snarkyMessage, setSnarkyMessage] = useState<string | null>(null);
   const [isLogoSpinning, setIsLogoSpinning] = useState(false);
@@ -300,10 +302,15 @@ export function LandingScreen() {
   };
 
   return (
-    <div className={cn(
-      "dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white",
-      (isPWAMode || isElectronApp) && "md:pt-[30px]"
-    )}>
+    <div
+      className={cn(
+        "dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white",
+        (isPWAMode || isElectronApp) && "md:pt-[30px]"
+      )}
+      style={{
+        paddingTop: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : undefined
+      }}
+    >
       {/* Background Gradients */}
       <BackgroundGradients />
 
@@ -325,7 +332,10 @@ export function LandingScreen() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -100, opacity: 0 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/10 backdrop-blur-xl"
+            className="fixed left-0 right-0 z-50 glass-panel border-b border-white/10 backdrop-blur-xl"
+            style={{
+              top: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'
+            }}
           >
             <div className="flex items-center justify-between px-4 py-3 md:px-8 max-w-7xl mx-auto">
               <div className="flex items-center space-x-3">
