@@ -10,6 +10,7 @@ import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
 import { CodeAppsPanel } from "@/components/CodeAppsPanel";
 import { ExportPanel } from "@/components/ExportPanel";
 import { cn } from "@/lib/utils";
+import { useAdminBanner } from "@/components/AdminBanner";
 
 const musicTracks = [
   { 
@@ -45,6 +46,7 @@ interface RightPanelProps {
 export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
   // Detect PWA/Electron mode for conditional spacing
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
+  const isAdminBannerActive = useAdminBanner();
 
   useEffect(() => {
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
@@ -172,10 +174,14 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         animate={{ x: isOpen ? "0%" : "-100%" }}
         transition={{ type: "spring", damping: 18, stiffness: 320, mass: 0.65 }}
         className={cn(
-          "fixed top-0 left-0 h-full z-50 glass-strong border-r border-border/40 shadow-2xl",
+          "fixed left-0 z-50 glass-strong border-r border-border/40 shadow-2xl",
           "w-full sm:w-96 lg:w-80 xl:w-96",
           "flex flex-col overflow-hidden"
         )}
+        style={{
+          top: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px',
+          height: isAdminBannerActive ? 'calc(100vh - var(--admin-banner-height, 0px))' : '100vh'
+        }}
       >
         {/* Internal wrapper with conditional padding */}
         <div className={cn(
