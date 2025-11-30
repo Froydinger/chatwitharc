@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Users, MessageSquare, Trash2, Plus, Megaphone, Construction, AlertTriangle, PartyPopper, X } from 'lucide-react';
+import { Settings, Users, MessageSquare, Trash2, Plus, Megaphone, Construction, AlertTriangle, PartyPopper, X, ChevronUp } from 'lucide-react';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { toast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -32,6 +32,7 @@ export function AdminSettingsPanel() {
   const [bannerIcon, setBannerIcon] = useState<'construction' | 'alert' | 'celebrate'>('alert');
   const [bannerDismissible, setBannerDismissible] = useState(false);
   const [bannerTimeout, setBannerTimeout] = useState(0);
+  const [bannerColor, setBannerColor] = useState('#00f0ff');
 
   const getSetting = (key: string) => settings.find(s => s.key === key);
 
@@ -61,12 +62,14 @@ export function AdminSettingsPanel() {
       const icon = (getSetting('banner_icon')?.value || 'alert') as 'construction' | 'alert' | 'celebrate';
       const dismissible = getSetting('banner_dismissible')?.value === 'true';
       const timeout = parseInt(getSetting('banner_timeout')?.value || '0', 10);
+      const color = getSetting('banner_color')?.value || '#00f0ff';
 
       setBannerEnabled(enabled);
       setBannerMessage(message);
       setBannerIcon(icon);
       setBannerDismissible(dismissible);
       setBannerTimeout(timeout);
+      setBannerColor(color);
     }
   }, [settings]);
 
@@ -161,6 +164,7 @@ export function AdminSettingsPanel() {
       await updateSetting('banner_icon', bannerIcon, 'Icon to display in the banner (construction, alert, or celebrate)');
       await updateSetting('banner_dismissible', bannerDismissible.toString(), 'Allow users to dismiss the banner with an X button');
       await updateSetting('banner_timeout', bannerTimeout.toString(), 'Auto-hide banner after N seconds (0 = no timeout)');
+      await updateSetting('banner_color', bannerColor, 'Background color for the admin banner (hex color code)');
       toast({
         title: "Banner updated",
         description: "The announcement banner has been successfully updated.",
@@ -374,6 +378,29 @@ export function AdminSettingsPanel() {
                     Set to 0 to keep the banner visible indefinitely. Otherwise, the banner will auto-hide after the specified number of seconds.
                   </p>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="banner-color">Banner Color</Label>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      id="banner-color"
+                      type="color"
+                      value={bannerColor}
+                      onChange={(e) => setBannerColor(e.target.value)}
+                      className="w-20 h-10 cursor-pointer"
+                    />
+                    <Input
+                      type="text"
+                      value={bannerColor}
+                      onChange={(e) => setBannerColor(e.target.value)}
+                      placeholder="#00f0ff"
+                      className="flex-1 font-mono"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Choose a background color for the banner
+                  </p>
+                </div>
               </div>
 
               <Separator />
@@ -381,7 +408,7 @@ export function AdminSettingsPanel() {
               {bannerEnabled && bannerMessage && (
                 <div className="space-y-2">
                   <Label>Preview</Label>
-                  <div className="bg-[#00f0ff] border-2 border-black rounded-lg p-4 shadow-lg">
+                  <div className="border-2 border-black rounded-lg p-4 shadow-lg" style={{ backgroundColor: bannerColor }}>
                     <div className="flex items-center justify-center gap-3 text-black relative">
                       {bannerIcon === 'construction' && <Construction className="w-5 h-5 flex-shrink-0" />}
                       {bannerIcon === 'alert' && <AlertTriangle className="w-5 h-5 flex-shrink-0" />}
@@ -390,9 +417,14 @@ export function AdminSettingsPanel() {
                         {bannerMessage}
                       </p>
                       {bannerDismissible && (
-                        <button className="absolute right-0 top-1/2 -translate-y-1/2 p-1 hover:bg-black/10 rounded transition-colors">
-                          <X className="w-5 h-5" />
-                        </button>
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
+                          <button className="p-1 hover:bg-black/10 rounded transition-colors">
+                            <ChevronUp className="w-5 h-5" />
+                          </button>
+                          <button className="p-1 hover:bg-black/10 rounded transition-colors">
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Construction, AlertTriangle, PartyPopper, X } from 'lucide-react';
+import { Construction, AlertTriangle, PartyPopper, X, ChevronUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface BannerSettings {
@@ -8,6 +8,7 @@ interface BannerSettings {
   icon: 'construction' | 'alert' | 'celebrate';
   dismissible: boolean;
   timeout: number;
+  color: string;
 }
 
 // Hook to check if admin banner is active
@@ -77,7 +78,8 @@ export function AdminBanner() {
     message: '',
     icon: 'alert',
     dismissible: false,
-    timeout: 0
+    timeout: 0,
+    color: '#00f0ff'
   });
   const [loading, setLoading] = useState(true);
   const [isDismissed, setIsDismissed] = useState(false);
@@ -87,7 +89,7 @@ export function AdminBanner() {
       const { data, error } = await supabase
         .from('admin_settings')
         .select('key, value')
-        .in('key', ['banner_enabled', 'banner_message', 'banner_icon', 'banner_dismissible', 'banner_timeout']);
+        .in('key', ['banner_enabled', 'banner_message', 'banner_icon', 'banner_dismissible', 'banner_timeout', 'banner_color']);
 
       if (error) throw error;
 
@@ -101,7 +103,8 @@ export function AdminBanner() {
         message: settings.banner_message || '',
         icon: (settings.banner_icon as 'construction' | 'alert' | 'celebrate') || 'alert',
         dismissible: settings.banner_dismissible === 'true',
-        timeout: parseInt(settings.banner_timeout || '0', 10)
+        timeout: parseInt(settings.banner_timeout || '0', 10),
+        color: settings.banner_color || '#00f0ff'
       };
 
       setBannerSettings(newSettings);
@@ -129,7 +132,7 @@ export function AdminBanner() {
           event: '*',
           schema: 'public',
           table: 'admin_settings',
-          filter: 'key=in.(banner_enabled,banner_message,banner_icon,banner_dismissible,banner_timeout)'
+          filter: 'key=in.(banner_enabled,banner_message,banner_icon,banner_dismissible,banner_timeout,banner_color)'
         },
         () => {
           fetchBannerSettings();
@@ -186,7 +189,11 @@ export function AdminBanner() {
   };
 
   return (
-    <div ref={bannerRef} className="fixed top-0 left-0 right-0 z-50 bg-[#00f0ff] border-b-2 border-black shadow-lg">
+    <div
+      ref={bannerRef}
+      className="fixed top-0 left-0 right-0 z-50 border-b-2 border-black shadow-lg"
+      style={{ backgroundColor: bannerSettings.color }}
+    >
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-center gap-3 text-black relative">
           {getIcon()}
@@ -194,13 +201,24 @@ export function AdminBanner() {
             {bannerSettings.message}
           </p>
           {bannerSettings.dismissible && (
-            <button
-              onClick={handleDismiss}
-              className="absolute right-0 top-1/2 -translate-y-1/2 p-1 hover:bg-black/10 rounded transition-colors"
-              aria-label="Dismiss banner"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
+              <button
+                onClick={handleDismiss}
+                className="p-1 hover:bg-black/10 rounded transition-colors"
+                aria-label="Hide banner"
+                title="Hide banner"
+              >
+                <ChevronUp className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleDismiss}
+                className="p-1 hover:bg-black/10 rounded transition-colors"
+                aria-label="Dismiss banner"
+                title="Dismiss banner"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           )}
         </div>
       </div>
