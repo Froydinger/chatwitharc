@@ -92,26 +92,29 @@ serve(async (req) => {
       console.error('Lovable AI error:', errorData);
       
       if (response.status === 429) {
-        return new Response(JSON.stringify({ 
-          error: 'Rate limit exceeded. Please try again later.' 
+        return new Response(JSON.stringify({
+          error: 'Rate limit exceeded. Please try again later.',
+          success: false
         }), {
-          status: 429,
+          status: 200, // Always return 200 so Supabase client can parse the error details
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ 
-          error: 'Payment required. Please add credits to your Lovable workspace.' 
+        return new Response(JSON.stringify({
+          error: 'Payment required. Please add credits to your Lovable workspace.',
+          success: false
         }), {
-          status: 402,
+          status: 200, // Always return 200 so Supabase client can parse the error details
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       
-      return new Response(JSON.stringify({ 
-        error: `Image analysis failed: ${response.status} ${response.statusText}` 
+      return new Response(JSON.stringify({
+        error: `Image analysis failed: ${response.status} ${response.statusText}`,
+        success: false
       }), {
-        status: response.status,
+        status: 200, // Always return 200 so Supabase client can parse the error details
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
