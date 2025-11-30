@@ -441,7 +441,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
         content: userMessage || editInstruction || "Edit request",
         role: "user",
         type: "image",
-        imageUrls: baseUrls, // Show original images in user message
+        imageUrls: allImageUrls, // Show all images (original + additional) in user message
       });
 
       await addMessage({
@@ -638,7 +638,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
 
         try {
           const apiPrompt = `Generate an image: ${imagePrompt}`;
-          const genUrl = await ai.generateImage(apiPrompt, profile?.preferred_model || undefined);
+          const genUrl = await ai.generateImage(apiPrompt, sessionModel);
           let finalUrl = genUrl;
           try {
             const resp = await fetch(genUrl);
