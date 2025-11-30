@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
-import { Construction, AlertTriangle, PartyPopper } from 'lucide-react';
+import { Construction, AlertTriangle, PartyPopper, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface BannerSettings {
   enabled: boolean;
   message: string;
   icon: 'construction' | 'alert' | 'celebrate';
+  dismissible: boolean;
+  timeout: number;
 }
 
 // Hook to check if admin banner is active
@@ -29,7 +31,12 @@ export function useAdminBanner() {
 
         const enabled = settings.banner_enabled === 'true';
         const hasMessage = !!settings.banner_message;
-        setIsActive(enabled && hasMessage);
+
+        // Check if user dismissed it (if dismissible)
+        const dismissedKey = `banner_dismissed_${settings.banner_message}`;
+        const isDismissed = localStorage.getItem(dismissedKey) === 'true';
+
+        setIsActive(enabled && hasMessage && !isDismissed);
       } catch (err) {
         console.error('Error checking banner:', err);
         setIsActive(false);
@@ -68,16 +75,19 @@ export function AdminBanner() {
   const [bannerSettings, setBannerSettings] = useState<BannerSettings>({
     enabled: false,
     message: '',
-    icon: 'alert'
+    icon: 'alert',
+    dismissible: false,
+    timeout: 0
   });
   const [loading, setLoading] = useState(true);
+  const [isDismissed, setIsDismissed] = useState(false);
 
   const fetchBannerSettings = async () => {
     try {
       const { data, error } = await supabase
         .from('admin_settings')
         .select('key, value')
-        .in('key', ['banner_enabled', 'banner_message', 'banner_icon']);
+        .in('key', ['banner_enabled', 'banner_message', 'banner_icon', 'banner_dismissible', 'banner_timeout']);
 
       if (error) throw error;
 
@@ -86,11 +96,20 @@ export function AdminBanner() {
         return acc;
       }, {} as Record<string, string>) || {};
 
-      setBannerSettings({
+      const newSettings = {
         enabled: settings.banner_enabled === 'true',
         message: settings.banner_message || '',
-        icon: (settings.banner_icon as 'construction' | 'alert' | 'celebrate') || 'alert'
-      });
+        icon: (settings.banner_icon as 'construction' | 'alert' | 'celebrate') || 'alert',
+        dismissible: settings.banner_dismissible === 'true',
+        timeout: parseInt(settings.banner_timeout || '0', 10)
+      };
+
+      setBannerSettings(newSettings);
+
+      // Check localStorage for dismissed state
+      const dismissedKey = `banner_dismissed_${newSettings.message}`;
+      const wasDismissed = localStorage.getItem(dismissedKey) === 'true';
+      setIsDismissed(wasDismissed);
     } catch (err) {
       console.error('Error fetching banner settings:', err);
     } finally {
@@ -110,7 +129,7 @@ export function AdminBanner() {
           event: '*',
           schema: 'public',
           table: 'admin_settings',
-          filter: 'key=in.(banner_enabled,banner_message,banner_icon)'
+          filter: 'key=in.(banner_enabled,banner_message,banner_icon,banner_dismissible,banner_timeout)'
         },
         () => {
           fetchBannerSettings();
@@ -123,17 +142,34 @@ export function AdminBanner() {
     };
   }, []);
 
+  // Auto-timeout effect
+  useEffect(() => {
+    if (bannerSettings.enabled && bannerSettings.timeout > 0 && !isDismissed) {
+      const timer = setTimeout(() => {
+        handleDismiss();
+      }, bannerSettings.timeout * 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [bannerSettings.enabled, bannerSettings.timeout, isDismissed]);
+
+  const handleDismiss = () => {
+    const dismissedKey = `banner_dismissed_${bannerSettings.message}`;
+    localStorage.setItem(dismissedKey, 'true');
+    setIsDismissed(true);
+  };
+
   // Update CSS custom property when banner height changes
   useEffect(() => {
-    if (bannerRef.current && bannerSettings.enabled && bannerSettings.message) {
+    if (bannerRef.current && bannerSettings.enabled && bannerSettings.message && !isDismissed) {
       const height = bannerRef.current.offsetHeight;
       document.documentElement.style.setProperty('--admin-banner-height', `${height}px`);
     } else {
       document.documentElement.style.setProperty('--admin-banner-height', '0px');
     }
-  }, [bannerSettings.enabled, bannerSettings.message, loading]);
+  }, [bannerSettings.enabled, bannerSettings.message, loading, isDismissed]);
 
-  if (loading || !bannerSettings.enabled || !bannerSettings.message) {
+  if (loading || !bannerSettings.enabled || !bannerSettings.message || isDismissed) {
     return null;
   }
 
@@ -152,11 +188,20 @@ export function AdminBanner() {
   return (
     <div ref={bannerRef} className="fixed top-0 left-0 right-0 z-50 bg-[#00f0ff] border-b-2 border-black shadow-lg">
       <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-center gap-3 text-black">
+        <div className="flex items-center justify-center gap-3 text-black relative">
           {getIcon()}
           <p className="text-sm md:text-base font-semibold text-center">
             {bannerSettings.message}
           </p>
+          {bannerSettings.dismissible && (
+            <button
+              onClick={handleDismiss}
+              className="absolute right-0 top-1/2 -translate-y-1/2 p-1 hover:bg-black/10 rounded transition-colors"
+              aria-label="Dismiss banner"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
     </div>
