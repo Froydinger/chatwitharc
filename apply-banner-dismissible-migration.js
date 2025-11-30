@@ -1,4 +1,4 @@
-// Temporary script to apply the banner dismissible and timeout migration
+// Temporary script to apply the banner dismissible, timeout, and color migration
 // Run this with: node apply-banner-dismissible-migration.js
 
 import { createClient } from '@supabase/supabase-js';
@@ -18,7 +18,7 @@ if (!supabaseUrl.startsWith('http') || !supabaseServiceKey.startsWith('eyJ')) {
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function applyMigration() {
-  console.log('🚀 Applying banner dismissible and timeout migration...\n');
+  console.log('🚀 Applying banner dismissible, timeout, and color migration...\n');
 
   const settings = [
     {
@@ -30,6 +30,11 @@ async function applyMigration() {
       key: 'banner_timeout',
       value: '0',
       description: 'Auto-hide banner after N seconds (0 = no timeout)'
+    },
+    {
+      key: 'banner_color',
+      value: '#00f0ff',
+      description: 'Background color for the admin banner (hex color code)'
     }
   ];
 
@@ -48,7 +53,7 @@ async function applyMigration() {
     }
   }
 
-  console.log('\n✨ Migration complete! The banner dismissible and timeout features are now ready to use.');
+  console.log('\n✨ Migration complete! The banner dismissible, timeout, and color features are now ready to use.');
   console.log('Go to /admin and click the "Banner" tab to configure it.\n');
 }
 
