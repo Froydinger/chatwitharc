@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Users, MessageSquare, Trash2, Plus, Megaphone, Construction, AlertTriangle, PartyPopper } from 'lucide-react';
+import { Settings, Users, MessageSquare, Trash2, Plus, Megaphone, Construction, AlertTriangle, PartyPopper, X } from 'lucide-react';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { toast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -30,6 +30,8 @@ export function AdminSettingsPanel() {
   const [bannerEnabled, setBannerEnabled] = useState(false);
   const [bannerMessage, setBannerMessage] = useState('');
   const [bannerIcon, setBannerIcon] = useState<'construction' | 'alert' | 'celebrate'>('alert');
+  const [bannerDismissible, setBannerDismissible] = useState(false);
+  const [bannerTimeout, setBannerTimeout] = useState(0);
 
   const getSetting = (key: string) => settings.find(s => s.key === key);
 
@@ -57,10 +59,14 @@ export function AdminSettingsPanel() {
       const enabled = getSetting('banner_enabled')?.value === 'true';
       const message = getSetting('banner_message')?.value || '';
       const icon = (getSetting('banner_icon')?.value || 'alert') as 'construction' | 'alert' | 'celebrate';
+      const dismissible = getSetting('banner_dismissible')?.value === 'true';
+      const timeout = parseInt(getSetting('banner_timeout')?.value || '0', 10);
 
       setBannerEnabled(enabled);
       setBannerMessage(message);
       setBannerIcon(icon);
+      setBannerDismissible(dismissible);
+      setBannerTimeout(timeout);
     }
   }, [settings]);
 
@@ -153,6 +159,8 @@ export function AdminSettingsPanel() {
       await updateSetting('banner_enabled', bannerEnabled.toString(), 'Enable or disable the admin announcement banner');
       await updateSetting('banner_message', bannerMessage, 'Message to display in the admin banner');
       await updateSetting('banner_icon', bannerIcon, 'Icon to display in the banner (construction, alert, or celebrate)');
+      await updateSetting('banner_dismissible', bannerDismissible.toString(), 'Allow users to dismiss the banner with an X button');
+      await updateSetting('banner_timeout', bannerTimeout.toString(), 'Auto-hide banner after N seconds (0 = no timeout)');
       toast({
         title: "Banner updated",
         description: "The announcement banner has been successfully updated.",
@@ -335,19 +343,66 @@ export function AdminSettingsPanel() {
                 </RadioGroup>
               </div>
 
+              <Separator />
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="banner-dismissible" className="text-base">Allow Dismissal</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Users can close the banner by clicking an X button
+                    </p>
+                  </div>
+                  <Switch
+                    id="banner-dismissible"
+                    checked={bannerDismissible}
+                    onCheckedChange={setBannerDismissible}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="banner-timeout">Auto-Hide Timeout (seconds)</Label>
+                  <Input
+                    id="banner-timeout"
+                    type="number"
+                    min="0"
+                    value={bannerTimeout}
+                    onChange={(e) => setBannerTimeout(parseInt(e.target.value, 10) || 0)}
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Set to 0 to keep the banner visible indefinitely. Otherwise, the banner will auto-hide after the specified number of seconds.
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
               {bannerEnabled && bannerMessage && (
                 <div className="space-y-2">
                   <Label>Preview</Label>
                   <div className="bg-[#00f0ff] border-2 border-black rounded-lg p-4 shadow-lg">
-                    <div className="flex items-center justify-center gap-3 text-black">
+                    <div className="flex items-center justify-center gap-3 text-black relative">
                       {bannerIcon === 'construction' && <Construction className="w-5 h-5 flex-shrink-0" />}
                       {bannerIcon === 'alert' && <AlertTriangle className="w-5 h-5 flex-shrink-0" />}
                       {bannerIcon === 'celebrate' && <PartyPopper className="w-5 h-5 flex-shrink-0" />}
                       <p className="text-sm md:text-base font-semibold text-center">
                         {bannerMessage}
                       </p>
+                      {bannerDismissible && (
+                        <button className="absolute right-0 top-1/2 -translate-y-1/2 p-1 hover:bg-black/10 rounded transition-colors">
+                          <X className="w-5 h-5" />
+                        </button>
+                      )}
                     </div>
                   </div>
+                  {(bannerDismissible || bannerTimeout > 0) && (
+                    <p className="text-xs text-muted-foreground">
+                      {bannerDismissible && bannerTimeout > 0 && `Users can dismiss this banner or it will auto-hide after ${bannerTimeout} seconds`}
+                      {bannerDismissible && bannerTimeout === 0 && 'Users can dismiss this banner by clicking the X button'}
+                      {!bannerDismissible && bannerTimeout > 0 && `This banner will auto-hide after ${bannerTimeout} seconds`}
+                    </p>
+                  )}
                 </div>
               )}
 
