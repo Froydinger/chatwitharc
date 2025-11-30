@@ -17,6 +17,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { usePromptPreload } from "@/hooks/usePromptPreload";
+import { useAdminBanner } from "@/components/AdminBanner";
 
 /** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
@@ -131,6 +132,7 @@ export function MobileChatApp() {
   } = useArcStore();
   const { profile } = useProfile();
   const isMobile = useIsMobile(); // This hook determines if the current device is mobile
+  const isAdminBannerActive = useAdminBanner();
 
   // Pre-generate prompts in background for instant access
   usePromptPreload();
@@ -496,10 +498,15 @@ export function MobileChatApp() {
 
   // Main chat interface
   return (
-    <div className={cn(
-      "min-h-screen bg-background flex relative",
-      (isPWAMode || isElectronApp) && "md:pt-[30px]"
-    )}>
+    <div
+      className={cn(
+        "min-h-screen bg-background flex relative",
+        (isPWAMode || isElectronApp) && "md:pt-[30px]"
+      )}
+      style={{
+        paddingTop: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : undefined
+      }}
+    >
       {/* Breathing gradient background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="chat-breathing-blob chat-breathing-blob-1"></div>
@@ -517,9 +524,12 @@ export function MobileChatApp() {
         <div
           className={cn(
             "fixed left-0 right-0 z-40 transition-transform duration-300 ease-out pointer-events-none",
-            (isPWAMode || isElectronApp) ? "top-0 md:top-[30px]" : "top-0",
+            (isPWAMode || isElectronApp) ? "md:top-[30px]" : "",
             isMobile && !headerVisible && "-translate-y-full",
           )}
+          style={{
+            top: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : (isPWAMode || isElectronApp) ? '0px' : '0px'
+          }}
         >
           <div className="flex h-16 items-center justify-between px-4 pt-2 pointer-events-none">
             {/* Left-side buttons */}
