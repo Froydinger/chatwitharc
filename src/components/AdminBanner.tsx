@@ -217,7 +217,7 @@ export function AdminBanner() {
           className={`fixed left-1/2 -translate-x-1/2 z-[9999] p-2 bg-[#00f0ff] hover:bg-[#00d4e6] text-black rounded-full shadow-lg transition-all duration-300 ${
             isDismissed ? 'opacity-50 scale-50' : 'opacity-100 scale-100 hover:scale-110'
           }`}
-          style={{ top: isDismissed ? '0px' : `${bannerHeight}px` }}
+          style={{ top: isDismissed ? '28px' : `${bannerHeight}px` }}
           aria-label={isDismissed ? "Show banner" : "Hide banner"}
           title={isDismissed ? "Show banner" : "Hide banner"}
         >
