@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Construction, AlertTriangle, PartyPopper, X, ChevronUp } from 'lucide-react';
+import { Construction, AlertTriangle, PartyPopper, ChevronUp, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface BannerSettings {
@@ -150,17 +150,18 @@ export function AdminBanner() {
   useEffect(() => {
     if (bannerSettings.enabled && bannerSettings.timeout > 0 && !isDismissed) {
       const timer = setTimeout(() => {
-        handleDismiss();
+        handleToggle();
       }, bannerSettings.timeout * 1000);
 
       return () => clearTimeout(timer);
     }
   }, [bannerSettings.enabled, bannerSettings.timeout, isDismissed]);
 
-  const handleDismiss = () => {
+  const handleToggle = () => {
     const dismissedKey = `banner_dismissed_${bannerSettings.message}`;
-    localStorage.setItem(dismissedKey, 'true');
-    setIsDismissed(true);
+    const newDismissedState = !isDismissed;
+    localStorage.setItem(dismissedKey, newDismissedState.toString());
+    setIsDismissed(newDismissedState);
   };
 
   // Update CSS custom property when banner height changes
@@ -175,7 +176,7 @@ export function AdminBanner() {
     }
   }, [bannerSettings.enabled, bannerSettings.message, loading, isDismissed]);
 
-  if (loading || !bannerSettings.enabled || !bannerSettings.message || isDismissed) {
+  if (loading || !bannerSettings.enabled || !bannerSettings.message) {
     return null;
   }
 
@@ -193,42 +194,38 @@ export function AdminBanner() {
 
   return (
     <>
-      <div
-        ref={bannerRef}
-        className="fixed top-0 left-0 right-0 z-50 border-b-2 border-black shadow-lg"
-        style={{ backgroundColor: bannerSettings.color }}
-      >
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-center gap-3 text-black relative">
-            {getIcon()}
-            <p className="text-sm md:text-base font-semibold text-center">
-              {bannerSettings.message}
-            </p>
-            {bannerSettings.dismissible && (
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
-                <button
-                  onClick={handleDismiss}
-                  className="p-1 hover:bg-black/10 rounded transition-colors"
-                  aria-label="Dismiss banner"
-                  title="Dismiss banner"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            )}
+      {!isDismissed && (
+        <div
+          ref={bannerRef}
+          className="fixed top-0 left-0 right-0 z-50 border-b-2 border-black shadow-lg transition-all duration-300"
+          style={{ backgroundColor: bannerSettings.color }}
+        >
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-center gap-3 text-black">
+              {getIcon()}
+              <p className="text-sm md:text-base font-semibold text-center">
+                {bannerSettings.message}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {bannerSettings.dismissible && bannerHeight > 0 && (
+      {bannerSettings.dismissible && (
         <button
-          onClick={handleDismiss}
-          className="fixed right-4 z-[9999] p-2 bg-[#00f0ff] hover:bg-[#00d4e6] text-black rounded-full shadow-lg transition-all hover:scale-110"
-          style={{ top: `${bannerHeight}px` }}
-          aria-label="Hide banner"
-          title="Hide banner"
+          onClick={handleToggle}
+          className={`fixed left-1/2 -translate-x-1/2 z-[9999] p-2 bg-[#00f0ff] hover:bg-[#00d4e6] text-black rounded-full shadow-lg transition-all duration-300 ${
+            isDismissed ? 'opacity-50 scale-50' : 'opacity-100 scale-100 hover:scale-110'
+          }`}
+          style={{ top: isDismissed ? '0px' : `${bannerHeight}px` }}
+          aria-label={isDismissed ? "Show banner" : "Hide banner"}
+          title={isDismissed ? "Show banner" : "Hide banner"}
         >
-          <ChevronUp className="w-5 h-5" />
+          {isDismissed ? (
+            <ChevronDown className="w-5 h-5" />
+          ) : (
+            <ChevronUp className="w-5 h-5" />
+          )}
         </button>
       )}
     </>
