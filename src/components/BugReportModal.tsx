@@ -36,21 +36,6 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
     setIsSubmitting(true);
 
     try {
-      // Insert into bug_reports table
-      const { error: insertError } = await supabase
-        .from("bug_reports")
-        .insert({
-          user_id: user?.id || null,
-          user_email: email || null,
-          error_message: errorMessage,
-          error_stack: errorStack,
-          user_description: description,
-          url: window.location.href,
-          user_agent: navigator.userAgent,
-        });
-
-      if (insertError) throw insertError;
-
       // Call Edge Function to send email
       const { error: emailError } = await supabase.functions.invoke("send-bug-report", {
         body: {

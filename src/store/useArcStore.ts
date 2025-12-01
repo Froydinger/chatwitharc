@@ -69,6 +69,9 @@ export interface ArcState {
   saveChatToSupabase: (session: ChatSession) => Promise<void>;
   isOnline: boolean;
   lastSyncAt: Date | null;
+  
+  // Message Recovery
+  recoverPendingMessages: () => Promise<void>;
 }
 
 export const useArcStore = create<ArcState>()(
@@ -188,6 +191,13 @@ export const useArcStore = create<ArcState>()(
           set({ isOnline: false });
           throw error; // Re-throw to let caller handle
         }
+      },
+      
+      recoverPendingMessages: async () => {
+        // This will be called when app becomes visible or on mount
+        // For now, just trigger a sync to ensure everything is up to date
+        console.log('🔄 Recovering pending messages...');
+        await get().syncFromSupabase();
       },
       
       createNewSession: () => {
