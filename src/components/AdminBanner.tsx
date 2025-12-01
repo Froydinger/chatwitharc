@@ -83,6 +83,7 @@ export function AdminBanner() {
   });
   const [loading, setLoading] = useState(true);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [bannerHeight, setBannerHeight] = useState(0);
 
   const fetchBannerSettings = async () => {
     try {
@@ -167,8 +168,10 @@ export function AdminBanner() {
     if (bannerRef.current && bannerSettings.enabled && bannerSettings.message && !isDismissed) {
       const height = bannerRef.current.offsetHeight;
       document.documentElement.style.setProperty('--admin-banner-height', `${height}px`);
+      setBannerHeight(height);
     } else {
       document.documentElement.style.setProperty('--admin-banner-height', '0px');
+      setBannerHeight(0);
     }
   }, [bannerSettings.enabled, bannerSettings.message, loading, isDismissed]);
 
@@ -189,39 +192,45 @@ export function AdminBanner() {
   };
 
   return (
-    <div
-      ref={bannerRef}
-      className="fixed top-0 left-0 right-0 z-50 border-b-2 border-black shadow-lg"
-      style={{ backgroundColor: bannerSettings.color }}
-    >
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-center gap-3 text-black relative">
-          {getIcon()}
-          <p className="text-sm md:text-base font-semibold text-center">
-            {bannerSettings.message}
-          </p>
-          {bannerSettings.dismissible && (
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
-              <button
-                onClick={handleDismiss}
-                className="p-1 hover:bg-black/10 rounded transition-colors relative z-40"
-                aria-label="Hide banner"
-                title="Hide banner"
-              >
-                <ChevronUp className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleDismiss}
-                className="p-1 hover:bg-black/10 rounded transition-colors"
-                aria-label="Dismiss banner"
-                title="Dismiss banner"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          )}
+    <>
+      <div
+        ref={bannerRef}
+        className="fixed top-0 left-0 right-0 z-50 border-b-2 border-black shadow-lg"
+        style={{ backgroundColor: bannerSettings.color }}
+      >
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-center gap-3 text-black relative">
+            {getIcon()}
+            <p className="text-sm md:text-base font-semibold text-center">
+              {bannerSettings.message}
+            </p>
+            {bannerSettings.dismissible && (
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
+                <button
+                  onClick={handleDismiss}
+                  className="p-1 hover:bg-black/10 rounded transition-colors"
+                  aria-label="Dismiss banner"
+                  title="Dismiss banner"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {bannerSettings.dismissible && bannerHeight > 0 && (
+        <button
+          onClick={handleDismiss}
+          className="fixed right-4 z-[9999] p-2 bg-[#00f0ff] hover:bg-[#00d4e6] text-black rounded-full shadow-lg transition-all hover:scale-110"
+          style={{ top: `${bannerHeight}px` }}
+          aria-label="Hide banner"
+          title="Hide banner"
+        >
+          <ChevronUp className="w-5 h-5" />
+        </button>
+      )}
+    </>
   );
 }
