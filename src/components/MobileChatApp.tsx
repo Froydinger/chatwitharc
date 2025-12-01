@@ -528,8 +528,8 @@ export function MobileChatApp() {
           )}
           style={{
             top: isAdminBannerActive
-              ? `calc(var(--admin-banner-height, 0px) + ${(isPWAMode || isElectronApp) ? '72px' : '0px'})`
-              : (isPWAMode || isElectronApp) ? '72px' : '0px'
+              ? `calc(var(--admin-banner-height, 0px) + ${(isPWAMode || isElectronApp) ? '30px' : '0px'})`
+              : (isPWAMode || isElectronApp) ? '30px' : '0px'
           }}
         >
           <div className="flex h-16 items-center justify-between px-4 pt-2 pointer-events-none">
