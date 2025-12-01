@@ -204,7 +204,7 @@ export function AdminBanner() {
             <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
               <button
                 onClick={handleDismiss}
-                className="p-1 hover:bg-black/10 rounded transition-colors"
+                className="p-1 hover:bg-black/10 rounded transition-colors relative z-40"
                 aria-label="Hide banner"
                 title="Hide banner"
               >
