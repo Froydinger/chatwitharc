@@ -365,9 +365,9 @@ export function LandingScreen() {
           {/* Logo Orb - clickable with snarky messages */}
           <div className="relative">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all overflow-hidden shadow-lg"
+              className="rounded-full backdrop-blur-2xl bg-background/60 hover:bg-background/80 transition-all overflow-hidden shadow-lg border-0"
               onClick={() => {
                 // Clear any existing timeout
                 if (snarkyTimeoutRef.current) {
