@@ -824,14 +824,18 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
 
       {/* Input Row */}
       <div
-        className={[
-          "chat-input-halo flex items-center gap-3 transition-all duration-200 rounded-full backdrop-blur-2xl",
-          "bg-gradient-to-br from-background/60 to-[hsl(var(--primary)/0.04)]",
-          "border border-primary/12",
-          "shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_0_20px_hsl(var(--primary-glow)/0.06)]",
-          isActive ? "halo-active ring-2 ring-primary/40 shadow-[0_0_32px_hsl(var(--primary-glow)/0.2)]" : "",
-          shouldShowBanana ? "ring-2 ring-yellow-400/60 shadow-[0_0_24px_rgba(250,204,21,.18)]" : "",
-        ].join(" ")}
+        className="chat-input-halo flex items-center gap-3 transition-all duration-200 rounded-full backdrop-blur-2xl border shadow-lg"
+        style={{
+          background: isActive 
+            ? `linear-gradient(135deg, hsl(var(--background) / 0.65) 0%, hsl(var(--primary) / 0.12) 100%)`
+            : `linear-gradient(135deg, hsl(var(--background) / 0.6) 0%, hsl(var(--primary) / 0.08) 100%)`,
+          borderColor: isActive ? `hsl(var(--primary) / 0.25)` : `hsl(var(--primary) / 0.15)`,
+          boxShadow: isActive
+            ? `0 8px 32px rgba(0, 0, 0, 0.4), inset 0 0 24px hsl(var(--primary-glow) / 0.1), 0 0 32px hsl(var(--primary-glow) / 0.15)`
+            : shouldShowBanana
+            ? `0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 20px hsl(var(--primary-glow) / 0.06), 0 0 24px rgba(250, 204, 21, 0.18)`
+            : `0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 20px hsl(var(--primary-glow) / 0.06)`
+        }}
       >
         {/* LEFT BUTTON — Banana replaces + when active */}
         <button
