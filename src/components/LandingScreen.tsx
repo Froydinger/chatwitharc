@@ -364,10 +364,9 @@ export function LandingScreen() {
         <div className="flex items-center space-x-3">
           {/* Logo Orb - clickable with snarky messages */}
           <div className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full backdrop-blur-2xl bg-background/60 hover:bg-background/80 transition-all overflow-hidden shadow-lg border-0"
+            <button
+              className="rounded-full backdrop-blur-2xl bg-background/60 hover:bg-background/80 transition-all overflow-hidden shadow-lg p-2 cursor-pointer"
+              style={{ border: 'none' }}
               onClick={() => {
                 // Clear any existing timeout
                 if (snarkyTimeoutRef.current) {
@@ -426,7 +425,7 @@ export function LandingScreen() {
               >
                 <ThemedLogo keepOriginal className="w-8 h-8" />
               </motion.div>
-            </Button>
+            </button>
 
             {/* Snarky Message Popup */}
             <AnimatePresence>
