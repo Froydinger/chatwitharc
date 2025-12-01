@@ -616,17 +616,4 @@ body::before {
   body.standalone-app.is-ipad #root > div:first-child {
     min-height: calc(100vh - 30px) !important;
   }
-
-  /* Standalone App: Offset admin banner below title bar controls */
-  .standalone-app .admin-banner-container {
-    top: 72px !important;
-  }
-
-  .standalone-app .admin-chevron-visible {
-    top: calc(72px + var(--admin-banner-height, 0px)) !important;
-  }
-
-  .standalone-app .admin-chevron-hidden {
-    top: 72px !important;
-  }
 }

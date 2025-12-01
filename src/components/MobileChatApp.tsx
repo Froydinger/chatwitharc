@@ -524,11 +524,12 @@ export function MobileChatApp() {
         <div
           className={cn(
             "fixed left-0 right-0 z-40 transition-transform duration-300 ease-out pointer-events-none",
-            (isPWAMode || isElectronApp) ? "md:top-[30px]" : "",
             isMobile && !headerVisible && "-translate-y-full",
           )}
           style={{
-            top: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : (isPWAMode || isElectronApp) ? '0px' : '0px'
+            top: isAdminBannerActive
+              ? `calc(var(--admin-banner-height, 0px) + ${(isPWAMode || isElectronApp) ? '72px' : '0px'})`
+              : (isPWAMode || isElectronApp) ? '72px' : '0px'
           }}
         >
           <div className="flex h-16 items-center justify-between px-4 pt-2 pointer-events-none">

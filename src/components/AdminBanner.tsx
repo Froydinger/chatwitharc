@@ -197,7 +197,7 @@ export function AdminBanner() {
       {!isDismissed && (
         <div
           ref={bannerRef}
-          className="admin-banner-container fixed top-0 left-0 right-0 z-50 border-b-2 border-black shadow-lg transition-all duration-300"
+          className="fixed top-0 left-0 right-0 z-50 border-b-2 border-black shadow-lg transition-all duration-300"
           style={{ backgroundColor: bannerSettings.color }}
         >
           <div className="container mx-auto px-4 py-3">
@@ -215,7 +215,7 @@ export function AdminBanner() {
         <button
           onClick={handleToggle}
           className={`fixed left-1/2 -translate-x-1/2 z-[9999] p-2 bg-[#00f0ff] hover:bg-[#00d4e6] text-black rounded-full shadow-lg transition-all duration-300 ${
-            isDismissed ? 'admin-chevron-hidden opacity-50 scale-50' : 'admin-chevron-visible opacity-100 scale-100 hover:scale-110'
+            isDismissed ? 'opacity-50 scale-50' : 'opacity-100 scale-100 hover:scale-110'
           }`}
           style={{ top: isDismissed ? '28px' : `${bannerHeight}px` }}
           aria-label={isDismissed ? "Show banner" : "Hide banner"}
