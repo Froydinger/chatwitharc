@@ -954,32 +954,32 @@ export function MobileChatApp() {
           border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
         }
         .dark .glass-dock{
-          background: linear-gradient(135deg, hsl(var(--primary) / 0.38) 0%, hsl(var(--primary) / 0.28) 100%);
-          backdrop-filter: blur(20px) saturate(115%);
-          -webkit-backdrop-filter: blur(20px) saturate(115%);
-          border: 1px solid hsl(var(--primary) / 0.5);
+          background: linear-gradient(135deg, hsl(var(--background) / 0.7) 0%, hsl(var(--background) / 0.65) 50%, hsl(var(--primary) / 0.15) 100%);
+          backdrop-filter: blur(24px) saturate(115%);
+          -webkit-backdrop-filter: blur(24px) saturate(115%);
+          border: 1px solid hsl(var(--primary) / 0.3);
           box-shadow:
             0 8px 32px rgba(0, 0, 0, 0.3),
-            inset 0 0 20px hsl(var(--primary-glow) / 0.25);
+            inset 0 0 20px hsl(var(--primary-glow) / 0.12);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           cursor: text;
          }
         .glass-dock::before{ display: none; }
         .dark .glass-dock:hover{
           transform: scale(1.02);
-          background: linear-gradient(135deg, hsl(var(--primary) / 0.42) 0%, hsl(var(--primary) / 0.32) 100%);
-          border-color: hsl(var(--primary) / 0.55);
+          background: linear-gradient(135deg, hsl(var(--background) / 0.68) 0%, hsl(var(--background) / 0.62) 50%, hsl(var(--primary) / 0.18) 100%);
+          border-color: hsl(var(--primary) / 0.35);
           box-shadow:
             0 8px 32px rgba(0, 0, 0, 0.4),
-            inset 0 0 24px hsl(var(--primary-glow) / 0.3);
+            inset 0 0 24px hsl(var(--primary-glow) / 0.15);
         }
         .dark .glass-dock:focus-within{
-          background: linear-gradient(135deg, hsl(var(--primary) / 0.45) 0%, hsl(var(--primary) / 0.35) 100%);
-          border-color: hsl(var(--primary) / 0.6);
+          background: linear-gradient(135deg, hsl(var(--background) / 0.65) 0%, hsl(var(--background) / 0.6) 50%, hsl(var(--primary) / 0.22) 100%);
+          border-color: hsl(var(--primary) / 0.4);
           box-shadow:
             0 8px 32px rgba(0, 0, 0, 0.4),
-            inset 0 0 24px hsl(var(--primary-glow) / 0.4),
-            0 0 32px hsl(var(--primary-glow) / 0.45);
+            inset 0 0 24px hsl(var(--primary-glow) / 0.2),
+            0 0 32px hsl(var(--primary-glow) / 0.25);
         }
 
         /* Hide button borders inside dark mode input bar for unified appearance */
