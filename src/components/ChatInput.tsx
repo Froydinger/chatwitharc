@@ -824,7 +824,7 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
 
       {/* Input Row */}
       <div
-        className="chat-input-halo flex items-center gap-3 transition-all duration-200 rounded-full backdrop-blur-xl border shadow-lg"
+        className="chat-input-halo flex items-center gap-3 transition-all duration-300 ease-out rounded-full backdrop-blur-xl border shadow-lg hover:scale-[1.02] cursor-text"
         style={{
           background: isActive
             ? `linear-gradient(135deg, hsl(var(--primary) / 0.45) 0%, hsl(var(--primary) / 0.35) 100%)`
