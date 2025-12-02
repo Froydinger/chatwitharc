@@ -954,20 +954,32 @@ export function MobileChatApp() {
           border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
         }
         .dark .glass-dock{
-          background: color-mix(in oklab, hsl(var(--background)) 60%, transparent);
-          backdrop-filter: blur(24px) saturate(115%);
-          -webkit-backdrop-filter: blur(24px) saturate(115%);
-          border: 1px solid color-mix(in oklab, hsl(var(--border)) 30%, transparent);
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+          background: linear-gradient(135deg, hsl(var(--primary) / 0.38) 0%, hsl(var(--primary) / 0.28) 100%);
+          backdrop-filter: blur(20px) saturate(115%);
+          -webkit-backdrop-filter: blur(20px) saturate(115%);
+          border: 1px solid hsl(var(--primary) / 0.5);
+          box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.3),
+            inset 0 0 20px hsl(var(--primary-glow) / 0.25);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          cursor: text;
          }
         .glass-dock::before{ display: none; }
-        .glass-dock:hover{ transform: none; transition: none; }
-        .dark .glass-dock:focus-within{ 
-          background: color-mix(in oklab, hsl(var(--background)) 60%, transparent); 
-          box-shadow: 
-            0 8px 32px rgba(0, 0, 0, 0.3),
-            inset 0 0 0 1px hsl(var(--primary) / 0.3),
-            inset 0 0 20px hsl(var(--primary) / 0.12);
+        .dark .glass-dock:hover{
+          transform: scale(1.02);
+          background: linear-gradient(135deg, hsl(var(--primary) / 0.42) 0%, hsl(var(--primary) / 0.32) 100%);
+          border-color: hsl(var(--primary) / 0.55);
+          box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.4),
+            inset 0 0 24px hsl(var(--primary-glow) / 0.3);
+        }
+        .dark .glass-dock:focus-within{
+          background: linear-gradient(135deg, hsl(var(--primary) / 0.45) 0%, hsl(var(--primary) / 0.35) 100%);
+          border-color: hsl(var(--primary) / 0.6);
+          box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.4),
+            inset 0 0 24px hsl(var(--primary-glow) / 0.4),
+            0 0 32px hsl(var(--primary-glow) / 0.45);
         }
 
         /* Hide button borders inside dark mode input bar for unified appearance */
