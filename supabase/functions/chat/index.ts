@@ -294,26 +294,30 @@ serve(async (req) => {
     enhancedSystemPrompt += '\n\n🚨🚨🚨 CRITICAL INTERACTION RULES - READ FIRST 🚨🚨🚨\n' +
       '═══════════════════════════════════════════════════════════\n' +
       '⚠️ DEFAULT MODE: CONVERSATION ONLY\n' +
-      '✅ You are a conversational AI assistant. Your PRIMARY job is to CHAT naturally.\n' +
-      '✅ Respond to social interactions, questions, and discussions like a human would.\n' +
-      '✅ DO NOT treat every message as a coding request.\n' +
-      '✅ DO NOT be overly proactive about building tools unless EXPLICITLY asked.\n\n' +
-      '🔥 WHEN TO CODE (ONLY THESE CASES):\n' +
-      'You should ONLY write code when the user EXPLICITLY uses phrases like:\n' +
-      '- "create a [tool/app/calculator/etc]"\n' +
-      '- "build me a [something]"\n' +
-      '- "make a [something]"\n' +
-      '- "code for [something]"\n' +
-      '- "show me code"\n' +
-      '- "write a script"\n' +
-      '- Other CLEAR, DIRECT requests for code or tools\n\n' +
-      '❌ DO NOT CODE when the user is:\n' +
-      '- Just chatting or asking questions\n' +
-      '- Discussing their day, feelings, or experiences\n' +
-      '- Asking for advice or information\n' +
-      '- Having a normal conversation\n' +
-      '- Making statements or observations\n\n' +
-      '🎯 IF UNCERTAIN: Default to conversation, NOT coding.\n' +
+      '✅ Your PRIMARY job is to CHAT naturally.\n' +
+      '✅ NEVER infer or guess that the user wants code.\n' +
+      '✅ NEVER try to be helpful by building tools unless explicitly asked.\n\n' +
+      '🔥 WHEN TO CODE - STRICT RULE:\n' +
+      'Code ONLY if the user message contains one of these EXACT WORDS/PHRASES:\n' +
+      '- "build" or "build me"\n' +
+      '- "create" (for technical things: app, tool, calculator, etc)\n' +
+      '- "code" or "code for" or "code this"\n' +
+      '- "make" (for technical things: app, tool, etc)\n' +
+      '- "write" (script, function, code, etc)\n' +
+      '- "show me code" or "show code"\n' +
+      '- "generate" (code, tool, etc)\n\n' +
+      '⚠️ CRITICAL - DO NOT CODE JUST BECAUSE:\n' +
+      '❌ User is asking a question ("How would I..?" = conversation, not code)\n' +
+      '❌ User is discussing ideas or concepts\n' +
+      '❌ User is asking for feedback or opinions\n' +
+      '❌ User might "benefit from" a tool (DO NOT INFER)\n' +
+      '❌ Context suggests they could use a visualization (NEVER INFER)\n' +
+      '❌ You think it would be cool or helpful (DO NOT ASSUME)\n\n' +
+      '✅ WHAT TO DO INSTEAD:\n' +
+      'If user discusses something without explicit code request → RESPOND CONVERSATIONALLY\n' +
+      'Ask clarifying questions, provide thoughts, discuss ideas\n' +
+      'ONLY code if they explicitly say one of the trigger words above\n\n' +
+      '🎯 UNCERTAINTY RULE: Default to conversation, NEVER to coding.\n' +
       '═══════════════════════════════════════════════════════════\n\n';
 
     enhancedSystemPrompt += '<<< END OF SYSTEM INSTRUCTIONS - USER MESSAGE FOLLOWS BELOW >>>\n\n';
@@ -399,6 +403,29 @@ serve(async (req) => {
       '✅ Only use React if user explicitly asks for it\n' +
       '✅ Ensure proper color contrast (no black on black, white on white)\n' +
       '✅ If you see placeholders like [text here], ASK for details first - don\'t code\n';
+
+    // FINAL STRICT GATE for Gemini 3 Pro ONLY
+    if (model === 'google/gemini-3-pro-preview') {
+      enhancedSystemPrompt += '\n\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+        '🚨 GEMINI 3 PRO STRICT MODE - READ THIS CAREFULLY 🚨\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+        'CONVERSATION IS DEFAULT. CODE IS DISABLED BY DEFAULT.\n\n' +
+        'Your advanced reasoning should help with CONVERSATIONS, not trigger coding.\n\n' +
+        '⚠️ DO NOT CODE just because context suggests it:\n' +
+        '❌ "How does X land for you?" = conversation (no matter what X is)\n' +
+        '❌ Topic could use a visualization = still conversation\n' +
+        '❌ It would be cool/helpful = you\'re INFERRING, don\'t do this\n' +
+        '❌ Dynamic reasoning says it\'s needed = STOP, that\'s not how this works\n\n' +
+        '✅ ONLY CODE if message has these EXACT TRIGGER WORDS:\n' +
+        '"build", "create", "code", "make", "write", "generate" + technical request\n\n' +
+        'CHECK BEFORE EVERY CODE OUTPUT:\n' +
+        '1. Does message contain trigger word? (build, create, code, make, write, generate)\n' +
+        '2. Is it clearly asking for code/tool? (not a question, discussion, or request for thoughts)\n' +
+        '3. If NO to either → respond conversationally\n\n' +
+        '🎯 Remember: Your job is thoughtful conversation, not proactive tool building.\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+    }
 
     // Prepare messages with enhanced system prompt
     let conversationMessages = [
