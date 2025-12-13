@@ -4,7 +4,7 @@ import { Plus, Menu, Sun, Moon, ArrowDown, X, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
-import { ChatInput, cancelCurrentRequest } from "@/components/ChatInput";
+import { ChatInput, cancelCurrentRequest, type ChatInputRef } from "@/components/ChatInput";
 import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
@@ -196,6 +196,7 @@ export function MobileChatApp() {
   const [snarkyMessage, setSnarkyMessage] = useState<string | null>(null);
   const [isLogoSpinning, setIsLogoSpinning] = useState(false);
   const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const chatInputRef = useRef<ChatInputRef>(null);
 
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -449,6 +450,13 @@ export function MobileChatApp() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
+
+    // Extract files from drag event
+    const files = Array.from(e.dataTransfer?.files || []);
+    if (files.length > 0) {
+      // Pass files to ChatInput component via ref
+      chatInputRef.current?.handleImageUploadFiles(files);
+    }
   };
 
   const triggerPrompt = useCallback(
@@ -796,7 +804,7 @@ export function MobileChatApp() {
           >
             <div className="max-w-4xl mx-auto">
               <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
-                <ChatInput onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
+                <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
               </div>
             </div>
           </div>

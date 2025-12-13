@@ -1,5 +1,5 @@
 // src/components/ChatInput.tsx
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
 import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Brain } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -158,7 +158,11 @@ type Props = {
   rightPanelOpen?: boolean;
 };
 
-export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
+export interface ChatInputRef {
+  handleImageUploadFiles: (files: File[]) => void;
+}
+
+export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ onImagesChange, rightPanelOpen = false }, ref) {
   useProfile();
   const portalRoot = useSafePortalRoot();
   const { toast } = useToast();
@@ -195,6 +199,21 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
   // Textarea auto-resize with cursor position preservation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cursorPositionRef = useRef<number | null>(null);
+
+  // Expose handleImageUploadFiles via ref for drag-and-drop
+  useImperativeHandle(ref, () => ({
+    handleImageUploadFiles: (files: File[]) => {
+      const images = files.filter((f) => f.type.startsWith("image/"));
+      const max = 14;
+      setSelectedImages((prev) => {
+        const merged = [...prev, ...images].slice(0, max);
+        if (merged.length >= max && images.length > 0 && merged.length > prev.length) {
+          toast({ title: "Max images", description: `Up to ${max} images supported`, variant: "default" });
+        }
+        return merged;
+      });
+    },
+  }), [toast]);
 
   useEffect(() => {
     if (!textareaRef.current) return;
@@ -1098,4 +1117,6 @@ export function ChatInput({ onImagesChange, rightPanelOpen = false }: Props) {
       <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
     </div>
   );
-}
+});
+
+ChatInput.displayName = "ChatInput";
