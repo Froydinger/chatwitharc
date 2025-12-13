@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { slideUpVariants, staggerContainerVariants, staggerItemVariants, ANIMATION_DURATION, STAGGER, createHoverVariants, createTapVariants } from "@/utils/animations";
 
 interface SmartSuggestionsProps {
   suggestions: Array<{ label: string; prompt: string; fullPrompt?: string }>;
@@ -28,40 +29,43 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      variants={slideUpVariants}
+      initial="initial"
+      animate="animate"
       className="flex flex-col items-center gap-4 px-4"
     >
       {/* Suggestion Chips */}
-      <div className="flex flex-wrap items-center justify-center gap-2 max-w-xl">
-        {suggestions.map((suggestion, index) => (
+      <motion.div
+        className="flex flex-wrap items-center justify-center gap-2 max-w-xl"
+        variants={staggerContainerVariants}
+        initial="initial"
+        animate="animate"
+      >
+        {suggestions.map((suggestion) => (
           <motion.button
             key={suggestion.label}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: index * 0.05, ease: "easeOut" }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
+            variants={staggerItemVariants}
+            whileHover={createHoverVariants(1.05, 0)}
+            whileTap={createTapVariants(0.98)}
             onClick={() => onSelectPrompt(suggestion.fullPrompt || suggestion.prompt)}
-            className="group relative px-4 py-2.5 rounded-full bg-background/40 backdrop-blur-sm border border-border/50 hover:border-primary/40 hover:bg-background/60 transition-all duration-300"
+            className="group relative px-4 py-2.5 rounded-full bg-background/40 backdrop-blur-sm border border-border/50 hover:border-primary/40 hover:bg-background/60 transition-all duration-200"
           >
             <span className="text-sm font-medium">{suggestion.label}</span>
 
             {/* Subtle hover glow */}
             <motion.div
-              className="absolute inset-0 rounded-full bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute inset-0 rounded-full bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
               initial={false}
             />
           </motion.button>
         ))}
-      </div>
+      </motion.div>
 
       {/* Expand Button */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, delay: suggestions.length * 0.05 + 0.2 }}
+        transition={{ duration: ANIMATION_DURATION.STANDARD, delay: suggestions.length * STAGGER.NORMAL + 0.1 }}
       >
         <Button
           variant="ghost"
