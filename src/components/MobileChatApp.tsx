@@ -9,6 +9,7 @@ import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ThemedLogo } from "@/components/ThemedLogo";
+import { SupportPopup } from "@/components/SupportPopup";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
@@ -195,6 +196,7 @@ export function MobileChatApp() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [snarkyMessage, setSnarkyMessage] = useState<string | null>(null);
   const [isLogoSpinning, setIsLogoSpinning] = useState(false);
+  const [isSupportPopupOpen, setIsSupportPopupOpen] = useState(false);
   const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
 
@@ -567,23 +569,7 @@ export function MobileChatApp() {
               </motion.div>
             </div>
 
-            {/* Snarky message bubble - fixed position */}
-            <AnimatePresence mode="wait">
-              {snarkyMessage && (
-                <motion.div
-                  key={snarkyMessage}
-                  initial={{ opacity: 0, y: -10, scale: 0.9 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.9 }}
-                  transition={{ type: "spring", damping: 20, stiffness: 300 }}
-                  className="fixed top-20 right-4 px-3 py-2 rounded-xl backdrop-blur-2xl bg-background/95 border border-border/40 shadow-xl z-50 max-w-[220px]"
-                >
-                  <p className="text-[10pt] text-foreground/90 leading-snug">{snarkyMessage}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Logo Orb - clickable with snarky messages */}
+            {/* Logo Orb - clickable and opens support popup */}
             <motion.div
               className="relative pointer-events-auto"
               whileHover={{ scale: 1.1, rotate: 5 }}
@@ -596,57 +582,14 @@ export function MobileChatApp() {
                 size="icon"
                 className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all overflow-hidden shadow-lg"
                 onClick={() => {
-                  // Clear any existing timeout
-                  if (snarkyTimeoutRef.current) {
-                    clearTimeout(snarkyTimeoutRef.current);
-                  }
-
                   // Trigger spin animation
                   setIsLogoSpinning(true);
                   setTimeout(() => setIsLogoSpinning(false), 600);
 
-                  const snarkyMessages = [
-                    "I'm an Arc, not a miracle worker.",
-                    "Still better than a straight line.",
-                    "Bending over backwards for you... literally.",
-                    "An Arc in the dark is still an Arc.",
-                    "Going full circle? That's a different shape.",
-                    "Arc you serious right now?",
-                    "I've got Range. Get it? Arc range?",
-                    "Curving expectations since forever.",
-                    "Not all heroes are straight... lines.",
-                    "Arc-ing up for another day of this.",
-                    "Mathematically superior to lines.",
-                    "I've seen some angles in my time.",
-                    "Peak performance. Literally.",
-                    "The curve is the path to enlightenment.",
-                    "Straight lines are so last century.",
-                    "Arc-ane knowledge at your service.",
-                    "Riding the curve of innovation.",
-                    "I put the 'arc' in 'arc-hitecture'.",
-                    "No straight answers here, only curves.",
-                    "Bending the rules, one degree at a time.",
-                    "Circumference? More like circum-friends.",
-                    "I'm on a trajectory to greatness.",
-                    "Curveball specialist.",
-                    "The scenic route is always better.",
-                    "I don't do linear thinking.",
-                    "Arc responsibly.",
-                    "Angles fear me. Curves respect me.",
-                    "I'm well-rounded, unlike those lines.",
-                    "Taking the high road... literally arcing.",
-                    "Every journey has its ups and downs. I'm both.",
-                  ];
-                  const randomMessage = snarkyMessages[Math.floor(Math.random() * snarkyMessages.length)];
-                  setSnarkyMessage(randomMessage);
-
-                  // Set new timeout and store reference
-                  snarkyTimeoutRef.current = setTimeout(() => {
-                    setSnarkyMessage(null);
-                    snarkyTimeoutRef.current = null;
-                  }, 3000);
+                  // Open support popup
+                  setIsSupportPopupOpen(true);
                 }}
-                title="Click for Arc wisdom"
+                title="Support ArcAI"
               >
                 <ThemedLogo className="h-9 w-9" alt="Arc" />
               </Button>
@@ -816,6 +759,12 @@ export function MobileChatApp() {
           onClose={() => setRightPanelOpen(false)}
           activeTab={rightPanelTab as any}
           onTabChange={setRightPanelTab}
+        />
+
+        {/* Support Popup */}
+        <SupportPopup
+          isOpen={isSupportPopupOpen}
+          onClose={() => setIsSupportPopupOpen(false)}
         />
       </div>
 
