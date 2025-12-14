@@ -495,22 +495,23 @@ async function generateSimplePDF(content: string): Promise<Uint8Array> {
   let pdfObjects = '';
   let objectNumber = 1;
   const objectOffsets: number[] = [];
-  
+  const pdfHeader = '%PDF-1.4\n';
+
   // Catalog
+  objectOffsets.push(pdfHeader.length + pdfObjects.length);
   pdfObjects += `${objectNumber} 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`;
-  objectOffsets.push(pdfObjects.length);
   objectNumber++;
-  
+
   // Pages object
   const pageRefs = Array.from({length: totalPages}, (_, i) => `${3 + i} 0 R`).join(' ');
+  objectOffsets.push(pdfHeader.length + pdfObjects.length);
   pdfObjects += `${objectNumber} 0 obj\n<< /Type /Pages /Kids [${pageRefs}] /Count ${totalPages} >>\nendobj\n`;
-  objectOffsets.push(currentOffset + pdfObjects.length);
   objectNumber++;
-  
+
   // Font object
   const fontObjNum = objectNumber;
+  objectOffsets.push(pdfHeader.length + pdfObjects.length);
   pdfObjects += `${objectNumber} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n`;
-  objectOffsets.push(currentOffset + pdfObjects.length);
   objectNumber++;
   
   // Create page objects and content streams
@@ -547,13 +548,13 @@ async function generateSimplePDF(content: string): Promise<Uint8Array> {
     
     // Content stream object
     const contentObjNum = objectNumber;
+    objectOffsets.push(pdfHeader.length + pdfObjects.length);
     pdfObjects += `${objectNumber} 0 obj\n<< /Length ${contentLength} >>\nstream\n${contentStream}endstream\nendobj\n`;
-    objectOffsets.push(currentOffset + pdfObjects.length);
     objectNumber++;
-    
+
     // Page object
+    objectOffsets.push(pdfHeader.length + pdfObjects.length);
     pdfObjects += `${3 + pageNum} 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 ${fontObjNum} 0 R >> >> /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents ${contentObjNum} 0 R >>\nendobj\n`;
-    objectOffsets.push(currentOffset + pdfObjects.length);
     objectNumber++;
   }
   
@@ -568,9 +569,9 @@ async function generateSimplePDF(content: string): Promise<Uint8Array> {
   }
   
   // Build trailer
-  const xrefOffset = pdfObjects.length;
+  const xrefOffset = pdfHeader.length + pdfObjects.length;
   const trailer = `trailer\n<< /Size ${objectOffsets.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-  
-  const fullPDF = `%PDF-1.4\n${pdfObjects}${xref}${trailer}`;
+
+  const fullPDF = `${pdfHeader}${pdfObjects}${xref}${trailer}`;
   return new TextEncoder().encode(fullPDF);
 }
