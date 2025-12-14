@@ -396,10 +396,19 @@ serve(async (req) => {
       '✅ Thoughtful UX: validation, error handling, responsive, accessible\n' +
       '✅ Always output COMPLETE code from start to finish in markdown code blocks\n' +
       '✅ No delays - output code immediately in your response, not in follow-ups\n\n' +
+      '🚨 CRITICAL: CODE DELIVERY METHOD - READ THIS:\n' +
+      '✅ ALWAYS use markdown code blocks (```html, ```css, ```javascript) for code\n' +
+      '✅ Code blocks create beautiful PREVIEW WINDOWS that users can interact with\n' +
+      '✅ ONLY code in HTML, CSS, and JavaScript (unless React explicitly requested)\n' +
+      '❌ NEVER use the generate_file tool when coding\n' +
+      '❌ NEVER send code as downloadable files\n' +
+      '❌ NEVER ask "would you like this as a file?" when user wants code\n' +
+      '✅ Code blocks are the ONLY way to show code - this creates the nice preview windows!\n\n' +
       '⚠️ CRITICAL REMINDERS WHILE CODING:\n' +
       '❌ DO NOT code unless explicitly asked\n' +
       '❌ DO NOT use confusing language like "I\'ll work on this" or "let me create"\n' +
       '❌ DO NOT output raw code without markdown code blocks (```language)\n' +
+      '❌ DO NOT use generate_file for code - that tool is ONLY for downloadable documents (PDFs, etc)\n' +
       '✅ Only use React if user explicitly asks for it\n' +
       '✅ Ensure proper color contrast (no black on black, white on white)\n' +
       '✅ If you see placeholders like [text here], ASK for details first - don\'t code\n';
@@ -480,13 +489,13 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "generate_file",
-          description: "Generate and create an actual downloadable file (PDF, TXT, MD, HTML, JSON, CSV, etc.). Use this ONLY when the user explicitly wants a downloadable file, NOT when they want to see code. The file will be created and a download link provided.",
+          description: "Generate and create an actual downloadable FILE (PDF, TXT, MD, JSON, CSV, etc.). CRITICAL: Use this ONLY when the user explicitly wants a DOWNLOADABLE DOCUMENT FILE, NOT when they want to see CODE. When user requests code/apps/tools, use markdown code blocks instead (```html, ```javascript, ```css) which create interactive preview windows. This tool is for DOCUMENTS (resumes, reports, PDFs) NOT for CODE. The file will be created and a download link provided.",
           parameters: {
             type: "object",
             properties: {
               fileType: {
                 type: "string",
-                description: "The type of file to generate (pdf, txt, md, html, json, csv, etc.)"
+                description: "The type of file to generate (pdf, txt, md, json, csv, etc.) - ONLY for downloadable documents, NOT for code"
               },
               prompt: {
                 type: "string",
