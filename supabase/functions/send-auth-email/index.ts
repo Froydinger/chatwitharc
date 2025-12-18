@@ -1,7 +1,7 @@
-import React from 'npm:react@18.3.1'
+import React from 'https://esm.sh/react@18.3.1'
 import { Webhook } from 'https://esm.sh/standardwebhooks@1.0.0'
-import { Resend } from 'npm:resend@4.0.0'
-import { renderAsync } from 'npm:@react-email/components@0.0.22'
+import { Resend } from 'https://esm.sh/resend@4.0.0'
+import { renderAsync } from 'https://esm.sh/@react-email/components@0.0.22'
 import { SignupConfirmationEmail } from './_templates/signup-confirmation.tsx'
 import { MagicLinkEmail } from './_templates/magic-link.tsx'
 

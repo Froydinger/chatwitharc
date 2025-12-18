@@ -275,12 +275,12 @@ export const useArcStore = create<ArcState>()(
               .eq('id', sessionId)
               .eq('user_id', user.id);
 
-            // Clean up generated images from storage
+            // Clean up generated images from storage and database
             if (sessionToDelete) {
               const generatedImageUrls = sessionToDelete.messages
                 .filter(m => m.type === 'image' && m.role === 'assistant' && m.imageUrl)
                 .map(m => m.imageUrl!)
-                .filter(url => url.includes(user.id) && url.includes('generated-'));
+                .filter(url => url.includes('generated-files') || url.includes('avatars'));
 
               for (const url of generatedImageUrls) {
                 try {
@@ -288,9 +288,20 @@ export const useArcStore = create<ArcState>()(
                   const fileName = urlParts[urlParts.length - 1];
                   const fullPath = `${user.id}/${fileName}`;
                   
+                  // Delete from storage (try both buckets)
+                  await supabase.storage
+                    .from('generated-files')
+                    .remove([fullPath]);
                   await supabase.storage
                     .from('avatars')
                     .remove([fullPath]);
+                  
+                  // Delete from database by matching file_url
+                  await supabase
+                    .from('generated_files')
+                    .delete()
+                    .eq('user_id', user.id)
+                    .ilike('file_url', `%${fileName}%`);
                 } catch (imageError) {
                   console.error('Error deleting generated image:', imageError);
                 }

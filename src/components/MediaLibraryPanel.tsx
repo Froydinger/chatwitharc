@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Image, X, Download, Search, MessageCircle } from "lucide-react";
+import { Image, X, Download, Search, MessageCircle, Trash2 } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface GeneratedImage {
   url: string;
@@ -39,7 +41,7 @@ function toDate(ts: unknown): Date | null {
 export function MediaLibraryPanel() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { chatSessions, loadSession, setRightPanelOpen } = useArcStore();
+  const { chatSessions, loadSession, setRightPanelOpen, syncFromSupabase } = useArcStore();
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -156,6 +158,52 @@ export function MediaLibraryPanel() {
       document.body.removeChild(a);
     } catch (error) {
       console.error("Failed to download image:", error);
+    }
+  };
+
+  const deleteImage = async (image: GeneratedImage) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: "Not authenticated", variant: "destructive" });
+        return;
+      }
+
+      // Extract filename from URL
+      const urlParts = image.url.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      const fullPath = `${user.id}/${fileName}`;
+
+      // Delete from storage
+      await supabase.storage.from('generated-files').remove([fullPath]);
+      await supabase.storage.from('avatars').remove([fullPath]);
+
+      // Delete from database
+      await supabase
+        .from('generated_files')
+        .delete()
+        .eq('user_id', user.id)
+        .ilike('file_url', `%${fileName}%`);
+
+      // Remove from chat session messages and save
+      const { saveChatToSupabase } = useArcStore.getState();
+      const session = chatSessions.find(s => s.id === image.sessionId);
+      if (session) {
+        const updatedSession = {
+          ...session,
+          messages: session.messages.filter(m => m.id !== image.messageId)
+        };
+        await saveChatToSupabase(updatedSession);
+      }
+
+      // Refresh local state
+      await syncFromSupabase();
+
+      setSelectedImage(null);
+      toast({ title: "Image deleted" });
+    } catch (error) {
+      console.error("Failed to delete image:", error);
+      toast({ title: "Failed to delete image", variant: "destructive" });
     }
   };
 
@@ -316,6 +364,14 @@ export function MediaLibraryPanel() {
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Save
+                    </Button>
+
+                    <Button
+                      onClick={() => deleteImage(selectedImage)}
+                      className="bg-red-600 text-white hover:bg-red-700"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
                     </Button>
                   </div>
                 </div>
