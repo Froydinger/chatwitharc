@@ -125,19 +125,13 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const contentParts = !isUser && message.type === "text" ? parseCodeBlocks(message.content) : [];
 
     return (
-      <motion.div
+      <div
         ref={ref}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
         className={`flex ${isUser ? "justify-end" : "justify-start"} group`}
       >
         <div className={`flex flex-col gap-2 max-w-[85%] ${isUser ? "ml-auto items-end" : "mr-auto items-start"}`}>
           {/* Message Bubble */}
-          <motion.div
-            initial={{ opacity: 0.9 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.12 }}
+          <div
             onClick={handleMessageClick}
             className={[
               // Only apply bubble styling to user messages
@@ -451,7 +445,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 </div>
               </motion.div>
             )}
-          </motion.div>
+          </div>
           
           {/* Arc Logo - only show for latest assistant message */}
           {!isUser && isLatestAssistant && (
@@ -512,7 +506,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           imageUrl={editImageUrls || []}
           originalPrompt={message.content}
         />
-      </motion.div>
+      </div>
     );
   }
 );

@@ -13,7 +13,7 @@ interface TypewriterMarkdownProps {
 
 export const TypewriterMarkdown = ({
   text,
-  speed = 8, // Faster base speed for longer messages
+  speed = 8,
   className = "",
   shouldAnimate = true,
   onTyping,
@@ -23,25 +23,39 @@ export const TypewriterMarkdown = ({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const onTypingRef = useRef(onTyping);
   const isAnimatingRef = useRef(false);
+  const textRef = useRef(text);
+
+  // Keep text ref updated for interval access
+  useEffect(() => {
+    textRef.current = text;
+  }, [text]);
 
   useEffect(() => {
     onTypingRef.current = onTyping;
   }, [onTyping]);
 
-  // Calculate dynamic speed based on text length - faster for longer messages
-  const getDynamicSpeed = useCallback((textLength: number) => {
-    if (textLength > 2000) return 4; // Very long: super fast
-    if (textLength > 1000) return 6; // Long: fast
-    if (textLength > 500) return 8;  // Medium: normal-fast
-    return 10; // Short: readable speed
-  }, []);
-
-  // Calculate chars per tick based on text length
-  const getCharsPerTick = useCallback((textLength: number) => {
-    if (textLength > 2000) return 6; // Very long: 6 chars at a time
-    if (textLength > 1000) return 4; // Long: 4 chars
-    if (textLength > 500) return 3;  // Medium: 3 chars
-    return 2; // Short: 2 chars for smooth effect
+  // Dynamic speed calculation based on REMAINING text - called every tick
+  const getTickParams = useCallback((currentIdx: number, totalLength: number) => {
+    const remaining = totalLength - currentIdx;
+    
+    // Catchup mode - if we're very behind, burst more characters
+    if (remaining > 500) {
+      return { speed: 3, chars: 10 }; // Very fast catchup
+    }
+    if (remaining > 300) {
+      return { speed: 4, chars: 8 }; // Fast catchup
+    }
+    if (remaining > 150) {
+      return { speed: 5, chars: 5 }; // Moderate catchup
+    }
+    if (remaining > 80) {
+      return { speed: 6, chars: 4 }; // Slight catchup
+    }
+    if (remaining > 40) {
+      return { speed: 8, chars: 3 }; // Normal fast
+    }
+    // Near the end - smooth readable finish
+    return { speed: 12, chars: 2 };
   }, []);
 
   useEffect(() => {
@@ -58,34 +72,33 @@ export const TypewriterMarkdown = ({
     }
 
     // If we're already animating, just let it continue with the new text target
-    // Don't restart the interval - just update what we're typing towards
     if (isAnimatingRef.current && intervalRef.current) {
-      // The interval will naturally pick up the new text length
       return;
     }
 
-    // Start fresh animation
-    const dynamicSpeed = getDynamicSpeed(text.length);
-    const charsPerTick = getCharsPerTick(text.length);
-    
+    // Start fresh animation with adaptive speed
     isAnimatingRef.current = true;
     
-    intervalRef.current = setInterval(() => {
+    const tick = () => {
       const currentIndex = currentIndexRef.current;
+      const currentText = textRef.current;
 
-      if (currentIndex >= text.length) {
-        // Check if text might still be growing (streaming)
-        // Keep interval alive but don't increment
+      if (currentIndex >= currentText.length) {
+        // Text might still be streaming - keep interval alive but wait
         return;
       }
 
-      // Add multiple characters at a time based on text length
-      const newIndex = Math.min(currentIndex + charsPerTick, text.length);
+      // Get dynamic params based on how much is remaining
+      const { chars } = getTickParams(currentIndex, currentText.length);
+      
+      const newIndex = Math.min(currentIndex + chars, currentText.length);
       currentIndexRef.current = newIndex;
-      setDisplayedText(text.slice(0, newIndex));
-
+      setDisplayedText(currentText.slice(0, newIndex));
       onTypingRef.current?.();
-    }, dynamicSpeed);
+    };
+
+    // Use a base interval but process multiple chars per tick based on remaining
+    intervalRef.current = setInterval(tick, 6);
 
     return () => {
       if (intervalRef.current) {
@@ -94,9 +107,9 @@ export const TypewriterMarkdown = ({
       }
       isAnimatingRef.current = false;
     };
-  }, [shouldAnimate]); // Only restart on shouldAnimate change, not text
+  }, [shouldAnimate, getTickParams]);
 
-  // Separate effect to handle text updates during animation
+  // Handle text updates during animation
   useEffect(() => {
     if (!shouldAnimate) {
       setDisplayedText(text);
