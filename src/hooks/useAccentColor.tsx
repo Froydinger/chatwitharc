@@ -67,9 +67,9 @@ const accentColorConfigs = {
   },
   noir: {
     primary: "0 0% 92%",
-    primaryGlow: "0 0% 80%",
-    aiMessageBg: "0 0% 6%",
-    aiMessageBorder: "0 0% 15%",
+    primaryGlow: "0 0% 75%",
+    aiMessageBg: "0 0% 3%",
+    aiMessageBorder: "0 0% 10%",
     lightAiMessageBg: "0 0% 97%",
     lightAiMessageBorder: "0 0% 90%",
     lightPrimary: "0 0% 15%",
