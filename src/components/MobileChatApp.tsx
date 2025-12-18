@@ -236,16 +236,27 @@ export function MobileChatApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSessionId]);
 
+  // Track session loading state to skip animations when loading old chats
+  const [isSessionLoading, setIsSessionLoading] = useState(false);
+  const prevSessionRef = useRef<string | null>(null);
+
   // Track the last message ID when loading a session to prevent typewriter animation on old messages
   useEffect(() => {
-    if (messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      // Only update if we don't have a tracked ID yet, or if we're loading a different session
-      if (lastLoadedMessageIdRef.current === null) {
-        lastLoadedMessageIdRef.current = lastMessage.id;
+    // Detect session switch
+    if (currentSessionId !== prevSessionRef.current) {
+      setIsSessionLoading(true);
+      // Brief delay then allow animations for new messages only
+      const timer = setTimeout(() => setIsSessionLoading(false), 150);
+      prevSessionRef.current = currentSessionId;
+      
+      // Set the last loaded message ID to prevent typewriter on existing messages
+      if (messages.length > 0) {
+        lastLoadedMessageIdRef.current = messages[messages.length - 1].id;
       }
+      
+      return () => clearTimeout(timer);
     }
-  }, [currentSessionId]);
+  }, [currentSessionId, messages.length]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -654,23 +665,24 @@ export function MobileChatApp() {
                     paddingTop: "6.5rem",
                   }}
                 >
-                  <AnimatePresence mode="sync" initial={false}>
+                  <AnimatePresence mode="popLayout" initial={false}>
                     {messages.map((message, index) => {
                       const isLastAssistantMessage = message.role === "assistant" && index === messages.length - 1;
-                      // Only animate if this is a new message (not loaded from history)
+                      // Only animate typewriter if this is a new message (not loaded from history)
                       const shouldAnimateTypewriter =
-                        isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current;
+                        isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current && !isSessionLoading;
 
                       return (
                         <motion.div
                           key={message.id}
-                          initial={{ opacity: 0, y: 8 }}
+                          initial={isSessionLoading ? false : { opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
+                          exit={{ opacity: 0 }}
                           transition={{
-                            duration: 0.2,
-                            ease: [0.4, 0, 0.2, 1],
+                            duration: isSessionLoading ? 0 : 0.15,
+                            ease: "easeOut",
                           }}
+                          layout={false}
                         >
                           <MessageBubble
                             message={message}
