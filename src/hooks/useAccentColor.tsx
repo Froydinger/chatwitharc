@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-export type AccentColor = "red" | "blue" | "green" | "yellow" | "purple" | "orange";
+export type AccentColor = "red" | "blue" | "green" | "yellow" | "purple" | "orange" | "noir";
 
 const accentColorConfigs = {
   red: {
@@ -65,6 +65,16 @@ const accentColorConfigs = {
     lightPrimary: "25 95% 55%",
     lightPrimaryGlow: "25 95% 65%",
   },
+  noir: {
+    primary: "0 0% 92%",
+    primaryGlow: "0 0% 80%",
+    aiMessageBg: "0 0% 6%",
+    aiMessageBorder: "0 0% 15%",
+    lightAiMessageBg: "0 0% 97%",
+    lightAiMessageBorder: "0 0% 90%",
+    lightPrimary: "0 0% 15%",
+    lightPrimaryGlow: "0 0% 25%",
+  },
 };
 
 export function useAccentColor() {
@@ -107,6 +117,10 @@ export function useAccentColor() {
       const config = accentColorConfigs[accentColor];
       const root = document.documentElement;
       const isLight = root.classList.contains("light");
+      const isNoir = accentColor === "noir";
+
+      // Set data attribute for CSS targeting
+      root.setAttribute("data-accent", accentColor);
 
       // Update CSS variables for dark mode
       root.style.setProperty("--primary", config.primary);
@@ -114,6 +128,13 @@ export function useAccentColor() {
       root.style.setProperty("--ring", config.primary);
       root.style.setProperty("--ai-message-bg", config.aiMessageBg);
       root.style.setProperty("--ai-message-border", config.aiMessageBorder);
+
+      // Noir theme: black text on white buttons for contrast
+      if (isNoir) {
+        root.style.setProperty("--primary-foreground", "0 0% 5%");
+      } else {
+        root.style.setProperty("--primary-foreground", "240 10% 98%");
+      }
 
       // Update light mode CSS variables dynamically when in light mode
       if (isLight) {
@@ -124,15 +145,16 @@ export function useAccentColor() {
         root.style.setProperty("--ai-message-border", config.lightAiMessageBorder);
       }
 
-      // Update selection color
+      // Update selection color - noir uses inverted colors
       const style = document.getElementById("accent-selection-style") || document.createElement("style");
       style.id = "accent-selection-style";
       const primaryRgb = hslToRgb(isLight ? config.lightPrimary : config.primary);
+      const selectionTextColor = isNoir ? "black" : "white";
       style.textContent = `
-      *::selection { background: rgb(${primaryRgb}) !important; color: white !important; }
-      *::-moz-selection { background: rgb(${primaryRgb}) !important; color: white !important; }
-      input::selection, textarea::selection { background: rgb(${primaryRgb}) !important; color: white !important; }
-      input::-moz-selection, textarea::-moz-selection { background: rgb(${primaryRgb}) !important; color: white !important; }
+      *::selection { background: rgb(${primaryRgb}) !important; color: ${selectionTextColor} !important; }
+      *::-moz-selection { background: rgb(${primaryRgb}) !important; color: ${selectionTextColor} !important; }
+      input::selection, textarea::selection { background: rgb(${primaryRgb}) !important; color: ${selectionTextColor} !important; }
+      input::-moz-selection, textarea::-moz-selection { background: rgb(${primaryRgb}) !important; color: ${selectionTextColor} !important; }
     `;
       if (!style.parentElement) {
         document.head.appendChild(style);
@@ -141,6 +163,9 @@ export function useAccentColor() {
       // Apply logo accent color with mask and glow
       const logoGlow = document.getElementById("logo-glow-style") || document.createElement("style");
       logoGlow.id = "logo-glow-style";
+      // Noir theme uses softer silver/white glow
+      const logoColor = isLight ? config.lightPrimary : config.primary;
+      const glowOpacity = isNoir ? "0.15" : "0.3";
       logoGlow.textContent = `
       .logo-accent-glow {
         position: relative;
@@ -160,7 +185,7 @@ export function useAccentColor() {
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: hsl(${isLight ? config.lightPrimary : config.primary});
+        background-color: hsl(${logoColor});
         mask: url('/arc-logo-ui.png') center / contain no-repeat;
         -webkit-mask: url('/arc-logo-ui.png') center / contain no-repeat;
         pointer-events: none;
@@ -170,7 +195,7 @@ export function useAccentColor() {
         content: '';
         position: absolute;
         inset: -6px;
-        background: hsl(${isLight ? config.lightPrimary : config.primary} / 0.3);
+        background: hsl(${logoColor} / ${glowOpacity});
         border-radius: 50%;
         filter: blur(12px);
         animation: logo-breathe 3s ease-in-out infinite;
@@ -196,7 +221,7 @@ export function useAccentColor() {
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: hsl(${isLight ? config.lightPrimary : config.primary});
+        background-color: hsl(${logoColor});
         mask: url('/arc-logo-ui.png') center / contain no-repeat;
         -webkit-mask: url('/arc-logo-ui.png') center / contain no-repeat;
         pointer-events: none;
@@ -206,7 +231,7 @@ export function useAccentColor() {
         content: '';
         position: absolute;
         inset: -3px;
-        background: hsl(${isLight ? config.lightPrimary : config.primary} / 0.3);
+        background: hsl(${logoColor} / ${glowOpacity});
         border-radius: 50%;
         filter: blur(8px);
         animation: logo-breathe 3s ease-in-out infinite;

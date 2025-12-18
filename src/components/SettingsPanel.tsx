@@ -427,6 +427,12 @@ export function SettingsPanel() {
       value: "25 90.0% 58.0%",
       gradient: "linear-gradient(135deg, hsl(25,90%,58%), hsl(25,90%,68%))",
     },
+    {
+      id: "noir",
+      label: "Noir",
+      value: "0 0% 92%",
+      gradient: "linear-gradient(135deg, hsl(0,0%,95%), hsl(0,0%,70%))",
+    },
   ];
 
   const handleAccentClick = (value: string) => {
