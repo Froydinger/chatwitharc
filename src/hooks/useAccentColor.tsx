@@ -114,13 +114,15 @@ export function useAccentColor() {
   // Apply CSS variables whenever accent color changes OR theme changes
   useEffect(() => {
     const applyAccentColors = () => {
-      const config = accentColorConfigs[accentColor];
+      // Fallback to blue if accent color is invalid
+      const validAccentColor = accentColorConfigs[accentColor] ? accentColor : "blue";
+      const config = accentColorConfigs[validAccentColor];
       const root = document.documentElement;
       const isLight = root.classList.contains("light");
-      const isNoir = accentColor === "noir";
+      const isNoir = validAccentColor === "noir";
 
       // Set data attribute for CSS targeting
-      root.setAttribute("data-accent", accentColor);
+      root.setAttribute("data-accent", validAccentColor);
 
       // Update CSS variables for dark mode
       root.style.setProperty("--primary", config.primary);
