@@ -1,12 +1,17 @@
 import { useTheme } from "@/hooks/useTheme";
+import { useAccentColor } from "@/hooks/useAccentColor";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
 export const BackgroundGradients = () => {
-  const { accentColor } = useTheme();
+  const { accentColor: themeAccent } = useTheme();
+  const { accentColor } = useAccentColor();
 
   // Force re-computation of CSS variable on every render to ensure we get latest value
   const [, forceUpdate] = useState(0);
+  
+  // Check if noir theme is active
+  const isNoir = accentColor === "noir";
   
   // Detect iPad PWA
   const isIpadPWA = () => {
@@ -30,12 +35,15 @@ export const BackgroundGradients = () => {
   useEffect(() => {
     // Force component update when accent changes
     forceUpdate(prev => prev + 1);
-  }, [accentColor]);
+  }, [themeAccent, accentColor]);
 
   // Get the HSL value from CSS variable - always get fresh value
   const primaryGlow = getComputedStyle(document.documentElement)
     .getPropertyValue('--primary-glow')
     .trim();
+
+  // Noir theme: much subtler gradients
+  const opacityMultiplier = isNoir ? 0.15 : 1;
 
   // Simplified static gradient for iPad PWA
   if (shouldSimplify) {
@@ -52,8 +60,8 @@ export const BackgroundGradients = () => {
           width: '200%',
           height: '200%',
           background: `radial-gradient(circle at center, 
-            hsl(${primaryGlow} / 0.15) 0%, 
-            hsl(${primaryGlow} / 0.08) 40%, 
+            hsl(${primaryGlow} / ${0.15 * opacityMultiplier}) 0%, 
+            hsl(${primaryGlow} / ${0.08 * opacityMultiplier}) 40%, 
             transparent 70%)`,
         }}
       />
@@ -75,18 +83,18 @@ export const BackgroundGradients = () => {
           width: '200%',
           height: '200%',
           background: `radial-gradient(circle at center, 
-            hsl(${primaryGlow} / 0.2) 0%, 
-            hsl(${primaryGlow} / 0.18) 10%,
-            hsl(${primaryGlow} / 0.16) 15%,
-            hsl(${primaryGlow} / 0.15) 20%, 
-            hsl(${primaryGlow} / 0.12) 25%,
-            hsl(${primaryGlow} / 0.1) 30%,
-            hsl(${primaryGlow} / 0.08) 40%, 
-            hsl(${primaryGlow} / 0.05) 50%,
-            hsl(${primaryGlow} / 0.03) 60%, 
-            hsl(${primaryGlow} / 0.015) 70%,
-            hsl(${primaryGlow} / 0.01) 80%, 
-            hsl(${primaryGlow} / 0.005) 90%,
+            hsl(${primaryGlow} / ${0.2 * opacityMultiplier}) 0%, 
+            hsl(${primaryGlow} / ${0.18 * opacityMultiplier}) 10%,
+            hsl(${primaryGlow} / ${0.16 * opacityMultiplier}) 15%,
+            hsl(${primaryGlow} / ${0.15 * opacityMultiplier}) 20%, 
+            hsl(${primaryGlow} / ${0.12 * opacityMultiplier}) 25%,
+            hsl(${primaryGlow} / ${0.1 * opacityMultiplier}) 30%,
+            hsl(${primaryGlow} / ${0.08 * opacityMultiplier}) 40%, 
+            hsl(${primaryGlow} / ${0.05 * opacityMultiplier}) 50%,
+            hsl(${primaryGlow} / ${0.03 * opacityMultiplier}) 60%, 
+            hsl(${primaryGlow} / ${0.015 * opacityMultiplier}) 70%,
+            hsl(${primaryGlow} / ${0.01 * opacityMultiplier}) 80%, 
+            hsl(${primaryGlow} / ${0.005 * opacityMultiplier}) 90%,
             transparent 100%)`,
           willChange: 'transform',
           transform: 'translateZ(0)',
@@ -107,18 +115,18 @@ export const BackgroundGradients = () => {
           width: '200%',
           height: '200%',
           background: `radial-gradient(circle at center, 
-            hsl(${primaryGlow} / 0.15) 0%, 
-            hsl(${primaryGlow} / 0.13) 10%,
-            hsl(${primaryGlow} / 0.12) 15%,
-            hsl(${primaryGlow} / 0.11) 20%, 
-            hsl(${primaryGlow} / 0.09) 25%,
-            hsl(${primaryGlow} / 0.07) 30%,
-            hsl(${primaryGlow} / 0.06) 40%, 
-            hsl(${primaryGlow} / 0.04) 50%,
-            hsl(${primaryGlow} / 0.02) 60%, 
-            hsl(${primaryGlow} / 0.01) 70%,
-            hsl(${primaryGlow} / 0.005) 80%, 
-            hsl(${primaryGlow} / 0.002) 90%,
+            hsl(${primaryGlow} / ${0.15 * opacityMultiplier}) 0%, 
+            hsl(${primaryGlow} / ${0.13 * opacityMultiplier}) 10%,
+            hsl(${primaryGlow} / ${0.12 * opacityMultiplier}) 15%,
+            hsl(${primaryGlow} / ${0.11 * opacityMultiplier}) 20%, 
+            hsl(${primaryGlow} / ${0.09 * opacityMultiplier}) 25%,
+            hsl(${primaryGlow} / ${0.07 * opacityMultiplier}) 30%,
+            hsl(${primaryGlow} / ${0.06 * opacityMultiplier}) 40%, 
+            hsl(${primaryGlow} / ${0.04 * opacityMultiplier}) 50%,
+            hsl(${primaryGlow} / ${0.02 * opacityMultiplier}) 60%, 
+            hsl(${primaryGlow} / ${0.01 * opacityMultiplier}) 70%,
+            hsl(${primaryGlow} / ${0.005 * opacityMultiplier}) 80%, 
+            hsl(${primaryGlow} / ${0.002 * opacityMultiplier}) 90%,
             transparent 100%)`,
           willChange: 'transform',
           transform: 'translateZ(0)',

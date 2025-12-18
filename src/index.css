@@ -82,17 +82,23 @@ All colors MUST be HSL for perfect glass effects.
 
   /* Noir Theme - Deep Black Glass */
   :root[data-accent="noir"] {
-    --background: 0 0% 4%;
-    --card: 0 0% 5%;
-    --surface: 0 0% 3%;
-    --muted: 0 0% 6%;
-    --accent: 0 0% 10%;
-    --secondary: 0 0% 12%;
-    --border: 0 0% 14%;
-    --input: 0 0% 6%;
-    --input-dark: 0 0% 8%;
-    --glass-bg: 0 0% 3%;
-    --glass-border: 0 0% 16%;
+    --background: 0 0% 2%;
+    --card: 0 0% 3%;
+    --surface: 0 0% 2%;
+    --muted: 0 0% 4%;
+    --accent: 0 0% 8%;
+    --secondary: 0 0% 10%;
+    --border: 0 0% 12%;
+    --input: 0 0% 4%;
+    --input-dark: 0 0% 6%;
+    --glass-bg: 0 0% 2%;
+    --glass-border: 0 0% 12%;
+  }
+
+  /* Hide CSS background gradients for noir - handled by BackgroundGradients component */
+  :root[data-accent="noir"] body::before,
+  :root[data-accent="noir"] body::after {
+    opacity: 0.1;
   }
 
 }
