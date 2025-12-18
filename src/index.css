@@ -80,6 +80,21 @@ All colors MUST be HSL for perfect glass effects.
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
+  /* Noir Theme - Deep Black Glass */
+  :root[data-accent="noir"] {
+    --background: 0 0% 4%;
+    --card: 0 0% 5%;
+    --surface: 0 0% 3%;
+    --muted: 0 0% 6%;
+    --accent: 0 0% 10%;
+    --secondary: 0 0% 12%;
+    --border: 0 0% 14%;
+    --input: 0 0% 6%;
+    --input-dark: 0 0% 8%;
+    --glass-bg: 0 0% 3%;
+    --glass-border: 0 0% 16%;
+  }
+
 }
 
 @layer base {
