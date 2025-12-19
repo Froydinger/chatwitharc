@@ -100,37 +100,13 @@ function checkForImageRequest(message: string): boolean {
 }
 function checkForCodingRequest(message: string): boolean {
   if (!message) return false;
-  const m = message.toLowerCase().trim();
+  const m = message.trim();
 
-  // Explicit coding/programming keywords
-  const codingKeywords = [
-    "code", "program", "script", "function", "class", "component",
-    "algorithm", "implement", "develop", "build", "write code",
-    "refactor", "debug", "fix the code", "add a feature",
-    "create a function", "create a class", "create a component",
-    "build an app", "build a website", "develop a",
-    "programming", "software", "application"
-  ];
-
-  // Check for explicit coding patterns
-  if (/^(write|create|build|make|develop|implement)\s+(a|an|some|the)?\s*(code|program|script|function|class|component|algorithm|app|application|website|software)/i.test(m)) {
-    return true;
-  }
-
-  // Check for coding keywords
-  if (codingKeywords.some((keyword) => m.includes(keyword))) {
-    return true;
-  }
-
-  // Check for programming language mentions
-  const programmingLanguages = [
-    "javascript", "python", "java", "typescript", "react", "vue", "angular",
-    "node", "nodejs", "c++", "c#", "ruby", "php", "swift", "kotlin", "go",
-    "rust", "html", "css", "sql"
-  ];
-
-  return programmingLanguages.some((lang) => m.includes(lang));
+  // Only treat as a coding request when the user is explicit.
+  // (We do NOT infer from broad words like "build" or "create" to avoid accidental "coding mode".)
+  return /^(\s*)(code|write code|show me the code|give me the code|implement this|build the code|create the code)\b/i.test(m);
 }
+
 
 function extractImagePrompt(message: string): string {
   let prompt = (message || "").trim();
@@ -714,11 +690,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       try {
         const aiMessages = messages.filter((m) => m.type === "text").map((m) => ({ role: m.role, content: m.content }));
 
-        // Check if this is a coding request and add prefix
+        // Only force "code" mode when the user is explicit.
         const isCodingRequest = checkForCodingRequest(userMessage);
-        const messageToSend = isCodingRequest ? `Code the following: ${userMessage}` : userMessage;
+        const messageToSend = isCodingRequest ? userMessage.replace(/^\s*(code\s*:?\s*)/i, "") : userMessage;
 
         aiMessages.push({ role: "user", content: messageToSend });
+
         
         // Check if cancelled before making the call
         if (cancelRequested) {
