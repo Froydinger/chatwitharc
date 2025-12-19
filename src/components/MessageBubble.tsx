@@ -18,6 +18,7 @@ import { ImageEditModal } from "@/components/ImageEditModal";
 import { CodeBlock } from "@/components/CodeBlock";
 import { FileAttachment } from "@/components/FileAttachment";
 import { ThemedLogo } from "@/components/ThemedLogo";
+import { MemoryIndicator } from "@/components/MemoryIndicator";
 
 interface MessageBubbleProps {
   message: Message;
@@ -447,6 +448,11 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               </motion.div>
             )}
           </div>
+          
+          {/* Memory/Search Action Indicator - persistent in chat */}
+          {message.memoryAction && (
+            <MemoryIndicator action={message.memoryAction} />
+          )}
           
           {/* Arc Logo - only show for latest assistant message */}
           {!isUser && isLatestAssistant && (

@@ -302,6 +302,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     if (!newContent.trim() || isLoading) return;
 
     setLoading(true);
+    let didSearchChats = false;
 
     try {
       const ai = new AIService();
@@ -330,6 +331,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         if (tools.includes('search_past_chats')) {
           console.log('✅ Setting searchingChats indicator');
           setSearchingChats(true);
+          didSearchChats = true;
         }
         if (tools.includes('web_search')) {
           // Could add web search indicator
@@ -345,7 +347,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         setAccessingMemory(false);
       }, 2000);
       
-      await addMessage({ content: reply, role: "assistant", type: "text" });
+      await addMessage({ 
+        content: reply, 
+        role: "assistant", 
+        type: "text",
+        memoryAction: didSearchChats ? { type: 'chats_searched' as const } : undefined
+      });
     } catch (err: any) {
       console.error('Chat error:', err);
       setLoading(false);
@@ -659,6 +666,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       }
 
       // Plain text
+      let memorySavedContent: string | null = null;
+      let didSearchChats = false;
+      
       if (userMessage) {
         // Build conversation context for memory extraction
         const conversationContext = messages
@@ -672,11 +682,19 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           const wasNew = await addToMemoryBank(memoryItem);
           if (wasNew) {
             console.log('Memory saved:', memoryItem.content);
+            memorySavedContent = memoryItem.content;
           }
         }
       }
 
-      await addMessage({ content: userMessage, role: "user", type: "text" });
+      // Add user message with memory action if memory was saved
+      await addMessage({ 
+        content: userMessage, 
+        role: "user", 
+        type: "text",
+        memoryAction: memorySavedContent ? { type: 'memory_saved' as const, content: memorySavedContent } : undefined
+      });
+      
       try {
         const aiMessages = messages.filter((m) => m.type === "text").map((m) => ({ role: m.role, content: m.content }));
 
@@ -699,6 +717,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           if (tools.includes('search_past_chats')) {
             console.log('✅ Setting searchingChats in handleSend');
             setSearchingChats(true);
+            didSearchChats = true;
           }
           if (tools.includes('web_search')) {
             // Could add web search indicator
@@ -718,7 +737,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           setAccessingMemory(false);
         }, 2000);
         
-        await addMessage({ content: reply, role: "assistant", type: "text" });
+        // Add assistant message with memory action if chats were searched
+        await addMessage({ 
+          content: reply, 
+          role: "assistant", 
+          type: "text",
+          memoryAction: didSearchChats ? { type: 'chats_searched' as const } : undefined
+        });
       } catch (err: any) {
         // Check if request was cancelled
         if (cancelRequested) {
