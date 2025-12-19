@@ -1,16 +1,1 @@
-project_id = "jhgubbltjcpszuvlrkae"
-
-[functions.chat]
-verify_jwt = false
-
-[functions.realtime-voice]
-verify_jwt = false
-
-[functions.generate-smart-prompts]
-verify_jwt = false
-
-[functions.generate-file]
-verify_jwt = false
-
-[functions.generate-ai-music]
-verify_jwt = false
+project_id = "jxywhodnndagbsmnbnnw"
