@@ -17,7 +17,7 @@ export function AuthPage() {
   const { toast } = useToast();
 
   const handleAuth = async () => {
-    if (!isSupabaseConfigured || !supabase) {
+    if (!supabase || !isSupabaseConfigured) {
       toast({
         title: "Error",
         description: "Authentication is not available. Please try again later.",
@@ -63,7 +63,7 @@ export function AuthPage() {
   };
 
   const handleGoogleAuth = async () => {
-    if (!isSupabaseConfigured || !supabase) {
+    if (!supabase || !isSupabaseConfigured) {
       toast({
         title: "Error",
         description: "Authentication is not available. Please try again later.",

@@ -9,7 +9,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 interface GeneratedImage {
@@ -162,6 +162,11 @@ export function MediaLibraryPanel() {
   };
 
   const deleteImage = async (image: GeneratedImage) => {
+    if (!supabase || !isSupabaseConfigured) {
+      toast({ title: "Delete unavailable", description: "Storage is not available.", variant: "destructive" });
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {

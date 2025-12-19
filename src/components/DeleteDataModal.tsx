@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 
 interface DeleteDataModalProps {
   isOpen: boolean;
@@ -26,6 +26,15 @@ export function DeleteDataModal({ isOpen, onClose, onDeleted }: DeleteDataModalP
   const { toast } = useToast();
 
   const handleGetWarning = async () => {
+    if (!supabase || !isSupabaseConfigured) {
+      toast({
+        title: "Error",
+        description: "This feature is not available. Please try again later.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
       const { data, error } = await supabase.functions.invoke('delete-user-data', {
@@ -58,10 +67,19 @@ export function DeleteDataModal({ isOpen, onClose, onDeleted }: DeleteDataModalP
       return;
     }
 
+    if (!supabase || !isSupabaseConfigured) {
+      toast({
+        title: "Error",
+        description: "This feature is not available. Please try again later.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
       const { data, error } = await supabase.functions.invoke('delete-user-data', {
-        body: { 
+        body: {
           action: 'confirm_delete',
           confirmationCode: userInput
         }

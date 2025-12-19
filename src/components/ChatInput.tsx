@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useProfile } from "@/hooks/useProfile";
 import { AIService } from "@/services/ai";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { User, MessageCircle } from "lucide-react";
 
 interface OnboardingScreenProps {
@@ -32,6 +32,10 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     setLoading(true);
 
     try {
+      if (!supabase || !isSupabaseConfigured) {
+        throw new Error("Profile setup is not available. Please try again later.");
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {

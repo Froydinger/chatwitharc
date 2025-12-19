@@ -21,7 +21,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const { toast } = useToast();
 
   const handleAuth = async () => {
-    if (!isSupabaseConfigured || !supabase) {
+    if (!supabase || !isSupabaseConfigured) {
       toast({
         title: "Error",
         description: "Authentication is not available. Please try again later.",
@@ -69,7 +69,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   const handleGoogleAuth = async () => {
-    if (!isSupabaseConfigured || !supabase) {
+    if (!supabase || !isSupabaseConfigured) {
       toast({
         title: "Error",
         description: "Authentication is not available. Please try again later.",
