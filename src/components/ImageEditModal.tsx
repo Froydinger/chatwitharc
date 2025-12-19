@@ -308,7 +308,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
                       onClick={() => toggleChip(s)}
                       className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                         active
-                          ? "bg-primary text-primary-foreground shadow-sm"
+                          ? "bg-primary text-primary-foreground shadow-sm noir-send-btn"
                           : "bg-muted/80 hover:bg-muted text-foreground/80 hover:text-foreground"
                       }`}
                     >

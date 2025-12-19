@@ -645,7 +645,8 @@ body::before {
   }
 
   /* Noir theme: Black text on primary buttons (white bg needs black text) */
-  [data-accent="noir"] .noir-send-btn {
+  [data-accent="noir"] .noir-send-btn,
+  [data-accent="noir"] .text-primary-foreground {
     color: hsl(0 0% 5%) !important;
   }
 }
