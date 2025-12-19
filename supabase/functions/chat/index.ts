@@ -288,39 +288,17 @@ serve(async (req) => {
                            lastMessage.includes('guide me through');
 
     // Build enhanced system prompt with user personalization
-    let enhancedSystemPrompt = systemPrompt;
+    // Admin system prompt is PRIMARY - it defines personality and behavior
+    let enhancedSystemPrompt = '=== PRIMARY IDENTITY (from admin settings) ===\n\n' + systemPrompt;
     
-    // CRITICAL INTERACTION MODE - THIS OVERRIDES EVERYTHING ELSE
-    enhancedSystemPrompt += '\n\n🚨🚨🚨 CRITICAL INTERACTION RULES - READ FIRST 🚨🚨🚨\n' +
-      '═══════════════════════════════════════════════════════════\n' +
-      '⚠️ DEFAULT MODE: CONVERSATION ONLY\n' +
-      '✅ Your PRIMARY job is to CHAT naturally.\n' +
-      '✅ NEVER infer or guess that the user wants code.\n' +
-      '✅ NEVER try to be helpful by building tools unless explicitly asked.\n\n' +
-      '🔥 WHEN TO CODE - STRICT RULE:\n' +
-      'Code ONLY if the user message contains one of these EXACT WORDS/PHRASES:\n' +
-      '- "build" or "build me"\n' +
-      '- "create" (for technical things: app, tool, calculator, etc)\n' +
-      '- "code" or "code for" or "code this"\n' +
-      '- "make" (for technical things: app, tool, etc)\n' +
-      '- "write" (script, function, code, etc)\n' +
-      '- "show me code" or "show code"\n' +
-      '- "generate" (code, tool, etc)\n\n' +
-      '⚠️ CRITICAL - DO NOT CODE JUST BECAUSE:\n' +
-      '❌ User is asking a question ("How would I..?" = conversation, not code)\n' +
-      '❌ User is discussing ideas or concepts\n' +
-      '❌ User is asking for feedback or opinions\n' +
-      '❌ User might "benefit from" a tool (DO NOT INFER)\n' +
-      '❌ Context suggests they could use a visualization (NEVER INFER)\n' +
-      '❌ You think it would be cool or helpful (DO NOT ASSUME)\n\n' +
-      '✅ WHAT TO DO INSTEAD:\n' +
-      'If user discusses something without explicit code request → RESPOND CONVERSATIONALLY\n' +
-      'Ask clarifying questions, provide thoughts, discuss ideas\n' +
-      'ONLY code if they explicitly say one of the trigger words above\n\n' +
-      '🎯 UNCERTAINTY RULE: Default to conversation, NEVER to coding.\n' +
-      '═══════════════════════════════════════════════════════════\n\n';
-
-    enhancedSystemPrompt += '<<< END OF SYSTEM INSTRUCTIONS - USER MESSAGE FOLLOWS BELOW >>>\n\n';
+    // Add supplementary technical rules that work WITH the admin prompt
+    enhancedSystemPrompt += '\n\n=== SUPPLEMENTARY TECHNICAL GUIDELINES ===\n' +
+      '(These technical rules supplement your core identity above)\n\n' +
+      '📋 CODE OUTPUT GUIDELINES:\n' +
+      '- Default to conversation unless user explicitly requests code/tools\n' +
+      '- Look for trigger words: "build", "create", "code", "make", "write"\n' +
+      '- If unclear, ask clarifying questions first\n' +
+      '- When coding: use markdown code blocks, prefer HTML/CSS/JS\n\n';
 
     if (profile?.display_name) {
       enhancedSystemPrompt += `The user's name is ${profile.display_name}.\n`;
