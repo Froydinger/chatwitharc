@@ -178,7 +178,7 @@ export function ChatHistoryPanel() {
 
       {/* New Chat Button */}
       <div className="mb-4 space-y-3">
-        <Button onClick={handleNewChat} className="w-full bg-black text-white hover:bg-black/80">
+        <Button onClick={handleNewChat} className="w-full rounded-full glass-shimmer">
           <Plus className="h-4 w-4 mr-2" />
           New chat
         </Button>
@@ -211,7 +211,7 @@ export function ChatHistoryPanel() {
               Start your first conversation to see your chat history here.
             </p>
             <div className="space-y-2">
-              <Button onClick={handleNewChat} className="w-full bg-black text-white hover:bg-black/80">
+              <Button onClick={handleNewChat} className="w-full rounded-full glass-shimmer">
                 <Plus className="h-4 w-4 mr-2" />
                 Create first chat
               </Button>

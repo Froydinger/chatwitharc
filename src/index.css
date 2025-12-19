@@ -322,33 +322,67 @@ body::before {
   .glass-shimmer::after {
     content: '';
     position: absolute;
-    width: 40%;
-    height: 40%;
     border-radius: 50%;
     pointer-events: none;
-    opacity: 0.6;
   }
 
-  /* Top-left shimmer */
+  /* Top-left shimmer - bright highlight like real glass */
   .glass-shimmer::before {
-    top: 4%;
-    left: 4%;
-    background: radial-gradient(ellipse at center,
-      hsla(var(--foreground), 0.25) 0%,
-      hsla(var(--foreground), 0.1) 40%,
+    top: 8%;
+    left: 8%;
+    width: 35%;
+    height: 35%;
+    background: radial-gradient(ellipse at 30% 30%,
+      hsla(0, 0%, 100%, 0.6) 0%,
+      hsla(0, 0%, 100%, 0.3) 25%,
+      hsla(0, 0%, 100%, 0.1) 50%,
       transparent 70%
     );
   }
 
-  /* Bottom-right shimmer */
+  /* Bottom-right shimmer - subtle secondary reflection */
   .glass-shimmer::after {
-    bottom: 4%;
-    right: 4%;
-    background: radial-gradient(ellipse at center,
-      hsla(var(--foreground), 0.15) 0%,
-      hsla(var(--foreground), 0.05) 40%,
+    bottom: 10%;
+    right: 10%;
+    width: 25%;
+    height: 25%;
+    background: radial-gradient(ellipse at 70% 70%,
+      hsla(0, 0%, 100%, 0.25) 0%,
+      hsla(0, 0%, 100%, 0.1) 40%,
       transparent 70%
     );
+  }
+
+  /* Glass button styling - makes any button feel like glass */
+  .glass-btn {
+    position: relative;
+    background: linear-gradient(145deg,
+      hsla(var(--glass-bg), 0.85) 0%,
+      hsla(var(--glass-bg), 0.65) 100%
+    ) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsla(var(--foreground), 0.12) !important;
+    box-shadow:
+      0 4px 24px hsla(0, 0%, 0%, 0.25),
+      0 1px 3px hsla(0, 0%, 0%, 0.15),
+      inset 0 1px 0 hsla(var(--foreground), 0.12),
+      inset 0 -1px 0 hsla(0, 0%, 0%, 0.1) !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .glass-btn:hover {
+    background: linear-gradient(145deg,
+      hsla(var(--glass-bg), 0.95) 0%,
+      hsla(var(--glass-bg), 0.75) 100%
+    ) !important;
+    border-color: hsla(var(--primary), 0.35) !important;
+    box-shadow:
+      0 8px 32px hsla(var(--primary), 0.2),
+      0 4px 16px hsla(0, 0%, 0%, 0.2),
+      inset 0 1px 0 hsla(var(--foreground), 0.15),
+      inset 0 -1px 0 hsla(0, 0%, 0%, 0.1) !important;
+    transform: translateY(-1px);
   }
 
   /* Glass panel styling for modals */
