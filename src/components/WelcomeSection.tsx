@@ -369,7 +369,7 @@ export function WelcomeSection({
               }}
               className="relative"
             >
-              <ThemedLogo className="h-10 w-10 logo-accent-glow" alt="Loading" />
+              <ThemedLogo className="h-10 w-10" alt="Loading" />
               <motion.div
                 className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
                 initial={{ opacity: 0 }}
