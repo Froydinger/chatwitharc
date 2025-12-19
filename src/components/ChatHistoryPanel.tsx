@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useChatSync } from "@/hooks/useChatSync";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { QuoteOfDayModal } from "@/components/QuoteOfDayModal";
 
 export function ChatHistoryPanel() {
   const navigate = useNavigate();
@@ -176,11 +177,12 @@ export function ChatHistoryPanel() {
       </div>
 
       {/* New Chat Button */}
-      <div className="mb-4">
+      <div className="mb-4 space-y-3">
         <Button onClick={handleNewChat} className="w-full bg-black text-white hover:bg-black/80">
           <Plus className="h-4 w-4 mr-2" />
           New chat
         </Button>
+        <QuoteOfDayModal />
       </div>
 
       {/* Chat Sessions */}
