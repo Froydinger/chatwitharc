@@ -18,8 +18,8 @@ const glassButtonVariants = cva(
         default: "h-12 px-6 py-3",
         sm: "h-10 px-4 py-2",
         lg: "h-14 px-8 py-4",
-        bubble: "h-16 w-16 rounded-full",
-        icon: "h-12 w-12"
+        bubble: "h-16 w-16 rounded-full glass-shimmer",
+        icon: "h-12 w-12 rounded-full glass-shimmer"
       },
     },
     defaultVariants: {
