@@ -81,9 +81,9 @@ What personal fact should be remembered from this conversation?`;
     const extractedContent = data?.choices?.[0]?.message?.content?.trim();
 
     // If AI couldn't find a personal fact, return null
-    if (!extractedContent || 
-        extractedContent === 'NONE' || 
-        extractedContent === 'UNCLEAR' || 
+    if (!extractedContent ||
+        extractedContent === 'NONE' ||
+        extractedContent === 'UNCLEAR' ||
         extractedContent.length < 5 ||
         extractedContent.toLowerCase().includes('no personal fact') ||
         extractedContent.toLowerCase().includes('no fact to remember')) {
@@ -92,9 +92,41 @@ What personal fact should be remembered from this conversation?`;
 
     // Clean up the response - remove quotes if present
     let cleaned = extractedContent;
-    if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || 
+    if ((cleaned.startsWith('"') && cleaned.endsWith('"')) ||
         (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
       cleaned = cleaned.slice(1, -1);
+    }
+
+    // CRITICAL: Validate the response is actually a personal fact about the user
+    // The AI sometimes responds with support/advice instead of extracting a fact
+    const lowerCleaned = cleaned.toLowerCase();
+
+    // Must start with the user's name (the expected format)
+    const startsWithUserName = cleaned.toLowerCase().startsWith(userName.toLowerCase());
+
+    // Reject responses that look like advice/support rather than facts
+    const isAdviceOrSupport =
+      lowerCleaned.includes('please reach out') ||
+      lowerCleaned.includes('please contact') ||
+      lowerCleaned.includes('please call') ||
+      lowerCleaned.includes('please seek') ||
+      lowerCleaned.includes('you can call') ||
+      lowerCleaned.includes('you can text') ||
+      lowerCleaned.includes('crisis') ||
+      lowerCleaned.includes('hotline') ||
+      lowerCleaned.includes('help is available') ||
+      lowerCleaned.includes('you are not alone') ||
+      lowerCleaned.includes("you're not alone") ||
+      lowerCleaned.includes('i encourage you') ||
+      lowerCleaned.includes('i recommend') ||
+      lowerCleaned.includes('i suggest') ||
+      lowerCleaned.includes('consider reaching') ||
+      lowerCleaned.startsWith('if you') ||
+      lowerCleaned.startsWith('please ');
+
+    if (!startsWithUserName || isAdviceOrSupport) {
+      console.log('AI response rejected - not a valid personal fact format:', cleaned);
+      return null;
     }
 
     console.log('AI extracted memory:', cleaned);
