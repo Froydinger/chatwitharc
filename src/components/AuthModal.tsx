@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { Mail, Lock, Eye, EyeOff, X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,15 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const { toast } = useToast();
 
   const handleAuth = async () => {
+    if (!supabase || !isSupabaseConfigured) {
+      toast({
+        title: "Error",
+        description: "Authentication is not available. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!email || !password) {
       toast({
         title: "Error",
@@ -61,6 +70,15 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   const handleGoogleAuth = async () => {
+    if (!supabase || !isSupabaseConfigured) {
+      toast({
+        title: "Error",
+        description: "Authentication is not available. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const redirectUrl = `${window.location.origin}/`;

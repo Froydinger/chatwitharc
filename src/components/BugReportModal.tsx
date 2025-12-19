@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { AlertTriangle, Send } from "lucide-react";
 
 interface BugReportModalProps {
@@ -36,6 +36,10 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
     setIsSubmitting(true);
 
     try {
+      if (!supabase || !isSupabaseConfigured) {
+        throw new Error("Bug reporting is not available. Please try again later.");
+      }
+
       // Call Edge Function to send email
       const { error: emailError } = await supabase.functions.invoke("send-bug-report", {
         body: {

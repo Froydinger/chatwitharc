@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Camera, Upload, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
@@ -23,12 +23,21 @@ export function ProfileManager() {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
+    if (!supabase || !isSupabaseConfigured) {
+      toast({
+        title: "Upload unavailable",
+        description: "Storage is not available. Please try again later.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsUploading(true);
     try {
       // Upload file to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/avatar.${fileExt}`;
-      
+
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, file, { upsert: true });

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, MessageCircle, Sparkles, PenTool, Code, Brain, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generatePromptsByCategory } from "@/utils/promptGenerator";
 import { getCachedPrompts } from "@/hooks/usePromptPreload";
@@ -63,6 +63,10 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
       } catch (e) {
         console.error('Failed to clear cache:', e);
       }
+    }
+
+    if (!supabase || !isSupabaseConfigured) {
+      return generatePromptsByCategory(category);
     }
 
     try {
@@ -164,8 +168,17 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
   // Fetch smart prompts when Smart tab is clicked
   useEffect(() => {
     if (activeTab === 'smart' && smartPrompts.length === 0 && !isLoadingSmartPrompts) {
+      if (!supabase || !isSupabaseConfigured) {
+        setSmartPrompts([
+          { label: '💬 Continue our last conversation', prompt: 'Can we continue where we left off in our last conversation?' },
+          { label: '📝 Summarize recent chats', prompt: 'Can you summarize what we\'ve discussed recently?' },
+          { label: '🔍 Find something we discussed', prompt: 'Help me find something we talked about before' },
+        ]);
+        return;
+      }
+
       setIsLoadingSmartPrompts(true);
-      
+
       supabase.functions
         .invoke('generate-smart-prompts')
         .then(({ data, error }) => {

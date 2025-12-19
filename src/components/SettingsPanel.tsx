@@ -39,7 +39,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
@@ -245,6 +245,15 @@ export function SettingsPanel() {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
+    if (!supabase || !isSupabaseConfigured) {
+      toast({
+        title: "Upload unavailable",
+        description: "Storage is not available. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUploading(true);
     try {
       const fileExt = file.name.split(".").pop();
@@ -281,12 +290,21 @@ export function SettingsPanel() {
   };
 
   const handleSignOut = async () => {
+    if (!supabase || !isSupabaseConfigured) {
+      toast({
+        title: "Error",
+        description: "Sign out is not available. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       // Clear all theme-related cache
       localStorage.removeItem('theme');
       localStorage.removeItem('followSystem');
       localStorage.removeItem('accentColor');
-      
+
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
 
@@ -304,6 +322,15 @@ export function SettingsPanel() {
   };
 
   const handlePasswordReset = async () => {
+    if (!supabase || !isSupabaseConfigured) {
+      toast({
+        title: "Error",
+        description: "Password reset is not available. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!user?.email) {
       toast({
         title: "Error",
