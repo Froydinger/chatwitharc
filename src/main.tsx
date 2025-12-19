@@ -29,6 +29,9 @@ const applyDeviceClasses = () => {
     document.body.classList.add('is-ipad');
     console.log('Applied is-ipad class - 30px padding will be applied');
   }
+
+  // Ensure content is visible even if initialization fails later
+  document.documentElement.classList.add('theme-ready');
 };
 
 if (document.readyState === 'loading') {
