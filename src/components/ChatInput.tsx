@@ -791,11 +791,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                   <button
                     type="button"
                     onClick={() => setAllImagesEditMode(!allImagesEditMode)}
-                    className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                      allImagesEditMode
-                        ? "bg-primary/90 text-primary-foreground noir-send-btn"
-                        : "bg-muted/90 text-muted-foreground hover:bg-muted"
-                    }`}
+                    className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80"
                   >
                     {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
                   </button>
