@@ -76,8 +76,7 @@ export async function fetchPersonalizedPrompts(
 
 /**
  * Smart prompt selection algorithm with AI personalization
- * Returns ONLY AI-personalized prompts. Returns empty array if personalization is unavailable.
- * This prevents showing generic fallback prompts and maintains the loading state.
+ * Returns AI-personalized prompts when available, otherwise falls back to scored defaults.
  */
 export async function selectSmartPrompts(
   prompts: QuickPrompt[],
@@ -89,15 +88,22 @@ export async function selectSmartPrompts(
   // Try to fetch personalized prompts
   const personalizedPrompts = await fetchPersonalizedPrompts(profile, chatSessions, skipCache);
 
-  // Only proceed if we have personalized prompts
-  // Don't fall back to generic prompts - return empty array to maintain loading state
-  if (personalizedPrompts.length === 0) {
-    return [];
+  // If we have personalized prompts, use them
+  if (personalizedPrompts.length > 0) {
+    return personalizedPrompts.slice(0, count);
   }
 
-  // Return only AI-personalized prompts (no generic fallbacks)
-  // Simply return the requested count from personalized prompts
-  return personalizedPrompts.slice(0, count);
+  // Fall back to scored default prompts for new users with no context
+  const hour = new Date().getHours();
+  const scoredPrompts = prompts
+    .map(prompt => ({
+      prompt,
+      score: scorePrompt(prompt, profile, chatSessions, hour)
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  // Return top scored defaults
+  return scoredPrompts.slice(0, count).map(sp => sp.prompt);
 }
 
 /**
