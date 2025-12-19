@@ -10,90 +10,90 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
       admin_settings: {
         Row: {
-          created_at: string
+          created_at: string | null
           description: string | null
           id: string
           key: string
-          updated_at: string
+          updated_at: string | null
           value: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           description?: string | null
           id?: string
           key: string
-          updated_at?: string
+          updated_at?: string | null
           value: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           description?: string | null
           id?: string
           key?: string
-          updated_at?: string
+          updated_at?: string | null
           value?: string
         }
         Relationships: []
       }
       admin_users: {
         Row: {
-          created_at: string
+          created_at: string | null
           email: string
           id: string
           is_primary_admin: boolean | null
-          role: string
-          updated_at: string
+          role: string | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           email: string
           id?: string
           is_primary_admin?: boolean | null
-          role?: string
-          updated_at?: string
+          role?: string | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           email?: string
           id?: string
           is_primary_admin?: boolean | null
-          role?: string
-          updated_at?: string
+          role?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
       }
       chat_sessions: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
           messages: Json | null
           title: string
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           messages?: Json | null
           title: string
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           messages?: Json | null
           title?: string
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -142,39 +142,39 @@ export type Database = {
           accent_color: string | null
           avatar_url: string | null
           context_info: string | null
-          created_at: string
+          created_at: string | null
           display_name: string | null
           id: string
           memory_info: string | null
           preferred_model: string | null
           theme_preference: string | null
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
           accent_color?: string | null
           avatar_url?: string | null
           context_info?: string | null
-          created_at?: string
+          created_at?: string | null
           display_name?: string | null
           id?: string
           memory_info?: string | null
           preferred_model?: string | null
           theme_preference?: string | null
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
           accent_color?: string | null
           avatar_url?: string | null
           context_info?: string | null
-          created_at?: string
+          created_at?: string | null
           display_name?: string | null
           id?: string
           memory_info?: string | null
           preferred_model?: string | null
           theme_preference?: string | null
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
