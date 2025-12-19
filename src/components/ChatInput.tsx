@@ -938,7 +938,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           className={[
             "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40",
             inputValue.trim() || selectedImages.length
-              ? "dark:bg-primary text-white dark:text-primary-foreground hover:opacity-90 dark:border-primary bg-blue-500 border-blue-500 text-white"
+              ? "dark:bg-primary text-white dark:text-primary-foreground hover:opacity-90 dark:border-primary bg-blue-500 border-blue-500 text-white noir-send-btn"
               : "bg-muted/50 text-muted-foreground cursor-not-allowed",
           ].join(" ")}
           aria-label="Send"
