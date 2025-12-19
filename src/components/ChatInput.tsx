@@ -862,8 +862,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           )}
         </button>
 
-        {/* Input with slash picker */}
-        <div className="flex-1 relative">
+        {/* Input */}
+        <div className="flex-1">
           <Textarea
             ref={textareaRef}
             value={inputValue}
@@ -879,45 +879,63 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 px-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
           />
-          
-          {/* Slash command picker */}
-          <AnimatePresence>
-            {showSlashPicker && (
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="absolute bottom-full left-4 mb-2 flex gap-2"
-              >
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault(); // Prevent blur
-                    setInputValue("image/");
-                    textareaRef.current?.focus();
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500/20 border border-green-400/40 text-green-400 hover:bg-green-500/30 transition-colors shadow-lg backdrop-blur-sm"
-                >
-                  <ImagePlus className="h-4 w-4" />
-                  <span className="text-sm font-medium">image/</span>
-                </button>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault(); // Prevent blur
-                    setInputValue("code/");
-                    textareaRef.current?.focus();
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-500/20 border border-blue-400/40 text-blue-400 hover:bg-blue-500/30 transition-colors shadow-lg backdrop-blur-sm"
-                >
-                  <Code2 className="h-4 w-4" />
-                  <span className="text-sm font-medium">code/</span>
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
+        
+        {/* Slash command picker - portaled to escape overflow */}
+        {portalRoot && showSlashPicker && createPortal(
+          <AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="fixed z-[50] flex items-center gap-2"
+              style={{ 
+                bottom: "calc(90px + env(safe-area-inset-bottom, 0px))",
+                left: "50%",
+                transform: "translateX(-50%)"
+              }}
+            >
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setInputValue("image/");
+                  textareaRef.current?.focus();
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-background/95 border border-green-400/40 text-green-400 hover:bg-green-500/20 transition-colors shadow-xl backdrop-blur-md"
+              >
+                <ImagePlus className="h-4 w-4" />
+                <span className="text-sm font-medium">image/</span>
+              </button>
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setInputValue("code/");
+                  textareaRef.current?.focus();
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-background/95 border border-blue-400/40 text-blue-400 hover:bg-blue-500/20 transition-colors shadow-xl backdrop-blur-md"
+              >
+                <Code2 className="h-4 w-4" />
+                <span className="text-sm font-medium">code/</span>
+              </button>
+              {/* Dismiss button */}
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setInputValue("");
+                  textareaRef.current?.focus();
+                }}
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-background/95 border border-border/40 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-xl backdrop-blur-md"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </motion.div>
+          </AnimatePresence>,
+          portalRoot
+        )}
 
         {/* Brain Icon Toggle - hidden on mobile when typing */}
         <button
