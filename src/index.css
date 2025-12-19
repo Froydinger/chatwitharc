@@ -637,4 +637,10 @@ body::before {
   body.standalone-app.is-ipad #root > div:first-child {
     min-height: calc(100vh - 30px) !important;
   }
+
+  /* Noir theme: Pure black user message bubbles */
+  [data-accent="noir"] .noir-user-bubble {
+    background-color: hsl(0 0% 0%) !important;
+    border-color: hsl(0 0% 20%) !important;
+  }
 }

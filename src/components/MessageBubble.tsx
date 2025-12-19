@@ -141,7 +141,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 "transition-[transform,box-shadow,background] duration-200",
                 "hover:shadow-[0_10px_26px_-8px_rgba(0,0,0,0.45)]",
                 "overflow-visible",
-                "bg-primary/45 border-primary/65"
+                "bg-primary/45 border-primary/65",
+                "noir-user-bubble" // Noir theme override via CSS
               ].join(" ") : "relative cursor-pointer w-full min-w-0",
             ].join(" ")}
           >
