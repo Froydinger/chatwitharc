@@ -306,10 +306,49 @@ body::before {
   }
 
   .glass-glow {
-    box-shadow: 
+    box-shadow:
       0 4px 32px hsla(var(--glass-glow), 0.12),
       0 2px 16px hsla(var(--glass-glow), 0.08),
       inset 0 1px 0 hsla(var(--foreground), 0.1);
+  }
+
+  /* Floating button shimmer effect - top-left and bottom-right highlights */
+  .glass-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-shimmer::before,
+  .glass-shimmer::after {
+    content: '';
+    position: absolute;
+    width: 40%;
+    height: 40%;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  /* Top-left shimmer */
+  .glass-shimmer::before {
+    top: 4%;
+    left: 4%;
+    background: radial-gradient(ellipse at center,
+      hsla(var(--foreground), 0.25) 0%,
+      hsla(var(--foreground), 0.1) 40%,
+      transparent 70%
+    );
+  }
+
+  /* Bottom-right shimmer */
+  .glass-shimmer::after {
+    bottom: 4%;
+    right: 4%;
+    background: radial-gradient(ellipse at center,
+      hsla(var(--foreground), 0.15) 0%,
+      hsla(var(--foreground), 0.05) 40%,
+      transparent 70%
+    );
   }
 
   /* Glass panel styling for modals */
