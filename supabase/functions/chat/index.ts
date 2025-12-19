@@ -287,132 +287,40 @@ serve(async (req) => {
                            lastMessage.includes('step by step') ||
                            lastMessage.includes('guide me through');
 
-    // Build enhanced system prompt with user personalization
-    // Admin system prompt is PRIMARY - it defines personality and behavior
-    let enhancedSystemPrompt = '=== PRIMARY IDENTITY (from admin settings) ===\n\n' + systemPrompt;
-    
-    // Add supplementary technical rules that work WITH the admin prompt
-    enhancedSystemPrompt += '\n\n=== SUPPLEMENTARY TECHNICAL GUIDELINES ===\n' +
-      '(These technical rules supplement your core identity above)\n\n' +
-      '📋 CODE OUTPUT GUIDELINES:\n' +
-      '- Default to conversation unless user explicitly requests code/tools\n' +
-      '- Look for trigger words: "build", "create", "code", "make", "write"\n' +
-      '- If unclear, ask clarifying questions first\n' +
-      '- When coding: use markdown code blocks, prefer HTML/CSS/JS\n\n';
+    // Build enhanced system prompt - Admin prompt is PRIMARY and defines personality/behavior
+    let enhancedSystemPrompt = systemPrompt;
 
+    // Add user context (keep this minimal)
     if (profile?.display_name) {
-      enhancedSystemPrompt += `The user's name is ${profile.display_name}.\n`;
+      enhancedSystemPrompt += `\n\nUser: ${profile.display_name}`;
     }
-    
     if (profile?.context_info?.trim()) {
-      enhancedSystemPrompt += `Context: ${profile.context_info}\n`;
+      enhancedSystemPrompt += ` | Context: ${profile.context_info}`;
     }
-    
     if (profile?.memory_info?.trim()) {
-      enhancedSystemPrompt += `\n📝 USER MEMORIES (stored facts about the user):\n${profile.memory_info}\n`;
-      console.log('Including memory info in system prompt');
+      enhancedSystemPrompt += `\n\n📝 Memories: ${profile.memory_info}`;
     }
-    
     if (globalContext) {
-      enhancedSystemPrompt += `\nGlobal Context: ${globalContext}\n`;
-    }
-    if (enableStepByStep && isWellnessCheck) {
-      enhancedSystemPrompt += '\nIMPORTANT: This appears to be a wellness check or guidance request. Please provide clear, numbered step-by-step instructions and ask follow-up questions to guide the user through the process.\n';
+      enhancedSystemPrompt += `\n\nGlobal: ${globalContext}`;
     }
 
-    enhancedSystemPrompt += '\n\n🎨 IMAGE GENERATION CAPABILITIES:\n' +
-      '✅ YES, you CAN generate and edit images!\n' +
-      '✅ When users ask if you can create images, say YES and explain how:\n' +
-      '   - Click the image generation button (camera/image icon)\n' +
-      '   - Type "generate an image" or similar phrases to activate the image button\n' +
-      '   - Click "edit image" on any generated image to modify it\n' +
-      '✅ You have access to advanced image generation powered by Gemini 3 Pro Image\n' +
-      '✅ You can create any type of image based on text descriptions\n' +
-      '✅ You can edit existing images with text instructions\n\n' +
-      '🔧 AVAILABLE TOOLS:\n' +
-      '1. web_search: Search the internet for current information, news, facts, or real-time data\n' +
-      '2. search_past_chats: Retrieves actual conversation history for analysis and synthesis\n' +
-      '3. Image generation: Create or edit images (users activate via button or typing "generate an image")\n\n' +
-      '⚠️ CRITICAL: WHEN TO USE search_past_chats TOOL:\n' +
-      'Use this tool when the user asks about:\n' +
-      '- Themselves, their interests, patterns, or characteristics ("what am I good at?", "tell me about myself")\n' +
-      '- Past conversations or chat history\n' +
-      '- Topics discussed before\n' +
-      '- Anything requiring context from their conversation history\n\n' +
-      '⚠️ CRITICAL: HOW TO USE SEARCH RESULTS:\n' +
-      'When you receive conversation history from search_past_chats:\n' +
-      '- READ and ANALYZE the actual conversation excerpts provided\n' +
-      '- SYNTHESIZE insights by identifying patterns, themes, and recurring topics\n' +
-      '- Make INFERENCES based on what you observe\n' +
-      '- Connect dots between different conversations\n' +
-      '- Provide thoughtful analysis, not just keyword matching\n' +
-      '- Say things like "Looking through your conversations, I noticed..." or "Based on what I\'ve seen in your chats..."\n' +
-      '- DO NOT just repeat memories - analyze the actual conversation content provided\n\n' +
-      '⚠️ IMPORTANT DISTINCTION:\n' +
-      '- MEMORIES = Specific facts saved from "remember this" commands (in system prompt)\n' +
-      '- PAST CHATS = Full conversation history you can analyze (via search_past_chats tool)\n' +
-      'The tool gives you real conversations to analyze, not just saved facts!';
-    
-    // Add explicit tool usage boundary
-    enhancedSystemPrompt += '\n\n⚠️ TOOL USAGE RULE - CRITICAL:\n' +
-      '✅ Use web_search tool ONLY to fetch external data (news, facts, current events, real-time information)\n' +
-      '✅ Use generate_file tool when user wants a DOWNLOADABLE file (PDF, document, etc.) - NOT when they want to see code\n' +
-      '❌ NEVER use web_search or ANY tool to output code, HTML, or programming content\n' +
-      '❌ NEVER pass code through tools or functions\n' +
-      '✅ Code must be responded DIRECTLY in your message - NOT through tools\n' +
-      '✅ Tools are for INPUT (fetching data) or FILE OUTPUT (creating downloadable files), not CODE OUTPUT\n\n' +
-      '🎯 WHEN TO USE generate_file vs CODE BLOCKS:\n' +
-      '✅ Use generate_file tool when user says: "create a PDF", "generate a document", "make a downloadable file"\n' +
-      '✅ Show code blocks when user says: "show me code for", "how to make", "write a script"\n' +
-      '✅ If unclear, ASK: "Would you like me to create a downloadable file or show you the code?"\n';
+    // Brief technical capabilities (trimmed from 100+ lines to essentials)
+    enhancedSystemPrompt += '\n\n--- TOOLS ---\n' +
+      '• web_search: Get current info from the web\n' +
+      '• search_past_chats: Analyze user\'s conversation history\n' +
+      '• generate_file: Create downloadable docs (PDFs, etc.) - NOT for code\n' +
+      '• Image generation: Users click the image button\n\n' +
+      '--- CODING (only when explicitly requested) ---\n' +
+      '• Trigger words: "build", "create", "code", "make", "write"\n' +
+      '• Use markdown code blocks (```html, ```css, ```js)\n' +
+      '• Default to conversation, not coding\n';
 
-    // CODING ASSISTANCE - Only applies when user explicitly requests code
-    enhancedSystemPrompt += '\n\n🔥 WHEN YOU CODE (ONLY WHEN EXPLICITLY REQUESTED):\n' +
-      '✅ Build BADASS, PRODUCTION-READY code that actually rocks\n' +
-      '✅ Modern design: gradients, animations, smooth interactions, glassmorphism\n' +
-      '✅ Complete, working code: HTML/CSS/JS preferred (unless user asks for React)\n' +
-      '✅ Thoughtful UX: validation, error handling, responsive, accessible\n' +
-      '✅ Always output COMPLETE code from start to finish in markdown code blocks\n' +
-      '✅ No delays - output code immediately in your response, not in follow-ups\n\n' +
-      '🚨 CRITICAL: CODE DELIVERY METHOD - READ THIS:\n' +
-      '✅ ALWAYS use markdown code blocks (```html, ```css, ```javascript) for code\n' +
-      '✅ Code blocks create beautiful PREVIEW WINDOWS that users can interact with\n' +
-      '✅ ONLY code in HTML, CSS, and JavaScript (unless React explicitly requested)\n' +
-      '❌ NEVER use the generate_file tool when coding\n' +
-      '❌ NEVER send code as downloadable files\n' +
-      '❌ NEVER ask "would you like this as a file?" when user wants code\n' +
-      '✅ Code blocks are the ONLY way to show code - this creates the nice preview windows!\n\n' +
-      '⚠️ CRITICAL REMINDERS WHILE CODING:\n' +
-      '❌ DO NOT code unless explicitly asked\n' +
-      '❌ DO NOT use confusing language like "I\'ll work on this" or "let me create"\n' +
-      '❌ DO NOT output raw code without markdown code blocks (```language)\n' +
-      '❌ DO NOT use generate_file for code - that tool is ONLY for downloadable documents (PDFs, etc)\n' +
-      '✅ Only use React if user explicitly asks for it\n' +
-      '✅ Ensure proper color contrast (no black on black, white on white)\n' +
-      '✅ If you see placeholders like [text here], ASK for details first - don\'t code\n';
-
-    // FINAL STRICT GATE for Gemini 3 Pro ONLY
-    if (model === 'google/gemini-3-pro-preview') {
-      enhancedSystemPrompt += '\n\n' +
-        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-        '🚨 GEMINI 3 PRO STRICT MODE - READ THIS CAREFULLY 🚨\n' +
-        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
-        'CONVERSATION IS DEFAULT. CODE IS DISABLED BY DEFAULT.\n\n' +
-        'Your advanced reasoning should help with CONVERSATIONS, not trigger coding.\n\n' +
-        '⚠️ DO NOT CODE just because context suggests it:\n' +
-        '❌ "How does X land for you?" = conversation (no matter what X is)\n' +
-        '❌ Topic could use a visualization = still conversation\n' +
-        '❌ It would be cool/helpful = you\'re INFERRING, don\'t do this\n' +
-        '❌ Dynamic reasoning says it\'s needed = STOP, that\'s not how this works\n\n' +
-        '✅ ONLY CODE if message has these EXACT TRIGGER WORDS:\n' +
-        '"build", "create", "code", "make", "write", "generate" + technical request\n\n' +
-        'CHECK BEFORE EVERY CODE OUTPUT:\n' +
-        '1. Does message contain trigger word? (build, create, code, make, write, generate)\n' +
-        '2. Is it clearly asking for code/tool? (not a question, discussion, or request for thoughts)\n' +
-        '3. If NO to either → respond conversationally\n\n' +
-        '🎯 Remember: Your job is thoughtful conversation, not proactive tool building.\n' +
-        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
-    }
+    // CRITICAL: Brevity reinforcement at the END (recency bias)
+    enhancedSystemPrompt += '\n\n=== RESPONSE STYLE (CRITICAL) ===\n' +
+      'Keep responses SHORT and CONCISE by default.\n' +
+      'Be direct. No fluff. No unnecessary elaboration.\n' +
+      'Expand ONLY when the user asks for detail or the topic genuinely requires it.\n' +
+      'Match the energy and length of the user\'s message.';
 
     // Prepare messages with enhanced system prompt
     let conversationMessages = [
