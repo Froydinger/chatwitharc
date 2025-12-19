@@ -142,10 +142,21 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
   const shouldShowCodeMode = forceCodingMode || (!!inputValue && checkForCodingRequest(inputValue));
 
+  // Show slash picker when user types just "/"
+  const showSlashPicker = inputValue.trim() === "/";
+
   // Track current session model for brain icon state
   const [sessionModel, setSessionModel] = useState<string>(() =>
     sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash'
   );
+
+  // Auto-switch to Gemini 3 Pro when code/ mode is active (it's way better at code)
+  useEffect(() => {
+    if (shouldShowCodeMode && sessionModel !== 'google/gemini-3-pro-preview') {
+      sessionStorage.setItem('arc_session_model', 'google/gemini-3-pro-preview');
+      setSessionModel('google/gemini-3-pro-preview');
+    }
+  }, [shouldShowCodeMode, sessionModel]);
 
   // Textarea auto-resize with cursor position preservation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -851,8 +862,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           )}
         </button>
 
-        {/* Input */}
-        <div className="flex-1">
+        {/* Input with slash picker */}
+        <div className="flex-1 relative">
           <Textarea
             ref={textareaRef}
             value={inputValue}
@@ -868,6 +879,44 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 px-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
           />
+          
+          {/* Slash command picker */}
+          <AnimatePresence>
+            {showSlashPicker && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute bottom-full left-4 mb-2 flex gap-2"
+              >
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // Prevent blur
+                    setInputValue("image/");
+                    textareaRef.current?.focus();
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500/20 border border-green-400/40 text-green-400 hover:bg-green-500/30 transition-colors shadow-lg backdrop-blur-sm"
+                >
+                  <ImagePlus className="h-4 w-4" />
+                  <span className="text-sm font-medium">image/</span>
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // Prevent blur
+                    setInputValue("code/");
+                    textareaRef.current?.focus();
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-500/20 border border-blue-400/40 text-blue-400 hover:bg-blue-500/30 transition-colors shadow-lg backdrop-blur-sm"
+                >
+                  <Code2 className="h-4 w-4" />
+                  <span className="text-sm font-medium">code/</span>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Brain Icon Toggle - hidden on mobile when typing */}
