@@ -1,7 +1,7 @@
 // src/components/ChatInput.tsx
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
-import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Brain } from "lucide-react";
+import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Brain, Code2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
@@ -59,52 +59,25 @@ function isImageEditRequest(message: string): boolean {
   const lower = message.toLowerCase();
   return keywords.some((k) => lower.includes(k));
 }
+// Prefix-based detection: image/, draw/, create/ for images
 function checkForImageRequest(message: string): boolean {
   if (!message) return false;
-  const m = message.toLowerCase().trim();
-
-  // Check for explicit image generation patterns with "image" or visual nouns
-  if (
-    /^(generate|create|make|draw|paint|design|render|produce)\s+(an?\s+)?(image|picture|photo|illustration|artwork|graphic|drawing|painting)/i.test(m)
-  ) return true;
-
-  if (/^(generate|create|make)\s+an?\s+image\s+of/i.test(m)) return true;
-
-  // Drawing-specific triggers (draw implies visual content)
-  if (/^draw\s+(a|an|me|something)/i.test(m)) return true;
-
-  // Paint-specific triggers (paint implies visual content)
-  if (/^paint\s+(a|an|me|something)/i.test(m)) return true;
-
-  if (/^(show\s+me|give\s+me|i\s+want|i\s+need)\s+(an?\s+)?(image|picture|photo)/i.test(m)) return true;
-
-  // Require explicit image-related words for keyword matching
-  const hasImageWord = /\b(image|picture|photo|illustration|artwork|graphic|visual|drawing|painting)\b/i.test(m);
-  if (!hasImageWord) return false;
-
-  // More specific keyword combinations (only if image word present)
-  const imageKeywords = [
-    "generate image",
-    "create image",
-    "make image",
-    "draw image",
-    "paint image",
-    "generate picture",
-    "create picture",
-    "image of",
-    "picture of",
-    "photo of",
-  ];
-
-  return imageKeywords.some((keyword) => m.includes(keyword));
+  const m = message.trim().toLowerCase();
+  // Only trigger on explicit prefixes
+  return /^(image|draw|create)\//.test(m);
 }
+
+// Prefix-based detection: code/ for coding
 function checkForCodingRequest(message: string): boolean {
   if (!message) return false;
-  const m = message.trim();
+  const m = message.trim().toLowerCase();
+  // Only trigger on explicit prefix
+  return /^code\//.test(m);
+}
 
-  // Only treat as a coding request when the user is explicit.
-  // (We do NOT infer from broad words like "build" or "create" to avoid accidental "coding mode".)
-  return /^(\s*)(code|write code|show me the code|give me the code|implement this|build the code|create the code)\b/i.test(m);
+// Extract the prompt after the prefix (strips prefix/)
+function extractPrefixPrompt(message: string): string {
+  return message.replace(/^(image|draw|create|code)\/\s*/i, "").trim();
 }
 
 
@@ -163,9 +136,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
   const quickPrompts = getAllPromptsFlat();
 
-  // Banana toggle
+  // Mode toggles for image and coding
   const [forceImageMode, setForceImageMode] = useState(false);
+  const [forceCodingMode, setForceCodingMode] = useState(false);
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
+  const shouldShowCodeMode = forceCodingMode || (!!inputValue && checkForCodingRequest(inputValue));
 
   // Track current session model for brain icon state
   const [sessionModel, setSessionModel] = useState<string>(() =>
@@ -621,7 +596,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
       // No images: Banana => generate; else text
       if (shouldShowBanana) {
-        const imagePrompt = extractImagePrompt(userMessage || "");
+        // Strip the prefix (image/, draw/, create/) and use the rest as prompt
+        const imagePrompt = extractPrefixPrompt(userMessage || "") || "a beautiful image";
         await addMessage({ content: userMessage || imagePrompt, role: "user", type: "text" });
         await addMessage({
           content: `Generating image: ${imagePrompt}`,
@@ -690,9 +666,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       try {
         const aiMessages = messages.filter((m) => m.type === "text").map((m) => ({ role: m.role, content: m.content }));
 
-        // Only force "code" mode when the user is explicit.
-        const isCodingRequest = checkForCodingRequest(userMessage);
-        const messageToSend = isCodingRequest ? userMessage.replace(/^\s*(code\s*:?\s*)/i, "") : userMessage;
+        // Strip the code/ prefix if present, and prepend "Code the following:" for the AI
+        const isCodingRequest = shouldShowCodeMode || checkForCodingRequest(userMessage);
+        const cleanedMessage = extractPrefixPrompt(userMessage);
+        const messageToSend = isCodingRequest ? `Code the following: ${cleanedMessage}` : cleanedMessage || userMessage;
 
         aiMessages.push({ role: "user", content: messageToSend });
 
@@ -820,25 +797,51 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
       {/* Input Row */}
       <div className="chat-input-halo flex items-center gap-3 rounded-full">
-        {/* LEFT BUTTON — Banana replaces + when active */}
+        {/* LEFT BUTTON — Image/Code mode indicator or + menu */}
         <button
           ref={menuButtonRef}
           type="button"
-          aria-label={shouldShowBanana ? "Disable image mode" : showMenu ? "Close menu" : "Quick options"}
+          aria-label={
+            shouldShowBanana
+              ? "Disable image mode"
+              : shouldShowCodeMode
+              ? "Disable code mode"
+              : showMenu
+              ? "Close menu"
+              : "Quick options"
+          }
           className={[
             "ci-menu-btn h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 relative",
             shouldShowBanana
               ? "bg-green-500/20 ring-1 ring-green-400/50 shadow-[0_0_24px_rgba(34,197,94,0.25)]"
+              : shouldShowCodeMode
+              ? "bg-blue-500/20 ring-1 ring-blue-400/50 shadow-[0_0_24px_rgba(59,130,246,0.25)]"
               : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
           ].join(" ")}
           onClick={() => {
-            if (shouldShowBanana) setForceImageMode(false);
-            else setShowMenu((v) => !v);
+            if (shouldShowBanana) {
+              setForceImageMode(false);
+              // Clear input if it's just the prefix
+              if (/^(image|draw|create)\/\s*$/i.test(inputValue)) setInputValue("");
+            } else if (shouldShowCodeMode) {
+              setForceCodingMode(false);
+              // Clear input if it's just the prefix
+              if (/^code\/\s*$/i.test(inputValue)) setInputValue("");
+            } else {
+              setShowMenu((v) => !v);
+            }
           }}
         >
           {shouldShowBanana ? (
             <>
               <ImagePlus className="h-5 w-5 text-green-400" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
+                ×
+              </span>
+            </>
+          ) : shouldShowCodeMode ? (
+            <>
+              <Code2 className="h-5 w-5 text-blue-400" />
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
                 ×
               </span>
@@ -860,7 +863,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               handleInputFocus();
             }}
             onBlur={() => setIsActive(false)}
-            placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe" : "Ask"}
+            placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe your image..." : shouldShowCodeMode ? "Describe what to build..." : "Ask"}
             disabled={isLoading}
             className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 px-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
