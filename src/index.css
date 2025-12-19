@@ -312,44 +312,24 @@ body::before {
       inset 0 1px 0 hsla(var(--foreground), 0.1);
   }
 
-  /* Floating button shimmer effect - top-left and bottom-right highlights */
+  /* Subtle glass shimmer - thin edge highlights */
   .glass-shimmer {
     position: relative;
     overflow: hidden;
   }
 
-  .glass-shimmer::before,
-  .glass-shimmer::after {
+  .glass-shimmer::before {
     content: '';
     position: absolute;
-    border-radius: 50%;
+    inset: 0;
+    border-radius: inherit;
     pointer-events: none;
-  }
-
-  /* Top-left shimmer - bright highlight like real glass */
-  .glass-shimmer::before {
-    top: 8%;
-    left: 8%;
-    width: 35%;
-    height: 35%;
-    background: radial-gradient(ellipse at 30% 30%,
-      hsla(0, 0%, 100%, 0.6) 0%,
-      hsla(0, 0%, 100%, 0.3) 25%,
-      hsla(0, 0%, 100%, 0.1) 50%,
-      transparent 70%
-    );
-  }
-
-  /* Bottom-right shimmer - subtle secondary reflection */
-  .glass-shimmer::after {
-    bottom: 10%;
-    right: 10%;
-    width: 25%;
-    height: 25%;
-    background: radial-gradient(ellipse at 70% 70%,
-      hsla(0, 0%, 100%, 0.25) 0%,
-      hsla(0, 0%, 100%, 0.1) 40%,
-      transparent 70%
+    background: linear-gradient(
+      135deg,
+      hsla(0, 0%, 100%, 0.15) 0%,
+      transparent 40%,
+      transparent 60%,
+      hsla(0, 0%, 100%, 0.05) 100%
     );
   }
 
