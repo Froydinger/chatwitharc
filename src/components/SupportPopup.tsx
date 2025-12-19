@@ -29,7 +29,7 @@ export function SupportPopup({ isOpen, onClose }: SupportPopupProps) {
             rel="noopener noreferrer"
             className="block"
           >
-            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground justify-between group">
+            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground justify-between group noir-send-btn">
               <span>Support ArcAI</span>
               <ExternalLink className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
             </Button>
