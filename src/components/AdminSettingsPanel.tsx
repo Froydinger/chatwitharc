@@ -231,7 +231,7 @@ export function AdminSettingsPanel() {
               <Button 
                 onClick={() => handleUpdateSetting('system_prompt', systemPromptDraft)}
                 disabled={updating}
-                className="w-full"
+                className="w-full noir-send-btn"
               >
                 Save System Prompt
               </Button>
@@ -262,7 +262,7 @@ export function AdminSettingsPanel() {
               <Button
                 onClick={() => handleUpdateSetting('image_restrictions', imageRestrictionsDraft)}
                 disabled={updating}
-                className="w-full"
+                className="w-full noir-send-btn"
               >
                 Save Image Restrictions
               </Button>
@@ -441,7 +441,7 @@ export function AdminSettingsPanel() {
               <Button
                 onClick={handleUpdateBanner}
                 disabled={updating}
-                className="w-full"
+                className="w-full noir-send-btn"
               >
                 Save Banner Settings
               </Button>
@@ -465,7 +465,7 @@ export function AdminSettingsPanel() {
                   placeholder="Enter email address..."
                   className="flex-1"
                 />
-                <Button onClick={handleAddAdmin} disabled={!newAdminEmail.trim()}>
+                <Button onClick={handleAddAdmin} disabled={!newAdminEmail.trim()} className="noir-send-btn">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Admin
                 </Button>
