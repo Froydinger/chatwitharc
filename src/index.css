@@ -644,16 +644,15 @@ body::before {
     border-color: hsl(0 0% 20%) !important;
   }
 
-  /* Noir theme: Black text on primary buttons (white bg needs black text) */
-  [data-accent="noir"] .noir-send-btn,
-  [data-accent="noir"] .text-primary-foreground {
-    color: hsl(0 0% 5%) !important;
+  /* Noir theme: Black buttons with white text/icons */
+  [data-accent="noir"] .noir-send-btn {
+    background-color: hsl(0 0% 5%) !important;
+    border-color: hsl(0 0% 20%) !important;
+    color: hsl(0 0% 95%) !important;
   }
 
-  /* Noir theme: Black icons on primary buttons */
-  [data-accent="noir"] .noir-send-btn svg,
-  [data-accent="noir"] .text-primary-foreground svg {
-    color: hsl(0 0% 5%) !important;
-    stroke: hsl(0 0% 5%) !important;
+  [data-accent="noir"] .noir-send-btn svg {
+    color: hsl(0 0% 95%) !important;
+    stroke: hsl(0 0% 95%) !important;
   }
 }
