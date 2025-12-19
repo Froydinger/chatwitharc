@@ -889,11 +889,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="fixed z-[50] flex items-center gap-2 px-2"
+              className="fixed z-[9999] flex items-center justify-center gap-2"
               style={{ 
-                bottom: "calc(100px + env(safe-area-inset-bottom, 0px))",
-                left: "50%",
-                transform: "translateX(-50%)"
+                bottom: "calc(110px + env(safe-area-inset-bottom, 0px))",
+                left: 0,
+                right: 0,
               }}
             >
               <button
@@ -983,10 +983,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           onClick={() => handleSend()}
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
           className={[
-            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40",
+            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200",
             inputValue.trim() || selectedImages.length
-              ? "bg-primary border-primary text-primary-foreground hover:opacity-90 noir-send-btn"
-              : "bg-muted/50 text-muted-foreground cursor-not-allowed",
+              ? "bg-black border border-black text-white hover:opacity-90"
+              : "bg-muted/50 text-muted-foreground cursor-not-allowed border border-border/40",
           ].join(" ")}
           aria-label="Send"
         >
