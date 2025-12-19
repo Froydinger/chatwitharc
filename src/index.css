@@ -544,8 +544,8 @@ body::before {
   }
 
   /* Gradient Text */
-  .gradient-text {
-    background: linear-gradient(135deg, #fff 0%, #67e8f9 100%);
+.gradient-text {
+  background: linear-gradient(135deg, #fff 0%, #3b82f6 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
