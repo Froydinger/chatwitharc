@@ -461,7 +461,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               }}
             >
               <motion.div
-                className="relative logo-accent-glow"
+                className="relative"
                 animate={{
                   scale: isThinking ? [1, 1.08, 1] : 1
                 }}
