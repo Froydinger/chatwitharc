@@ -889,9 +889,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="fixed z-[50] flex items-center gap-2"
+              className="fixed z-[50] flex items-center gap-2 px-2"
               style={{ 
-                bottom: "calc(90px + env(safe-area-inset-bottom, 0px))",
+                bottom: "calc(100px + env(safe-area-inset-bottom, 0px))",
                 left: "50%",
                 transform: "translateX(-50%)"
               }}
@@ -903,7 +903,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                   setInputValue("image/");
                   textareaRef.current?.focus();
                 }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-background/95 border border-green-400/40 text-green-400 hover:bg-green-500/20 transition-colors shadow-xl backdrop-blur-md"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-green-400/50 text-green-400 hover:bg-green-500/20 transition-colors shadow-xl"
               >
                 <ImagePlus className="h-4 w-4" />
                 <span className="text-sm font-medium">image/</span>
@@ -915,7 +915,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                   setInputValue("code/");
                   textareaRef.current?.focus();
                 }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-background/95 border border-blue-400/40 text-blue-400 hover:bg-blue-500/20 transition-colors shadow-xl backdrop-blur-md"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-blue-400/50 text-blue-400 hover:bg-blue-500/20 transition-colors shadow-xl"
               >
                 <Code2 className="h-4 w-4" />
                 <span className="text-sm font-medium">code/</span>
@@ -928,7 +928,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                   setInputValue("");
                   textareaRef.current?.focus();
                 }}
-                className="flex items-center justify-center w-8 h-8 rounded-full bg-background/95 border border-border/40 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-xl backdrop-blur-md"
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-black border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors shadow-xl"
               >
                 <X className="h-4 w-4" />
               </button>
