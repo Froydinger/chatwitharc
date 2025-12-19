@@ -3,7 +3,7 @@ import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 // Default accent color (blue for consistency)
-const DEFAULT_ACCENT = "210 95.0% 50.0%";
+const DEFAULT_ACCENT = "200 95% 55%";
 
 // Validate HSL color format (e.g., "142 76.0% 36.3%")
 function isValidHslColor(color: string): boolean {

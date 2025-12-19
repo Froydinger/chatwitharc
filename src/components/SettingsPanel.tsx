@@ -427,8 +427,8 @@ export function SettingsPanel() {
     {
       id: "blue",
       label: "Blue",
-      value: "210 95.0% 50.0%",
-      gradient: "linear-gradient(135deg, hsl(210,95%,55%), hsl(210,90%,65%))",
+      value: "200 95% 55%",
+      gradient: "linear-gradient(135deg, hsl(200,95%,55%), hsl(200,90%,65%))",
     },
     {
       id: "green",
