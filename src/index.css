@@ -112,11 +112,11 @@ All colors MUST be HSL for perfect glass effects.
     background: hsl(var(--background));
   }
   
-  /* Prevent FOUC - initially hide content until theme is applied */
-  html:not(.theme-ready) body {
-    opacity: 0;
+  /* Prevent FOUC (safe mode): never fully hide the app (CSP can block inline scripts). */
+  body {
+    opacity: 1;
   }
-  
+
   html.theme-ready body {
     opacity: 1;
     transition: opacity 0.15s ease-out;
