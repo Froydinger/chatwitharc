@@ -11,12 +11,13 @@ export interface ConversationMessage {
 }
 
 /**
- * Uses AI to intelligently extract meaningful memory from a message and conversation context
- * This is much smarter than regex - it understands what the user actually wants to remember
+ * Uses AI to intelligently extract meaningful memory from a message and conversation context.
+ * Returns a user-centric fact like "Jake likes soda" using the user's actual name.
  */
 async function extractMemoryWithAI(
   userMessage: string,
-  recentMessages: ConversationMessage[] = []
+  recentMessages: ConversationMessage[] = [],
+  userName: string = "User"
 ): Promise<string | null> {
   if (!supabase || !isSupabaseConfigured) {
     console.log('Supabase not configured, memory extraction unavailable');
@@ -24,38 +25,50 @@ async function extractMemoryWithAI(
   }
 
   try {
-    const systemPrompt = `You are a memory extraction assistant. Your ONLY job is to identify what meaningful information the user wants you to remember.
+    const systemPrompt = `You are a memory extraction assistant. Your ONLY job is to extract personal facts about the user that should be remembered.
 
-When the user says something like "remember that" or uses memory keywords, you need to figure out what "that" refers to by looking at the context of their message and recent conversation.
+The user's name is: ${userName}
+
+When the user shares personal information or preferences, extract it as a clear, third-person factual statement about them.
 
 Examples:
-- "I have NEVER told you I was non-binary lol. whoops. Remember that!" → Extract: "User is non-binary"
-- "My favorite color is blue. Remember this!" → Extract: "User's favorite color is blue"
-- "I work at Google as a software engineer. Keep track of that." → Extract: "User works at Google as a software engineer"
-- "Don't forget I'm allergic to peanuts!" → Extract: "User is allergic to peanuts"
-- "Note: I prefer they/them pronouns" → Extract: "User prefers they/them pronouns"
+- User says: "I really like soda!" → Extract: "${userName} likes soda"
+- User says: "For future reference, for UI stuff, I like Black glass, elasticy animations, and neon blue accent colors!" → Extract: "${userName} prefers black glass UI, elastic animations, and neon blue accent colors"
+- User says: "I'm non-binary, remember that!" → Extract: "${userName} is non-binary"
+- User says: "My favorite color is blue" → Extract: "${userName}'s favorite color is blue"
+- User says: "I work at Google as a software engineer" → Extract: "${userName} works at Google as a software engineer"
+- User says: "I'm allergic to peanuts!" → Extract: "${userName} is allergic to peanuts"
+- User says: "I prefer they/them pronouns" → Extract: "${userName} uses they/them pronouns"
+- User says: "I'm working on a music app" → Extract: "${userName} is working on a music app"
 
 CRITICAL RULES:
-1. Extract the MEANINGFUL information, not just what comes after the keyword
-2. Make it a clear, factual statement about the user
-3. Keep it concise (under 200 characters)
-4. If you can't determine what to remember, return "UNCLEAR"
-5. ONLY return the extracted fact - no explanations, no extra text
+1. ALWAYS use "${userName}" at the start of the extracted fact (not "User" or "The user")
+2. Extract the MEANINGFUL personal information, not the AI's response or confirmation
+3. Make it a clear, factual third-person statement about ${userName}
+4. Keep it concise (under 150 characters)
+5. If there's no personal fact to remember (just questions or requests), return "NONE"
+6. ONLY return the extracted fact - no explanations, no quotes, no extra text
+7. Look at what the USER said, not what the assistant said
 
-What should be remembered from this message?`;
+What personal fact should be remembered from this conversation?`;
 
-    // Build conversation context
+    // Build conversation context - include recent messages for context
+    const contextMessages = recentMessages.slice(-6).map(m => ({
+      role: m.role,
+      content: m.content
+    }));
+
     const messages = [
       { role: 'system', content: systemPrompt },
-      ...recentMessages.slice(-5), // Include last 5 messages for context
-      { role: 'user', content: userMessage }
+      ...contextMessages,
+      { role: 'user', content: `The user just said: "${userMessage}"\n\nExtract the personal fact to remember about ${userName}, or return NONE if there isn't one.` }
     ];
 
     // Call the chat API
     const { data, error } = await supabase.functions.invoke('chat', {
       body: {
         messages,
-        model: 'google/gemini-2.5-flash' // Use fast model for quick extraction
+        model: 'google/gemini-2.5-flash'
       }
     });
 
@@ -67,12 +80,25 @@ What should be remembered from this message?`;
     // The chat API returns { choices: [{ message: { content: "..." } }] }
     const extractedContent = data?.choices?.[0]?.message?.content?.trim();
 
-    // If AI couldn't figure it out, return null
-    if (!extractedContent || extractedContent === 'UNCLEAR' || extractedContent.length < 3) {
+    // If AI couldn't find a personal fact, return null
+    if (!extractedContent || 
+        extractedContent === 'NONE' || 
+        extractedContent === 'UNCLEAR' || 
+        extractedContent.length < 5 ||
+        extractedContent.toLowerCase().includes('no personal fact') ||
+        extractedContent.toLowerCase().includes('no fact to remember')) {
       return null;
     }
 
-    return extractedContent;
+    // Clean up the response - remove quotes if present
+    let cleaned = extractedContent;
+    if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || 
+        (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+      cleaned = cleaned.slice(1, -1);
+    }
+
+    console.log('AI extracted memory:', cleaned);
+    return cleaned;
   } catch (error) {
     console.error('Error in AI memory extraction:', error);
     return null;
@@ -86,52 +112,52 @@ export function sanitizeMemoryText(text: string): string {
   if ((t.startsWith("\"") && t.endsWith("\"")) || (t.startsWith("'") && t.endsWith("'")) || (t.startsWith('`') && t.endsWith('`'))) {
     t = t.slice(1, -1);
   }
-  // replace underscores/hyphens with spaces
-  t = t.replace(/[\-_]+/g, ' ');
   // collapse multiple spaces
   t = t.replace(/\s{2,}/g, ' ').trim();
   // ensure it reads as a sentence when possible
-  if (!/[.!?]$/.test(t) && t.split(' ').length > 3) {
+  if (!/[.!?]$/.test(t) && t.split(' ').length > 2) {
     t = t + '.';
   }
-  // No length limit - preserve full context for memories
   return t;
 }
 
 /**
- * Detects if a message contains a "remember this" command and extracts the content
- * Now uses AI to intelligently understand what should be remembered!
+ * Detects if a message might contain personal information worth remembering.
+ * More dynamic detection - looks for personal statements, preferences, facts about the user.
  */
 export async function detectMemoryCommand(
   message: string,
-  recentMessages: ConversationMessage[] = []
+  recentMessages: ConversationMessage[] = [],
+  userName: string = "User"
 ): Promise<MemoryItem | null> {
   const lowerMessage = message.toLowerCase().trim();
 
-  // Common patterns for "remember this" commands - just check if a keyword exists
-  const hasMemoryKeyword = /(?:remember|rem|memorize|save|note|keep track of|don't forget|make note of|keep|store|record|add to memory|to memory|jot down)/i.test(message);
-
-  // Also check for explicit memory negations
+  // Check for explicit memory negations first
   if (lowerMessage.includes('forget') ||
       lowerMessage.includes('delete') ||
       lowerMessage.includes('remove from memory')) {
     return null;
   }
 
-  if (!hasMemoryKeyword) {
+  // Patterns that indicate personal information or preference sharing
+  const hasMemoryKeyword = /(?:remember|rem|memorize|save|note|keep track of|don't forget|make note of|keep|store|record|add to memory|to memory|jot down)/i.test(message);
+  
+  // Also detect personal statements even without explicit memory keywords
+  const hasPersonalStatement = /(?:^i\s|^i'm|^i am|^my\s|i like|i love|i prefer|i work|i live|i have|for future reference|going forward|keep in mind|fyi|just so you know)/i.test(message);
+
+  // If neither pattern matches, no memory to extract
+  if (!hasMemoryKeyword && !hasPersonalStatement) {
     return null;
   }
 
-  // Use AI to extract the meaningful memory
-  console.log('Memory keyword detected, using AI to extract meaningful content...');
-  const extractedContent = await extractMemoryWithAI(message, recentMessages);
+  // Use AI to extract the meaningful memory with the user's name
+  console.log('Potential memory detected, using AI to extract meaningful content...');
+  const extractedContent = await extractMemoryWithAI(message, recentMessages, userName);
 
   if (!extractedContent) {
-    console.log('AI could not extract meaningful memory from message');
+    console.log('AI did not find a personal fact to remember');
     return null;
   }
-
-  console.log('AI extracted memory:', extractedContent);
 
   return {
     content: sanitizeMemoryText(extractedContent),
@@ -140,8 +166,8 @@ export async function detectMemoryCommand(
 }
 
 /**
- * Adds a memory item to the user's memory bank in their profile
- * Returns true if a new memory was saved, false if it already existed
+ * Adds a memory item to the user's memory bank in their profile.
+ * Returns true if a new memory was saved, false if it already existed.
  */
 export async function addToMemoryBank(memoryItem: MemoryItem): Promise<boolean> {
   if (!supabase || !isSupabaseConfigured) {
@@ -165,30 +191,30 @@ export async function addToMemoryBank(memoryItem: MemoryItem): Promise<boolean> 
     const existingMemory = profile?.memory_info || '';
     const sanitized = sanitizeMemoryText(memoryItem.content);
 
-    // Build a normalized set of existing entries (without date prefixes) to avoid duplicates
+    // Build a normalized set of existing entries to avoid duplicates
     const existingLines = existingMemory
       .split('\n')
       .map(l => l.replace(/^\[[^\]]+\]\s*/, '').trim().toLowerCase())
       .filter(Boolean);
 
-    // More robust duplicate detection - check for semantic similarity
+    // Robust duplicate detection - check for semantic similarity
     const normalizedNew = sanitized.toLowerCase().replace(/[^\w\s]/g, '').trim();
     const isDuplicate = existingLines.some(existing => {
       const normalizedExisting = existing.replace(/[^\w\s]/g, '').trim();
-      // Check for exact match or substantial overlap (>80% similarity)
+      // Check for exact match
       if (normalizedExisting === normalizedNew) return true;
       
-      // Check for substantial word overlap to catch paraphrases
-      const newWords = new Set(normalizedNew.split(/\s+/));
-      const existingWords = new Set(normalizedExisting.split(/\s+/));
+      // Check for substantial word overlap (70% threshold for flexibility)
+      const newWords = new Set(normalizedNew.split(/\s+/).filter(w => w.length > 2));
+      const existingWords = new Set(normalizedExisting.split(/\s+/).filter(w => w.length > 2));
       const intersection = new Set([...newWords].filter(x => existingWords.has(x)));
       const similarity = intersection.size / Math.max(newWords.size, existingWords.size);
       
-      return similarity > 0.8; // 80% word overlap threshold
+      return similarity > 0.7;
     });
 
     if (isDuplicate) {
-      // Memory already exists, skipping
+      console.log('Memory already exists, skipping duplicate');
       return false;
     }
 
@@ -207,7 +233,7 @@ export async function addToMemoryBank(memoryItem: MemoryItem): Promise<boolean> 
 
     if (updateError) throw updateError;
 
-    // Memory added successfully
+    console.log('Memory added successfully:', sanitized);
     return true;
   } catch (error) {
     console.error('Error adding to memory bank:', error);

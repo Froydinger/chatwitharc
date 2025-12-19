@@ -665,11 +665,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           .filter((m) => m.type === "text")
           .map((m) => ({ role: m.role, content: m.content }));
 
-        // Use AI-powered memory detection
-        const memoryItem = await detectMemoryCommand(userMessage, conversationContext);
+        // Use AI-powered memory detection with user's name for proper formatting
+        const userName = profile?.display_name || "User";
+        const memoryItem = await detectMemoryCommand(userMessage, conversationContext, userName);
         if (memoryItem) {
           const wasNew = await addToMemoryBank(memoryItem);
-          if (wasNew) formatMemoryConfirmation(memoryItem.content);
+          if (wasNew) {
+            console.log('Memory saved:', memoryItem.content);
+          }
         }
       }
 
