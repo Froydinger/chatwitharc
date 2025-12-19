@@ -101,6 +101,26 @@ All colors MUST be HSL for perfect glass effects.
     opacity: 0.1;
   }
 
+  /* Noir mode buttons - black with white text instead of white with black text */
+  :root[data-accent="noir"] {
+    --button-bg: 0 0% 8%;
+    --button-fg: 0 0% 92%;
+  }
+
+}
+
+/* Noir mode button overrides - must be outside @layer for specificity */
+:root[data-accent="noir"] button[class*="bg-primary"],
+:root[data-accent="noir"] [role="button"][class*="bg-primary"],
+:root[data-accent="noir"] .bg-primary {
+  background-color: hsl(0 0% 8%) !important;
+  color: hsl(0 0% 92%) !important;
+}
+
+:root[data-accent="noir"] button[class*="bg-primary"]:hover,
+:root[data-accent="noir"] [role="button"][class*="bg-primary"]:hover,
+:root[data-accent="noir"] .bg-primary:hover {
+  background-color: hsl(0 0% 15%) !important;
 }
 
 @layer base {
