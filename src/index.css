@@ -649,4 +649,11 @@ body::before {
   [data-accent="noir"] .text-primary-foreground {
     color: hsl(0 0% 5%) !important;
   }
+
+  /* Noir theme: Black icons on primary buttons */
+  [data-accent="noir"] .noir-send-btn svg,
+  [data-accent="noir"] .text-primary-foreground svg {
+    color: hsl(0 0% 5%) !important;
+    stroke: hsl(0 0% 5%) !important;
+  }
 }
