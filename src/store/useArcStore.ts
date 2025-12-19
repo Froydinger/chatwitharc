@@ -11,6 +11,13 @@ export interface ChatSession {
   messages: Message[];
 }
 
+export type MemoryActionType = 'memory_saved' | 'memory_accessed' | 'chats_searched';
+
+export interface MemoryAction {
+  type: MemoryActionType;
+  content?: string; // e.g., what was saved or searched
+}
+
 export interface Message {
   id: string;
   content: string;
@@ -24,6 +31,7 @@ export interface Message {
   fileName?: string;
   fileType?: string;
   fileSize?: number;
+  memoryAction?: MemoryAction; // Track memory/search actions
 }
 
 export interface ArcState {

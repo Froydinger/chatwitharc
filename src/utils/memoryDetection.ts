@@ -143,7 +143,8 @@ export async function detectMemoryCommand(
   const hasMemoryKeyword = /(?:remember|rem|memorize|save|note|keep track of|don't forget|make note of|keep|store|record|add to memory|to memory|jot down)/i.test(message);
   
   // Also detect personal statements even without explicit memory keywords
-  const hasPersonalStatement = /(?:^i\s|^i'm|^i am|^my\s|i like|i love|i prefer|i work|i live|i have|for future reference|going forward|keep in mind|fyi|just so you know)/i.test(message);
+  // More comprehensive pattern to catch emphatic statements like "i REALLY love X"
+  const hasPersonalStatement = /(?:^i\s|^i'm|^i am|^my\s|i\s+(?:really\s+)?like|i\s+(?:really\s+)?love|i\s+(?:really\s+)?prefer|i\s+(?:really\s+)?hate|i\s+(?:really\s+)?enjoy|i work|i live|i have|for future reference|going forward|keep in mind|fyi|just so you know|it's my (?:favorite|fav|favourite)|my favorite|my fav|my favourite|is my favorite|is my fav)/i.test(message);
 
   // If neither pattern matches, no memory to extract
   if (!hasMemoryKeyword && !hasPersonalStatement) {
