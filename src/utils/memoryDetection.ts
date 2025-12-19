@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 
 export interface MemoryItem {
   content: string;
@@ -18,6 +18,11 @@ async function extractMemoryWithAI(
   userMessage: string,
   recentMessages: ConversationMessage[] = []
 ): Promise<string | null> {
+  if (!supabase || !isSupabaseConfigured) {
+    console.log('Supabase not configured, memory extraction unavailable');
+    return null;
+  }
+
   try {
     const systemPrompt = `You are a memory extraction assistant. Your ONLY job is to identify what meaningful information the user wants you to remember.
 
@@ -139,6 +144,11 @@ export async function detectMemoryCommand(
  * Returns true if a new memory was saved, false if it already existed
  */
 export async function addToMemoryBank(memoryItem: MemoryItem): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured) {
+    console.log('Supabase not configured, memory bank unavailable');
+    return false;
+  }
+
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No user found');

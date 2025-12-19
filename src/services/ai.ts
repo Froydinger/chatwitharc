@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 
 interface AIMessage {
   role: 'user' | 'assistant' | 'system';
@@ -20,10 +20,14 @@ export class AIService {
   }
 
   async sendMessage(
-    messages: AIMessage[], 
+    messages: AIMessage[],
     profile?: { display_name?: string | null; context_info?: string | null, memory_info?: string | null, preferred_model?: string | null },
     onToolUsage?: (tools: string[]) => void
   ): Promise<string> {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('Chat service is not available. Please configure Supabase.');
+    }
+
     try {
       // Always fetch the freshest profile to include latest memory/context
       let effectiveProfile = profile || {};
@@ -100,14 +104,18 @@ export class AIService {
   }
 
   async sendMessageWithImage(messages: AIMessage[], base64Images: string | string[]): Promise<string> {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('Image analysis service is not available. Please configure Supabase.');
+    }
+
     try {
       // Support both single image and array of images
       const images = Array.isArray(base64Images) ? base64Images : [base64Images];
-      
+
       if (images.length > 4) {
         throw new Error('Maximum 4 images allowed for analysis');
       }
-      
+
       // Call edge function for image analysis
       const { data, error } = await supabase.functions.invoke('analyze-image', {
         body: { 
@@ -133,6 +141,10 @@ export class AIService {
   }
 
   async generateImage(prompt: string, preferredModel?: string): Promise<string> {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('Image generation service is not available. Please configure Supabase.');
+    }
+
     try {
       // Generating image with Gemini
       // Use session model if no specific model provided
@@ -141,7 +153,7 @@ export class AIService {
         // Get model from sessionStorage (same as chat)
         modelToUse = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
       }
-      
+
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { 
           prompt,
@@ -174,17 +186,21 @@ export class AIService {
   }
 
   async editImage(prompt: string, baseImageUrls: string | string[], imageModel?: string): Promise<string> {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('Image editing service is not available. Please configure Supabase.');
+    }
+
     try {
       // Support both single image and array of images (max 14 for combining with Gemini 3 Pro)
       const images = Array.isArray(baseImageUrls) ? baseImageUrls : [baseImageUrls];
-      
+
       if (images.length > 14) {
         throw new Error('Maximum 14 images allowed for combining');
       }
-      
+
       // Use session model if no specific model provided
       const modelToUse = imageModel || sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
-      
+
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: { 
           prompt, 
@@ -217,6 +233,10 @@ export class AIService {
   }
 
   async generateFile(fileType: string, prompt: string): Promise<{ fileUrl: string; fileName: string; mimeType: string; fileSize?: number }> {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('File generation service is not available. Please configure Supabase.');
+    }
+
     try {
       console.log('Generating file:', { fileType, prompt });
 

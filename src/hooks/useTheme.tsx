@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 // Default accent color (blue for consistency)
@@ -85,7 +85,7 @@ export function useTheme() {
       localStorage.setItem("accentColor", colorHsL);
 
       // Persist to DB using the existing column
-      if (user) {
+      if (user && supabase && isSupabaseConfigured) {
         await supabase.from("profiles").update({ accent_color: colorHsL }).eq("user_id", user.id);
       }
     } catch (err) {
@@ -100,7 +100,10 @@ export function useTheme() {
 
   // Load user preferences immediately on login
   useEffect(() => {
-    if (!user || preferencesLoaded) return;
+    if (!user || preferencesLoaded || !supabase || !isSupabaseConfigured) {
+      if (!user || !supabase || !isSupabaseConfigured) setPreferencesLoaded(true);
+      return;
+    }
 
     const loadUserPreferences = async () => {
       try {

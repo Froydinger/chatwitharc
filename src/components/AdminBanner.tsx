@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Construction, AlertTriangle, PartyPopper, ChevronUp, ChevronDown } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 
 interface BannerSettings {
   enabled: boolean;
@@ -16,6 +16,11 @@ export function useAdminBanner() {
   const [isActive, setIsActive] = useState(false);
 
   useEffect(() => {
+    if (!supabase || !isSupabaseConfigured) {
+      setIsActive(false);
+      return;
+    }
+
     const checkBanner = async () => {
       try {
         const { data, error } = await supabase
@@ -86,6 +91,11 @@ export function AdminBanner() {
   const [bannerHeight, setBannerHeight] = useState(0);
 
   const fetchBannerSettings = async () => {
+    if (!supabase || !isSupabaseConfigured) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('admin_settings')
@@ -123,6 +133,8 @@ export function AdminBanner() {
 
   useEffect(() => {
     fetchBannerSettings();
+
+    if (!supabase || !isSupabaseConfigured) return;
 
     // Subscribe to realtime changes
     const channel = supabase
