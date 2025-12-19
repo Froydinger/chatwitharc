@@ -116,10 +116,10 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           onClick={handleSend}
           disabled={!inputValue.trim()}
           className={[
-            "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40 mr-1",
+            "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 mr-1",
             inputValue.trim()
-              ? "bg-primary border-primary text-primary-foreground hover:opacity-90 noir-send-btn"
-              : "bg-muted/50 text-muted-foreground cursor-not-allowed",
+              ? "bg-black border border-black text-white hover:opacity-90"
+              : "bg-muted/50 text-muted-foreground cursor-not-allowed border border-border/40",
           ].join(" ")}
           aria-label="Send"
         >
