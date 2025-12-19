@@ -1,6 +1,6 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 
 interface Profile {
   id: string;
@@ -35,6 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   const fetchProfile = async (userId: string) => {
+    if (!supabase) return;
+
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -53,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setProfile(data);
-      
+
       // Check if user needs onboarding (no display name set)
       if (data && !data.display_name) {
         setNeedsOnboarding(true);
@@ -68,14 +70,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const createProfile = async (userId: string) => {
+    if (!supabase) return;
+
     try {
       // Get current user to extract metadata
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const displayName = user.user_metadata?.full_name || 
-                         user.user_metadata?.name || 
-                         user.email?.split('@')[0] || 
+      const displayName = user.user_metadata?.full_name ||
+                         user.user_metadata?.name ||
+                         user.email?.split('@')[0] ||
                          'New User';
 
       const { data, error } = await supabase
@@ -102,6 +106,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
     let subscription: any = null;
+
+    // If Supabase is not configured, skip auth initialization
+    if (!isSupabaseConfigured || !supabase) {
+      console.log('Supabase not configured, running in offline mode');
+      setLoading(false);
+      return;
+    }
 
     // Timeout to ensure we don't hang forever
     const timeout = setTimeout(() => {

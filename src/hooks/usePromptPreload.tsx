@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { generatePromptsByCategory } from '@/utils/promptGenerator';
 
 export interface QuickPrompt {
@@ -30,6 +30,10 @@ export function getCachedPrompts(category: string): QuickPrompt[] | null {
 
 // Generate AI prompts for a category
 async function generateAIPrompts(category: 'chat' | 'create' | 'write' | 'code'): Promise<QuickPrompt[]> {
+  if (!supabase || !isSupabaseConfigured) {
+    return generatePromptsByCategory(category);
+  }
+
   try {
     const { data, error } = await supabase.functions.invoke('generate-category-prompts', {
       body: {

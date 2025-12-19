@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 export interface Profile {
@@ -24,7 +24,7 @@ export function useProfile() {
   const [error, setError] = useState<Error | null>(null);
 
   const fetchProfile = async () => {
-    if (!user) {
+    if (!user || !supabase || !isSupabaseConfigured) {
       setProfile(null);
       setLoading(false);
       return;
@@ -33,7 +33,7 @@ export function useProfile() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -56,7 +56,7 @@ export function useProfile() {
   };
 
   const updateProfile = async (updates: Partial<Omit<Profile, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => {
-    if (!user) throw new Error('No user found');
+    if (!user || !supabase || !isSupabaseConfigured) throw new Error('No user found or Supabase not configured');
 
     setUpdating(true);
     try {

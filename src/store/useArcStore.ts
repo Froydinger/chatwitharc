@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from '@/utils/memoryDetection';
 
 export interface ChatSession {
@@ -87,6 +87,11 @@ export const useArcStore = create<ArcState>()(
       
       // Supabase Sync Functions
       syncFromSupabase: async () => {
+        if (!supabase || !isSupabaseConfigured) {
+          console.log('⚠️ Supabase not configured, skipping sync');
+          return;
+        }
+
         try {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) {
@@ -140,6 +145,11 @@ export const useArcStore = create<ArcState>()(
       },
 
       saveChatToSupabase: async (session: ChatSession) => {
+        if (!supabase || !isSupabaseConfigured) {
+          console.log('⚠️ Supabase not configured, skipping save');
+          return;
+        }
+
         try {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) {
@@ -265,51 +275,53 @@ export const useArcStore = create<ArcState>()(
           messages: state.currentSessionId === sessionId ? [] : state.messages
         }));
 
-        // Delete from Supabase
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            await supabase
-              .from('chat_sessions')
-              .delete()
-              .eq('id', sessionId)
-              .eq('user_id', user.id);
+        // Delete from Supabase (if configured)
+        if (supabase && isSupabaseConfigured) {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              await supabase
+                .from('chat_sessions')
+                .delete()
+                .eq('id', sessionId)
+                .eq('user_id', user.id);
 
-            // Clean up generated images from storage and database
-            if (sessionToDelete) {
-              const generatedImageUrls = sessionToDelete.messages
-                .filter(m => m.type === 'image' && m.role === 'assistant' && m.imageUrl)
-                .map(m => m.imageUrl!)
-                .filter(url => url.includes('generated-files') || url.includes('avatars'));
+              // Clean up generated images from storage and database
+              if (sessionToDelete) {
+                const generatedImageUrls = sessionToDelete.messages
+                  .filter(m => m.type === 'image' && m.role === 'assistant' && m.imageUrl)
+                  .map(m => m.imageUrl!)
+                  .filter(url => url.includes('generated-files') || url.includes('avatars'));
 
-              for (const url of generatedImageUrls) {
-                try {
-                  const urlParts = url.split('/');
-                  const fileName = urlParts[urlParts.length - 1];
-                  const fullPath = `${user.id}/${fileName}`;
-                  
-                  // Delete from storage (try both buckets)
-                  await supabase.storage
-                    .from('generated-files')
-                    .remove([fullPath]);
-                  await supabase.storage
-                    .from('avatars')
-                    .remove([fullPath]);
-                  
-                  // Delete from database by matching file_url
-                  await supabase
-                    .from('generated_files')
-                    .delete()
-                    .eq('user_id', user.id)
-                    .ilike('file_url', `%${fileName}%`);
-                } catch (imageError) {
-                  console.error('Error deleting generated image:', imageError);
+                for (const url of generatedImageUrls) {
+                  try {
+                    const urlParts = url.split('/');
+                    const fileName = urlParts[urlParts.length - 1];
+                    const fullPath = `${user.id}/${fileName}`;
+
+                    // Delete from storage (try both buckets)
+                    await supabase.storage
+                      .from('generated-files')
+                      .remove([fullPath]);
+                    await supabase.storage
+                      .from('avatars')
+                      .remove([fullPath]);
+
+                    // Delete from database by matching file_url
+                    await supabase
+                      .from('generated_files')
+                      .delete()
+                      .eq('user_id', user.id)
+                      .ilike('file_url', `%${fileName}%`);
+                  } catch (imageError) {
+                    console.error('Error deleting generated image:', imageError);
+                  }
                 }
               }
             }
+          } catch (error) {
+            console.error('Error deleting session from Supabase:', error);
           }
-        } catch (error) {
-          console.error('Error deleting session from Supabase:', error);
         }
       },
       
@@ -332,17 +344,19 @@ export const useArcStore = create<ArcState>()(
           console.log('Toast notification failed:', error);
         }
 
-        // Clear from Supabase
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            await supabase
-              .from('chat_sessions')
-              .delete()
-              .eq('user_id', user.id);
+        // Clear from Supabase (if configured)
+        if (supabase && isSupabaseConfigured) {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              await supabase
+                .from('chat_sessions')
+                .delete()
+                .eq('user_id', user.id);
+            }
+          } catch (error) {
+            console.error('Error clearing sessions from Supabase:', error);
           }
-        } catch (error) {
-          console.error('Error clearing sessions from Supabase:', error);
         }
       },
       

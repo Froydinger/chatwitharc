@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 export interface AdminSetting {
@@ -31,7 +31,7 @@ export function useAdminSettings() {
   const [error, setError] = useState<Error | null>(null);
 
   const checkAdminStatus = async () => {
-    if (!user) {
+    if (!user || !supabase || !isSupabaseConfigured) {
       setIsAdmin(false);
       setLoading(false);
       return;
@@ -61,7 +61,7 @@ export function useAdminSettings() {
   };
 
   const fetchSettings = async () => {
-    if (!isAdmin) return;
+    if (!isAdmin || !supabase) return;
 
     try {
       setError(null);
@@ -80,7 +80,7 @@ export function useAdminSettings() {
   };
 
   const fetchAdminUsers = async () => {
-    if (!isAdmin) return;
+    if (!isAdmin || !supabase) return;
 
     try {
       const { data, error } = await supabase
@@ -101,7 +101,7 @@ export function useAdminSettings() {
   };
 
   const updateSetting = async (key: string, value: string, description: string = '') => {
-    if (!isAdmin) throw new Error('Not authorized');
+    if (!isAdmin || !supabase) throw new Error('Not authorized');
 
     try {
       setUpdating(true);
@@ -132,7 +132,7 @@ export function useAdminSettings() {
   };
 
   const addAdminUser = async (email: string) => {
-    if (!isAdmin) throw new Error('Not authorized');
+    if (!isAdmin || !supabase) throw new Error('Not authorized');
 
     try {
       // First check if user exists by email in profiles table
@@ -163,7 +163,7 @@ export function useAdminSettings() {
   };
 
   const removeAdminUser = async (id: string) => {
-    if (!isAdmin) throw new Error('Not authorized');
+    if (!isAdmin || !supabase) throw new Error('Not authorized');
 
     try {
       const { error } = await supabase

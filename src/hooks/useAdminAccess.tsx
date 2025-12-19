@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 export function useAdminAccess() {
@@ -9,7 +9,7 @@ export function useAdminAccess() {
 
   useEffect(() => {
     const checkAdminAccess = async () => {
-      if (!user) {
+      if (!user || !supabase || !isSupabaseConfigured) {
         setIsAdmin(false);
         setLoading(false);
         return;

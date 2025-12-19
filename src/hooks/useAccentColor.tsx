@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 export type AccentColor = "red" | "blue" | "green" | "yellow" | "purple" | "orange" | "noir";
@@ -87,7 +87,10 @@ export function useAccentColor() {
 
   // Load accent color from profile on mount
   useEffect(() => {
-    if (!user || isLoaded) return;
+    if (!user || isLoaded || !supabase || !isSupabaseConfigured) {
+      if (!user || !supabase || !isSupabaseConfigured) setIsLoaded(true);
+      return;
+    }
 
     const loadAccentColor = async () => {
       try {
@@ -284,8 +287,8 @@ export function useAccentColor() {
     setAccentColorState(color);
     localStorage.setItem("accentColor", color);
 
-    // Save to profile if user is logged in
-    if (user) {
+    // Save to profile if user is logged in and Supabase is configured
+    if (user && supabase && isSupabaseConfigured) {
       try {
         await supabase.from("profiles").update({ accent_color: color }).eq("user_id", user.id);
       } catch (err) {

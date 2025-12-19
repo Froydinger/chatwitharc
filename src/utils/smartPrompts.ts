@@ -1,6 +1,6 @@
 import { Profile } from '@/hooks/useProfile';
 import { ChatSession } from '@/store/useArcStore';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 
 export interface QuickPrompt {
   label: string;
@@ -32,6 +32,10 @@ export async function fetchPersonalizedPrompts(
   // Only generate if user has meaningful context
   const hasContext = profile?.memory_info || profile?.context_info || chatSessions.length > 0;
   if (!hasContext) {
+    return [];
+  }
+
+  if (!supabase || !isSupabaseConfigured) {
     return [];
   }
 
