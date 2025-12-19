@@ -502,10 +502,10 @@ async function generateSimplePDF(content: string): Promise<Uint8Array> {
   pdfObjects += `${objectNumber} 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`;
   objectNumber++;
 
-  // Pages object
-  const pageRefs = Array.from({length: totalPages}, (_, i) => `${3 + i} 0 R`).join(' ');
+  // Pages object - we'll update this later with correct page references
+  const pagesObjectIndex = objectOffsets.length;
   objectOffsets.push(pdfHeader.length + pdfObjects.length);
-  pdfObjects += `${objectNumber} 0 obj\n<< /Type /Pages /Kids [${pageRefs}] /Count ${totalPages} >>\nendobj\n`;
+  const pagesPlaceholder = objectNumber;
   objectNumber++;
 
   // Font object
@@ -513,6 +513,17 @@ async function generateSimplePDF(content: string): Promise<Uint8Array> {
   objectOffsets.push(pdfHeader.length + pdfObjects.length);
   pdfObjects += `${objectNumber} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n`;
   objectNumber++;
+
+  // Calculate page object numbers (they come after content objects)
+  // For each page: content object, then page object
+  const pageObjectNumbers: number[] = [];
+  for (let i = 0; i < totalPages; i++) {
+    pageObjectNumbers.push(fontObjNum + 1 + (i * 2) + 1); // Skip content, get page number
+  }
+
+  // Now add the Pages object with correct references
+  const pageRefs = pageObjectNumbers.map(num => `${num} 0 R`).join(' ');
+  pdfObjects += `${pagesPlaceholder} 0 obj\n<< /Type /Pages /Kids [${pageRefs}] /Count ${totalPages} >>\nendobj\n`;
   
   // Create page objects and content streams
   for (let pageNum = 0; pageNum < totalPages; pageNum++) {
@@ -552,9 +563,10 @@ async function generateSimplePDF(content: string): Promise<Uint8Array> {
     pdfObjects += `${objectNumber} 0 obj\n<< /Length ${contentLength} >>\nstream\n${contentStream}endstream\nendobj\n`;
     objectNumber++;
 
-    // Page object
+    // Page object (use sequential numbering)
+    const pageObjNum = objectNumber;
     objectOffsets.push(pdfHeader.length + pdfObjects.length);
-    pdfObjects += `${3 + pageNum} 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 ${fontObjNum} 0 R >> >> /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents ${contentObjNum} 0 R >>\nendobj\n`;
+    pdfObjects += `${pageObjNum} 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 ${fontObjNum} 0 R >> >> /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents ${contentObjNum} 0 R >>\nendobj\n`;
     objectNumber++;
   }
   
