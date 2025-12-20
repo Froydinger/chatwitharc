@@ -21,6 +21,17 @@ export interface AdminUser {
   updated_at: string;
 }
 
+/**
+ * Hook to manage admin settings and admin users.
+ * 
+ * SECURITY NOTE: Admin status checks are for UI purposes only.
+ * The actual security boundary is enforced server-side via:
+ * - RLS policies using is_admin_user() SECURITY DEFINER function
+ * - Database-level access controls on admin_settings and admin_users tables
+ * 
+ * Even if a user manipulates client state, they cannot access admin data
+ * because all backend operations are protected by RLS.
+ */
 export function useAdminSettings() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<AdminSetting[]>([]);
@@ -38,15 +49,11 @@ export function useAdminSettings() {
     }
 
     try {
-      // Simple check - just see if user has any admin record
-      const { data, error } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle();
+      // Use the server-side is_admin_user() RPC function for verification
+      // This calls a SECURITY DEFINER function that checks admin_users table
+      const { data, error } = await supabase.rpc('is_admin_user');
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Admin check error:', error);
         setIsAdmin(false);
       } else {
