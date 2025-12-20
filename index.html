@@ -4,28 +4,57 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
     
-    <!-- Blocking Theme Script - Prevents FOUC -->
+    <!-- Blocking Theme Script - Prevents FOUC for both theme and accent color -->
     <script>
       (function() {
         try {
-          const savedTheme = localStorage.getItem('theme');
-          const followSystem = localStorage.getItem('followSystemTheme');
-          const shouldFollowSystem = followSystem === null || followSystem === 'true';
+          // Accent color configurations - must match useAccentColor.tsx
+          var accentConfigs = {
+            red: { primary: "0 85% 60%", primaryGlow: "0 85% 70%", aiMessageBg: "0 15% 16%", aiMessageBorder: "0 20% 24%", lightPrimary: "0 90% 55%", lightPrimaryGlow: "0 90% 65%", lightAiMessageBg: "0 20% 97%", lightAiMessageBorder: "0 15% 92%" },
+            blue: { primary: "200 95% 55%", primaryGlow: "200 90% 65%", aiMessageBg: "200 15% 16%", aiMessageBorder: "200 20% 24%", lightPrimary: "200 95% 50%", lightPrimaryGlow: "200 90% 60%", lightAiMessageBg: "200 20% 97%", lightAiMessageBorder: "200 15% 92%" },
+            green: { primary: "142 76% 42%", primaryGlow: "142 76% 52%", aiMessageBg: "142 15% 16%", aiMessageBorder: "142 20% 24%", lightPrimary: "142 76% 45%", lightPrimaryGlow: "142 76% 55%", lightAiMessageBg: "142 20% 97%", lightAiMessageBorder: "142 15% 92%" },
+            yellow: { primary: "48 95% 60%", primaryGlow: "48 95% 70%", aiMessageBg: "48 15% 16%", aiMessageBorder: "48 20% 24%", lightPrimary: "48 95% 55%", lightPrimaryGlow: "48 95% 65%", lightAiMessageBg: "48 20% 97%", lightAiMessageBorder: "48 15% 92%" },
+            purple: { primary: "270 75% 60%", primaryGlow: "270 75% 70%", aiMessageBg: "270 15% 16%", aiMessageBorder: "270 20% 24%", lightPrimary: "270 75% 55%", lightPrimaryGlow: "270 75% 65%", lightAiMessageBg: "270 20% 97%", lightAiMessageBorder: "270 15% 92%" },
+            orange: { primary: "25 95% 58%", primaryGlow: "25 95% 68%", aiMessageBg: "25 15% 16%", aiMessageBorder: "25 20% 24%", lightPrimary: "25 95% 55%", lightPrimaryGlow: "25 95% 65%", lightAiMessageBg: "25 20% 97%", lightAiMessageBorder: "25 15% 92%" },
+            noir: { primary: "0 0% 92%", primaryGlow: "0 0% 75%", aiMessageBg: "0 0% 0%", aiMessageBorder: "0 0% 8%", lightPrimary: "0 0% 15%", lightPrimaryGlow: "0 0% 25%", lightAiMessageBg: "0 0% 97%", lightAiMessageBorder: "0 0% 90%" }
+          };
+
+          // Determine theme
+          var savedTheme = localStorage.getItem('theme');
+          var followSystem = localStorage.getItem('followSystemTheme');
+          var shouldFollowSystem = followSystem === null || followSystem === 'true';
           
-          let theme = 'dark';
+          var theme = 'dark';
           if (shouldFollowSystem) {
             theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
           } else if (savedTheme === 'light' || savedTheme === 'dark') {
             theme = savedTheme;
           }
           
-          // Apply theme immediately
+          // Apply theme class immediately
           document.documentElement.classList.add(theme);
+
+          // Apply accent color CSS variables immediately
+          var accentColor = localStorage.getItem('accentColor') || 'blue';
+          var config = accentConfigs[accentColor] || accentConfigs.blue;
+          var isLight = theme === 'light';
+          var root = document.documentElement;
           
-          // Apply accent color if saved
-          const accentColor = localStorage.getItem('accentColor');
-          if (accentColor) {
-            document.documentElement.style.setProperty('--primary', accentColor);
+          // Set data attribute for CSS targeting
+          root.setAttribute('data-accent', accentColor);
+          
+          // Apply CSS variables based on theme
+          root.style.setProperty('--primary', isLight ? config.lightPrimary : config.primary);
+          root.style.setProperty('--primary-glow', isLight ? config.lightPrimaryGlow : config.primaryGlow);
+          root.style.setProperty('--ring', isLight ? config.lightPrimary : config.primary);
+          root.style.setProperty('--ai-message-bg', isLight ? config.lightAiMessageBg : config.aiMessageBg);
+          root.style.setProperty('--ai-message-border', isLight ? config.lightAiMessageBorder : config.aiMessageBorder);
+          
+          // Noir theme: black text on white buttons
+          if (accentColor === 'noir') {
+            root.style.setProperty('--primary-foreground', '0 0% 5%');
+          } else {
+            root.style.setProperty('--primary-foreground', '240 10% 98%');
           }
           
           // Mark theme as ready
