@@ -8,6 +8,7 @@ import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useProfile } from "@/hooks/useProfile";
+import { useAccentColor } from "@/hooks/useAccentColor";
 import { AIService } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
@@ -121,6 +122,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory } =
     useArcStore();
   const { profile, updateProfile } = useProfile();
+  const { accentColor } = useAccentColor();
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -850,12 +852,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               : "Quick options"
           }
           className={[
-            "ci-menu-btn h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/30 relative backdrop-blur-2xl shadow-lg",
+            "ci-menu-btn h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 relative glass-shimmer",
             shouldShowBanana
-              ? "bg-green-500/20 ring-1 ring-green-400/50 shadow-[0_0_24px_rgba(34,197,94,0.25)]"
+              ? "!bg-green-500/20 ring-1 ring-green-400/50 !shadow-[0_0_24px_rgba(34,197,94,0.25)]"
               : shouldShowCodeMode
-              ? "bg-blue-500/20 ring-1 ring-blue-400/50 shadow-[0_0_24px_rgba(59,130,246,0.25)]"
-              : "bg-background/60 text-muted-foreground hover:bg-background/80 hover:text-foreground",
+              ? "!bg-blue-500/20 ring-1 ring-blue-400/50 !shadow-[0_0_24px_rgba(59,130,246,0.25)]"
+              : "text-muted-foreground hover:text-foreground",
           ].join(" ")}
           onClick={() => {
             if (shouldShowBanana) {
@@ -993,10 +995,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             }
           }}
           className={[
-            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 border border-border/30 backdrop-blur-2xl shadow-lg",
+            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
             sessionModel === "google/gemini-3-pro-preview"
-              ? "bg-primary/20 text-primary border-primary/40 shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
-              : "bg-background/60 text-muted-foreground hover:bg-background/80",
+              ? "!bg-primary/20 text-primary !border-primary/40 !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
+              : "text-muted-foreground hover:text-foreground",
             // Hide on mobile when typing (isActive), show on desktop always
             isActive ? "hidden sm:flex" : "flex",
           ].join(" ")}
@@ -1011,10 +1013,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           onClick={() => handleSend()}
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
           className={[
-            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-2xl shadow-lg",
+            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200",
             inputValue.trim() || selectedImages.length
-              ? "bg-black border border-black text-white hover:opacity-90"
-              : "bg-background/60 text-muted-foreground cursor-not-allowed border border-border/30",
+              ? accentColor === "noir"
+                ? "bg-black border border-black text-white hover:opacity-90 shadow-lg"
+                : "bg-primary border border-primary text-primary-foreground hover:opacity-90 shadow-lg shadow-primary/25"
+              : "glass-shimmer text-muted-foreground cursor-not-allowed",
           ].join(" ")}
           aria-label="Send"
         >
