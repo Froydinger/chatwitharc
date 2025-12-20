@@ -481,9 +481,9 @@ export function SettingsPanel() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="account">Account</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 glass-shimmer rounded-full p-1">
+          <TabsTrigger value="profile" className="rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">Profile</TabsTrigger>
+          <TabsTrigger value="account" className="rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">Account</TabsTrigger>
         </TabsList>
 
         {/* Profile Tab */}
