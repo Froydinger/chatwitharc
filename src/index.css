@@ -314,7 +314,11 @@ All colors MUST be HSL for perfect glass effects.
     position: relative;
     border: 1px solid hsla(var(--primary), 0.25) !important;
     box-shadow: 0 0 12px 0 hsla(var(--primary), 0.12) !important;
-    background: hsla(var(--glass-bg), 0.5) !important;
+    background: linear-gradient(
+      135deg,
+      hsla(var(--primary), 0.4) 0%,
+      hsla(var(--glass-bg), 0.5) 100%
+    ) !important;
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
   }
