@@ -150,45 +150,26 @@ All colors MUST be HSL for perfect glass effects.
     position: relative;
   }
 
-  /* Global animated background - dark mode only - GPU accelerated */
-body::before {
+  /* Global static background gradient - dark mode only */
+  /* Removed animation for better performance */
+  body::before {
     content: '';
     position: fixed;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
     z-index: -1;
-    background: radial-gradient(circle at center, 
-      hsl(var(--primary-glow) / 0.08) 0%, 
-      hsl(var(--primary-glow) / 0.075) 10%,
-      hsl(var(--primary-glow) / 0.07) 15%,
-      hsl(var(--primary-glow) / 0.06) 20%, 
-      hsl(var(--primary-glow) / 0.05) 25%,
-      hsl(var(--primary-glow) / 0.04) 30%,
-      hsl(var(--primary-glow) / 0.03) 40%, 
-      hsl(var(--primary-glow) / 0.02) 50%,
-      hsl(var(--primary-glow) / 0.01) 60%, 
-      hsl(var(--primary-glow) / 0.005) 70%,
+    background: radial-gradient(ellipse at 50% 30%,
+      hsl(var(--primary-glow) / 0.08) 0%,
+      hsl(var(--primary-glow) / 0.04) 35%,
+      hsl(var(--primary-glow) / 0.015) 60%,
       transparent 80%);
-    will-change: transform;
-    transform: translateZ(0);
-    animation: global-background-drift 20s linear infinite;
   }
 
-  /* iPad PWA: Simplify background to prevent rendering issues */
-  body.standalone-app.is-ipad::before {
-    animation: none;
-    background: radial-gradient(circle at center, 
-      hsl(var(--primary-glow) / 0.06) 0%, 
-      hsl(var(--primary-glow) / 0.03) 40%, 
-      transparent 70%);
-    will-change: auto;
-  }
-
-
-  /* Subtle twinkling starfield - dark mode only */
+  /* Subtle static starfield - dark mode only */
+  /* Removed animation for better performance */
   body::after {
     content: '';
     position: fixed;
@@ -198,7 +179,8 @@ body::before {
     height: 100%;
     pointer-events: none;
     z-index: -1;
-    background-image: 
+    opacity: 0.4;
+    background-image:
       radial-gradient(1px 1px at 20% 30%, hsl(var(--foreground) / 0.3), transparent),
       radial-gradient(1px 1px at 60% 70%, hsl(var(--foreground) / 0.4), transparent),
       radial-gradient(1px 1px at 50% 50%, hsl(var(--foreground) / 0.3), transparent),
@@ -207,26 +189,6 @@ body::before {
       radial-gradient(1px 1px at 33% 85%, hsl(var(--foreground) / 0.4), transparent),
       radial-gradient(1px 1px at 15% 10%, hsl(var(--foreground) / 0.3), transparent),
       radial-gradient(1px 1px at 70% 40%, hsl(var(--foreground) / 0.3), transparent);
-    background-size: 200% 200%;
-    animation: twinkle 8s ease-in-out infinite;
-  }
-
-
-  @keyframes twinkle {
-    0%, 100% {
-      opacity: 0.3;
-    }
-    50% {
-      opacity: 0.6;
-    }
-  }
-
-  @keyframes global-background-drift {
-    0% { transform: translate(0%, 0%); }
-    25% { transform: translate(30%, -15%); }
-    50% { transform: translate(10%, 15%); }
-    75% { transform: translate(-10%, -5%); }
-    100% { transform: translate(0%, 0%); }
   }
 
   /* Text Selection Styles - Force override all elements */
@@ -509,95 +471,42 @@ body::before {
     }
   }
 
-  /* Background drift animations - GPU accelerated with transforms */
-  @keyframes background-drift-primary {
-    0% { transform: translate(0%, 0%); }
-    25% { transform: translate(35%, -18%); }
-    50% { transform: translate(12%, 18%); }
-    75% { transform: translate(-12%, -8%); }
-    100% { transform: translate(0%, 0%); }
-  }
-
-  @keyframes background-drift-secondary {
-    0% { transform: translate(0%, 0%); }
-    25% { transform: translate(-20%, 15%); }
-    50% { transform: translate(25%, -20%); }
-    75% { transform: translate(-15%, 10%); }
-    100% { transform: translate(0%, 0%); }
-  }
-
-  /* Landing Page - Liquid Animation */
-  @keyframes drift {
-    0% { transform: translate(0px, 0px) scale(1); }
-    33% { transform: translate(30px, -50px) scale(1.1); }
-    66% { transform: translate(-20px, 20px) scale(0.9); }
-    100% { transform: translate(0px, 0px) scale(1); }
-  }
-
-  @keyframes drift-reverse {
-    0% { transform: translate(0px, 0px) scale(1); }
-    33% { transform: translate(-30px, 40px) scale(1.2); }
-    66% { transform: translate(20px, -30px) scale(0.95); }
-    100% { transform: translate(0px, 0px) scale(1); }
-  }
-
+  /* Landing Page - Static Liquid Blobs */
+  /* Removed animations and reduced blur for better performance */
   .liquid-blob {
     position: absolute;
-    filter: blur(90px);
-    opacity: 0.6;
-    animation: drift 15s infinite ease-in-out;
+    filter: blur(60px);
+    opacity: 0.5;
     mix-blend-mode: screen;
     z-index: 0;
   }
 
   .liquid-blob-2 {
-    animation: drift-reverse 18s infinite ease-in-out;
+    opacity: 0.4;
   }
 
   /* Chat Breathing Gradient Background - Dark Mode Only */
-  @keyframes breathe-slow {
-    0%, 100% {
-      transform: translate(0px, 0px) scale(1);
-      opacity: 0.25;
-    }
-    50% {
-      transform: translate(30px, -40px) scale(1.15);
-      opacity: 0.4;
-    }
-  }
-
-  @keyframes breathe-slow-reverse {
-    0%, 100% {
-      transform: translate(0px, 0px) scale(1);
-      opacity: 0.2;
-    }
-    50% {
-      transform: translate(-40px, 30px) scale(1.2);
-      opacity: 0.35;
-    }
-  }
-
+  /* Removed animations and reduced blur for performance */
   .chat-breathing-blob {
     position: absolute;
-    width: 600px;
-    height: 600px;
+    width: 500px;
+    height: 500px;
     border-radius: 50%;
     background: hsl(var(--primary));
-    filter: blur(120px);
+    filter: blur(80px);
     mix-blend-mode: screen;
-    will-change: transform, opacity;
+    opacity: 0.2;
   }
 
   .chat-breathing-blob-1 {
     top: 10%;
     left: 15%;
-    animation: breathe-slow 25s ease-in-out infinite;
   }
 
   .chat-breathing-blob-2 {
     bottom: 15%;
     right: 20%;
-    animation: breathe-slow-reverse 30s ease-in-out infinite;
+    opacity: 0.15;
   }
 
   /* Glass Panel and Card for Landing */
