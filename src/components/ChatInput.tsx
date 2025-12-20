@@ -1013,12 +1013,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           onClick={() => handleSend()}
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
           className={[
-            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200",
+            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
             inputValue.trim() || selectedImages.length
               ? accentColor === "noir"
-                ? "bg-black border border-black text-white hover:opacity-90 shadow-lg"
-                : "bg-primary border border-primary text-primary-foreground hover:opacity-90 shadow-lg shadow-primary/25"
-              : "glass-shimmer text-muted-foreground cursor-not-allowed",
+                ? "!bg-white/90 !border-white/50 text-black hover:!bg-white !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
+                : "!bg-primary/20 text-primary !border-primary/40 !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
+              : "text-muted-foreground cursor-not-allowed",
           ].join(" ")}
           aria-label="Send"
         >
