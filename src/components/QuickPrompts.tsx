@@ -30,7 +30,7 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
             whileHover={createHoverVariants(1.05, 0)}
             whileTap={createTapVariants(0.98)}
             onClick={() => handlePromptClick(prompt.prompt)}
-            className="group relative px-4 py-2.5 rounded-full glass-shimmer hover:ring-1 hover:ring-primary/50 transition-all duration-200"
+            className="group relative px-4 py-2.5 rounded-full outline-shimmer hover:ring-1 hover:ring-primary/50 transition-all duration-200"
           >
             <span className="text-sm font-medium">{prompt.label}</span>
 
