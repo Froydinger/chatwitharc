@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { useAccentColor } from "@/hooks/useAccentColor";
 
 interface LandingChatInputProps {
   onSendAttempt: (message: string) => void;
@@ -10,6 +11,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
   const [inputValue, setInputValue] = useState("");
   const [isActive, setIsActive] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { accentColor } = useAccentColor();
 
   // Auto-resize textarea
   useEffect(() => {
@@ -91,7 +93,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
         <button
           type="button"
           aria-label="Options"
-          className="shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground ml-1"
+          className="shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer text-muted-foreground hover:text-foreground ml-1"
         >
           <Sparkles className="h-5 w-5" />
         </button>
@@ -116,10 +118,12 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           onClick={handleSend}
           disabled={!inputValue.trim()}
           className={[
-            "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 mr-1",
+            "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer mr-1",
             inputValue.trim()
-              ? "bg-black border border-black text-white hover:opacity-90"
-              : "bg-muted/50 text-muted-foreground cursor-not-allowed border border-border/40",
+              ? accentColor === "noir"
+                ? "!bg-white/90 text-black ring-2 ring-white/60 hover:!bg-white !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
+                : "!bg-primary/80 text-primary-foreground ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
+              : "text-muted-foreground cursor-not-allowed",
           ].join(" ")}
           aria-label="Send"
         >
