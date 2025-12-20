@@ -8,7 +8,6 @@ import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useProfile } from "@/hooks/useProfile";
-import { useAccentColor } from "@/hooks/useAccentColor";
 import { AIService } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
@@ -122,7 +121,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory } =
     useArcStore();
   const { profile, updateProfile } = useProfile();
-  const { accentColor } = useAccentColor();
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -1015,9 +1013,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           className={[
             "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
             inputValue.trim() || selectedImages.length
-              ? accentColor === "noir"
-                ? "!bg-white/90 !border-white/50 text-black hover:!bg-white !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
-                : "!bg-primary/20 text-primary !border-primary/40 !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
+              ? "!bg-white/90 !border-white/40 text-black hover:!bg-white !shadow-[0_0_16px_rgba(255,255,255,0.25)]"
               : "text-muted-foreground cursor-not-allowed",
           ].join(" ")}
           aria-label="Send"
