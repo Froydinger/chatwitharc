@@ -309,11 +309,14 @@ All colors MUST be HSL for perfect glass effects.
     pointer-events: none;
   }
 
-  /* Outline shimmer - just border shimmer effect, no internal mask */
+  /* Outline shimmer - glass with border shimmer effect */
   .outline-shimmer {
     position: relative;
     border: 1px solid hsla(var(--primary), 0.25) !important;
     box-shadow: 0 0 12px 0 hsla(var(--primary), 0.12) !important;
+    background: hsla(var(--glass-bg), 0.5) !important;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
   }
 
   .outline-shimmer::before {
