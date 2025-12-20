@@ -312,52 +312,36 @@ body::before {
       inset 0 1px 0 hsla(var(--foreground), 0.1);
   }
 
-  /* Liquid Glass shimmer - transparent with accent-tinted edge */
+  /* Liquid Glass shimmer - outer rim highlight */
   .glass-shimmer {
     position: relative;
-    border: 1px solid hsla(var(--primary), 0.3) !important;
-    box-shadow:
-      inset 0 1px 0 0 hsla(0, 0%, 100%, 0.2),
-      inset 0 -1px 0 0 hsla(0, 0%, 0%, 0.15),
-      0 0 12px 0 hsla(var(--primary), 0.15) !important;
+    border: 1px solid hsla(var(--primary), 0.25) !important;
+    box-shadow: 0 0 12px 0 hsla(var(--primary), 0.12) !important;
     background: hsla(var(--glass-bg), 0.4) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    overflow: hidden;
   }
 
-  /* Top-left corner shine */
+  /* Outer rim shine - sits on the edge */
   .glass-shimmer::before {
     content: '';
     position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 30%;
-    height: 30%;
-    background: radial-gradient(
-      circle at 0% 0%,
-      hsla(0, 0%, 100%, 0.25) 0%,
-      transparent 70%
-    );
-    pointer-events: none;
+    inset: -1px;
     border-radius: inherit;
-  }
-
-  /* Bottom-right corner shine */
-  .glass-shimmer::after {
-    content: '';
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    width: 25%;
-    height: 25%;
-    background: radial-gradient(
-      circle at 100% 100%,
-      hsla(0, 0%, 100%, 0.12) 0%,
-      transparent 70%
+    background: conic-gradient(
+      from 135deg,
+      transparent 0deg,
+      hsla(0, 0%, 100%, 0.3) 40deg,
+      hsla(0, 0%, 100%, 0.15) 90deg,
+      transparent 150deg,
+      transparent 180deg,
+      transparent 270deg,
+      hsla(0, 0%, 100%, 0.12) 320deg,
+      transparent 360deg
     );
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 1px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 1px));
     pointer-events: none;
-    border-radius: inherit;
   }
 
   /* Glass button styling - makes any button feel like glass */
