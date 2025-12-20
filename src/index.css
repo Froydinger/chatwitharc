@@ -314,10 +314,14 @@ body::before {
 
   /* Liquid Glass shimmer - transparent with accent-tinted edge */
   .glass-shimmer {
-    border: 1px solid hsla(var(--primary), 0.2);
+    border: 1px solid hsla(var(--primary), 0.3) !important;
     box-shadow:
-      inset 0 0.5px 0 0 hsla(0, 0%, 100%, 0.15),
-      0 0 8px 0 hsla(var(--primary), 0.1);
+      inset 0 1px 0 0 hsla(0, 0%, 100%, 0.2),
+      inset 0 -1px 0 0 hsla(0, 0%, 0%, 0.15),
+      0 0 12px 0 hsla(var(--primary), 0.15) !important;
+    background: hsla(var(--glass-bg), 0.4) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   /* Glass button styling - makes any button feel like glass */
