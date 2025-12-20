@@ -850,12 +850,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               : "Quick options"
           }
           className={[
-            "ci-menu-btn h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/40 relative",
+            "ci-menu-btn h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 border border-border/30 relative backdrop-blur-2xl shadow-lg",
             shouldShowBanana
               ? "bg-green-500/20 ring-1 ring-green-400/50 shadow-[0_0_24px_rgba(34,197,94,0.25)]"
               : shouldShowCodeMode
               ? "bg-blue-500/20 ring-1 ring-blue-400/50 shadow-[0_0_24px_rgba(59,130,246,0.25)]"
-              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
+              : "bg-background/60 text-muted-foreground hover:bg-background/80 hover:text-foreground",
           ].join(" ")}
           onClick={() => {
             if (shouldShowBanana) {
@@ -993,10 +993,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             }
           }}
           className={[
-            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 border border-border/40",
+            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 border border-border/30 backdrop-blur-2xl shadow-lg",
             sessionModel === "google/gemini-3-pro-preview"
               ? "bg-primary/20 text-primary border-primary/40 shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
-              : "bg-muted/50 text-muted-foreground hover:bg-muted/70",
+              : "bg-background/60 text-muted-foreground hover:bg-background/80",
             // Hide on mobile when typing (isActive), show on desktop always
             isActive ? "hidden sm:flex" : "flex",
           ].join(" ")}
@@ -1011,10 +1011,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           onClick={() => handleSend()}
           disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
           className={[
-            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200",
+            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-2xl shadow-lg",
             inputValue.trim() || selectedImages.length
               ? "bg-black border border-black text-white hover:opacity-90"
-              : "bg-muted/50 text-muted-foreground cursor-not-allowed border border-border/40",
+              : "bg-background/60 text-muted-foreground cursor-not-allowed border border-border/30",
           ].join(" ")}
           aria-label="Send"
         >
