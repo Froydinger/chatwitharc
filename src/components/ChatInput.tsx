@@ -8,6 +8,7 @@ import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useProfile } from "@/hooks/useProfile";
+import { useAccentColor } from "@/hooks/useAccentColor";
 import { AIService } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
@@ -121,6 +122,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory } =
     useArcStore();
   const { profile, updateProfile } = useProfile();
+  const { accentColor } = useAccentColor();
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -1013,7 +1015,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           className={[
             "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
             inputValue.trim() || selectedImages.length
-              ? "!bg-white/90 text-black ring-1 ring-primary hover:!bg-white !shadow-[0_0_16px_rgba(255,255,255,0.25)]"
+              ? accentColor === "noir"
+                ? "!bg-white/90 text-black ring-1 ring-white/50 hover:!bg-white !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
+                : "!bg-primary/20 text-primary ring-1 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
               : "text-muted-foreground cursor-not-allowed",
           ].join(" ")}
           aria-label="Send"
@@ -1064,15 +1068,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                           setShowMenu(false);
                           setShowPromptLibrary(true);
                         }}
-                        className="group rounded-2xl border bg-background/95 backdrop-blur-xl px-3 py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40"
-                        style={{
-                          borderColor: "rgba(139,92,246,0.5)",
-                          boxShadow: "0 8px 32px rgba(0,0,0,.2), 0 0 0 1px rgba(139,92,246,.2) inset, 0 4px 12px rgba(139,92,246,.15)",
-                          transformOrigin: "bottom center",
-                        }}
+                        className="group rounded-2xl glass-shimmer !border-violet-500/50 px-3 py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(139,92,246,.2)]"
+                        style={{ transformOrigin: "bottom center" }}
                       >
                         <div className="flex flex-col items-center justify-center gap-2 h-full">
-                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-violet-500/15 shrink-0">
+                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-violet-500/15 shrink-0 glass-shimmer !border-violet-500/30">
                             <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-violet-500" />
                           </span>
                           <div className="text-xs sm:text-sm font-semibold">Prompts</div>
@@ -1099,15 +1099,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                           setForceImageMode(true);
                           setShowMenu(false);
                         }}
-                        className="group rounded-2xl border bg-background/95 backdrop-blur-xl px-3 py-5 hover:scale-105 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 z-10"
-                        style={{
-                          borderColor: "rgba(34,197,94,0.5)",
-                          boxShadow: "0 8px 32px rgba(0,0,0,.2), 0 0 0 1px rgba(34,197,94,.2) inset, 0 4px 12px rgba(34,197,94,.15)",
-                          transformOrigin: "bottom center",
-                        }}
+                        className="group rounded-2xl glass-shimmer !border-green-500/50 px-3 py-5 hover:scale-105 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 z-10 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(34,197,94,.2)]"
+                        style={{ transformOrigin: "bottom center" }}
                       >
                         <div className="flex flex-col items-center justify-center gap-2 h-full">
-                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-green-500/15 shrink-0">
+                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-green-500/15 shrink-0 glass-shimmer !border-green-500/30">
                             <ImagePlus className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" />
                           </span>
                           <div className="text-xs sm:text-sm font-semibold">Image</div>
@@ -1134,15 +1130,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                           setShowMenu(false);
                           fileInputRef.current?.click();
                         }}
-                        className="group rounded-2xl border bg-background/95 backdrop-blur-xl px-3 py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40"
-                        style={{
-                          borderColor: "rgba(59,130,246,0.5)",
-                          boxShadow: "0 8px 32px rgba(0,0,0,.2), 0 0 0 1px rgba(59,130,246,.2) inset, 0 4px 12px rgba(59,130,246,.15)",
-                          transformOrigin: "bottom center",
-                        }}
+                        className="group rounded-2xl glass-shimmer !border-blue-500/50 px-3 py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(59,130,246,.2)]"
+                        style={{ transformOrigin: "bottom center" }}
                       >
                         <div className="flex flex-col items-center justify-center gap-2 h-full">
-                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-blue-500/15 shrink-0">
+                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-blue-500/15 shrink-0 glass-shimmer !border-blue-500/30">
                             <Paperclip className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
                           </span>
                           <div className="text-xs sm:text-sm font-semibold">Attach</div>

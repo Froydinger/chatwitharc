@@ -5,21 +5,21 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const glassButtonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 haptic glass glass-glow",
+  "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 haptic glass-shimmer",
   {
     variants: {
       variant: {
-        default: "text-primary-foreground hover:opacity-80 rounded-[var(--radius-xl)]",
-        bubble: "bubble-nav-item text-foreground hover:glass-strong rounded-[var(--radius-xl)]",
-        ghost: "hover:glass hover:text-foreground rounded-[var(--radius)]",
-        glow: "glass-glow animate-glow-pulse text-primary-foreground rounded-[var(--radius-xl)]"
+        default: "text-foreground hover:opacity-80 rounded-full",
+        bubble: "bubble-nav-item text-foreground hover:ring-1 hover:ring-primary/50 rounded-full",
+        ghost: "!bg-transparent hover:!bg-primary/10 hover:text-foreground rounded-full",
+        glow: "animate-glow-pulse text-primary-foreground rounded-full"
       },
       size: {
-        default: "h-12 px-6 py-3",
-        sm: "h-10 px-4 py-2",
-        lg: "h-14 px-8 py-4",
-        bubble: "h-16 w-16 rounded-full glass-shimmer",
-        icon: "h-12 w-12 rounded-full glass-shimmer"
+        default: "h-10 px-4 py-2",
+        sm: "h-8 px-3 py-1.5 text-xs",
+        lg: "h-12 px-6 py-3",
+        bubble: "h-16 w-16 rounded-full",
+        icon: "h-10 w-10 rounded-full"
       },
     },
     defaultVariants: {
