@@ -1068,11 +1068,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                           setShowMenu(false);
                           setShowPromptLibrary(true);
                         }}
-                        className="group rounded-2xl glass-shimmer !border-violet-500/50 px-3 py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(139,92,246,.2)]"
+                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-violet-500/60 px-3 py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(139,92,246,.2)]"
                         style={{ transformOrigin: "bottom center" }}
                       >
                         <div className="flex flex-col items-center justify-center gap-2 h-full">
-                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-violet-500/15 shrink-0 glass-shimmer !border-violet-500/30">
+                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-violet-500/15 shrink-0 glass-shimmer ring-[0.5px] ring-violet-500/40">
                             <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-violet-500" />
                           </span>
                           <div className="text-xs sm:text-sm font-semibold">Prompts</div>
@@ -1099,11 +1099,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                           setForceImageMode(true);
                           setShowMenu(false);
                         }}
-                        className="group rounded-2xl glass-shimmer !border-green-500/50 px-3 py-5 hover:scale-105 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 z-10 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(34,197,94,.2)]"
+                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-green-500/60 px-3 py-5 hover:scale-105 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 z-10 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(34,197,94,.2)]"
                         style={{ transformOrigin: "bottom center" }}
                       >
                         <div className="flex flex-col items-center justify-center gap-2 h-full">
-                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-green-500/15 shrink-0 glass-shimmer !border-green-500/30">
+                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-green-500/15 shrink-0 glass-shimmer ring-[0.5px] ring-green-500/40">
                             <ImagePlus className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" />
                           </span>
                           <div className="text-xs sm:text-sm font-semibold">Image</div>
@@ -1130,11 +1130,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                           setShowMenu(false);
                           fileInputRef.current?.click();
                         }}
-                        className="group rounded-2xl glass-shimmer !border-blue-500/50 px-3 py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(59,130,246,.2)]"
+                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-blue-500/60 px-3 py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(59,130,246,.2)]"
                         style={{ transformOrigin: "bottom center" }}
                       >
                         <div className="flex flex-col items-center justify-center gap-2 h-full">
-                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-blue-500/15 shrink-0 glass-shimmer !border-blue-500/30">
+                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-blue-500/15 shrink-0 glass-shimmer ring-[0.5px] ring-blue-500/40">
                             <Paperclip className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
                           </span>
                           <div className="text-xs sm:text-sm font-semibold">Attach</div>
