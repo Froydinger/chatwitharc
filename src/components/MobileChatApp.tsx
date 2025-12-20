@@ -570,7 +570,7 @@ export function MobileChatApp() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all shadow-lg"
+                  className="rounded-full glass-shimmer transition-all"
                   onClick={() => {
                     setRightPanelOpen(!rightPanelOpen);
                   }}
@@ -582,7 +582,7 @@ export function MobileChatApp() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all shadow-lg"
+                  className="rounded-full glass-shimmer transition-all"
                   onClick={handleNewChat}
                 >
                   <Plus className="h-4 w-4" />
@@ -601,7 +601,7 @@ export function MobileChatApp() {
               <Button
                 variant="outline"
                 size="icon"
-                className="rounded-full backdrop-blur-2xl bg-background/60 border-border/30 hover:bg-background/80 transition-all overflow-hidden shadow-lg"
+                className="rounded-full glass-shimmer transition-all overflow-hidden"
                 onClick={() => {
                   // Trigger spin animation
                   setIsLogoSpinning(true);

@@ -995,7 +995,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           className={[
             "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
             sessionModel === "google/gemini-3-pro-preview"
-              ? "!bg-primary/20 text-primary !border-primary/40 !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
+              ? "!bg-primary/20 text-primary ring-1 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
               : "text-muted-foreground hover:text-foreground",
             // Hide on mobile when typing (isActive), show on desktop always
             isActive ? "hidden sm:flex" : "flex",
@@ -1013,7 +1013,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           className={[
             "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
             inputValue.trim() || selectedImages.length
-              ? "!bg-white/90 !border-white/40 text-black hover:!bg-white !shadow-[0_0_16px_rgba(255,255,255,0.25)]"
+              ? "!bg-white/90 text-black ring-1 ring-primary hover:!bg-white !shadow-[0_0_16px_rgba(255,255,255,0.25)]"
               : "text-muted-foreground cursor-not-allowed",
           ].join(" ")}
           aria-label="Send"
