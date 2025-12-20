@@ -68,71 +68,25 @@ export const BackgroundGradients = () => {
     );
   }
 
+  // Single static gradient - no animation for better performance
   return (
-    <>
-      {/* Primary gradient - GPU accelerated */}
-      <motion.div
-        key={`bg-primary-${accentColor}`}
-        className="fixed pointer-events-none -z-10"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        style={{
-          top: '-50%',
-          left: '-50%',
-          width: '200%',
-          height: '200%',
-          background: `radial-gradient(circle at center, 
-            hsl(${primaryGlow} / ${0.2 * opacityMultiplier}) 0%, 
-            hsl(${primaryGlow} / ${0.18 * opacityMultiplier}) 10%,
-            hsl(${primaryGlow} / ${0.16 * opacityMultiplier}) 15%,
-            hsl(${primaryGlow} / ${0.15 * opacityMultiplier}) 20%, 
-            hsl(${primaryGlow} / ${0.12 * opacityMultiplier}) 25%,
-            hsl(${primaryGlow} / ${0.1 * opacityMultiplier}) 30%,
-            hsl(${primaryGlow} / ${0.08 * opacityMultiplier}) 40%, 
-            hsl(${primaryGlow} / ${0.05 * opacityMultiplier}) 50%,
-            hsl(${primaryGlow} / ${0.03 * opacityMultiplier}) 60%, 
-            hsl(${primaryGlow} / ${0.015 * opacityMultiplier}) 70%,
-            hsl(${primaryGlow} / ${0.01 * opacityMultiplier}) 80%, 
-            hsl(${primaryGlow} / ${0.005 * opacityMultiplier}) 90%,
-            transparent 100%)`,
-          willChange: 'transform',
-          transform: 'translateZ(0)',
-          animation: 'background-drift-primary 22s linear infinite',
-        }}
-      />
-
-      {/* Secondary gradient - GPU accelerated */}
-      <motion.div
-        key={`bg-secondary-${accentColor}`}
-        className="fixed pointer-events-none -z-10"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        style={{
-          top: '-50%',
-          left: '-50%',
-          width: '200%',
-          height: '200%',
-          background: `radial-gradient(circle at center, 
-            hsl(${primaryGlow} / ${0.15 * opacityMultiplier}) 0%, 
-            hsl(${primaryGlow} / ${0.13 * opacityMultiplier}) 10%,
-            hsl(${primaryGlow} / ${0.12 * opacityMultiplier}) 15%,
-            hsl(${primaryGlow} / ${0.11 * opacityMultiplier}) 20%, 
-            hsl(${primaryGlow} / ${0.09 * opacityMultiplier}) 25%,
-            hsl(${primaryGlow} / ${0.07 * opacityMultiplier}) 30%,
-            hsl(${primaryGlow} / ${0.06 * opacityMultiplier}) 40%, 
-            hsl(${primaryGlow} / ${0.04 * opacityMultiplier}) 50%,
-            hsl(${primaryGlow} / ${0.02 * opacityMultiplier}) 60%, 
-            hsl(${primaryGlow} / ${0.01 * opacityMultiplier}) 70%,
-            hsl(${primaryGlow} / ${0.005 * opacityMultiplier}) 80%, 
-            hsl(${primaryGlow} / ${0.002 * opacityMultiplier}) 90%,
-            transparent 100%)`,
-          willChange: 'transform',
-          transform: 'translateZ(0)',
-          animation: 'background-drift-secondary 25s linear infinite',
-        }}
-      />
-    </>
+    <motion.div
+      key={`bg-static-${accentColor}`}
+      className="fixed pointer-events-none -z-10"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      style={{
+        top: '-25%',
+        left: '-25%',
+        width: '150%',
+        height: '150%',
+        background: `radial-gradient(circle at center,
+          hsl(${primaryGlow} / ${0.18 * opacityMultiplier}) 0%,
+          hsl(${primaryGlow} / ${0.1 * opacityMultiplier}) 30%,
+          hsl(${primaryGlow} / ${0.04 * opacityMultiplier}) 55%,
+          transparent 75%)`,
+      }}
+    />
   );
 };
