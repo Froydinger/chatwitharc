@@ -542,10 +542,10 @@ export function SettingsPanel() {
             </div>
             <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="w-full bg-black text-white hover:bg-black/80 dark:bg-black dark:text-white dark:hover:bg-black/80">
+                <GlassButton className="w-full">
                   <Brain className="w-4 h-4 mr-2" />
                   Memories and Context ({memories.length})
-                </Button>
+                </GlassButton>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
