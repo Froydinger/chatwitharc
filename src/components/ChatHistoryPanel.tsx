@@ -4,7 +4,6 @@ import { Plus, Trash2, MessageSquare, RefreshCw } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
-import { GlassButton } from "@/components/ui/glass-button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useChatSync } from "@/hooks/useChatSync";
@@ -179,13 +178,13 @@ export function ChatHistoryPanel() {
 
       {/* New Chat Button */}
       <div className="mb-4 space-y-3">
-        <GlassButton
+        <button
           onClick={handleNewChat}
-          className="w-full rounded-full outline-shimmer"
+          className="w-full h-12 rounded-full outline-shimmer inline-flex items-center justify-center text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
           <Plus className="h-4 w-4 mr-2" />
           New chat
-        </GlassButton>
+        </button>
         <QuoteOfDayModal />
       </div>
 
@@ -215,13 +214,13 @@ export function ChatHistoryPanel() {
               Start your first conversation to see your chat history here.
             </p>
             <div className="space-y-2">
-              <GlassButton
+              <button
                 onClick={handleNewChat}
-                className="w-full rounded-full outline-shimmer"
+                className="w-full h-12 rounded-full outline-shimmer inline-flex items-center justify-center text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create first chat
-              </GlassButton>
+              </button>
               <Button 
                 onClick={handleManualSync} 
                 variant="outline"
