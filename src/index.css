@@ -309,6 +309,37 @@ All colors MUST be HSL for perfect glass effects.
     pointer-events: none;
   }
 
+  /* Outline shimmer - just border shimmer effect, no internal mask */
+  .outline-shimmer {
+    position: relative;
+    border: 1px solid hsla(var(--primary), 0.25) !important;
+    box-shadow: 0 0 12px 0 hsla(var(--primary), 0.12) !important;
+  }
+
+  .outline-shimmer::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      transparent 100deg,
+      hsla(0, 0%, 100%, 0.08) 120deg,
+      hsla(0, 0%, 100%, 0.15) 140deg,
+      hsla(0, 0%, 100%, 0.08) 160deg,
+      transparent 180deg,
+      transparent 280deg,
+      hsla(0, 0%, 100%, 0.15) 300deg,
+      hsla(0, 0%, 100%, 0.25) 320deg,
+      hsla(0, 0%, 100%, 0.15) 340deg,
+      transparent 360deg
+    );
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 1px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 1px));
+    pointer-events: none;
+  }
+
   /* Glass button styling - makes any button feel like glass */
   .glass-btn {
     position: relative;
