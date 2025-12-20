@@ -109,6 +109,7 @@ type Props = {
 
 export interface ChatInputRef {
   handleImageUploadFiles: (files: File[]) => void;
+  focusInput: () => void;
 }
 
 export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ onImagesChange, rightPanelOpen = false }, ref) {
@@ -162,7 +163,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cursorPositionRef = useRef<number | null>(null);
 
-  // Expose handleImageUploadFiles via ref for drag-and-drop
+  // Expose handleImageUploadFiles and focusInput via ref
   useImperativeHandle(ref, () => ({
     handleImageUploadFiles: (files: File[]) => {
       const images = files.filter((f) => f.type.startsWith("image/"));
@@ -174,6 +175,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         }
         return merged;
       });
+    },
+    focusInput: () => {
+      textareaRef.current?.focus();
     },
   }), [toast]);
 

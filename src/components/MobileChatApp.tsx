@@ -258,6 +258,16 @@ export function MobileChatApp() {
     }
   }, [currentSessionId, messages.length]);
 
+  // Auto-focus input after Arc finishes responding
+  const wasLoadingRef = useRef(false);
+  useEffect(() => {
+    // Focus input when loading transitions from true to false
+    if (wasLoadingRef.current && !isLoading) {
+      chatInputRef.current?.focusInput();
+    }
+    wasLoadingRef.current = isLoading;
+  }, [isLoading]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messages.length > 0) {
