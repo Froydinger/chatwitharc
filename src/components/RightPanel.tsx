@@ -191,20 +191,20 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border/40 glass-panel">
           <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
-            <TabsList className="grid w-full grid-cols-5 glass border border-border/30">
-              <TabsTrigger value="settings" className="flex items-center justify-center data-[state=active]:glass-glow">
+            <TabsList className="grid w-full grid-cols-5 glass-shimmer rounded-full">
+              <TabsTrigger value="settings" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
                 <Settings className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="music" className="flex items-center justify-center data-[state=active]:glass-glow">
+              <TabsTrigger value="music" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
                 <Headphones className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="apps" className="flex items-center justify-center data-[state=active]:glass-glow">
+              <TabsTrigger value="apps" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
                 <LayoutGrid className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="media" className="flex items-center justify-center data-[state=active]:glass-glow">
+              <TabsTrigger value="media" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
                 <Image className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center justify-center data-[state=active]:glass-glow">
+              <TabsTrigger value="history" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
                 <History className="h-4 w-4" />
               </TabsTrigger>
             </TabsList>
@@ -214,7 +214,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="ml-2 rounded-full glass hover:glass-glow"
+              className="ml-2 rounded-full glass-shimmer hover:border-destructive/50"
             >
               <X className="h-4 w-4" />
             </Button>

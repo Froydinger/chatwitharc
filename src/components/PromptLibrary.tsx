@@ -289,7 +289,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                           refreshPrompts(activeTab, true);
                           toast.success('Prompts refreshed!');
                         }}
-                        className="h-9 w-9 rounded-xl bg-background/60 hover:bg-background/80 border border-border/40 hover:border-primary/50 transition-all z-20"
+                        className="h-9 w-9 rounded-full glass-shimmer hover:border-primary/50 transition-all z-20"
                         title="Refresh prompts"
                       >
                         <RefreshCw className="h-4 w-4" />
@@ -313,7 +313,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                       variant="ghost"
                       size="icon"
                       onClick={onClose}
-                      className="h-9 w-9 rounded-xl bg-background/60 hover:bg-background/80 border border-border/40 hover:border-destructive/50 transition-all z-20"
+                      className="h-9 w-9 rounded-full glass-shimmer hover:border-destructive/50 transition-all z-20"
                     >
                       <X className="h-4 w-4" />
                     </Button>
