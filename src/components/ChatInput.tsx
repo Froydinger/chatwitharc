@@ -119,7 +119,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const { toast } = useToast();
   const showPopup = useFingerPopup((state) => state.showPopup);
 
-  const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory } =
+  const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory, updateMessageMemoryAction } =
     useArcStore();
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
@@ -671,35 +671,39 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         return;
       }
 
-      // Plain text
-      let memorySavedContent: string | null = null;
+      // Plain text - Show message IMMEDIATELY, then do memory detection in background
       let didSearchChats = false;
       
-      if (userMessage) {
-        // Build conversation context for memory extraction
-        const conversationContext = messages
-          .filter((m) => m.type === "text")
-          .map((m) => ({ role: m.role, content: m.content }));
-
-        // Use AI-powered memory detection with user's name for proper formatting
-        const userName = profile?.display_name || "User";
-        const memoryItem = await detectMemoryCommand(userMessage, conversationContext, userName);
-        if (memoryItem) {
-          const wasNew = await addToMemoryBank(memoryItem);
-          if (wasNew) {
-            console.log('Memory saved:', memoryItem.content);
-            memorySavedContent = memoryItem.content;
-          }
-        }
-      }
-
-      // Add user message with memory action if memory was saved
-      await addMessage({ 
+      // Add user message RIGHT AWAY for instant feedback
+      const userMessageId = await addMessage({ 
         content: userMessage, 
         role: "user", 
-        type: "text",
-        memoryAction: memorySavedContent ? { type: 'memory_saved' as const, content: memorySavedContent } : undefined
+        type: "text"
       });
+
+      // Fire memory detection in background (non-blocking)
+      if (userMessage) {
+        (async () => {
+          try {
+            const conversationContext = messages
+              .filter((m) => m.type === "text")
+              .map((m) => ({ role: m.role, content: m.content }));
+
+            const userName = profile?.display_name || "User";
+            const memoryItem = await detectMemoryCommand(userMessage, conversationContext, userName);
+            if (memoryItem) {
+              const wasNew = await addToMemoryBank(memoryItem);
+              if (wasNew) {
+                console.log('Memory saved:', memoryItem.content);
+                // Update the user message with the memory action
+                updateMessageMemoryAction(userMessageId, { type: 'memory_saved' as const, content: memoryItem.content });
+              }
+            }
+          } catch (err) {
+            console.error('Background memory detection error:', err);
+          }
+        })();
+      }
       
       try {
         const aiMessages = messages.filter((m) => m.type === "text").map((m) => ({ role: m.role, content: m.content }));

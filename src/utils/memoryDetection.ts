@@ -17,7 +17,8 @@ export interface ConversationMessage {
 async function extractMemoryWithAI(
   userMessage: string,
   recentMessages: ConversationMessage[] = [],
-  userName: string = "User"
+  userName: string = "User",
+  existingMemories: string = ""
 ): Promise<string | null> {
   if (!supabase || !isSupabaseConfigured) {
     console.log('Supabase not configured, memory extraction unavailable');
@@ -25,11 +26,17 @@ async function extractMemoryWithAI(
   }
 
   try {
-    const systemPrompt = `You are a memory extraction assistant. Your ONLY job is to extract personal facts about the user that should be remembered.
+    // Include existing memories in prompt so AI knows what's already saved
+    const existingMemoryContext = existingMemories 
+      ? `\n\nALREADY SAVED MEMORIES (do NOT duplicate these - if the user is repeating known info, return NONE):\n${existingMemories}`
+      : '';
+
+    const systemPrompt = `You are a memory extraction assistant. Your ONLY job is to extract NEW personal facts about the user that should be remembered.
 
 The user's name is: ${userName}
+${existingMemoryContext}
 
-When the user shares personal information or preferences, extract it as a clear, third-person factual statement about them.
+When the user shares NEW personal information or preferences that are NOT already saved, extract it as a clear, third-person factual statement about them.
 
 Examples:
 - User says: "I really like soda!" → Extract: "${userName} likes soda"
@@ -46,11 +53,13 @@ CRITICAL RULES:
 2. Extract the MEANINGFUL personal information, not the AI's response or confirmation
 3. Make it a clear, factual third-person statement about ${userName}
 4. Keep it concise (under 150 characters)
-5. If there's no personal fact to remember (just questions or requests), return "NONE"
-6. ONLY return the extracted fact - no explanations, no quotes, no extra text
-7. Look at what the USER said, not what the assistant said
+5. If the info is ALREADY in the saved memories above, return "NONE" - do NOT duplicate!
+6. If there's no NEW personal fact to remember (just questions or requests), return "NONE"
+7. ONLY return the extracted fact - no explanations, no quotes, no extra text
+8. Look at what the USER said, not what the assistant said
+9. If the user is using a prompt that includes their own info (like personalized prompts), that's NOT a new memory - return "NONE"
 
-What personal fact should be remembered from this conversation?`;
+What NEW personal fact should be remembered from this conversation?`;
 
     // Build conversation context - include recent messages for context
     const contextMessages = recentMessages.slice(-6).map(m => ({
@@ -61,7 +70,7 @@ What personal fact should be remembered from this conversation?`;
     const messages = [
       { role: 'system', content: systemPrompt },
       ...contextMessages,
-      { role: 'user', content: `The user just said: "${userMessage}"\n\nExtract the personal fact to remember about ${userName}, or return NONE if there isn't one.` }
+      { role: 'user', content: `The user just said: "${userMessage}"\n\nExtract the NEW personal fact to remember about ${userName}, or return NONE if there isn't one or if it's already saved.` }
     ];
 
     // Call the chat API
@@ -183,12 +192,28 @@ export async function detectMemoryCommand(
     return null;
   }
 
-  // Use AI to extract the meaningful memory with the user's name
+  // Fetch existing memories to check for duplicates before AI extraction
+  let existingMemories = "";
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('memory_info')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      existingMemories = profile?.memory_info || "";
+    }
+  } catch (err) {
+    console.error('Error fetching existing memories:', err);
+  }
+
+  // Use AI to extract the meaningful memory with the user's name AND existing memories context
   console.log('Potential memory detected, using AI to extract meaningful content...');
-  const extractedContent = await extractMemoryWithAI(message, recentMessages, userName);
+  const extractedContent = await extractMemoryWithAI(message, recentMessages, userName, existingMemories);
 
   if (!extractedContent) {
-    console.log('AI did not find a personal fact to remember');
+    console.log('AI did not find a NEW personal fact to remember');
     return null;
   }
 

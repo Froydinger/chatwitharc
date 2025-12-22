@@ -84,29 +84,30 @@ export function MemoryBankAccordion({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Header section with proper spacing */}
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">Memory Bank</h3>
-          <p className="text-sm text-muted-foreground">Information Arc remembers from conversations</p>
+          <h3 className="text-base sm:text-lg font-semibold text-foreground">Memory Bank</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground">Information Arc remembers from conversations</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <GlassButton
             variant="ghost"
             size="sm"
             onClick={() => setIsAdding(true)}
             disabled={isAdding}
+            className="text-xs sm:text-sm"
           >
             <Plus className="w-3 h-3 mr-1" />
-            Add Memory
+            Add
           </GlassButton>
           {memories.length > 0 && (
             <GlassButton
               variant="ghost"
               size="sm"
               onClick={onClearAll}
-              className="text-destructive hover:text-destructive"
+              className="text-destructive hover:text-destructive text-xs sm:text-sm"
             >
               <X className="w-3 h-3 mr-1" />
               Clear All
@@ -161,9 +162,9 @@ export function MemoryBankAccordion({
 
       {/* Memory List */}
       {memories.length === 0 && !isAdding ? (
-        <div className="glass border border-glass-border rounded-lg p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            No memories yet. Arc will automatically add things here when you say "remember this"...
+        <div className="glass border border-glass-border rounded-lg p-4 sm:p-8 text-center">
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            No memories yet. Arc will automatically add things here when you share personal info...
           </p>
         </div>
       ) : (
@@ -174,13 +175,13 @@ export function MemoryBankAccordion({
               value={memory.id}
               className="glass border border-glass-border rounded-lg overflow-hidden"
             >
-              <AccordionTrigger className="px-4 py-3 hover:no-underline group">
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-3 text-left">
-                    <span className="text-xs font-mono text-muted-foreground">
+              <AccordionTrigger className="px-3 sm:px-4 py-2 sm:py-3 hover:no-underline group">
+                <div className="flex items-start sm:items-center justify-between w-full gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-left min-w-0">
+                    <span className="text-[10px] sm:text-xs font-mono text-muted-foreground shrink-0">
                       [{memory.date}]
                     </span>
-                    <span className="text-sm text-foreground line-clamp-1">
+                    <span className="text-xs sm:text-sm text-foreground line-clamp-2 sm:line-clamp-1">
                       {memory.content}
                     </span>
                   </div>
