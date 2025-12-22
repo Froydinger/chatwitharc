@@ -547,18 +547,18 @@ export function SettingsPanel() {
                   Memories and Context ({memories.length})
                 </GlassButton>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] sm:max-h-[80vh] overflow-y-auto p-4 sm:p-6">
                 <DialogHeader>
-                  <DialogTitle>Memories and Context</DialogTitle>
-                  <DialogDescription>Manage your personal information and memories</DialogDescription>
+                  <DialogTitle className="text-base sm:text-lg">Memories and Context</DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm">Manage your personal information and memories</DialogDescription>
                 </DialogHeader>
 
-                <div className="py-4 space-y-6">
+                <div className="py-3 sm:py-4 space-y-4 sm:space-y-6">
                   {/* Context Section */}
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     <div>
-                      <label className="text-sm font-medium text-foreground">Context & Preferences</label>
-                      <p className="text-xs text-muted-foreground">Tell Arc about yourself and your needs</p>
+                      <label className="text-xs sm:text-sm font-medium text-foreground">Context & Preferences</label>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Tell Arc about yourself and your needs</p>
                     </div>
                     <div className="space-y-2">
                       <Textarea
@@ -568,8 +568,10 @@ export function SettingsPanel() {
                           setContextDirty(true);
                         }}
                         placeholder="I'm interested in... I prefer... I'm working on..."
-                        className="glass border-glass-border min-h-[80px] resize-none"
+                        className="glass border-glass-border min-h-[60px] sm:min-h-[80px] resize-none text-sm"
                         disabled={updating}
+                        autoFocus={false}
+                        data-autofocus="false"
                       />
                       {contextDirty && (
                         <div className="flex items-center gap-2">
