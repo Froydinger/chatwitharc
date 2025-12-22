@@ -48,9 +48,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are generating personalized conversation prompts. Based on the user's context, generate 2-3 highly relevant prompts.
+            content: `You generate personalized conversation prompts for a user to send to an AI assistant.
 
-User context:
+IMPORTANT - The context below describes THE USER (not you, the AI). The user's memories contain info about THEIR life, work, projects, etc.
+
+User context (this is about THEM):
 ${userContext}
 
 Return ONLY a JSON array of prompt objects with this structure:
@@ -63,25 +65,26 @@ Return ONLY a JSON array of prompt objects with this structure:
   }
 ]
 
-CRITICAL RULES - PERSPECTIVE:
-1. Write prompts as if the USER is speaking/asking the AI
-2. Use first-person language: "I", "my", "me" (NOT "you", "your", "Jake")
-3. NEVER address the user by name or use second-person perspective
-4. Write as questions or requests TO the AI
+CRITICAL PERSPECTIVE RULES:
+1. Prompts must be written FROM THE USER'S PERSPECTIVE - things THEY would say/ask TO an AI
+2. Use first-person language: "I", "my", "me", "we", "our"
+3. NEVER address the user or use "you/your" in the prompts
+4. The user's context describes THEM - if it says "co-founder of X", the USER is the co-founder
+5. Write as questions or requests the user would send TO an AI assistant
 
 WORD RESTRICTIONS:
 - For coding tasks, use: "code", "build", "develop", "program", "write code"
 - NEVER use: "generate", "create", "make", "draw", "image", "picture", "photo", "visualize", "render", "illustrate"
 
-EXAMPLES OF CORRECT PERSPECTIVE:
+CORRECT EXAMPLES (user speaking to AI):
 ✅ "Help me brainstorm marketing ideas for my window sales work"
-✅ "Code a scheduling tool for my appointments"
-✅ "What are some ways I could improve my sales presentations?"
+✅ "What topics should I cover in my next podcast episode?"
+✅ "Can you help me prepare for my upcoming investor meeting?"
 
-EXAMPLES OF WRONG PERSPECTIVE (DO NOT DO THIS):
-❌ "Jake, how might you use humor in your marketing?" (addressing user)
-❌ "As an AI-assisted developer, brainstorm..." (describing user)
-❌ "Let me help you with your work" (AI perspective)
+WRONG EXAMPLES (do NOT do this):
+❌ "Can you tell me more about your podcast?" (the USER has the podcast, not the AI)
+❌ "What else can you share about your co-founder role?" (addressing user as "you")
+❌ "As the founder, you might want to..." (AI perspective, using "you")
 
 Keep "text" short (25-35 chars), put full context in "fullPrompt".`
           },
