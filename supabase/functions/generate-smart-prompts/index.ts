@@ -56,25 +56,38 @@ serve(async (req) => {
     }
 
     // Build prompt for AI
-    const systemPrompt = `You are an AI assistant that generates personalized prompt suggestions based on a user's chat history and profile.
+    const systemPrompt = `You generate personalized prompt suggestions for a user to send to an AI assistant.
 
-User Profile:
-${profile?.display_name ? `Name: ${profile.display_name}` : ''}
-${profile?.memory_info ? `Memories: ${profile.memory_info}` : ''}
-${profile?.context_info ? `Context: ${profile.context_info}` : ''}
+IMPORTANT CONTEXT - This is information ABOUT THE USER (not you, the AI):
+${profile?.display_name ? `- The user's name is: ${profile.display_name}` : ''}
+${profile?.memory_info ? `- Things the user has shared about themselves: ${profile.memory_info}` : ''}
+${profile?.context_info ? `- Additional context about the user: ${profile.context_info}` : ''}
 
 ${chatContext}
 
-Generate 6 smart, personalized prompt suggestions that:
-1. Are relevant to the user's interests and past conversations
-2. Help continue or expand on topics they've discussed
-3. Are actionable and specific
-4. Use an emoji at the start of each label
+Generate 6 smart, personalized prompt suggestions.
+
+CRITICAL PERSPECTIVE RULES:
+1. Prompts must be written FROM THE USER'S PERSPECTIVE - as things THEY would say/ask TO an AI
+2. Use first-person language: "I", "my", "me", "we", "our"
+3. NEVER write prompts from the AI's perspective
+4. NEVER address the user or use "you/your" in the prompts
+5. The user's profile info describes THEM - they are the founder, they have the podcast, etc.
+
+CORRECT EXAMPLES (user speaking to AI):
+✅ "Help me brainstorm ideas for my next podcast episode"
+✅ "What are some marketing strategies I could use for my business?"
+✅ "Can you review my latest article draft?"
+
+WRONG EXAMPLES (do NOT do this):
+❌ "Tell me about your podcast" (AI doesn't have a podcast - the USER does)
+❌ "What else can you share about your work?" (addressing user, not AI)
+❌ "As a co-founder, you might consider..." (AI perspective, addressing user)
 
 Return ONLY a JSON array with exactly 6 objects, each with "label" and "prompt" fields.
 Example format:
 [
-  {"label": "🎯 Topic name", "prompt": "Full prompt text here"},
+  {"label": "🎯 Topic name", "prompt": "Full prompt text written from user's perspective"},
   ...
 ]`;
 
