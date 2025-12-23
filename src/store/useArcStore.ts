@@ -11,11 +11,18 @@ export interface ChatSession {
   messages: Message[];
 }
 
-export type MemoryActionType = 'memory_saved' | 'memory_accessed' | 'chats_searched';
+export type MemoryActionType = 'memory_saved' | 'memory_accessed' | 'chats_searched' | 'web_searched';
+
+export interface WebSource {
+  title: string;
+  url: string;
+  content?: string;
+}
 
 export interface MemoryAction {
   type: MemoryActionType;
   content?: string; // e.g., what was saved or searched
+  sources?: WebSource[]; // For web search results
 }
 
 export interface Message {
@@ -65,10 +72,12 @@ export interface ArcState {
   isGeneratingImage: boolean;
   isSearchingChats: boolean;
   isAccessingMemory: boolean;
+  isSearchingWeb: boolean;
   setLoading: (loading: boolean) => void;
   setGeneratingImage: (generating: boolean) => void;
   setSearchingChats: (searching: boolean) => void;
   setAccessingMemory: (accessing: boolean) => void;
+  setSearchingWeb: (searching: boolean) => void;
 
   // Quick Start
   startChatWithMessage: (message: string) => void;
@@ -589,10 +598,12 @@ export const useArcStore = create<ArcState>()(
       isGeneratingImage: false,
       isSearchingChats: false,
       isAccessingMemory: false,
+      isSearchingWeb: false,
       setLoading: (loading) => set({ isLoading: loading }),
       setGeneratingImage: (generating) => set({ isGeneratingImage: generating }),
       setSearchingChats: (searching) => set({ isSearchingChats: searching }),
       setAccessingMemory: (accessing) => set({ isAccessingMemory: accessing }),
+      setSearchingWeb: (searching) => set({ isSearchingWeb: searching }),
       
       // Quick Start - modified to trigger proper image detection
       startChatWithMessage: async (message) => {

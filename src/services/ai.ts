@@ -5,6 +5,12 @@ interface AIMessage {
   content: string;
 }
 
+interface WebSource {
+  title: string;
+  url: string;
+  content?: string;
+}
+
 interface AIResponse {
   choices: Array<{
     message: {
@@ -12,6 +18,12 @@ interface AIResponse {
     };
   }>;
   tool_calls_used?: string[];
+  web_sources?: WebSource[];
+}
+
+export interface SendMessageResult {
+  content: string;
+  webSources?: WebSource[];
 }
 
 export class AIService {
@@ -23,7 +35,7 @@ export class AIService {
     messages: AIMessage[],
     profile?: { display_name?: string | null; context_info?: string | null, memory_info?: string | null, preferred_model?: string | null },
     onToolUsage?: (tools: string[]) => void
-  ): Promise<string> {
+  ): Promise<SendMessageResult> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Chat service is not available. Please configure Supabase.');
     }
@@ -96,7 +108,10 @@ export class AIService {
         });
       }
 
-      return data.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
+      return {
+        content: data.choices[0]?.message?.content || 'Sorry, I could not generate a response.',
+        webSources: data.web_sources
+      };
     } catch (error) {
       console.error('AI Service Error:', error);
       throw error;

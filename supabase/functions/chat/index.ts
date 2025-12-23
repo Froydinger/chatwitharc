@@ -11,11 +11,23 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
+// Web search result interface
+interface WebSearchResult {
+  title: string;
+  url: string;
+  content: string;
+}
+
+interface WebSearchResponse {
+  summary: string;
+  sources: WebSearchResult[];
+}
+
 // Web search tool using Tavily API
-async function webSearch(query: string): Promise<string> {
+async function webSearch(query: string): Promise<WebSearchResponse> {
   const tavilyApiKey = Deno.env.get('TAVILY_API_KEY');
   if (!tavilyApiKey) {
-    return "Web search is not configured. Please add TAVILY_API_KEY.";
+    return { summary: "Web search is not configured. Please add TAVILY_API_KEY.", sources: [] };
   }
 
   try {
@@ -38,11 +50,14 @@ async function webSearch(query: string): Promise<string> {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Tavily API error:', response.status, errorText);
-      return `Search failed: ${response.status}`;
+      return { summary: `Search failed: ${response.status}`, sources: [] };
     }
 
     const data = await response.json();
     console.log('Search results received:', data.results?.length || 0, 'results');
+    
+    // Extract sources for frontend display
+    const sources: WebSearchResult[] = [];
     
     // Format results for the AI
     let searchSummary = '';
@@ -56,13 +71,23 @@ async function webSearch(query: string): Promise<string> {
         searchSummary += `${idx + 1}. ${result.title}\n`;
         searchSummary += `   ${result.content}\n`;
         searchSummary += `   Source: ${result.url}\n\n`;
+        
+        // Add to sources array for frontend
+        sources.push({
+          title: result.title,
+          url: result.url,
+          content: result.content?.slice(0, 200) || ''
+        });
       });
     }
     
-    return searchSummary || 'No relevant results found.';
+    return { 
+      summary: searchSummary || 'No relevant results found.',
+      sources 
+    };
   } catch (error) {
     console.error('Web search error:', error);
-    return `Search error: ${error.message}`;
+    return { summary: `Search error: ${error.message}`, sources: [] };
   }
 }
 
@@ -428,8 +453,9 @@ serve(async (req) => {
     let data = await response.json();
     let assistantMessage = data.choices[0].message;
 
-    // Track which tools were used
+    // Track which tools were used and web sources
     const toolsUsed: string[] = [];
+    let webSources: WebSearchResult[] = [];
     
     // Check if the AI wants to use tools (web search or chat search)
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
@@ -447,13 +473,16 @@ serve(async (req) => {
       for (const toolCall of assistantMessage.tool_calls) {
         if (toolCall.function.name === 'web_search') {
           const args = JSON.parse(toolCall.function.arguments);
-          const searchResults = await webSearch(args.query);
+          const searchResponse = await webSearch(args.query);
+          
+          // Store sources for frontend
+          webSources = searchResponse.sources;
           
           // Add tool response to conversation
           conversationMessages.push({
             role: 'tool',
             tool_call_id: toolCall.id,
-            content: searchResults
+            content: searchResponse.summary
           });
         } else if (toolCall.function.name === 'search_past_chats') {
           const args = JSON.parse(toolCall.function.arguments);
@@ -521,10 +550,11 @@ serve(async (req) => {
       data = await response.json();
     }
     
-    // Add tool usage metadata to the response
+    // Add tool usage metadata and sources to the response
     const finalResponse = {
       ...data,
-      tool_calls_used: toolsUsed
+      tool_calls_used: toolsUsed,
+      web_sources: webSources.length > 0 ? webSources : undefined
     };
     
     return new Response(
