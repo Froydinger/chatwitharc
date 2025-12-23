@@ -46,7 +46,7 @@ export const SourcesAccordion = ({ sources }: SourcesAccordionProps) => {
       >
         <Globe className="h-3.5 w-3.5 text-primary/70" />
         <span className="text-xs font-medium text-muted-foreground">
-          {sources.length} source{sources.length !== 1 ? 's' : ''} used
+          Links & sources
         </span>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
