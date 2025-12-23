@@ -119,7 +119,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const { toast } = useToast();
   const showPopup = useFingerPopup((state) => state.showPopup);
 
-  const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory, updateMessageMemoryAction } =
+  const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory, setSearchingWeb, updateMessageMemoryAction } =
     useArcStore();
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
@@ -330,7 +330,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           content: m.id === editedMessageId ? newContent : m.content,
         }));
 
-      const reply = await ai.sendMessage(aiMessages, undefined, (tools) => {
+      let didSearchWeb = false;
+      const result = await ai.sendMessage(aiMessages, undefined, (tools) => {
         console.log('🔧 Tools used:', tools);
         
         // Set indicators when we detect tool usage
@@ -340,7 +341,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           didSearchChats = true;
         }
         if (tools.includes('web_search')) {
-          // Could add web search indicator
+          setSearchingWeb(true);
+          didSearchWeb = true;
         }
       });
       
@@ -351,13 +353,22 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       setTimeout(() => {
         setSearchingChats(false);
         setAccessingMemory(false);
+        setSearchingWeb(false);
       }, 2000);
       
+      // Determine memory action based on what tools were used
+      let memoryAction: any = undefined;
+      if (didSearchWeb && result.webSources && result.webSources.length > 0) {
+        memoryAction = { type: 'web_searched' as const, sources: result.webSources };
+      } else if (didSearchChats) {
+        memoryAction = { type: 'chats_searched' as const };
+      }
+      
       await addMessage({ 
-        content: reply, 
+        content: result.content, 
         role: "assistant", 
         type: "text",
-        memoryAction: didSearchChats ? { type: 'chats_searched' as const } : undefined
+        memoryAction
       });
     } catch (err: any) {
       console.error('Chat error:', err);
@@ -721,7 +732,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           return;
         }
         
-        const reply = await new AIService().sendMessage(aiMessages, profile, (tools) => {
+        let didSearchWeb = false;
+        const result = await new AIService().sendMessage(aiMessages, profile, (tools) => {
           console.log('🔧 Tools used in handleSend:', tools);
           // Set indicators based on tool usage
           if (tools.includes('search_past_chats')) {
@@ -730,7 +742,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             didSearchChats = true;
           }
           if (tools.includes('web_search')) {
-            // Could add web search indicator
+            setSearchingWeb(true);
+            didSearchWeb = true;
           }
         });
         
@@ -738,6 +751,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         if (cancelRequested) {
           setSearchingChats(false);
           setAccessingMemory(false);
+          setSearchingWeb(false);
           return;
         }
         
@@ -745,14 +759,23 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         setTimeout(() => {
           setSearchingChats(false);
           setAccessingMemory(false);
+          setSearchingWeb(false);
         }, 2000);
         
-        // Add assistant message with memory action if chats were searched
+        // Determine memory action based on what tools were used
+        let memoryAction: any = undefined;
+        if (didSearchWeb && result.webSources && result.webSources.length > 0) {
+          memoryAction = { type: 'web_searched' as const, sources: result.webSources };
+        } else if (didSearchChats) {
+          memoryAction = { type: 'chats_searched' as const };
+        }
+        
+        // Add assistant message with memory action
         await addMessage({ 
-          content: reply, 
+          content: result.content, 
           role: "assistant", 
           type: "text",
-          memoryAction: didSearchChats ? { type: 'chats_searched' as const } : undefined
+          memoryAction
         });
       } catch (err: any) {
         // Check if request was cancelled

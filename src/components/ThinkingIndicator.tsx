@@ -8,6 +8,7 @@ interface ThinkingIndicatorProps {
   isGeneratingImage: boolean;
   accessingMemory?: boolean;
   searchingChats?: boolean;
+  searchingWeb?: boolean;
 }
 
 const ARC_PUNS = [
@@ -23,32 +24,33 @@ const ARC_PUNS = [
   "Arc and rolling...",
 ];
 
-export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemory, searchingChats }: ThinkingIndicatorProps) {
-  const showThinking = isLoading || isGeneratingImage || accessingMemory || searchingChats;
+export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemory, searchingChats, searchingWeb }: ThinkingIndicatorProps) {
+  const showThinking = isLoading || isGeneratingImage || accessingMemory || searchingChats || searchingWeb;
   const [currentPunIndex, setCurrentPunIndex] = useState(0);
 
   // Rotate through puns every 2 seconds when thinking
   useEffect(() => {
-    if (!showThinking || isGeneratingImage || searchingChats || accessingMemory) return;
+    if (!showThinking || isGeneratingImage || searchingChats || accessingMemory || searchingWeb) return;
 
     const interval = setInterval(() => {
       setCurrentPunIndex((prev) => (prev + 1) % ARC_PUNS.length);
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [showThinking, isGeneratingImage, searchingChats, accessingMemory]);
+  }, [showThinking, isGeneratingImage, searchingChats, accessingMemory, searchingWeb]);
 
   // Reset to first pun when thinking starts
   useEffect(() => {
-    if (showThinking && isLoading && !isGeneratingImage && !searchingChats && !accessingMemory) {
+    if (showThinking && isLoading && !isGeneratingImage && !searchingChats && !accessingMemory && !searchingWeb) {
       setCurrentPunIndex(0);
     }
-  }, [showThinking, isLoading, isGeneratingImage, searchingChats, accessingMemory]);
+  }, [showThinking, isLoading, isGeneratingImage, searchingChats, accessingMemory, searchingWeb]);
 
   if (!showThinking) return null;
 
   const getMessage = () => {
     if (isGeneratingImage) return "Generating image...";
+    if (searchingWeb) return "Searching the web...";
     if (searchingChats) return "Searching past chats...";
     if (accessingMemory) return "Accessing memories...";
     return ARC_PUNS[currentPunIndex];
