@@ -632,23 +632,23 @@ All colors MUST be HSL for perfect glass effects.
 
   /* User message bubble - glowy glass style matching input bar */
   .user-message-bubble {
-    background: linear-gradient(135deg, hsl(var(--background) / 0.75) 0%, hsl(var(--background) / 0.65) 50%, hsl(var(--primary) / 0.18) 100%);
-    backdrop-filter: blur(20px) saturate(115%);
-    -webkit-backdrop-filter: blur(20px) saturate(115%);
-    border: 1px solid hsl(var(--primary) / 0.3);
+    background: linear-gradient(135deg, hsl(var(--background) / 0.75) 0%, hsl(var(--background) / 0.65) 50%, hsl(var(--primary) / 0.18) 100%) !important;
+    backdrop-filter: blur(20px) saturate(115%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(115%) !important;
+    border: 1px solid hsl(var(--primary) / 0.35) !important;
     box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.25),
-      inset 0 0 20px hsl(var(--primary-glow) / 0.08);
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 0 20px hsl(var(--primary-glow) / 0.1) !important;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .user-message-bubble:hover {
-    background: linear-gradient(135deg, hsl(var(--background) / 0.7) 0%, hsl(var(--background) / 0.6) 50%, hsl(var(--primary) / 0.22) 100%);
-    border-color: hsl(var(--primary) / 0.4);
+    background: linear-gradient(135deg, hsl(var(--background) / 0.68) 0%, hsl(var(--background) / 0.58) 50%, hsl(var(--primary) / 0.25) 100%) !important;
+    border-color: hsl(var(--primary) / 0.45) !important;
     box-shadow:
-      0 12px 40px rgba(0, 0, 0, 0.3),
-      inset 0 0 24px hsl(var(--primary-glow) / 0.12),
-      0 0 20px hsl(var(--primary-glow) / 0.1);
+      0 12px 40px rgba(0, 0, 0, 0.35),
+      inset 0 0 28px hsl(var(--primary-glow) / 0.15),
+      0 0 24px hsl(var(--primary-glow) / 0.12) !important;
   }
 
   /* Noir theme: Black buttons with white text/icons */
