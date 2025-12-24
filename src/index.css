@@ -97,27 +97,8 @@ All colors MUST be HSL for perfect glass effects.
     --glass-border: 0 0% 12%;
   }
 
-
-  /* Noir mode buttons - black with white text instead of white with black text */
-  :root[data-accent="noir"] {
-    --button-bg: 0 0% 8%;
-    --button-fg: 0 0% 92%;
-  }
-
-}
-
-/* Noir mode button overrides - must be outside @layer for specificity */
-:root[data-accent="noir"] button[class*="bg-primary"],
-:root[data-accent="noir"] [role="button"][class*="bg-primary"],
-:root[data-accent="noir"] .bg-primary {
-  background-color: hsl(0 0% 8%) !important;
-  color: hsl(0 0% 92%) !important;
-}
-
-:root[data-accent="noir"] button[class*="bg-primary"]:hover,
-:root[data-accent="noir"] [role="button"][class*="bg-primary"]:hover,
-:root[data-accent="noir"] .bg-primary:hover {
-  background-color: hsl(0 0% 15%) !important;
+  /* (Removed) Noir-specific hard overrides for buttons.
+     We keep noir variables, but avoid !important rules that can bleed into other themes. */
 }
 
 @layer base {
@@ -630,17 +611,7 @@ All colors MUST be HSL for perfect glass effects.
     min-height: calc(100vh - 30px) !important;
   }
 
-  /* Noir theme: Black buttons with white text/icons */
-  [data-accent="noir"] .noir-send-btn {
-    background-color: hsl(0 0% 5%) !important;
-    border-color: hsl(0 0% 20%) !important;
-    color: hsl(0 0% 95%) !important;
-  }
-
-  [data-accent="noir"] .noir-send-btn svg {
-    color: hsl(0 0% 95%) !important;
-    stroke: hsl(0 0% 95%) !important;
-  }
+  /* (Removed) Noir-specific send button force-styles to avoid black bleed-through */
 }
 
 /* User message bubble - OUTSIDE @layer for high specificity */
