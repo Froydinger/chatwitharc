@@ -7,7 +7,6 @@ export const BackgroundGradients = () => {
   const [primaryGlow, setPrimaryGlow] = useState("200 90% 65%");
 
   const isNoir = accentColor === "noir";
-  const opacityMultiplier = isNoir ? 0.15 : 1;
 
   // Read the CSS variable directly so we react to changes
   useEffect(() => {
@@ -48,6 +47,18 @@ export const BackgroundGradients = () => {
 
   // Simplified static gradient for iPad PWA
   if (shouldSimplify) {
+    // Noir gets a subtle silver/gray gradient, others get colored glow
+    const gradientStyle = isNoir
+      ? `radial-gradient(ellipse 120% 80% at 50% 20%,
+          hsl(0 0% 25% / 0.5) 0%,
+          hsl(0 0% 15% / 0.3) 40%,
+          hsl(0 0% 8% / 0.15) 70%,
+          transparent 100%)`
+      : `radial-gradient(circle at center,
+          hsl(${primaryGlow} / 0.15) 0%,
+          hsl(${primaryGlow} / 0.08) 40%,
+          transparent 70%)`;
+
     return (
       <motion.div
         key={`bg-static-${accentColor}-${primaryGlow}`}
@@ -60,16 +71,25 @@ export const BackgroundGradients = () => {
           left: '-50%',
           width: '200%',
           height: '200%',
-          background: `radial-gradient(circle at center,
-            hsl(${primaryGlow} / ${0.15 * opacityMultiplier}) 0%,
-            hsl(${primaryGlow} / ${0.08 * opacityMultiplier}) 40%,
-            transparent 70%)`,
+          background: gradientStyle,
         }}
       />
     );
   }
 
-  // Single static gradient - no animation for better performance
+  // Noir gets a subtle silver/gray gradient from top, others get colored glow
+  const gradientStyle = isNoir
+    ? `radial-gradient(ellipse 130% 70% at 50% 15%,
+        hsl(0 0% 28% / 0.55) 0%,
+        hsl(0 0% 18% / 0.35) 35%,
+        hsl(0 0% 10% / 0.18) 60%,
+        transparent 90%)`
+    : `radial-gradient(circle at center,
+        hsl(${primaryGlow} / 0.18) 0%,
+        hsl(${primaryGlow} / 0.1) 30%,
+        hsl(${primaryGlow} / 0.04) 55%,
+        transparent 75%)`;
+
   return (
     <motion.div
       key={`bg-static-${accentColor}-${primaryGlow}`}
@@ -82,11 +102,7 @@ export const BackgroundGradients = () => {
         left: '-25%',
         width: '150%',
         height: '150%',
-        background: `radial-gradient(circle at center,
-          hsl(${primaryGlow} / ${0.18 * opacityMultiplier}) 0%,
-          hsl(${primaryGlow} / ${0.1 * opacityMultiplier}) 30%,
-          hsl(${primaryGlow} / ${0.04 * opacityMultiplier}) 55%,
-          transparent 75%)`,
+        background: gradientStyle,
       }}
     />
   );
