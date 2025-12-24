@@ -632,8 +632,8 @@ All colors MUST be HSL for perfect glass effects.
 
   /* User message bubble - theme tinted */
   .user-message-bubble {
-    background-color: hsl(var(--user-message-bg) / 0.45);
-    border: 1px solid hsl(var(--user-message-border) / 0.65);
+    background-color: hsl(var(--user-message-bg) / 0.7);
+    border: 1px solid hsl(var(--user-message-border) / 0.85);
   }
 
   /* Noir theme: Black buttons with white text/icons */
