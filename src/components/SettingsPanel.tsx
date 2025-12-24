@@ -24,8 +24,7 @@ import {
   Check,
 } from "lucide-react";
 import { MemoryBankAccordion, parseMemoriesFromText, formatMemoriesToText } from "@/components/MemoryBankAccordion";
-import { useTheme } from "@/hooks/useTheme";
-// Accent color is driven via the Theme hook now
+import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
 import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
@@ -87,9 +86,8 @@ export function SettingsPanel() {
   const { profile, updateProfile, updating } = useProfile();
   const { toast } = useToast();
   const showPopup = useFingerPopup((state) => state.showPopup);
-  // Use Theme hook for theme and accent color
-  const { accentColor, setAppAccentColor } = useTheme();
-  // Accent color is driven via Theme; no separate hook needed
+  // Use unified accent color system
+  const { accentColor, setAccentColor } = useAccentColor();
 
   const handleDataDeleted = () => {
     // Create new session and refresh
@@ -462,9 +460,9 @@ export function SettingsPanel() {
     },
   ];
 
-  const handleAccentClick = (value: string) => {
-    // Drive accent color through Theme hook
-    setAppAccentColor(value);
+  const handleAccentClick = (colorId: AccentColor) => {
+    // Use the unified accent color system with named color keys
+    setAccentColor(colorId);
   };
 
   return (
@@ -649,13 +647,13 @@ export function SettingsPanel() {
               <div className="grid grid-cols-6 gap-3">
                 {colorOptions.map((opt) => {
                   // Normalize both strings for comparison (remove extra spaces and format)
-                  const normalizeHsl = (hsl: string) => hsl.trim().replace(/\s+/g, ' ');
-                  const isActive = normalizeHsl(accentColor) === normalizeHsl(opt.value);
+                  // Compare using color ID (named key), not HSL values
+                  const isActive = accentColor === opt.id;
                   
                   return (
                     <button
                       key={opt.id}
-                      onClick={() => handleAccentClick(opt.value)}
+                      onClick={() => handleAccentClick(opt.id as AccentColor)}
                       className={`aspect-square rounded-xl relative transition-all ${
                         isActive
                           ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110"
