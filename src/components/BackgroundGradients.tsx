@@ -3,7 +3,7 @@ import { useAccentColor } from "@/hooks/useAccentColor";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
-const IMAGE_URL = "https://froydinger.com/wp-content/uploads/2025/12/soft-vintage-gradient-blur-background-with-pastel-colored.jpg";
+const IMAGE_URL = "/images/gradient-bg.jpg";
 
 export const BackgroundGradients = () => {
   const { accentColor: themeAccent } = useTheme();
