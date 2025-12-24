@@ -137,10 +137,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             className={[
               // Only apply bubble styling to user messages
               isUser ? [
-                "relative cursor-pointer rounded-[22px] backdrop-blur-md",
-                "shadow-[0_6px_20px_-6px_rgba(0,0,0,0.35)]",
+                "relative cursor-pointer rounded-[22px]",
                 "transition-[transform,box-shadow,background] duration-200",
-                "hover:shadow-[0_10px_26px_-8px_rgba(0,0,0,0.45)]",
                 "overflow-visible",
                 "user-message-bubble" // Styled via CSS for proper theme tinting
               ].join(" ") : "relative cursor-pointer w-full min-w-0",
