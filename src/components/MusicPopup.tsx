@@ -89,11 +89,15 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: -20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed top-20 right-4 z-50 w-[320px] overflow-hidden rounded-3xl border border-border/40 bg-background/90 backdrop-blur-xl shadow-2xl"
+            className="fixed top-20 right-4 z-50 w-[320px] overflow-hidden rounded-3xl"
             style={{
+              background: "linear-gradient(135deg, hsl(var(--background) / 0.85) 0%, hsl(var(--background) / 0.75) 50%, hsl(var(--primary) / 0.15) 100%)",
+              backdropFilter: "blur(24px) saturate(120%)",
+              WebkitBackdropFilter: "blur(24px) saturate(120%)",
+              border: "1px solid hsl(var(--primary) / 0.25)",
               boxShadow: isPlaying
-                ? "0 0 40px hsl(var(--primary) / 0.15), 0 20px 50px -10px hsl(var(--background) / 0.8)"
-                : "0 20px 50px -10px hsl(var(--background) / 0.8)",
+                ? "0 0 60px hsl(var(--primary) / 0.25), 0 20px 50px -10px rgba(0, 0, 0, 0.5), inset 0 0 30px hsl(var(--primary-glow) / 0.1)"
+                : "0 20px 50px -10px rgba(0, 0, 0, 0.5), inset 0 0 20px hsl(var(--primary-glow) / 0.05)",
             }}
           >
             {/* Header */}
