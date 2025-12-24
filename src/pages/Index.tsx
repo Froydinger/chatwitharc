@@ -76,7 +76,7 @@ export function Index() {
   // Only show loading screen during auth, never during chat switches
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-pulse flex justify-center mb-4">
             <img

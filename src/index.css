@@ -137,15 +137,19 @@ All colors MUST be HSL for perfect glass effects.
     transition: opacity 0.15s ease-out;
   }
 
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
+  html {
     background: hsl(var(--background));
+  }
+
+  body {
+    @apply text-foreground font-sans antialiased;
+    background: transparent;
     min-height: 100vh;
     overflow-x: hidden;
     position: relative;
   }
 
-  /* Background is now handled by BackgroundGradients component */
+  /* Background gradient shows through transparent body */
 
   /* Text Selection Styles - Force override all elements */
   *::selection {
