@@ -37,7 +37,7 @@ export const MemoryIndicator = ({ action }: MemoryIndicatorProps) => {
   // For web searches, show the sources accordion instead of simple indicator
   if (action.type === 'web_searched' && action.sources && action.sources.length > 0) {
     return (
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 w-full max-w-full overflow-hidden">
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
