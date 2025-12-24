@@ -1,27 +1,31 @@
 import { useAccentColor } from "@/hooks/useAccentColor";
 import { motion } from "framer-motion";
-
-// Color configs for the gradient - must match useAccentColor
-const glowColors: Record<string, string> = {
-  red: "0 85% 70%",
-  blue: "200 90% 65%",
-  green: "142 76% 52%",
-  yellow: "48 95% 70%",
-  purple: "270 75% 70%",
-  orange: "25 95% 68%",
-  noir: "0 0% 75%",
-};
+import { useState, useEffect } from "react";
 
 export const BackgroundGradients = () => {
   const { accentColor } = useAccentColor();
+  const [primaryGlow, setPrimaryGlow] = useState("200 90% 65%");
 
   const isNoir = accentColor === "noir";
-
-  // Get the glow color directly from config
-  const primaryGlow = glowColors[accentColor] || glowColors.blue;
-
-  // Noir theme: much subtler gradients
   const opacityMultiplier = isNoir ? 0.15 : 1;
+
+  // Read the CSS variable directly so we react to changes
+  useEffect(() => {
+    const updateGlow = () => {
+      const computed = getComputedStyle(document.documentElement).getPropertyValue("--primary-glow").trim();
+      if (computed) {
+        setPrimaryGlow(computed);
+      }
+    };
+    
+    // Update immediately
+    updateGlow();
+    
+    // Also update after a tiny delay to catch async CSS var changes
+    const timeout = setTimeout(updateGlow, 50);
+    
+    return () => clearTimeout(timeout);
+  }, [accentColor]);
 
   // Detect iPad PWA
   const isIpadPWA = () => {
@@ -46,7 +50,7 @@ export const BackgroundGradients = () => {
   if (shouldSimplify) {
     return (
       <motion.div
-        key={`bg-static-${accentColor}`}
+        key={`bg-static-${accentColor}-${primaryGlow}`}
         className="fixed pointer-events-none -z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -68,7 +72,7 @@ export const BackgroundGradients = () => {
   // Single static gradient - no animation for better performance
   return (
     <motion.div
-      key={`bg-static-${accentColor}`}
+      key={`bg-static-${accentColor}-${primaryGlow}`}
       className="fixed pointer-events-none -z-10"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
