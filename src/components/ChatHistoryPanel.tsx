@@ -238,21 +238,27 @@ export function ChatHistoryPanel() {
           <PaginationButtons />
           <div className="space-y-2">
             {paginatedSessions.map((session) => (
-            <GlassCard
+            <div
               key={session.id}
-              variant={currentSessionId === session.id ? "bubble" : "default"}
-              className={`p-4 cursor-pointer group transition-all glass-card-dark ${
-                currentSessionId === session.id ? "ring-1 ring-primary-glow rounded-xl" : "hover:bg-glass/60"
-              }`}
+              className={cn(
+                "p-4 cursor-pointer group transition-all rounded-2xl border",
+                "bg-background/40 backdrop-blur-sm",
+                currentSessionId === session.id 
+                  ? "border-primary/40 bg-primary/5 shadow-lg shadow-primary/5" 
+                  : "border-border/20 hover:border-border/40 hover:bg-background/60"
+              )}
               onClick={() => handleLoadSession(session.id)}
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-foreground truncate">
+                  <h4 className={cn(
+                    "font-medium truncate",
+                    currentSessionId === session.id ? "text-primary" : "text-foreground"
+                  )}>
                     {session.title}
                   </h4>
-                  <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                    <span>{session.messages.length} messages</span>
+                  <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+                    <span className="px-2 py-0.5 rounded-full bg-muted/30">{session.messages.length} messages</span>
                     <span>•</span>
                     <span>{new Date(session.lastMessageAt).toLocaleDateString()}</span>
                   </div>
@@ -260,16 +266,18 @@ export function ChatHistoryPanel() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-8 w-8 text-destructive hover:text-destructive flex-shrink-0 bg-black text-white hover:bg-black/80 ${
+                  className={cn(
+                    "h-8 w-8 flex-shrink-0 rounded-full transition-all",
+                    "hover:bg-destructive/10 hover:text-destructive",
                     deletingId === session.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                  }`}
+                  )}
                   onClick={(e) => handleDeleteSession(session.id, e)}
                   aria-label="Delete chat"
                 >
-                  <Trash2 className="h-4 w-4 text-red-400" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-            </GlassCard>
+            </div>
           ))}
         </div>
         <PaginationButtons />

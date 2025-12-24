@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, History, Headphones, Image, LayoutGrid, Settings } from "lucide-react";
+import { X, History, Music, Image, LayoutGrid, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -120,7 +120,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                 <LayoutGrid className="h-4 w-4" />
               </TabsTrigger>
               <TabsTrigger value="music" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
-                <Headphones className="h-4 w-4" />
+                <Music className="h-4 w-4" />
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
                 <Settings className="h-4 w-4" />
