@@ -148,8 +148,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           >
             {/* Inner content clipper keeps visuals rounded while outer allows overflow */}
             <div className={isUser ? "relative px-4 py-3 rounded-[22px] overflow-hidden" : "relative w-full min-w-0"}>
-              {/* Gradient overlay: darker at bottom - only for user messages */}
-              {isUser && <div className="absolute inset-0 rounded-[22px] pointer-events-none bg-gradient-to-b from-transparent to-black/20" />}
+              {/* Gradient overlay: theme-tinted (keeps color, adds depth) */}
+              {isUser && (
+                <div className="absolute inset-0 rounded-[22px] pointer-events-none user-message-bubble-overlay" />
+              )}
 
               {/* Image Generating */}
               {message.type === "image-generating" && (
