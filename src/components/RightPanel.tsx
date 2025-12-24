@@ -1,22 +1,20 @@
-import { useState, useEffect, useRef } from "react";
-import { X, History, Music, Image, LayoutGrid, Settings } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, History, Image, LayoutGrid, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
-import { MusicPlayerPanel } from "@/components/MusicPlayerPanel";
 import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
 import { CodeAppsPanel } from "@/components/CodeAppsPanel";
-import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
 
 interface RightPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  activeTab: "history" | "media" | "apps" | "music" | "settings";
-  onTabChange: (tab: "history" | "media" | "apps" | "music" | "settings") => void;
+  activeTab: "history" | "media" | "apps" | "settings";
+  onTabChange: (tab: "history" | "media" | "apps" | "settings") => void;
 }
 
 export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
@@ -31,30 +29,6 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
     setIsStandaloneApp(isPWA || isElectron);
   }, []);
 
-  // Get music state from store
-  const {
-    isPlaying,
-    setIsPlaying,
-    volume,
-    setVolume,
-    currentTrack,
-    setCurrentTrack,
-    isMuted,
-    setIsMuted,
-    currentTime,
-    setCurrentTime,
-    duration,
-    isLoading,
-    audioRef,
-  } = useMusicStore();
-
-  // Create a ref object that points to the store's audio element
-  const audioRefObject = useRef<HTMLAudioElement | null>(null);
-  
-  useEffect(() => {
-    audioRefObject.current = audioRef;
-  }, [audioRef]);
-
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -66,9 +40,6 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
-
-  const getCurrentTrack = () => musicTracks.find(t => t.id === currentTrack) || musicTracks[0];
-  const track = getCurrentTrack();
 
   return (
     <>
@@ -109,7 +80,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border/40 glass-panel">
           <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
-            <TabsList className="grid w-full grid-cols-5 glass-shimmer rounded-full">
+            <TabsList className="grid w-full grid-cols-4 glass-shimmer rounded-full">
               <TabsTrigger value="history" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
                 <History className="h-4 w-4" />
               </TabsTrigger>
@@ -118,9 +89,6 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
               </TabsTrigger>
               <TabsTrigger value="apps" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
                 <LayoutGrid className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger value="music" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
-                <Music className="h-4 w-4" />
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
                 <Settings className="h-4 w-4" />
@@ -153,35 +121,6 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                     className="h-full"
                   >
                     <SettingsPanel />
-                  </motion.div>
-                </TabsContent>
-              )}
-
-              {activeTab === "music" && (
-                <TabsContent value="music" className="h-full m-0" asChild>
-                  <motion.div
-                    key="music"
-                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
-                    className="h-full"
-                  >
-                    <MusicPlayerPanel
-                      audioRef={audioRefObject}
-                      isPlaying={isPlaying}
-                      setIsPlaying={setIsPlaying}
-                      volume={volume}
-                      setVolume={setVolume}
-                      currentTrack={currentTrack}
-                      setCurrentTrack={setCurrentTrack}
-                      isMuted={isMuted}
-                      setIsMuted={setIsMuted}
-                      currentTime={currentTime}
-                      setCurrentTime={setCurrentTime}
-                      duration={duration}
-                      isLoading={isLoading}
-                    />
                   </motion.div>
                 </TabsContent>
               )}
