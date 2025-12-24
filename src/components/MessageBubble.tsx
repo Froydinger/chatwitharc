@@ -137,8 +137,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             className={[
               // Only apply bubble styling to user messages
               isUser ? [
-                "relative cursor-pointer rounded-[22px]",
+                "relative cursor-pointer rounded-[22px] backdrop-blur-md",
+                "shadow-[0_6px_20px_-6px_rgba(0,0,0,0.35)]",
                 "transition-[transform,box-shadow,background] duration-200",
+                "hover:shadow-[0_10px_26px_-8px_rgba(0,0,0,0.45)]",
                 "overflow-visible",
                 "user-message-bubble" // Styled via CSS for proper theme tinting
               ].join(" ") : "relative cursor-pointer w-full min-w-0",
@@ -146,10 +148,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           >
             {/* Inner content clipper keeps visuals rounded while outer allows overflow */}
             <div className={isUser ? "relative px-4 py-3 rounded-[22px] overflow-hidden" : "relative w-full min-w-0"}>
-              {/* Gradient overlay: theme-tinted (keeps color, adds depth) */}
-              {isUser && (
-                <div className="absolute inset-0 rounded-[22px] pointer-events-none user-message-bubble-overlay" />
-              )}
+              {/* Gradient overlay: darker at bottom - only for user messages */}
+              {isUser && <div className="absolute inset-0 rounded-[22px] pointer-events-none bg-gradient-to-b from-transparent to-black/20" />}
 
               {/* Image Generating */}
               {message.type === "image-generating" && (
