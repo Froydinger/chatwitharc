@@ -829,7 +829,7 @@ export function MobileChatApp() {
                         >
                           <ThinkingIndicator
                             isLoading={isLoading}
-                            isGeneratingImage={false}
+                            isGeneratingImage={isGeneratingImage}
                             searchingChats={isSearchingChats}
                             accessingMemory={isAccessingMemory}
                           />
