@@ -11,25 +11,32 @@ export interface MusicTrack {
 
 export const musicTracks: MusicTrack[] = [
   { 
-    id: 'lofi', 
-    name: 'Lo-Fi Beats', 
-    url: 'https://froydinger.blog/wp-content/uploads/2025/03/lofi-beats-mix.mp3',
-    artist: 'Chill Collective',
-    albumArt: '/lovable-uploads/lofi-cartoon-album.jpg'
-  },
-  { 
-    id: 'jazz', 
-    name: 'Coffee House Jazz', 
-    url: 'https://froydinger.blog/wp-content/uploads/2025/05/jazz-coffee-bar-music.mp3',
-    artist: 'Jazz Lounge',
-    albumArt: '/lovable-uploads/jazz-cartoon-album.jpg'
-  },
-  { 
     id: 'ambient', 
     name: 'Space Ambient', 
-    url: 'https://froydinger.blog/wp-content/uploads/2025/05/pad-space-travel-hyperdrive-engine-humming-235901.mp3',
+    url: '/audio/space-ambient.mp3',
     artist: 'Cosmic Sounds',
     albumArt: '/lovable-uploads/ambient-cartoon-album.jpg'
+  },
+  { 
+    id: 'taylor', 
+    name: 'The Best Day', 
+    url: '/audio/taylor-swift-best-day.mp3',
+    artist: 'Taylor Swift',
+    albumArt: '/lovable-uploads/taylor-swift-album.jpg'
+  },
+  { 
+    id: 'elevator', 
+    name: 'Elevator Music', 
+    url: '/audio/elevator-music.mp3',
+    artist: 'Easy Listening',
+    albumArt: '/lovable-uploads/elevator-music-album.jpg'
+  },
+  { 
+    id: 'lionel', 
+    name: 'Hello (Live)', 
+    url: '/audio/lionel-richie-hello.mp3',
+    artist: 'Lionel Richie',
+    albumArt: '/lovable-uploads/lionel-richie-album.jpg'
   }
 ];
 
@@ -72,7 +79,7 @@ export const useMusicStore = create<MusicState>()(
       // Initial state
       isPlaying: false,
       volume: 0.5,
-      currentTrack: 'lofi',
+      currentTrack: 'ambient',
       isMuted: false,
       currentTime: 0,
       duration: 0,
