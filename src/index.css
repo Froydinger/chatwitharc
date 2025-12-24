@@ -624,21 +624,4 @@ All colors MUST be HSL for perfect glass effects.
     min-height: calc(100vh - 30px) !important;
   }
 
-  /* Noir theme: Pure black user message bubbles */
-  [data-accent="noir"] .noir-user-bubble {
-    background-color: hsl(0 0% 0%) !important;
-    border-color: hsl(0 0% 20%) !important;
-  }
-
-  /* Noir theme: Black buttons with white text/icons */
-  [data-accent="noir"] .noir-send-btn {
-    background-color: hsl(0 0% 5%) !important;
-    border-color: hsl(0 0% 20%) !important;
-    color: hsl(0 0% 95%) !important;
-  }
-
-  [data-accent="noir"] .noir-send-btn svg {
-    color: hsl(0 0% 95%) !important;
-    stroke: hsl(0 0% 95%) !important;
-  }
 }
