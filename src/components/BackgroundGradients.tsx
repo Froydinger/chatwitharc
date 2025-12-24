@@ -1,17 +1,27 @@
-import { useTheme } from "@/hooks/useTheme";
 import { useAccentColor } from "@/hooks/useAccentColor";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+
+// Color configs for the gradient - must match useAccentColor
+const glowColors: Record<string, string> = {
+  red: "0 85% 70%",
+  blue: "200 90% 65%",
+  green: "142 76% 52%",
+  yellow: "48 95% 70%",
+  purple: "270 75% 70%",
+  orange: "25 95% 68%",
+  noir: "0 0% 75%",
+};
 
 export const BackgroundGradients = () => {
-  const { accentColor: themeAccent } = useTheme();
   const { accentColor } = useAccentColor();
 
-  // Force re-computation of CSS variable on every render to ensure we get latest value
-  const [, forceUpdate] = useState(0);
-
-  // Check if noir theme is active
   const isNoir = accentColor === "noir";
+
+  // Get the glow color directly from config
+  const primaryGlow = glowColors[accentColor] || glowColors.blue;
+
+  // Noir theme: much subtler gradients
+  const opacityMultiplier = isNoir ? 0.15 : 1;
 
   // Detect iPad PWA
   const isIpadPWA = () => {
@@ -31,19 +41,6 @@ export const BackgroundGradients = () => {
   };
 
   const shouldSimplify = isIpadPWA();
-
-  useEffect(() => {
-    // Force component update when accent changes
-    forceUpdate(prev => prev + 1);
-  }, [themeAccent, accentColor]);
-
-  // Get the HSL value from CSS variable - always get fresh value
-  const primaryGlow = getComputedStyle(document.documentElement)
-    .getPropertyValue('--primary-glow')
-    .trim();
-
-  // Noir theme: much subtler gradients
-  const opacityMultiplier = isNoir ? 0.15 : 1;
 
   // Simplified static gradient for iPad PWA
   if (shouldSimplify) {
