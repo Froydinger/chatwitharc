@@ -245,7 +245,7 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
             </div>
 
             {/* Track Selection Pills */}
-            <div className="flex items-center justify-center gap-2 px-5 pb-5">
+            <div className="flex flex-wrap items-center justify-center gap-2 px-5 pb-5">
               {musicTracks.map((t) => (
                 <button
                   key={t.id}
@@ -257,7 +257,7 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
                       : "bg-muted/50 text-muted-foreground hover:bg-muted"
                   )}
                 >
-                  {t.name.split(" ")[0]}
+                  {t.name}
                 </button>
               ))}
             </div>
