@@ -23,8 +23,8 @@ export const BackgroundGradients = () => {
 
   // Extract hue from HSL for CSS filter
   const hue = primaryGlow ? parseInt(primaryGlow.split(' ')[0]) : 200;
-  // Calculate hue rotation from base (the image is warm/orange ~30deg)
-  const hueRotate = hue - 30;
+  // Calculate hue rotation from base (the image appears warm/pink ~330deg)
+  const hueRotate = hue - 330;
 
   return (
     <motion.div
@@ -35,7 +35,7 @@ export const BackgroundGradients = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Tinted image using CSS filter */}
+      {/* Tinted image using CSS filter - darkened with brightness */}
       <div
         style={{
           position: 'absolute',
@@ -44,8 +44,7 @@ export const BackgroundGradients = () => {
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          filter: `hue-rotate(${hueRotate}deg) saturate(${isNoir ? 0 : 1.2})`,
-          opacity: isNoir ? 0.15 : 0.4,
+          filter: `hue-rotate(${hueRotate}deg) saturate(${isNoir ? 0 : 1.3}) brightness(${isNoir ? 0.15 : 0.35})`,
         }}
       />
     </motion.div>
