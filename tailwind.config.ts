@@ -54,6 +54,14 @@ export default {
 				accent: {
 					DEFAULT: 'hsl(var(--accent))',
 					foreground: 'hsl(var(--accent-foreground))'
+				},
+				'user-message': {
+					DEFAULT: 'hsl(var(--user-message-bg))',
+					border: 'hsl(var(--user-message-border))'
+				},
+				'ai-message': {
+					DEFAULT: 'hsl(var(--ai-message-bg))',
+					border: 'hsl(var(--ai-message-border))'
 				}
 			},
 			backdropBlur: {

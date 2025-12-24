@@ -57,6 +57,8 @@ All colors MUST be HSL for perfect glass effects.
     /* Message Bubble Colors */
     --ai-message-bg: 240 8% 16%;
     --ai-message-border: 240 10% 24%;
+    --user-message-bg: 200 95% 55%;
+    --user-message-border: 200 95% 55%;
     
     /* Radius System */
     --radius: 0.75rem;
@@ -628,10 +630,10 @@ All colors MUST be HSL for perfect glass effects.
     min-height: calc(100vh - 30px) !important;
   }
 
-  /* Noir theme: Pure black user message bubbles */
-  [data-accent="noir"] .noir-user-bubble {
-    background-color: hsl(0 0% 0%) !important;
-    border-color: hsl(0 0% 20%) !important;
+  /* User message bubble - theme tinted */
+  .user-message-bubble {
+    background-color: hsl(var(--user-message-bg) / 0.45);
+    border: 1px solid hsl(var(--user-message-border) / 0.65);
   }
 
   /* Noir theme: Black buttons with white text/icons */
