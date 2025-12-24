@@ -292,12 +292,12 @@ export function LandingScreen() {
       scalar: 1.2,
     });
 
-    // Show "I'm Sorry" text briefly
+    // Show "I'm Sorry" text briefly using textContent (safer than innerHTML)
     const button = e.currentTarget;
-    const originalText = button.innerHTML;
-    button.innerHTML = "I'm Sorry";
+    const originalText = button.textContent;
+    button.textContent = "I'm Sorry";
     setTimeout(() => {
-      button.innerHTML = originalText;
+      button.textContent = originalText;
     }, 500);
   };
 
