@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, RefreshCw } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, RefreshCw, Headphones } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -10,6 +10,7 @@ import { WelcomeSection } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { SupportPopup } from "@/components/SupportPopup";
+import { MusicPopup } from "@/components/MusicPopup";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { usePromptPreload } from "@/hooks/usePromptPreload";
 import { useAdminBanner } from "@/components/AdminBanner";
+import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 
 /** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
@@ -197,8 +199,72 @@ export function MobileChatApp() {
   const [snarkyMessage, setSnarkyMessage] = useState<string | null>(null);
   const [isLogoSpinning, setIsLogoSpinning] = useState(false);
   const [isSupportPopupOpen, setIsSupportPopupOpen] = useState(false);
+  const [isMusicPopupOpen, setIsMusicPopupOpen] = useState(false);
   const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Music store
+  const {
+    isPlaying: isMusicPlaying,
+    setIsPlaying: setMusicIsPlaying,
+    volume: musicVolume,
+    isMuted: musicMuted,
+    currentTrack,
+    setAudioRef,
+    setCurrentTime: setMusicCurrentTime,
+    setDuration: setMusicDuration,
+    setIsLoading: setMusicIsLoading,
+  } = useMusicStore();
+
+  // Get current track data
+  const getCurrentTrack = () => musicTracks.find(t => t.id === currentTrack) || musicTracks[0];
+  const currentMusicTrack = getCurrentTrack();
+
+  // Set audio ref in store on mount
+  useEffect(() => {
+    if (audioRef.current) {
+      setAudioRef(audioRef.current);
+    }
+  }, [setAudioRef]);
+
+  // Audio event handlers
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleEnded = () => setMusicIsPlaying(false);
+    const handleError = () => {
+      setMusicIsPlaying(false);
+      setMusicIsLoading(false);
+    };
+    const handleTimeUpdate = () => {
+      setMusicCurrentTime(audio.currentTime);
+    };
+    const handleLoadedMetadata = () => {
+      setMusicDuration(audio.duration);
+      setMusicIsLoading(false);
+    };
+    const handleLoadStart = () => setMusicIsLoading(true);
+    const handleCanPlay = () => setMusicIsLoading(false);
+
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.volume = musicMuted ? 0 : musicVolume;
+
+    return () => {
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('loadstart', handleLoadStart);
+      audio.removeEventListener('canplay', handleCanPlay);
+    };
+  }, [musicVolume, musicMuted, currentTrack, setMusicIsPlaying, setMusicCurrentTime, setMusicDuration, setMusicIsLoading]);
 
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -584,31 +650,67 @@ export function MobileChatApp() {
               </motion.div>
             </div>
 
-            {/* Logo Orb - clickable and opens support popup */}
-            <motion.div
-              className="relative pointer-events-auto"
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              whileTap={{ scale: 0.95 }}
-              animate={isLogoSpinning ? { rotate: 360 } : { rotate: 0 }}
-              transition={isLogoSpinning ? { duration: 0.6, ease: "easeOut" } : { type: "spring", damping: 15, stiffness: 300 }}
-            >
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full glass-shimmer transition-all overflow-hidden"
-                onClick={() => {
-                  // Trigger spin animation
-                  setIsLogoSpinning(true);
-                  setTimeout(() => setIsLogoSpinning(false), 600);
-
-                  // Open support popup
-                  setIsSupportPopupOpen(true);
-                }}
-                title="Support ArcAI"
+            {/* Right side buttons - Music + Logo */}
+            <div className="flex items-center gap-2 pointer-events-auto">
+              {/* Music Player Button */}
+              <motion.div 
+                whileHover={{ scale: 1.1, y: -2 }} 
+                whileTap={{ scale: 0.95 }} 
+                transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                className="relative"
               >
-                <ThemedLogo className="h-9 w-9" alt="Arc" />
-              </Button>
-            </motion.div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={cn(
+                    "rounded-full glass-shimmer transition-all",
+                    isMusicPlaying && "ring-2 ring-primary/50"
+                  )}
+                  onClick={() => setIsMusicPopupOpen(!isMusicPopupOpen)}
+                  title="Music Player"
+                >
+                  <Headphones className="h-4 w-4" />
+                </Button>
+                {/* Playing indicator */}
+                {isMusicPlaying && (
+                  <motion.div
+                    className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <div className="w-0.5 h-1.5 bg-primary rounded-full animate-pulse" />
+                    <div className="w-0.5 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.15s' }} />
+                    <div className="w-0.5 h-1.5 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.3s' }} />
+                  </motion.div>
+                )}
+              </motion.div>
+
+              {/* Logo Orb - clickable and opens support popup */}
+              <motion.div
+                className="relative"
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                whileTap={{ scale: 0.95 }}
+                animate={isLogoSpinning ? { rotate: 360 } : { rotate: 0 }}
+                transition={isLogoSpinning ? { duration: 0.6, ease: "easeOut" } : { type: "spring", damping: 15, stiffness: 300 }}
+              >
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full glass-shimmer transition-all overflow-hidden"
+                  onClick={() => {
+                    // Trigger spin animation
+                    setIsLogoSpinning(true);
+                    setTimeout(() => setIsLogoSpinning(false), 600);
+
+                    // Open support popup
+                    setIsSupportPopupOpen(true);
+                  }}
+                  title="Support ArcAI"
+                >
+                  <ThemedLogo className="h-9 w-9" alt="Arc" />
+                </Button>
+              </motion.div>
+            </div>
           </div>
         </div>
 
@@ -781,6 +883,20 @@ export function MobileChatApp() {
         <SupportPopup
           isOpen={isSupportPopupOpen}
           onClose={() => setIsSupportPopupOpen(false)}
+        />
+
+        {/* Music Popup */}
+        <MusicPopup
+          isOpen={isMusicPopupOpen}
+          onClose={() => setIsMusicPopupOpen(false)}
+        />
+
+        {/* Global Audio Element for Music Player */}
+        <audio
+          ref={audioRef}
+          src={currentMusicTrack.url}
+          loop
+          preload="metadata"
         />
       </div>
 
