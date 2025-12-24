@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { Message } from "@/store/useArcStore";
 import { useArcStore } from "@/store/useArcStore";
 import { useProfile } from "@/hooks/useProfile";
+import { useAccentColor } from "@/hooks/useAccentColor";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,17 @@ import { FileAttachment } from "@/components/FileAttachment";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { MemoryIndicator } from "@/components/MemoryIndicator";
 
+// User bubble colors for each theme
+const userBubbleColors: Record<string, string> = {
+  red: "0 85% 60%",
+  blue: "200 95% 55%",
+  green: "142 76% 42%",
+  yellow: "48 95% 60%",
+  purple: "270 75% 60%",
+  orange: "25 95% 58%",
+  noir: "0 0% 0%",
+};
+
 interface MessageBubbleProps {
   message: Message;
   onEdit?: (messageId: string, newContent: string) => void;
@@ -33,12 +45,16 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const { editMessage } = useArcStore();
     const { profile } = useProfile();
     const { toast } = useToast();
+    const { accentColor } = useAccentColor();
     const [isEditing, setIsEditing] = useState(false);
     const [editContent, setEditContent] = useState(message.content);
     const [showActions, setShowActions] = useState(false);
     const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
     const [editImageUrls, setEditImageUrls] = useState<string[] | null>(null);
     const isUser = message.role === "user";
+
+    // Get bubble color for current theme
+    const bubbleColor = userBubbleColors[accentColor] || userBubbleColors.blue;
 
     const handleCopy = async () => {
       try {
@@ -142,9 +158,12 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 "transition-[transform,box-shadow,background] duration-200",
                 "hover:shadow-[0_10px_26px_-8px_rgba(0,0,0,0.45)]",
                 "overflow-visible",
-                "user-message-bubble" // Styled via CSS for proper theme tinting
               ].join(" ") : "relative cursor-pointer w-full min-w-0",
             ].join(" ")}
+            style={isUser ? {
+              backgroundColor: `hsl(${bubbleColor} / 0.45)`,
+              border: `1px solid hsl(${bubbleColor} / 0.65)`,
+            } : undefined}
           >
             {/* Inner content clipper keeps visuals rounded while outer allows overflow */}
             <div className={isUser ? "relative px-4 py-3 rounded-[22px] overflow-hidden" : "relative w-full min-w-0"}>
