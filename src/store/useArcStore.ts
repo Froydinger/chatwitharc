@@ -65,8 +65,8 @@ export interface ArcState {
   setCurrentTab: (tab: 'chat' | 'history' | 'settings') => void;
   rightPanelOpen: boolean;
   setRightPanelOpen: (open: boolean) => void;
-  rightPanelTab: 'history' | 'media' | 'apps' | 'music' | 'settings' | 'export';
-  setRightPanelTab: (tab: 'history' | 'media' | 'apps' | 'music' | 'settings' | 'export') => void;
+  rightPanelTab: 'history' | 'media' | 'apps' | 'settings' | 'export';
+  setRightPanelTab: (tab: 'history' | 'media' | 'apps' | 'settings' | 'export') => void;
 
   isLoading: boolean;
   isGeneratingImage: boolean;
