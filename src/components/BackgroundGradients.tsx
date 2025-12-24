@@ -3,8 +3,7 @@ import { useAccentColor } from "@/hooks/useAccentColor";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
-// Upload the image to public/bg-gradient.jpg
-const IMAGE_URL = "/bg-gradient.jpg";
+const IMAGE_URL = "/images/gradient-bg.jpg";
 
 export const BackgroundGradients = () => {
   const { accentColor: themeAccent } = useTheme();

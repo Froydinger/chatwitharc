@@ -531,7 +531,7 @@ export function MobileChatApp() {
   return (
     <div
       className={cn(
-        "min-h-screen bg-background flex relative",
+        "min-h-screen flex relative",
         (isPWAMode || isElectronApp) && "md:pt-[30px]"
       )}
       style={{

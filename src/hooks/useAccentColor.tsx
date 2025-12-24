@@ -10,6 +10,8 @@ const accentColorConfigs = {
     primaryGlow: "0 85% 70%",
     aiMessageBg: "0 15% 16%",
     aiMessageBorder: "0 20% 24%",
+    userMessageBg: "0 85% 60%",
+    userMessageBorder: "0 85% 60%",
     lightAiMessageBg: "0 20% 97%",
     lightAiMessageBorder: "0 15% 92%",
     lightPrimary: "0 90% 55%",
@@ -20,6 +22,8 @@ const accentColorConfigs = {
     primaryGlow: "200 90% 65%",
     aiMessageBg: "200 15% 16%",
     aiMessageBorder: "200 20% 24%",
+    userMessageBg: "200 95% 55%",
+    userMessageBorder: "200 95% 55%",
     lightAiMessageBg: "200 20% 97%",
     lightAiMessageBorder: "200 15% 92%",
     lightPrimary: "200 95% 50%",
@@ -30,6 +34,8 @@ const accentColorConfigs = {
     primaryGlow: "142 76% 52%",
     aiMessageBg: "142 15% 16%",
     aiMessageBorder: "142 20% 24%",
+    userMessageBg: "142 76% 42%",
+    userMessageBorder: "142 76% 42%",
     lightAiMessageBg: "142 20% 97%",
     lightAiMessageBorder: "142 15% 92%",
     lightPrimary: "142 76% 45%",
@@ -40,6 +46,8 @@ const accentColorConfigs = {
     primaryGlow: "48 95% 70%",
     aiMessageBg: "48 15% 16%",
     aiMessageBorder: "48 20% 24%",
+    userMessageBg: "48 95% 60%",
+    userMessageBorder: "48 95% 60%",
     lightAiMessageBg: "48 20% 97%",
     lightAiMessageBorder: "48 15% 92%",
     lightPrimary: "48 95% 55%",
@@ -50,6 +58,8 @@ const accentColorConfigs = {
     primaryGlow: "270 75% 70%",
     aiMessageBg: "270 15% 16%",
     aiMessageBorder: "270 20% 24%",
+    userMessageBg: "270 75% 60%",
+    userMessageBorder: "270 75% 60%",
     lightAiMessageBg: "270 20% 97%",
     lightAiMessageBorder: "270 15% 92%",
     lightPrimary: "270 75% 55%",
@@ -60,6 +70,8 @@ const accentColorConfigs = {
     primaryGlow: "25 95% 68%",
     aiMessageBg: "25 15% 16%",
     aiMessageBorder: "25 20% 24%",
+    userMessageBg: "25 95% 58%",
+    userMessageBorder: "25 95% 58%",
     lightAiMessageBg: "25 20% 97%",
     lightAiMessageBorder: "25 15% 92%",
     lightPrimary: "25 95% 55%",
@@ -70,6 +82,8 @@ const accentColorConfigs = {
     primaryGlow: "0 0% 75%",
     aiMessageBg: "0 0% 0%",
     aiMessageBorder: "0 0% 8%",
+    userMessageBg: "0 0% 0%",
+    userMessageBorder: "0 0% 20%",
     lightAiMessageBg: "0 0% 97%",
     lightAiMessageBorder: "0 0% 90%",
     lightPrimary: "0 0% 15%",
@@ -133,6 +147,8 @@ export function useAccentColor() {
       root.style.setProperty("--ring", config.primary);
       root.style.setProperty("--ai-message-bg", config.aiMessageBg);
       root.style.setProperty("--ai-message-border", config.aiMessageBorder);
+      root.style.setProperty("--user-message-bg", config.userMessageBg);
+      root.style.setProperty("--user-message-border", config.userMessageBorder);
 
       // Noir theme: black text on white buttons for contrast
       if (isNoir) {
