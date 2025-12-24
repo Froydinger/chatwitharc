@@ -33,7 +33,7 @@ export const musicTracks: MusicTrack[] = [
   },
   { 
     id: 'taylor', 
-    name: 'The Best Day', 
+    name: 'Taylor', 
     url: '/audio/taylor-swift-best-day.mp3',
     artist: 'Taylor Swift',
     albumArt: '/lovable-uploads/taylor-swift-album.jpg'
