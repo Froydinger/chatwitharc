@@ -538,12 +538,6 @@ export function MobileChatApp() {
         paddingTop: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : undefined
       }}
     >
-      {/* Breathing gradient background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="chat-breathing-blob chat-breathing-blob-1"></div>
-        <div className="chat-breathing-blob chat-breathing-blob-2"></div>
-      </div>
-
       {/* Main Content */}
       <div
         className={cn(

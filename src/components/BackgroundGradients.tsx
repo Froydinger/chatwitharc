@@ -25,24 +25,18 @@ export const BackgroundGradients = () => {
     .getPropertyValue('--primary-glow')
     .trim();
 
-  // Noir theme: much subtler tinting
-  const tintOpacity = isNoir ? 0.15 : 0.45;
-  const imageOpacity = isNoir ? 0.08 : 0.25;
+  // Noir theme: subtler tinting
+  const tintOpacity = isNoir ? 0.3 : 0.6;
 
   return (
     <motion.div
       key={`bg-image-${accentColor}`}
-      className="fixed pointer-events-none -z-10"
+      className="fixed inset-0 pointer-events-none -z-10"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      style={{
-        inset: 0,
-        width: '100%',
-        height: '100%',
-      }}
     >
-      {/* Base image layer */}
+      {/* Base image layer - full opacity */}
       <div
         style={{
           position: 'absolute',
@@ -51,26 +45,35 @@ export const BackgroundGradients = () => {
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          opacity: imageOpacity,
-          filter: 'blur(0px)',
         }}
       />
-      {/* Color tint overlay */}
+      {/* Color tint overlay using hue blend mode */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundColor: `hsl(${primaryGlow})`,
+          mixBlendMode: 'hue',
+          opacity: tintOpacity,
+        }}
+      />
+      {/* Additional color saturation layer */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           backgroundColor: `hsl(${primaryGlow})`,
           mixBlendMode: 'color',
-          opacity: tintOpacity,
+          opacity: tintOpacity * 0.5,
         }}
       />
-      {/* Darkening overlay for better contrast */}
+      {/* Dark overlay to maintain readability */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          background: `radial-gradient(ellipse at center, transparent 0%, hsl(240 8% 8% / 0.6) 100%)`,
+          backgroundColor: 'hsl(240 8% 8%)',
+          opacity: isNoir ? 0.85 : 0.7,
         }}
       />
     </motion.div>

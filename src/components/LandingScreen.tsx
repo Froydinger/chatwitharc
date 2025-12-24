@@ -311,18 +311,8 @@ export function LandingScreen() {
         paddingTop: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : undefined
       }}
     >
-      {/* Background Gradients */}
+      {/* Background Image */}
       <BackgroundGradients />
-
-      {/* Animated Background Blobs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="liquid-blob w-[500px] h-[500px] bg-blue-900 top-[-100px] left-[20%] rounded-full opacity-40"></div>
-        <div className="liquid-blob liquid-blob-2 w-[600px] h-[600px] bg-blue-700 bottom-[-100px] right-[10%] rounded-full opacity-35"></div>
-        <div className="liquid-blob w-[400px] h-[400px] bg-cyan-900 top-[40%] left-[-100px] rounded-full opacity-25"></div>
-      </div>
-
-      {/* Bottom Blur Edge */}
-      <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background via-background/50 to-transparent pointer-events-none z-40" />
 
       {/* Sticky Header */}
       <AnimatePresence>
