@@ -11,6 +11,20 @@ export interface MusicTrack {
 
 export const musicTracks: MusicTrack[] = [
   { 
+    id: 'lofi', 
+    name: 'Lo-Fi Beats', 
+    url: 'https://froydinger.blog/wp-content/uploads/2025/03/lofi-beats-mix.mp3',
+    artist: 'Chill Collective',
+    albumArt: '/lovable-uploads/lofi-cartoon-album.jpg'
+  },
+  { 
+    id: 'jazz', 
+    name: 'Coffee House Jazz', 
+    url: 'https://froydinger.blog/wp-content/uploads/2025/05/jazz-coffee-bar-music.mp3',
+    artist: 'Jazz Lounge',
+    albumArt: '/lovable-uploads/jazz-cartoon-album.jpg'
+  },
+  { 
     id: 'ambient', 
     name: 'Space Ambient', 
     url: '/audio/space-ambient.mp3',
@@ -79,7 +93,7 @@ export const useMusicStore = create<MusicState>()(
       // Initial state
       isPlaying: false,
       volume: 0.5,
-      currentTrack: 'ambient',
+      currentTrack: 'lofi',
       isMuted: false,
       currentTime: 0,
       duration: 0,
