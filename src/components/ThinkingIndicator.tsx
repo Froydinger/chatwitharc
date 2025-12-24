@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemedLogo } from "@/components/ThemedLogo";
@@ -27,6 +27,30 @@ const ARC_PUNS = [
 export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemory, searchingChats, searchingWeb }: ThinkingIndicatorProps) {
   const showThinking = isLoading || isGeneratingImage || accessingMemory || searchingChats || searchingWeb;
   const [currentPunIndex, setCurrentPunIndex] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Play elevator music when thinking starts
+  useEffect(() => {
+    if (showThinking) {
+      // Create audio element for elevator music
+      const audio = new Audio('/audio/elevator-music.mp3');
+      audio.loop = true;
+      audio.volume = 0.3;
+      audioRef.current = audio;
+      audio.play().catch(() => {
+        // Autoplay may be blocked, that's fine
+      });
+    }
+
+    return () => {
+      // Stop and clean up when thinking ends
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
+      }
+    };
+  }, [showThinking]);
 
   // Rotate through puns every 2 seconds when thinking
   useEffect(() => {
