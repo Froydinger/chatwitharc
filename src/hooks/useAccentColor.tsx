@@ -83,8 +83,12 @@ const accentColorConfigs = {
     primaryGlow: "0 0% 75%",
     aiMessageBg: "0 0% 12%",
     aiMessageBorder: "0 0% 20%",
-    userMessageBg: "0 0% 35%",
-    userMessageBorder: "0 0% 45%",
+
+    // IMPORTANT: keep noir UI surfaces, but make *user* bubbles neon-blue glass
+    // so they don't look like black blobs on a dark background.
+    userMessageBg: "200 95% 55%",
+    userMessageBorder: "200 95% 55%",
+
     lightAiMessageBg: "0 0% 97%",
     lightAiMessageBorder: "0 0% 90%",
     lightPrimary: "0 0% 15%",
