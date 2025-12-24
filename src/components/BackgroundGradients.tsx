@@ -3,8 +3,6 @@ import { useAccentColor } from "@/hooks/useAccentColor";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
-const IMAGE_URL = "/images/gradient-bg.jpg";
-
 export const BackgroundGradients = () => {
   const { accentColor: themeAccent } = useTheme();
   const { accentColor } = useAccentColor();
@@ -21,30 +19,31 @@ export const BackgroundGradients = () => {
     .getPropertyValue('--primary-glow')
     .trim();
 
-  // Extract hue from HSL for CSS filter
-  const hue = primaryGlow ? parseInt(primaryGlow.split(' ')[0]) : 200;
-  // Calculate hue rotation from base (the image appears warm/pink ~330deg)
-  const hueRotate = hue - 330;
+  // Noir theme: much subtler gradient
+  const opacityMultiplier = isNoir ? 0.15 : 1;
 
   return (
     <motion.div
-      key={`bg-image-${accentColor}`}
+      key={`bg-static-${accentColor}`}
       className="fixed inset-0 pointer-events-none"
       style={{ zIndex: -1 }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Tinted image using CSS filter - darkened with brightness */}
+      {/* Single static radial gradient orb from center */}
       <div
         style={{
           position: 'absolute',
-          inset: 0,
-          backgroundImage: `url("${IMAGE_URL}")`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          filter: `hue-rotate(${hueRotate}deg) saturate(${isNoir ? 0 : 1.3}) brightness(${isNoir ? 0.15 : 0.35})`,
+          top: '-25%',
+          left: '-25%',
+          width: '150%',
+          height: '150%',
+          background: `radial-gradient(circle at center,
+            hsl(${primaryGlow} / ${0.18 * opacityMultiplier}) 0%,
+            hsl(${primaryGlow} / ${0.1 * opacityMultiplier}) 30%,
+            hsl(${primaryGlow} / ${0.04 * opacityMultiplier}) 55%,
+            transparent 75%)`,
         }}
       />
     </motion.div>
