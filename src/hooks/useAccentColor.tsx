@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useAccentStore, type AccentColor } from "@/store/useAccentStore";
 
-export type AccentColor = "red" | "blue" | "green" | "yellow" | "purple" | "orange" | "noir";
+export type { AccentColor } from "@/store/useAccentStore";
 
 const accentColorConfigs = {
   red: {
@@ -93,11 +94,10 @@ const accentColorConfigs = {
 
 export function useAccentColor() {
   const { user } = useAuth();
-  const [accentColor, setAccentColorState] = useState<AccentColor>(() => {
-    const saved = localStorage.getItem("accentColor");
-    return (saved as AccentColor) || "blue";
-  });
+  const accentColor = useAccentStore((s) => s.accentColor);
+  const setAccentColorLocal = useAccentStore((s) => s.setAccentColorLocal);
   const [isLoaded, setIsLoaded] = useState(false);
+
 
   // Load accent color from profile on mount
   useEffect(() => {
@@ -115,8 +115,8 @@ export function useAccentColor() {
           .maybeSingle();
 
         if (!error && data?.accent_color) {
-          setAccentColorState(data.accent_color as AccentColor);
-          localStorage.setItem("accentColor", data.accent_color);
+          // Update local shared state (no DB write-back)
+          setAccentColorLocal(data.accent_color as AccentColor);
         }
         setIsLoaded(true);
       } catch (err) {
@@ -300,10 +300,10 @@ export function useAccentColor() {
   }, [accentColor]);
 
   const setAccentColor = async (color: AccentColor) => {
-    setAccentColorState(color);
-    localStorage.setItem("accentColor", color);
+    // Update shared local state immediately (this drives CSS + UI everywhere)
+    setAccentColorLocal(color);
 
-    // Save to profile if user is logged in and Supabase is configured
+    // Save to profile if user is logged in and backend is configured
     if (user && supabase && isSupabaseConfigured) {
       try {
         await supabase.from("profiles").update({ accent_color: color }).eq("user_id", user.id);

@@ -540,8 +540,8 @@ export function SettingsPanel() {
             </div>
             <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
               <DialogTrigger asChild>
-                <GlassButton className="w-full">
-                  <Brain className="w-4 h-4 mr-2" />
+                <GlassButton className="w-full h-12 rounded-full outline-shimmer inline-flex items-center justify-center text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]">
+                  <Brain className="h-4 w-4 mr-2" />
                   Memories and Context ({memories.length})
                 </GlassButton>
               </DialogTrigger>
