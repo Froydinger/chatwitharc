@@ -630,23 +630,6 @@ All colors MUST be HSL for perfect glass effects.
     min-height: calc(100vh - 30px) !important;
   }
 
-  /* User message bubble - theme tinted (brighter + more chroma) */
-  .user-message-bubble {
-    background-color: hsl(var(--user-message-bg) / 0.88);
-    border: 1px solid hsl(var(--user-message-border) / 0.92);
-    box-shadow:
-      0 10px 26px -12px hsl(var(--user-message-bg) / 0.55),
-      inset 0 1px 0 hsl(var(--user-message-bg) / 0.25);
-  }
-
-  .user-message-bubble-overlay {
-    background: linear-gradient(
-      to bottom,
-      hsl(var(--user-message-bg) / 0.06),
-      hsl(var(--user-message-bg) / 0.22)
-    );
-  }
-
   /* Noir theme: Black buttons with white text/icons */
   [data-accent="noir"] .noir-send-btn {
     background-color: hsl(0 0% 5%) !important;
@@ -658,4 +641,27 @@ All colors MUST be HSL for perfect glass effects.
     color: hsl(0 0% 95%) !important;
     stroke: hsl(0 0% 95%) !important;
   }
+}
+
+/* User message bubble - OUTSIDE @layer for high specificity */
+.user-message-bubble {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--user-message-bg) / 0.85) 0%,
+    hsl(var(--user-message-bg) / 0.65) 100%
+  ) !important;
+  border: 1px solid hsl(var(--user-message-border) / 0.7) !important;
+  box-shadow:
+    0 8px 24px -8px hsl(var(--user-message-bg) / 0.5),
+    0 0 20px -4px hsl(var(--user-message-bg) / 0.3),
+    inset 0 1px 1px hsl(var(--user-message-bg) / 0.3) !important;
+  backdrop-filter: blur(12px) saturate(1.4) !important;
+}
+
+.user-message-bubble-overlay {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    hsl(var(--user-message-bg) / 0.15) 100%
+  ) !important;
 }
