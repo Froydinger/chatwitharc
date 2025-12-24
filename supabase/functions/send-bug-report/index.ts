@@ -9,6 +9,43 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// HTML escape function to prevent XSS in emails
+function escapeHtml(text: string): string {
+  if (!text) return '';
+  const map: { [key: string]: string } = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+// Sanitize stack traces to remove sensitive file paths
+function sanitizeStackTrace(stack: string): string {
+  if (!stack) return '';
+  return stack
+    .split('\n')
+    .map(line => {
+      // Remove full file paths, keep only filename and line numbers
+      return line.replace(/\(\/.*\/([^/]+\.[tj]sx?:\d+:\d+)\)/g, '($1)')
+                 .replace(/at \/.*\/([^/]+\.[tj]sx?:\d+:\d+)/g, 'at $1');
+    })
+    .join('\n');
+}
+
+// Validate URL to prevent javascript: and other dangerous protocols
+function isValidUrl(url: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return ['http:', 'https:'].includes(parsed.protocol);
+  } catch {
+    return false;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -50,43 +87,52 @@ serve(async (req) => {
       );
     }
 
-    // Format email content
+    // Sanitize all user inputs before including in email
+    const safeUserEmail = escapeHtml(userEmail || 'Not provided');
+    const safeUrl = isValidUrl(url) ? escapeHtml(url) : 'Invalid URL';
+    const safeUserAgent = escapeHtml(userAgent || 'Unknown');
+    const safeDescription = escapeHtml(description || '').replace(/\n/g, '<br>');
+    const safeErrorMessage = escapeHtml(errorMessage || 'No error message');
+    const safeErrorStack = errorStack ? escapeHtml(sanitizeStackTrace(errorStack)) : '';
+
+    // Format email content with sanitized inputs
     const emailHtml = `
       <h2>🐛 New Bug Report</h2>
 
       <h3>User Information</h3>
-      <p><strong>Email:</strong> ${userEmail || 'Not provided'}</p>
-      <p><strong>URL:</strong> <a href="${url}">${url}</a></p>
-      <p><strong>User Agent:</strong> ${userAgent}</p>
+      <p><strong>Email:</strong> ${safeUserEmail}</p>
+      <p><strong>URL:</strong> ${isValidUrl(url) ? `<a href="${safeUrl}">${safeUrl}</a>` : safeUrl}</p>
+      <p><strong>User Agent:</strong> ${safeUserAgent}</p>
 
       <h3>User Description</h3>
-      <p>${description.replace(/\n/g, '<br>')}</p>
+      <p>${safeDescription}</p>
 
       <h3>Error Message</h3>
-      <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">${errorMessage}</pre>
+      <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">${safeErrorMessage}</pre>
 
-      ${errorStack ? `
-        <h3>Stack Trace</h3>
-        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 400px; overflow-y: auto;">${errorStack}</pre>
+      ${safeErrorStack ? `
+        <h3>Stack Trace (Sanitized)</h3>
+        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 400px; overflow-y: auto;">${safeErrorStack}</pre>
       ` : ''}
 
       <hr>
       <p style="color: #666; font-size: 12px;">Sent from ArcAI Bug Report System</p>
     `;
 
+    // Plain text version (also sanitized for consistency)
     const emailText = `
 New Bug Report
 
 User Email: ${userEmail || 'Not provided'}
-URL: ${url}
+URL: ${isValidUrl(url) ? url : 'Invalid URL'}
 
 User Description:
-${description}
+${description || 'No description'}
 
 Error Message:
-${errorMessage}
+${errorMessage || 'No error message'}
 
-${errorStack ? `Stack Trace:\n${errorStack}` : ''}
+${errorStack ? `Stack Trace (Sanitized):\n${sanitizeStackTrace(errorStack)}` : ''}
     `;
 
     // Send email using Resend
