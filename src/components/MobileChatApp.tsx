@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, RefreshCw, Headphones } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, RefreshCw, Music } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -669,20 +669,29 @@ export function MobileChatApp() {
                   onClick={() => setIsMusicPopupOpen(!isMusicPopupOpen)}
                   title="Music Player"
                 >
-                  <Headphones className="h-4 w-4" />
+                  {/* Show waveform when playing, music note when not */}
+                  {isMusicPlaying ? (
+                    <div className="flex items-end justify-center gap-[3px] h-4 w-4">
+                      <motion.div 
+                        className="w-[3px] bg-primary rounded-full"
+                        animate={{ height: ["40%", "100%", "60%", "90%", "40%"] }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                      />
+                      <motion.div 
+                        className="w-[3px] bg-primary rounded-full"
+                        animate={{ height: ["100%", "50%", "80%", "40%", "100%"] }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+                      />
+                      <motion.div 
+                        className="w-[3px] bg-primary rounded-full"
+                        animate={{ height: ["60%", "90%", "40%", "100%", "60%"] }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+                      />
+                    </div>
+                  ) : (
+                    <Music className="h-4 w-4" />
+                  )}
                 </Button>
-                {/* Playing indicator */}
-                {isMusicPlaying && (
-                  <motion.div
-                    className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    <div className="w-0.5 h-1.5 bg-primary rounded-full animate-pulse" />
-                    <div className="w-0.5 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.15s' }} />
-                    <div className="w-0.5 h-1.5 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.3s' }} />
-                  </motion.div>
-                )}
               </motion.div>
 
               {/* Logo Orb - clickable and opens support popup */}
