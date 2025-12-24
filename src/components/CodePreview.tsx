@@ -113,8 +113,10 @@ export function CodePreview({ code, language }: CodePreviewProps) {
 
               ${jsCode}
             } catch (err) {
-              document.getElementById('output').innerHTML =
-                '<div style="color: red;">Error: ' + err.message + '</div>';
+              const errorDiv = document.createElement('div');
+              errorDiv.style.color = 'red';
+              errorDiv.textContent = 'Error: ' + err.message;
+              document.getElementById('output').appendChild(errorDiv);
             }
           </script>
         </body>
@@ -195,7 +197,7 @@ export function CodePreview({ code, language }: CodePreviewProps) {
       <iframe
         ref={iframeRef}
         className="w-full min-h-[600px] h-full bg-white"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
+        sandbox="allow-scripts allow-forms allow-modals allow-popups"
         title="Code Preview"
         scrolling="yes"
       />
