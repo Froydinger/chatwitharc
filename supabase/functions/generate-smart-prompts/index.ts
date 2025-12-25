@@ -58,7 +58,7 @@ serve(async (req) => {
     // Build prompt for AI
     const systemPrompt = `You generate personalized prompt suggestions for a user to send to an AI assistant.
 
-IMPORTANT CONTEXT - This is information ABOUT THE USER (not you, the AI):
+IMPORTANT CONTEXT - This is information ABOUT THE USER that you already know:
 ${profile?.display_name ? `- The user's name is: ${profile.display_name}` : ''}
 ${profile?.memory_info ? `- Things the user has shared about themselves: ${profile.memory_info}` : ''}
 ${profile?.context_info ? `- Additional context about the user: ${profile.context_info}` : ''}
@@ -67,27 +67,29 @@ ${chatContext}
 
 Generate 6 smart, personalized prompt suggestions.
 
-CRITICAL PERSPECTIVE RULES:
-1. Prompts must be written FROM THE USER'S PERSPECTIVE - as things THEY would say/ask TO an AI
-2. Use first-person language: "I", "my", "me", "we", "our"
-3. NEVER write prompts from the AI's perspective
-4. NEVER address the user or use "you/your" in the prompts
-5. The user's profile info describes THEM - they are the founder, they have the podcast, etc.
+CRITICAL STYLE RULES:
+1. DO NOT re-state or summarize the user's context in the prompt
+2. Reference context IMPLICITLY - assume the AI already knows their background
+3. Be PRACTICAL and ACTIONABLE - help with real tasks, not spiritual/ethereal stuff
+4. Write prompts that get straight to the point
 
-CORRECT EXAMPLES (user speaking to AI):
-✅ "Help me brainstorm ideas for my next podcast episode"
-✅ "What are some marketing strategies I could use for my business?"
-✅ "Can you review my latest article draft?"
+CORRECT EXAMPLES (implicitly reference known context):
+✅ "Help me prep for my investor meeting next week" (assumes AI knows they're a founder)
+✅ "What topics should I cover in Episode 23?" (assumes AI knows they have a podcast)
+✅ "Draft a follow-up email for the lead from yesterday" (assumes AI knows their job)
+✅ "Given the Q3 numbers, what should I prioritize?" (assumes AI knows business context)
 
-WRONG EXAMPLES (do NOT do this):
-❌ "Tell me about your podcast" (AI doesn't have a podcast - the USER does)
-❌ "What else can you share about your work?" (addressing user, not AI)
-❌ "As a co-founder, you might consider..." (AI perspective, addressing user)
+WRONG EXAMPLES (explicitly restating context - DO NOT DO THIS):
+❌ "I work as a sales manager at XYZ Company. Can you help me..." (don't re-explain)
+❌ "As a podcast host, I need ideas for..." (don't re-state their role)
+❌ "Since I'm a co-founder of a startup, what should..." (don't repeat context)
+
+The prompts should feel like a conversation continuation, not a cold start.
 
 Return ONLY a JSON array with exactly 6 objects, each with "label" and "prompt" fields.
 Example format:
 [
-  {"label": "🎯 Topic name", "prompt": "Full prompt text written from user's perspective"},
+  {"label": "🎯 Investor Prep", "prompt": "Help me prepare talking points for Friday's pitch"},
   ...
 ]`;
 

@@ -257,7 +257,7 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
                       : "bg-muted/50 text-muted-foreground hover:bg-muted"
                   )}
                 >
-                  {t.name}
+                  {t.previewName || t.name}
                 </button>
               ))}
             </div>
