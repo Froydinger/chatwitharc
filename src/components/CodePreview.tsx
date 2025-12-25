@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import * as React from "react";
-import { AlertCircle, AlertTriangle } from "lucide-react";
 
 interface CodePreviewProps {
   code: string;
@@ -8,14 +7,11 @@ interface CodePreviewProps {
 }
 
 export function CodePreview({ code, language }: CodePreviewProps) {
-  const { htmlContent, showWarning } = useMemo(() => {
-    const needsWarning = language === "html" || language === "javascript" || language === "js";
-    
+  const htmlContent = useMemo(() => {
     if (language === "html") {
-      return { htmlContent: code, showWarning: needsWarning };
+      return code;
     } else if (language === "css") {
-      return {
-        htmlContent: `
+      return `
           <!DOCTYPE html>
           <html>
             <head>
@@ -33,12 +29,9 @@ export function CodePreview({ code, language }: CodePreviewProps) {
               </div>
             </body>
           </html>
-        `,
-        showWarning: false
-      };
+        `;
     } else if (language === "javascript" || language === "js") {
-      return {
-        htmlContent: `
+      return `
           <!DOCTYPE html>
           <html>
             <head>
@@ -79,13 +72,10 @@ export function CodePreview({ code, language }: CodePreviewProps) {
               </script>
             </body>
           </html>
-        `,
-        showWarning: needsWarning
-      };
+        `;
     } else {
       // For other languages (React, Python, TypeScript, etc.), just show the code
-      return {
-        htmlContent: `
+      return `
           <!DOCTYPE html>
           <html>
             <head>
@@ -118,20 +108,12 @@ export function CodePreview({ code, language }: CodePreviewProps) {
               <pre><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>
             </body>
           </html>
-        `,
-        showWarning: false
-      };
+        `;
     }
   }, [code, language]);
 
   return (
     <div className="border-t border-border/40 h-full overflow-auto">
-      {showWarning && (
-        <div className="p-2 bg-amber-500/10 border-b border-amber-500/20 flex items-center gap-2 text-amber-600 dark:text-amber-400">
-          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-          <span className="text-xs">Code preview runs with full capabilities enabled.</span>
-        </div>
-      )}
       <iframe
         className="w-full min-h-[600px] h-full bg-white"
         srcDoc={htmlContent}
