@@ -40,13 +40,41 @@ if (document.readyState === 'loading') {
   applyDeviceClasses();
 }
 
+// List of error messages to ignore (non-critical or browser-specific)
+const ignoredErrorPatterns = [
+  'ResizeObserver loop',
+  'Script error',
+  'Loading chunk',
+  'Network request failed',
+  'Failed to fetch',
+  'Load failed',
+  'cancelled',
+  'AbortError',
+];
+
+// Check if an error should be ignored
+const shouldIgnoreError = (message: string): boolean => {
+  if (!message || message === 'Unknown error' || message === 'Promise rejection') {
+    return true;
+  }
+  return ignoredErrorPatterns.some(pattern =>
+    message.toLowerCase().includes(pattern.toLowerCase())
+  );
+};
+
 // Add global error handler with bug report integration
 window.addEventListener('error', (event) => {
   console.error('Global error:', event.error);
 
+  const errorMessage = event.error?.message || '';
+
+  // Only show bug report for meaningful, specific errors
+  if (shouldIgnoreError(errorMessage)) {
+    return;
+  }
+
   // Import the bug report store dynamically
   import('./hooks/useBugReport').then(({ useBugReport }) => {
-    const errorMessage = event.error?.message || 'Unknown error';
     const errorStack = event.error?.stack || '';
     useBugReport.getState().openBugReport(errorMessage, errorStack);
   });
@@ -55,9 +83,15 @@ window.addEventListener('error', (event) => {
 window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled promise rejection:', event.reason);
 
+  const errorMessage = event.reason?.message || String(event.reason) || '';
+
+  // Only show bug report for meaningful, specific errors
+  if (shouldIgnoreError(errorMessage)) {
+    return;
+  }
+
   // Import the bug report store dynamically
   import('./hooks/useBugReport').then(({ useBugReport }) => {
-    const errorMessage = event.reason?.message || String(event.reason) || 'Promise rejection';
     const errorStack = event.reason?.stack || '';
     useBugReport.getState().openBugReport(errorMessage, errorStack);
   });

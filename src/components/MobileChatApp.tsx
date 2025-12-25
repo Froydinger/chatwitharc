@@ -777,7 +777,7 @@ export function MobileChatApp() {
                 <div
                   className="space-y-4 chat-messages w-full max-w-xl" // Messages only, now max-w-xl
                   style={{
-                    paddingTop: "6.5rem",
+                    paddingTop: "7.5rem",
                   }}
                 >
                   <AnimatePresence mode="popLayout" initial={false}>
