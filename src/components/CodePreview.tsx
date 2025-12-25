@@ -129,13 +129,13 @@ export function CodePreview({ code, language }: CodePreviewProps) {
       {showWarning && (
         <div className="p-2 bg-amber-500/10 border-b border-amber-500/20 flex items-center gap-2 text-amber-600 dark:text-amber-400">
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-          <span className="text-xs">Code preview runs in a sandboxed environment for security.</span>
+          <span className="text-xs">Code preview runs with full capabilities enabled.</span>
         </div>
       )}
       <iframe
         className="w-full min-h-[600px] h-full bg-white"
         srcDoc={htmlContent}
-        sandbox="allow-scripts allow-forms allow-modals allow-popups"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
         title="Code Preview"
       />
     </div>
