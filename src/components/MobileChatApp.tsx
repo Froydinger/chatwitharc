@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, RefreshCw, Music } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, Music } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -193,9 +193,6 @@ export function MobileChatApp() {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [isPullingToRefresh, setIsPullingToRefresh] = useState(false);
-  const [pullDistance, setPullDistance] = useState(0);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [snarkyMessage, setSnarkyMessage] = useState<string | null>(null);
   const [isLogoSpinning, setIsLogoSpinning] = useState(false);
   const [isSupportPopupOpen, setIsSupportPopupOpen] = useState(false);
@@ -442,92 +439,6 @@ export function MobileChatApp() {
     };
   }, []);
 
-  // Pull-to-refresh for mobile
-  useEffect(() => {
-    if (!isMobile) return;
-
-    const el = messagesContainerRef.current;
-    if (!el) return;
-
-    let startY = 0;
-    let pulling = false;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (el.scrollTop === 0) {
-        startY = e.touches[0].clientY;
-        pulling = true;
-      }
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!pulling) return;
-
-      const currentY = e.touches[0].clientY;
-      const distance = currentY - startY;
-
-      if (distance > 0 && el.scrollTop === 0) {
-        e.preventDefault();
-        const maxPull = 80;
-        const adjustedDistance = Math.min(distance * 0.5, maxPull);
-        setPullDistance(adjustedDistance);
-        setIsPullingToRefresh(adjustedDistance > 60);
-      }
-    };
-
-    const handleTouchEnd = async () => {
-      if (isPullingToRefresh) {
-        setIsSyncing(true);
-        try {
-          await syncFromSupabase();
-          toast({
-            title: "Synced",
-            description: "Chat history updated",
-          });
-        } catch {
-          toast({
-            title: "Sync failed",
-            variant: "destructive",
-          });
-        } finally {
-          setIsSyncing(false);
-        }
-      }
-
-      setPullDistance(0);
-      setIsPullingToRefresh(false);
-      pulling = false;
-      startY = 0;
-    };
-
-    el.addEventListener("touchstart", handleTouchStart, { passive: true });
-    el.addEventListener("touchmove", handleTouchMove, { passive: false });
-    el.addEventListener("touchend", handleTouchEnd);
-
-    return () => {
-      el.removeEventListener("touchstart", handleTouchStart);
-      el.removeEventListener("touchmove", handleTouchMove);
-      el.removeEventListener("touchend", handleTouchEnd);
-    };
-  }, [isMobile, isPullingToRefresh, syncFromSupabase, toast]);
-
-  const handleManualSync = async () => {
-    setIsSyncing(true);
-    try {
-      await syncFromSupabase();
-      toast({
-        title: "Synced",
-        description: "Chat history updated",
-      });
-    } catch {
-      toast({
-        title: "Sync failed",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   const handleNewChat = () => {
     const newSessionId = createNewSession();
     navigate(`/chat/${newSessionId}`);
@@ -597,7 +508,7 @@ export function MobileChatApp() {
   return (
     <div
       className={cn(
-        "min-h-screen flex relative",
+        "h-screen flex relative overflow-hidden",
         (isPWAMode || isElectronApp) && "md:pt-[30px]"
       )}
       style={{
@@ -739,25 +650,6 @@ export function MobileChatApp() {
             className="absolute inset-x-0 bottom-0 top-0 overflow-y-auto"
             style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 6rem)` }}
           >
-            {/* Pull-to-refresh indicator (mobile only) */}
-            {isMobile && pullDistance > 0 && (
-              <div
-                className="absolute top-0 left-0 right-0 flex justify-center items-center transition-opacity"
-                style={{
-                  height: pullDistance,
-                  opacity: Math.min(pullDistance / 60, 1),
-                }}
-              >
-                <RefreshCw
-                  className={cn(
-                    "h-5 w-5 text-primary transition-transform",
-                    isPullingToRefresh && "rotate-180",
-                    isSyncing && "animate-spin",
-                  )}
-                />
-              </div>
-            )}
-
             {/* Empty state */}
             {messages.length === 0 ? (
               <div style={{ paddingTop: "3rem" }}>
