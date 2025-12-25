@@ -10,7 +10,7 @@ export function UpdateNotification() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then((reg) => {
         setRegistration(reg);
-        
+
         // Check for updates
         reg.addEventListener('updatefound', () => {
           const newWorker = reg.installing;
@@ -22,11 +22,14 @@ export function UpdateNotification() {
             });
           }
         });
-        
+
         // Check for waiting service worker
         if (reg.waiting) {
           setShowUpdate(true);
         }
+      }).catch((err) => {
+        // Silently ignore service worker errors - not critical
+        console.warn('Service worker ready failed:', err);
       });
     }
   }, []);
