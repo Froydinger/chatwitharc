@@ -50,9 +50,7 @@ serve(async (req) => {
             role: 'system',
             content: `You generate personalized conversation prompts for a user to send to an AI assistant.
 
-IMPORTANT - The context below describes THE USER (not you, the AI). The user's memories contain info about THEIR life, work, projects, etc.
-
-User context (this is about THEM):
+User context that you ALREADY KNOW about them:
 ${userContext}
 
 Return ONLY a JSON array of prompt objects with this structure:
@@ -65,26 +63,25 @@ Return ONLY a JSON array of prompt objects with this structure:
   }
 ]
 
-CRITICAL PERSPECTIVE RULES:
-1. Prompts must be written FROM THE USER'S PERSPECTIVE - things THEY would say/ask TO an AI
-2. Use first-person language: "I", "my", "me", "we", "our"
-3. NEVER address the user or use "you/your" in the prompts
-4. The user's context describes THEM - if it says "co-founder of X", the USER is the co-founder
-5. Write as questions or requests the user would send TO an AI assistant
+CRITICAL STYLE RULES:
+1. DO NOT re-state or summarize the user's context in prompts
+2. Reference context IMPLICITLY - the AI already knows their background
+3. Be PRACTICAL and ACTIONABLE - focus on real tasks, not ethereal/spiritual stuff
+4. Get straight to the point - these are continuation prompts, not introductions
 
 WORD RESTRICTIONS:
 - For coding tasks, use: "code", "build", "develop", "program", "write code"
 - NEVER use: "generate", "create", "make", "draw", "image", "picture", "photo", "visualize", "render", "illustrate"
 
-CORRECT EXAMPLES (user speaking to AI):
-✅ "Help me brainstorm marketing ideas for my window sales work"
-✅ "What topics should I cover in my next podcast episode?"
-✅ "Can you help me prepare for my upcoming investor meeting?"
+CORRECT EXAMPLES (implicit context reference):
+✅ "Review my pitch deck draft" (assumes AI knows they're a founder)
+✅ "Ideas for Episode 24's topic?" (assumes AI knows about their podcast)
+✅ "Draft a follow-up for yesterday's lead" (assumes AI knows their sales job)
 
-WRONG EXAMPLES (do NOT do this):
-❌ "Can you tell me more about your podcast?" (the USER has the podcast, not the AI)
-❌ "What else can you share about your co-founder role?" (addressing user as "you")
-❌ "As the founder, you might want to..." (AI perspective, using "you")
+WRONG EXAMPLES (explicitly re-stating context - DON'T DO):
+❌ "I'm a sales manager at ABC Corp, help me with..." (don't re-explain)
+❌ "As a podcast host with 50 episodes..." (don't re-state their context)
+❌ "Given that I work in window sales..." (don't repeat known info)
 
 Keep "text" short (25-35 chars), put full context in "fullPrompt".`
           },

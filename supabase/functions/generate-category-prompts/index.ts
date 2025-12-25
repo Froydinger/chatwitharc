@@ -21,43 +21,45 @@ serve(async (req) => {
     const timestamp = Date.now();
     const randomSeed = Math.random().toString(36).substring(7);
 
-    // Define prompts for each category - KEEP CONCISE
+    // Define prompts for each category - PRACTICAL, DOWN-TO-EARTH
     const categoryPrompts = {
-      chat: `Generate 6 COMPLETELY DIFFERENT prompts where the USER is asking the AI for support. Think:
-- "I had a rough day" / "Let's check in" / "Help me focus"
-- "I'm feeling overwhelmed" / "I need motivation"
-- "Can we talk about [topic]?" / "Help me process [feeling]"
+      chat: `Generate 6 PRACTICAL, ACTIONABLE prompts. Think everyday tasks:
+- "Plan my week" / "What should I make for dinner?" / "Help me draft an email"
+- "Explain [concept] simply" / "Give me workout ideas" / "Help me budget"
+- "Recommend a book" / "Practice interview questions" / "Help me decide between X and Y"
 
-The AI is a supportive assistant for the user's wellness and creative journey, NOT a human friend interviewing them.
-Prompts should be what the USER would SAY to get help, support, or guidance.
+IMPORTANT: Be practical and useful - NOT ethereal, spiritual, or wellness-focused.
+Prompts should help with real tasks, decisions, and everyday problems.
 
 CRITICAL: Labels SHORT (2-3 words). Prompts concise (1-2 sentences).
-Avoid generic labels - be creative and relatable!`,
+Be grounded and helpful, not poetic!`,
 
-      create: `Generate 6 COMPLETELY DIFFERENT image prompts. Be wild and creative! Mix styles:
-- Retro/vaporwave, cosmic/space, nature
-- Fantasy/surreal, cyberpunk, artistic
+      create: `Generate 6 COMPLETELY DIFFERENT image prompts. Be creative but PRACTICAL:
+- Logos, icons, illustrations for projects
+- Wallpapers, profile pictures, social media graphics
+- Concept art, product mockups, scene designs
 
 CRITICAL: Labels SHORT (2-3 words). Each prompt MUST start with "Generate image:" (exactly) then 1-2 descriptive sentences.
-Use VARIED emojis. Avoid repeating styles or themes!`,
+Use VARIED emojis. Make them useful!`,
 
-      write: `Generate 6 COMPLETELY DIFFERENT prompts that HELP the user with their writing process:
-- "Help me develop this character's backstory"
-- "Create lore for my fantasy world"
-- "Draft an outline for my blog post about [topic]"
-- "Polish this rough draft" / "Brainstorm plot twists"
+      write: `Generate 6 PRACTICAL writing prompts that help with REAL tasks:
+- "Draft a thank-you note for..." / "Write a LinkedIn summary"
+- "Help me outline a presentation on..." / "Create a meeting agenda"
+- "Proofread this paragraph" / "Make this email more professional"
+- "Write a product description" / "Draft an apology message"
 
-NOT just "write a story" - help them with THEIR writing, drafts, worldbuilding, and creative process.
+Focus on real-world writing tasks people actually need help with.
 
 CRITICAL: Labels SHORT (2-3 words). Prompts practical and specific (1-2 sentences).
-Use VARIED emojis. Focus on supporting the writer!`,
+Avoid creative writing prompts - focus on utility!`,
 
-      code: `Generate 6 COMPLETELY DIFFERENT coding prompts. Be fun and creative! Mix types:
-- Games, animations, visualizations
-- Tools, generators, interactive demos
+      code: `Generate 6 USEFUL coding prompts. Think tools people actually need:
+- Calculators, converters, form validators
+- Countdown timers, to-do apps, note widgets
+- Data formatters, API helpers, automation scripts
 
 CRITICAL: Labels SHORT (2-3 words). Prompts concise, specify HTML/CSS/JS.
-Use VARIED emojis. Avoid common projects!`,
+Use VARIED emojis. Make them practical and buildable!`,
     };
 
     const systemPrompt = `You are a creative AI that generates UNIQUE, NEVER-REPEATED prompt suggestions.

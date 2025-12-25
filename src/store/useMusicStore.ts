@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 export interface MusicTrack {
   id: string;
   name: string;
+  previewName?: string; // Short name for pill display
   url: string;
   artist: string;
   albumArt: string;
@@ -33,7 +34,8 @@ export const musicTracks: MusicTrack[] = [
   },
   { 
     id: 'taylor', 
-    name: 'Taylor', 
+    name: "The Best Day (Taylor's Version)", 
+    previewName: 'The Best Day',
     url: '/audio/taylor-swift-best-day.mp3',
     artist: 'Taylor Swift',
     albumArt: '/lovable-uploads/taylor-swift-album.jpg'
@@ -148,11 +150,11 @@ export const useMusicStore = create<MusicState>()(
       },
       
       seek: (time: number) => {
-        const { audioRef, duration, setCurrentTime } = get();
+        const { audioRef, duration } = get();
         if (!audioRef || !duration) return;
         
+        // Just set audio currentTime - the timeupdate event will sync state
         audioRef.currentTime = time;
-        setCurrentTime(time);
       },
       
       handleVolumeChange: (newVolume: number) => {
