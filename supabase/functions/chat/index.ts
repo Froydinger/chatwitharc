@@ -515,7 +515,9 @@ serve(async (req) => {
             fileResult = `Error generating file: ${fileResponse.error?.message || fileResponse.data?.error || 'Unknown error'}`;
             console.error('File generation failed:', fileResponse.error || fileResponse.data);
           } else {
-            fileResult = `File generated successfully! Download it here: ${fileResponse.data.fileUrl}\nFilename: ${fileResponse.data.fileName}\nType: ${fileResponse.data.mimeType}`;
+            // IMPORTANT: Include markdown link that MUST be in the response
+            // The AI must include this exact markdown link in its response for the user to download the file
+            fileResult = `File generated successfully!\n\nIMPORTANT: You MUST include this exact markdown link in your response so the user can download the file:\n[${fileResponse.data.fileName}](${fileResponse.data.fileUrl})\n\nDo NOT paraphrase or say "link provided" - include the actual markdown link above.`;
             console.log('File generated:', fileResponse.data.fileName);
           }
           
