@@ -128,11 +128,19 @@ export const TypewriterMarkdown = ({
           strong: ({ node, ...props }) => <strong className="font-semibold text-foreground" {...props} />,
           em: ({ node, ...props }) => <em className="italic" {...props} />,
           a: ({ node, href, children, ...props }: any) => {
-            // Detect file URLs from Supabase storage
-            if (href && href.includes('/storage/v1/object/public/generated-files/')) {
+            // Detect file URLs from Supabase storage - check multiple patterns
+            const isGeneratedFile = href && (
+              href.includes('/storage/v1/object/public/generated-files/') ||
+              href.includes('.supabase.co/storage/') ||
+              href.includes('generated-files/')
+            );
+            
+            if (isGeneratedFile) {
               const urlParts = href.split('/');
               const fullFileName = urlParts[urlParts.length - 1];
-              const fileName = fullFileName.replace(/^generated-\d+-/, '');
+              // Remove URL encoding and the generated- prefix with timestamp
+              const decodedFileName = decodeURIComponent(fullFileName);
+              const fileName = decodedFileName.replace(/^generated-\d+-/, '');
               const fileExt = fileName.split('.').pop()?.toLowerCase() || 'file';
               
               return (
