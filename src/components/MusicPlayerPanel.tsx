@@ -5,24 +5,24 @@ import { Slider } from "@/components/ui/slider";
 import { GlassCard } from "@/components/ui/glass-card";
 
 const musicTracks = [
-  { 
-    id: 'lofi', 
-    name: 'Lo-Fi Beats', 
-    url: 'https://froydinger.com/wp-content/uploads/2025/03/lofi-beats-mix.mp3',
+  {
+    id: 'lofi',
+    name: 'Lo-Fi Beats',
+    url: 'https://froydinger.blog/wp-content/uploads/2025/03/lofi-beats-mix.mp3',
     artist: 'Chill Collective',
     albumArt: '/lovable-uploads/lofi-cartoon-album.jpg'
   },
-  { 
-    id: 'jazz', 
-    name: 'Coffee House Jazz', 
-    url: 'https://froydinger.com/wp-content/uploads/2025/05/jazz-coffee-bar-music.mp3',
+  {
+    id: 'jazz',
+    name: 'Coffee House Jazz',
+    url: 'https://froydinger.blog/wp-content/uploads/2025/05/jazz-coffee-bar-music.mp3',
     artist: 'Jazz Lounge',
     albumArt: '/lovable-uploads/jazz-cartoon-album.jpg'
   },
-  { 
-    id: 'ambient', 
-    name: 'Space Ambient', 
-    url: 'https://froydinger.com/wp-content/uploads/2025/05/pad-space-travel-hyperdrive-engine-humming-235901.mp3',
+  {
+    id: 'ambient',
+    name: 'Space Ambient',
+    url: 'https://froydinger.blog/wp-content/uploads/2025/05/pad-space-travel-hyperdrive-engine-humming-235901.mp3',
     artist: 'Cosmic Sounds',
     albumArt: '/lovable-uploads/ambient-cartoon-album.jpg'
   }

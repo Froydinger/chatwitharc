@@ -245,7 +245,7 @@ export function LandingScreen() {
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const downloadUrl = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi-for-Mac-1.0.2.zip";
+  const downloadUrl = "https://froydinger.blog/wp-content/uploads/2025/11/ArcAi-for-Mac-1.0.2.zip";
 
   // Create mailto link for mobile users
   const mailtoLink = `mailto:?subject=ArcAi for Mac&body=Download ArcAi for Mac:%0D%0A%0D%0A${encodeURIComponent(downloadUrl)}`;
