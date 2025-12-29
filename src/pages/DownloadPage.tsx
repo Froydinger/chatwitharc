@@ -6,7 +6,7 @@ import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { Link } from "react-router-dom";
 
-const DOWNLOAD_URL = "https://froydinger.com/wp-content/uploads/2025/11/ArcAi-for-Mac-1.0.2.zip";
+const DOWNLOAD_URL = "https://froydinger.blog/wp-content/uploads/2025/11/ArcAi-for-Mac-1.0.2.zip";
 const VERSION = "1.0.2";
 
 export function DownloadPage() {
