@@ -17,6 +17,7 @@ import { ImageModal } from "@/components/ImageModal";
 import { ImageEditModal } from "@/components/ImageEditModal";
 import { CodeBlock } from "@/components/CodeBlock";
 import { FileAttachment } from "@/components/FileAttachment";
+import { CanvasAttachment } from "@/components/CanvasAttachment";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { MemoryIndicator } from "@/components/MemoryIndicator";
 
@@ -255,6 +256,21 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     fileUrl={message.fileUrl}
                     fileType={message.fileType || 'file'}
                     fileSize={message.fileSize}
+                    className="max-w-md"
+                  />
+                </motion.div>
+              )}
+
+              {/* Canvas Attachment */}
+              {message.type === "canvas" && message.canvasContent && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.12 }}
+                  className="mb-2 relative z-10"
+                >
+                  <CanvasAttachment
+                    canvasContent={message.canvasContent}
                     className="max-w-md"
                   />
                 </motion.div>

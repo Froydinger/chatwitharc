@@ -32,7 +32,7 @@ export interface Message {
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
-  type: 'text' | 'image' | 'image-generating' | 'file';
+  type: 'text' | 'image' | 'image-generating' | 'file' | 'canvas';
   imageUrl?: string;
   imageUrls?: string[]; // Support for multiple images
   imagePrompt?: string; // For image generation placeholders
@@ -40,6 +40,7 @@ export interface Message {
   fileName?: string;
   fileType?: string;
   fileSize?: number;
+  canvasContent?: string; // For canvas artifacts
   memoryAction?: MemoryAction; // Track memory/search actions
 }
 
