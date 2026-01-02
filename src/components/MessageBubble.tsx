@@ -271,6 +271,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 >
                   <CanvasAttachment
                     canvasContent={message.canvasContent}
+                    canvasLabel={message.canvasLabel}
                     className="max-w-md"
                   />
                 </motion.div>

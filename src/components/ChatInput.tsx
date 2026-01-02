@@ -856,7 +856,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
           // Upsert a single canvas-type message inline in chat (like GPT/Gemini artifacts)
           // so we don't create a new Canvas Draft card on every update.
-          await upsertCanvasMessage(canvasContentToSave, memoryAction);
+          const canvasLabel = result.canvasUpdate?.label || undefined;
+          await upsertCanvasMessage(canvasContentToSave, canvasLabel, memoryAction);
         } else {
           // Regular text response (no canvas)
           await addMessage({
