@@ -954,19 +954,24 @@ export function MobileChatApp() {
             animate={{ width: "50%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="flex-shrink-0 overflow-hidden bg-background flex"
-            style={{ minWidth: 400 }}
+            className="flex-shrink-0 overflow-hidden bg-background flex relative"
+            style={{ minWidth: 400, paddingLeft: 12 }}
           >
-            {/* Resize Handle */}
+            {/* Resize Handle - positioned absolutely to extend grab area into chat */}
             <div 
-              className="w-1 bg-border/30 hover:bg-primary/50 active:bg-primary cursor-col-resize flex-shrink-0 transition-colors"
+              className="absolute left-0 top-0 bottom-0 w-3 cursor-col-resize z-50 group"
               onMouseDown={(e) => {
                 e.preventDefault();
-                const startX = e.clientX;
                 const canvasEl = e.currentTarget.parentElement;
                 if (!canvasEl) return;
+                const startX = e.clientX;
                 const startWidth = canvasEl.offsetWidth;
                 const containerWidth = canvasEl.parentElement?.offsetWidth || window.innerWidth;
+                
+                // Add a full-screen overlay to capture mouse events during drag
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;cursor:col-resize;';
+                document.body.appendChild(overlay);
                 
                 const onMouseMove = (moveEvent: MouseEvent) => {
                   const delta = startX - moveEvent.clientX;
@@ -980,12 +985,16 @@ export function MobileChatApp() {
                 const onMouseUp = () => {
                   document.removeEventListener('mousemove', onMouseMove);
                   document.removeEventListener('mouseup', onMouseUp);
+                  overlay.remove();
                 };
                 
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
               }}
-            />
+            >
+              {/* Visual indicator */}
+              <div className="absolute left-1 top-0 bottom-0 w-1 bg-border/30 group-hover:bg-primary/50 group-active:bg-primary transition-colors" />
+            </div>
             <div className="flex-1 overflow-hidden">
               <CanvasPanel />
             </div>
