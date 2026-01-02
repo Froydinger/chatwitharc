@@ -406,7 +406,7 @@ serve(async (req) => {
             properties: {
               content: {
                 type: "string",
-                description: "The full markdown content to put in the Canvas. Include proper formatting with headers, paragraphs, lists, etc."
+                description: "The full markdown content to put in the Canvas. IMPORTANT: You MUST use proper markdown formatting - use # for h1, ## for h2, ### for h3 headings, **bold** for emphasis, *italic* for italics, - or * for bullet lists, 1. 2. 3. for numbered lists, > for blockquotes, and proper paragraph breaks. Never output plain unformatted text."
               },
               label: {
                 type: "string",
