@@ -8,17 +8,15 @@ import {
   Download,
   Check,
   History,
-  Sparkles,
   Bold,
   Italic,
   Heading1,
   Heading2,
   List,
-  ListOrdered,
-  Quote,
   Code,
-  Minus,
   Loader2,
+  ChevronLeft,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -66,22 +64,18 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + Z = Undo
       if ((e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         undo();
       }
-      // Cmd/Ctrl + Shift + Z = Redo
       if ((e.metaKey || e.ctrlKey) && e.key === "z" && e.shiftKey) {
         e.preventDefault();
         redo();
       }
-      // Cmd/Ctrl + Y = Redo (alternative)
       if ((e.metaKey || e.ctrlKey) && e.key === "y") {
         e.preventDefault();
         redo();
       }
-      // Cmd/Ctrl + S = Save version
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
         handleSaveVersion();
@@ -96,24 +90,26 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     try {
       await navigator.clipboard.writeText(content);
       setCopied(true);
+      toast({ title: "Copied to clipboard" });
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast({ title: "Copy failed", variant: "destructive" });
     }
   };
 
-  const handleDownload = (format: "md" | "txt") => {
-    const blob = new Blob([content], { type: "text/plain" });
+  const handleDownload = () => {
+    const blob = new Blob([content], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `canvas-${Date.now()}.${format}`;
+    a.download = `canvas-${Date.now()}.md`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: `Downloaded as .${format}` });
+    toast({ title: "Downloaded as .md" });
   };
 
   const handleSaveVersion = () => {
+    if (!content.trim()) return;
     saveVersion();
     toast({ title: "Version saved" });
   };
@@ -136,7 +132,6 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
       setContent(newText);
 
-      // Restore cursor position
       setTimeout(() => {
         textarea.focus();
         const newCursorPos = selectedText
@@ -151,178 +146,169 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const formatActions = [
     { icon: Bold, label: "Bold", action: () => insertFormatting("**") },
     { icon: Italic, label: "Italic", action: () => insertFormatting("*") },
-    { icon: Heading1, label: "Heading 1", action: () => insertFormatting("# ", "") },
-    { icon: Heading2, label: "Heading 2", action: () => insertFormatting("## ", "") },
-    { icon: List, label: "Bullet List", action: () => insertFormatting("- ", "") },
-    { icon: ListOrdered, label: "Numbered List", action: () => insertFormatting("1. ", "") },
-    { icon: Quote, label: "Quote", action: () => insertFormatting("> ", "") },
+    { icon: Heading1, label: "H1", action: () => insertFormatting("# ", "") },
+    { icon: Heading2, label: "H2", action: () => insertFormatting("## ", "") },
+    { icon: List, label: "List", action: () => insertFormatting("- ", "") },
     { icon: Code, label: "Code", action: () => insertFormatting("`") },
-    { icon: Minus, label: "Divider", action: () => insertFormatting("\n---\n", "") },
   ];
 
   return (
-    <div className={cn("flex flex-col h-full bg-background/95 backdrop-blur-xl", className)}>
-      {/* Header/Toolbar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="flex items-center gap-2">
-          {/* Close */}
+    <div className={cn("flex flex-col h-full bg-background", className)}>
+      {/* Clean Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
+        {/* Left: Close + Title */}
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="sm"
             onClick={closeCanvas}
-            className="text-muted-foreground hover:text-foreground"
+            className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50"
           >
-            <X className="w-5 h-5" />
+            <ChevronLeft className="w-5 h-5" />
           </Button>
-
-          {/* Divider */}
-          <div className="w-px h-6 bg-border/50" />
-
-          {/* Formatting Tools */}
-          <div className="hidden md:flex items-center gap-0.5">
-            {formatActions.slice(0, 5).map((action, index) => (
-              <Button
-                key={index}
-                variant="ghost"
-                size="sm"
-                onClick={action.action}
-                title={action.label}
-                disabled={isAIWriting}
-                className="w-8 h-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              >
-                <action.icon className="w-4 h-4" />
-              </Button>
-            ))}
-          </div>
-
-          {/* Divider */}
-          <div className="hidden md:block w-px h-6 bg-border/50" />
-
-          {/* Undo/Redo */}
-          <div className="flex items-center gap-0.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={undo}
-              disabled={undoStack.length === 0 || isAIWriting}
-              title="Undo (Cmd+Z)"
-              className="w-8 h-8 p-0 text-muted-foreground hover:text-foreground disabled:opacity-30"
-            >
-              <Undo2 className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={redo}
-              disabled={redoStack.length === 0 || isAIWriting}
-              title="Redo (Cmd+Shift+Z)"
-              className="w-8 h-8 p-0 text-muted-foreground hover:text-foreground disabled:opacity-30"
-            >
-              <Redo2 className="w-4 h-4" />
-            </Button>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-foreground">Canvas</span>
+            {isAIWriting && (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span className="text-xs">Writing...</span>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* AI Writing indicator */}
-          {isAIWriting && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/20 text-purple-400 text-xs">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              <span>Writing...</span>
-            </div>
-          )}
-
-          {/* Word count */}
-          <span className="hidden md:inline text-xs text-muted-foreground">
-            {wordCount} words · {charCount} chars
+        {/* Right: Actions */}
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-muted-foreground mr-2 hidden sm:block">
+            {wordCount} words
           </span>
-
-          {/* Save version */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSaveVersion}
-            disabled={isAIWriting || !content}
-            title="Save version (Cmd+S)"
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <Sparkles className="w-4 h-4 mr-1" />
-            <span className="hidden sm:inline">Save</span>
-          </Button>
-
-          {/* History */}
+          
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowHistory(!showHistory)}
             className={cn(
-              "text-muted-foreground hover:text-foreground",
+              "h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground",
               showHistory && "bg-muted text-foreground"
             )}
+            title="History"
           >
             <History className="w-4 h-4" />
           </Button>
-
-          {/* Copy */}
+          
           <Button
             variant="ghost"
             size="sm"
             onClick={handleCopy}
             disabled={!content}
-            className="text-muted-foreground hover:text-foreground"
+            className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-40"
+            title="Copy"
           >
-            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
           </Button>
-
-          {/* Download */}
+          
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleDownload("md")}
+            onClick={handleDownload}
             disabled={!content}
-            className="text-muted-foreground hover:text-foreground"
+            className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-40"
+            title="Download"
           >
             <Download className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
-      {/* Main content area */}
+      {/* Formatting Toolbar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border/20 bg-muted/30">
+        <div className="flex items-center gap-0.5">
+          {formatActions.map((action, index) => (
+            <Button
+              key={index}
+              variant="ghost"
+              size="sm"
+              onClick={action.action}
+              title={action.label}
+              disabled={isAIWriting}
+              className="h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-40"
+            >
+              <action.icon className="w-3.5 h-3.5" />
+            </Button>
+          ))}
+          
+          <div className="w-px h-4 bg-border/50 mx-1" />
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={undo}
+            disabled={undoStack.length === 0 || isAIWriting}
+            title="Undo"
+            className="h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground disabled:opacity-40"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={redo}
+            disabled={redoStack.length === 0 || isAIWriting}
+            title="Redo"
+            className="h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground disabled:opacity-40"
+          >
+            <Redo2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSaveVersion}
+          disabled={isAIWriting || !content.trim()}
+          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
+        >
+          <Sparkles className="w-3 h-3 mr-1" />
+          Save
+        </Button>
+      </div>
+
+      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Editor/Preview */}
+        {/* Editor/Preview Area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {isEditing ? (
             <textarea
               ref={textareaRef}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder={isAIWriting ? "AI is writing..." : "Content will appear here..."}
+              placeholder="Start writing..."
               disabled={isAIWriting}
+              autoFocus
               className={cn(
                 "flex-1 w-full resize-none",
                 "bg-transparent text-foreground",
-                "px-6 py-6",
-                "text-base leading-relaxed",
-                "placeholder:text-muted-foreground/50",
+                "px-6 py-5",
+                "text-[15px] leading-[1.7]",
+                "placeholder:text-muted-foreground/40",
                 "focus:outline-none",
-                "font-[system-ui]"
+                "font-serif"
               )}
-              style={{
-                fontFamily: 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
-              }}
-              onBlur={() => setIsEditing(false)}
+              onBlur={() => content && setIsEditing(false)}
             />
           ) : (
             <ScrollArea className="flex-1">
               <div
                 className={cn(
-                  "px-6 py-6 prose prose-sm dark:prose-invert max-w-none",
-                  "prose-headings:font-semibold prose-headings:text-foreground",
-                  "prose-p:text-foreground/90 prose-p:leading-relaxed",
-                  "prose-li:text-foreground/90",
+                  "px-6 py-5 min-h-[300px] cursor-text",
+                  "prose prose-sm dark:prose-invert max-w-none",
+                  "prose-headings:font-semibold prose-headings:text-foreground prose-headings:mb-3",
+                  "prose-p:text-foreground/90 prose-p:leading-[1.7] prose-p:mb-4",
+                  "prose-li:text-foreground/90 prose-li:leading-[1.6]",
                   "prose-strong:text-foreground prose-strong:font-semibold",
-                  "prose-code:text-primary prose-code:bg-muted/50 prose-code:px-1 prose-code:rounded",
-                  "min-h-[200px] cursor-text"
+                  "prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm",
+                  "prose-blockquote:border-l-2 prose-blockquote:border-primary/40 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground"
                 )}
                 onClick={() => !isAIWriting && setIsEditing(true)}
               >
@@ -330,7 +316,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
                 ) : (
                   <p className="text-muted-foreground/50 italic">
-                    {isAIWriting ? "AI is writing..." : "Click to edit or ask Arc to write something..."}
+                    {isAIWriting ? "AI is writing..." : "Click to start editing..."}
                   </p>
                 )}
               </div>
@@ -338,57 +324,51 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           )}
         </div>
 
-        {/* Version History Panel */}
+        {/* Version History Sidebar */}
         <AnimatePresence>
           {showHistory && (
             <motion.div
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 240, opacity: 1 }}
+              animate={{ width: 200, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="border-l border-border/50 bg-muted/20 overflow-hidden flex-shrink-0"
+              className="border-l border-border/30 bg-muted/20 overflow-hidden flex-shrink-0"
             >
-              <div className="w-[240px] h-full flex flex-col">
-                <div className="px-4 py-3 border-b border-border/30">
-                  <h3 className="text-sm font-medium text-foreground">History</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {versions.length} versions
-                  </p>
+              <div className="w-[200px] h-full flex flex-col">
+                <div className="px-3 py-2.5 border-b border-border/20">
+                  <h3 className="text-xs font-medium text-foreground">Versions</h3>
                 </div>
                 <ScrollArea className="flex-1">
                   <div className="p-2 space-y-1">
-                    {versions.map((version, index) => (
-                      <button
-                        key={version.id}
-                        onClick={() => restoreVersion(index)}
-                        className={cn(
-                          "w-full text-left p-3 rounded-lg transition-colors",
-                          activeVersionIndex === index
-                            ? "bg-primary/10 border border-primary/30"
-                            : "hover:bg-muted/50 border border-transparent"
-                        )}
-                      >
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {version.label}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(version.timestamp).toLocaleString(undefined, {
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                        <p className="text-xs text-muted-foreground/70 mt-1 truncate">
-                          {version.content.slice(0, 40)}
-                          {version.content.length > 40 ? "..." : ""}
-                        </p>
-                      </button>
-                    ))}
-                    {versions.length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-4">
-                        No versions yet
+                    {versions.length === 0 ? (
+                      <p className="text-xs text-muted-foreground/60 text-center py-6 px-2">
+                        No versions yet. Click "Save" to create one.
                       </p>
+                    ) : (
+                      versions.map((version, index) => (
+                        <button
+                          key={version.id}
+                          onClick={() => restoreVersion(index)}
+                          className={cn(
+                            "w-full text-left p-2.5 rounded-lg transition-colors",
+                            activeVersionIndex === index
+                              ? "bg-primary/10 border border-primary/20"
+                              : "hover:bg-muted/50 border border-transparent"
+                          )}
+                        >
+                          <p className="text-xs font-medium text-foreground truncate">
+                            {version.label}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {new Date(version.timestamp).toLocaleString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </button>
+                      ))
                     )}
                   </div>
                 </ScrollArea>
