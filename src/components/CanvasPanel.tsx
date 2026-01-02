@@ -16,8 +16,6 @@ import {
   Loader2,
   ChevronLeft,
   Sparkles,
-  Eye,
-  Edit3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -49,11 +47,12 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
   const { toast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [copied, setCopied] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
-  const [showPreview, setShowPreview] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   // Update word/char counts
   useEffect(() => {
@@ -267,21 +266,6 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setShowPreview(!showPreview)}
-          disabled={isAIWriting}
-          className={cn(
-            "h-7 px-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40",
-            showPreview && "bg-muted text-foreground"
-          )}
-          title={showPreview ? "Edit" : "Preview"}
-        >
-          {showPreview ? <Edit3 className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
-          {showPreview ? "Edit" : "Preview"}
-        </Button>
-        
-        <Button
-          variant="ghost"
-          size="sm"
           onClick={handleSaveVersion}
           disabled={isAIWriting || !content.trim()}
           className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
@@ -293,50 +277,56 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Editor/Preview Area */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {showPreview ? (
-            // Rendered markdown preview (read-only)
-            <ScrollArea className="flex-1">
+        {/* Live WYSIWYG Editor Area */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+          <ScrollArea className="flex-1">
+            <div
+              ref={editorContainerRef}
+              onClick={() => textareaRef.current?.focus()}
+              className="relative min-h-full cursor-text"
+            >
+              {/* Rendered Markdown Layer (visible) */}
               <div
                 className={cn(
-                  "px-6 py-5 min-h-[300px]",
+                  "px-6 py-5 min-h-[300px] pointer-events-none select-none",
                   "prose prose-sm dark:prose-invert max-w-none",
                   "prose-headings:font-semibold prose-headings:text-foreground prose-headings:mb-3",
                   "prose-p:text-foreground/90 prose-p:leading-[1.7] prose-p:mb-4",
                   "prose-li:text-foreground/90 prose-li:leading-[1.6]",
                   "prose-strong:text-foreground prose-strong:font-semibold",
                   "prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm",
-                  "prose-blockquote:border-l-2 prose-blockquote:border-primary/40 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground"
+                  "prose-blockquote:border-l-2 prose-blockquote:border-primary/40 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground",
+                  !content && "hidden"
                 )}
               >
-                {content ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-                ) : (
-                  <p className="text-muted-foreground/50 italic">Nothing to preview yet...</p>
-                )}
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
               </div>
-            </ScrollArea>
-          ) : (
-            // Editable textarea (always works correctly)
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Start writing..."
-              disabled={isAIWriting}
-              autoFocus
-              className={cn(
-                "flex-1 w-full resize-none",
-                "bg-transparent text-foreground",
-                "px-6 py-5",
-                "text-[15px] leading-[1.8]",
-                "placeholder:text-muted-foreground/40",
-                "focus:outline-none",
-                isAIWriting && "opacity-70"
-              )}
-            />
-          )}
+              
+              {/* Hidden Textarea for Input (captures all keyboard input) */}
+              <textarea
+                ref={textareaRef}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                placeholder="Start writing..."
+                disabled={isAIWriting}
+                autoFocus
+                className={cn(
+                  "absolute inset-0 w-full h-full resize-none",
+                  "bg-transparent",
+                  "px-6 py-5",
+                  "text-[15px] leading-[1.8]",
+                  "placeholder:text-muted-foreground/40",
+                  "focus:outline-none",
+                  "caret-primary",
+                  content ? "text-transparent" : "text-foreground",
+                  isAIWriting && "opacity-70"
+                )}
+                style={{ caretColor: 'hsl(var(--primary))' }}
+              />
+            </div>
+          </ScrollArea>
         </div>
 
         {/* Version History Sidebar */}
