@@ -26,6 +26,44 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+// Simple markdown to HTML converter for contentEditable rendering
+function convertMarkdownToHtml(markdown: string): string {
+  let html = markdown
+    // Escape HTML first
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    // Headers (must come before other patterns)
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    // Bold and italic
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Inline code
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // Blockquotes
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    // Unordered lists
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/^• (.+)$/gm, '<li>$1</li>')
+    // Paragraphs (double newlines)
+    .replace(/\n\n/g, '</p><p>')
+    // Single newlines within paragraphs
+    .replace(/\n/g, '<br/>');
+  
+  // Wrap in paragraph if not already structured
+  if (!html.startsWith('<h') && !html.startsWith('<p') && !html.startsWith('<li') && !html.startsWith('<blockquote')) {
+    html = '<p>' + html + '</p>';
+  }
+  
+  // Wrap consecutive li elements in ul
+  html = html.replace(/(<li>.*?<\/li>)+/gs, '<ul>$&</ul>');
+  
+  return html;
+}
+
 interface CanvasPanelProps {
   className?: string;
 }
@@ -52,7 +90,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const [copied, setCopied] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditingRaw, setIsEditingRaw] = useState(false);
 
   // Update word/char counts
   useEffect(() => {
@@ -151,6 +189,19 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     { icon: List, label: "List", action: () => insertFormatting("- ", "") },
     { icon: Code, label: "Code", action: () => insertFormatting("`") },
   ];
+
+  // Handle contentEditable changes
+  const handleContentEdit = useCallback((e: React.FormEvent<HTMLDivElement>) => {
+    // Get plain text from contentEditable - this maintains the markdown
+    const target = e.currentTarget;
+    const text = target.innerText;
+    setContent(text, false); // Don't save to history on every keystroke
+  }, [setContent]);
+
+  const handleContentBlur = useCallback(() => {
+    // Save to history when user stops editing
+    setContent(content, true);
+  }, [content, setContent]);
 
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
@@ -276,9 +327,10 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Editor/Preview Area */}
+        {/* Editor/Preview Area - Always rendered markdown, editable inline */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {isEditing ? (
+          {isEditingRaw ? (
+            // Raw markdown editing mode (toggled via code button in toolbar)
             <textarea
               ref={textareaRef}
               value={content}
@@ -293,33 +345,40 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
                 "text-[15px] leading-[1.7]",
                 "placeholder:text-muted-foreground/40",
                 "focus:outline-none",
-                "font-serif"
+                "font-mono text-sm"
               )}
-              onBlur={() => content && setIsEditing(false)}
+              onBlur={() => setIsEditingRaw(false)}
             />
           ) : (
+            // Rendered markdown view with inline editing
             <ScrollArea className="flex-1">
               <div
+                contentEditable={!isAIWriting}
+                suppressContentEditableWarning
+                onInput={handleContentEdit}
+                onBlur={handleContentBlur}
                 className={cn(
-                  "px-6 py-5 min-h-[300px] cursor-text",
-                  "prose prose-sm dark:prose-invert max-w-none",
-                  "prose-headings:font-semibold prose-headings:text-foreground prose-headings:mb-3",
-                  "prose-p:text-foreground/90 prose-p:leading-[1.7] prose-p:mb-4",
-                  "prose-li:text-foreground/90 prose-li:leading-[1.6]",
-                  "prose-strong:text-foreground prose-strong:font-semibold",
-                  "prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm",
-                  "prose-blockquote:border-l-2 prose-blockquote:border-primary/40 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground"
+                  "px-6 py-5 min-h-[300px] outline-none",
+                  "text-[15px] leading-[1.8]",
+                  "text-foreground",
+                  "[&>h1]:text-2xl [&>h1]:font-bold [&>h1]:mb-4 [&>h1]:mt-6 first:[&>h1]:mt-0",
+                  "[&>h2]:text-xl [&>h2]:font-semibold [&>h2]:mb-3 [&>h2]:mt-5",
+                  "[&>h3]:text-lg [&>h3]:font-medium [&>h3]:mb-2 [&>h3]:mt-4",
+                  "[&>p]:mb-4 [&>p]:text-foreground/90",
+                  "[&>ul]:list-disc [&>ul]:pl-6 [&>ul]:mb-4",
+                  "[&>ol]:list-decimal [&>ol]:pl-6 [&>ol]:mb-4",
+                  "[&>li]:mb-1",
+                  "[&>blockquote]:border-l-2 [&>blockquote]:border-primary/40 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-muted-foreground",
+                  "[&>pre]:bg-muted/50 [&>pre]:p-3 [&>pre]:rounded-lg [&>pre]:overflow-x-auto [&>pre]:mb-4",
+                  "[&>code]:bg-primary/10 [&>code]:px-1.5 [&>code]:py-0.5 [&>code]:rounded [&>code]:text-sm [&>code]:text-primary",
+                  isAIWriting && "pointer-events-none opacity-70"
                 )}
-                onClick={() => !isAIWriting && setIsEditing(true)}
-              >
-                {content ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-                ) : (
-                  <p className="text-muted-foreground/50 italic">
-                    {isAIWriting ? "AI is writing..." : "Click to start editing..."}
-                  </p>
-                )}
-              </div>
+                dangerouslySetInnerHTML={{
+                  __html: content 
+                    ? convertMarkdownToHtml(content)
+                    : `<p class="text-muted-foreground/50 italic">${isAIWriting ? 'AI is writing...' : 'Start typing...'}</p>`
+                }}
+              />
             </ScrollArea>
           )}
         </div>
