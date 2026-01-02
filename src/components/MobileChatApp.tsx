@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
@@ -221,6 +221,7 @@ export function MobileChatApp() {
   const [isLogoSpinning, setIsLogoSpinning] = useState(false);
   const [isSupportPopupOpen, setIsSupportPopupOpen] = useState(false);
   const [isMusicPopupOpen, setIsMusicPopupOpen] = useState(false);
+  const [showMobileCanvasInput, setShowMobileCanvasInput] = useState(false);
   const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -719,6 +720,43 @@ export function MobileChatApp() {
         {isCanvasOpen && isMobile && (
           <div className="fixed inset-0 z-[70] bg-background">
             <CanvasPanel />
+            
+            {/* Mobile canvas input toggle button */}
+            <motion.div
+              className="fixed bottom-6 left-4 z-[75]"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", damping: 15, stiffness: 300 }}
+            >
+              <Button
+                variant="outline"
+                size="icon"
+                className={cn(
+                  "rounded-full glass-shimmer shadow-lg",
+                  showMobileCanvasInput && "ring-2 ring-primary/50"
+                )}
+                onClick={() => setShowMobileCanvasInput(!showMobileCanvasInput)}
+              >
+                <MessageCircle className="h-4 w-4" />
+              </Button>
+            </motion.div>
+
+            {/* Mobile canvas input bar (hideable) */}
+            <AnimatePresence>
+              {showMobileCanvasInput && (
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 50 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed bottom-6 left-16 right-4 z-[75]"
+                >
+                  <div className="glass-dock">
+                    <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
         {/* Scrollable messages layer with bottom padding equal to dock height */}
@@ -843,11 +881,14 @@ export function MobileChatApp() {
           </AnimatePresence>
 
           {/* Free-floating input shelf with canvas tile above it */}
+          {/* On desktop with canvas open: constrain to left side (55% of screen) */}
           <div
             ref={inputDockRef}
             className={cn(
               "fixed bottom-6 z-30 pointer-events-none px-4 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-              "left-0 right-0",
+              "left-0",
+              // When canvas is open on desktop, limit to left 55% of screen
+              isCanvasOpen && !isMobile ? "right-[45%]" : "right-0",
               rightPanelOpen && !isCanvasOpen && "lg:left-80 xl:left-96"
             )}
           >
