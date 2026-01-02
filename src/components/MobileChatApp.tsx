@@ -141,8 +141,15 @@ export function MobileChatApp() {
   const isMobile = useIsMobile();
   const isAdminBannerActive = useAdminBanner();
   
-  // Canvas state
-  const { isOpen: isCanvasOpen, closeCanvas: storeCloseCanvas } = useCanvasStore();
+  // Canvas state (single hook call; required for correct hook initialization order)
+  const {
+    isOpen: isCanvasOpen,
+    closeCanvas: storeCloseCanvas,
+    reopenCanvas,
+    openCanvas,
+    hydrateFromSession,
+    content: canvasContent,
+  } = useCanvasStore();
 
   // If canvas is open on mobile, it fully takes over the UI
   const isCanvasOverlayActive = isMobile && isCanvasOpen;
@@ -539,9 +546,6 @@ export function MobileChatApp() {
     mo.observe(root, { childList: true, subtree: true });
     return () => mo.disconnect();
   }, []);
-
-  // Canvas store actions for reopen
-  const { reopenCanvas, openCanvas, hydrateFromSession, content: canvasContent } = useCanvasStore();
 
   const currentSession = currentSessionId ? chatSessions.find(s => s.id === currentSessionId) : null;
   const sessionCanvas = currentSession?.canvasContent ?? '';

@@ -19,7 +19,8 @@ export function CanvasTile({
   onClose,
   className,
 }: CanvasTileProps) {
-  if (!hasContent && !isOpen) return null;
+  // Always show a Canvas tile so users can open/close at will.
+  // (We still show a helpful empty-state preview when there's no content.)
 
   return (
     <div className={cn("w-full", className)}>
