@@ -8,7 +8,6 @@ import {
   Copy,
   Download,
   Eye,
-  EyeOff,
   FileText,
   Heading1,
   Heading2,
@@ -16,7 +15,6 @@ import {
   Italic,
   List,
   Loader2,
-  Play,
   Redo2,
   Sparkles,
   Undo2,
@@ -91,6 +89,8 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const { toast } = useToast();
   const [showHistory, setShowHistory] = useState(false);
   const [copied, setCopied] = useState(false);
+  // For code mode: show preview by default (full-width), toggle to show code
+  const [showCodeEditor, setShowCodeEditor] = useState(false);
 
   const isCodeMode = canvasType === 'code';
   const supportsPreview = isCodeMode && canPreview(codeLanguage);
@@ -276,19 +276,38 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
             {isCodeMode ? `${lineCount} lines` : `${wordCount} words`}
           </span>
 
-          {supportsPreview && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowCodePreview(!showCodePreview)}
-              className={cn(
-                "h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground",
-                showCodePreview && "bg-muted text-foreground"
-              )}
-              title={showCodePreview ? "Hide Preview" : "Show Preview"}
-            >
-              {showCodePreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </Button>
+          {/* Toggle between Code and Preview for code mode */}
+          {isCodeMode && supportsPreview && (
+            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCodeEditor(false)}
+                className={cn(
+                  "h-7 px-2.5 rounded-md text-xs font-medium transition-colors",
+                  !showCodeEditor 
+                    ? "bg-background text-foreground shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Eye className="w-3.5 h-3.5 mr-1" />
+                Preview
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCodeEditor(true)}
+                className={cn(
+                  "h-7 px-2.5 rounded-md text-xs font-medium transition-colors",
+                  showCodeEditor 
+                    ? "bg-background text-foreground shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Code className="w-3.5 h-3.5 mr-1" />
+                Code
+              </Button>
+            </div>
           )}
 
           <Button
@@ -392,13 +411,15 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Editor/Code Area */}
-        <div className={cn(
-          "flex flex-col min-w-0 overflow-hidden",
-          supportsPreview && showCodePreview ? "w-1/2" : "flex-1"
-        )}>
-          {isCodeMode ? (
-            // Code Editor
+        {isCodeMode ? (
+          // Code mode: show either preview (full-width) or code editor (full-width)
+          supportsPreview && !showCodeEditor ? (
+            // Preview mode (default for previewable languages)
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <CodePreview code={content} language={codeLanguage} />
+            </div>
+          ) : (
+            // Code editor mode
             <CanvasCodeEditor
               code={content}
               language={codeLanguage}
@@ -406,46 +427,33 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
               readOnly={isAIWriting}
               className="flex-1"
             />
-          ) : (
-            // Writing Editor
-            <ScrollArea className="flex-1">
-              <div className="px-6 py-5 pb-24 md:pb-5 min-h-[300px]">
-                <EditorContent
-                  editor={editor}
-                  className={cn(
-                    "min-h-[300px]",
-                    "tiptap-editor prose prose-sm dark:prose-invert max-w-none",
-                    "focus:outline-none",
-                    "[&_.ProseMirror]:outline-none",
-                    "[&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-bold [&_.ProseMirror_h1]:mb-4 [&_.ProseMirror_h1]:mt-6",
-                    "[&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:mb-3 [&_.ProseMirror_h2]:mt-5",
-                    "[&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-medium [&_.ProseMirror_h3]:mb-2 [&_.ProseMirror_h3]:mt-4",
-                    "[&_.ProseMirror_p]:mb-3 [&_.ProseMirror_p]:leading-relaxed",
-                    "[&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ul]:mb-3",
-                    "[&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_ol]:mb-3",
-                    "[&_.ProseMirror_li]:mb-1",
-                    "[&_.ProseMirror_strong]:font-bold",
-                    "[&_.ProseMirror_em]:italic",
-                    "[&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:text-sm",
-                    "[&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-primary/30 [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_blockquote]:text-muted-foreground"
-                  )}
-                />
-              </div>
-            </ScrollArea>
-          )}
-        </div>
-
-        {/* Code Preview Panel */}
-        {supportsPreview && showCodePreview && (
-          <div className="w-1/2 border-l border-border/30 flex flex-col bg-muted/10">
-            <div className="px-3 py-2 border-b border-border/20 flex items-center gap-2">
-              <Play className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground">Preview</span>
+          )
+        ) : (
+          // Writing mode
+          <ScrollArea className="flex-1">
+            <div className="px-6 py-5 pb-24 md:pb-5 min-h-[300px]">
+              <EditorContent
+                editor={editor}
+                className={cn(
+                  "min-h-[300px]",
+                  "tiptap-editor prose prose-sm dark:prose-invert max-w-none",
+                  "focus:outline-none",
+                  "[&_.ProseMirror]:outline-none",
+                  "[&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-bold [&_.ProseMirror_h1]:mb-4 [&_.ProseMirror_h1]:mt-6",
+                  "[&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:mb-3 [&_.ProseMirror_h2]:mt-5",
+                  "[&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-medium [&_.ProseMirror_h3]:mb-2 [&_.ProseMirror_h3]:mt-4",
+                  "[&_.ProseMirror_p]:mb-3 [&_.ProseMirror_p]:leading-relaxed",
+                  "[&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ul]:mb-3",
+                  "[&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_ol]:mb-3",
+                  "[&_.ProseMirror_li]:mb-1",
+                  "[&_.ProseMirror_strong]:font-bold",
+                  "[&_.ProseMirror_em]:italic",
+                  "[&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:text-sm",
+                  "[&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-primary/30 [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_blockquote]:text-muted-foreground"
+                )}
+              />
             </div>
-            <div className="flex-1 overflow-hidden">
-              <CodePreview code={content} language={codeLanguage} />
-            </div>
-          </div>
+          </ScrollArea>
         )}
 
         {/* Version History Sidebar */}

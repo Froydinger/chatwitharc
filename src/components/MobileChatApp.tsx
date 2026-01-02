@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore } from "@/store/useArcStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -569,7 +570,9 @@ export function MobileChatApp() {
   const hasCanvas = (canvasContent || sessionCanvas).trim().length > 0;
   const canReopenCanvas = !isCanvasOpen && hasCanvas;
 
-  // Main chat interface
+  // Main chat interface - Desktop with canvas uses PanelGroup for resizable layout
+  const isDesktopCanvasMode = !isMobile && isCanvasOpen;
+  
   return (
     <div
       className={cn(
@@ -589,7 +592,7 @@ export function MobileChatApp() {
         )}
       >
         {/* Floating header buttons - no bar, hide when canvas is open on desktop */}
-        {!isCanvasOverlayActive && !(!isMobile && isCanvasOpen) && (
+        {!isCanvasOverlayActive && !isDesktopCanvasMode && (
           <div
             className={cn(
               "fixed left-0 right-0 z-40 transition-transform duration-300 ease-out pointer-events-none",
@@ -943,21 +946,15 @@ export function MobileChatApp() {
         />
       </div>
 
-      {/* Side-by-side Canvas Panel on RIGHT (Desktop only) */}
-      <AnimatePresence>
-        {isCanvasOpen && !isMobile && (
-          <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "45%", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="border-l border-border/30 flex-shrink-0 overflow-hidden bg-background"
-            style={{ minWidth: isCanvasOpen ? 400 : 0, maxWidth: 700 }}
-          >
+      {/* Side-by-side Canvas Panel on RIGHT (Desktop only) - Resizable */}
+      {isCanvasOpen && !isMobile && (
+        <>
+          <PanelResizeHandle className="w-1 bg-border/30 hover:bg-primary/50 active:bg-primary transition-colors cursor-col-resize" />
+          <Panel defaultSize={50} minSize={50} maxSize={75} className="overflow-hidden bg-background">
             <CanvasPanel />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </Panel>
+        </>
+      )}
 
       {/* Scoped styles */}
       <style>{`
