@@ -358,7 +358,7 @@ serve(async (req) => {
       throw new Error('Lovable API key not configured');
     }
 
-    // Define tools including web search, chat search, and file generation
+    // Define tools including web search, chat search, canvas update, and file generation
     const tools = [
       {
         type: "function",
@@ -399,14 +399,36 @@ serve(async (req) => {
       {
         type: "function",
         function: {
+          name: "update_canvas",
+          description: "Write or update content in the user's writing Canvas. Use this tool when the user asks you to write, draft, or create content like blog posts, essays, articles, stories, notes, outlines, scripts, emails, etc. The content will appear in their Canvas editor where they can review and edit it. This is the PRIMARY tool for any writing/drafting request. Do NOT use generate_file for writing tasks - use update_canvas instead.",
+          parameters: {
+            type: "object",
+            properties: {
+              content: {
+                type: "string",
+                description: "The full markdown content to put in the Canvas. Include proper formatting with headers, paragraphs, lists, etc."
+              },
+              label: {
+                type: "string",
+                description: "A short label for this version (e.g., 'Blog Post Draft', 'Email Draft')"
+              }
+            },
+            required: ["content"],
+            additionalProperties: false
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
           name: "generate_file",
-          description: "Generate and create an actual downloadable FILE (PDF, TXT, MD, JSON, CSV, etc.). CRITICAL: Use this ONLY when the user explicitly wants a DOWNLOADABLE DOCUMENT FILE, NOT when they want to see CODE. When user requests code/apps/tools, use markdown code blocks instead (```html, ```javascript, ```css) which create interactive preview windows. This tool is for DOCUMENTS (resumes, reports, PDFs) NOT for CODE. The file will be created and a download link provided.",
+          description: "Generate a DOWNLOADABLE FILE (PDF, spreadsheet, data file). Use ONLY when the user explicitly wants to download a document - e.g., 'download as PDF', 'create a spreadsheet file', 'export to CSV'. For writing tasks like blog posts, essays, articles, emails, notes, etc. - use update_canvas instead, NOT this tool.",
           parameters: {
             type: "object",
             properties: {
               fileType: {
                 type: "string",
-                description: "The type of file to generate (pdf, txt, md, json, csv, etc.) - ONLY for downloadable documents, NOT for code"
+                description: "The type of file to generate (pdf, txt, xlsx, csv, json, etc.)"
               },
               prompt: {
                 type: "string",
@@ -456,6 +478,7 @@ serve(async (req) => {
     // Track which tools were used and web sources
     const toolsUsed: string[] = [];
     let webSources: WebSearchResult[] = [];
+    let canvasUpdate: { content: string; label?: string } | null = null;
     
     // Check if the AI wants to use tools (web search or chat search)
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
@@ -495,6 +518,22 @@ serve(async (req) => {
             role: 'tool',
             tool_call_id: toolCall.id,
             content: chatResults
+          });
+        } else if (toolCall.function.name === 'update_canvas') {
+          const args = JSON.parse(toolCall.function.arguments);
+          console.log('Canvas update requested:', args.label || 'Untitled');
+          
+          // Store canvas update for frontend
+          canvasUpdate = {
+            content: args.content,
+            label: args.label
+          };
+          
+          // Add tool response to conversation
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: `Canvas updated successfully with "${args.label || 'New Draft'}". The content is now in the user's Canvas editor.`
           });
         } else if (toolCall.function.name === 'generate_file') {
           const args = JSON.parse(toolCall.function.arguments);
@@ -552,11 +591,12 @@ serve(async (req) => {
       data = await response.json();
     }
     
-    // Add tool usage metadata and sources to the response
+    // Add tool usage metadata, sources, and canvas update to the response
     const finalResponse = {
       ...data,
       tool_calls_used: toolsUsed,
-      web_sources: webSources.length > 0 ? webSources : undefined
+      web_sources: webSources.length > 0 ? webSources : undefined,
+      canvas_update: canvasUpdate
     };
     
     return new Response(
