@@ -1,13 +1,19 @@
-import { Brain, Search, Database, Globe } from "lucide-react";
+import { useState } from "react";
+import { Brain, Search, Database, Globe, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import { MemoryAction } from "@/store/useArcStore";
 import { SourcesAccordion } from "@/components/SourcesAccordion";
+import { SearchResultsModal } from "@/components/SearchResultsModal";
+import { Button } from "@/components/ui/button";
 
 interface MemoryIndicatorProps {
   action: MemoryAction;
+  messageContent?: string;
 }
 
-export const MemoryIndicator = ({ action }: MemoryIndicatorProps) => {
+export const MemoryIndicator = ({ action, messageContent }: MemoryIndicatorProps) => {
+  const [showArticle, setShowArticle] = useState(false);
+
   const getIcon = () => {
     switch (action.type) {
       case 'memory_saved':
@@ -42,12 +48,32 @@ export const MemoryIndicator = ({ action }: MemoryIndicatorProps) => {
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
-          className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70 mt-1.5"
+          className="flex items-center gap-2 text-[11px] text-muted-foreground/70 mt-1.5"
         >
           <span className="text-primary/60">{getIcon()}</span>
-          <span className="truncate max-w-[250px]">{getLabel()}</span>
+          <span className="truncate max-w-[200px]">{getLabel()}</span>
+          {messageContent && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowArticle(true)}
+              className="h-5 px-2 text-[10px] text-primary/70 hover:text-primary hover:bg-primary/10"
+            >
+              <FileText className="h-3 w-3 mr-1" />
+              View as article
+            </Button>
+          )}
         </motion.div>
         <SourcesAccordion sources={action.sources} />
+        
+        {messageContent && (
+          <SearchResultsModal
+            isOpen={showArticle}
+            onClose={() => setShowArticle(false)}
+            content={messageContent}
+            sources={action.sources}
+          />
+        )}
       </div>
     );
   }

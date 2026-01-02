@@ -12,6 +12,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { FingerPopupContainer } from "@/components/FingerPopup";
 import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { BugReportModal } from "@/components/BugReportModal";
+import { WritingCanvas } from "@/components/WritingCanvas";
 import { useBugReport } from "@/hooks/useBugReport";
 import { useVisibilityHandler } from "@/hooks/useVisibilityHandler";
 import { Index } from "./pages/Index";
@@ -61,6 +62,7 @@ const App = () => {
               errorMessage={errorMessage}
               errorStack={errorStack}
             />
+            <WritingCanvas />
             <BrowserRouter>
               <PageTransition>
                 <Routes>

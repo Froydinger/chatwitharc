@@ -1,7 +1,7 @@
 // src/components/ChatInput.tsx
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
-import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Brain, Code2 } from "lucide-react";
+import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Brain, Code2, PenLine } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
@@ -14,6 +14,7 @@ import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
+import { useCanvasStore } from "@/store/useCanvasStore";
 import { cn } from "@/lib/utils";
 
 // Global cancellation flag
@@ -76,9 +77,16 @@ function checkForCodingRequest(message: string): boolean {
   return /^code\//.test(m);
 }
 
+// Prefix-based detection: write/ for canvas mode
+function checkForWriteRequest(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+  return /^write\//.test(m);
+}
+
 // Extract the prompt after the prefix (strips prefix/)
 function extractPrefixPrompt(message: string): string {
-  return message.replace(/^(image|draw|create|code)\/\s*/i, "").trim();
+  return message.replace(/^(image|draw|create|code|write)\/\s*/i, "").trim();
 }
 
 
@@ -976,6 +984,19 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               >
                 <Code2 className="h-4 w-4" />
                 <span className="text-sm font-medium">code/</span>
+              </button>
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  const { openCanvas } = useCanvasStore.getState();
+                  openCanvas("");
+                  setInputValue("");
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-purple-400/50 text-purple-400 hover:bg-purple-500/20 transition-colors shadow-xl"
+              >
+                <PenLine className="h-4 w-4" />
+                <span className="text-sm font-medium">write/</span>
               </button>
               {/* Dismiss button */}
               <button
