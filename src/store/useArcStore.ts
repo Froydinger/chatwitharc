@@ -64,6 +64,7 @@ export interface ArcState {
   replaceLastMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => void;
   updateMessageMemoryAction: (messageId: string, memoryAction: MemoryAction) => void;
+  upsertCanvasMessage: (canvasContent: string, memoryAction?: MemoryAction) => Promise<string>;
   clearCurrentMessages: () => void;
 
   // UI State
@@ -578,6 +579,69 @@ export const useArcStore = create<ArcState>()(
       },
       
       clearCurrentMessages: () => set({ messages: [] }),
+
+      upsertCanvasMessage: async (canvasContent, memoryAction) => {
+        const state = get();
+        const sessionId = state.currentSessionId;
+        if (!sessionId) {
+          // If no session exists yet, create one by adding a synthetic assistant message first.
+          // This ensures we have a session to attach the canvas artifact to.
+          const createdId = await get().addMessage({
+            content: "Here's your canvas draft:",
+            role: 'assistant',
+            type: 'canvas',
+            canvasContent,
+            memoryAction,
+          });
+          return createdId;
+        }
+
+        const canvasMessageId = `canvas-${sessionId}`;
+
+        set((s) => {
+          // Keep only one canvas artifact message in the timeline.
+          const nonCanvas = s.messages.filter((m) => m.type !== 'canvas');
+          // (legacy cleanup) any previous canvas messages are removed via nonCanvas filter above.
+
+          const upserted: Message = {
+            id: canvasMessageId,
+            content: "Here's your canvas draft:",
+            role: 'assistant',
+            type: 'canvas',
+            canvasContent,
+            memoryAction,
+            timestamp: new Date(),
+          };
+
+          // If there were multiple canvas messages (legacy behavior), drop them and keep the latest only.
+          const updatedMessages = [...nonCanvas, upserted];
+
+          const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
+          const sessionToSave: ChatSession = {
+            id: sessionId,
+            title: existingSession?.title || 'New Chat',
+            createdAt: existingSession?.createdAt || new Date(),
+            lastMessageAt: new Date(),
+            messages: updatedMessages,
+            canvasContent: existingSession?.canvasContent,
+          };
+
+          const updatedSessions = s.chatSessions.map((cs) => (cs.id === sessionId ? sessionToSave : cs));
+
+          // Persist async
+          get().saveChatToSupabase(sessionToSave).catch((error) => {
+            console.error('❌ Failed to save canvas message to Supabase:', error);
+          });
+
+          return {
+            ...s,
+            messages: updatedMessages,
+            chatSessions: updatedSessions,
+          };
+        });
+
+        return canvasMessageId;
+      },
       
       editMessage: (messageId, newContent) => {
         set((state) => {

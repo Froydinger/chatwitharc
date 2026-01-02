@@ -165,7 +165,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const { toast } = useToast();
   const showPopup = useFingerPopup((state) => state.showPopup);
 
-  const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory, setSearchingWeb, updateMessageMemoryAction } =
+  const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory, setSearchingWeb, updateMessageMemoryAction, upsertCanvasMessage } =
     useArcStore();
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
@@ -854,14 +854,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             updateSessionCanvasContent(currentSessionId, canvasContentToSave);
           }
 
-          // Add canvas-type message inline in chat (like GPT/Gemini artifacts)
-          await addMessage({
-            content: "Here's your canvas draft:",
-            role: "assistant",
-            type: "canvas",
-            canvasContent: canvasContentToSave,
-            memoryAction,
-          });
+          // Upsert a single canvas-type message inline in chat (like GPT/Gemini artifacts)
+          // so we don't create a new Canvas Draft card on every update.
+          await upsertCanvasMessage(canvasContentToSave, memoryAction);
         } else {
           // Regular text response (no canvas)
           await addMessage({
