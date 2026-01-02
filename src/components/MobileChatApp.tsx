@@ -140,8 +140,15 @@ export function MobileChatApp() {
   const isAdminBannerActive = useAdminBanner();
   
   // Canvas state
-  const { isOpen: isCanvasOpen, mode: canvasMode } = useCanvasStore();
+  const { isOpen: isCanvasOpen, closeCanvas: storeCloseCanvas } = useCanvasStore();
   const [mobileCanvasTab, setMobileCanvasTab] = useState<'chat' | 'canvas'>('chat');
+  
+  // Reset mobile tab when canvas closes
+  useEffect(() => {
+    if (!isCanvasOpen) {
+      setMobileCanvasTab('chat');
+    }
+  }, [isCanvasOpen]);
 
   // Pre-generate prompts in background for instant access
   usePromptPreload();
@@ -510,6 +517,10 @@ export function MobileChatApp() {
     return () => mo.disconnect();
   }, []);
 
+  // Canvas store actions for reopen
+  const { openCanvas, content: canvasContent } = useCanvasStore();
+  const canReopenCanvas = !isCanvasOpen && canvasContent.length > 0;
+
   // Main chat interface
   return (
     <div
@@ -521,12 +532,6 @@ export function MobileChatApp() {
         paddingTop: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : undefined
       }}
     >
-      {/* Side-by-side Canvas Panel (Desktop only) */}
-      {isCanvasOpen && !isMobile && (
-        <div className="w-[45%] min-w-[400px] max-w-[600px] border-r border-border/50 flex-shrink-0">
-          <CanvasPanel />
-        </div>
-      )}
 
       {/* Main Content */}
       <div
@@ -574,8 +579,32 @@ export function MobileChatApp() {
               </motion.div>
             </div>
 
-            {/* Right side buttons - Music + Logo */}
+            {/* Right side buttons - Canvas Reopen + Music + Logo */}
             <div className="flex items-center gap-2 pointer-events-auto">
+              {/* Canvas Reopen Button - shows when canvas is closed but has content */}
+              <AnimatePresence>
+                {canReopenCanvas && (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    whileHover={{ scale: 1.1, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                  >
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full glass-shimmer transition-all ring-2 ring-purple-500/50"
+                      onClick={() => openCanvas(canvasContent)}
+                      title="Reopen Canvas"
+                    >
+                      <PenLine className="h-4 w-4 text-purple-400" />
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Music Player Button */}
               <motion.div 
                 whileHover={{ scale: 1.1, y: -2 }} 
@@ -851,6 +880,22 @@ export function MobileChatApp() {
           preload="metadata"
         />
       </div>
+
+      {/* Side-by-side Canvas Panel on RIGHT (Desktop only) */}
+      <AnimatePresence>
+        {isCanvasOpen && !isMobile && (
+          <motion.div
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "45%", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className="border-l border-border/30 flex-shrink-0 overflow-hidden bg-background"
+            style={{ minWidth: isCanvasOpen ? 400 : 0, maxWidth: 700 }}
+          >
+            <CanvasPanel />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Scoped styles */}
       <style>{`

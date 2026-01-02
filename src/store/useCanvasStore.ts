@@ -81,11 +81,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   closeCanvas: () => set({
     isOpen: false,
-    content: '',
-    versions: [],
-    activeVersionIndex: -1,
-    undoStack: [],
-    redoStack: [],
+    // Keep content and versions so user can reopen
     isAIWriting: false,
     mode: 'sideBySide',
     pendingPrompt: null,
