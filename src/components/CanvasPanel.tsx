@@ -285,24 +285,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
               onClick={() => textareaRef.current?.focus()}
               className="relative min-h-full cursor-text"
             >
-              {/* Rendered Markdown Layer (visible) */}
-              <div
-                className={cn(
-                  "px-6 py-5 min-h-[300px] pointer-events-none select-none",
-                  "prose prose-sm dark:prose-invert max-w-none",
-                  "prose-headings:font-semibold prose-headings:text-foreground prose-headings:mb-3",
-                  "prose-p:text-foreground/90 prose-p:leading-[1.7] prose-p:mb-4",
-                  "prose-li:text-foreground/90 prose-li:leading-[1.6]",
-                  "prose-strong:text-foreground prose-strong:font-semibold",
-                  "prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm",
-                  "prose-blockquote:border-l-2 prose-blockquote:border-primary/40 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground",
-                  !content && "hidden"
-                )}
-              >
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-              </div>
-              
-              {/* Hidden Textarea for Input (captures all keyboard input) */}
+              {/* Hidden Textarea for Input (captures all keyboard input) - BEHIND */}
               <textarea
                 ref={textareaRef}
                 value={content}
@@ -313,18 +296,35 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
                 disabled={isAIWriting}
                 autoFocus
                 className={cn(
-                  "absolute inset-0 w-full h-full resize-none",
-                  "bg-transparent",
+                  "absolute inset-0 w-full h-full resize-none z-0",
+                  "bg-transparent text-transparent caret-primary",
                   "px-6 py-5",
                   "text-[15px] leading-[1.8]",
-                  "placeholder:text-muted-foreground/40",
                   "focus:outline-none",
-                  "caret-primary",
-                  content ? "text-transparent" : "text-foreground",
                   isAIWriting && "opacity-70"
                 )}
                 style={{ caretColor: 'hsl(var(--primary))' }}
               />
+              
+              {/* Rendered Markdown Layer (visible) - ON TOP */}
+              <div
+                className={cn(
+                  "relative z-10 px-6 py-5 min-h-[300px] pointer-events-none select-none",
+                  "prose prose-sm dark:prose-invert max-w-none",
+                  "prose-headings:font-semibold prose-headings:text-foreground prose-headings:mb-3",
+                  "prose-p:text-foreground/90 prose-p:leading-[1.7] prose-p:mb-4",
+                  "prose-li:text-foreground/90 prose-li:leading-[1.6]",
+                  "prose-strong:text-foreground prose-strong:font-semibold",
+                  "prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm",
+                  "prose-blockquote:border-l-2 prose-blockquote:border-primary/40 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground"
+                )}
+              >
+                {content ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+                ) : (
+                  <p className="text-muted-foreground/40 italic">Start writing...</p>
+                )}
+              </div>
             </div>
           </ScrollArea>
         </div>
