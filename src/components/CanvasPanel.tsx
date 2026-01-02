@@ -32,10 +32,14 @@ interface CanvasPanelProps {
   className?: string;
 }
 
-function editorGetMarkdown(editor: unknown): string {
-  // TipTap augments the editor instance when Markdown extension is installed.
-  // We keep this loosely typed to avoid TS friction across package versions.
-  return (editor as any)?.getMarkdown?.() ?? "";
+function editorGetMarkdown(editor: ReturnType<typeof useEditor>): string {
+  if (!editor) return "";
+  // The @tiptap/markdown extension adds getMarkdown() to the editor instance
+  try {
+    return editor.getMarkdown?.() ?? "";
+  } catch {
+    return "";
+  }
 }
 
 export function CanvasPanel({ className }: CanvasPanelProps) {
@@ -57,28 +61,43 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const editor = useEditor({
     editable: !isAIWriting,
     extensions: [
-      StarterKit,
-      Markdown.configure({
-        // keep defaults (safer across versions)
+      StarterKit.configure({
+        // Ensure proper paragraph/line break handling
+        paragraph: {},
+        hardBreak: {},
       }),
+      Markdown,
     ],
-    content,
-    onUpdate: ({ editor }) => {
+    content: "", // Start empty, we'll sync from store
+    onUpdate: ({ editor: ed }) => {
       // Keep the store as Markdown (source-of-truth)
-      const md = editorGetMarkdown(editor);
-      if (md !== undefined) setContent(md, false);
+      const md = editorGetMarkdown(ed as ReturnType<typeof useEditor>);
+      if (md !== undefined && md !== content) {
+        setContent(md, false);
+      }
     },
   });
 
   // Sync editor when store content changes (restore version / AI draft)
   useEffect(() => {
     if (!editor) return;
-    const md = editorGetMarkdown(editor);
-    if (md !== content) {
-      // Parse markdown content into the editor - the Markdown extension handles this
-      editor.commands.setContent(content, { emitUpdate: false });
+    
+    // Get current editor markdown to compare
+    const currentMd = editorGetMarkdown(editor);
+    
+    // Only update if content actually differs
+    if (currentMd !== content && content !== undefined) {
+      // Use contentType: 'markdown' to parse markdown into TipTap nodes
+      editor.commands.setContent(content, { contentType: 'markdown' });
     }
   }, [content, editor]);
+
+  // Initialize editor with store content on mount
+  useEffect(() => {
+    if (editor && content) {
+      editor.commands.setContent(content, { contentType: 'markdown' });
+    }
+  }, [editor]);
 
   // Word/char counts from markdown source
   const { wordCount, charCount } = useMemo(() => {
