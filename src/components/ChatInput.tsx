@@ -165,7 +165,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const { toast } = useToast();
   const showPopup = useFingerPopup((state) => state.showPopup);
 
-  const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory, setSearchingWeb, updateMessageMemoryAction, upsertCanvasMessage } =
+  const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory, setSearchingWeb, updateMessageMemoryAction, upsertCanvasMessage, upsertCodeMessage } =
     useArcStore();
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
@@ -838,34 +838,46 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           memoryAction = { type: 'chats_searched' as const };
         }
         
+        // Handle code update if AI used the update_code tool
+        if (result.codeUpdate) {
+          const { openCodeCanvas } = useCanvasStore.getState();
+          openCodeCanvas(result.codeUpdate.code, result.codeUpdate.language, result.codeUpdate.label);
+          
+          // Upsert a single code-type message in chat
+          await upsertCodeMessage(
+            result.codeUpdate.code,
+            result.codeUpdate.language,
+            result.codeUpdate.label,
+            memoryAction
+          );
+        }
         // Handle canvas update if AI used the update_canvas tool
-        // If the Canvas is already open and the user is asking for formatting/rewrites,
-        // fallback to putting the assistant's response into the Canvas as well.
-        const canvasContentToSave = result.canvasUpdate?.content ?? (shouldRouteToCanvas ? result.content : null);
+        else {
+          const canvasContentToSave = result.canvasUpdate?.content ?? (shouldRouteToCanvas ? result.content : null);
 
-        if (canvasContentToSave) {
-          const { setAIContent, reopenCanvas } = useCanvasStore.getState();
-          setAIContent(canvasContentToSave, result.canvasUpdate?.label || "Canvas Update");
-          reopenCanvas();
+          if (canvasContentToSave) {
+            const { setAIContent, reopenCanvas } = useCanvasStore.getState();
+            setAIContent(canvasContentToSave, result.canvasUpdate?.label || "Canvas Update");
+            reopenCanvas();
 
-          // Immediately persist canvas content to the current session so it survives navigation
-          const { currentSessionId, updateSessionCanvasContent } = useArcStore.getState();
-          if (currentSessionId) {
-            updateSessionCanvasContent(currentSessionId, canvasContentToSave);
+            // Immediately persist canvas content to the current session so it survives navigation
+            const { currentSessionId, updateSessionCanvasContent } = useArcStore.getState();
+            if (currentSessionId) {
+              updateSessionCanvasContent(currentSessionId, canvasContentToSave);
+            }
+
+            // Upsert a single canvas-type message inline in chat
+            const canvasLabel = result.canvasUpdate?.label || undefined;
+            await upsertCanvasMessage(canvasContentToSave, canvasLabel, memoryAction);
+          } else {
+            // Regular text response (no canvas or code)
+            await addMessage({
+              content: result.content,
+              role: "assistant",
+              type: "text",
+              memoryAction,
+            });
           }
-
-          // Upsert a single canvas-type message inline in chat (like GPT/Gemini artifacts)
-          // so we don't create a new Canvas Draft card on every update.
-          const canvasLabel = result.canvasUpdate?.label || undefined;
-          await upsertCanvasMessage(canvasContentToSave, canvasLabel, memoryAction);
-        } else {
-          // Regular text response (no canvas)
-          await addMessage({
-            content: result.content,
-            role: "assistant",
-            type: "text",
-            memoryAction,
-          });
         }
       } catch (err: any) {
         // Check if request was cancelled

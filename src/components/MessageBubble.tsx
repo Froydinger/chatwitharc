@@ -18,6 +18,7 @@ import { ImageEditModal } from "@/components/ImageEditModal";
 import { CodeBlock } from "@/components/CodeBlock";
 import { FileAttachment } from "@/components/FileAttachment";
 import { CanvasAttachment } from "@/components/CanvasAttachment";
+import { CodeArtifactCard } from "@/components/CodeArtifactCard";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { MemoryIndicator } from "@/components/MemoryIndicator";
 
@@ -272,6 +273,23 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   <CanvasAttachment
                     canvasContent={message.canvasContent}
                     canvasLabel={message.canvasLabel}
+                    className="max-w-md"
+                  />
+                </motion.div>
+              )}
+
+              {/* Code Artifact */}
+              {message.type === "code" && message.codeContent && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.12 }}
+                  className="mb-2 relative z-10"
+                >
+                  <CodeArtifactCard
+                    codeContent={message.codeContent}
+                    codeLanguage={message.codeLanguage || 'typescript'}
+                    codeLabel={message.codeLabel}
                     className="max-w-md"
                   />
                 </motion.div>

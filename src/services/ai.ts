@@ -26,10 +26,17 @@ export interface CanvasUpdate {
   label?: string;
 }
 
+export interface CodeUpdate {
+  code: string;
+  language: string;
+  label?: string;
+}
+
 export interface SendMessageResult {
   content: string;
   webSources?: WebSource[];
   canvasUpdate?: CanvasUpdate;
+  codeUpdate?: CodeUpdate;
 }
 
 export class AIService {
@@ -117,7 +124,8 @@ export class AIService {
       return {
         content: data.choices[0]?.message?.content || 'Sorry, I could not generate a response.',
         webSources: data.web_sources,
-        canvasUpdate: data.canvas_update
+        canvasUpdate: data.canvas_update,
+        codeUpdate: data.code_update
       };
     } catch (error) {
       console.error('AI Service Error:', error);
