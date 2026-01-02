@@ -855,16 +855,19 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         // If the Canvas is already open and the user is asking for formatting/rewrites,
         // fallback to putting the assistant's response into the Canvas as well.
         let wroteToCanvas = false;
-        if (result.canvasUpdate) {
+        const canvasContentToSave = result.canvasUpdate?.content ?? (shouldRouteToCanvas ? result.content : null);
+
+        if (canvasContentToSave) {
           const { setAIContent, reopenCanvas } = useCanvasStore.getState();
-          setAIContent(result.canvasUpdate.content, result.canvasUpdate.label);
+          setAIContent(canvasContentToSave, result.canvasUpdate?.label || "Canvas Update");
           reopenCanvas();
           wroteToCanvas = true;
-        } else if (shouldRouteToCanvas && result.content) {
-          const { setAIContent, reopenCanvas } = useCanvasStore.getState();
-          setAIContent(result.content, "Canvas Update");
-          reopenCanvas();
-          wroteToCanvas = true;
+
+          // Immediately persist canvas content to the current session so it survives navigation
+          const { currentSessionId, updateSessionCanvasContent } = useArcStore.getState();
+          if (currentSessionId) {
+            updateSessionCanvasContent(currentSessionId, canvasContentToSave);
+          }
         }
 
         const assistantContent = wroteToCanvas
