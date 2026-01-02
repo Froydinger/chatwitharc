@@ -76,7 +76,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     const md = editorGetMarkdown(editor);
     if (md !== content) {
       // 2nd param=false prevents an extra update cycle
-      editor.commands.setContent(content, false);
+      editor.commands.setContent(content, { emitUpdate: false });
     }
   }, [content, editor]);
 
