@@ -61,32 +61,36 @@ function isImageEditRequest(message: string): boolean {
   const lower = message.toLowerCase();
   return keywords.some((k) => lower.includes(k));
 }
-// Prefix-based detection: image/, draw/, create/ for images
+// Prefix-based detection: image/, draw/, create/ OR /image, /draw, /create
 function checkForImageRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
-  // Only trigger on explicit prefixes
-  return /^(image|draw|create)\//.test(m);
+  // Support both prefix/ and /prefix syntax
+  return /^(image|draw|create)\//.test(m) || /^\/(image|draw|create)\b/.test(m);
 }
 
-// Prefix-based detection: code/ for coding
+// Prefix-based detection: code/ OR /code
 function checkForCodingRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
-  // Only trigger on explicit prefix
-  return /^code\//.test(m);
+  // Support both code/ and /code syntax
+  return /^code\//.test(m) || /^\/code\b/.test(m);
 }
 
-// Prefix-based detection: write/ for canvas mode
-function checkForWriteRequest(message: string): boolean {
+// Prefix-based detection: write/, /write, /canvas
+function checkForCanvasRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
-  return /^write\//.test(m);
+  // Support write/, /write, and /canvas
+  return /^write\//.test(m) || /^\/(write|canvas)\b/.test(m);
 }
 
-// Extract the prompt after the prefix (strips prefix/)
+// Extract the prompt after the prefix (strips prefix/ or /prefix)
 function extractPrefixPrompt(message: string): string {
-  return message.replace(/^(image|draw|create|code|write)\/\s*/i, "").trim();
+  return message
+    .replace(/^(image|draw|create|code|write)\/\s*/i, "")
+    .replace(/^\/(image|draw|create|code|write|canvas)\s*/i, "")
+    .trim();
 }
 
 
@@ -147,11 +151,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
   const quickPrompts = getAllPromptsFlat();
 
-  // Mode toggles for image and coding
+  // Mode toggles for image, coding, and canvas
   const [forceImageMode, setForceImageMode] = useState(false);
   const [forceCodingMode, setForceCodingMode] = useState(false);
+  const [forceCanvasMode, setForceCanvasMode] = useState(false);
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
   const shouldShowCodeMode = forceCodingMode || (!!inputValue && checkForCodingRequest(inputValue));
+  const shouldShowCanvasMode = forceCanvasMode || (!!inputValue && checkForCanvasRequest(inputValue));
 
   // Show slash picker when user types just "/"
   const showSlashPicker = inputValue.trim() === "/";
@@ -517,6 +523,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     setInputValue("");
     setSelectedImages([]);
     setForceImageMode(false);
+    setForceCodingMode(false);
+    setForceCanvasMode(false);
     setShowMenu(false);
     
     // Reset cancellation flag
@@ -637,9 +645,30 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         return;
       }
 
+      // Canvas mode -> open side-by-side canvas and trigger AI writing
+      if (shouldShowCanvasMode) {
+        const canvasPrompt = extractPrefixPrompt(userMessage);
+        if (!canvasPrompt) {
+          toast({ title: "Please describe what you want me to write", variant: "default" });
+          setLoading(false);
+          return;
+        }
+        
+        // Import canvas store and open side-by-side mode
+        const { openSideBySide } = useCanvasStore.getState();
+        openSideBySide(canvasPrompt);
+        
+        // Add user message
+        await addMessage({ content: userMessage, role: "user", type: "text" });
+        
+        // The canvas will handle the AI call
+        setLoading(false);
+        return;
+      }
+
       // No images: Banana => generate; else text
       if (shouldShowBanana) {
-        // Strip the prefix (image/, draw/, create/) and use the rest as prompt
+        // Strip the prefix (image/, draw/, create/, /image, etc.) and use the rest as prompt
         const imagePrompt = extractPrefixPrompt(userMessage || "") || "a beautiful image";
         await addMessage({ content: userMessage || imagePrompt, role: "user", type: "text" });
         await addMessage({
@@ -873,7 +902,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
       {/* Input Row */}
       <div className="chat-input-halo flex items-center gap-3 rounded-full">
-        {/* LEFT BUTTON — Image/Code mode indicator or + menu */}
+        {/* LEFT BUTTON — Image/Code/Canvas mode indicator or + menu */}
         <button
           ref={menuButtonRef}
           type="button"
@@ -882,6 +911,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               ? "Disable image mode"
               : shouldShowCodeMode
               ? "Disable code mode"
+              : shouldShowCanvasMode
+              ? "Disable canvas mode"
               : showMenu
               ? "Close menu"
               : "Quick options"
@@ -892,17 +923,23 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               ? "!bg-green-500/20 ring-1 ring-green-400/50 !shadow-[0_0_24px_rgba(34,197,94,0.25)]"
               : shouldShowCodeMode
               ? "!bg-blue-500/20 ring-1 ring-blue-400/50 !shadow-[0_0_24px_rgba(59,130,246,0.25)]"
+              : shouldShowCanvasMode
+              ? "!bg-purple-500/20 ring-1 ring-purple-400/50 !shadow-[0_0_24px_rgba(168,85,247,0.25)]"
               : "text-muted-foreground hover:text-foreground",
           ].join(" ")}
           onClick={() => {
             if (shouldShowBanana) {
               setForceImageMode(false);
               // Clear input if it's just the prefix
-              if (/^(image|draw|create)\/\s*$/i.test(inputValue)) setInputValue("");
+              if (/^(image|draw|create)\/\s*$/i.test(inputValue) || /^\/(image|draw|create)\s*$/i.test(inputValue)) setInputValue("");
             } else if (shouldShowCodeMode) {
               setForceCodingMode(false);
               // Clear input if it's just the prefix
-              if (/^code\/\s*$/i.test(inputValue)) setInputValue("");
+              if (/^code\/\s*$/i.test(inputValue) || /^\/code\s*$/i.test(inputValue)) setInputValue("");
+            } else if (shouldShowCanvasMode) {
+              setForceCanvasMode(false);
+              // Clear input if it's just the prefix
+              if (/^write\/\s*$/i.test(inputValue) || /^\/(write|canvas)\s*$/i.test(inputValue)) setInputValue("");
             } else {
               setShowMenu((v) => !v);
             }
@@ -918,6 +955,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           ) : shouldShowCodeMode ? (
             <>
               <Code2 className="h-5 w-5 text-blue-400" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
+                ×
+              </span>
+            </>
+          ) : shouldShowCanvasMode ? (
+            <>
+              <PenLine className="h-5 w-5 text-purple-400" />
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
                 ×
               </span>
@@ -939,7 +983,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               handleInputFocus();
             }}
             onBlur={() => setIsActive(false)}
-            placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe your image..." : shouldShowCodeMode ? "Describe what to build..." : "Ask"}
+            placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe your image..." : shouldShowCodeMode ? "Describe what to build..." : shouldShowCanvasMode ? "What should I write..." : "Ask"}
             disabled={isLoading}
             className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 px-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
@@ -989,9 +1033,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                 type="button"
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  const { openCanvas } = useCanvasStore.getState();
-                  openCanvas("");
-                  setInputValue("");
+                  setForceCanvasMode(true);
+                  setInputValue("write/ ");
+                  textareaRef.current?.focus();
                 }}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-purple-400/50 text-purple-400 hover:bg-purple-500/20 transition-colors shadow-xl"
               >

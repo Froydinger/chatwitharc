@@ -15,16 +15,23 @@ interface CanvasState {
   undoStack: string[];
   redoStack: string[];
   isSaving: boolean;
+  isAIWriting: boolean;
+  mode: 'standalone' | 'sideBySide';
+  pendingPrompt: string | null;
   
   // Actions
   openCanvas: (initialContent?: string) => void;
+  openSideBySide: (prompt: string) => void;
   closeCanvas: () => void;
   setContent: (content: string, saveToHistory?: boolean) => void;
+  setAIContent: (content: string, label?: string) => void;
+  setAIWriting: (isWriting: boolean) => void;
   saveVersion: (label?: string) => void;
   restoreVersion: (index: number) => void;
   undo: () => void;
   redo: () => void;
   clearCanvas: () => void;
+  clearPendingPrompt: () => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
@@ -35,6 +42,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   undoStack: [],
   redoStack: [],
   isSaving: false,
+  isAIWriting: false,
+  mode: 'sideBySide',
+  pendingPrompt: null,
 
   openCanvas: (initialContent = '') => {
     const initialVersion: CanvasVersion = {
@@ -46,10 +56,26 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set({
       isOpen: true,
       content: initialContent,
-      versions: [initialVersion],
-      activeVersionIndex: 0,
+      versions: initialContent ? [initialVersion] : [],
+      activeVersionIndex: initialContent ? 0 : -1,
       undoStack: [],
       redoStack: [],
+      mode: 'standalone',
+      pendingPrompt: null,
+    });
+  },
+
+  openSideBySide: (prompt: string) => {
+    set({
+      isOpen: true,
+      content: '',
+      versions: [],
+      activeVersionIndex: -1,
+      undoStack: [],
+      redoStack: [],
+      mode: 'sideBySide',
+      pendingPrompt: prompt,
+      isAIWriting: true,
     });
   },
 
@@ -60,6 +86,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     activeVersionIndex: -1,
     undoStack: [],
     redoStack: [],
+    isAIWriting: false,
+    mode: 'sideBySide',
+    pendingPrompt: null,
   }),
 
   setContent: (content, saveToHistory = true) => {
@@ -67,13 +96,33 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     if (saveToHistory && state.content !== content) {
       set({
         content,
-        undoStack: [...state.undoStack, state.content].slice(-50), // Keep last 50 undo states
-        redoStack: [], // Clear redo on new change
+        undoStack: [...state.undoStack, state.content].slice(-50),
+        redoStack: [],
       });
     } else {
       set({ content });
     }
   },
+
+  setAIContent: (content: string, label?: string) => {
+    const state = get();
+    const newVersion: CanvasVersion = {
+      id: crypto.randomUUID(),
+      content,
+      timestamp: Date.now(),
+      label: label || `AI Draft ${state.versions.length + 1}`,
+    };
+    set({
+      content,
+      versions: [...state.versions, newVersion],
+      activeVersionIndex: state.versions.length,
+      isAIWriting: false,
+    });
+  },
+
+  setAIWriting: (isWriting: boolean) => set({ isAIWriting: isWriting }),
+
+  clearPendingPrompt: () => set({ pendingPrompt: null }),
 
   saveVersion: (label) => {
     const state = get();

@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, Music } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useArcStore } from "@/store/useArcStore";
+import { useCanvasStore } from "@/store/useCanvasStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput, cancelCurrentRequest, type ChatInputRef } from "@/components/ChatInput";
 import { RightPanel } from "@/components/RightPanel";
@@ -11,6 +12,7 @@ import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { SupportPopup } from "@/components/SupportPopup";
 import { MusicPopup } from "@/components/MusicPopup";
+import { CanvasPanel } from "@/components/CanvasPanel";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
@@ -134,8 +136,12 @@ export function MobileChatApp() {
     syncFromSupabase,
   } = useArcStore();
   const { profile } = useProfile();
-  const isMobile = useIsMobile(); // This hook determines if the current device is mobile
+  const isMobile = useIsMobile();
   const isAdminBannerActive = useAdminBanner();
+  
+  // Canvas state
+  const { isOpen: isCanvasOpen, mode: canvasMode } = useCanvasStore();
+  const [mobileCanvasTab, setMobileCanvasTab] = useState<'chat' | 'canvas'>('chat');
 
   // Pre-generate prompts in background for instant access
   usePromptPreload();
@@ -515,11 +521,18 @@ export function MobileChatApp() {
         paddingTop: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : undefined
       }}
     >
+      {/* Side-by-side Canvas Panel (Desktop only) */}
+      {isCanvasOpen && !isMobile && (
+        <div className="w-[45%] min-w-[400px] max-w-[600px] border-r border-border/50 flex-shrink-0">
+          <CanvasPanel />
+        </div>
+      )}
+
       {/* Main Content */}
       <div
         className={cn(
           "flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10",
-          rightPanelOpen && "lg:ml-80 xl:ml-96",
+          rightPanelOpen && !isCanvasOpen && "lg:ml-80 xl:ml-96",
         )}
       >
         {/* Floating header buttons - no bar */}
@@ -634,6 +647,44 @@ export function MobileChatApp() {
           </div>
         </div>
 
+        {/* Mobile Canvas Tab Switcher */}
+        {isCanvasOpen && isMobile && (
+          <div className="fixed top-16 left-0 right-0 z-50 flex justify-center px-4 pt-2">
+            <div className="flex gap-1 p-1 rounded-full bg-background/80 backdrop-blur-xl border border-border/50 shadow-lg">
+              <button
+                onClick={() => setMobileCanvasTab('chat')}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all",
+                  mobileCanvasTab === 'chat'
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <MessageSquare className="w-4 h-4" />
+                Chat
+              </button>
+              <button
+                onClick={() => setMobileCanvasTab('canvas')}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all",
+                  mobileCanvasTab === 'canvas'
+                    ? "bg-purple-500 text-white"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <PenLine className="w-4 h-4" />
+                Canvas
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Canvas Panel */}
+        {isCanvasOpen && isMobile && mobileCanvasTab === 'canvas' && (
+          <div className="fixed inset-0 z-40 pt-28 bg-background">
+            <CanvasPanel />
+          </div>
+        )}
         {/* Scrollable messages layer with bottom padding equal to dock height */}
         <div
           className={cn("relative flex-1 transition-all duration-300 ease-out", dragOver && "bg-primary/5")}
