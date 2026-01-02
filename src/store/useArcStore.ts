@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from '@/utils/memoryDetection';
+import { useCanvasStore } from '@/store/useCanvasStore';
 
 export interface ChatSession {
   id: string;
@@ -264,6 +265,9 @@ export const useArcStore = create<ArcState>()(
         
         // Reset model selection to default (Smart & Fast) for new chat
         sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash');
+
+        // Clear the canvas store for the new session (sync - no await needed)
+        useCanvasStore.getState().hydrateFromSession('');
 
         // Generate a proper UUID for Supabase compatibility
         const sessionId = crypto.randomUUID();
