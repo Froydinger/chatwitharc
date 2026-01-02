@@ -7,12 +7,16 @@ import {
   Code,
   Copy,
   Download,
+  Eye,
+  EyeOff,
+  FileText,
   Heading1,
   Heading2,
   History,
   Italic,
   List,
   Loader2,
+  Play,
   Redo2,
   Sparkles,
   Undo2,
@@ -23,6 +27,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { CanvasCodeEditor } from "@/components/CanvasCodeEditor";
+import { CodePreview } from "@/components/CodePreview";
 
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -34,12 +40,36 @@ interface CanvasPanelProps {
 
 function editorGetMarkdown(editor: ReturnType<typeof useEditor>): string {
   if (!editor) return "";
-  // The @tiptap/markdown extension adds getMarkdown() to the editor instance
   try {
     return editor.getMarkdown?.() ?? "";
   } catch {
     return "";
   }
+}
+
+// Get display name for language
+function getLanguageDisplay(lang: string): string {
+  const displayNames: Record<string, string> = {
+    'javascript': 'JavaScript',
+    'typescript': 'TypeScript',
+    'tsx': 'React TSX',
+    'jsx': 'React JSX',
+    'python': 'Python',
+    'html': 'HTML',
+    'css': 'CSS',
+    'json': 'JSON',
+    'sql': 'SQL',
+    'bash': 'Shell',
+    'go': 'Go',
+    'rust': 'Rust',
+  };
+  return displayNames[lang.toLowerCase()] || lang.toUpperCase();
+}
+
+// Check if language supports preview
+function canPreview(lang: string): boolean {
+  const previewable = ['html', 'css', 'javascript', 'js', 'jsx', 'tsx'];
+  return previewable.includes(lang.toLowerCase());
 }
 
 export function CanvasPanel({ className }: CanvasPanelProps) {
@@ -48,7 +78,11 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     versions,
     activeVersionIndex,
     isAIWriting,
+    canvasType,
+    codeLanguage,
+    showCodePreview,
     setContent,
+    setShowCodePreview,
     saveVersion,
     restoreVersion,
     closeCanvas,
@@ -58,19 +92,20 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const [showHistory, setShowHistory] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const isCodeMode = canvasType === 'code';
+  const supportsPreview = isCodeMode && canPreview(codeLanguage);
+
   const editor = useEditor({
-    editable: !isAIWriting,
+    editable: !isAIWriting && !isCodeMode,
     extensions: [
       StarterKit.configure({
-        // Ensure proper paragraph/line break handling
         paragraph: {},
         hardBreak: {},
       }),
       Markdown,
     ],
-    content: "", // Start empty, we'll sync from store
+    content: "",
     onUpdate: ({ editor: ed }) => {
-      // Keep the store as Markdown (source-of-truth)
       const md = editorGetMarkdown(ed as ReturnType<typeof useEditor>);
       if (md !== undefined && md !== content) {
         setContent(md, false);
@@ -78,59 +113,58 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     },
   });
 
-  // Sync editor when store content changes (restore version / AI draft)
+  // Sync editor when store content changes (writing mode only)
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || isCodeMode) return;
     
-    // Get current editor markdown to compare
     const currentMd = editorGetMarkdown(editor);
-    
-    // Only update if content actually differs
     if (currentMd !== content && content !== undefined) {
-      // Use contentType: 'markdown' to parse markdown into TipTap nodes
       editor.commands.setContent(content, { contentType: 'markdown' });
     }
-  }, [content, editor]);
+  }, [content, editor, isCodeMode]);
 
   // Initialize editor with store content on mount
   useEffect(() => {
-    if (editor && content) {
+    if (editor && content && !isCodeMode) {
       editor.commands.setContent(content, { contentType: 'markdown' });
     }
-  }, [editor]);
+  }, [editor, isCodeMode]);
 
-  // Word/char counts from markdown source
-  const { wordCount, charCount } = useMemo(() => {
+  // Word/char counts
+  const { wordCount, charCount, lineCount } = useMemo(() => {
     const words = content.trim() ? content.trim().split(/\s+/).length : 0;
-    return { wordCount: words, charCount: content.length };
+    const lines = content.split('\n').length;
+    return { wordCount: words, charCount: content.length, lineCount: lines };
   }, [content]);
 
-  // Keyboard shortcuts (use editor's history)
+  // Keyboard shortcuts
   useEffect(() => {
-    if (!editor) return;
+    if (!editor && !isCodeMode) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey) {
-        e.preventDefault();
-        editor.chain().focus().undo().run();
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === "z" && e.shiftKey) {
-        e.preventDefault();
-        editor.chain().focus().redo().run();
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === "y") {
-        e.preventDefault();
-        editor.chain().focus().redo().run();
-      }
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
         handleSaveVersion();
+      }
+      if (!isCodeMode && editor) {
+        if ((e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey) {
+          e.preventDefault();
+          editor.chain().focus().undo().run();
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === "z" && e.shiftKey) {
+          e.preventDefault();
+          editor.chain().focus().redo().run();
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === "y") {
+          e.preventDefault();
+          editor.chain().focus().redo().run();
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [editor]);
+  }, [editor, isCodeMode]);
 
   const handleCopy = async () => {
     try {
@@ -144,14 +178,16 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   };
 
   const handleDownload = () => {
-    const blob = new Blob([content], { type: "text/markdown" });
+    const extension = isCodeMode ? getExtension(codeLanguage) : 'md';
+    const mimeType = isCodeMode ? 'text/plain' : 'text/markdown';
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `canvas-${Date.now()}.md`;
+    a.download = `canvas-${Date.now()}.${extension}`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: "Downloaded as .md" });
+    toast({ title: `Downloaded as .${extension}` });
   };
 
   const handleSaveVersion = () => {
@@ -204,9 +240,8 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
-      {/* Clean Header */}
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
-        {/* Left: Close + Title */}
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
@@ -218,7 +253,14 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           </Button>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-foreground">Canvas</span>
+            {isCodeMode ? (
+              <Code className="w-4 h-4 text-primary" />
+            ) : (
+              <FileText className="w-4 h-4 text-primary" />
+            )}
+            <span className="text-sm font-medium text-foreground">
+              {isCodeMode ? getLanguageDisplay(codeLanguage) : 'Canvas'}
+            </span>
             {isAIWriting && (
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -231,8 +273,23 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
         {/* Right: Actions */}
         <div className="flex items-center gap-1">
           <span className="text-xs text-muted-foreground mr-2 hidden sm:block">
-            {wordCount} words
+            {isCodeMode ? `${lineCount} lines` : `${wordCount} words`}
           </span>
+
+          {supportsPreview && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCodePreview(!showCodePreview)}
+              className={cn(
+                "h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground",
+                showCodePreview && "bg-muted text-foreground"
+              )}
+              title={showCodePreview ? "Hide Preview" : "Show Preview"}
+            >
+              {showCodePreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </Button>
+          )}
 
           <Button
             variant="ghost"
@@ -275,90 +332,121 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
         </div>
       </div>
 
-      {/* Formatting Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border/20 bg-muted/30">
-        <div className="flex items-center gap-0.5">
-          {formatActions.map((action, index) => (
+      {/* Toolbar - Only show for writing mode */}
+      {!isCodeMode && (
+        <div className="flex items-center justify-between px-4 py-2 border-b border-border/20 bg-muted/30">
+          <div className="flex items-center gap-0.5">
+            {formatActions.map((action, index) => (
+              <Button
+                key={index}
+                variant="ghost"
+                size="sm"
+                onClick={action.run}
+                title={action.label}
+                disabled={isAIWriting || !editor}
+                className={cn(
+                  "h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-40",
+                  action.active() && "bg-muted text-foreground"
+                )}
+              >
+                <action.icon className="w-3.5 h-3.5" />
+              </Button>
+            ))}
+
+            <div className="w-px h-4 bg-border/50 mx-1" />
+
             <Button
-              key={index}
               variant="ghost"
               size="sm"
-              onClick={action.run}
-              title={action.label}
-              disabled={isAIWriting || !editor}
-              className={cn(
-                "h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-40",
-                action.active() && "bg-muted text-foreground"
-              )}
+              onClick={() => editor?.chain().focus().undo().run()}
+              disabled={isAIWriting || !editor || !editor.can().undo()}
+              title="Undo"
+              className="h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground disabled:opacity-40"
             >
-              <action.icon className="w-3.5 h-3.5" />
+              <Undo2 className="w-3.5 h-3.5" />
             </Button>
-          ))}
-
-          <div className="w-px h-4 bg-border/50 mx-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor?.chain().focus().redo().run()}
+              disabled={isAIWriting || !editor || !editor.can().redo()}
+              title="Redo"
+              className="h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground disabled:opacity-40"
+            >
+              <Redo2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
 
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => editor?.chain().focus().undo().run()}
-            disabled={isAIWriting || !editor || !editor.can().undo()}
-            title="Undo"
-            className="h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground disabled:opacity-40"
+            onClick={handleSaveVersion}
+            disabled={isAIWriting || !content.trim()}
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
           >
-            <Undo2 className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor?.chain().focus().redo().run()}
-            disabled={isAIWriting || !editor || !editor.can().redo()}
-            title="Redo"
-            className="h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground disabled:opacity-40"
-          >
-            <Redo2 className="w-3.5 h-3.5" />
+            <Sparkles className="w-3 h-3 mr-1" />
+            Save
           </Button>
         </div>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleSaveVersion}
-          disabled={isAIWriting || !content.trim()}
-          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
-        >
-          <Sparkles className="w-3 h-3 mr-1" />
-          Save
-        </Button>
-      </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <ScrollArea className="flex-1">
-            <div className="px-6 py-5 pb-24 md:pb-5 min-h-[300px]">
-              <EditorContent
-                editor={editor}
-                className={cn(
-                  "min-h-[300px]",
-                  "tiptap-editor prose prose-sm dark:prose-invert max-w-none",
-                  "focus:outline-none",
-                  "[&_.ProseMirror]:outline-none",
-                  "[&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-bold [&_.ProseMirror_h1]:mb-4 [&_.ProseMirror_h1]:mt-6",
-                  "[&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:mb-3 [&_.ProseMirror_h2]:mt-5",
-                  "[&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-medium [&_.ProseMirror_h3]:mb-2 [&_.ProseMirror_h3]:mt-4",
-                  "[&_.ProseMirror_p]:mb-3 [&_.ProseMirror_p]:leading-relaxed",
-                  "[&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ul]:mb-3",
-                  "[&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_ol]:mb-3",
-                  "[&_.ProseMirror_li]:mb-1",
-                  "[&_.ProseMirror_strong]:font-bold",
-                  "[&_.ProseMirror_em]:italic",
-                  "[&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:text-sm",
-                  "[&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-primary/30 [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_blockquote]:text-muted-foreground"
-                )}
-              />
-            </div>
-          </ScrollArea>
+        {/* Editor/Code Area */}
+        <div className={cn(
+          "flex flex-col min-w-0 overflow-hidden",
+          supportsPreview && showCodePreview ? "w-1/2" : "flex-1"
+        )}>
+          {isCodeMode ? (
+            // Code Editor
+            <CanvasCodeEditor
+              code={content}
+              language={codeLanguage}
+              onChange={(code) => setContent(code, false)}
+              readOnly={isAIWriting}
+              className="flex-1"
+            />
+          ) : (
+            // Writing Editor
+            <ScrollArea className="flex-1">
+              <div className="px-6 py-5 pb-24 md:pb-5 min-h-[300px]">
+                <EditorContent
+                  editor={editor}
+                  className={cn(
+                    "min-h-[300px]",
+                    "tiptap-editor prose prose-sm dark:prose-invert max-w-none",
+                    "focus:outline-none",
+                    "[&_.ProseMirror]:outline-none",
+                    "[&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-bold [&_.ProseMirror_h1]:mb-4 [&_.ProseMirror_h1]:mt-6",
+                    "[&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:mb-3 [&_.ProseMirror_h2]:mt-5",
+                    "[&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-medium [&_.ProseMirror_h3]:mb-2 [&_.ProseMirror_h3]:mt-4",
+                    "[&_.ProseMirror_p]:mb-3 [&_.ProseMirror_p]:leading-relaxed",
+                    "[&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ul]:mb-3",
+                    "[&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_ol]:mb-3",
+                    "[&_.ProseMirror_li]:mb-1",
+                    "[&_.ProseMirror_strong]:font-bold",
+                    "[&_.ProseMirror_em]:italic",
+                    "[&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:text-sm",
+                    "[&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-primary/30 [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_blockquote]:text-muted-foreground"
+                  )}
+                />
+              </div>
+            </ScrollArea>
+          )}
         </div>
+
+        {/* Code Preview Panel */}
+        {supportsPreview && showCodePreview && (
+          <div className="w-1/2 border-l border-border/30 flex flex-col bg-muted/10">
+            <div className="px-3 py-2 border-b border-border/20 flex items-center gap-2">
+              <Play className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">Preview</span>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <CodePreview code={content} language={codeLanguage} />
+            </div>
+          </div>
+        )}
 
         {/* Version History Sidebar */}
         <AnimatePresence>
@@ -418,4 +506,23 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
       </div>
     </div>
   );
+}
+
+// Helper to get file extension
+function getExtension(lang: string): string {
+  const extensions: Record<string, string> = {
+    'javascript': 'js',
+    'typescript': 'ts',
+    'tsx': 'tsx',
+    'jsx': 'jsx',
+    'python': 'py',
+    'html': 'html',
+    'css': 'css',
+    'json': 'json',
+    'sql': 'sql',
+    'bash': 'sh',
+    'go': 'go',
+    'rust': 'rs',
+  };
+  return extensions[lang.toLowerCase()] || 'txt';
 }

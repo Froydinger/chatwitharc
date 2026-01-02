@@ -60,7 +60,10 @@ export interface Message {
   fileType?: string;
   fileSize?: number;
   canvasContent?: string; // For canvas artifacts
-  canvasLabel?: string; // AI-generated label for canvas (e.g., "Blog Post Draft")
+  canvasLabel?: string; // AI-generated label for canvas
+  codeContent?: string; // For code artifacts
+  codeLanguage?: string; // Programming language
+  codeLabel?: string; // AI-generated label for code
   memoryAction?: MemoryAction; // Track memory/search actions
 }
 
@@ -85,6 +88,7 @@ export interface ArcState {
   editMessage: (messageId: string, newContent: string) => void;
   updateMessageMemoryAction: (messageId: string, memoryAction: MemoryAction) => void;
   upsertCanvasMessage: (canvasContent: string, label?: string, memoryAction?: MemoryAction) => Promise<string>;
+  upsertCodeMessage: (codeContent: string, language: string, label?: string, memoryAction?: MemoryAction) => Promise<string>;
   clearCurrentMessages: () => void;
 
   // UI State
@@ -667,6 +671,69 @@ export const useArcStore = create<ArcState>()(
         });
 
         return canvasMessageId;
+      },
+
+      upsertCodeMessage: async (codeContent, language, label, memoryAction) => {
+        const state = get();
+        const sessionId = state.currentSessionId;
+        const displayLabel = label || `${language.toUpperCase()} Code`;
+        
+        if (!sessionId) {
+          const createdId = await get().addMessage({
+            content: displayLabel,
+            role: 'assistant',
+            type: 'code',
+            codeContent,
+            codeLanguage: language,
+            codeLabel: displayLabel,
+            memoryAction,
+          });
+          return createdId;
+        }
+
+        const codeMessageId = `code-${sessionId}`;
+
+        set((s) => {
+          const nonCode = s.messages.filter((m) => m.type !== 'code');
+
+          const upserted: Message = {
+            id: codeMessageId,
+            content: displayLabel,
+            role: 'assistant',
+            type: 'code',
+            codeContent,
+            codeLanguage: language,
+            codeLabel: displayLabel,
+            memoryAction,
+            timestamp: new Date(),
+          };
+
+          const updatedMessages = [...nonCode, upserted];
+
+          const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
+          const sessionToSave: ChatSession = {
+            id: sessionId,
+            title: existingSession?.title || 'New Chat',
+            createdAt: existingSession?.createdAt || new Date(),
+            lastMessageAt: new Date(),
+            messages: updatedMessages,
+            canvasContent: existingSession?.canvasContent,
+          };
+
+          const updatedSessions = s.chatSessions.map((cs) => (cs.id === sessionId ? sessionToSave : cs));
+
+          get().saveChatToSupabase(sessionToSave).catch((error) => {
+            console.error('❌ Failed to save code message to Supabase:', error);
+          });
+
+          return {
+            ...s,
+            messages: updatedMessages,
+            chatSessions: updatedSessions,
+          };
+        });
+
+        return codeMessageId;
       },
       
       editMessage: (messageId, newContent) => {
