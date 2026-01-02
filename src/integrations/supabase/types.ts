@@ -73,6 +73,7 @@ export type Database = {
       }
       chat_sessions: {
         Row: {
+          canvas_content: string | null
           created_at: string | null
           id: string
           messages: Json | null
@@ -81,6 +82,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          canvas_content?: string | null
           created_at?: string | null
           id?: string
           messages?: Json | null
@@ -89,6 +91,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          canvas_content?: string | null
           created_at?: string | null
           id?: string
           messages?: Json | null

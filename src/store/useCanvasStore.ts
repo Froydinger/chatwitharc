@@ -18,9 +18,11 @@ interface CanvasState {
   isAIWriting: boolean;
   mode: 'standalone' | 'sideBySide';
   pendingPrompt: string | null;
-  
+
   // Actions
   openCanvas: (initialContent?: string) => void;
+  reopenCanvas: () => void;
+  hydrateFromSession: (content: string) => void;
   openSideBySide: (prompt: string) => void;
   closeCanvas: () => void;
   setContent: (content: string, saveToHistory?: boolean) => void;
@@ -61,6 +63,29 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       undoStack: [],
       redoStack: [],
       mode: 'standalone',
+      pendingPrompt: null,
+    });
+  },
+
+  reopenCanvas: () => set({ isOpen: true }),
+
+  hydrateFromSession: (nextContent: string) => {
+    const initialVersion: CanvasVersion = {
+      id: crypto.randomUUID(),
+      content: nextContent,
+      timestamp: Date.now(),
+      label: 'Initial',
+    };
+
+    set({
+      isOpen: false,
+      content: nextContent,
+      versions: nextContent ? [initialVersion] : [],
+      activeVersionIndex: nextContent ? 0 : -1,
+      undoStack: [],
+      redoStack: [],
+      isAIWriting: false,
+      mode: 'sideBySide',
       pendingPrompt: null,
     });
   },

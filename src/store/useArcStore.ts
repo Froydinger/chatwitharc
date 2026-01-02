@@ -9,6 +9,7 @@ export interface ChatSession {
   createdAt: Date;
   lastMessageAt: Date;
   messages: Message[];
+  canvasContent?: string; // persisted per-session canvas document
 }
 
 export type MemoryActionType = 'memory_saved' | 'memory_accessed' | 'chats_searched' | 'web_searched';
@@ -43,7 +44,7 @@ export interface Message {
 
 export interface ArcState {
   // State Management
-  
+
   // Chat Sessions Management
   currentSessionId: string | null;
   chatSessions: ChatSession[];
@@ -51,7 +52,10 @@ export interface ArcState {
   loadSession: (sessionId: string) => void;
   deleteSession: (sessionId: string) => void;
   clearAllSessions: () => void;
-  
+
+  // Canvas persistence
+  updateSessionCanvasContent: (sessionId: string, canvasContent: string) => Promise<void>;
+
   // Current Chat State
   messages: Message[];
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<string>;
@@ -59,7 +63,7 @@ export interface ArcState {
   editMessage: (messageId: string, newContent: string) => void;
   updateMessageMemoryAction: (messageId: string, memoryAction: MemoryAction) => void;
   clearCurrentMessages: () => void;
-  
+
   // UI State
   currentTab: 'chat' | 'history' | 'settings';
   setCurrentTab: (tab: 'chat' | 'history' | 'settings') => void;
@@ -81,13 +85,13 @@ export interface ArcState {
 
   // Quick Start
   startChatWithMessage: (message: string) => void;
-  
+
   // Supabase Sync
   syncFromSupabase: () => Promise<void>;
   saveChatToSupabase: (session: ChatSession) => Promise<void>;
   isOnline: boolean;
   lastSyncAt: Date | null;
-  
+
   // Message Recovery
   recoverPendingMessages: () => Promise<void>;
 }
@@ -96,14 +100,30 @@ export const useArcStore = create<ArcState>()(
   persist(
     (set, get) => ({
       // Theme and UI State
-      
+
       // Chat Sessions
       currentSessionId: null,
       chatSessions: [],
       isOnline: navigator.onLine,
       lastSyncAt: null,
-      
-      // Supabase Sync Functions
+
+      updateSessionCanvasContent: async (sessionId: string, canvasContent: string) => {
+        const state = get();
+        const existing = state.chatSessions.find(s => s.id === sessionId);
+        if (!existing) return;
+
+        const updated: ChatSession = { ...existing, canvasContent, lastMessageAt: new Date() };
+        set({
+          chatSessions: state.chatSessions.map(s => (s.id === sessionId ? updated : s)),
+        });
+
+        // Persist without touching message arrays
+        try {
+          await get().saveChatToSupabase(updated);
+        } catch (e) {
+          console.error('❌ Failed to save canvas to Supabase:', e);
+        }
+      },
       syncFromSupabase: async () => {
         if (!supabase || !isSupabaseConfigured) {
           console.log('⚠️ Supabase not configured, skipping sync');
@@ -136,7 +156,8 @@ export const useArcStore = create<ArcState>()(
               title: session.title,
               createdAt: new Date(session.created_at),
               lastMessageAt: new Date(session.updated_at),
-              messages: Array.isArray(session.messages) ? (session.messages as any) : []
+              messages: Array.isArray(session.messages) ? (session.messages as any) : [],
+              canvasContent: typeof (session as any).canvas_content === 'string' ? (session as any).canvas_content : ''
             }));
 
             console.log(`✅ Synced ${loadedSessions.length} sessions (${loadedSessions.reduce((sum, s) => sum + s.messages.length, 0)} total messages)`);
@@ -202,6 +223,7 @@ export const useArcStore = create<ArcState>()(
               user_id: user.id,
               title: session.title,
               messages: session.messages as any,
+              canvas_content: session.canvasContent ?? null,
               updated_at: new Date().toISOString(),
               id: session.id
             });
@@ -242,7 +264,7 @@ export const useArcStore = create<ArcState>()(
         
         // Reset model selection to default (Smart & Fast) for new chat
         sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash');
-        
+
         // Generate a proper UUID for Supabase compatibility
         const sessionId = crypto.randomUUID();
         const newSession: ChatSession = {
@@ -250,7 +272,8 @@ export const useArcStore = create<ArcState>()(
           title: "New Chat",
           createdAt: new Date(),
           lastMessageAt: new Date(),
-          messages: []
+          messages: [],
+          canvasContent: ''
         };
         
         set((state) => ({
