@@ -904,8 +904,8 @@ export function MobileChatApp() {
             className={cn(
               "fixed bottom-6 z-30 pointer-events-none px-4 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
               "left-0",
-              // When canvas is open on desktop, limit to left 55% of screen
-              isCanvasOpen && !isMobile ? "right-[45%]" : "right-0",
+              // When canvas is open on desktop, limit to left 50% of screen
+              isCanvasOpen && !isMobile ? "right-[50%]" : "right-0",
               rightPanelOpen && !isCanvasOpen && "lg:left-80 xl:left-96"
             )}
           >
@@ -946,15 +946,52 @@ export function MobileChatApp() {
         />
       </div>
 
-      {/* Side-by-side Canvas Panel on RIGHT (Desktop only) - Resizable */}
-      {isCanvasOpen && !isMobile && (
-        <>
-          <PanelResizeHandle className="w-1 bg-border/30 hover:bg-primary/50 active:bg-primary transition-colors cursor-col-resize" />
-          <Panel defaultSize={50} minSize={50} maxSize={75} className="overflow-hidden bg-background">
-            <CanvasPanel />
-          </Panel>
-        </>
-      )}
+      {/* Side-by-side Canvas Panel on RIGHT (Desktop only) with resize handle */}
+      <AnimatePresence>
+        {isCanvasOpen && !isMobile && (
+          <motion.div
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "50%", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className="flex-shrink-0 overflow-hidden bg-background flex"
+            style={{ minWidth: 400 }}
+          >
+            {/* Resize Handle */}
+            <div 
+              className="w-1 bg-border/30 hover:bg-primary/50 active:bg-primary cursor-col-resize flex-shrink-0 transition-colors"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                const startX = e.clientX;
+                const canvasEl = e.currentTarget.parentElement;
+                if (!canvasEl) return;
+                const startWidth = canvasEl.offsetWidth;
+                const containerWidth = canvasEl.parentElement?.offsetWidth || window.innerWidth;
+                
+                const onMouseMove = (moveEvent: MouseEvent) => {
+                  const delta = startX - moveEvent.clientX;
+                  const newWidth = Math.min(
+                    Math.max(startWidth + delta, containerWidth * 0.5), // min 50%
+                    containerWidth * 0.75 // max 75%
+                  );
+                  canvasEl.style.width = `${newWidth}px`;
+                };
+                
+                const onMouseUp = () => {
+                  document.removeEventListener('mousemove', onMouseMove);
+                  document.removeEventListener('mouseup', onMouseUp);
+                };
+                
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+              }}
+            />
+            <div className="flex-1 overflow-hidden">
+              <CanvasPanel />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Scoped styles */}
       <style>{`
