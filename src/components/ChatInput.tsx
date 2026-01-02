@@ -854,33 +854,36 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         // Handle canvas update if AI used the update_canvas tool
         // If the Canvas is already open and the user is asking for formatting/rewrites,
         // fallback to putting the assistant's response into the Canvas as well.
-        let wroteToCanvas = false;
         const canvasContentToSave = result.canvasUpdate?.content ?? (shouldRouteToCanvas ? result.content : null);
 
         if (canvasContentToSave) {
           const { setAIContent, reopenCanvas } = useCanvasStore.getState();
           setAIContent(canvasContentToSave, result.canvasUpdate?.label || "Canvas Update");
           reopenCanvas();
-          wroteToCanvas = true;
 
           // Immediately persist canvas content to the current session so it survives navigation
           const { currentSessionId, updateSessionCanvasContent } = useArcStore.getState();
           if (currentSessionId) {
             updateSessionCanvasContent(currentSessionId, canvasContentToSave);
           }
+
+          // Add canvas-type message inline in chat (like GPT/Gemini artifacts)
+          await addMessage({
+            content: "Here's your canvas draft:",
+            role: "assistant",
+            type: "canvas",
+            canvasContent: canvasContentToSave,
+            memoryAction,
+          });
+        } else {
+          // Regular text response (no canvas)
+          await addMessage({
+            content: result.content,
+            role: "assistant",
+            type: "text",
+            memoryAction,
+          });
         }
-
-        const assistantContent = wroteToCanvas
-          ? "Done — I put it in your Canvas."
-          : result.content;
-
-        // Add assistant message with memory action
-        await addMessage({
-          content: assistantContent,
-          role: "assistant",
-          type: "text",
-          memoryAction,
-        });
       } catch (err: any) {
         // Check if request was cancelled
         if (cancelRequested) {

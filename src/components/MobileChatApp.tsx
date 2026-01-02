@@ -13,7 +13,7 @@ import { ThemedLogo } from "@/components/ThemedLogo";
 import { SupportPopup } from "@/components/SupportPopup";
 import { MusicPopup } from "@/components/MusicPopup";
 import { CanvasPanel } from "@/components/CanvasPanel";
-import { CanvasTile } from "@/components/CanvasTile";
+// CanvasTile removed - canvas now renders inline as chat message artifacts
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
@@ -901,31 +901,7 @@ export function MobileChatApp() {
               rightPanelOpen && !isCanvasOpen && "lg:left-80 xl:left-96"
             )}
           >
-            <div className="max-w-4xl mx-auto space-y-2">
-              {/* Canvas tile locked above input bar */}
-              <AnimatePresence>
-                {!isCanvasOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    transition={{ duration: 0.2 }}
-                    className="pointer-events-auto"
-                  >
-                    <CanvasTile
-                      isOpen={isCanvasOpen}
-                      hasContent={hasCanvas}
-                      preview={(canvasContent || sessionCanvas).slice(0, 80)}
-                      onOpen={() => {
-                        if (sessionCanvas && !canvasContent) hydrateFromSession(sessionCanvas);
-                        reopenCanvas();
-                      }}
-                      onClose={() => storeCloseCanvas()}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              
+            <div className="max-w-4xl mx-auto">
               <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
                 <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
               </div>
