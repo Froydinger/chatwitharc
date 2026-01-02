@@ -628,9 +628,8 @@ export const useArcStore = create<ArcState>()(
         const canvasMessageId = `canvas-${sessionId}`;
 
         set((s) => {
-          // Keep only one canvas artifact message in the timeline.
-          const nonCanvas = s.messages.filter((m) => m.type !== 'canvas');
-          // (legacy cleanup) any previous canvas messages are removed via nonCanvas filter above.
+          // Keep only one artifact (canvas OR code) in the timeline - they're mutually exclusive
+          const nonArtifact = s.messages.filter((m) => m.type !== 'canvas' && m.type !== 'code');
 
           const upserted: Message = {
             id: canvasMessageId,
@@ -643,8 +642,7 @@ export const useArcStore = create<ArcState>()(
             timestamp: new Date(),
           };
 
-          // If there were multiple canvas messages (legacy behavior), drop them and keep the latest only.
-          const updatedMessages = [...nonCanvas, upserted];
+          const updatedMessages = [...nonArtifact, upserted];
 
           const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
           const sessionToSave: ChatSession = {
@@ -694,7 +692,8 @@ export const useArcStore = create<ArcState>()(
         const codeMessageId = `code-${sessionId}`;
 
         set((s) => {
-          const nonCode = s.messages.filter((m) => m.type !== 'code');
+          // Keep only one artifact (canvas OR code) in the timeline - they're mutually exclusive
+          const nonArtifact = s.messages.filter((m) => m.type !== 'canvas' && m.type !== 'code');
 
           const upserted: Message = {
             id: codeMessageId,
@@ -708,7 +707,7 @@ export const useArcStore = create<ArcState>()(
             timestamp: new Date(),
           };
 
-          const updatedMessages = [...nonCode, upserted];
+          const updatedMessages = [...nonArtifact, upserted];
 
           const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
           const sessionToSave: ChatSession = {
