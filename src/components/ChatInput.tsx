@@ -553,6 +553,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     const userMessage = messageToSend.trim();
     const images = [...selectedImages];
 
+    // Capture mode states BEFORE clearing UI (they're needed in handleSendMessage)
+    const wasCanvasMode = shouldShowCanvasMode || checkForCanvasRequest(userMessage);
+    const wasCodingMode = shouldShowCodeMode || checkForCodingRequest(userMessage);
+    const wasImageMode = shouldShowBanana || checkForImageRequest(userMessage);
+
     // Clear UI promptly
     setInputValue("");
     setSelectedImages([]);
@@ -679,29 +684,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         return;
       }
 
-      // Canvas mode -> open side-by-side canvas and trigger AI writing
-      if (shouldShowCanvasMode) {
-        const canvasPrompt = extractPrefixPrompt(userMessage);
-        if (!canvasPrompt) {
-          toast({ title: "Please describe what you want me to write", variant: "default" });
-          setLoading(false);
-          return;
-        }
-        
-        // Import canvas store and open side-by-side mode
-        const { openSideBySide } = useCanvasStore.getState();
-        openSideBySide(canvasPrompt);
-        
-        // Add user message
-        await addMessage({ content: userMessage, role: "user", type: "text" });
-        
-        // The canvas will handle the AI call
-        setLoading(false);
-        return;
-      }
+      // Canvas mode - let the regular text flow handle it via AI's update_canvas tool
+      // The AI will be instructed to use update_canvas and the response will add a canvas message inline
 
       // No images: Banana => generate; else text
-      if (shouldShowBanana) {
+      if (wasImageMode) {
         // Strip the prefix (image/, draw/, create/, /image, etc.) and use the rest as prompt
         const imagePrompt = extractPrefixPrompt(userMessage || "") || "a beautiful image";
         await addMessage({ content: userMessage || imagePrompt, role: "user", type: "text" });
@@ -791,11 +778,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         const aiMessages = messages.filter((m) => m.type === "text").map((m) => ({ role: m.role, content: m.content }));
 
         // Strip the code/ prefix if present, and prepend "Code the following:" for the AI
-        const isCodingRequest = shouldShowCodeMode || checkForCodingRequest(userMessage);
+        const isCodingRequest = wasCodingMode;
 
         const canvasState = useCanvasStore.getState();
         const shouldRouteToCanvas =
-          shouldShowCanvasMode ||
+          wasCanvasMode ||
           (canvasState.isOpen && looksLikeCanvasEditRequest(userMessage));
 
         const cleanedMessage = extractPrefixPrompt(userMessage);
