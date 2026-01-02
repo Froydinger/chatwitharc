@@ -164,6 +164,80 @@ All colors MUST be HSL for perfect glass effects.
     color: white !important;
   }
 
+  /* TipTap/ProseMirror selection + content styling (no typography plugin needed) */
+  .tiptap-editor {
+    --tiptap-selection-bg: hsla(var(--primary), 0.35);
+    color: hsl(var(--foreground));
+  }
+
+  .tiptap-editor .ProseMirror {
+    outline: none;
+    min-height: 300px;
+    color: hsl(var(--foreground));
+  }
+
+  .tiptap-editor .ProseMirror *::selection,
+  .tiptap-editor .ProseMirror *::-moz-selection {
+    background: var(--tiptap-selection-bg) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .tiptap-editor .ProseMirror h1 {
+    font-size: 1.875rem;
+    line-height: 1.15;
+    font-weight: 650;
+    margin: 0.4rem 0 0.75rem;
+  }
+
+  .tiptap-editor .ProseMirror h2 {
+    font-size: 1.35rem;
+    line-height: 1.25;
+    font-weight: 650;
+    margin: 1rem 0 0.6rem;
+  }
+
+  .tiptap-editor .ProseMirror p {
+    margin: 0.6rem 0;
+    line-height: 1.7;
+    color: hsla(var(--foreground), 0.9);
+  }
+
+  .tiptap-editor .ProseMirror ul {
+    padding-left: 1.25rem;
+    margin: 0.6rem 0;
+    list-style: disc;
+  }
+
+  .tiptap-editor .ProseMirror li {
+    margin: 0.25rem 0;
+    color: hsla(var(--foreground), 0.9);
+  }
+
+  .tiptap-editor .ProseMirror blockquote {
+    border-left: 2px solid hsla(var(--primary), 0.45);
+    padding-left: 1rem;
+    margin: 0.9rem 0;
+    color: hsla(var(--muted-foreground), 1);
+    font-style: italic;
+  }
+
+  .tiptap-editor .ProseMirror code {
+    background: hsla(var(--primary), 0.12);
+    color: hsl(var(--primary));
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.35rem;
+    font-size: 0.9em;
+  }
+
+  .tiptap-editor .ProseMirror pre {
+    background: hsla(var(--accent), 0.6);
+    border: 1px solid hsla(var(--border), 0.6);
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+    overflow-x: auto;
+    margin: 0.9rem 0;
+  }
+
   /* Input and textarea selection */
   input::selection,
   textarea::selection {
