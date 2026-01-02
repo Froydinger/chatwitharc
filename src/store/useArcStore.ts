@@ -153,18 +153,59 @@ export const useArcStore = create<ArcState>()(
           }
 
           if (sessions) {
-            const loadedSessions: ChatSession[] = sessions.map(session => ({
-              id: session.id,
-              title: session.title,
-              createdAt: new Date(session.created_at),
-              lastMessageAt: new Date(session.updated_at),
-              messages: Array.isArray(session.messages) ? (session.messages as any) : [],
-              canvasContent: typeof (session as any).canvas_content === 'string' ? (session as any).canvas_content : ''
-            }));
+            const state = get();
+            const sessionsToBackfill: ChatSession[] = [];
+
+            const loadedSessions: ChatSession[] = sessions.map(session => {
+              const remoteMessages: Message[] = Array.isArray(session.messages) ? (session.messages as any) : [];
+              const canvasContent = typeof (session as any).canvas_content === 'string' ? (session as any).canvas_content : '';
+              
+              // MERGE-SAFE: If this is the current session, merge local + remote messages by ID
+              let finalMessages = remoteMessages;
+              if (session.id === state.currentSessionId && state.messages.length > 0) {
+                const remoteIds = new Set(remoteMessages.map((m: any) => m.id));
+                const localOnly = state.messages.filter(m => !remoteIds.has(m.id));
+                if (localOnly.length > 0) {
+                  console.log(`🔀 Merging ${localOnly.length} local-only messages for current session`);
+                  // Append local-only messages (they haven't reached the server yet)
+                  finalMessages = [...remoteMessages, ...localOnly];
+                }
+              }
+
+              // BACKFILL: If session has canvas_content but no canvas message, inject one
+              const hasCanvasMessage = finalMessages.some((m: any) => m.type === 'canvas');
+              if (canvasContent && !hasCanvasMessage) {
+                console.log(`📝 Backfilling canvas message for session: ${session.id}`);
+                const syntheticCanvasMessage: Message = {
+                  id: `canvas-${session.id}`,
+                  content: "Here's your canvas draft:",
+                  role: 'assistant',
+                  type: 'canvas',
+                  canvasContent: canvasContent,
+                  timestamp: new Date(session.updated_at || session.created_at),
+                };
+                finalMessages = [...finalMessages, syntheticCanvasMessage];
+              }
+
+              const loadedSession: ChatSession = {
+                id: session.id,
+                title: session.title,
+                createdAt: new Date(session.created_at),
+                lastMessageAt: new Date(session.updated_at),
+                messages: finalMessages,
+                canvasContent: canvasContent
+              };
+
+              // Track sessions that need backfill save
+              if (canvasContent && !hasCanvasMessage) {
+                sessionsToBackfill.push(loadedSession);
+              }
+
+              return loadedSession;
+            });
 
             console.log(`✅ Synced ${loadedSessions.length} sessions (${loadedSessions.reduce((sum, s) => sum + s.messages.length, 0)} total messages)`);
 
-            const state = get();
             const currentSession = state.currentSessionId
               ? loadedSessions.find(s => s.id === state.currentSessionId)
               : null;
@@ -173,9 +214,19 @@ export const useArcStore = create<ArcState>()(
               chatSessions: loadedSessions,
               lastSyncAt: new Date(),
               isOnline: true,
-              // Restore messages for current session after sync
+              // Restore messages for current session after sync (merged)
               messages: currentSession ? JSON.parse(JSON.stringify(currentSession.messages)) : state.messages
             });
+
+            // Persist backfilled sessions so the canvas message is saved
+            for (const session of sessionsToBackfill) {
+              try {
+                await get().saveChatToSupabase(session);
+                console.log(`✅ Backfilled canvas message saved for session: ${session.id}`);
+              } catch (e) {
+                console.error(`❌ Failed to save backfilled session: ${session.id}`, e);
+              }
+            }
           } else {
             console.log('📭 No sessions found in Supabase');
           }

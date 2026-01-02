@@ -316,12 +316,17 @@ export function MobileChatApp() {
     hydrateFromSession(nextSessionCanvas);
   }, [currentSessionId, chatSessions, storeCloseCanvas, hydrateFromSession]);
 
+  // SESSION-SAFE canvas autosave: only save if we're still on the same session we hydrated
   useEffect(() => {
     if (!currentSessionId) return;
+    // Only persist if we're definitely on the right session (prevents bleed on switch)
+    if (currentSessionId !== lastHydratedSessionRef.current) return;
 
     const id = window.setTimeout(() => {
-      // Persist latest canvas content for this session
-      updateSessionCanvasContent(currentSessionId, canvasContent);
+      // Double-check session hasn't changed during the debounce
+      if (currentSessionId === lastHydratedSessionRef.current) {
+        updateSessionCanvasContent(currentSessionId, canvasContent);
+      }
     }, 650);
 
     return () => window.clearTimeout(id);
