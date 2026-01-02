@@ -297,15 +297,24 @@ export function MobileChatApp() {
   const lastLoadedMessageIdRef = useRef<string | null>(null);
   const { toast } = useToast();
 
-  // Hydrate canvas per-session and autosave edits
+  // Hydrate canvas when switching sessions
+  // We use a ref to track the last hydrated session to avoid re-hydrating on chatSessions updates
+  const lastHydratedSessionRef = useRef<string | null>(null);
+  
   useEffect(() => {
+    // Only hydrate when actually switching to a different session
+    if (currentSessionId === lastHydratedSessionRef.current) return;
+    lastHydratedSessionRef.current = currentSessionId;
+    
     const current = currentSessionId ? chatSessions.find(s => s.id === currentSessionId) : null;
-    const next = current?.canvasContent ?? '';
+    const nextSessionCanvas = current?.canvasContent ?? '';
 
-    // Closing prevents overlay sticking across session switches
+    // Close canvas overlay when switching sessions (prevents it from sticking)
     storeCloseCanvas();
-    hydrateFromSession(next);
-  }, [currentSessionId]);
+
+    // Hydrate from the session's stored canvas content
+    hydrateFromSession(nextSessionCanvas);
+  }, [currentSessionId, chatSessions, storeCloseCanvas, hydrateFromSession]);
 
   useEffect(() => {
     if (!currentSessionId) return;
