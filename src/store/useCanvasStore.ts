@@ -7,6 +7,8 @@ export interface CanvasVersion {
   label?: string;
 }
 
+export type CanvasType = 'writing' | 'code';
+
 interface CanvasState {
   isOpen: boolean;
   content: string;
@@ -18,16 +20,24 @@ interface CanvasState {
   isAIWriting: boolean;
   mode: 'standalone' | 'sideBySide';
   pendingPrompt: string | null;
+  
+  // Code mode state
+  canvasType: CanvasType;
+  codeLanguage: string;
+  showCodePreview: boolean;
 
   // Actions
   openCanvas: (initialContent?: string) => void;
   reopenCanvas: () => void;
-  hydrateFromSession: (content: string) => void;
+  hydrateFromSession: (content: string, type?: CanvasType, language?: string) => void;
   openSideBySide: (prompt: string) => void;
+  openCodeCanvas: (code: string, language: string, label?: string) => void;
   closeCanvas: () => void;
   setContent: (content: string, saveToHistory?: boolean) => void;
   setAIContent: (content: string, label?: string) => void;
   setAIWriting: (isWriting: boolean) => void;
+  setCodeLanguage: (language: string) => void;
+  setShowCodePreview: (show: boolean) => void;
   saveVersion: (label?: string) => void;
   restoreVersion: (index: number) => void;
   undo: () => void;
@@ -47,6 +57,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   isAIWriting: false,
   mode: 'sideBySide',
   pendingPrompt: null,
+  
+  // Code mode defaults
+  canvasType: 'writing',
+  codeLanguage: 'typescript',
+  showCodePreview: true,
 
   openCanvas: (initialContent = '') => {
     const initialVersion: CanvasVersion = {
@@ -64,12 +79,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       redoStack: [],
       mode: 'standalone',
       pendingPrompt: null,
+      canvasType: 'writing',
     });
   },
 
   reopenCanvas: () => set({ isOpen: true }),
 
-  hydrateFromSession: (nextContent: string) => {
+  hydrateFromSession: (nextContent: string, type: CanvasType = 'writing', language = 'typescript') => {
     const initialVersion: CanvasVersion = {
       id: crypto.randomUUID(),
       content: nextContent,
@@ -87,6 +103,31 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       isAIWriting: false,
       mode: 'sideBySide',
       pendingPrompt: null,
+      canvasType: type,
+      codeLanguage: language,
+    });
+  },
+  
+  openCodeCanvas: (code: string, language: string, label?: string) => {
+    const initialVersion: CanvasVersion = {
+      id: crypto.randomUUID(),
+      content: code,
+      timestamp: Date.now(),
+      label: label || 'Initial',
+    };
+    set({
+      isOpen: true,
+      content: code,
+      versions: code ? [initialVersion] : [],
+      activeVersionIndex: code ? 0 : -1,
+      undoStack: [],
+      redoStack: [],
+      mode: 'sideBySide',
+      pendingPrompt: null,
+      canvasType: 'code',
+      codeLanguage: language,
+      showCodePreview: true,
+      isAIWriting: false,
     });
   },
 
@@ -142,6 +183,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   setAIWriting: (isWriting: boolean) => set({ isAIWriting: isWriting }),
+
+  setCodeLanguage: (language: string) => set({ codeLanguage: language }),
+  
+  setShowCodePreview: (show: boolean) => set({ showCodePreview: show }),
 
   clearPendingPrompt: () => set({ pendingPrompt: null }),
 

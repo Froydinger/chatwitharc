@@ -421,8 +421,34 @@ serve(async (req) => {
       {
         type: "function",
         function: {
+          name: "update_code",
+          description: "Write or update code in the user's Code Canvas. Use this tool when the user asks you to write, create, or build code, components, scripts, HTML pages, or any programming content. The code will appear in their Code Canvas editor with syntax highlighting and live preview. This is the PRIMARY tool for any coding request.",
+          parameters: {
+            type: "object",
+            properties: {
+              code: {
+                type: "string",
+                description: "The full code content to put in the Code Canvas."
+              },
+              language: {
+                type: "string",
+                description: "The programming language (e.g., 'javascript', 'typescript', 'tsx', 'html', 'css', 'python', 'sql')"
+              },
+              label: {
+                type: "string",
+                description: "A short label for this code (e.g., 'React Button Component', 'API Handler')"
+              }
+            },
+            required: ["code", "language"],
+            additionalProperties: false
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
           name: "generate_file",
-          description: "Generate a DOWNLOADABLE FILE (PDF, spreadsheet, data file). Use ONLY when the user explicitly wants to download a document - e.g., 'download as PDF', 'create a spreadsheet file', 'export to CSV'. For writing tasks like blog posts, essays, articles, emails, notes, etc. - use update_canvas instead, NOT this tool.",
+          description: "Generate a DOWNLOADABLE FILE (PDF, spreadsheet, data file). Use ONLY when the user explicitly wants to download a document - e.g., 'download as PDF', 'create a spreadsheet file', 'export to CSV'. For writing tasks like blog posts, essays, articles, emails, notes, etc. - use update_canvas instead, NOT this tool. For code - use update_code instead.",
           parameters: {
             type: "object",
             properties: {
@@ -479,6 +505,7 @@ serve(async (req) => {
     const toolsUsed: string[] = [];
     let webSources: WebSearchResult[] = [];
     let canvasUpdate: { content: string; label?: string } | null = null;
+    let codeUpdate: { code: string; language: string; label?: string } | null = null;
     
     // Check if the AI wants to use tools (web search or chat search)
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
@@ -523,17 +550,30 @@ serve(async (req) => {
           const args = JSON.parse(toolCall.function.arguments);
           console.log('Canvas update requested:', args.label || 'Untitled');
           
-          // Store canvas update for frontend
           canvasUpdate = {
             content: args.content,
             label: args.label
           };
           
-          // Add tool response to conversation
           conversationMessages.push({
             role: 'tool',
             tool_call_id: toolCall.id,
             content: `Canvas updated successfully with "${args.label || 'New Draft'}". The content is now in the user's Canvas editor.`
+          });
+        } else if (toolCall.function.name === 'update_code') {
+          const args = JSON.parse(toolCall.function.arguments);
+          console.log('Code update requested:', args.label || args.language);
+          
+          codeUpdate = {
+            code: args.code,
+            language: args.language,
+            label: args.label
+          };
+          
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: `Code Canvas updated successfully with "${args.label || args.language + ' code'}". The code is now in the user's Code Canvas editor with syntax highlighting.`
           });
         } else if (toolCall.function.name === 'generate_file') {
           const args = JSON.parse(toolCall.function.arguments);
@@ -591,12 +631,13 @@ serve(async (req) => {
       data = await response.json();
     }
     
-    // Add tool usage metadata, sources, and canvas update to the response
+    // Add tool usage metadata, sources, canvas and code update to the response
     const finalResponse = {
       ...data,
       tool_calls_used: toolsUsed,
       web_sources: webSources.length > 0 ? webSources : undefined,
-      canvas_update: canvasUpdate
+      canvas_update: canvasUpdate,
+      code_update: codeUpdate
     };
     
     return new Response(
