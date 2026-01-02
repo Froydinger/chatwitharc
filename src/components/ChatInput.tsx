@@ -85,6 +85,40 @@ function checkForCanvasRequest(message: string): boolean {
   return /^write\//.test(m) || /^\/(write|canvas)\b/.test(m);
 }
 
+// Heuristic for when the Canvas is already open and the user is clearly asking
+// to format/rewrite the current draft (without using write/ prefix).
+function looksLikeCanvasEditRequest(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+  const keywords = [
+    "format",
+    "reformat",
+    "rewrite",
+    "revise",
+    "edit",
+    "polish",
+    "improve",
+    "expand",
+    "shorten",
+    "summarize",
+    "outline",
+    "draft",
+    "blog",
+    "essay",
+    "article",
+    "script",
+    "email",
+    "letter",
+    "headers",
+    "headings",
+    "bold",
+    "italic",
+    "bullet",
+    "bullets",
+    "markdown",
+  ];
+  return keywords.some((k) => m.includes(k));
+}
 // Extract the prompt after the prefix (strips prefix/ or /prefix)
 function extractPrefixPrompt(message: string): string {
   return message
@@ -758,8 +792,18 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
         // Strip the code/ prefix if present, and prepend "Code the following:" for the AI
         const isCodingRequest = shouldShowCodeMode || checkForCodingRequest(userMessage);
+
+        const canvasState = useCanvasStore.getState();
+        const shouldRouteToCanvas =
+          shouldShowCanvasMode ||
+          (canvasState.isOpen && looksLikeCanvasEditRequest(userMessage));
+
         const cleanedMessage = extractPrefixPrompt(userMessage);
-        const messageToSend = isCodingRequest ? `Code the following: ${cleanedMessage}` : cleanedMessage || userMessage;
+        const messageToSend = isCodingRequest
+          ? `Code the following: ${cleanedMessage}`
+          : shouldRouteToCanvas
+            ? `Update the user's Canvas with well-formatted markdown for this request:\n\n${cleanedMessage || userMessage}`
+            : cleanedMessage || userMessage;
 
         aiMessages.push({ role: "user", content: messageToSend });
 
@@ -808,18 +852,31 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         }
         
         // Handle canvas update if AI used the update_canvas tool
+        // If the Canvas is already open and the user is asking for formatting/rewrites,
+        // fallback to putting the assistant's response into the Canvas as well.
+        let wroteToCanvas = false;
         if (result.canvasUpdate) {
           const { setAIContent, reopenCanvas } = useCanvasStore.getState();
           setAIContent(result.canvasUpdate.content, result.canvasUpdate.label);
           reopenCanvas();
+          wroteToCanvas = true;
+        } else if (shouldRouteToCanvas && result.content) {
+          const { setAIContent, reopenCanvas } = useCanvasStore.getState();
+          setAIContent(result.content, "Canvas Update");
+          reopenCanvas();
+          wroteToCanvas = true;
         }
-        
+
+        const assistantContent = wroteToCanvas
+          ? "Done — I put it in your Canvas."
+          : result.content;
+
         // Add assistant message with memory action
-        await addMessage({ 
-          content: result.content, 
-          role: "assistant", 
+        await addMessage({
+          content: assistantContent,
+          role: "assistant",
           type: "text",
-          memoryAction
+          memoryAction,
         });
       } catch (err: any) {
         // Check if request was cancelled
