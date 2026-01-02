@@ -4,6 +4,25 @@ import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from '@/utils/memoryDetection';
 import { useCanvasStore } from '@/store/useCanvasStore';
 
+// Helper to extract a title from canvas content (first heading or first line)
+function extractCanvasTitle(content: string): string | null {
+  if (!content) return null;
+  const lines = content.trim().split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Match markdown headings
+    const headingMatch = trimmed.match(/^#{1,3}\s+(.+)/);
+    if (headingMatch) {
+      return headingMatch[1].slice(0, 50).trim();
+    }
+    // Use first non-empty line as fallback
+    if (trimmed.length > 0) {
+      return trimmed.slice(0, 50).trim();
+    }
+  }
+  return null;
+}
+
 export interface ChatSession {
   id: string;
   title: string;
@@ -41,6 +60,7 @@ export interface Message {
   fileType?: string;
   fileSize?: number;
   canvasContent?: string; // For canvas artifacts
+  canvasLabel?: string; // AI-generated label for canvas (e.g., "Blog Post Draft")
   memoryAction?: MemoryAction; // Track memory/search actions
 }
 
@@ -64,7 +84,7 @@ export interface ArcState {
   replaceLastMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => void;
   updateMessageMemoryAction: (messageId: string, memoryAction: MemoryAction) => void;
-  upsertCanvasMessage: (canvasContent: string, memoryAction?: MemoryAction) => Promise<string>;
+  upsertCanvasMessage: (canvasContent: string, label?: string, memoryAction?: MemoryAction) => Promise<string>;
   clearCurrentMessages: () => void;
 
   // UI State
@@ -580,17 +600,22 @@ export const useArcStore = create<ArcState>()(
       
       clearCurrentMessages: () => set({ messages: [] }),
 
-      upsertCanvasMessage: async (canvasContent, memoryAction) => {
+      upsertCanvasMessage: async (canvasContent, label, memoryAction) => {
         const state = get();
         const sessionId = state.currentSessionId;
+        
+        // Generate a fallback label from content if none provided
+        const displayLabel = label || extractCanvasTitle(canvasContent) || 'Canvas Draft';
+        
         if (!sessionId) {
           // If no session exists yet, create one by adding a synthetic assistant message first.
           // This ensures we have a session to attach the canvas artifact to.
           const createdId = await get().addMessage({
-            content: "Here's your canvas draft:",
+            content: displayLabel,
             role: 'assistant',
             type: 'canvas',
             canvasContent,
+            canvasLabel: displayLabel,
             memoryAction,
           });
           return createdId;
@@ -605,10 +630,11 @@ export const useArcStore = create<ArcState>()(
 
           const upserted: Message = {
             id: canvasMessageId,
-            content: "Here's your canvas draft:",
+            content: displayLabel,
             role: 'assistant',
             type: 'canvas',
             canvasContent,
+            canvasLabel: displayLabel,
             memoryAction,
             timestamp: new Date(),
           };

@@ -6,12 +6,14 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 interface CanvasAttachmentProps {
   preview?: string;
   canvasContent: string;
+  canvasLabel?: string;
   className?: string;
 }
 
 export const CanvasAttachment = ({
   preview,
   canvasContent,
+  canvasLabel,
   className
 }: CanvasAttachmentProps) => {
   const { hydrateFromSession, reopenCanvas } = useCanvasStore();
@@ -41,7 +43,7 @@ export const CanvasAttachment = ({
           {/* Canvas Info */}
           <div className="min-w-0 flex-1">
             <h4 className="font-medium text-foreground">
-              Canvas Draft
+              {canvasLabel || 'Canvas Draft'}
             </h4>
             <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
               {displayPreview}...
