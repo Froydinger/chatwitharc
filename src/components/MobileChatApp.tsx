@@ -154,10 +154,12 @@ export function MobileChatApp() {
   // If canvas is open on mobile, it fully takes over the UI
   const isCanvasOverlayActive = isMobile && isCanvasOpen;
 
-  // Reset any transient mobile view when canvas closes
+  // Auto-close sidebar when canvas opens on desktop
   useEffect(() => {
-    // noop placeholder to keep future behavior explicit
-  }, [isCanvasOpen]);
+    if (isCanvasOpen && !isMobile && rightPanelOpen) {
+      setRightPanelOpen(false);
+    }
+  }, [isCanvasOpen, isMobile]);
 
   // Pre-generate prompts in background for instant access
   usePromptPreload();
@@ -571,8 +573,8 @@ export function MobileChatApp() {
           rightPanelOpen && !isCanvasOpen && "lg:ml-80 xl:ml-96",
         )}
       >
-        {/* Floating header buttons - no bar */}
-        {!isCanvasOverlayActive && (
+        {/* Floating header buttons - no bar, hide when canvas is open on desktop */}
+        {!isCanvasOverlayActive && !(!isMobile && isCanvasOpen) && (
           <div
             className={cn(
               "fixed left-0 right-0 z-40 transition-transform duration-300 ease-out pointer-events-none",
@@ -735,21 +737,8 @@ export function MobileChatApp() {
             className="absolute inset-x-0 bottom-0 top-0 overflow-y-auto"
             style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 6rem)` }}
           >
-            {/* Canvas tile (always visible when there is canvas content) */}
-            <div className="w-full flex justify-center px-4" style={{ paddingTop: "7.5rem" }}>
-              <div className="w-full max-w-xl">
-                <CanvasTile
-                  isOpen={isCanvasOpen}
-                  hasContent={hasCanvas}
-                  preview={(canvasContent || sessionCanvas).slice(0, 80)}
-                  onOpen={() => {
-                    if (sessionCanvas && !canvasContent) hydrateFromSession(sessionCanvas);
-                    reopenCanvas();
-                  }}
-                  onClose={() => storeCloseCanvas()}
-                />
-              </div>
-            </div>
+            {/* Spacer for header */}
+            <div style={{ paddingTop: "5rem" }} />
 
             {/* Empty state */}
             {messages.length === 0 ? (
@@ -853,16 +842,40 @@ export function MobileChatApp() {
             )}
           </AnimatePresence>
 
-          {/* Free-floating input shelf */}
+          {/* Free-floating input shelf with canvas tile above it */}
           <div
             ref={inputDockRef}
             className={cn(
               "fixed bottom-6 z-30 pointer-events-none px-4 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
               "left-0 right-0",
-              rightPanelOpen && "lg:left-80 xl:left-96"
+              rightPanelOpen && !isCanvasOpen && "lg:left-80 xl:left-96"
             )}
           >
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-4xl mx-auto space-y-2">
+              {/* Canvas tile locked above input bar */}
+              <AnimatePresence>
+                {hasCanvas && !isCanvasOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="pointer-events-auto"
+                  >
+                    <CanvasTile
+                      isOpen={isCanvasOpen}
+                      hasContent={hasCanvas}
+                      preview={(canvasContent || sessionCanvas).slice(0, 80)}
+                      onOpen={() => {
+                        if (sessionCanvas && !canvasContent) hydrateFromSession(sessionCanvas);
+                        reopenCanvas();
+                      }}
+                      onClose={() => storeCloseCanvas()}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
               <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
                 <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
               </div>
