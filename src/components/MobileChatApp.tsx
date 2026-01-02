@@ -895,7 +895,7 @@ export function MobileChatApp() {
             <div className="max-w-4xl mx-auto space-y-2">
               {/* Canvas tile locked above input bar */}
               <AnimatePresence>
-                {hasCanvas && !isCanvasOpen && (
+                {!isCanvasOpen && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
