@@ -807,6 +807,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           memoryAction = { type: 'chats_searched' as const };
         }
         
+        // Handle canvas update if AI used the update_canvas tool
+        if (result.canvasUpdate) {
+          const { setAIContent, reopenCanvas } = useCanvasStore.getState();
+          setAIContent(result.canvasUpdate.content, result.canvasUpdate.label);
+          reopenCanvas();
+        }
+        
         // Add assistant message with memory action
         await addMessage({ 
           content: result.content, 
