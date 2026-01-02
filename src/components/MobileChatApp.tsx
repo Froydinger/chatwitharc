@@ -13,6 +13,7 @@ import { ThemedLogo } from "@/components/ThemedLogo";
 import { SupportPopup } from "@/components/SupportPopup";
 import { MusicPopup } from "@/components/MusicPopup";
 import { CanvasPanel } from "@/components/CanvasPanel";
+import { CanvasTile } from "@/components/CanvasTile";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
@@ -134,6 +135,7 @@ export function MobileChatApp() {
     rightPanelTab,
     setRightPanelTab,
     syncFromSupabase,
+    updateSessionCanvasContent,
   } = useArcStore();
   const { profile } = useProfile();
   const isMobile = useIsMobile();
@@ -141,13 +143,13 @@ export function MobileChatApp() {
   
   // Canvas state
   const { isOpen: isCanvasOpen, closeCanvas: storeCloseCanvas } = useCanvasStore();
-  const [mobileCanvasTab, setMobileCanvasTab] = useState<'chat' | 'canvas'>('chat');
-  
-  // Reset mobile tab when canvas closes
+
+  // If canvas is open on mobile, it fully takes over the UI
+  const isCanvasOverlayActive = isMobile && isCanvasOpen;
+
+  // Reset any transient mobile view when canvas closes
   useEffect(() => {
-    if (!isCanvasOpen) {
-      setMobileCanvasTab('chat');
-    }
+    // noop placeholder to keep future behavior explicit
   }, [isCanvasOpen]);
 
   // Pre-generate prompts in background for instant access
@@ -284,6 +286,27 @@ export function MobileChatApp() {
   const [inputHeight, setInputHeight] = useState<number>(96);
   const lastLoadedMessageIdRef = useRef<string | null>(null);
   const { toast } = useToast();
+
+  // Hydrate canvas per-session and autosave edits
+  useEffect(() => {
+    const current = currentSessionId ? chatSessions.find(s => s.id === currentSessionId) : null;
+    const next = current?.canvasContent ?? '';
+
+    // Closing prevents overlay sticking across session switches
+    storeCloseCanvas();
+    hydrateFromSession(next);
+  }, [currentSessionId]);
+
+  useEffect(() => {
+    if (!currentSessionId) return;
+
+    const id = window.setTimeout(() => {
+      // Persist latest canvas content for this session
+      updateSessionCanvasContent(currentSessionId, canvasContent);
+    }, 650);
+
+    return () => window.clearTimeout(id);
+  }, [canvasContent, currentSessionId, updateSessionCanvasContent]);
 
   // Snarky greeting - no names, just personality
   const [greeting, setGreeting] = useState(getDaypartGreeting());
@@ -518,8 +541,12 @@ export function MobileChatApp() {
   }, []);
 
   // Canvas store actions for reopen
-  const { openCanvas, content: canvasContent } = useCanvasStore();
-  const canReopenCanvas = !isCanvasOpen && canvasContent.length > 0;
+  const { reopenCanvas, openCanvas, hydrateFromSession, content: canvasContent } = useCanvasStore();
+
+  const currentSession = currentSessionId ? chatSessions.find(s => s.id === currentSessionId) : null;
+  const sessionCanvas = currentSession?.canvasContent ?? '';
+  const hasCanvas = (canvasContent || sessionCanvas).trim().length > 0;
+  const canReopenCanvas = !isCanvasOpen && hasCanvas;
 
   // Main chat interface
   return (
@@ -541,176 +568,150 @@ export function MobileChatApp() {
         )}
       >
         {/* Floating header buttons - no bar */}
-        <div
-          className={cn(
-            "fixed left-0 right-0 z-40 transition-transform duration-300 ease-out pointer-events-none",
-            isMobile && !headerVisible && "-translate-y-full",
-          )}
-          style={{
-            top: isAdminBannerActive
-              ? `calc(var(--admin-banner-height, 0px) + ${(isPWAMode || isElectronApp) && !isMobile ? '30px' : '0px'})`
-              : (isPWAMode || isElectronApp) && !isMobile ? '30px' : '0px'
-          }}
-        >
-          <div className="flex h-16 items-center justify-between px-4 pt-2 pointer-events-none">
-            {/* Left-side buttons */}
-            <div className="flex items-center gap-2 pointer-events-auto">
-              <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full glass-shimmer transition-all"
-                  onClick={() => {
-                    setRightPanelOpen(!rightPanelOpen);
-                  }}
-                >
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full glass-shimmer transition-all"
-                  onClick={handleNewChat}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </motion.div>
-            </div>
-
-            {/* Right side buttons - Canvas Reopen + Music + Logo */}
-            <div className="flex items-center gap-2 pointer-events-auto">
-              {/* Canvas Reopen Button - shows when canvas is closed but has content */}
-              <AnimatePresence>
-                {canReopenCanvas && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
-                    whileHover={{ scale: 1.1, y: -2 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", damping: 15, stiffness: 300 }}
+        {!isCanvasOverlayActive && (
+          <div
+            className={cn(
+              "fixed left-0 right-0 z-40 transition-transform duration-300 ease-out pointer-events-none",
+              isMobile && !headerVisible && "-translate-y-full",
+            )}
+            style={{
+              top: isAdminBannerActive
+                ? `calc(var(--admin-banner-height, 0px) + ${(isPWAMode || isElectronApp) && !isMobile ? '30px' : '0px'})`
+                : (isPWAMode || isElectronApp) && !isMobile ? '30px' : '0px'
+            }}
+          >
+            <div className="flex h-16 items-center justify-between px-4 pt-2 pointer-events-none">
+              {/* Left-side buttons */}
+              <div className="flex items-center gap-2 pointer-events-auto">
+                <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full glass-shimmer transition-all"
+                    onClick={() => {
+                      setRightPanelOpen(!rightPanelOpen);
+                    }}
                   >
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full glass-shimmer transition-all ring-2 ring-purple-500/50"
-                      onClick={() => openCanvas(canvasContent)}
-                      title="Reopen Canvas"
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full glass-shimmer transition-all"
+                    onClick={handleNewChat}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+              </div>
+
+              {/* Right side buttons - Canvas + Music + Logo */}
+              <div className="flex items-center gap-2 pointer-events-auto">
+                {/* Canvas Reopen Button - shows when canvas is closed but has content */}
+                <AnimatePresence>
+                  {canReopenCanvas && (
+                    <motion.div
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      whileHover={{ scale: 1.1, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{ type: "spring", damping: 15, stiffness: 300 }}
                     >
-                      <PenLine className="h-4 w-4 text-purple-400" />
-                    </Button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Music Player Button */}
-              <motion.div 
-                whileHover={{ scale: 1.1, y: -2 }} 
-                whileTap={{ scale: 0.95 }} 
-                transition={{ type: "spring", damping: 15, stiffness: 300 }}
-                className="relative"
-              >
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className={cn(
-                    "rounded-full glass-shimmer transition-all",
-                    isMusicPlaying && "ring-2 ring-primary/50"
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full glass-shimmer transition-all ring-2 ring-purple-500/50"
+                        onClick={() => {
+                          // reopen without nuking current content
+                          if (sessionCanvas && !canvasContent) hydrateFromSession(sessionCanvas);
+                          reopenCanvas();
+                        }}
+                        title="Reopen Canvas"
+                      >
+                        <PenLine className="h-4 w-4 text-purple-400" />
+                      </Button>
+                    </motion.div>
                   )}
-                  onClick={() => setIsMusicPopupOpen(!isMusicPopupOpen)}
-                  title="Music Player"
+                </AnimatePresence>
+
+                {/* Music Player Button */}
+                <motion.div 
+                  whileHover={{ scale: 1.1, y: -2 }} 
+                  whileTap={{ scale: 0.95 }} 
+                  transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                  className="relative"
                 >
-                  {/* Show waveform when playing, music note when not */}
-                  {isMusicPlaying ? (
-                    <div className="flex items-end justify-center gap-[3px] h-4 w-4">
-                      <motion.div 
-                        className="w-[3px] bg-primary rounded-full"
-                        animate={{ height: ["40%", "100%", "60%", "90%", "40%"] }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
-                      />
-                      <motion.div 
-                        className="w-[3px] bg-primary rounded-full"
-                        animate={{ height: ["100%", "50%", "80%", "40%", "100%"] }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
-                      />
-                      <motion.div 
-                        className="w-[3px] bg-primary rounded-full"
-                        animate={{ height: ["60%", "90%", "40%", "100%", "60%"] }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
-                      />
-                    </div>
-                  ) : (
-                    <Music className="h-4 w-4" />
-                  )}
-                </Button>
-              </motion.div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn(
+                      "rounded-full glass-shimmer transition-all",
+                      isMusicPlaying && "ring-2 ring-primary/50"
+                    )}
+                    onClick={() => setIsMusicPopupOpen(!isMusicPopupOpen)}
+                    title="Music Player"
+                  >
+                    {/* Show waveform when playing, music note when not */}
+                    {isMusicPlaying ? (
+                      <div className="flex items-end justify-center gap-[3px] h-4 w-4">
+                        <motion.div 
+                          className="w-[3px] bg-primary rounded-full"
+                          animate={{ height: ["40%", "100%", "60%", "90%", "40%"] }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                        />
+                        <motion.div 
+                          className="w-[3px] bg-primary rounded-full"
+                          animate={{ height: ["100%", "50%", "80%", "40%", "100%"] }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+                        />
+                        <motion.div 
+                          className="w-[3px] bg-primary rounded-full"
+                          animate={{ height: ["60%", "90%", "40%", "100%", "60%"] }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+                        />
+                      </div>
+                    ) : (
+                      <Music className="h-4 w-4" />
+                    )}
+                  </Button>
+                </motion.div>
 
-              {/* Logo Orb - clickable and opens support popup */}
-              <motion.div
-                className="relative"
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                whileTap={{ scale: 0.95 }}
-                animate={isLogoSpinning ? { rotate: 360 } : { rotate: 0 }}
-                transition={isLogoSpinning ? { duration: 0.6, ease: "easeOut" } : { type: "spring", damping: 15, stiffness: 300 }}
-              >
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full glass-shimmer transition-all overflow-hidden"
-                  onClick={() => {
-                    // Trigger spin animation
-                    setIsLogoSpinning(true);
-                    setTimeout(() => setIsLogoSpinning(false), 600);
-
-                    // Open support popup
-                    setIsSupportPopupOpen(true);
-                  }}
-                  title="Support ArcAI"
+                {/* Logo Orb - clickable and opens support popup */}
+                <motion.div
+                  className="relative"
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  whileTap={{ scale: 0.95 }}
+                  animate={isLogoSpinning ? { rotate: 360 } : { rotate: 0 }}
+                  transition={isLogoSpinning ? { duration: 0.6, ease: "easeOut" } : { type: "spring", damping: 15, stiffness: 300 }}
                 >
-                  <ThemedLogo className="h-9 w-9" alt="Arc" />
-                </Button>
-              </motion.div>
-            </div>
-          </div>
-        </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full glass-shimmer transition-all overflow-hidden"
+                    onClick={() => {
+                      // Trigger spin animation
+                      setIsLogoSpinning(true);
+                      setTimeout(() => setIsLogoSpinning(false), 600);
 
-        {/* Mobile Canvas Tab Switcher */}
-        {isCanvasOpen && isMobile && (
-          <div className="fixed top-16 left-0 right-0 z-50 flex justify-center px-4 pt-2">
-            <div className="flex gap-1 p-1 rounded-full bg-background/80 backdrop-blur-xl border border-border/50 shadow-lg">
-              <button
-                onClick={() => setMobileCanvasTab('chat')}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all",
-                  mobileCanvasTab === 'chat'
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <MessageSquare className="w-4 h-4" />
-                Chat
-              </button>
-              <button
-                onClick={() => setMobileCanvasTab('canvas')}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all",
-                  mobileCanvasTab === 'canvas'
-                    ? "bg-purple-500 text-white"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <PenLine className="w-4 h-4" />
-                Canvas
-              </button>
+                      // Open support popup
+                      setIsSupportPopupOpen(true);
+                    }}
+                    title="Support ArcAI"
+                  >
+                    <ThemedLogo className="h-9 w-9" alt="Arc" />
+                  </Button>
+                </motion.div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Mobile Canvas Panel */}
-        {isCanvasOpen && isMobile && mobileCanvasTab === 'canvas' && (
-          <div className="fixed inset-0 z-40 pt-28 bg-background">
+        {/* Mobile Canvas Panel (full takeover) */}
+        {isCanvasOpen && isMobile && (
+          <div className="fixed inset-0 z-[70] bg-background">
             <CanvasPanel />
           </div>
         )}
@@ -730,9 +731,25 @@ export function MobileChatApp() {
             className="absolute inset-x-0 bottom-0 top-0 overflow-y-auto"
             style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 6rem)` }}
           >
+            {/* Canvas tile (always visible when there is canvas content) */}
+            <div className="w-full flex justify-center px-4" style={{ paddingTop: "7.5rem" }}>
+              <div className="w-full max-w-xl">
+                <CanvasTile
+                  isOpen={isCanvasOpen}
+                  hasContent={hasCanvas}
+                  preview={(canvasContent || sessionCanvas).slice(0, 80)}
+                  onOpen={() => {
+                    if (sessionCanvas && !canvasContent) hydrateFromSession(sessionCanvas);
+                    reopenCanvas();
+                  }}
+                  onClose={() => storeCloseCanvas()}
+                />
+              </div>
+            </div>
+
             {/* Empty state */}
             {messages.length === 0 ? (
-              <div style={{ paddingTop: "3rem" }}>
+              <div style={{ paddingTop: "1rem" }}>
                 <WelcomeSection
                   greeting={greeting}
                   heroAvatar={null}
@@ -748,9 +765,6 @@ export function MobileChatApp() {
               <div className="w-full flex justify-center px-4">
                 <div
                   className="space-y-4 chat-messages w-full max-w-xl" // Messages only, now max-w-xl
-                  style={{
-                    paddingTop: "7.5rem",
-                  }}
                 >
                   <AnimatePresence mode="popLayout" initial={false}>
                     {messages.map((message, index) => {
