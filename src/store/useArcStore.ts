@@ -51,7 +51,7 @@ export interface Message {
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
-  type: 'text' | 'image' | 'image-generating' | 'file' | 'canvas';
+  type: 'text' | 'image' | 'image-generating' | 'file' | 'canvas' | 'code';
   imageUrl?: string;
   imageUrls?: string[]; // Support for multiple images
   imagePrompt?: string; // For image generation placeholders
