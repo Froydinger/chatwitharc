@@ -1,32 +1,41 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  Undo2,
-  Redo2,
+  Bold,
+  Check,
+  ChevronLeft,
+  Code,
   Copy,
   Download,
-  Check,
-  History,
-  Bold,
-  Italic,
   Heading1,
   Heading2,
+  History,
+  Italic,
   List,
-  Code,
   Loader2,
-  ChevronLeft,
+  Redo2,
   Sparkles,
+  Undo2,
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useCanvasStore } from "@/store/useCanvasStore";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { useCanvasStore } from "@/store/useCanvasStore";
+
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { Markdown } from "@tiptap/markdown";
 
 interface CanvasPanelProps {
   className?: string;
+}
+
+function editorGetMarkdown(editor: unknown): string {
+  // TipTap augments the editor instance when Markdown extension is installed.
+  // We keep this loosely typed to avoid TS friction across package versions.
+  return (editor as any)?.getMarkdown?.() ?? "";
 }
 
 export function CanvasPanel({ className }: CanvasPanelProps) {
@@ -34,47 +43,65 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     content,
     versions,
     activeVersionIndex,
-    undoStack,
-    redoStack,
     isAIWriting,
     setContent,
     saveVersion,
     restoreVersion,
-    undo,
-    redo,
     closeCanvas,
   } = useCanvasStore();
 
   const { toast } = useToast();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const editorContainerRef = useRef<HTMLDivElement>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [wordCount, setWordCount] = useState(0);
-  const [charCount, setCharCount] = useState(0);
-  const [isFocused, setIsFocused] = useState(false);
 
-  // Update word/char counts
+  const editor = useEditor({
+    editable: !isAIWriting,
+    extensions: [
+      StarterKit,
+      Markdown.configure({
+        // keep defaults (safer across versions)
+      }),
+    ],
+    content,
+    onUpdate: ({ editor }) => {
+      // Keep the store as Markdown (source-of-truth)
+      const md = editorGetMarkdown(editor);
+      if (md !== undefined) setContent(md, false);
+    },
+  });
+
+  // Sync editor when store content changes (restore version / AI draft)
   useEffect(() => {
+    if (!editor) return;
+    const md = editorGetMarkdown(editor);
+    if (md !== content) {
+      // 2nd param=false prevents an extra update cycle
+      editor.commands.setContent(content, false);
+    }
+  }, [content, editor]);
+
+  // Word/char counts from markdown source
+  const { wordCount, charCount } = useMemo(() => {
     const words = content.trim() ? content.trim().split(/\s+/).length : 0;
-    setWordCount(words);
-    setCharCount(content.length);
+    return { wordCount: words, charCount: content.length };
   }, [content]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (use editor's history)
   useEffect(() => {
+    if (!editor) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
-        undo();
+        editor.chain().focus().undo().run();
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "z" && e.shiftKey) {
         e.preventDefault();
-        redo();
+        editor.chain().focus().redo().run();
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "y") {
         e.preventDefault();
-        redo();
+        editor.chain().focus().redo().run();
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
@@ -84,7 +111,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [undo, redo]);
+  }, [editor]);
 
   const handleCopy = async () => {
     try {
@@ -114,44 +141,47 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     toast({ title: "Version saved" });
   };
 
-  // Insert markdown formatting at cursor
-  const insertFormatting = useCallback(
-    (prefix: string, suffix: string = prefix) => {
-      const textarea = textareaRef.current;
-      if (!textarea) return;
-
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const selectedText = content.substring(start, end);
-      const newText =
-        content.substring(0, start) +
-        prefix +
-        selectedText +
-        suffix +
-        content.substring(end);
-
-      setContent(newText);
-
-      setTimeout(() => {
-        textarea.focus();
-        const newCursorPos = selectedText
-          ? start + prefix.length + selectedText.length + suffix.length
-          : start + prefix.length;
-        textarea.setSelectionRange(newCursorPos, newCursorPos);
-      }, 0);
-    },
-    [content, setContent]
+  const formatActions = useMemo(
+    () => [
+      {
+        icon: Bold,
+        label: "Bold",
+        run: () => editor?.chain().focus().toggleBold().run(),
+        active: () => !!editor?.isActive("bold"),
+      },
+      {
+        icon: Italic,
+        label: "Italic",
+        run: () => editor?.chain().focus().toggleItalic().run(),
+        active: () => !!editor?.isActive("italic"),
+      },
+      {
+        icon: Heading1,
+        label: "H1",
+        run: () => editor?.chain().focus().toggleHeading({ level: 1 }).run(),
+        active: () => !!editor?.isActive("heading", { level: 1 }),
+      },
+      {
+        icon: Heading2,
+        label: "H2",
+        run: () => editor?.chain().focus().toggleHeading({ level: 2 }).run(),
+        active: () => !!editor?.isActive("heading", { level: 2 }),
+      },
+      {
+        icon: List,
+        label: "List",
+        run: () => editor?.chain().focus().toggleBulletList().run(),
+        active: () => !!editor?.isActive("bulletList"),
+      },
+      {
+        icon: Code,
+        label: "Code",
+        run: () => editor?.chain().focus().toggleCode().run(),
+        active: () => !!editor?.isActive("code"),
+      },
+    ],
+    [editor]
   );
-
-  const formatActions = [
-    { icon: Bold, label: "Bold", action: () => insertFormatting("**") },
-    { icon: Italic, label: "Italic", action: () => insertFormatting("*") },
-    { icon: Heading1, label: "H1", action: () => insertFormatting("# ", "") },
-    { icon: Heading2, label: "H2", action: () => insertFormatting("## ", "") },
-    { icon: List, label: "List", action: () => insertFormatting("- ", "") },
-    { icon: Code, label: "Code", action: () => insertFormatting("`") },
-  ];
-
 
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
@@ -167,11 +197,11 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           >
             <ChevronLeft className="w-5 h-5" />
           </Button>
-          
+
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-foreground">Canvas</span>
             {isAIWriting && (
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                 <Loader2 className="w-3 h-3 animate-spin" />
                 <span className="text-xs">Writing...</span>
               </div>
@@ -184,7 +214,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           <span className="text-xs text-muted-foreground mr-2 hidden sm:block">
             {wordCount} words
           </span>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -197,7 +227,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           >
             <History className="w-4 h-4" />
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -206,9 +236,13 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
             className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-40"
             title="Copy"
           >
-            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+            {copied ? (
+              <Check className="w-4 h-4 text-primary" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -230,22 +264,25 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
               key={index}
               variant="ghost"
               size="sm"
-              onClick={action.action}
+              onClick={action.run}
               title={action.label}
-              disabled={isAIWriting}
-              className="h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-40"
+              disabled={isAIWriting || !editor}
+              className={cn(
+                "h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-40",
+                action.active() && "bg-muted text-foreground"
+              )}
             >
               <action.icon className="w-3.5 h-3.5" />
             </Button>
           ))}
-          
+
           <div className="w-px h-4 bg-border/50 mx-1" />
-          
+
           <Button
             variant="ghost"
             size="sm"
-            onClick={undo}
-            disabled={undoStack.length === 0 || isAIWriting}
+            onClick={() => editor?.chain().focus().undo().run()}
+            disabled={isAIWriting || !editor || !editor.can().undo()}
             title="Undo"
             className="h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground disabled:opacity-40"
           >
@@ -254,15 +291,15 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={redo}
-            disabled={redoStack.length === 0 || isAIWriting}
+            onClick={() => editor?.chain().focus().redo().run()}
+            disabled={isAIWriting || !editor || !editor.can().redo()}
             title="Redo"
             className="h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground disabled:opacity-40"
           >
             <Redo2 className="w-3.5 h-3.5" />
           </Button>
         </div>
-        
+
         <Button
           variant="ghost"
           size="sm"
@@ -277,54 +314,23 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Live WYSIWYG Editor Area */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <ScrollArea className="flex-1">
-            <div
-              ref={editorContainerRef}
-              onClick={() => textareaRef.current?.focus()}
-              className="relative min-h-full cursor-text"
-            >
-              {/* Hidden Textarea for Input (captures all keyboard input) - BEHIND */}
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                placeholder="Start writing..."
-                disabled={isAIWriting}
-                autoFocus
+            <div className="px-6 py-5 min-h-[300px]">
+              <EditorContent
+                editor={editor}
                 className={cn(
-                  "absolute inset-0 w-full h-full resize-none z-0",
-                  "bg-transparent text-transparent caret-primary",
-                  "px-6 py-5",
-                  "text-[15px] leading-[1.8]",
-                  "focus:outline-none",
-                  isAIWriting && "opacity-70"
-                )}
-                style={{ caretColor: 'hsl(var(--primary))' }}
-              />
-              
-              {/* Rendered Markdown Layer (visible) - ON TOP */}
-              <div
-                className={cn(
-                  "relative z-10 px-6 py-5 min-h-[300px] pointer-events-none select-none",
+                  "min-h-[300px]",
                   "prose prose-sm dark:prose-invert max-w-none",
                   "prose-headings:font-semibold prose-headings:text-foreground prose-headings:mb-3",
                   "prose-p:text-foreground/90 prose-p:leading-[1.7] prose-p:mb-4",
                   "prose-li:text-foreground/90 prose-li:leading-[1.6]",
                   "prose-strong:text-foreground prose-strong:font-semibold",
                   "prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm",
-                  "prose-blockquote:border-l-2 prose-blockquote:border-primary/40 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground"
+                  "prose-blockquote:border-l-2 prose-blockquote:border-primary/40 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground",
+                  "focus:outline-none"
                 )}
-              >
-                {content ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-                ) : (
-                  <p className="text-muted-foreground/40 italic">Start writing...</p>
-                )}
-              </div>
+              />
             </div>
           </ScrollArea>
         </div>
@@ -342,6 +348,9 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
               <div className="w-[200px] h-full flex flex-col">
                 <div className="px-3 py-2.5 border-b border-border/20">
                   <h3 className="text-xs font-medium text-foreground">Versions</h3>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {charCount} chars
+                  </p>
                 </div>
                 <ScrollArea className="flex-1">
                   <div className="p-2 space-y-1">
