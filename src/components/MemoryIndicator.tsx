@@ -60,7 +60,7 @@ export const MemoryIndicator = ({ action, messageContent }: MemoryIndicatorProps
               className="h-5 px-2 text-[10px] text-primary/70 hover:text-primary hover:bg-primary/10"
             >
               <FileText className="h-3 w-3 mr-1" />
-              View as article
+              Reader Mode
             </Button>
           )}
         </motion.div>
