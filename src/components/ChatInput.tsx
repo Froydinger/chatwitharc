@@ -786,10 +786,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           (canvasState.isOpen && looksLikeCanvasEditRequest(userMessage));
 
         const cleanedMessage = extractPrefixPrompt(userMessage);
+        // Explicitly instruct the AI which tool to use based on prefix
         const messageToSend = isCodingRequest
-          ? `Code the following: ${cleanedMessage}`
+          ? `IMPORTANT: Use the update_code tool (NOT update_canvas) to write code for this request: ${cleanedMessage}`
           : shouldRouteToCanvas
-            ? `Update the user's Canvas with well-formatted markdown for this request:\n\n${cleanedMessage || userMessage}`
+            ? `IMPORTANT: Use the update_canvas tool (NOT update_code) to write well-formatted markdown for this request:\n\n${cleanedMessage || userMessage}`
             : cleanedMessage || userMessage;
 
         aiMessages.push({ role: "user", content: messageToSend });
