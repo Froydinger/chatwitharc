@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { CodePreview } from "./CodePreview";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { getFileExtension, canPreview as checkCanPreview } from "@/utils/codeUtils";
 
 interface CodeBlockProps {
   code: string;
@@ -13,9 +14,7 @@ interface CodeBlockProps {
 }
 
 export function CodeBlock({ code, language }: CodeBlockProps) {
-  const canPreview = ["jsx", "tsx", "html", "css", "javascript", "typescript"].includes(
-    language.toLowerCase()
-  );
+  const canPreview = checkCanPreview(language);
   
   const [showPreview, setShowPreview] = useState(canPreview); // Default to preview if possible
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -35,49 +34,6 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
         variant: "destructive",
       });
     }
-  };
-
-  const getFileExtension = (lang: string): string => {
-    const extensions: Record<string, string> = {
-      javascript: 'js',
-      typescript: 'ts',
-      jsx: 'jsx',
-      tsx: 'tsx',
-      python: 'py',
-      java: 'java',
-      cpp: 'cpp',
-      c: 'c',
-      csharp: 'cs',
-      php: 'php',
-      ruby: 'rb',
-      go: 'go',
-      rust: 'rs',
-      swift: 'swift',
-      kotlin: 'kt',
-      html: 'html',
-      css: 'css',
-      scss: 'scss',
-      sass: 'sass',
-      json: 'json',
-      xml: 'xml',
-      yaml: 'yaml',
-      yml: 'yml',
-      markdown: 'md',
-      sql: 'sql',
-      bash: 'sh',
-      shell: 'sh',
-      powershell: 'ps1',
-      latex: 'tex',
-      r: 'r',
-      matlab: 'm',
-      perl: 'pl',
-      lua: 'lua',
-      dart: 'dart',
-      scala: 'scala',
-      dockerfile: 'Dockerfile',
-      makefile: 'Makefile',
-    };
-    return extensions[lang.toLowerCase()] || 'txt';
   };
 
   const handleDownload = () => {
