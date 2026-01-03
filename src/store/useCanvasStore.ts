@@ -179,6 +179,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       versions: [...state.versions, newVersion],
       activeVersionIndex: state.versions.length,
       isAIWriting: false,
+      // Explicitly set to writing mode when using setAIContent
+      canvasType: 'writing',
     });
   },
 
