@@ -2,57 +2,13 @@ import { Code, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { cn } from '@/lib/utils';
+import { getLanguageDisplay, getLanguageColor } from '@/utils/codeUtils';
 
 interface CodeArtifactCardProps {
   codeContent: string;
   codeLanguage: string;
   codeLabel?: string;
   className?: string;
-}
-
-// Get display name for language
-function getLanguageDisplay(lang: string): string {
-  const displayNames: Record<string, string> = {
-    'javascript': 'JavaScript',
-    'typescript': 'TypeScript',
-    'tsx': 'React TSX',
-    'jsx': 'React JSX',
-    'python': 'Python',
-    'html': 'HTML',
-    'css': 'CSS',
-    'json': 'JSON',
-    'sql': 'SQL',
-    'bash': 'Shell',
-    'go': 'Go',
-    'rust': 'Rust',
-    'java': 'Java',
-    'swift': 'Swift',
-    'kotlin': 'Kotlin',
-    'ruby': 'Ruby',
-    'php': 'PHP',
-    'csharp': 'C#',
-    'cpp': 'C++',
-    'c': 'C',
-  };
-  return displayNames[lang.toLowerCase()] || lang.toUpperCase();
-}
-
-// Get a color for the language badge
-function getLanguageColor(lang: string): string {
-  const colors: Record<string, string> = {
-    'javascript': 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
-    'typescript': 'bg-blue-500/20 text-blue-600 dark:text-blue-400',
-    'tsx': 'bg-blue-500/20 text-blue-600 dark:text-blue-400',
-    'jsx': 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-400',
-    'python': 'bg-green-500/20 text-green-600 dark:text-green-400',
-    'html': 'bg-orange-500/20 text-orange-600 dark:text-orange-400',
-    'css': 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
-    'json': 'bg-gray-500/20 text-gray-600 dark:text-gray-400',
-    'sql': 'bg-pink-500/20 text-pink-600 dark:text-pink-400',
-    'go': 'bg-teal-500/20 text-teal-600 dark:text-teal-400',
-    'rust': 'bg-orange-500/20 text-orange-600 dark:text-orange-400',
-  };
-  return colors[lang.toLowerCase()] || 'bg-muted text-muted-foreground';
 }
 
 export function CodeArtifactCard({

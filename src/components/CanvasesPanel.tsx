@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Code, Search, MessageCircle, Copy, Check, Eye, FileCode, Download } from "lucide-react";
+import { Layers, Search, MessageCircle, Copy, Check, Eye, FileCode, Download, Code, PenLine } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
+import { useCanvasStore } from "@/store/useCanvasStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,14 +11,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { CodePreview } from "@/components/CodePreview";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { getLanguageDisplay, getLanguageColor, getFileExtension, canPreview } from "@/utils/codeUtils";
 
-interface CodeBlock {
-  code: string;
-  language: string;
+interface CanvasItem {
+  id: string;
+  type: 'code' | 'writing';
+  content: string;
+  language?: string;
   sessionId: string;
   sessionTitle: string;
   timestamp: Date;
-  messageId: string;
+  label?: string;
 }
 
 // Safely coerce unknown timestamp shapes to a Date
@@ -53,11 +57,12 @@ function extractCodeBlocks(content: string): Array<{ code: string; language: str
   return blocks;
 }
 
-export function CodeAppsPanel() {
+export function CanvasesPanel() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { chatSessions, loadSession, setRightPanelOpen } = useArcStore();
-  const [selectedCode, setSelectedCode] = useState<CodeBlock | null>(null);
+  const { hydrateFromSession, reopenCanvas } = useCanvasStore();
+  const [selectedItem, setSelectedItem] = useState<CanvasItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,7 +72,7 @@ export function CodeAppsPanel() {
 
   // Scroll to top when panel opens
   useEffect(() => {
-    const container = document.querySelector('.code-apps-container');
+    const container = document.querySelector('.canvases-container');
     if (container) {
       container.scrollTop = 0;
     }
@@ -82,158 +87,146 @@ export function CodeAppsPanel() {
   const goToChat = (sessionId: string) => {
     loadSession(sessionId);
     navigate(`/chat/${sessionId}`);
-    // Only auto-close on mobile and small tablets (< 1024px)
     if (isMobile || window.innerWidth < 1024) {
       setRightPanelOpen(false);
     }
-    setSelectedCode(null);
+    setSelectedItem(null);
   };
 
-  // Extract all code blocks from chat sessions
-  const codeBlocks = useMemo(() => {
-    const blocks: CodeBlock[] = [];
+  const openInCanvas = (item: CanvasItem) => {
+    hydrateFromSession(item.content, item.type, item.language || 'text');
+    reopenCanvas();
+    if (isMobile || window.innerWidth < 1024) {
+      setRightPanelOpen(false);
+    }
+    setSelectedItem(null);
+  };
+
+  // Extract all canvases from chat sessions
+  const canvasItems = useMemo(() => {
+    const items: CanvasItem[] = [];
 
     chatSessions.forEach((session) => {
       session.messages.forEach((message) => {
-        if (message?.role === "assistant" && typeof message?.content === "string") {
-          const coerced = toDate(message?.timestamp);
-          if (!coerced) return;
+        if (!message) return;
+        
+        const coerced = toDate(message?.timestamp);
+        if (!coerced) return;
 
+        // Extract canvas-type messages (writing canvases)
+        if (message.type === 'canvas' && typeof message.content === 'string') {
+          items.push({
+            id: `canvas-${message.id}`,
+            type: 'writing',
+            content: message.content,
+            sessionId: session.id,
+            sessionTitle: session.title ?? "Untitled chat",
+            timestamp: coerced,
+            label: 'Writing Canvas',
+          });
+        }
+
+        // Extract code-type messages (code canvases)
+        if (message.type === 'code' && typeof message.content === 'string') {
+          items.push({
+            id: `code-${message.id}`,
+            type: 'code',
+            content: message.content,
+            language: (message as any).codeLanguage || 'text',
+            sessionId: session.id,
+            sessionTitle: session.title ?? "Untitled chat",
+            timestamp: coerced,
+            label: (message as any).codeLabel || 'Code Canvas',
+          });
+        }
+
+        // Also extract markdown code blocks from assistant messages
+        if (message.role === "assistant" && typeof message.content === "string") {
           const extractedBlocks = extractCodeBlocks(message.content);
           extractedBlocks.forEach((block, index) => {
-            blocks.push({
-              code: block.code,
+            items.push({
+              id: `block-${message.id}-${index}`,
+              type: 'code',
+              content: block.code,
               language: block.language,
               sessionId: session.id,
               sessionTitle: session.title ?? "Untitled chat",
               timestamp: coerced,
-              messageId: `${message.id}-${index}`,
+              label: `${getLanguageDisplay(block.language)} snippet`,
             });
           });
         }
       });
     });
 
-    blocks.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    return blocks;
+    items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return items;
   }, [chatSessions]);
 
-  // Filter code blocks based on search query
-  const filteredBlocks = useMemo(() => {
-    if (!searchQuery.trim()) return codeBlocks;
+  // Filter items based on search query
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) return canvasItems;
 
     const query = searchQuery.toLowerCase();
-    return codeBlocks.filter(
-      (block) =>
-        block.code.toLowerCase().includes(query) ||
-        block.language.toLowerCase().includes(query) ||
-        block.sessionTitle.toLowerCase().includes(query)
+    return canvasItems.filter(
+      (item) =>
+        item.content.toLowerCase().includes(query) ||
+        item.sessionTitle.toLowerCase().includes(query) ||
+        (item.language && item.language.toLowerCase().includes(query)) ||
+        item.type.toLowerCase().includes(query)
     );
-  }, [codeBlocks, searchQuery]);
+  }, [canvasItems, searchQuery]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredBlocks.length / ITEMS_PER_PAGE);
-  const paginatedBlocks = useMemo(() => {
+  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+  const paginatedItems = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
-    return filteredBlocks.slice(startIndex, endIndex);
-  }, [filteredBlocks, currentPage]);
+    return filteredItems.slice(startIndex, endIndex);
+  }, [filteredItems, currentPage]);
 
   // Reset to page 1 when search query changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
 
-  const copyCode = (code: string, messageId: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedId(messageId);
-    toast.success("Code copied to clipboard");
+  const copyContent = (content: string, id: string) => {
+    navigator.clipboard.writeText(content);
+    setCopiedId(id);
+    toast.success("Copied to clipboard");
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const getFileExtension = (lang: string): string => {
-    const extensions: Record<string, string> = {
-      javascript: 'js',
-      typescript: 'ts',
-      jsx: 'jsx',
-      tsx: 'tsx',
-      python: 'py',
-      java: 'java',
-      cpp: 'cpp',
-      c: 'c',
-      csharp: 'cs',
-      php: 'php',
-      ruby: 'rb',
-      go: 'go',
-      rust: 'rs',
-      swift: 'swift',
-      kotlin: 'kt',
-      html: 'html',
-      css: 'css',
-      scss: 'scss',
-      sass: 'sass',
-      json: 'json',
-      xml: 'xml',
-      yaml: 'yaml',
-      yml: 'yml',
-      markdown: 'md',
-      sql: 'sql',
-      bash: 'sh',
-      shell: 'sh',
-      powershell: 'ps1',
-      latex: 'tex',
-      r: 'r',
-      matlab: 'm',
-      perl: 'pl',
-      lua: 'lua',
-      dart: 'dart',
-      scala: 'scala',
-      dockerfile: 'Dockerfile',
-      makefile: 'Makefile',
-    };
-    return extensions[lang.toLowerCase()] || 'txt';
-  };
-
-  const downloadCode = (code: string, language: string) => {
+  const downloadContent = (content: string, type: 'code' | 'writing', language?: string) => {
     try {
-      const blob = new Blob([code], { type: 'text/plain' });
+      const extension = type === 'code' ? getFileExtension(language || 'text') : 'md';
+      const blob = new Blob([content], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `code.${getFileExtension(language)}`;
+      a.download = `canvas.${extension}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      toast.success(`File saved as code.${getFileExtension(language)}`);
+      toast.success(`File saved as canvas.${extension}`);
     } catch (error) {
       toast.error("Failed to download file");
     }
   };
 
-  const getPreview = (code: string) => {
-    const lines = code.split('\n');
+  const getPreview = (content: string, type: 'code' | 'writing') => {
+    const lines = content.split('\n');
+    if (type === 'writing') {
+      // For writing, show first ~100 chars
+      return content.slice(0, 100) + (content.length > 100 ? '...' : '');
+    }
     return lines.slice(0, 5).join('\n') + (lines.length > 5 ? '\n...' : '');
   };
 
-  const getLanguageColor = (language: string) => {
-    const colors: Record<string, string> = {
-      typescript: 'bg-blue-500/20 text-blue-400',
-      javascript: 'bg-yellow-500/20 text-yellow-400',
-      tsx: 'bg-cyan-500/20 text-cyan-400',
-      jsx: 'bg-cyan-500/20 text-cyan-400',
-      python: 'bg-green-500/20 text-green-400',
-      css: 'bg-pink-500/20 text-pink-400',
-      html: 'bg-orange-500/20 text-orange-400',
-      json: 'bg-purple-500/20 text-purple-400',
-    };
-    return colors[language.toLowerCase()] || 'bg-gray-500/20 text-gray-400';
-  };
-
-  const canPreview = (language: string) => {
-    const previewable = ['html', 'css', 'javascript', 'js'];
-    return previewable.includes(language.toLowerCase());
+  const getWordCount = (content: string) => {
+    return content.trim() ? content.trim().split(/\s+/).length : 0;
   };
 
   const PaginationButtons = () => {
@@ -267,18 +260,18 @@ export function CodeAppsPanel() {
   };
 
   return (
-    <div className="code-apps-container w-full max-w-4xl mx-auto space-y-6 p-6 h-full overflow-y-auto scrollbar-hide">
+    <div className="canvases-container w-full max-w-4xl mx-auto space-y-6 p-6 h-full overflow-y-auto scrollbar-hide">
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center gap-3">
           <div className="glass rounded-full p-3">
-            <Code className="h-8 w-8 text-primary-glow" />
+            <Layers className="h-8 w-8 text-primary-glow" />
           </div>
-          <h2 className="text-3xl font-bold text-foreground">Code Apps</h2>
+          <h2 className="text-3xl font-bold text-foreground">Canvases</h2>
         </div>
 
         <p className="text-muted-foreground text-base">
-          All code blocks from your conversations
+          Writing and code canvases from your conversations
         </p>
 
         {/* Search */}
@@ -286,7 +279,7 @@ export function CodeAppsPanel() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search code by language or chat title"
+              placeholder="Search canvases..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -296,9 +289,9 @@ export function CodeAppsPanel() {
       </div>
 
       {/* Pagination - Top */}
-      {!isLoading && filteredBlocks.length > 0 && <PaginationButtons />}
+      {!isLoading && filteredItems.length > 0 && <PaginationButtons />}
 
-      {/* Code Blocks Grid */}
+      {/* Canvas Grid */}
       <div className="space-y-4">
         {isLoading ? (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
@@ -315,30 +308,30 @@ export function CodeAppsPanel() {
               </GlassCard>
             ))}
           </div>
-        ) : filteredBlocks.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <div className="text-center py-16">
             <GlassCard variant="bubble" glow className="p-12 max-w-md mx-auto">
               <div className="glass rounded-full p-6 w-fit mx-auto mb-6">
-                <Code className="h-12 w-12 text-primary-glow" />
+                <Layers className="h-12 w-12 text-primary-glow" />
               </div>
               <h3 className="text-2xl font-semibold text-foreground mb-3">
-                No code blocks yet
+                No canvases yet
               </h3>
               <p className="text-muted-foreground mb-8 text-lg">
-                Code blocks from your chats will appear here.
+                Writing and code canvases from your chats will appear here.
               </p>
             </GlassCard>
           </div>
         ) : (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-            {paginatedBlocks.map((block) => (
+            {paginatedItems.map((item) => (
               <GlassCard
-                key={block.messageId}
+                key={item.id}
                 variant="bubble"
                 className="p-0 cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all group overflow-hidden"
-                onClick={() => setSelectedCode(block)}
+                onClick={() => setSelectedItem(item)}
               >
-                {/* Visual Code Thumbnail */}
+                {/* Visual Thumbnail */}
                 <div className="relative bg-gradient-to-br from-muted/40 to-muted/20 overflow-hidden aspect-[4/3]">
                   {/* Editor-style header */}
                   <div className="absolute top-0 left-0 right-0 h-6 bg-muted/60 border-b border-border/40 flex items-center px-2 gap-1 z-10">
@@ -347,19 +340,21 @@ export function CodeAppsPanel() {
                     <div className="w-2 h-2 rounded-full bg-green-500/60" />
                   </div>
                   
-                  {/* Rendered preview for supported languages or code preview */}
-                  {canPreview(block.language) ? (
+                  {/* Preview content */}
+                  {item.type === 'code' && item.language && canPreview(item.language) ? (
                     <div className="absolute inset-0 top-6 overflow-hidden pointer-events-none">
                       <div className="w-[250%] h-[250%] scale-[0.4] origin-top-left">
-                        <CodePreview code={block.code} language={block.language} />
+                        <CodePreview code={item.content} language={item.language} />
                       </div>
                     </div>
                   ) : (
                     <div className="absolute inset-0 top-6 p-3 overflow-hidden">
                       <pre className="text-[9px] leading-relaxed font-mono">
-                        {getPreview(block.code).split('\n').map((line, i) => (
+                        {getPreview(item.content, item.type).split('\n').map((line, i) => (
                           <div key={i} className="flex gap-2">
-                            <span className="text-muted-foreground/40 select-none w-4 text-right">{i + 1}</span>
+                            {item.type === 'code' && (
+                              <span className="text-muted-foreground/40 select-none w-4 text-right">{i + 1}</span>
+                            )}
                             <code className="text-foreground/70">{line || ' '}</code>
                           </div>
                         ))}
@@ -370,11 +365,28 @@ export function CodeAppsPanel() {
                   {/* Fade overlay */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/90 pointer-events-none z-[5]" />
                   
-                  {/* Language badge */}
-                  <div className="absolute bottom-2 right-2 z-10">
-                    <div className={`px-2 py-1 rounded-md text-[10px] font-mono backdrop-blur-sm ${getLanguageColor(block.language)}`}>
-                      {block.language}
+                  {/* Type and language badges */}
+                  <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1.5">
+                    {/* Type badge */}
+                    <div className={`px-2 py-1 rounded-md text-[10px] font-medium backdrop-blur-sm flex items-center gap-1 ${
+                      item.type === 'writing' 
+                        ? 'bg-primary/20 text-primary' 
+                        : 'bg-blue-500/20 text-blue-400'
+                    }`}>
+                      {item.type === 'writing' ? (
+                        <PenLine className="w-3 h-3" />
+                      ) : (
+                        <Code className="w-3 h-3" />
+                      )}
+                      {item.type === 'writing' ? 'Writing' : 'Code'}
                     </div>
+                    
+                    {/* Language badge for code */}
+                    {item.type === 'code' && item.language && (
+                      <div className={`px-2 py-1 rounded-md text-[10px] font-mono backdrop-blur-sm ${getLanguageColor(item.language)}`}>
+                        {item.language}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -383,10 +395,14 @@ export function CodeAppsPanel() {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-foreground font-medium line-clamp-1">
-                        {block.sessionTitle}
+                        {item.sessionTitle}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {block.timestamp.toLocaleDateString()}
+                        {item.timestamp.toLocaleDateString()} • {
+                          item.type === 'writing' 
+                            ? `${getWordCount(item.content)} words` 
+                            : `${item.content.split('\n').length} lines`
+                        }
                       </p>
                     </div>
                     <div className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
@@ -401,26 +417,44 @@ export function CodeAppsPanel() {
       </div>
 
       {/* Pagination - Bottom */}
-      {!isLoading && filteredBlocks.length > 0 && <PaginationButtons />}
+      {!isLoading && filteredItems.length > 0 && <PaginationButtons />}
 
-      {/* Code Modal */}
-      <Dialog open={!!selectedCode} onOpenChange={() => setSelectedCode(null)}>
+      {/* Canvas Modal */}
+      <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
         <DialogContent className="max-w-5xl w-full max-h-[90vh] overflow-hidden p-0">
-          {selectedCode && (
+          {selectedItem && (
             <div className="flex flex-col h-full max-h-[90vh]">
               {/* Header */}
               <div className="flex flex-col gap-3 p-3 sm:p-4 border-b border-border/40 bg-muted/30">
                 <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                  <div className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-mono ${getLanguageColor(selectedCode.language)}`}>
-                    {selectedCode.language}
+                  {/* Type badge */}
+                  <div className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium flex items-center gap-1.5 ${
+                    selectedItem.type === 'writing' 
+                      ? 'bg-primary/20 text-primary' 
+                      : 'bg-blue-500/20 text-blue-400'
+                  }`}>
+                    {selectedItem.type === 'writing' ? (
+                      <PenLine className="w-3.5 h-3.5" />
+                    ) : (
+                      <Code className="w-3.5 h-3.5" />
+                    )}
+                    {selectedItem.type === 'writing' ? 'Writing' : 'Code'}
                   </div>
+                  
+                  {/* Language badge for code */}
+                  {selectedItem.type === 'code' && selectedItem.language && (
+                    <div className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-mono ${getLanguageColor(selectedItem.language)}`}>
+                      {selectedItem.language}
+                    </div>
+                  )}
+                  
                   <span className="text-xs sm:text-sm text-muted-foreground truncate">
-                    {selectedCode.sessionTitle}
+                    {selectedItem.sessionTitle}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {/* Preview/Code Toggle */}
-                  {canPreview(selectedCode.language) && (
+                  {/* Preview/Code Toggle for code */}
+                  {selectedItem.type === 'code' && selectedItem.language && canPreview(selectedItem.language) && (
                     <Button
                       size="sm"
                       variant={showPreview ? "default" : "outline"}
@@ -440,10 +474,22 @@ export function CodeAppsPanel() {
                       )}
                     </Button>
                   )}
+                  
+                  {/* Open in Canvas */}
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => downloadCode(selectedCode.code, selectedCode.language)}
+                    onClick={() => openInCanvas(selectedItem)}
+                    className="flex-1 sm:flex-none"
+                  >
+                    <Layers className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Open in Canvas</span>
+                  </Button>
+                  
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => downloadContent(selectedItem.content, selectedItem.type, selectedItem.language)}
                     className="flex-1 sm:flex-none"
                   >
                     <Download className="h-4 w-4 sm:mr-2" />
@@ -452,10 +498,10 @@ export function CodeAppsPanel() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => copyCode(selectedCode.code, selectedCode.messageId)}
+                    onClick={() => copyContent(selectedItem.content, selectedItem.id)}
                     className="flex-1 sm:flex-none"
                   >
-                    {copiedId === selectedCode.messageId ? (
+                    {copiedId === selectedItem.id ? (
                       <>
                         <Check className="h-4 w-4 sm:mr-2" />
                         <span className="hidden sm:inline">Copied!</span>
@@ -469,7 +515,8 @@ export function CodeAppsPanel() {
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => goToChat(selectedCode.sessionId)}
+                    variant="outline"
+                    onClick={() => goToChat(selectedItem.sessionId)}
                     className="flex-1 sm:flex-none"
                   >
                     <MessageCircle className="h-4 w-4 sm:mr-2" />
@@ -477,27 +524,34 @@ export function CodeAppsPanel() {
                   </Button>
                 </div>
               </div>
-              
-              {/* Code or Preview */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-background">
-                {showPreview && canPreview(selectedCode.language) ? (
-                  <div className="w-full h-full min-h-[400px] border border-border/40 rounded-lg overflow-hidden">
-                    <CodePreview code={selectedCode.code} language={selectedCode.language} />
+
+              {/* Content */}
+              <div className="flex-1 overflow-auto">
+                {selectedItem.type === 'code' && selectedItem.language && canPreview(selectedItem.language) && showPreview ? (
+                  <CodePreview code={selectedItem.content} language={selectedItem.language} />
+                ) : selectedItem.type === 'writing' ? (
+                  <div className="p-4 sm:p-6 prose prose-sm dark:prose-invert max-w-none">
+                    <div className="whitespace-pre-wrap font-sans text-foreground leading-relaxed">
+                      {selectedItem.content}
+                    </div>
                   </div>
                 ) : (
-                  <pre className="text-xs sm:text-sm text-foreground font-mono bg-muted/30 p-3 sm:p-4 rounded-lg border border-border/40 overflow-x-auto">
-                    <code>{selectedCode.code}</code>
+                  <pre className="p-4 sm:p-6 font-mono text-sm overflow-auto">
+                    <code>{selectedItem.content}</code>
                   </pre>
                 )}
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between p-4 border-t border-border/40 bg-muted/30">
+              <div className="p-3 sm:p-4 border-t border-border/40 bg-muted/20 flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs sm:text-sm text-muted-foreground">
-                  {selectedCode.timestamp.toLocaleString()}
+                  {selectedItem.type === 'writing' 
+                    ? `${getWordCount(selectedItem.content)} words` 
+                    : `${selectedItem.content.split('\n').length} lines`
+                  }
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {selectedCode.code.split('\n').length} lines
+                  {selectedItem.timestamp.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -505,16 +559,12 @@ export function CodeAppsPanel() {
         </DialogContent>
       </Dialog>
 
-      {/* Stats */}
-      {codeBlocks.length > 0 && (
-        <div className="pt-8">
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">
-              {codeBlocks.length} {codeBlocks.length === 1 ? 'block' : 'blocks'} • {
-                new Set(codeBlocks.map((b) => b.sessionId)).size
-              } {new Set(codeBlocks.map((b) => b.sessionId)).size === 1 ? 'chat' : 'chats'}
-            </p>
-          </div>
+      {/* Summary */}
+      {!isLoading && canvasItems.length > 0 && (
+        <div className="text-center text-sm text-muted-foreground py-4">
+          {canvasItems.filter(i => i.type === 'writing').length} writing canvases • {' '}
+          {canvasItems.filter(i => i.type === 'code').length} code canvases • {' '}
+          {new Set(canvasItems.map(i => i.sessionId)).size} chats
         </div>
       )}
     </div>

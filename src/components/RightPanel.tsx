@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
-import { CodeAppsPanel } from "@/components/CodeAppsPanel";
+import { CanvasesPanel } from "@/components/CanvasesPanel";
 import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
 
@@ -135,7 +135,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                     transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
                     className="h-full"
                   >
-                    <CodeAppsPanel />
+                    <CanvasesPanel />
                   </motion.div>
                 </TabsContent>
               )}

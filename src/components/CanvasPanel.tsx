@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { CanvasCodeEditor } from "@/components/CanvasCodeEditor";
 import { CodePreview } from "@/components/CodePreview";
+import { getLanguageDisplay, getFileExtension, canPreview } from "@/utils/codeUtils";
 
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -43,31 +44,6 @@ function editorGetMarkdown(editor: ReturnType<typeof useEditor>): string {
   } catch {
     return "";
   }
-}
-
-// Get display name for language
-function getLanguageDisplay(lang: string): string {
-  const displayNames: Record<string, string> = {
-    'javascript': 'JavaScript',
-    'typescript': 'TypeScript',
-    'tsx': 'React TSX',
-    'jsx': 'React JSX',
-    'python': 'Python',
-    'html': 'HTML',
-    'css': 'CSS',
-    'json': 'JSON',
-    'sql': 'SQL',
-    'bash': 'Shell',
-    'go': 'Go',
-    'rust': 'Rust',
-  };
-  return displayNames[lang.toLowerCase()] || lang.toUpperCase();
-}
-
-// Check if language supports preview
-function canPreview(lang: string): boolean {
-  const previewable = ['html', 'css', 'javascript', 'js', 'jsx', 'tsx'];
-  return previewable.includes(lang.toLowerCase());
 }
 
 export function CanvasPanel({ className }: CanvasPanelProps) {
