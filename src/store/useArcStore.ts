@@ -630,7 +630,9 @@ export const useArcStore = create<ArcState>()(
 
         set((s) => {
           // Add new canvas message to preserve version history
-          // All canvas messages are kept in the timeline for user reference
+          // Canvas and code artifacts are mutually exclusive - remove all code messages when switching to canvas
+          const nonCodeMessages = s.messages.filter((m) => m.type !== 'code');
+
           const newCanvasMessage: Message = {
             id: uniqueCanvasId,
             content: displayLabel,
@@ -642,7 +644,7 @@ export const useArcStore = create<ArcState>()(
             timestamp: new Date(),
           };
 
-          const updatedMessages = [...s.messages, newCanvasMessage];
+          const updatedMessages = [...nonCodeMessages, newCanvasMessage];
 
           const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
           const sessionToSave: ChatSession = {
@@ -694,7 +696,9 @@ export const useArcStore = create<ArcState>()(
 
         set((s) => {
           // Add new code message to preserve version history
-          // All code messages are kept in the timeline for user reference
+          // Canvas and code artifacts are mutually exclusive - remove all canvas messages when switching to code
+          const nonCanvasMessages = s.messages.filter((m) => m.type !== 'canvas');
+
           const newCodeMessage: Message = {
             id: uniqueCodeId,
             content: displayLabel,
@@ -707,7 +711,7 @@ export const useArcStore = create<ArcState>()(
             timestamp: new Date(),
           };
 
-          const updatedMessages = [...s.messages, newCodeMessage];
+          const updatedMessages = [...nonCanvasMessages, newCodeMessage];
 
           const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
           const sessionToSave: ChatSession = {
