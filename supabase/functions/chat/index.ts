@@ -609,7 +609,7 @@ serve(async (req) => {
         }
       }
       
-      // Second AI call with search results
+      // Second AI call with search results - MUST include tools so AI can still call update_canvas/update_code
       response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -619,6 +619,8 @@ serve(async (req) => {
         body: JSON.stringify({
           model: model || 'google/gemini-2.5-flash',
           messages: conversationMessages,
+          tools: tools,
+          tool_choice: "auto",
         }),
       });
 
@@ -629,6 +631,33 @@ serve(async (req) => {
       }
 
       data = await response.json();
+      
+      // Check if the second call also used tools (e.g., update_canvas after search_past_chats)
+      const secondAssistantMessage = data.choices[0].message;
+      if (secondAssistantMessage.tool_calls && secondAssistantMessage.tool_calls.length > 0) {
+        for (const toolCall of secondAssistantMessage.tool_calls) {
+          if (toolCall.function.name === 'update_canvas') {
+            const args = JSON.parse(toolCall.function.arguments);
+            console.log('Canvas update in second call:', args.label || 'Untitled');
+            canvasUpdate = {
+              content: args.content,
+              label: args.label
+            };
+          } else if (toolCall.function.name === 'update_code') {
+            const args = JSON.parse(toolCall.function.arguments);
+            console.log('Code update in second call:', args.label || args.language);
+            codeUpdate = {
+              code: args.code,
+              language: args.language,
+              label: args.label
+            };
+          }
+          // Track additional tools used
+          if (toolCall.function?.name && !toolsUsed.includes(toolCall.function.name)) {
+            toolsUsed.push(toolCall.function.name);
+          }
+        }
+      }
     }
     
     // Add tool usage metadata, sources, canvas and code update to the response
