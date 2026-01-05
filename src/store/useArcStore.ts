@@ -607,10 +607,13 @@ export const useArcStore = create<ArcState>()(
       upsertCanvasMessage: async (canvasContent, label, memoryAction) => {
         const state = get();
         const sessionId = state.currentSessionId;
-        
+
         // Generate a fallback label from content if none provided
         const displayLabel = label || extractCanvasTitle(canvasContent) || 'Canvas Draft';
-        
+
+        // Generate unique ID based on timestamp to preserve multiple canvas versions
+        const uniqueCanvasId = `canvas-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
         if (!sessionId) {
           // If no session exists yet, create one by adding a synthetic assistant message first.
           // This ensures we have a session to attach the canvas artifact to.
@@ -625,14 +628,13 @@ export const useArcStore = create<ArcState>()(
           return createdId;
         }
 
-        const canvasMessageId = `canvas-${sessionId}`;
-
         set((s) => {
-          // Keep only one artifact (canvas OR code) in the timeline - they're mutually exclusive
-          const nonArtifact = s.messages.filter((m) => m.type !== 'canvas' && m.type !== 'code');
+          // Add new canvas message to preserve version history
+          // Canvas and code artifacts are mutually exclusive - remove all code messages when switching to canvas
+          const nonCodeMessages = s.messages.filter((m) => m.type !== 'code');
 
-          const upserted: Message = {
-            id: canvasMessageId,
+          const newCanvasMessage: Message = {
+            id: uniqueCanvasId,
             content: displayLabel,
             role: 'assistant',
             type: 'canvas',
@@ -642,7 +644,7 @@ export const useArcStore = create<ArcState>()(
             timestamp: new Date(),
           };
 
-          const updatedMessages = [...nonArtifact, upserted];
+          const updatedMessages = [...nonCodeMessages, newCanvasMessage];
 
           const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
           const sessionToSave: ChatSession = {
@@ -668,14 +670,17 @@ export const useArcStore = create<ArcState>()(
           };
         });
 
-        return canvasMessageId;
+        return uniqueCanvasId;
       },
 
       upsertCodeMessage: async (codeContent, language, label, memoryAction) => {
         const state = get();
         const sessionId = state.currentSessionId;
         const displayLabel = label || `${language.toUpperCase()} Code`;
-        
+
+        // Generate unique ID based on timestamp to preserve multiple code versions
+        const uniqueCodeId = `code-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
         if (!sessionId) {
           const createdId = await get().addMessage({
             content: displayLabel,
@@ -689,14 +694,13 @@ export const useArcStore = create<ArcState>()(
           return createdId;
         }
 
-        const codeMessageId = `code-${sessionId}`;
-
         set((s) => {
-          // Keep only one artifact (canvas OR code) in the timeline - they're mutually exclusive
-          const nonArtifact = s.messages.filter((m) => m.type !== 'canvas' && m.type !== 'code');
+          // Add new code message to preserve version history
+          // Canvas and code artifacts are mutually exclusive - remove all canvas messages when switching to code
+          const nonCanvasMessages = s.messages.filter((m) => m.type !== 'canvas');
 
-          const upserted: Message = {
-            id: codeMessageId,
+          const newCodeMessage: Message = {
+            id: uniqueCodeId,
             content: displayLabel,
             role: 'assistant',
             type: 'code',
@@ -707,7 +711,7 @@ export const useArcStore = create<ArcState>()(
             timestamp: new Date(),
           };
 
-          const updatedMessages = [...nonArtifact, upserted];
+          const updatedMessages = [...nonCanvasMessages, newCodeMessage];
 
           const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
           const sessionToSave: ChatSession = {
@@ -732,7 +736,7 @@ export const useArcStore = create<ArcState>()(
           };
         });
 
-        return codeMessageId;
+        return uniqueCodeId;
       },
       
       editMessage: (messageId, newContent) => {
