@@ -147,10 +147,11 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
         .replace(/\s+/g, ' ');            // Normalize multiple spaces
 
       prompts = JSON.parse(jsonString);
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError.message);
+    } catch (parseError: unknown) {
+      const parseMessage = parseError instanceof Error ? parseError.message : 'Unknown parse error';
+      console.error('JSON parse error:', parseMessage);
       console.error('Attempted to parse:', jsonMatch[0].substring(0, 500));
-      throw new Error(`Failed to parse AI response JSON: ${parseError.message}`);
+      throw new Error(`Failed to parse AI response JSON: ${parseMessage}`);
     }
 
     return new Response(
@@ -158,10 +159,11 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Category prompts error:', error);
+    const message = error instanceof Error ? error.message : 'Internal server error';
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: message }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

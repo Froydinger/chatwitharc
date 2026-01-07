@@ -168,10 +168,11 @@ ${errorStack ? `Stack Trace (Sanitized):\n${sanitizeStackTrace(errorStack)}` : '
       JSON.stringify({ success: true, emailId: data.id }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in send-bug-report function:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

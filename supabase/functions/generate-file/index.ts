@@ -264,12 +264,13 @@ IMPORTANT: Output ONLY the file content (or JSON for ZIP), no explanations or ma
       }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('File generation error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: message 
       }),
       { 
         status: 500,

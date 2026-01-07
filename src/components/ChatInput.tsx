@@ -379,6 +379,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         }));
 
       let didSearchWeb = false;
+      const { currentSessionId } = useArcStore.getState();
       const result = await ai.sendMessage(aiMessages, undefined, (tools) => {
         console.log('🔧 Tools used:', tools);
         
@@ -392,7 +393,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           setSearchingWeb(true);
           didSearchWeb = true;
         }
-      });
+      }, currentSessionId || undefined);
       
       // Clear the loading state
       setLoading(false);
@@ -802,6 +803,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         }
         
         let didSearchWeb = false;
+        const { currentSessionId } = useArcStore.getState();
         const result = await new AIService().sendMessage(aiMessages, profile, (tools) => {
           console.log('🔧 Tools used in handleSend:', tools);
           // Set indicators based on tool usage
@@ -814,7 +816,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             setSearchingWeb(true);
             didSearchWeb = true;
           }
-        });
+        }, currentSessionId || undefined);
         
         // Check if cancelled after getting response
         if (cancelRequested) {

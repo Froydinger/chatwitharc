@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -10,6 +9,81 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
+
+// Background task to save AI response directly to the database
+// This ensures the response is saved even if the client disconnects
+async function saveResponseToDatabase(
+  userId: string,
+  sessionId: string | undefined,
+  assistantMessage: {
+    content: string;
+    canvasContent?: string;
+    canvasLabel?: string;
+    codeContent?: string;
+    codeLanguage?: string;
+    codeLabel?: string;
+    type: 'text' | 'canvas' | 'code';
+  }
+): Promise<void> {
+  if (!sessionId) {
+    console.log('⚠️ No sessionId provided, skipping background save');
+    return;
+  }
+
+  try {
+    console.log('💾 Background save: Saving AI response to session:', sessionId);
+    
+    // Get current session
+    const { data: session, error: fetchError } = await supabase
+      .from('chat_sessions')
+      .select('messages')
+      .eq('id', sessionId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (fetchError || !session) {
+      console.error('❌ Background save: Could not fetch session:', fetchError);
+      return;
+    }
+
+    const existingMessages = Array.isArray(session.messages) ? session.messages : [];
+    
+    // Create the new assistant message
+    const newMessage = {
+      id: `bg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      content: assistantMessage.content,
+      role: 'assistant',
+      type: assistantMessage.type,
+      timestamp: new Date().toISOString(),
+      ...(assistantMessage.canvasContent && { canvasContent: assistantMessage.canvasContent }),
+      ...(assistantMessage.canvasLabel && { canvasLabel: assistantMessage.canvasLabel }),
+      ...(assistantMessage.codeContent && { codeContent: assistantMessage.codeContent }),
+      ...(assistantMessage.codeLanguage && { codeLanguage: assistantMessage.codeLanguage }),
+      ...(assistantMessage.codeLabel && { codeLabel: assistantMessage.codeLabel }),
+    };
+
+    // Append the new message
+    const updatedMessages = [...existingMessages, newMessage];
+
+    // Save back to database
+    const { error: updateError } = await supabase
+      .from('chat_sessions')
+      .update({
+        messages: updatedMessages,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', sessionId)
+      .eq('user_id', userId);
+
+    if (updateError) {
+      console.error('❌ Background save: Failed to update session:', updateError);
+    } else {
+      console.log('✅ Background save: Successfully saved AI response to session:', sessionId);
+    }
+  } catch (error) {
+    console.error('❌ Background save error:', error);
+  }
+}
 
 // Web search result interface
 interface WebSearchResult {
@@ -85,9 +159,10 @@ async function webSearch(query: string): Promise<WebSearchResponse> {
       summary: searchSummary || 'No relevant results found.',
       sources 
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Web search error:', error);
-    return { summary: `Search error: ${error.message}`, sources: [] };
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { summary: `Search error: ${message}`, sources: [] };
   }
 }
 
@@ -173,9 +248,10 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
     console.log('📝 First 500 chars:', conversationContext.slice(0, 500));
 
     return conversationContext;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Past chat search error:', error);
-    return `Search error: ${error.message}`;
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return `Search error: ${message}`;
   }
 }
 
@@ -215,12 +291,13 @@ serve(async (req) => {
 
     console.log('Authenticated user:', user.id);
 
-    const { messages, profile, model } = await req.json();
+    const { messages, profile, model, sessionId } = await req.json();
 
     console.log('📊 Request details:', {
       model: model || 'google/gemini-2.5-flash (default)',
       messageCount: messages?.length || 0,
-      hasProfile: !!profile
+      hasProfile: !!profile,
+      sessionId: sessionId || 'none (will not save in background)'
     });
 
     // Input validation
@@ -661,6 +738,7 @@ serve(async (req) => {
     }
     
     // Add tool usage metadata, sources, canvas and code update to the response
+    const responseContent = data.choices[0]?.message?.content || '';
     const finalResponse = {
       ...data,
       tool_calls_used: toolsUsed,
@@ -668,6 +746,29 @@ serve(async (req) => {
       canvas_update: canvasUpdate,
       code_update: codeUpdate
     };
+    
+    // BACKGROUND SAVE: Save the AI response directly to the database
+    // This ensures the response is saved even if the client disconnects
+    if (sessionId && user) {
+      const messageType = codeUpdate ? 'code' : (canvasUpdate ? 'canvas' : 'text');
+      const backgroundSaveTask = saveResponseToDatabase(user.id, sessionId, {
+        content: responseContent,
+        type: messageType,
+        ...(canvasUpdate && { canvasContent: canvasUpdate.content, canvasLabel: canvasUpdate.label }),
+        ...(codeUpdate && { codeContent: codeUpdate.code, codeLanguage: codeUpdate.language, codeLabel: codeUpdate.label }),
+      });
+      
+      // Use EdgeRuntime.waitUntil to continue processing after response is sent
+      // @ts-ignore - EdgeRuntime is available in Supabase edge functions
+      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+        EdgeRuntime.waitUntil(backgroundSaveTask);
+        console.log('🔄 Background save scheduled via EdgeRuntime.waitUntil');
+      } else {
+        // Fallback: don't await, just fire and forget
+        backgroundSaveTask.catch(e => console.error('Background save failed:', e));
+        console.log('🔄 Background save scheduled (fire and forget)');
+      }
+    }
     
     return new Response(
       JSON.stringify(finalResponse),
@@ -679,11 +780,12 @@ serve(async (req) => {
       }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Chat function error:', error);
+    const message = error instanceof Error ? error.message : 'Internal server error';
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Internal server error' 
+        error: message 
       }),
       { 
         status: 500,
