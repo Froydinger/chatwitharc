@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Music } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemedLogo } from "@/components/ThemedLogo";
 
@@ -27,30 +27,56 @@ const ARC_PUNS = [
 export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemory, searchingChats, searchingWeb }: ThinkingIndicatorProps) {
   const showThinking = isLoading || isGeneratingImage || accessingMemory || searchingChats || searchingWeb;
   const [currentPunIndex, setCurrentPunIndex] = useState(0);
+  const [showMusicButton, setShowMusicButton] = useState(false);
+  const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const thinkingStartTime = useRef<number | null>(null);
 
-  // Play elevator music when thinking starts
+  // Show music button after 3 seconds of thinking
   useEffect(() => {
     if (showThinking) {
-      // Create audio element for elevator music
+      thinkingStartTime.current = Date.now();
+      setShowMusicButton(false);
+      
+      const timer = setTimeout(() => {
+        setShowMusicButton(true);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    } else {
+      // Reset when thinking stops
+      setShowMusicButton(false);
+      thinkingStartTime.current = null;
+    }
+  }, [showThinking]);
+
+  // Cleanup audio when thinking ends
+  useEffect(() => {
+    if (!showThinking && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+      setIsPlayingMusic(false);
+    }
+  }, [showThinking]);
+
+  const handlePlayMusic = () => {
+    if (isPlayingMusic && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+      setIsPlayingMusic(false);
+    } else {
       const audio = new Audio('/audio/elevator-music.mp3');
       audio.loop = true;
       audio.volume = 0.3;
       audioRef.current = audio;
       audio.play().catch(() => {
-        // Autoplay may be blocked, that's fine
+        // Autoplay may be blocked
       });
+      setIsPlayingMusic(true);
     }
-
-    return () => {
-      // Stop and clean up when thinking ends
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-        audioRef.current = null;
-      }
-    };
-  }, [showThinking]);
+  };
 
   // Rotate through puns every 2 seconds when thinking
   useEffect(() => {
@@ -82,7 +108,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
   
   return (
     <motion.div 
-      className="flex justify-start"
+      className="flex flex-col items-start gap-2"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 10 }}
@@ -165,6 +191,23 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
           </AnimatePresence>
         </div>
       </div>
+      
+      {/* Music button - appears after 3 seconds */}
+      <AnimatePresence>
+        {showMusicButton && (
+          <motion.button
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.2 }}
+            onClick={handlePlayMusic}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors ml-1"
+          >
+            <Music className="h-3 w-3" />
+            <span>{isPlayingMusic ? "stop the tunes" : "taking too long? listen to some tunes"}</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
