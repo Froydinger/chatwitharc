@@ -47,7 +47,8 @@ export class AIService {
   async sendMessage(
     messages: AIMessage[],
     profile?: { display_name?: string | null; context_info?: string | null, memory_info?: string | null, preferred_model?: string | null },
-    onToolUsage?: (tools: string[]) => void
+    onToolUsage?: (tools: string[]) => void,
+    sessionId?: string
   ): Promise<SendMessageResult> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Chat service is not available. Please configure Supabase.');
@@ -84,13 +85,15 @@ export class AIService {
         isFast: selectedModel === 'google/gemini-2.5-flash'
       });
 
-      // Call the secure edge function with profile data and model selection
+      // Call the secure edge function with profile data, model selection, and sessionId
+      // The sessionId enables background saving - if user leaves, the response is still saved
       // Note: System prompt is handled by the backend using admin settings
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
           messages: messages,
           profile: effectiveProfile,
-          model: selectedModel
+          model: selectedModel,
+          sessionId: sessionId // Enable background save for resilience
         }
       });
 

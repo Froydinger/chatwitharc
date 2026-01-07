@@ -124,11 +124,12 @@ Keep "text" short (25-35 chars), put full context in "fullPrompt".`
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error generating personalized prompts:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ 
       prompts: [],
-      error: error.message 
+      error: message 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

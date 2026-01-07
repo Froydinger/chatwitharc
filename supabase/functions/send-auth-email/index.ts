@@ -96,13 +96,15 @@ Deno.serve(async (req) => {
         ...corsHeaders,
       },
     })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Email sending error:', error)
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    const code = (error as { code?: string })?.code || 'UNKNOWN_ERROR';
     return new Response(
       JSON.stringify({
         error: {
-          message: error.message,
-          code: error.code || 'UNKNOWN_ERROR',
+          message: message,
+          code: code,
         },
       }),
       {
