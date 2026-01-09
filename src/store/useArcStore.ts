@@ -38,12 +38,14 @@ export interface WebSource {
   title: string;
   url: string;
   content?: string;
+  snippet?: string;
 }
 
 export interface MemoryAction {
   type: MemoryActionType;
   content?: string; // e.g., what was saved or searched
   sources?: WebSource[]; // For web search results
+  query?: string; // The search query used
 }
 
 export interface Message {
@@ -96,8 +98,8 @@ export interface ArcState {
   setCurrentTab: (tab: 'chat' | 'history' | 'settings') => void;
   rightPanelOpen: boolean;
   setRightPanelOpen: (open: boolean) => void;
-  rightPanelTab: 'history' | 'media' | 'apps' | 'settings' | 'export';
-  setRightPanelTab: (tab: 'history' | 'media' | 'apps' | 'settings' | 'export') => void;
+  rightPanelTab: 'history' | 'media' | 'apps' | 'links' | 'settings' | 'export';
+  setRightPanelTab: (tab: 'history' | 'media' | 'apps' | 'links' | 'settings' | 'export') => void;
 
   isLoading: boolean;
   isGeneratingImage: boolean;

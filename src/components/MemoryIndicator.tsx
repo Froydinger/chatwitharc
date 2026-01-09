@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Brain, Search, Database, Globe, FileText } from "lucide-react";
+import { Brain, Search, Database, Globe, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { MemoryAction } from "@/store/useArcStore";
 import { SourcesAccordion } from "@/components/SourcesAccordion";
-import { SearchResultsModal } from "@/components/SearchResultsModal";
 import { Button } from "@/components/ui/button";
+import { useSearchStore, SearchResult } from "@/store/useSearchStore";
 
 interface MemoryIndicatorProps {
   action: MemoryAction;
@@ -12,7 +12,7 @@ interface MemoryIndicatorProps {
 }
 
 export const MemoryIndicator = ({ action, messageContent }: MemoryIndicatorProps) => {
-  const [showArticle, setShowArticle] = useState(false);
+  const { openSearch } = useSearchStore();
 
   const getIcon = () => {
     switch (action.type) {
@@ -40,6 +40,20 @@ export const MemoryIndicator = ({ action, messageContent }: MemoryIndicatorProps
     }
   };
 
+  const handleOpenSearchMode = () => {
+    if (!action.sources || !messageContent) return;
+    
+    // Convert sources to SearchResult format
+    const results: SearchResult[] = action.sources.map((source, index) => ({
+      id: `result-${index}`,
+      title: source.title,
+      url: source.url,
+      snippet: source.snippet || source.content || '',
+    }));
+    
+    openSearch(action.query || '', results, messageContent);
+  };
+
   // For web searches, show the sources accordion instead of simple indicator
   if (action.type === 'web_searched' && action.sources && action.sources.length > 0) {
     return (
@@ -56,24 +70,15 @@ export const MemoryIndicator = ({ action, messageContent }: MemoryIndicatorProps
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowArticle(true)}
+              onClick={handleOpenSearchMode}
               className="h-5 px-2 text-[10px] text-primary/70 hover:text-primary hover:bg-primary/10"
             >
-              <FileText className="h-3 w-3 mr-1" />
-              Reader Mode
+              <Sparkles className="h-3 w-3 mr-1" />
+              Search Mode
             </Button>
           )}
         </motion.div>
         <SourcesAccordion sources={action.sources} />
-        
-        {messageContent && (
-          <SearchResultsModal
-            isOpen={showArticle}
-            onClose={() => setShowArticle(false)}
-            content={messageContent}
-            sources={action.sources}
-          />
-        )}
       </div>
     );
   }

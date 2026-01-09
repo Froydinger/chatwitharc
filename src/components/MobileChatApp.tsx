@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore } from "@/store/useArcStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { useSearchStore } from "@/store/useSearchStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput, cancelCurrentRequest, type ChatInputRef } from "@/components/ChatInput";
 import { RightPanel } from "@/components/RightPanel";
@@ -14,6 +15,7 @@ import { ThemedLogo } from "@/components/ThemedLogo";
 import { SupportPopup } from "@/components/SupportPopup";
 import { MusicPopup } from "@/components/MusicPopup";
 import { CanvasPanel } from "@/components/CanvasPanel";
+import { SearchCanvas } from "@/components/SearchCanvas";
 // CanvasTile removed - canvas now renders inline as chat message artifacts
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -963,6 +965,7 @@ export function MobileChatApp() {
               onMouseDown={(e) => {
                 e.preventDefault();
                 const canvasEl = e.currentTarget.parentElement;
+                const inputDock = inputDockRef.current;
                 if (!canvasEl) return;
                 const startX = e.clientX;
                 const startWidth = canvasEl.offsetWidth;
@@ -980,6 +983,11 @@ export function MobileChatApp() {
                     containerWidth * 0.75 // max 75%
                   );
                   canvasEl.style.width = `${newWidth}px`;
+                  // Update input bar to match canvas width
+                  if (inputDock) {
+                    const rightPercent = (newWidth / containerWidth) * 100;
+                    inputDock.style.right = `${rightPercent}%`;
+                  }
                 };
                 
                 const onMouseUp = () => {
