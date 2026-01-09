@@ -365,7 +365,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                             <ReactMarkdown 
                               remarkPlugins={[remarkGfm]}
                               components={{
-                                p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                                p: ({node, ...props}) => <p className="mb-1.5 last:mb-0" {...props} />,
                                 strong: ({node, ...props}) => <strong className="font-semibold text-foreground" {...props} />,
                                 em: ({node, ...props}) => <em className="italic" {...props} />,
                                 a: ({node, href, children, ...props}: any) => {
