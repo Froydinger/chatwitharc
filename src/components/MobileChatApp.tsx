@@ -154,8 +154,9 @@ export function MobileChatApp() {
     content: canvasContent,
   } = useCanvasStore();
 
-  // If canvas is open on mobile, it fully takes over the UI
+  // If canvas or search is open on mobile, it fully takes over the UI
   const isCanvasOverlayActive = isMobile && isCanvasOpen;
+  const isSearchOverlayActive = isMobile && isSearchOpen;
 
   // Search mode state
   const { isOpen: isSearchOpen, closeSearch } = useSearchStore();
@@ -596,8 +597,8 @@ export function MobileChatApp() {
           rightPanelOpen && !isCanvasOpen && "lg:ml-80 xl:ml-96",
         )}
       >
-        {/* Floating header buttons - no bar, hide when canvas is open on desktop */}
-        {!isCanvasOverlayActive && !isDesktopCanvasMode && (
+        {/* Floating header buttons - no bar, hide when canvas or search is open */}
+        {!isCanvasOverlayActive && !isSearchOverlayActive && !isDesktopCanvasMode && !(isSearchOpen && !isMobile) && (
           <div
             className={cn(
               "fixed left-0 right-0 z-40 transition-transform duration-300 ease-out pointer-events-none",
@@ -1025,7 +1026,7 @@ export function MobileChatApp() {
             style={{ minWidth: 400 }}
           >
             <div className="flex-1 overflow-hidden">
-              <SearchCanvas />
+              <SearchCanvas chatInputRef={chatInputRef} />
             </div>
           </motion.div>
         )}
@@ -1034,7 +1035,44 @@ export function MobileChatApp() {
       {/* Mobile Search Canvas (full takeover) */}
       {isSearchOpen && isMobile && (
         <div className="fixed inset-0 z-[70] bg-background">
-          <SearchCanvas />
+          <SearchCanvas chatInputRef={chatInputRef} />
+
+          {/* Mobile search input toggle button */}
+          <motion.div
+            className="fixed bottom-6 left-4 z-[75]"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", damping: 15, stiffness: 300 }}
+          >
+            <Button
+              variant="outline"
+              size="icon"
+              className={cn(
+                "rounded-full glass-shimmer shadow-lg",
+                showMobileCanvasInput && "ring-2 ring-primary/50"
+              )}
+              onClick={() => setShowMobileCanvasInput(!showMobileCanvasInput)}
+            >
+              <MessageCircle className="h-4 w-4" />
+            </Button>
+          </motion.div>
+
+          {/* Mobile search input bar (hideable) */}
+          <AnimatePresence>
+            {showMobileCanvasInput && (
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 50 }}
+                transition={{ duration: 0.2 }}
+                className="fixed bottom-6 left-16 right-4 z-[75]"
+              >
+                <div className="glass-dock">
+                  <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false} />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
