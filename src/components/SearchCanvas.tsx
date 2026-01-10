@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, RefObject } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
@@ -11,7 +11,9 @@ import {
   Check,
   Plus,
   FolderPlus,
+  MessageCircle,
 } from "lucide-react";
+import type { ChatInputRef } from "@/components/ChatInput";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
@@ -37,9 +39,10 @@ import {
 
 interface SearchCanvasProps {
   className?: string;
+  chatInputRef?: RefObject<ChatInputRef>;
 }
 
-export function SearchCanvas({ className }: SearchCanvasProps) {
+export function SearchCanvas({ className, chatInputRef }: SearchCanvasProps) {
   const {
     query,
     results,
@@ -56,6 +59,20 @@ export function SearchCanvas({ className }: SearchCanvasProps) {
   const [newListName, setNewListName] = useState("");
   const [showNewListDialog, setShowNewListDialog] = useState(false);
   const [pendingSaveResult, setPendingSaveResult] = useState<SearchResult | null>(null);
+
+  // Ask Arc about a search result
+  const handleAskAbout = (result: SearchResult) => {
+    const prompt = `Tell me more about this: "${result.title}" from ${result.url}\n\nContext from search: ${result.snippet}`;
+
+    // Dispatch event to trigger chat with the prompt
+    window.dispatchEvent(
+      new CustomEvent("arcai:triggerPrompt", {
+        detail: { prompt },
+      })
+    );
+
+    toast({ title: "Asking Arc..." });
+  };
 
   // Track which links are already saved
   const savedUrls = useMemo(() => {
@@ -275,6 +292,20 @@ export function SearchCanvas({ className }: SearchCanvasProps) {
 
                         {/* Actions */}
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {/* Ask Arc Button */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAskAbout(result);
+                            }}
+                            title="Ask Arc about this"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5 text-primary" />
+                          </Button>
+
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
