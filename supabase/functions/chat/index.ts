@@ -24,15 +24,18 @@ async function saveResponseToDatabase(
     codeLanguage?: string;
     codeLabel?: string;
     type: 'text' | 'canvas' | 'code';
-  }
+  },
+  retryCount = 0
 ): Promise<void> {
   if (!sessionId) {
     console.log('⚠️ No sessionId provided, skipping background save');
     return;
   }
 
+  const maxRetries = 3;
+  
   try {
-    console.log('💾 Background save: Saving AI response to session:', sessionId);
+    console.log('💾 Background save: Saving AI response to session:', sessionId, `(attempt ${retryCount + 1})`);
     
     // Get current session
     const { data: session, error: fetchError } = await supabase
@@ -44,6 +47,10 @@ async function saveResponseToDatabase(
 
     if (fetchError || !session) {
       console.error('❌ Background save: Could not fetch session:', fetchError);
+      if (retryCount < maxRetries) {
+        await new Promise(r => setTimeout(r, 1000 * (retryCount + 1))); // Exponential backoff
+        return saveResponseToDatabase(userId, sessionId, assistantMessage, retryCount + 1);
+      }
       return;
     }
 
@@ -78,12 +85,62 @@ async function saveResponseToDatabase(
 
     if (updateError) {
       console.error('❌ Background save: Failed to update session:', updateError);
+      if (retryCount < maxRetries) {
+        await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
+        return saveResponseToDatabase(userId, sessionId, assistantMessage, retryCount + 1);
+      }
     } else {
       console.log('✅ Background save: Successfully saved AI response to session:', sessionId);
     }
   } catch (error) {
     console.error('❌ Background save error:', error);
+    if (retryCount < maxRetries) {
+      await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
+      return saveResponseToDatabase(userId, sessionId, assistantMessage, retryCount + 1);
+    }
   }
+}
+
+// Retry wrapper for AI calls
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 2
+): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      // Don't retry client errors (4xx) except rate limits
+      if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+        return response;
+      }
+      
+      // Retry on rate limits and server errors
+      if (response.status === 429 || response.status >= 500) {
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 1s, 2s, 4s
+          console.log(`⚠️ AI call failed with ${response.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+      }
+      
+      return response;
+    } catch (error) {
+      lastError = error as Error;
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`⚠️ AI call threw error, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries}):`, error);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+    }
+  }
+  
+  throw lastError || new Error('Max retries exceeded');
 }
 
 // Web search result interface
@@ -546,9 +603,24 @@ serve(async (req) => {
       }
     ];
 
-    // First AI call with tools
+    // Detect if user explicitly wants canvas or code (from frontend prefix detection)
+    const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
+    const wantsCanvas = lastUserMessage.includes('use the update_canvas tool');
+    const wantsCode = lastUserMessage.includes('use the update_code tool');
+    
+    // Determine tool_choice: force specific tool when user explicitly requests it
+    let toolChoice: any = "auto";
+    if (wantsCode) {
+      toolChoice = { type: "function", function: { name: "update_code" } };
+      console.log('🔧 Forcing update_code tool');
+    } else if (wantsCanvas) {
+      toolChoice = { type: "function", function: { name: "update_canvas" } };
+      console.log('🔧 Forcing update_canvas tool');
+    }
+
+    // First AI call with tools - use fetchWithRetry for resilience
     console.log('🤖 Making AI request with model:', model || 'google/gemini-2.5-flash');
-    let response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    let response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${lovableApiKey}`,
@@ -558,7 +630,7 @@ serve(async (req) => {
         model: model || 'google/gemini-2.5-flash',
         messages: conversationMessages,
         tools: tools,
-        tool_choice: "auto", // Explicitly enable automatic tool selection
+        tool_choice: toolChoice,
       }),
     });
 
@@ -687,8 +759,9 @@ serve(async (req) => {
         }
       }
       
-      // Second AI call with search results - MUST include tools so AI can still call update_canvas/update_code
-      response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      // Second AI call with search results - use fetchWithRetry for resilience
+      // Keep tool_choice for canvas/code if user explicitly requested it
+      response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${lovableApiKey}`,
@@ -698,7 +771,7 @@ serve(async (req) => {
           model: model || 'google/gemini-2.5-flash',
           messages: conversationMessages,
           tools: tools,
-          tool_choice: "auto",
+          tool_choice: toolChoice, // Use same tool_choice as first call
         }),
       });
 

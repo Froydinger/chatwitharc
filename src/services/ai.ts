@@ -40,8 +40,24 @@ export interface SendMessageResult {
 }
 
 export class AIService {
+  private maxRetries = 2;
+  private timeoutMs = 60000; // 60 second timeout
+
   constructor() {
     // No API key needed - using secure edge function with Lovable Cloud
+  }
+
+  // Wrapper for fetch with timeout
+  private async fetchWithTimeout(
+    fn: () => Promise<{ data: any; error: any }>,
+    timeoutMs = this.timeoutMs
+  ): Promise<{ data: any; error: any }> {
+    return Promise.race([
+      fn(),
+      new Promise<{ data: any; error: any }>((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out. Please try again.')), timeoutMs)
+      ),
+    ]);
   }
 
   async sendMessage(
@@ -85,53 +101,86 @@ export class AIService {
         isFast: selectedModel === 'google/gemini-2.5-flash'
       });
 
-      // Call the secure edge function with profile data, model selection, and sessionId
-      // The sessionId enables background saving - if user leaves, the response is still saved
-      // Note: System prompt is handled by the backend using admin settings
-      const { data, error } = await supabase.functions.invoke('chat', {
-        body: {
-          messages: messages,
-          profile: effectiveProfile,
-          model: selectedModel,
-          sessionId: sessionId // Enable background save for resilience
-        }
-      });
-
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw new Error(`Chat service error: ${error.message}`);
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      // Notify about tool usage if callback provided
-      console.log('📦 Response data:', { 
-        hasToolCallsUsed: !!data.tool_calls_used, 
-        toolCallsUsed: data.tool_calls_used,
-        hasCallback: !!onToolUsage 
-      });
+      // Call the secure edge function with retry logic
+      let lastError: Error | null = null;
       
-      if (onToolUsage && data.tool_calls_used && data.tool_calls_used.length > 0) {
-        console.log('🔔 Triggering onToolUsage callback with:', data.tool_calls_used);
-        onToolUsage(data.tool_calls_used);
-      } else {
-        console.log('⚠️ Not triggering callback - missing:', {
-          hasCallback: !!onToolUsage,
-          hasTools: !!data.tool_calls_used,
-          toolCount: data.tool_calls_used?.length
-        });
-      }
+      for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+        try {
+          const { data, error } = await this.fetchWithTimeout(() =>
+            supabase.functions.invoke('chat', {
+              body: {
+                messages: messages,
+                profile: effectiveProfile,
+                model: selectedModel,
+                sessionId: sessionId
+              }
+            })
+          );
 
-      return {
-        content: data.choices[0]?.message?.content || 'Sorry, I could not generate a response.',
-        webSources: data.web_sources,
-        canvasUpdate: data.canvas_update,
-        codeUpdate: data.code_update
-      };
+          if (error) {
+            // Don't retry on client errors (except rate limits)
+            if (error.message?.includes('Rate limit')) {
+              throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+            }
+            throw new Error(`Chat service error: ${error.message}`);
+          }
+
+          if (data.error) {
+            throw new Error(data.error);
+          }
+
+          // Notify about tool usage if callback provided
+          console.log('📦 Response data:', { 
+            hasToolCallsUsed: !!data.tool_calls_used, 
+            toolCallsUsed: data.tool_calls_used,
+            hasCallback: !!onToolUsage 
+          });
+          
+          if (onToolUsage && data.tool_calls_used && data.tool_calls_used.length > 0) {
+            console.log('🔔 Triggering onToolUsage callback with:', data.tool_calls_used);
+            onToolUsage(data.tool_calls_used);
+          }
+
+          return {
+            content: data.choices[0]?.message?.content || 'Sorry, I could not generate a response.',
+            webSources: data.web_sources,
+            canvasUpdate: data.canvas_update,
+            codeUpdate: data.code_update
+          };
+        } catch (err: any) {
+          lastError = err;
+          
+          // Check if it's a transient error worth retrying
+          const isTransient = 
+            err.message?.includes('timed out') ||
+            err.message?.includes('network') ||
+            err.message?.includes('502') ||
+            err.message?.includes('503') ||
+            err.message?.includes('504');
+          
+          if (isTransient && attempt < this.maxRetries) {
+            const delay = Math.pow(2, attempt) * 1000;
+            console.log(`⚠️ Retrying in ${delay}ms (attempt ${attempt + 1}/${this.maxRetries}):`, err.message);
+            await new Promise(r => setTimeout(r, delay));
+            continue;
+          }
+          
+          throw err;
+        }
+      }
+      
+      throw lastError || new Error('Max retries exceeded');
     } catch (error) {
       console.error('AI Service Error:', error);
+      // Provide more helpful error messages
+      if (error instanceof Error) {
+        if (error.message.includes('timed out')) {
+          throw new Error('The request took too long. Please try again with a shorter message.');
+        }
+        if (error.message.includes('Rate limit')) {
+          throw new Error('Too many requests. Please wait a moment and try again.');
+        }
+      }
       throw error;
     }
   }

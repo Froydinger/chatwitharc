@@ -32,6 +32,7 @@ interface CanvasState {
   hydrateFromSession: (content: string, type?: CanvasType, language?: string) => void;
   openSideBySide: (prompt: string) => void;
   openCodeCanvas: (code: string, language: string, label?: string) => void;
+  openWithContent: (content: string, type?: CanvasType, language?: string) => void;
   closeCanvas: () => void;
   setContent: (content: string, saveToHistory?: boolean) => void;
   setAIContent: (content: string, label?: string) => void;
@@ -125,6 +126,30 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       mode: 'sideBySide',
       pendingPrompt: null,
       canvasType: 'code',
+      codeLanguage: language,
+      showCodePreview: true,
+      isAIWriting: false,
+    });
+  },
+
+  // Atomic action to set content AND open the canvas in one operation
+  openWithContent: (content: string, type: CanvasType = 'writing', language = 'typescript') => {
+    const initialVersion: CanvasVersion = {
+      id: crypto.randomUUID(),
+      content,
+      timestamp: Date.now(),
+      label: 'Restored',
+    };
+    set({
+      isOpen: true,
+      content,
+      versions: content ? [initialVersion] : [],
+      activeVersionIndex: content ? 0 : -1,
+      undoStack: [],
+      redoStack: [],
+      mode: 'sideBySide',
+      pendingPrompt: null,
+      canvasType: type,
       codeLanguage: language,
       showCodePreview: true,
       isAIWriting: false,

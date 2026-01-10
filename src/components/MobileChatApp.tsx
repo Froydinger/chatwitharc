@@ -157,12 +157,15 @@ export function MobileChatApp() {
   // If canvas is open on mobile, it fully takes over the UI
   const isCanvasOverlayActive = isMobile && isCanvasOpen;
 
-  // Auto-close sidebar when canvas opens on desktop
+  // Search mode state
+  const { isOpen: isSearchOpen, closeSearch } = useSearchStore();
+
+  // Auto-close sidebar when canvas or search opens on desktop
   useEffect(() => {
-    if (isCanvasOpen && !isMobile && rightPanelOpen) {
+    if ((isCanvasOpen || isSearchOpen) && !isMobile && rightPanelOpen) {
       setRightPanelOpen(false);
     }
-  }, [isCanvasOpen, isMobile]);
+  }, [isCanvasOpen, isSearchOpen, isMobile]);
 
   // Pre-generate prompts in background for instant access
   usePromptPreload();
@@ -900,15 +903,15 @@ export function MobileChatApp() {
           </AnimatePresence>
 
           {/* Free-floating input shelf with canvas tile above it */}
-          {/* On desktop with canvas open: constrain to left side (55% of screen) */}
+          {/* On desktop with canvas or search open: constrain to left side */}
           <div
             ref={inputDockRef}
             className={cn(
               "fixed bottom-6 z-30 pointer-events-none px-4 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
               "left-0",
-              // When canvas is open on desktop, limit to left 50% of screen
-              isCanvasOpen && !isMobile ? "right-[50%]" : "right-0",
-              rightPanelOpen && !isCanvasOpen && "lg:left-80 xl:left-96"
+              // When canvas or search is open on desktop, limit to left 50% of screen
+              (isCanvasOpen || isSearchOpen) && !isMobile ? "right-[50%]" : "right-0",
+              rightPanelOpen && !isCanvasOpen && !isSearchOpen && "lg:left-80 xl:left-96"
             )}
           >
             <div className="max-w-4xl mx-auto">
@@ -1009,6 +1012,31 @@ export function MobileChatApp() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Search Canvas Panel on RIGHT (Desktop only) */}
+      <AnimatePresence>
+        {isSearchOpen && !isMobile && (
+          <motion.div
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "50%", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className="flex-shrink-0 overflow-hidden bg-background flex relative border-l border-border/30"
+            style={{ minWidth: 400 }}
+          >
+            <div className="flex-1 overflow-hidden">
+              <SearchCanvas />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Search Canvas (full takeover) */}
+      {isSearchOpen && isMobile && (
+        <div className="fixed inset-0 z-[70] bg-background">
+          <SearchCanvas />
+        </div>
+      )}
 
       {/* Scoped styles */}
       <style>{`
