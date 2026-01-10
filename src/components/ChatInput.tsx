@@ -201,13 +201,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash'
   );
 
-  // Auto-switch to Gemini 3 Pro when code/ or write/ mode is active (it's way better at code and writing)
+  // Auto-switch to Gemini 3 Pro when code/ mode is active (it's way better at code)
   useEffect(() => {
-    if ((shouldShowCodeMode || shouldShowCanvasMode) && sessionModel !== 'google/gemini-3-pro-preview') {
+    if (shouldShowCodeMode && sessionModel !== 'google/gemini-3-pro-preview') {
       sessionStorage.setItem('arc_session_model', 'google/gemini-3-pro-preview');
       setSessionModel('google/gemini-3-pro-preview');
     }
-  }, [shouldShowCodeMode, shouldShowCanvasMode, sessionModel]);
+  }, [shouldShowCodeMode, sessionModel]);
 
   // Textarea auto-resize with cursor position preservation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
