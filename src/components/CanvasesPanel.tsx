@@ -61,7 +61,7 @@ export function CanvasesPanel() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { chatSessions, loadSession, setRightPanelOpen } = useArcStore();
-  const { hydrateFromSession, reopenCanvas } = useCanvasStore();
+  const { openWithContent } = useCanvasStore();
   const [selectedItem, setSelectedItem] = useState<CanvasItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -94,8 +94,9 @@ export function CanvasesPanel() {
   };
 
   const openInCanvas = (item: CanvasItem) => {
-    hydrateFromSession(item.content, item.type, item.language || 'text');
-    reopenCanvas();
+    // Use atomic openWithContent to set content AND open the canvas in one operation
+    // This prevents the race condition where hydrate sets content but reopenCanvas clears it
+    openWithContent(item.content, item.type, item.language || 'text');
     if (isMobile || window.innerWidth < 1024) {
       setRightPanelOpen(false);
     }
