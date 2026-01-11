@@ -322,22 +322,29 @@ export function SearchCanvas() {
               disabled={isSearching}
             />
             {isSearching ? (
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-1">
+              <div className="absolute right-4 top-1/2 -translate-y-1/2">
                 <motion.div
-                  className="w-1.5 h-1.5 bg-primary rounded-full"
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0 }}
-                />
-                <motion.div
-                  className="w-1.5 h-1.5 bg-primary rounded-full"
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
-                />
-                <motion.div
-                  className="w-1.5 h-1.5 bg-primary rounded-full"
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
-                />
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <motion.div
+                    className="w-1 h-1 rounded-full bg-primary"
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  <motion.div
+                    className="w-1 h-1 rounded-full bg-primary"
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+                  />
+                  <motion.div
+                    className="w-1 h-1 rounded-full bg-primary"
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+                  />
+                </motion.div>
               </div>
             ) : searchQuery && (
               <Button
