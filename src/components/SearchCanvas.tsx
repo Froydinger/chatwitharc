@@ -111,6 +111,11 @@ export function SearchCanvas() {
     return urls;
   }, [lists]);
 
+  // Count total saved links across all lists
+  const totalSavedLinks = useMemo(() => {
+    return lists.reduce((total, list) => total + list.links.length, 0);
+  }, [lists]);
+
   // Sync from Supabase on mount
   useEffect(() => {
     syncFromSupabase().catch(console.error);
