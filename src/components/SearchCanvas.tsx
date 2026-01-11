@@ -324,24 +324,24 @@ export function SearchCanvas() {
             {isSearching ? (
               <div className="absolute right-4 top-1/2 -translate-y-1/2">
                 <motion.div
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 backdrop-blur-sm"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 >
                   <motion.div
-                    className="w-1 h-1 rounded-full bg-primary"
-                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                    className="w-2 h-2 rounded-full bg-primary"
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
                     transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
                   />
                   <motion.div
-                    className="w-1 h-1 rounded-full bg-primary"
-                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                    className="w-2 h-2 rounded-full bg-primary"
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
                     transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
                   />
                   <motion.div
-                    className="w-1 h-1 rounded-full bg-primary"
-                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                    className="w-2 h-2 rounded-full bg-primary"
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
                     transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
                   />
                 </motion.div>
