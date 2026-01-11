@@ -1279,17 +1279,17 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                 >
                   <div className="px-4">
                     {/* Fanned playing cards */}
-                    <div className="relative flex items-center justify-center gap-1 h-44 max-w-sm mx-auto">
-                      {/* Quick Prompts - Left card */}
+                    <div className="relative flex items-center justify-center gap-1 h-44 max-w-2xl mx-auto">
+                      {/* Quick Prompts - Far left */}
                       <motion.button
-                        initial={{ opacity: 0, y: 40, rotate: -10, scale: 0.9 }}
+                        initial={{ opacity: 0, y: 40, rotate: -15, scale: 0.9 }}
                         animate={{
                           opacity: 1,
                           y: 0,
-                          rotate: -10,
+                          rotate: -15,
                           scale: 1,
                         }}
-                        exit={{ opacity: 0, y: 20, rotate: -10, scale: 0.95 }}
+                        exit={{ opacity: 0, y: 20, rotate: -15, scale: 0.95 }}
                         transition={{
                           type: "spring",
                           damping: 15,
@@ -1311,16 +1311,48 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                         </div>
                       </motion.button>
 
-                      {/* Generate Image - Center card */}
+                      {/* Search Mode - Second left */}
                       <motion.button
-                        initial={{ opacity: 0, y: 40, rotate: 0, scale: 0.9 }}
+                        initial={{ opacity: 0, y: 40, rotate: -5, scale: 0.9 }}
                         animate={{
                           opacity: 1,
                           y: 0,
-                          rotate: 0,
+                          rotate: -5,
                           scale: 1,
                         }}
-                        exit={{ opacity: 0, y: 20, rotate: 0, scale: 0.95 }}
+                        exit={{ opacity: 0, y: 20, rotate: -5, scale: 0.95 }}
+                        transition={{
+                          type: "spring",
+                          damping: 15,
+                          stiffness: 550,
+                          mass: 0.4,
+                        }}
+                        onClick={() => {
+                          setShowMenu(false);
+                          const { openSearchMode } = require("@/store/useSearchStore").useSearchStore.getState();
+                          openSearchMode();
+                        }}
+                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-orange-500/60 px-3 py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(249,115,22,.2)]"
+                        style={{ transformOrigin: "bottom center" }}
+                      >
+                        <div className="flex flex-col items-center justify-center gap-2 h-full">
+                          <span className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-orange-500/15 shrink-0 glass-shimmer ring-[0.5px] ring-orange-500/40">
+                            <Search className="h-5 w-5 sm:h-6 sm:w-6 text-orange-400" />
+                          </span>
+                          <div className="text-xs sm:text-sm font-semibold">Search</div>
+                        </div>
+                      </motion.button>
+
+                      {/* Generate Image - Second right */}
+                      <motion.button
+                        initial={{ opacity: 0, y: 40, rotate: 5, scale: 0.9 }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                          rotate: 5,
+                          scale: 1,
+                        }}
+                        exit={{ opacity: 0, y: 20, rotate: 5, scale: 0.95 }}
                         transition={{
                           type: "spring",
                           damping: 15,
@@ -1331,7 +1363,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                           setForceImageMode(true);
                           setShowMenu(false);
                         }}
-                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-green-500/60 px-3 py-5 hover:scale-105 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 z-10 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(34,197,94,.2)]"
+                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-green-500/60 px-3 py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-24 h-36 sm:w-28 sm:h-40 z-10 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(34,197,94,.2)]"
                         style={{ transformOrigin: "bottom center" }}
                       >
                         <div className="flex flex-col items-center justify-center gap-2 h-full">
@@ -1342,16 +1374,16 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                         </div>
                       </motion.button>
 
-                      {/* Attach - Right card */}
+                      {/* Attach - Far right */}
                       <motion.button
-                        initial={{ opacity: 0, y: 40, rotate: 10, scale: 0.9 }}
+                        initial={{ opacity: 0, y: 40, rotate: 15, scale: 0.9 }}
                         animate={{
                           opacity: 1,
                           y: 0,
-                          rotate: 10,
+                          rotate: 15,
                           scale: 1,
                         }}
-                        exit={{ opacity: 0, y: 20, rotate: 10, scale: 0.95 }}
+                        exit={{ opacity: 0, y: 20, rotate: 15, scale: 0.95 }}
                         transition={{
                           type: "spring",
                           damping: 15,
