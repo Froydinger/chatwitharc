@@ -16,6 +16,9 @@ import {
   Sparkles,
   Link2,
   ChevronRight,
+  MessageSquare,
+  Send,
+  ArrowLeft,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -58,6 +61,10 @@ export function SearchCanvas() {
     saveLink,
     createList,
     removeLink,
+    setCurrentTab,
+    startSourceChat,
+    sendSourceMessage,
+    setActiveSource,
   } = useSearchStore();
 
   const { toast } = useToast();

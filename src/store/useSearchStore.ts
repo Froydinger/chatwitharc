@@ -9,6 +9,22 @@ export interface SearchResult {
   favicon?: string;
 }
 
+export interface SourceMessage {
+  id: string;
+  content: string;
+  role: 'user' | 'assistant';
+  timestamp: number;
+}
+
+export interface SourceConversation {
+  sourceUrl: string;
+  sourceTitle: string;
+  sourceSnippet: string;
+  messages: SourceMessage[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface SavedLink {
   id: string;
   title: string;
@@ -32,6 +48,9 @@ export interface SearchSession {
   formattedContent: string;
   timestamp: number;
   relatedQueries?: string[];
+  sourceConversations?: Record<string, SourceConversation>; // key = url
+  activeSourceUrl?: string | null;
+  currentTab?: 'search' | 'chats' | 'saved';
 }
 
 interface SearchState {
@@ -68,6 +87,13 @@ interface SearchState {
   saveLink: (link: Omit<SavedLink, 'id' | 'savedAt'>) => void;
   removeLink: (listId: string, linkId: string) => void;
   moveLink: (linkId: string, fromListId: string, toListId: string) => void;
+
+  // Source conversation actions
+  setCurrentTab: (sessionId: string, tab: 'search' | 'chats' | 'saved') => void;
+  startSourceChat: (sessionId: string, source: SearchResult) => void;
+  sendSourceMessage: (sessionId: string, sourceUrl: string, message: string, isLoading?: boolean) => Promise<void>;
+  addSourceMessage: (sessionId: string, sourceUrl: string, message: SourceMessage) => void;
+  setActiveSource: (sessionId: string, sourceUrl: string | null) => void;
   
   // Legacy compatibility
   query: string;
@@ -271,6 +297,131 @@ export const useSearchStore = create<SearchState>()(
             }
             return l;
           }),
+        }));
+      },
+
+      // Source conversation actions
+      setCurrentTab: (sessionId, tab) => {
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.id === sessionId ? { ...s, currentTab: tab } : s
+          ),
+        }));
+      },
+
+      startSourceChat: (sessionId, source) => {
+        const conversation: SourceConversation = {
+          sourceUrl: source.url,
+          sourceTitle: source.title,
+          sourceSnippet: source.snippet,
+          messages: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.id === sessionId
+              ? {
+                  ...s,
+                  sourceConversations: {
+                    ...s.sourceConversations,
+                    [source.url]: conversation,
+                  },
+                  activeSourceUrl: source.url,
+                  currentTab: 'chats',
+                }
+              : s
+          ),
+        }));
+      },
+
+      sendSourceMessage: async (sessionId, sourceUrl, message, isLoading = false) => {
+        const state = get();
+        const session = state.sessions.find((s) => s.id === sessionId);
+        if (!session) return;
+
+        // Add user message
+        const userMessage: SourceMessage = {
+          id: crypto.randomUUID(),
+          content: message,
+          role: 'user',
+          timestamp: Date.now(),
+        };
+
+        get().addSourceMessage(sessionId, sourceUrl, userMessage);
+
+        // Don't call AI if in loading state (message will be added externally)
+        if (isLoading) return;
+
+        try {
+          // Call AI with context about the source
+          const conversation = session.sourceConversations?.[sourceUrl];
+          const contextPrompt = `You are chatting about this source:\nTitle: ${conversation?.sourceTitle}\nURL: ${sourceUrl}\nSnippet: ${conversation?.sourceSnippet}\n\nUser: ${message}`;
+
+          const { supabase } = await import('@/integrations/supabase/client');
+          const { data, error } = await supabase.functions.invoke('chat', {
+            body: {
+              messages: [
+                ...(conversation?.messages.map(m => ({
+                  role: m.role,
+                  content: m.content,
+                })) || []),
+                { role: 'user', content: contextPrompt },
+              ],
+            },
+          });
+
+          if (error) throw error;
+
+          const assistantMessage: SourceMessage = {
+            id: crypto.randomUUID(),
+            content: data?.choices?.[0]?.message?.content || 'Sorry, I could not respond.',
+            role: 'assistant',
+            timestamp: Date.now(),
+          };
+
+          get().addSourceMessage(sessionId, sourceUrl, assistantMessage);
+        } catch (error) {
+          console.error('Source chat error:', error);
+          const errorMessage: SourceMessage = {
+            id: crypto.randomUUID(),
+            content: 'Sorry, I encountered an error. Please try again.',
+            role: 'assistant',
+            timestamp: Date.now(),
+          };
+          get().addSourceMessage(sessionId, sourceUrl, errorMessage);
+        }
+      },
+
+      addSourceMessage: (sessionId, sourceUrl, message) => {
+        set((state) => ({
+          sessions: state.sessions.map((s) => {
+            if (s.id !== sessionId) return s;
+
+            const conversation = s.sourceConversations?.[sourceUrl];
+            if (!conversation) return s;
+
+            return {
+              ...s,
+              sourceConversations: {
+                ...s.sourceConversations,
+                [sourceUrl]: {
+                  ...conversation,
+                  messages: [...conversation.messages, message],
+                  updatedAt: Date.now(),
+                },
+              },
+            };
+          }),
+        }));
+      },
+
+      setActiveSource: (sessionId, sourceUrl) => {
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.id === sessionId ? { ...s, activeSourceUrl: sourceUrl } : s
+          ),
         }));
       },
       
