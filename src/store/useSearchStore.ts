@@ -96,7 +96,12 @@ interface SearchState {
   sendSourceMessage: (sessionId: string, sourceUrl: string, message: string, isLoading?: boolean) => Promise<void>;
   addSourceMessage: (sessionId: string, sourceUrl: string, message: SourceMessage) => void;
   setActiveSource: (sessionId: string, sourceUrl: string | null) => void;
-  
+
+  // Supabase sync
+  syncToSupabase: () => Promise<void>;
+  syncFromSupabase: () => Promise<void>;
+  saveSessionToSupabase: (session: SearchSession) => Promise<void>;
+
   // Legacy compatibility
   query: string;
   results: SearchResult[];
@@ -192,12 +197,15 @@ export const useSearchStore = create<SearchState>()(
           timestamp: Date.now(),
           relatedQueries,
         };
-        
+
         set((state) => ({
           sessions: [...state.sessions, newSession],
           activeSessionId: id,
         }));
-        
+
+        // Save to Supabase in background
+        get().saveSessionToSupabase(newSession).catch(console.error);
+
         return id;
       },
 
@@ -211,23 +219,46 @@ export const useSearchStore = create<SearchState>()(
             s.id === sessionId ? { ...s, ...updates } : s
           ),
         }));
+
+        // Save updated session to Supabase
+        const session = get().sessions.find((s) => s.id === sessionId);
+        if (session) {
+          get().saveSessionToSupabase(session).catch(console.error);
+        }
       },
 
       removeSession: (sessionId) => {
         set((state) => {
           const newSessions = state.sessions.filter((s) => s.id !== sessionId);
           let newActiveId = state.activeSessionId;
-          
+
           // If removing the active session, select another
           if (state.activeSessionId === sessionId) {
             newActiveId = newSessions.length > 0 ? newSessions[newSessions.length - 1].id : null;
           }
-          
+
           return {
             sessions: newSessions,
             activeSessionId: newActiveId,
           };
         });
+
+        // Delete from Supabase in background
+        (async () => {
+          try {
+            const { supabase } = await import('@/integrations/supabase/client');
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            await supabase
+              .from('search_sessions')
+              .delete()
+              .eq('user_id', user.id)
+              .eq('session_id', sessionId);
+          } catch (error) {
+            console.error('Error deleting search session from Supabase:', error);
+          }
+        })();
       },
 
       clearAllSessions: () => {
@@ -436,7 +467,91 @@ export const useSearchStore = create<SearchState>()(
           ),
         }));
       },
-      
+
+      // Supabase sync
+      syncToSupabase: async () => {
+        const state = get();
+        const { supabase } = await import('@/integrations/supabase/client');
+
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          // Save all sessions to Supabase
+          for (const session of state.sessions) {
+            await get().saveSessionToSupabase(session);
+          }
+        } catch (error) {
+          console.error('Error syncing search sessions to Supabase:', error);
+        }
+      },
+
+      syncFromSupabase: async () => {
+        const { supabase } = await import('@/integrations/supabase/client');
+
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          const { data, error } = await supabase
+            .from('search_sessions')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('timestamp', { ascending: false });
+
+          if (error) throw error;
+
+          if (data && data.length > 0) {
+            const sessions: SearchSession[] = data.map((row) => ({
+              id: row.session_id,
+              query: row.query,
+              results: row.results || [],
+              formattedContent: row.formatted_content || '',
+              timestamp: row.timestamp,
+              relatedQueries: row.related_queries,
+              sourceConversations: row.source_conversations,
+              activeSourceUrl: row.active_source_url,
+              currentTab: (row.current_tab as 'search' | 'chats' | 'saved') || 'search',
+            }));
+
+            set({ sessions });
+          }
+        } catch (error) {
+          console.error('Error syncing search sessions from Supabase:', error);
+        }
+      },
+
+      saveSessionToSupabase: async (session: SearchSession) => {
+        const { supabase } = await import('@/integrations/supabase/client');
+
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          const { error } = await supabase
+            .from('search_sessions')
+            .upsert({
+              user_id: user.id,
+              session_id: session.id,
+              query: session.query,
+              results: session.results,
+              formatted_content: session.formattedContent,
+              related_queries: session.relatedQueries,
+              source_conversations: session.sourceConversations,
+              active_source_url: session.activeSourceUrl,
+              current_tab: session.currentTab,
+              timestamp: session.timestamp,
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: 'user_id,session_id',
+            });
+
+          if (error) throw error;
+        } catch (error) {
+          console.error('Error saving search session to Supabase:', error);
+        }
+      },
+
       // Legacy compatibility - redirects to new session-based system
       openSearch: (query, results, formattedContent) => {
         get().openSearchMode(query, results, formattedContent);

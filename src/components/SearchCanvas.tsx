@@ -64,6 +64,7 @@ export function SearchCanvas() {
     sendSourceMessage,
     setActiveSource,
     setPendingSearchQuery,
+    syncFromSupabase,
   } = useSearchStore();
 
   const { toast } = useToast();
@@ -109,6 +110,11 @@ export function SearchCanvas() {
     });
     return urls;
   }, [lists]);
+
+  // Sync from Supabase on mount
+  useEffect(() => {
+    syncFromSupabase().catch(console.error);
+  }, []);
 
   // Focus search input on mount
   useEffect(() => {
