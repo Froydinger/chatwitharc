@@ -1329,7 +1329,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                         }}
                         onClick={() => {
                           setShowMenu(false);
-                          const { openSearchMode } = require("@/store/useSearchStore").useSearchStore.getState();
                           openSearchMode();
                         }}
                         className="group rounded-2xl glass-shimmer ring-[0.5px] ring-orange-500/60 px-2 py-4 sm:px-3 sm:py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-20 h-32 sm:w-28 sm:h-40 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(249,115,22,.2)]"

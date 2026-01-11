@@ -732,9 +732,9 @@ function SessionDetail({
       {/* Summary Panel */}
       <div className="flex-1 flex flex-col overflow-hidden md:border-r border-border/20">
         <div className="px-4 py-2 border-b border-border/20 glass-shimmer flex items-center justify-between">
-          <div>
+          <div className="flex-1 min-w-0 mr-2">
             <p className="text-xs font-medium text-muted-foreground">Summary</p>
-            <p className="text-sm font-medium text-foreground mt-0.5 line-clamp-1">
+            <p className="text-sm font-medium text-foreground mt-0.5">
               {session.query}
             </p>
           </div>
