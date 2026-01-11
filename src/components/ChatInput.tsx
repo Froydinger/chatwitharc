@@ -1103,74 +1103,77 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="fixed z-[9999] flex items-center justify-center gap-2"
-              style={{ 
+              className="fixed z-[9999] flex items-center justify-center px-4"
+              style={{
                 bottom: "calc(110px + env(safe-area-inset-bottom, 0px))",
                 left: 0,
                 right: 0,
               }}
             >
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  setInputValue("image/");
-                  textareaRef.current?.focus();
-                }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-green-400/50 text-green-400 hover:bg-green-500/20 transition-colors shadow-xl"
-              >
-                <ImagePlus className="h-4 w-4" />
-                <span className="text-sm font-medium">image/</span>
-              </button>
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  setInputValue("code/");
-                  textareaRef.current?.focus();
-                }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-blue-400/50 text-blue-400 hover:bg-blue-500/20 transition-colors shadow-xl"
-              >
-                <Code2 className="h-4 w-4" />
-                <span className="text-sm font-medium">code/</span>
-              </button>
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  setForceCanvasMode(true);
-                  setInputValue("write/ ");
-                  textareaRef.current?.focus();
-                }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-purple-400/50 text-purple-400 hover:bg-purple-500/20 transition-colors shadow-xl"
-              >
-                <PenLine className="h-4 w-4" />
-                <span className="text-sm font-medium">write/</span>
-              </button>
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  setInputValue("search/");
-                  textareaRef.current?.focus();
-                }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-orange-400/50 text-orange-400 hover:bg-orange-500/20 transition-colors shadow-xl"
-              >
-                <Search className="h-4 w-4" />
-                <span className="text-sm font-medium">search/</span>
-              </button>
-              {/* Dismiss button */}
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  setInputValue("");
-                  textareaRef.current?.focus();
-                }}
-                className="flex items-center justify-center w-8 h-8 rounded-full bg-black border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors shadow-xl"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full max-w-lg">
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setInputValue("image/");
+                    textareaRef.current?.focus();
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-green-400/50 text-green-400 hover:bg-green-500/20 transition-colors shadow-xl"
+                >
+                  <ImagePlus className="h-4 w-4" />
+                  <span className="text-sm font-medium">image/</span>
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setInputValue("code/");
+                    textareaRef.current?.focus();
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-blue-400/50 text-blue-400 hover:bg-blue-500/20 transition-colors shadow-xl"
+                >
+                  <Code2 className="h-4 w-4" />
+                  <span className="text-sm font-medium">code/</span>
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setForceCanvasMode(true);
+                    setInputValue("write/ ");
+                    textareaRef.current?.focus();
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-purple-400/50 text-purple-400 hover:bg-purple-500/20 transition-colors shadow-xl"
+                >
+                  <PenLine className="h-4 w-4" />
+                  <span className="text-sm font-medium">write/</span>
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setInputValue("search/");
+                    textareaRef.current?.focus();
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-orange-400/50 text-orange-400 hover:bg-orange-500/20 transition-colors shadow-xl"
+                >
+                  <Search className="h-4 w-4" />
+                  <span className="text-sm font-medium">search/</span>
+                </button>
+                {/* Dismiss button */}
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setInputValue("");
+                    textareaRef.current?.focus();
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 sm:w-10 sm:h-10 rounded-xl sm:rounded-full bg-black border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors shadow-xl"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="text-sm font-medium sm:hidden">Dismiss</span>
+                </button>
+              </div>
             </motion.div>
           </AnimatePresence>,
           portalRoot
