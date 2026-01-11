@@ -119,15 +119,15 @@ export function SearchCanvas() {
       if (error) throw error;
 
       const results: SearchResult[] =
-        data?.sources?.map((source: any, index: number) => ({
+        data?.web_sources?.map((source: any, index: number) => ({
           id: `result-${index}`,
           title: source.title || "Untitled",
           url: source.url,
           snippet: source.snippet || source.content || "",
         })) || [];
 
-      const formattedContent = data?.message || "No results found.";
-      const relatedQueries = data?.relatedQueries;
+      const formattedContent = data?.choices?.[0]?.message?.content || "No results found.";
+      const relatedQueries = undefined; // Related queries not yet implemented in backend
 
       addSession(query, results, formattedContent, relatedQueries);
       
