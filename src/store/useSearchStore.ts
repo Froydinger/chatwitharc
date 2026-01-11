@@ -112,18 +112,18 @@ export const useSearchStore = create<SearchState>()(
 
       openSearchMode: (initialQuery, initialResults, initialContent) => {
         const state = get();
-        
-        // If initial data provided, create a session
-        if (initialQuery && initialResults && initialContent) {
+
+        // If initial data provided (results and content), create a session
+        if (initialResults && initialResults.length > 0 && initialContent) {
           const sessionId = crypto.randomUUID();
           const newSession: SearchSession = {
             id: sessionId,
-            query: initialQuery,
+            query: initialQuery || 'Web Search Results',
             results: initialResults,
             formattedContent: initialContent,
             timestamp: Date.now(),
           };
-          
+
           set({
             isOpen: true,
             sessions: [...state.sessions, newSession],
@@ -131,6 +131,7 @@ export const useSearchStore = create<SearchState>()(
             isSearching: false,
           });
         } else {
+          // Open blank search mode (user can search from within)
           set({ isOpen: true });
         }
       },

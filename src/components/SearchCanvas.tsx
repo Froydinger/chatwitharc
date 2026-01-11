@@ -16,7 +16,6 @@ import {
   Sparkles,
   Link2,
   ChevronRight,
-  Loader2,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -279,7 +278,23 @@ export function SearchCanvas() {
               disabled={isSearching}
             />
             {isSearching ? (
-              <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin" />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-1">
+                <motion.div
+                  className="w-1.5 h-1.5 bg-primary rounded-full"
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0 }}
+                />
+                <motion.div
+                  className="w-1.5 h-1.5 bg-primary rounded-full"
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+                />
+                <motion.div
+                  className="w-1.5 h-1.5 bg-primary rounded-full"
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+                />
+              </div>
             ) : searchQuery && (
               <Button
                 variant="ghost"

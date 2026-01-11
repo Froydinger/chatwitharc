@@ -1,7 +1,7 @@
 // src/components/ChatInput.tsx
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
-import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Brain, Code2, PenLine } from "lucide-react";
+import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Brain, Code2, PenLine, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
@@ -15,6 +15,7 @@ import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { useSearchStore } from "@/store/useSearchStore";
 import { cn } from "@/lib/utils";
 
 // Global cancellation flag
@@ -85,6 +86,14 @@ function checkForCanvasRequest(message: string): boolean {
   return /^write\//.test(m) || /^\/(write|canvas)\b/.test(m);
 }
 
+// Prefix-based detection: search/, /search
+function checkForSearchRequest(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+  // Support both search/ and /search syntax
+  return /^search\//.test(m) || /^\/search\b/.test(m);
+}
+
 // Heuristic for when the Canvas is already open and the user is clearly asking
 // to format/rewrite the current draft (without using write/ prefix).
 function looksLikeCanvasEditRequest(message: string): boolean {
@@ -122,8 +131,8 @@ function looksLikeCanvasEditRequest(message: string): boolean {
 // Extract the prompt after the prefix (strips prefix/ or /prefix)
 function extractPrefixPrompt(message: string): string {
   return message
-    .replace(/^(image|draw|create|code|write)\/\s*/i, "")
-    .replace(/^\/(image|draw|create|code|write|canvas)\s*/i, "")
+    .replace(/^(image|draw|create|code|write|search)\/\s*/i, "")
+    .replace(/^\/(image|draw|create|code|write|canvas|search)\s*/i, "")
     .trim();
 }
 
@@ -169,6 +178,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     useArcStore();
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
+  const { openSearchMode } = useSearchStore();
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -185,13 +195,15 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
   const quickPrompts = getAllPromptsFlat();
 
-  // Mode toggles for image, coding, and canvas
+  // Mode toggles for image, coding, canvas, and search
   const [forceImageMode, setForceImageMode] = useState(false);
   const [forceCodingMode, setForceCodingMode] = useState(false);
   const [forceCanvasMode, setForceCanvasMode] = useState(false);
+  const [forceSearchMode, setForceSearchMode] = useState(false);
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
   const shouldShowCodeMode = forceCodingMode || (!!inputValue && checkForCodingRequest(inputValue));
   const shouldShowCanvasMode = forceCanvasMode || (!!inputValue && checkForCanvasRequest(inputValue));
+  const shouldShowSearchMode = forceSearchMode || (!!inputValue && checkForSearchRequest(inputValue));
 
   // Show slash picker when user types just "/"
   const showSlashPicker = inputValue.trim() === "/";
@@ -408,14 +420,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       // Determine memory action based on what tools were used
       let memoryAction: any = undefined;
       if (didSearchWeb && result.webSources && result.webSources.length > 0) {
-        memoryAction = { type: 'web_searched' as const, sources: result.webSources };
+        memoryAction = { type: 'web_searched' as const, sources: result.webSources, query: newContent };
       } else if (didSearchChats) {
         memoryAction = { type: 'chats_searched' as const };
       }
-      
-      await addMessage({ 
-        content: result.content, 
-        role: "assistant", 
+
+      await addMessage({
+        content: result.content,
+        role: "assistant",
         type: "text",
         memoryAction
       });
@@ -558,6 +570,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     const wasCanvasMode = shouldShowCanvasMode || checkForCanvasRequest(userMessage);
     const wasCodingMode = shouldShowCodeMode || checkForCodingRequest(userMessage);
     const wasImageMode = shouldShowBanana || checkForImageRequest(userMessage);
+    const wasSearchMode = shouldShowSearchMode || checkForSearchRequest(userMessage);
 
     // Clear UI promptly
     setInputValue("");
@@ -565,8 +578,17 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     setForceImageMode(false);
     setForceCodingMode(false);
     setForceCanvasMode(false);
+    setForceSearchMode(false);
     setShowMenu(false);
-    
+
+    // Search mode - just open the search canvas (blank or with a query)
+    if (wasSearchMode) {
+      const searchQuery = extractPrefixPrompt(userMessage);
+      openSearchMode(); // Opens blank search canvas
+      // User can search from within the canvas
+      return;
+    }
+
     // Reset cancellation flag
     cancelRequested = false;
     setLoading(true);
@@ -836,7 +858,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         // Determine memory action based on what tools were used
         let memoryAction: any = undefined;
         if (didSearchWeb && result.webSources && result.webSources.length > 0) {
-          memoryAction = { type: 'web_searched' as const, sources: result.webSources };
+          memoryAction = { type: 'web_searched' as const, sources: result.webSources, query: userMessage };
         } else if (didSearchChats) {
           memoryAction = { type: 'chats_searched' as const };
         }
@@ -981,6 +1003,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               ? "Disable code mode"
               : shouldShowCanvasMode
               ? "Disable canvas mode"
+              : shouldShowSearchMode
+              ? "Disable search mode"
               : showMenu
               ? "Close menu"
               : "Quick options"
@@ -993,6 +1017,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               ? "!bg-blue-500/20 ring-1 ring-blue-400/50 !shadow-[0_0_24px_rgba(59,130,246,0.25)]"
               : shouldShowCanvasMode
               ? "!bg-purple-500/20 ring-1 ring-purple-400/50 !shadow-[0_0_24px_rgba(168,85,247,0.25)]"
+              : shouldShowSearchMode
+              ? "!bg-orange-500/20 ring-1 ring-orange-400/50 !shadow-[0_0_24px_rgba(251,146,60,0.25)]"
               : "text-muted-foreground hover:text-foreground",
           ].join(" ")}
           onClick={() => {
@@ -1008,6 +1034,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               setForceCanvasMode(false);
               // Clear input if it's just the prefix
               if (/^write\/\s*$/i.test(inputValue) || /^\/(write|canvas)\s*$/i.test(inputValue)) setInputValue("");
+            } else if (shouldShowSearchMode) {
+              setForceSearchMode(false);
+              // Clear input if it's just the prefix
+              if (/^search\/\s*$/i.test(inputValue) || /^\/search\s*$/i.test(inputValue)) setInputValue("");
             } else {
               setShowMenu((v) => !v);
             }
@@ -1034,6 +1064,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                 ×
               </span>
             </>
+          ) : shouldShowSearchMode ? (
+            <>
+              <Search className="h-5 w-5 text-orange-400" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
+                ×
+              </span>
+            </>
           ) : (
             <Sparkles className="h-5 w-5" />
           )}
@@ -1051,7 +1088,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               handleInputFocus();
             }}
             onBlur={() => setIsActive(false)}
-            placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe your image..." : shouldShowCodeMode ? "Describe what to build..." : shouldShowCanvasMode ? "What should I write..." : "Ask"}
+            placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe your image..." : shouldShowCodeMode ? "Describe what to build..." : shouldShowCanvasMode ? "What should I write..." : shouldShowSearchMode ? "Search the web..." : "Ask"}
             disabled={isLoading}
             className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 px-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
@@ -1109,6 +1146,18 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               >
                 <PenLine className="h-4 w-4" />
                 <span className="text-sm font-medium">write/</span>
+              </button>
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setInputValue("search/");
+                  textareaRef.current?.focus();
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-orange-400/50 text-orange-400 hover:bg-orange-500/20 transition-colors shadow-xl"
+              >
+                <Search className="h-4 w-4" />
+                <span className="text-sm font-medium">search/</span>
               </button>
               {/* Dismiss button */}
               <button
