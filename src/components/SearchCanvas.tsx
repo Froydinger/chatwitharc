@@ -727,6 +727,8 @@ function SessionDetail({
   getFaviconUrl: (url: string) => string | null;
   getHostname: (url: string) => string;
 }) {
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+
   return (
     <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
       {/* Summary Panel */}
@@ -876,8 +878,15 @@ function SessionDetail({
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <DropdownMenu>
+                      <div className={cn(
+                        "flex items-center gap-1 transition-opacity",
+                        openDropdownId === result.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      )}>
+                        <DropdownMenu
+                          onOpenChange={(open) => {
+                            setOpenDropdownId(open ? result.id : null);
+                          }}
+                        >
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
