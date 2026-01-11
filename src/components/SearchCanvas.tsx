@@ -51,6 +51,7 @@ export function SearchCanvas() {
     isSearching,
     showLinksPanel,
     lists,
+    pendingSearchQuery,
     closeSearch,
     setActiveSession,
     addSession,
@@ -65,6 +66,7 @@ export function SearchCanvas() {
     startSourceChat,
     sendSourceMessage,
     setActiveSource,
+    setPendingSearchQuery,
   } = useSearchStore();
 
   const { toast } = useToast();
@@ -106,6 +108,15 @@ export function SearchCanvas() {
     }, 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // Auto-search if there's a pending query
+  useEffect(() => {
+    if (pendingSearchQuery && pendingSearchQuery.trim()) {
+      setSearchQuery(pendingSearchQuery);
+      handleSearch(pendingSearchQuery);
+      setPendingSearchQuery(null); // Clear after using
+    }
+  }, [pendingSearchQuery]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -687,9 +698,9 @@ function SessionDetail({
   getHostname: (url: string) => string;
 }) {
   return (
-    <div className="flex-1 flex overflow-hidden">
+    <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
       {/* Summary Panel */}
-      <div className="flex-1 flex flex-col overflow-hidden border-r border-border/20">
+      <div className="flex-1 flex flex-col overflow-hidden md:border-r border-border/20">
         <div className="px-4 py-2 border-b border-border/20 bg-muted/10 flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-muted-foreground">Summary</p>
@@ -785,7 +796,7 @@ function SessionDetail({
       </div>
 
       {/* Sources Panel */}
-      <div className="w-80 flex-shrink-0 flex flex-col overflow-hidden">
+      <div className="w-full md:w-80 flex-shrink-0 flex flex-col overflow-hidden border-t md:border-t-0 border-border/20">
         <div className="px-4 py-2 border-b border-border/20 bg-muted/10">
           <p className="text-xs font-medium text-muted-foreground">
             Sources ({session.results.length})
@@ -1058,8 +1069,11 @@ function ChatsView({
 
   return (
     <div className="flex-1 flex overflow-hidden">
-      {/* Sources with Conversations List */}
-      <div className="w-72 flex-shrink-0 border-r border-border/20 flex flex-col overflow-hidden bg-muted/5">
+      {/* Sources with Conversations List - hide on mobile when chat is active */}
+      <div className={cn(
+        "w-full md:w-72 flex-shrink-0 md:border-r border-border/20 flex flex-col overflow-hidden bg-muted/5",
+        activeConversation && "hidden md:flex"
+      )}>
         <div className="px-4 py-3 border-b border-border/20 bg-muted/10">
           <p className="text-sm font-medium text-foreground">Conversations</p>
           <p className="text-xs text-muted-foreground mt-0.5">
