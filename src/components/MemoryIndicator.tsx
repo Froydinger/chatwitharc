@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Brain, Search, Database, Globe, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { MemoryAction } from "@/store/useArcStore";
@@ -12,7 +11,7 @@ interface MemoryIndicatorProps {
 }
 
 export const MemoryIndicator = ({ action, messageContent }: MemoryIndicatorProps) => {
-  const { openSearch } = useSearchStore();
+  const { openSearchMode } = useSearchStore();
 
   const getIcon = () => {
     switch (action.type) {
@@ -51,7 +50,8 @@ export const MemoryIndicator = ({ action, messageContent }: MemoryIndicatorProps
       snippet: source.snippet || source.content || '',
     }));
     
-    openSearch(action.query || '', results, messageContent);
+    // Use the new session-based openSearchMode
+    openSearchMode(action.query || '', results, messageContent);
   };
 
   // For web searches, show the sources accordion instead of simple indicator
