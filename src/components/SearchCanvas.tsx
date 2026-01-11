@@ -78,6 +78,18 @@ export function SearchCanvas() {
   const [showNewListDialog, setShowNewListDialog] = useState(false);
   const [pendingSaveResult, setPendingSaveResult] = useState<SearchResult | null>(null);
 
+  // Track if running as PWA or Electron app for traffic lights spacing
+  const [isPWAMode, setIsPWAMode] = useState(false);
+  const [isElectronApp, setIsElectronApp] = useState(false);
+
+  useEffect(() => {
+    const checkPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                     (window.navigator as any).standalone === true;
+    const checkElectron = /electron/i.test(navigator.userAgent);
+    setIsPWAMode(checkPWA);
+    setIsElectronApp(checkElectron);
+  }, []);
+
   // Get active session
   const activeSession = useMemo(() => {
     return sessions.find((s) => s.id === activeSessionId) || null;
@@ -235,9 +247,14 @@ export function SearchCanvas() {
   }, [lists]);
 
   return (
-    <div className="flex flex-col h-full w-full bg-background">
+    <div
+      className={cn(
+        "flex flex-col h-full w-full bg-background/95 backdrop-blur-xl",
+        (isPWAMode || isElectronApp) && "pt-[34px]"
+      )}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-background/80 backdrop-blur-sm">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 glass-panel">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
@@ -289,7 +306,7 @@ export function SearchCanvas() {
       </div>
 
       {/* Search Input Bar */}
-      <div className="px-4 py-4 border-b border-border/20">
+      <div className="px-4 py-4 border-b border-border/20 bg-background/50 backdrop-blur-sm">
         <div className="max-w-2xl mx-auto">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -301,7 +318,7 @@ export function SearchCanvas() {
                 if (e.key === "Enter") handleSearch(searchQuery);
               }}
               placeholder="Search the web..."
-              className="pl-12 pr-12 h-12 text-base bg-muted/30 border-border/40 rounded-xl focus:ring-2 focus:ring-primary/30"
+              className="pl-12 pr-12 h-12 text-base bg-muted/30 backdrop-blur-md border-border/40 rounded-xl focus:ring-2 focus:ring-primary/30 hover:bg-muted/40 transition-colors"
               disabled={isSearching}
             />
             {isSearching ? (
@@ -338,7 +355,7 @@ export function SearchCanvas() {
 
       {/* Tab Bar - Desktop (top) / Mobile (bottom) */}
       {activeSession && (
-        <div className="border-b border-border/20 bg-background/50 md:block hidden">
+        <div className="border-b border-border/20 glass-shimmer md:block hidden">
           <div className="flex items-center justify-center gap-1 px-4">
             <button
               onClick={() => activeSessionId && setCurrentTab(activeSessionId, 'search')}
@@ -416,8 +433,8 @@ export function SearchCanvas() {
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden relative pb-16 md:pb-0">
         {/* Left Sidebar - Sessions (hidden on mobile) */}
-        <div className="hidden md:flex w-64 flex-shrink-0 border-r border-border/20 flex-col bg-muted/5">
-          <div className="px-3 py-2 border-b border-border/20">
+        <div className="hidden md:flex w-64 flex-shrink-0 border-r border-border/40 flex-col glass-panel">
+          <div className="px-3 py-2 border-b border-border/20 bg-muted/5">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Search History ({sessions.length})
             </p>
@@ -523,7 +540,7 @@ export function SearchCanvas() {
 
       {/* Mobile Bottom Tab Bar */}
       {activeSession && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border/30 safe-area-inset-bottom z-50">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 glass-strong border-t border-border/40 safe-area-inset-bottom z-50">
           <div className="flex items-center justify-around px-2">
             <button
               onClick={() => activeSessionId && setCurrentTab(activeSessionId, 'search')}
@@ -707,7 +724,7 @@ function SessionDetail({
     <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
       {/* Summary Panel */}
       <div className="flex-1 flex flex-col overflow-hidden md:border-r border-border/20">
-        <div className="px-4 py-2 border-b border-border/20 bg-muted/10 flex items-center justify-between">
+        <div className="px-4 py-2 border-b border-border/20 glass-shimmer flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-muted-foreground">Summary</p>
             <p className="text-sm font-medium text-foreground mt-0.5 line-clamp-1">
@@ -803,7 +820,7 @@ function SessionDetail({
 
       {/* Sources Panel */}
       <div className="w-full md:w-80 flex-shrink-0 flex flex-col overflow-hidden border-t md:border-t-0 border-border/20">
-        <div className="px-4 py-2 border-b border-border/20 bg-muted/10">
+        <div className="px-4 py-2 border-b border-border/20 glass-shimmer">
           <p className="text-xs font-medium text-muted-foreground">
             Sources ({session.results.length})
           </p>
@@ -970,7 +987,7 @@ function LinksPanel({
 }) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-4 py-3 border-b border-border/20 bg-muted/10">
+      <div className="px-4 py-3 border-b border-border/20 glass-shimmer">
         <p className="text-sm font-medium text-foreground">Saved & History</p>
         <p className="text-xs text-muted-foreground mt-0.5">
           Your bookmarks and past searches
@@ -1129,10 +1146,10 @@ function ChatsView({
     <div className="flex-1 flex overflow-hidden">
       {/* Sources with Conversations List - hide on mobile when chat is active */}
       <div className={cn(
-        "w-full md:w-72 flex-shrink-0 md:border-r border-border/20 flex flex-col overflow-hidden bg-muted/5",
+        "w-full md:w-72 flex-shrink-0 md:border-r border-border/20 flex flex-col overflow-hidden glass-panel",
         activeConversation && "hidden md:flex"
       )}>
-        <div className="px-4 py-3 border-b border-border/20 bg-muted/10">
+        <div className="px-4 py-3 border-b border-border/20 glass-shimmer">
           <p className="text-sm font-medium text-foreground">Conversations</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             {sourcesWithChats.length} {sourcesWithChats.length === 1 ? 'source' : 'sources'}
@@ -1220,7 +1237,7 @@ function ChatsView({
       {activeConversation ? (
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Conversation Header */}
-          <div className="px-4 py-3 border-b border-border/20 bg-muted/10 flex items-center gap-3">
+          <div className="px-4 py-3 border-b border-border/20 glass-shimmer flex items-center gap-3">
             <Button
               variant="ghost"
               size="sm"

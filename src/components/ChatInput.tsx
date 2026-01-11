@@ -1110,19 +1110,38 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                 right: 0,
               }}
             >
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full max-w-lg">
+              <div className="flex flex-col items-stretch gap-2 w-full max-w-lg">
+                {/* Top row - Search Mode card */}
                 <button
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
-                    setInputValue("image/");
+                    setInputValue("");
+                    // Open blank search canvas
+                    const { openSearchMode } = require("@/store/useSearchStore").useSearchStore.getState();
+                    openSearchMode();
                     textareaRef.current?.focus();
                   }}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-green-400/50 text-green-400 hover:bg-green-500/20 transition-colors shadow-xl"
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-orange-400/50 text-orange-400 hover:bg-orange-500/20 transition-colors shadow-xl"
                 >
-                  <ImagePlus className="h-4 w-4" />
-                  <span className="text-sm font-medium">image/</span>
+                  <Search className="h-4 w-4" />
+                  <span className="text-sm font-medium">Search Mode</span>
                 </button>
+
+                {/* Bottom row - Slash commands */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setInputValue("image/");
+                      textareaRef.current?.focus();
+                    }}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-green-400/50 text-green-400 hover:bg-green-500/20 transition-colors shadow-xl"
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                    <span className="text-sm font-medium">image/</span>
+                  </button>
                 <button
                   type="button"
                   onMouseDown={(e) => {
@@ -1160,19 +1179,20 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                   <Search className="h-4 w-4" />
                   <span className="text-sm font-medium">search/</span>
                 </button>
-                {/* Dismiss button */}
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setInputValue("");
-                    textareaRef.current?.focus();
-                  }}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 sm:w-10 sm:h-10 rounded-xl sm:rounded-full bg-black border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors shadow-xl"
-                >
-                  <X className="h-4 w-4" />
-                  <span className="text-sm font-medium sm:hidden">Dismiss</span>
-                </button>
+                  {/* Dismiss button */}
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setInputValue("");
+                      textareaRef.current?.focus();
+                    }}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 sm:w-10 sm:h-10 rounded-xl sm:rounded-full bg-black border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors shadow-xl"
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="text-sm font-medium sm:hidden">Dismiss</span>
+                  </button>
+                </div>
               </div>
             </motion.div>
           </AnimatePresence>,

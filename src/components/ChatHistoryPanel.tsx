@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, MessageSquare, RefreshCw } from "lucide-react";
+import { Plus, Trash2, MessageSquare, RefreshCw, Search } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
+import { useSearchStore } from "@/store/useSearchStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +25,14 @@ export function ChatHistoryPanel() {
     syncFromSupabase,
     setRightPanelOpen
   } = useArcStore();
+
+  const {
+    sessions: searchSessions,
+    activeSessionId: activeSearchSessionId,
+    setActiveSession: setActiveSearchSession,
+    openSearchMode,
+    removeSession: removeSearchSession,
+  } = useSearchStore();
 
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -51,16 +60,34 @@ export function ChatHistoryPanel() {
     goToChat();
   };
 
-  const handleDeleteSession = async (sessionId: string, event: React.MouseEvent) => {
+  const handleLoadSearchSession = (sessionId: string) => {
+    setActiveSearchSession(sessionId);
+    openSearchMode();
+    goToChat();
+  };
+
+  const handleClickSession = (session: UnifiedSession) => {
+    if (session.type === 'chat') {
+      handleLoadSession(session.id);
+    } else {
+      handleLoadSearchSession(session.id);
+    }
+  };
+
+  const handleDeleteSession = async (sessionId: string, sessionType: 'chat' | 'search', event: React.MouseEvent) => {
     event.stopPropagation();
     setDeletingId(sessionId);
-    
+
     try {
-      deleteSession(sessionId);
+      if (sessionType === 'chat') {
+        deleteSession(sessionId);
+      } else {
+        removeSearchSession(sessionId);
+      }
     } catch {
       toast({
-        title: "Error", 
-        description: "Failed to delete chat",
+        title: "Error",
+        description: `Failed to delete ${sessionType}`,
         variant: "destructive"
       });
     } finally {
@@ -100,13 +127,38 @@ export function ChatHistoryPanel() {
     return date.toLocaleDateString();
   };
 
+  type UnifiedSession = {
+    id: string;
+    title: string;
+    timestamp: number;
+    type: 'chat' | 'search';
+    itemCount: number;
+  };
+
   const sortedSessions = useMemo(() => {
-    return [...chatSessions]
+    // Convert chat sessions to unified format
+    const chatItems: UnifiedSession[] = chatSessions
       .filter(session => session.messages.length > 0)
-      .sort((a, b) => 
-        new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-      );
-  }, [chatSessions]);
+      .map(session => ({
+        id: session.id,
+        title: session.title,
+        timestamp: new Date(session.lastMessageAt).getTime(),
+        type: 'chat' as const,
+        itemCount: session.messages.length,
+      }));
+
+    // Convert search sessions to unified format
+    const searchItems: UnifiedSession[] = searchSessions.map(session => ({
+      id: session.id,
+      title: session.query,
+      timestamp: session.timestamp,
+      type: 'search' as const,
+      itemCount: session.results.length,
+    }));
+
+    // Combine and sort by timestamp (most recent first)
+    return [...chatItems, ...searchItems].sort((a, b) => b.timestamp - a.timestamp);
+  }, [chatSessions, searchSessions]);
 
   const totalMessages = useMemo(
     () => chatSessions.reduce((total, s) => total + s.messages.length, 0),
@@ -237,51 +289,72 @@ export function ChatHistoryPanel() {
         <>
           <PaginationButtons />
           <div className="space-y-2">
-            {paginatedSessions.map((session) => (
-            <div
-              key={session.id}
-              className={cn(
-                "p-4 cursor-pointer group transition-all rounded-2xl border",
-                "bg-background/40 backdrop-blur-sm",
-                currentSessionId === session.id 
-                  ? "border-primary/40 bg-primary/5 shadow-lg shadow-primary/5" 
-                  : "border-border/20 hover:border-border/40 hover:bg-background/60"
-              )}
-              onClick={() => handleLoadSession(session.id)}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <h4 className={cn(
-                    "font-medium truncate",
-                    currentSessionId === session.id ? "text-primary" : "text-foreground"
-                  )}>
-                    {session.title}
-                  </h4>
-                  <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
-                    <span className="px-2 py-0.5 rounded-full bg-muted/30">{session.messages.length} messages</span>
-                    <span>•</span>
-                    <span>{new Date(session.lastMessageAt).toLocaleDateString()}</span>
+            {paginatedSessions.map((session) => {
+              const isActive = session.type === 'chat'
+                ? currentSessionId === session.id
+                : activeSearchSessionId === session.id;
+
+              return (
+                <div
+                  key={`${session.type}-${session.id}`}
+                  className={cn(
+                    "p-4 cursor-pointer group transition-all rounded-2xl border",
+                    "bg-background/40 backdrop-blur-sm",
+                    isActive
+                      ? "border-primary/40 bg-primary/5 shadow-lg shadow-primary/5"
+                      : "border-border/20 hover:border-border/40 hover:bg-background/60"
+                  )}
+                  onClick={() => handleClickSession(session)}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-start gap-2 flex-1 min-w-0">
+                      {/* Icon indicator for session type */}
+                      <div className={cn(
+                        "flex-shrink-0 mt-0.5",
+                        session.type === 'search' ? "text-orange-400" : "text-primary"
+                      )}>
+                        {session.type === 'search' ? (
+                          <Search className="h-4 w-4" />
+                        ) : (
+                          <MessageSquare className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className={cn(
+                          "font-medium truncate",
+                          isActive ? "text-primary" : "text-foreground"
+                        )}>
+                          {session.title}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+                          <span className="px-2 py-0.5 rounded-full bg-muted/30">
+                            {session.itemCount} {session.type === 'search' ? 'sources' : 'messages'}
+                          </span>
+                          <span>•</span>
+                          <span>{new Date(session.timestamp).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-8 w-8 flex-shrink-0 rounded-full transition-all",
+                        "hover:bg-destructive/10 hover:text-destructive",
+                        deletingId === session.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      )}
+                      onClick={(e) => handleDeleteSession(session.id, session.type, e)}
+                      aria-label={`Delete ${session.type}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    "h-8 w-8 flex-shrink-0 rounded-full transition-all",
-                    "hover:bg-destructive/10 hover:text-destructive",
-                    deletingId === session.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                  )}
-                  onClick={(e) => handleDeleteSession(session.id, e)}
-                  aria-label="Delete chat"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-        <PaginationButtons />
-      </>
+              );
+            })}
+          </div>
+          <PaginationButtons />
+        </>
       )}
     </div>
   );
