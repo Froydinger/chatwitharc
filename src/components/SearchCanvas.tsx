@@ -14,7 +14,6 @@ import {
   Trash2,
   Clock,
   Sparkles,
-  Link2,
   ChevronRight,
   MessageSquare,
   Send,
@@ -49,7 +48,6 @@ export function SearchCanvas() {
     sessions,
     activeSessionId,
     isSearching,
-    showLinksPanel,
     lists,
     pendingSearchQuery,
     closeSearch,
@@ -58,7 +56,6 @@ export function SearchCanvas() {
     removeSession,
     clearAllSessions,
     setSearching,
-    toggleLinksPanel,
     saveLink,
     createList,
     removeLink,
@@ -67,6 +64,7 @@ export function SearchCanvas() {
     sendSourceMessage,
     setActiveSource,
     setPendingSearchQuery,
+    syncFromSupabase,
   } = useSearchStore();
 
   const { toast } = useToast();
@@ -112,6 +110,11 @@ export function SearchCanvas() {
     });
     return urls;
   }, [lists]);
+
+  // Sync from Supabase on mount
+  useEffect(() => {
+    syncFromSupabase().catch(console.error);
+  }, []);
 
   // Focus search input on mount
   useEffect(() => {
@@ -240,16 +243,12 @@ export function SearchCanvas() {
     const date = new Date(timestamp);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    
+
     if (diff < 60000) return "Just now";
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
     return date.toLocaleDateString();
   };
-
-  const totalSavedLinks = useMemo(() => {
-    return lists.reduce((acc, list) => acc + list.links.length, 0);
-  }, [lists]);
 
   return (
     <div
@@ -279,22 +278,6 @@ export function SearchCanvas() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Links Panel Toggle */}
-          <Button
-            variant={showLinksPanel ? "secondary" : "ghost"}
-            size="sm"
-            onClick={toggleLinksPanel}
-            className="h-8 gap-1.5 text-xs"
-          >
-            <Link2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Links</span>
-            {totalSavedLinks > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-primary/20 text-primary rounded-full">
-                {totalSavedLinks}
-              </span>
-            )}
-          </Button>
-
           {/* Clear All */}
           {sessions.length > 0 && (
             <Button
