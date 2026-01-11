@@ -501,9 +501,15 @@ export function SearchCanvas() {
         {currentTab === 'saved' && (
           <LinksPanel
             lists={lists}
+            sessions={sessions}
             onRemoveLink={removeLink}
+            onSelectSession={(sessionId) => {
+              setActiveSession(sessionId);
+              if (activeSessionId) setCurrentTab(activeSessionId, 'search');
+            }}
             getFaviconUrl={getFaviconUrl}
             getHostname={getHostname}
+            formatTimestamp={formatTimestamp}
           />
         )}
 
@@ -947,25 +953,77 @@ function SessionDetail({
 // Links Panel Component
 function LinksPanel({
   lists,
+  sessions,
   onRemoveLink,
+  onSelectSession,
   getFaviconUrl,
   getHostname,
+  formatTimestamp,
 }: {
   lists: any[];
+  sessions: SearchSession[];
   onRemoveLink: (listId: string, linkId: string) => void;
+  onSelectSession: (sessionId: string) => void;
   getFaviconUrl: (url: string) => string | null;
   getHostname: (url: string) => string;
+  formatTimestamp: (timestamp: number) => string;
 }) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="px-4 py-3 border-b border-border/20 bg-muted/10">
-        <p className="text-sm font-medium text-foreground">Saved Links</p>
+        <p className="text-sm font-medium text-foreground">Saved & History</p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Organize your research
+          Your bookmarks and past searches
         </p>
       </div>
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-6">
+          {/* Past Searches Section */}
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary" />
+              Past Searches
+              <span className="text-xs text-muted-foreground font-normal">
+                ({sessions.length})
+              </span>
+            </h3>
+            {sessions.length === 0 ? (
+              <p className="text-xs text-muted-foreground pl-6">
+                No searches yet
+              </p>
+            ) : (
+              <div className="space-y-2 pl-6">
+                {sessions
+                  .slice()
+                  .reverse()
+                  .map((session) => (
+                    <motion.div
+                      key={session.id}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="group flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => onSelectSession(session.id)}
+                    >
+                      <div className="flex-shrink-0 w-4 h-4 mt-0.5">
+                        <Search className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground line-clamp-1">
+                          {session.query}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>{session.results.length} sources</span>
+                          <span>•</span>
+                          <span>{formatTimestamp(session.timestamp)}</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+              </div>
+            )}
+          </div>
+
+          {/* Saved Links Section */}
           {lists.map((list) => (
             <div key={list.id}>
               <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
