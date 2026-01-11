@@ -196,13 +196,18 @@ export function SearchCanvas() {
   };
 
   const handleSaveToList = (result: SearchResult, listId: string) => {
+    console.log('Saving link:', { result, listId, lists });
     saveLink({
       title: result.title,
       url: result.url,
       snippet: result.snippet,
       listId,
     });
-    toast({ title: `Saved to ${lists.find((l) => l.id === listId)?.name}` });
+    const listName = lists.find((l) => l.id === listId)?.name;
+    toast({
+      title: listName ? `Saved to ${listName}` : 'Link saved',
+      description: result.title
+    });
   };
 
   const handleCreateListAndSave = () => {
@@ -732,8 +737,8 @@ function SessionDetail({
   return (
     <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
       {/* Summary Panel */}
-      <div className="flex-1 flex flex-col overflow-hidden md:border-r border-border/20">
-        <div className="px-4 py-2 border-b border-border/20 glass-shimmer flex items-center justify-between">
+      <div className="flex-1 flex flex-col overflow-hidden md:border-r border-border/20 min-h-[40vh] md:min-h-0">
+        <div className="px-4 py-2 border-b border-border/20 glass-shimmer flex items-center justify-between flex-shrink-0">
           <div className="flex-1 min-w-0 mr-2">
             <p className="text-xs font-medium text-muted-foreground">Summary</p>
             <p className="text-sm font-medium text-foreground mt-0.5">
@@ -828,8 +833,8 @@ function SessionDetail({
       </div>
 
       {/* Sources Panel */}
-      <div className="w-full md:w-80 flex-shrink-0 flex flex-col overflow-hidden border-t md:border-t-0 border-border/20">
-        <div className="px-4 py-2 border-b border-border/20 glass-shimmer">
+      <div className="w-full md:w-80 flex-shrink-0 flex flex-col overflow-hidden border-t md:border-t-0 border-border/20 flex-1 md:flex-initial">
+        <div className="px-4 py-2 border-b border-border/20 glass-shimmer flex-shrink-0">
           <p className="text-xs font-medium text-muted-foreground">
             Sources ({session.results.length})
           </p>
@@ -901,25 +906,37 @@ function SessionDetail({
                               )}
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            {lists.map((list) => (
-                              <DropdownMenuItem
-                                key={list.id}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onSaveToList(result, list.id);
-                                }}
-                              >
-                                <Bookmark className="w-3.5 h-3.5 mr-2" />
-                                {list.name}
-                              </DropdownMenuItem>
-                            ))}
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-48"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {lists.length === 0 ? (
+                              <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                                No lists available
+                              </div>
+                            ) : (
+                              lists.map((list) => (
+                                <DropdownMenuItem
+                                  key={list.id}
+                                  onSelect={(e) => {
+                                    e.preventDefault();
+                                    onSaveToList(result, list.id);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Bookmark className="w-3.5 h-3.5 mr-2" />
+                                  {list.name}
+                                </DropdownMenuItem>
+                              ))
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              onSelect={(e) => {
+                                e.preventDefault();
                                 onNewList(result);
                               }}
+                              onClick={(e) => e.stopPropagation()}
                             >
                               <FolderPlus className="w-3.5 h-3.5 mr-2" />
                               New List...
