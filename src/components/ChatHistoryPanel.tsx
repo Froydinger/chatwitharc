@@ -237,6 +237,16 @@ export function ChatHistoryPanel() {
           <Plus className="h-4 w-4 mr-2" />
           New chat
         </button>
+        <button
+          onClick={() => {
+            openSearchMode();
+            goToChat();
+          }}
+          className="w-full h-12 rounded-full glass-shimmer ring-[0.5px] ring-orange-500/60 inline-flex items-center justify-center text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98] text-orange-400 !shadow-[0_4px_16px_rgba(0,0,0,.2),0_0_8px_rgba(249,115,22,.2)]"
+        >
+          <Search className="h-4 w-4 mr-2" />
+          Search Mode
+        </button>
         <QuoteOfDayModal />
       </div>
 
