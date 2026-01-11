@@ -440,14 +440,7 @@ export function SearchCanvas() {
         </div>
 
         {/* Main Content */}
-        {showLinksPanel ? (
-          <LinksPanel
-            lists={lists}
-            onRemoveLink={removeLink}
-            getFaviconUrl={getFaviconUrl}
-            getHostname={getHostname}
-          />
-        ) : activeSession ? (
+        {currentTab === 'search' && activeSession && (
           <SessionDetail
             session={activeSession}
             savedUrls={savedUrls}
@@ -465,16 +458,107 @@ export function SearchCanvas() {
               setSearchQuery(query);
               searchInputRef.current?.focus();
             }}
+            onStartChat={(source) => {
+              if (activeSessionId) {
+                startSourceChat(activeSessionId, source);
+              }
+            }}
             getFaviconUrl={getFaviconUrl}
             getHostname={getHostname}
           />
-        ) : (
+        )}
+
+        {currentTab === 'chats' && activeSession && (
+          <ChatsView
+            session={activeSession}
+            onBack={() => activeSessionId && setCurrentTab(activeSessionId, 'search')}
+            onSendMessage={(sourceUrl, message) => {
+              if (activeSessionId) {
+                sendSourceMessage(activeSessionId, sourceUrl, message);
+              }
+            }}
+            onSelectSource={(sourceUrl) => {
+              if (activeSessionId) {
+                setActiveSource(activeSessionId, sourceUrl);
+              }
+            }}
+            getFaviconUrl={getFaviconUrl}
+            getHostname={getHostname}
+          />
+        )}
+
+        {currentTab === 'saved' && (
+          <LinksPanel
+            lists={lists}
+            onRemoveLink={removeLink}
+            getFaviconUrl={getFaviconUrl}
+            getHostname={getHostname}
+          />
+        )}
+
+        {!activeSession && (
           <EmptyState onSearch={(q) => {
             setSearchQuery(q);
             searchInputRef.current?.focus();
           }} />
         )}
       </div>
+
+      {/* Mobile Bottom Tab Bar */}
+      {activeSession && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border/30 safe-area-inset-bottom z-50">
+          <div className="flex items-center justify-around px-2">
+            <button
+              onClick={() => activeSessionId && setCurrentTab(activeSessionId, 'search')}
+              className={cn(
+                "flex flex-col items-center gap-1 px-4 py-2 text-xs font-medium transition-all flex-1",
+                currentTab === 'search'
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              )}
+            >
+              <Search className="w-5 h-5" />
+              <span>Search</span>
+            </button>
+
+            <button
+              onClick={() => activeSessionId && setCurrentTab(activeSessionId, 'chats')}
+              className={cn(
+                "flex flex-col items-center gap-1 px-4 py-2 text-xs font-medium transition-all flex-1 relative",
+                currentTab === 'chats'
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              )}
+            >
+              <MessageSquare className="w-5 h-5" />
+              <span>Chats</span>
+              {chatCount > 0 && (
+                <span className="absolute top-1 right-1/4 px-1.5 py-0.5 text-[10px] bg-primary text-primary-foreground rounded-full">
+                  {chatCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => activeSessionId && setCurrentTab(activeSessionId, 'saved')}
+              className={cn(
+                "flex flex-col items-center gap-1 px-4 py-2 text-xs font-medium transition-all flex-1 relative",
+                currentTab === 'saved'
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              )}
+            >
+              <Bookmark className="w-5 h-5" />
+              <span>Saved</span>
+              {totalSavedLinks > 0 && (
+                <span className="absolute top-1 right-1/4 px-1.5 py-0.5 text-[10px] bg-primary text-primary-foreground rounded-full">
+                  {totalSavedLinks}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* New List Dialog */}
       <Dialog open={showNewListDialog} onOpenChange={setShowNewListDialog}>
@@ -584,6 +668,7 @@ function SessionDetail({
   onSaveToList,
   onNewList,
   onRelatedSearch,
+  onStartChat,
   getFaviconUrl,
   getHostname,
 }: {
@@ -597,6 +682,7 @@ function SessionDetail({
   onSaveToList: (result: SearchResult, listId: string) => void;
   onNewList: (result: SearchResult) => void;
   onRelatedSearch: (query: string) => void;
+  onStartChat: (source: SearchResult) => void;
   getFaviconUrl: (url: string) => string | null;
   getHostname: (url: string) => string;
 }) {
@@ -797,6 +883,19 @@ function SessionDetail({
                           className="h-6 w-6 p-0"
                           onClick={(e) => {
                             e.stopPropagation();
+                            onStartChat(result);
+                          }}
+                          title="Chat about this source"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
                             window.open(result.url, "_blank");
                           }}
                         >
@@ -916,6 +1015,248 @@ function LinksPanel({
           ))}
         </div>
       </ScrollArea>
+    </div>
+  );
+}
+
+// Chats View Component
+function ChatsView({
+  session,
+  onBack,
+  onSendMessage,
+  onSelectSource,
+  getFaviconUrl,
+  getHostname,
+}: {
+  session: SearchSession;
+  onBack: () => void;
+  onSendMessage: (sourceUrl: string, message: string) => void;
+  onSelectSource: (sourceUrl: string) => void;
+  getFaviconUrl: (url: string) => string | null;
+  getHostname: (url: string) => string;
+}) {
+  const [messageInput, setMessageInput] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const sourceConversations = session.sourceConversations || {};
+  const activeSourceUrl = session.activeSourceUrl;
+  const activeConversation = activeSourceUrl ? sourceConversations[activeSourceUrl] : null;
+
+  // Get array of sources with conversations
+  const sourcesWithChats = Object.values(sourceConversations);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [activeConversation?.messages]);
+
+  const handleSend = () => {
+    if (!messageInput.trim() || !activeSourceUrl) return;
+    onSendMessage(activeSourceUrl, messageInput);
+    setMessageInput("");
+  };
+
+  return (
+    <div className="flex-1 flex overflow-hidden">
+      {/* Sources with Conversations List */}
+      <div className="w-72 flex-shrink-0 border-r border-border/20 flex flex-col overflow-hidden bg-muted/5">
+        <div className="px-4 py-3 border-b border-border/20 bg-muted/10">
+          <p className="text-sm font-medium text-foreground">Conversations</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {sourcesWithChats.length} {sourcesWithChats.length === 1 ? 'source' : 'sources'}
+          </p>
+        </div>
+
+        <ScrollArea className="flex-1">
+          {sourcesWithChats.length === 0 ? (
+            <div className="px-4 py-8 text-center">
+              <MessageSquare className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
+              <p className="text-xs text-muted-foreground">
+                No conversations yet
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Click the chat icon on any source
+              </p>
+            </div>
+          ) : (
+            <div className="p-2 space-y-1">
+              {sourcesWithChats.map((conv) => {
+                const isActive = conv.sourceUrl === activeSourceUrl;
+                const messageCount = conv.messages.length;
+                const lastMessage = conv.messages[conv.messages.length - 1];
+
+                return (
+                  <motion.div
+                    key={conv.sourceUrl}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={cn(
+                      "group relative rounded-lg p-3 cursor-pointer transition-all",
+                      isActive
+                        ? "bg-primary/10 border border-primary/30"
+                        : "hover:bg-muted/50 border border-transparent"
+                    )}
+                    onClick={() => onSelectSource(conv.sourceUrl)}
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="flex-shrink-0 w-5 h-5 mt-0.5">
+                        {getFaviconUrl(conv.sourceUrl) ? (
+                          <img
+                            src={getFaviconUrl(conv.sourceUrl)!}
+                            alt=""
+                            className="w-5 h-5 rounded"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <Globe className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <h4 className={cn(
+                          "text-sm font-medium line-clamp-1 leading-snug",
+                          isActive ? "text-primary" : "text-foreground"
+                        )}>
+                          {conv.sourceTitle}
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {getHostname(conv.sourceUrl)}
+                        </p>
+                        {lastMessage && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                            {lastMessage.role === 'user' ? 'You: ' : 'Arc: '}
+                            {lastMessage.content}
+                          </p>
+                        )}
+                      </div>
+
+                      <span className="px-1.5 py-0.5 text-[10px] bg-muted text-muted-foreground rounded-full">
+                        {messageCount}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+
+      {/* Active Conversation */}
+      {activeConversation ? (
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Conversation Header */}
+          <div className="px-4 py-3 border-b border-border/20 bg-muted/10 flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              className="h-8 w-8 p-0 md:hidden"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground line-clamp-1">
+                {activeConversation.sourceTitle}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {getHostname(activeConversation.sourceUrl)}
+              </p>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.open(activeConversation.sourceUrl, "_blank")}
+              className="h-8 gap-1.5 text-xs"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Visit</span>
+            </Button>
+          </div>
+
+          {/* Messages */}
+          <ScrollArea className="flex-1 px-4 py-4">
+            {/* Source Context Card */}
+            <div className="mb-4 p-3 rounded-lg bg-muted/30 border border-border/30">
+              <p className="text-xs text-muted-foreground mb-1">About this source:</p>
+              <p className="text-sm text-foreground">{activeConversation.sourceSnippet}</p>
+            </div>
+
+            {/* Messages */}
+            <div className="space-y-3">
+              {activeConversation.messages.map((message) => (
+                <motion.div
+                  key={message.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn(
+                    "flex",
+                    message.role === 'user' ? "justify-end" : "justify-start"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "max-w-[80%] rounded-2xl px-4 py-2.5",
+                      message.role === 'user'
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground"
+                    )}
+                  >
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                      {message.content}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+
+          {/* Input */}
+          <div className="p-4 border-t border-border/20 bg-background">
+            <div className="flex items-end gap-2">
+              <div className="flex-1 relative">
+                <Input
+                  value={messageInput}
+                  onChange={(e) => setMessageInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder="Ask about this source..."
+                  className="pr-10 resize-none"
+                />
+              </div>
+              <Button
+                onClick={handleSend}
+                disabled={!messageInput.trim()}
+                size="sm"
+                className="h-10 w-10 p-0"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center max-w-md">
+            <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              No Conversation Selected
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Select a source conversation from the list to continue chatting
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
