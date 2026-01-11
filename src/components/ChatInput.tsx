@@ -584,8 +584,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     // Search mode - just open the search canvas (blank or with a query)
     if (wasSearchMode) {
       const searchQuery = extractPrefixPrompt(userMessage);
-      openSearchMode(); // Opens blank search canvas
-      // User can search from within the canvas
+      openSearchMode(searchQuery || undefined); // Opens search canvas with query
+      // Canvas will auto-search if query provided
       return;
     }
 

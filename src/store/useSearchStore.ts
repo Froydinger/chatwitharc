@@ -56,21 +56,23 @@ export interface SearchSession {
 interface SearchState {
   isOpen: boolean;
   isSearching: boolean;
-  
+
   // Session-based search
   sessions: SearchSession[];
   activeSessionId: string | null;
-  
+
   // Link lists
   lists: LinkList[];
-  
+
   // View state
   showLinksPanel: boolean;
-  
+  pendingSearchQuery: string | null; // Query to auto-search when canvas opens
+
   // Actions
   openSearchMode: (initialQuery?: string, initialResults?: SearchResult[], initialContent?: string) => void;
   closeSearch: () => void;
   setSearching: (isSearching: boolean) => void;
+  setPendingSearchQuery: (query: string | null) => void;
   
   // Session actions
   addSession: (query: string, results: SearchResult[], formattedContent: string, relatedQueries?: string[]) => string;
@@ -110,6 +112,7 @@ export const useSearchStore = create<SearchState>()(
       sessions: [],
       activeSessionId: null,
       showLinksPanel: false,
+      pendingSearchQuery: null,
       lists: [
         {
           id: 'default',
@@ -155,22 +158,28 @@ export const useSearchStore = create<SearchState>()(
             sessions: [...state.sessions, newSession],
             activeSessionId: sessionId,
             isSearching: false,
+            pendingSearchQuery: null,
           });
         } else {
-          // Open blank search mode - clear active session so it starts fresh
+          // Open blank search mode - set pending query if provided
           set({
             isOpen: true,
             activeSessionId: null,
+            pendingSearchQuery: initialQuery || null,
           });
         }
       },
 
       closeSearch: () => {
-        set({ isOpen: false });
+        set({ isOpen: false, pendingSearchQuery: null });
       },
 
       setSearching: (isSearching) => {
         set({ isSearching });
+      },
+
+      setPendingSearchQuery: (query) => {
+        set({ pendingSearchQuery: query });
       },
 
       addSession: (query, results, formattedContent, relatedQueries) => {
