@@ -81,6 +81,15 @@ export function SearchCanvas() {
     return sessions.find((s) => s.id === activeSessionId) || null;
   }, [sessions, activeSessionId]);
 
+  // Current tab for active session
+  const currentTab = activeSession?.currentTab || 'search';
+
+  // Count of sources with conversations
+  const chatCount = useMemo(() => {
+    if (!activeSession?.sourceConversations) return 0;
+    return Object.keys(activeSession.sourceConversations).length;
+  }, [activeSession]);
+
   // Track which links are already saved
   const savedUrls = useMemo(() => {
     const urls = new Set<string>();
@@ -316,8 +325,85 @@ export function SearchCanvas() {
         </div>
       </div>
 
+      {/* Tab Bar - Desktop (top) / Mobile (bottom) */}
+      {activeSession && (
+        <div className="border-b border-border/20 bg-background/50 md:block hidden">
+          <div className="flex items-center justify-center gap-1 px-4">
+            <button
+              onClick={() => activeSessionId && setCurrentTab(activeSessionId, 'search')}
+              className={cn(
+                "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all relative",
+                currentTab === 'search'
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Search className="w-4 h-4" />
+              <span>Search</span>
+              {currentTab === 'search' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+            </button>
+
+            <button
+              onClick={() => activeSessionId && setCurrentTab(activeSessionId, 'chats')}
+              className={cn(
+                "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all relative",
+                currentTab === 'chats'
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>Chats</span>
+              {chatCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-primary/20 text-primary rounded-full">
+                  {chatCount}
+                </span>
+              )}
+              {currentTab === 'chats' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+            </button>
+
+            <button
+              onClick={() => activeSessionId && setCurrentTab(activeSessionId, 'saved')}
+              className={cn(
+                "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all relative",
+                currentTab === 'saved'
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Bookmark className="w-4 h-4" />
+              <span>Saved</span>
+              {totalSavedLinks > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-primary/20 text-primary rounded-full">
+                  {totalSavedLinks}
+                </span>
+              )}
+              {currentTab === 'saved' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         {/* Left Sidebar - Sessions */}
         <div className="w-64 flex-shrink-0 border-r border-border/20 flex flex-col bg-muted/5">
           <div className="px-3 py-2 border-b border-border/20">
