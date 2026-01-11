@@ -157,8 +157,11 @@ export const useSearchStore = create<SearchState>()(
             isSearching: false,
           });
         } else {
-          // Open blank search mode (user can search from within)
-          set({ isOpen: true });
+          // Open blank search mode - clear active session so it starts fresh
+          set({
+            isOpen: true,
+            activeSessionId: null,
+          });
         }
       },
 

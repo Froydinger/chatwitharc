@@ -403,9 +403,9 @@ export function SearchCanvas() {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden relative">
-        {/* Left Sidebar - Sessions */}
-        <div className="w-64 flex-shrink-0 border-r border-border/20 flex flex-col bg-muted/5">
+      <div className="flex-1 flex overflow-hidden relative pb-16 md:pb-0">
+        {/* Left Sidebar - Sessions (hidden on mobile) */}
+        <div className="hidden md:flex w-64 flex-shrink-0 border-r border-border/20 flex-col bg-muted/5">
           <div className="px-3 py-2 border-b border-border/20">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Search History ({sessions.length})
