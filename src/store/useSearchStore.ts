@@ -52,6 +52,7 @@ export interface SearchSession {
   sourceConversations?: Record<string, SourceConversation>; // key = url
   activeSourceUrl?: string | null;
   currentTab?: 'search' | 'chats' | 'saved';
+  summaryConversation?: SourceMessage[]; // Follow-up conversation within the summary
 }
 
 interface SearchState {
@@ -99,6 +100,10 @@ interface SearchState {
   sendSourceMessage: (sessionId: string, sourceUrl: string, message: string, isLoading?: boolean) => Promise<void>;
   addSourceMessage: (sessionId: string, sourceUrl: string, message: SourceMessage) => void;
   setActiveSource: (sessionId: string, sourceUrl: string | null) => void;
+
+  // Summary conversation actions
+  sendSummaryMessage: (sessionId: string, message: string) => Promise<void>;
+  addSummaryMessage: (sessionId: string, message: SourceMessage) => void;
 
   // Supabase sync
   syncToSupabase: () => Promise<void>;
@@ -517,6 +522,83 @@ export const useSearchStore = create<SearchState>()(
             s.id === sessionId ? { ...s, activeSourceUrl: sourceUrl } : s
           ),
         }));
+      },
+
+      // Summary conversation actions
+      sendSummaryMessage: async (sessionId, message) => {
+        const state = get();
+        const session = state.sessions.find((s) => s.id === sessionId);
+        if (!session) return;
+
+        // Add user message
+        const userMessage: SourceMessage = {
+          id: crypto.randomUUID(),
+          content: message,
+          role: 'user',
+          timestamp: Date.now(),
+        };
+
+        get().addSummaryMessage(sessionId, userMessage);
+
+        try {
+          // Build context from all search results
+          const resultsContext = session.results
+            .map(r => `Title: ${r.title}\nURL: ${r.url}\nSnippet: ${r.snippet}`)
+            .join('\n\n');
+
+          const contextPrompt = `You are having a conversation about this search summary for "${session.query}":\n\n${session.formattedContent}\n\nSearch Results:\n${resultsContext}\n\nUser: ${message}`;
+
+          const { data, error } = await supabase.functions.invoke('chat', {
+            body: {
+              messages: [
+                ...(session.summaryConversation?.map(m => ({
+                  role: m.role,
+                  content: m.content,
+                })) || []),
+                { role: 'user', content: contextPrompt },
+              ],
+            },
+          });
+
+          if (error) throw error;
+
+          const assistantMessage: SourceMessage = {
+            id: crypto.randomUUID(),
+            content: data?.choices?.[0]?.message?.content || 'Sorry, I could not respond.',
+            role: 'assistant',
+            timestamp: Date.now(),
+          };
+
+          get().addSummaryMessage(sessionId, assistantMessage);
+        } catch (error) {
+          console.error('Summary chat error:', error);
+          const errorMessage: SourceMessage = {
+            id: crypto.randomUUID(),
+            content: 'Sorry, I encountered an error. Please try again.',
+            role: 'assistant',
+            timestamp: Date.now(),
+          };
+          get().addSummaryMessage(sessionId, errorMessage);
+        }
+      },
+
+      addSummaryMessage: (sessionId, message) => {
+        set((state) => ({
+          sessions: state.sessions.map((s) => {
+            if (s.id !== sessionId) return s;
+
+            return {
+              ...s,
+              summaryConversation: [...(s.summaryConversation || []), message],
+            };
+          }),
+        }));
+
+        // Update in Supabase
+        const session = get().sessions.find(s => s.id === sessionId);
+        if (session) {
+          get().saveSessionToSupabase(session).catch(console.error);
+        }
       },
 
       // Supabase sync functions
