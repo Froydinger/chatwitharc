@@ -1007,10 +1007,7 @@ function SessionDetail({
                         </p>
                       </div>
 
-                      <div className={cn(
-                        "flex items-center gap-1 transition-opacity",
-                        openDropdownId === result.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                      )}>
+                      <div className="flex items-center gap-1">
                         <DropdownMenu
                           onOpenChange={(open) => {
                             setOpenDropdownId(open ? result.id : null);
@@ -1020,7 +1017,12 @@ function SessionDetail({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 w-6 p-0"
+                              className={cn(
+                                "h-6 w-6 p-0 transition-opacity",
+                                openDropdownId === result.id
+                                  ? "opacity-100"
+                                  : "opacity-70 hover:opacity-100 md:opacity-50 md:group-hover:opacity-100"
+                              )}
                               onClick={(e) => e.stopPropagation()}
                             >
                               {isSaved ? (
@@ -1071,7 +1073,7 @@ function SessionDetail({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0"
+                          className="h-6 w-6 p-0 opacity-70 hover:opacity-100 md:opacity-50 md:group-hover:opacity-100 transition-opacity"
                           onClick={(e) => {
                             e.stopPropagation();
                             onStartChat(result);
@@ -1084,7 +1086,7 @@ function SessionDetail({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0"
+                          className="h-6 w-6 p-0 opacity-70 hover:opacity-100 md:opacity-50 md:group-hover:opacity-100 transition-opacity"
                           onClick={(e) => {
                             e.stopPropagation();
                             window.open(result.url, "_blank");
