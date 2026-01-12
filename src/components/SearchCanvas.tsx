@@ -413,6 +413,38 @@ export function SearchCanvas() {
             <button
               onClick={() => {
                 if (activeSessionId) {
+                  setCurrentTab(activeSessionId, 'history');
+                } else {
+                  // Show history tab without needing an active session
+                  setCurrentTab('temp', 'history');
+                }
+              }}
+              className={cn(
+                "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all relative",
+                currentTab === 'history'
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Clock className="w-4 h-4" />
+              <span>History</span>
+              {sessions.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-primary/20 text-primary rounded-full">
+                  {sessions.length}
+                </span>
+              )}
+              {currentTab === 'history' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                if (activeSessionId) {
                   setCurrentTab(activeSessionId, 'chats');
                 } else if (sessions.length > 0) {
                   setActiveSession(sessions[sessions.length - 1].id);
@@ -536,6 +568,18 @@ export function SearchCanvas() {
           />
         )}
 
+        {currentTab === 'history' && (
+          <HistoryView
+            sessions={sessions}
+            onSelectSession={(sessionId) => {
+              setActiveSession(sessionId);
+              setCurrentTab(sessionId, 'search');
+            }}
+            onRemoveSession={removeSession}
+            formatTimestamp={formatTimestamp}
+          />
+        )}
+
         {currentTab === 'chats' && activeSession && (
           <ChatsView
             session={activeSession}
@@ -570,7 +614,7 @@ export function SearchCanvas() {
           />
         )}
 
-        {!activeSession && currentTab !== 'saved' && (
+        {!activeSession && currentTab !== 'saved' && currentTab !== 'history' && (
           <EmptyState onSearch={(q) => {
             setSearchQuery(q);
             searchInputRef.current?.focus();
@@ -601,6 +645,31 @@ export function SearchCanvas() {
             >
               <Search className="w-5 h-5" />
               <span>Search</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (activeSessionId) {
+                  setCurrentTab(activeSessionId, 'history');
+                } else {
+                  // Show history tab without needing an active session
+                  setCurrentTab('temp', 'history');
+                }
+              }}
+              className={cn(
+                "flex flex-col items-center gap-1 px-4 py-2 text-xs font-medium transition-all flex-1 relative",
+                currentTab === 'history'
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              )}
+            >
+              <Clock className="w-5 h-5" />
+              <span>History</span>
+              {sessions.length > 0 && (
+                <span className="absolute top-1 right-1/4 px-1.5 py-0.5 text-[10px] bg-primary text-primary-foreground rounded-full">
+                  {sessions.length}
+                </span>
+              )}
             </button>
 
             <button
@@ -1429,6 +1498,99 @@ function ChatsView({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// History View Component
+function HistoryView({
+  sessions,
+  onSelectSession,
+  onRemoveSession,
+  formatTimestamp,
+}: {
+  sessions: SearchSession[];
+  onSelectSession: (sessionId: string) => void;
+  onRemoveSession: (sessionId: string) => void;
+  formatTimestamp: (timestamp: number) => string;
+}) {
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-4 py-3 border-b border-border/20 glass-shimmer">
+        <p className="text-sm font-medium text-foreground">Search History</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {sessions.length} {sessions.length === 1 ? 'search' : 'searches'}
+        </p>
+      </div>
+      <ScrollArea className="flex-1">
+        {sessions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-8 h-full">
+            <Clock className="w-12 h-12 text-muted-foreground/50 mb-3" />
+            <p className="text-sm text-muted-foreground">No search history yet</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Your past searches will appear here
+            </p>
+          </div>
+        ) : (
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {sessions
+              .slice()
+              .reverse()
+              .map((session, index) => (
+                <motion.div
+                  key={session.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.02 }}
+                  className="group relative rounded-lg p-4 border border-border/40 bg-card/50 hover:bg-card/80 hover:border-primary/30 transition-all cursor-pointer"
+                  onClick={() => onSelectSession(session.id)}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Search className="w-4 h-4 text-primary" />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveSession(session.id);
+                      }}
+                    >
+                      <X className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
+                    </Button>
+                  </div>
+
+                  <h3 className="text-sm font-medium text-foreground line-clamp-2 leading-snug mb-2">
+                    {session.query}
+                  </h3>
+
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Globe className="w-3 h-3" />
+                      {session.results.length} {session.results.length === 1 ? 'source' : 'sources'}
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatTimestamp(session.timestamp)}
+                    </span>
+                  </div>
+
+                  {session.sourceConversations && Object.keys(session.sourceConversations).length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-border/20">
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MessageSquare className="w-3 h-3" />
+                        {Object.keys(session.sourceConversations).length} {Object.keys(session.sourceConversations).length === 1 ? 'conversation' : 'conversations'}
+                      </span>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+          </div>
+        )}
+      </ScrollArea>
     </div>
   );
 }
