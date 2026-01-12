@@ -539,7 +539,10 @@ Provide a comprehensive answer based on current information. Synthesize what you
                       key={session.id}
                       session={session}
                       isActive={session.id === activeSessionId}
-                      onSelect={() => setActiveSession(session.id)}
+                      onSelect={() => {
+                        setActiveSession(session.id);
+                        setCurrentTab(session.id, 'search');
+                      }}
                       onRemove={() => removeSession(session.id)}
                       formatTimestamp={formatTimestamp}
                     />
