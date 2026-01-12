@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useSearchStore, SearchResult, SearchSession } from "@/store/useSearchStore";
+import { useMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,6 +76,10 @@ export function SearchCanvas() {
   const [newListName, setNewListName] = useState("");
   const [showNewListDialog, setShowNewListDialog] = useState(false);
   const [pendingSaveResult, setPendingSaveResult] = useState<SearchResult | null>(null);
+  const [showClearAllDialog, setShowClearAllDialog] = useState(false);
+  const [followUpInput, setFollowUpInput] = useState("");
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
+  const [sourcesExpanded, setSourcesExpanded] = useState(false);
 
   // Track if running as PWA or Electron app for traffic lights spacing
   const [isPWAMode, setIsPWAMode] = useState(false);
@@ -318,7 +323,7 @@ Provide a comprehensive answer based on current information. Synthesize what you
             <Button
               variant="ghost"
               size="sm"
-              onClick={clearAllSessions}
+              onClick={() => setShowClearAllDialog(true)}
               className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -568,6 +573,30 @@ Provide a comprehensive answer based on current information. Synthesize what you
                 startSourceChat(activeSessionId, source);
               }
             }}
+            followUpInput={followUpInput}
+            setFollowUpInput={setFollowUpInput}
+            onFollowUp={(message) => {
+              if (activeSessionId) {
+                // Create a "follow-up" conversation based on the search
+                const followUpSource: SearchResult = {
+                  id: `followup-${Date.now()}`,
+                  title: `Follow-up: ${session.query}`,
+                  url: window.location.href,
+                  snippet: session.formattedContent.slice(0, 200)
+                };
+                startSourceChat(activeSessionId, followUpSource);
+                // Send the follow-up message
+                setTimeout(() => {
+                  sendSourceMessage(activeSessionId, followUpSource.url, message);
+                  setFollowUpInput("");
+                  setCurrentTab(activeSessionId, 'chats');
+                }, 100);
+              }
+            }}
+            summaryExpanded={summaryExpanded}
+            setSummaryExpanded={setSummaryExpanded}
+            sourcesExpanded={sourcesExpanded}
+            setSourcesExpanded={setSourcesExpanded}
             getFaviconUrl={getFaviconUrl}
             getHostname={getHostname}
           />
@@ -612,6 +641,24 @@ Provide a comprehensive answer based on current information. Synthesize what you
             onSelectSession={(sessionId) => {
               setActiveSession(sessionId);
               setCurrentTab(sessionId, 'search');
+            }}
+            onStartChat={(link) => {
+              // Create a temporary search result from the saved link
+              const linkAsResult: SearchResult = {
+                id: link.id,
+                title: link.title,
+                url: link.url,
+                snippet: ""
+              };
+              // Find a session to attach the chat to, or create a temp one
+              const sessionId = sessions.length > 0 ? sessions[sessions.length - 1].id : 'temp';
+              if (sessions.length > 0) {
+                startSourceChat(sessionId, linkAsResult);
+                setActiveSession(sessionId);
+                setCurrentTab(sessionId, 'chats');
+              } else {
+                toast({ title: "Create a search first", description: "You need at least one search session to start a chat", variant: "destructive" });
+              }
             }}
             getFaviconUrl={getFaviconUrl}
             getHostname={getHostname}
@@ -758,6 +805,63 @@ Provide a comprehensive answer based on current information. Synthesize what you
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Clear All Confirmation Dialog */}
+      <Dialog open={showClearAllDialog} onOpenChange={setShowClearAllDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              Clear All Search Data?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-sm font-semibold text-destructive mb-2">⚠️ Warning: This action cannot be undone!</p>
+              <p className="text-sm text-muted-foreground">
+                This will permanently delete:
+              </p>
+              <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-destructive">•</span>
+                  <span>All {sessions.length} search {sessions.length === 1 ? 'session' : 'sessions'}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-destructive">•</span>
+                  <span>All search summaries and results</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-destructive">•</span>
+                  <span>All conversations with sources (in Chats tab)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-destructive">•</span>
+                  <span>Search history from Supabase (if synced)</span>
+                </li>
+              </ul>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Your saved bookmarks will NOT be deleted.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowClearAllDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                clearAllSessions();
+                setShowClearAllDialog(false);
+                toast({ title: "All search data cleared" });
+              }}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Yes, Delete Everything
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -839,6 +943,13 @@ function SessionDetail({
   onNewList,
   onRelatedSearch,
   onStartChat,
+  followUpInput,
+  setFollowUpInput,
+  onFollowUp,
+  summaryExpanded,
+  setSummaryExpanded,
+  sourcesExpanded,
+  setSourcesExpanded,
   getFaviconUrl,
   getHostname,
 }: {
@@ -853,35 +964,70 @@ function SessionDetail({
   onNewList: (result: SearchResult) => void;
   onRelatedSearch: (query: string) => void;
   onStartChat: (source: SearchResult) => void;
+  followUpInput: string;
+  setFollowUpInput: (value: string) => void;
+  onFollowUp: (message: string) => void;
+  summaryExpanded: boolean;
+  setSummaryExpanded: (value: boolean) => void;
+  sourcesExpanded: boolean;
+  setSourcesExpanded: (value: boolean) => void;
   getFaviconUrl: (url: string) => string | null;
   getHostname: (url: string) => string;
 }) {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const { isMobile } = useMobile();
+
+  // On mobile, hide the opposite panel when one is expanded
+  const showSummary = !isMobile || !sourcesExpanded;
+  const showSources = !isMobile || !summaryExpanded;
 
   return (
     <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
       {/* Summary Panel */}
-      <div className="flex-1 flex flex-col overflow-hidden md:border-r border-border/20 min-h-[40vh] md:min-h-0">
-        <div className="px-4 py-2 border-b border-border/20 glass-shimmer flex items-center justify-between flex-shrink-0">
-          <div className="flex-1 min-w-0 mr-2">
-            <p className="text-xs font-medium text-muted-foreground">Summary</p>
-            <p className="text-sm font-medium text-foreground mt-0.5">
-              {session.query}
-            </p>
+      {showSummary && (
+        <div className={cn(
+          "flex flex-col overflow-hidden md:border-r border-border/20",
+          summaryExpanded ? "flex-1" : "flex-1",
+          isMobile && summaryExpanded ? "h-full" : "min-h-[40vh] md:min-h-0"
+        )}>
+          <div className="px-4 py-2 border-b border-border/20 glass-shimmer flex items-center justify-between flex-shrink-0">
+            <div className="flex-1 min-w-0 mr-2">
+              <p className="text-xs font-medium text-muted-foreground">Summary</p>
+              <p className="text-sm font-medium text-foreground mt-0.5 line-clamp-1">
+                {session.query}
+              </p>
+            </div>
+            <div className="flex items-center gap-1">
+              {/* Mobile expand button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSummaryExpanded(!summaryExpanded);
+                  if (!summaryExpanded) setSourcesExpanded(false);
+                }}
+                className="h-8 w-8 p-0 md:hidden"
+              >
+                {summaryExpanded ? (
+                  <ChevronRight className="w-4 h-4" />
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onCopy}
+                className="h-8 w-8 p-0"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-primary" />
+                ) : (
+                  <Copy className="w-4 h-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onCopy}
-            className="h-8 w-8 p-0"
-          >
-            {copied ? (
-              <Check className="w-4 h-4 text-primary" />
-            ) : (
-              <Copy className="w-4 h-4 text-muted-foreground" />
-            )}
-          </Button>
-        </div>
         <ScrollArea className="flex-1">
           <div className="px-4 py-4">
             <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -954,15 +1100,68 @@ function SessionDetail({
             )}
           </div>
         </ScrollArea>
-      </div>
 
-      {/* Sources Panel */}
-      <div className="w-full md:w-80 flex-shrink-0 flex flex-col overflow-hidden border-t md:border-t-0 border-border/20 flex-1 md:flex-initial">
-        <div className="px-4 py-2 border-b border-border/20 glass-shimmer flex-shrink-0">
-          <p className="text-xs font-medium text-muted-foreground">
-            Sources ({session.results.length})
+        {/* Follow-up Input Bar */}
+        <div className="p-3 border-t border-border/20 bg-muted/30 flex-shrink-0">
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Input
+                value={followUpInput}
+                onChange={(e) => setFollowUpInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && followUpInput.trim()) {
+                    e.preventDefault();
+                    onFollowUp(followUpInput);
+                  }
+                }}
+                placeholder="Ask a follow-up question..."
+                className="text-sm"
+              />
+            </div>
+            <Button
+              onClick={() => followUpInput.trim() && onFollowUp(followUpInput)}
+              disabled={!followUpInput.trim()}
+              size="sm"
+              className="h-9"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1.5">
+            Start a conversation about this search summary
           </p>
         </div>
+      </div>
+      )}
+
+      {/* Sources Panel */}
+      {showSources && (
+        <div className={cn(
+          "flex-shrink-0 flex flex-col overflow-hidden border-t md:border-t-0 border-border/20",
+          sourcesExpanded ? "flex-1" : "w-full md:w-80",
+          isMobile && sourcesExpanded ? "h-full" : "md:flex-initial"
+        )}>
+          <div className="px-4 py-2 border-b border-border/20 glass-shimmer flex-shrink-0 flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground">
+              Sources ({session.results.length})
+            </p>
+            {/* Mobile expand button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSourcesExpanded(!sourcesExpanded);
+                if (!sourcesExpanded) setSummaryExpanded(false);
+              }}
+              className="h-8 w-8 p-0 md:hidden"
+            >
+              {sourcesExpanded ? (
+                <ChevronRight className="w-4 h-4" />
+              ) : (
+                <Globe className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
         <ScrollArea className="flex-1">
           <div className="p-3 space-y-2">
             {session.results.map((result, index) => {
@@ -1122,6 +1321,7 @@ function SessionDetail({
           </div>
         </ScrollArea>
       </div>
+      )}
     </div>
   );
 }
@@ -1132,6 +1332,7 @@ function LinksPanel({
   sessions,
   onRemoveLink,
   onSelectSession,
+  onStartChat,
   getFaviconUrl,
   getHostname,
   formatTimestamp,
@@ -1140,6 +1341,7 @@ function LinksPanel({
   sessions: SearchSession[];
   onRemoveLink: (listId: string, linkId: string) => void;
   onSelectSession: (sessionId: string) => void;
+  onStartChat: (link: any) => void;
   getFaviconUrl: (url: string) => string | null;
   getHostname: (url: string) => string;
   formatTimestamp: (timestamp: number) => string;
@@ -1244,14 +1446,25 @@ function LinksPanel({
                           {getHostname(link.url)}
                         </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => onRemoveLink(list.id, link.id)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 opacity-70 hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                          onClick={() => onStartChat(link)}
+                          title="Chat about this link"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 opacity-70 hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                          onClick={() => onRemoveLink(list.id, link.id)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
