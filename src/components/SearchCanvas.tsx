@@ -423,38 +423,6 @@ Provide a comprehensive answer based on current information. Synthesize what you
             <button
               onClick={() => {
                 if (activeSessionId) {
-                  setCurrentTab(activeSessionId, 'history');
-                } else {
-                  // Show history tab without needing an active session
-                  setCurrentTab('temp', 'history');
-                }
-              }}
-              className={cn(
-                "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all relative",
-                currentTab === 'history'
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Clock className="w-4 h-4" />
-              <span>History</span>
-              {sessions.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-primary/20 text-primary rounded-full">
-                  {sessions.length}
-                </span>
-              )}
-              {currentTab === 'history' && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                />
-              )}
-            </button>
-
-            <button
-              onClick={() => {
-                if (activeSessionId) {
                   setCurrentTab(activeSessionId, 'chats');
                 } else if (sessions.length > 0) {
                   setActiveSession(sessions[sessions.length - 1].id);
@@ -500,11 +468,11 @@ Provide a comprehensive answer based on current information. Synthesize what you
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Bookmark className="w-4 h-4" />
-              <span>Saved</span>
-              {totalSavedLinks > 0 && (
+              <Search className="w-4 h-4" />
+              <span>Research</span>
+              {(sessions.length + totalSavedLinks) > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-primary/20 text-primary rounded-full">
-                  {totalSavedLinks}
+                  {sessions.length + totalSavedLinks}
                 </span>
               )}
               {currentTab === 'saved' && (
@@ -605,18 +573,6 @@ Provide a comprehensive answer based on current information. Synthesize what you
           />
         )}
 
-        {currentTab === 'history' && (
-          <HistoryView
-            sessions={sessions}
-            onSelectSession={(sessionId) => {
-              setActiveSession(sessionId);
-              setCurrentTab(sessionId, 'search');
-            }}
-            onRemoveSession={removeSession}
-            formatTimestamp={formatTimestamp}
-          />
-        )}
-
         {currentTab === 'chats' && activeSession && (
           <ChatsView
             session={activeSession}
@@ -669,7 +625,7 @@ Provide a comprehensive answer based on current information. Synthesize what you
           />
         )}
 
-        {!activeSession && currentTab !== 'saved' && currentTab !== 'history' && (
+        {!activeSession && currentTab !== 'saved' && (
           <EmptyState onSearch={(q) => {
             setSearchQuery(q);
             searchInputRef.current?.focus();
@@ -700,31 +656,6 @@ Provide a comprehensive answer based on current information. Synthesize what you
             >
               <Search className="w-5 h-5" />
               <span>Search</span>
-            </button>
-
-            <button
-              onClick={() => {
-                if (activeSessionId) {
-                  setCurrentTab(activeSessionId, 'history');
-                } else {
-                  // Show history tab without needing an active session
-                  setCurrentTab('temp', 'history');
-                }
-              }}
-              className={cn(
-                "flex flex-col items-center gap-1 px-4 py-2 text-xs font-medium transition-all flex-1 relative",
-                currentTab === 'history'
-                  ? "text-primary"
-                  : "text-muted-foreground"
-              )}
-            >
-              <Clock className="w-5 h-5" />
-              <span>History</span>
-              {sessions.length > 0 && (
-                <span className="absolute top-1 right-1/4 px-1.5 py-0.5 text-[10px] bg-primary text-primary-foreground rounded-full">
-                  {sessions.length}
-                </span>
-              )}
             </button>
 
             <button
@@ -768,11 +699,11 @@ Provide a comprehensive answer based on current information. Synthesize what you
                   : "text-muted-foreground"
               )}
             >
-              <Bookmark className="w-5 h-5" />
-              <span>Saved</span>
-              {totalSavedLinks > 0 && (
+              <Search className="w-5 h-5" />
+              <span>Research</span>
+              {(sessions.length + totalSavedLinks) > 0 && (
                 <span className="absolute top-1 right-1/4 px-1.5 py-0.5 text-[10px] bg-primary text-primary-foreground rounded-full">
-                  {totalSavedLinks}
+                  {sessions.length + totalSavedLinks}
                 </span>
               )}
             </button>
@@ -1352,9 +1283,9 @@ function LinksPanel({
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="px-4 py-3 border-b border-border/20 glass-shimmer">
-        <p className="text-sm font-medium text-foreground">Saved & History</p>
+        <p className="text-sm font-medium text-foreground">Research</p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Your bookmarks and past searches
+          Manage your searches and saved bookmarks
         </p>
       </div>
       <ScrollArea className="flex-1">
