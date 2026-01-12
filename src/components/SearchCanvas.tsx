@@ -43,7 +43,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useArcStore, ChatResource } from "@/store/useArcStore";
+import { useNavigate } from "react-router-dom";
 
+export function SearchCanvas() {
+  const navigate = useNavigate();
+  const { createNewSessionWithResources } = useArcStore();
   const {
     sessions,
     activeSessionId,
@@ -541,29 +546,42 @@ Provide a comprehensive answer based on current information. Synthesize what you
               searchInputRef.current?.focus();
             }}
             onStartChat={(source) => {
-              if (activeSessionId) {
-                startSourceChat(activeSessionId, source);
-              }
+              // Create a new chat with just this one source as a resource
+              const resource: ChatResource = {
+                id: source.id,
+                title: source.title,
+                url: source.url,
+                snippet: source.snippet,
+                type: 'search_result' as const
+              };
+
+              const newSessionId = createNewSessionWithResources([resource], `Chat about: ${source.title}`);
+
+              // Close search mode and navigate to the new chat
+              closeSearch();
+              navigate(`/chat/${newSessionId}`);
             }}
             followUpInput={followUpInput}
             setFollowUpInput={setFollowUpInput}
             onFollowUp={(message) => {
-              if (activeSessionId) {
-                // Create a "follow-up" conversation based on the search
-                const followUpSource: SearchResult = {
-                  id: `followup-${Date.now()}`,
-                  title: `Follow-up: ${session.query}`,
-                  url: window.location.href,
-                  snippet: session.formattedContent.slice(0, 200)
-                };
-                startSourceChat(activeSessionId, followUpSource);
-                // Send the follow-up message
-                setTimeout(() => {
-                  sendSourceMessage(activeSessionId, followUpSource.url, message);
-                  setFollowUpInput("");
-                  setCurrentTab(activeSessionId, 'chats');
-                }, 100);
-              }
+              if (!activeSession) return;
+
+              // Convert all search results to chat resources
+              const resources: ChatResource[] = activeSession.results.map(result => ({
+                id: result.id,
+                title: result.title,
+                url: result.url,
+                snippet: result.snippet,
+                type: 'search_result' as const
+              }));
+
+              // Create a new chat with all search results as context
+              const newSessionId = createNewSessionWithResources(resources, message);
+
+              // Close search mode and navigate to the new chat
+              closeSearch();
+              navigate(`/chat/${newSessionId}`);
+              setFollowUpInput("");
             }}
             summaryExpanded={summaryExpanded}
             setSummaryExpanded={setSummaryExpanded}
@@ -603,22 +621,20 @@ Provide a comprehensive answer based on current information. Synthesize what you
               setCurrentTab(sessionId, 'search');
             }}
             onStartChat={(link) => {
-              // Create a temporary search result from the saved link
-              const linkAsResult: SearchResult = {
+              // Create a new chat with this saved link as a resource
+              const resource: ChatResource = {
                 id: link.id,
                 title: link.title,
                 url: link.url,
-                snippet: ""
+                snippet: link.snippet || "",
+                type: 'saved_link' as const
               };
-              // Find a session to attach the chat to, or create a temp one
-              const sessionId = sessions.length > 0 ? sessions[sessions.length - 1].id : 'temp';
-              if (sessions.length > 0) {
-                startSourceChat(sessionId, linkAsResult);
-                setActiveSession(sessionId);
-                setCurrentTab(sessionId, 'chats');
-              } else {
-                toast({ title: "Create a search first", description: "You need at least one search session to start a chat", variant: "destructive" });
-              }
+
+              const newSessionId = createNewSessionWithResources([resource], `Chat about: ${link.title}`);
+
+              // Close search mode and navigate to the new chat
+              closeSearch();
+              navigate(`/chat/${newSessionId}`);
             }}
             getFaviconUrl={getFaviconUrl}
             getHostname={getHostname}
