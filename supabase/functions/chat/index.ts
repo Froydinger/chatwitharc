@@ -172,10 +172,11 @@ async function webSearch(query: string): Promise<WebSearchResponse> {
       body: JSON.stringify({
         api_key: tavilyApiKey,
         query: query,
-        search_depth: 'basic',
+        search_depth: 'advanced', // Changed from 'basic' for better quality
         max_results: 5,
         include_answer: true,
-        include_raw_content: false,
+        include_raw_content: true, // Now fetches full page content!
+        include_images: false,
       }),
     });
 
@@ -201,10 +202,12 @@ async function webSearch(query: string): Promise<WebSearchResponse> {
       searchSummary += 'Search Results:\n';
       data.results.forEach((result: any, idx: number) => {
         searchSummary += `${idx + 1}. ${result.title}\n`;
-        searchSummary += `   ${result.content}\n`;
+        // Use raw_content if available (full page text), otherwise fall back to snippet
+        const pageContent = result.raw_content || result.content || '';
+        searchSummary += `   ${pageContent}\n`;
         searchSummary += `   Source: ${result.url}\n\n`;
-        
-        // Add to sources array for frontend
+
+        // Add to sources array for frontend (keep short snippet for display)
         sources.push({
           title: result.title,
           url: result.url,
