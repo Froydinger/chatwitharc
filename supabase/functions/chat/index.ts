@@ -349,13 +349,14 @@ serve(async (req) => {
 
     console.log('Authenticated user:', user.id);
 
-    const { messages, profile, model, sessionId } = await req.json();
+    const { messages, profile, model, sessionId, forceWebSearch } = await req.json();
 
     console.log('📊 Request details:', {
       model: model || 'google/gemini-2.5-flash (default)',
       messageCount: messages?.length || 0,
       hasProfile: !!profile,
-      sessionId: sessionId || 'none (will not save in background)'
+      sessionId: sessionId || 'none (will not save in background)',
+      forceWebSearch: !!forceWebSearch
     });
 
     // Input validation
@@ -610,7 +611,10 @@ serve(async (req) => {
     
     // Determine tool_choice: force specific tool when user explicitly requests it
     let toolChoice: any = "auto";
-    if (wantsCode) {
+    if (forceWebSearch) {
+      toolChoice = { type: "function", function: { name: "web_search" } };
+      console.log('🔧 Forcing web_search tool (forceWebSearch=true)');
+    } else if (wantsCode) {
       toolChoice = { type: "function", function: { name: "update_code" } };
       console.log('🔧 Forcing update_code tool');
     } else if (wantsCanvas) {

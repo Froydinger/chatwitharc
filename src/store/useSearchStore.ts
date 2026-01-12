@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface SearchResult {
   id: string;
@@ -56,6 +57,7 @@ export interface SearchSession {
 interface SearchState {
   isOpen: boolean;
   isSearching: boolean;
+  isSyncing: boolean;
 
   // Session-based search
   sessions: SearchSession[];
@@ -101,6 +103,9 @@ interface SearchState {
   syncToSupabase: () => Promise<void>;
   syncFromSupabase: () => Promise<void>;
   saveSessionToSupabase: (session: SearchSession) => Promise<void>;
+  deleteSessionFromSupabase: (sessionId: string) => Promise<void>;
+  saveLinkToSupabase: (link: SavedLink, listName: string) => Promise<void>;
+  deleteLinkFromSupabase: (linkId: string) => Promise<void>;
 
   // Legacy compatibility
   query: string;
@@ -114,6 +119,7 @@ export const useSearchStore = create<SearchState>()(
     (set, get) => ({
       isOpen: false,
       isSearching: false,
+      isSyncing: false,
       sessions: [],
       activeSessionId: null,
       showLinksPanel: false,
@@ -165,6 +171,9 @@ export const useSearchStore = create<SearchState>()(
             isSearching: false,
             pendingSearchQuery: null,
           });
+
+          // Save to Supabase in background
+          get().saveSessionToSupabase(newSession).catch(console.error);
         } else {
           // Open blank search mode - set pending query if provided
           set({
@@ -242,10 +251,18 @@ export const useSearchStore = create<SearchState>()(
             activeSessionId: newActiveId,
           };
         });
-        // Sessions are only persisted locally via zustand persist - no Supabase table needed
+
+        // Delete from Supabase in background
+        get().deleteSessionFromSupabase(sessionId).catch(console.error);
       },
 
       clearAllSessions: () => {
+        const state = get();
+        // Delete all sessions from Supabase
+        state.sessions.forEach((session) => {
+          get().deleteSessionFromSupabase(session.id).catch(console.error);
+        });
+
         set({
           sessions: [],
           activeSessionId: null,
@@ -272,6 +289,16 @@ export const useSearchStore = create<SearchState>()(
 
       deleteList: (listId) => {
         if (listId === 'default') return;
+        const state = get();
+        const list = state.lists.find((l) => l.id === listId);
+        
+        // Delete all links in the list from Supabase
+        if (list) {
+          list.links.forEach((link) => {
+            get().deleteLinkFromSupabase(link.id).catch(console.error);
+          });
+        }
+
         set((state) => ({
           lists: state.lists.filter((l) => l.id !== listId),
         }));
@@ -283,6 +310,15 @@ export const useSearchStore = create<SearchState>()(
             l.id === listId ? { ...l, name: newName } : l
           ),
         }));
+        
+        // Update all links in this list in Supabase with new list name
+        const state = get();
+        const list = state.lists.find((l) => l.id === listId);
+        if (list) {
+          list.links.forEach((link) => {
+            get().saveLinkToSupabase(link, newName).catch(console.error);
+          });
+        }
       },
 
       saveLink: (link) => {
@@ -291,11 +327,19 @@ export const useSearchStore = create<SearchState>()(
           id: crypto.randomUUID(),
           savedAt: Date.now(),
         };
+        
+        const state = get();
+        const list = state.lists.find((l) => l.id === link.listId);
+        const listName = list?.name || 'Saved Links';
+
         set((state) => ({
           lists: state.lists.map((l) =>
             l.id === link.listId ? { ...l, links: [...l.links, newLink] } : l
           ),
         }));
+
+        // Save to Supabase in background
+        get().saveLinkToSupabase(newLink, listName).catch(console.error);
       },
 
       removeLink: (listId, linkId) => {
@@ -306,13 +350,19 @@ export const useSearchStore = create<SearchState>()(
               : l
           ),
         }));
+
+        // Delete from Supabase in background
+        get().deleteLinkFromSupabase(linkId).catch(console.error);
       },
 
       moveLink: (linkId, fromListId, toListId) => {
         const state = get();
         const fromList = state.lists.find((l) => l.id === fromListId);
+        const toList = state.lists.find((l) => l.id === toListId);
         const link = fromList?.links.find((l) => l.id === linkId);
-        if (!link) return;
+        if (!link || !toList) return;
+
+        const updatedLink = { ...link, listId: toListId };
 
         set((state) => ({
           lists: state.lists.map((l) => {
@@ -320,11 +370,14 @@ export const useSearchStore = create<SearchState>()(
               return { ...l, links: l.links.filter((link) => link.id !== linkId) };
             }
             if (l.id === toListId) {
-              return { ...l, links: [...l.links, { ...link, listId: toListId }] };
+              return { ...l, links: [...l.links, updatedLink] };
             }
             return l;
           }),
         }));
+
+        // Update in Supabase
+        get().saveLinkToSupabase(updatedLink, toList.name).catch(console.error);
       },
 
       // Source conversation actions
@@ -361,6 +414,12 @@ export const useSearchStore = create<SearchState>()(
               : s
           ),
         }));
+
+        // Save updated session to Supabase
+        const session = get().sessions.find((s) => s.id === sessionId);
+        if (session) {
+          get().saveSessionToSupabase(session).catch(console.error);
+        }
       },
 
       sendSourceMessage: async (sessionId, sourceUrl, message, isLoading = false) => {
@@ -386,7 +445,6 @@ export const useSearchStore = create<SearchState>()(
           const conversation = session.sourceConversations?.[sourceUrl];
           const contextPrompt = `You are chatting about this source:\nTitle: ${conversation?.sourceTitle}\nURL: ${sourceUrl}\nSnippet: ${conversation?.sourceSnippet}\n\nUser: ${message}`;
 
-          const { supabase } = await import('@/integrations/supabase/client');
           const { data, error } = await supabase.functions.invoke('chat', {
             body: {
               messages: [
@@ -442,6 +500,12 @@ export const useSearchStore = create<SearchState>()(
             };
           }),
         }));
+
+        // Save updated session to Supabase
+        const session = get().sessions.find((s) => s.id === sessionId);
+        if (session) {
+          get().saveSessionToSupabase(session).catch(console.error);
+        }
       },
 
       setActiveSource: (sessionId, sourceUrl) => {
@@ -452,21 +516,231 @@ export const useSearchStore = create<SearchState>()(
         }));
       },
 
-      // Sync functions - sessions are stored locally via zustand persist
-      // No Supabase table needed - localStorage is sufficient for search sessions
+      // Supabase sync functions
       syncToSupabase: async () => {
-        // Sessions are already persisted locally via zustand persist middleware
-        console.log('Search sessions synced locally');
+        const state = get();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.log('No user logged in, skipping sync to Supabase');
+          return;
+        }
+
+        set({ isSyncing: true });
+
+        try {
+          // Sync all sessions
+          for (const session of state.sessions) {
+            await get().saveSessionToSupabase(session);
+          }
+
+          // Sync all links
+          for (const list of state.lists) {
+            for (const link of list.links) {
+              await get().saveLinkToSupabase(link, list.name);
+            }
+          }
+
+          console.log('✅ Synced search data to Supabase');
+        } catch (error) {
+          console.error('Failed to sync to Supabase:', error);
+        } finally {
+          set({ isSyncing: false });
+        }
       },
 
       syncFromSupabase: async () => {
-        // Sessions are loaded from localStorage via zustand persist middleware
-        console.log('Search sessions loaded from local storage');
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.log('No user logged in, skipping sync from Supabase');
+          return;
+        }
+
+        set({ isSyncing: true });
+
+        try {
+          // Fetch search sessions from Supabase
+          const { data: sessionsData, error: sessionsError } = await supabase
+            .from('search_sessions' as any)
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (sessionsError) {
+            console.error('Error fetching search sessions:', sessionsError);
+          } else if (sessionsData && sessionsData.length > 0) {
+            const sessions: SearchSession[] = sessionsData.map((s: any) => ({
+              id: s.id,
+              query: s.query,
+              results: s.results || [],
+              formattedContent: s.formatted_content || '',
+              timestamp: new Date(s.created_at).getTime(),
+              relatedQueries: s.related_queries || [],
+              sourceConversations: s.source_conversations || {},
+            }));
+
+            // Merge with local sessions (prefer Supabase data for conflicts)
+            const state = get();
+            const localSessionIds = new Set(state.sessions.map(s => s.id));
+            const mergedSessions = [
+              ...sessions,
+              ...state.sessions.filter(s => !sessionsData.some((db: any) => db.id === s.id)),
+            ];
+
+            set({ sessions: mergedSessions });
+            console.log(`✅ Loaded ${sessions.length} search sessions from Supabase`);
+          }
+
+          // Fetch saved links from Supabase
+          const { data: linksData, error: linksError } = await supabase
+            .from('saved_links' as any)
+            .select('*')
+            .order('saved_at', { ascending: false });
+
+          if (linksError) {
+            console.error('Error fetching saved links:', linksError);
+          } else if (linksData && linksData.length > 0) {
+            // Group links by list_id
+            const linksByList: Record<string, { name: string; links: SavedLink[] }> = {};
+            
+            linksData.forEach((l: any) => {
+              const listId = l.list_id || 'default';
+              if (!linksByList[listId]) {
+                linksByList[listId] = {
+                  name: l.list_name || 'Saved Links',
+                  links: [],
+                };
+              }
+              linksByList[listId].links.push({
+                id: l.id,
+                title: l.title,
+                url: l.url,
+                snippet: l.snippet,
+                savedAt: new Date(l.saved_at).getTime(),
+                listId: listId,
+              });
+            });
+
+            // Build lists array
+            const lists: LinkList[] = [];
+            
+            // Always include default list
+            lists.push({
+              id: 'default',
+              name: linksByList['default']?.name || 'Saved Links',
+              createdAt: Date.now(),
+              links: linksByList['default']?.links || [],
+            });
+
+            // Add other lists
+            Object.entries(linksByList).forEach(([listId, data]) => {
+              if (listId !== 'default') {
+                lists.push({
+                  id: listId,
+                  name: data.name,
+                  createdAt: Date.now(),
+                  links: data.links,
+                });
+              }
+            });
+
+            set({ lists });
+            console.log(`✅ Loaded ${linksData.length} saved links from Supabase`);
+          }
+        } catch (error) {
+          console.error('Failed to sync from Supabase:', error);
+        } finally {
+          set({ isSyncing: false });
+        }
       },
 
-      saveSessionToSupabase: async (_session: SearchSession) => {
-        // Sessions are saved locally via zustand persist middleware
-        // No Supabase table needed
+      saveSessionToSupabase: async (session: SearchSession) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        try {
+          // Use type assertion since the types file may not be updated yet
+          const { error } = await supabase
+            .from('search_sessions' as any)
+            .upsert({
+              id: session.id,
+              user_id: user.id,
+              query: session.query,
+              results: session.results,
+              formatted_content: session.formattedContent,
+              related_queries: session.relatedQueries || [],
+              source_conversations: session.sourceConversations || {},
+              updated_at: new Date().toISOString(),
+            } as any, { onConflict: 'id' });
+
+          if (error) {
+            console.error('Error saving session to Supabase:', error);
+          }
+        } catch (error) {
+          console.error('Error saving session to Supabase:', error);
+        }
+      },
+
+      deleteSessionFromSupabase: async (sessionId: string) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        try {
+          const { error } = await supabase
+            .from('search_sessions' as any)
+            .delete()
+            .eq('id', sessionId)
+            .eq('user_id', user.id);
+
+          if (error) {
+            console.error('Error deleting session from Supabase:', error);
+          }
+        } catch (error) {
+          console.error('Error deleting session from Supabase:', error);
+        }
+      },
+
+      saveLinkToSupabase: async (link: SavedLink, listName: string) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        try {
+          const { error } = await supabase
+            .from('saved_links' as any)
+            .upsert({
+              id: link.id,
+              user_id: user.id,
+              list_id: link.listId,
+              list_name: listName,
+              title: link.title,
+              url: link.url,
+              snippet: link.snippet,
+              saved_at: new Date(link.savedAt).toISOString(),
+            } as any, { onConflict: 'id' });
+
+          if (error) {
+            console.error('Error saving link to Supabase:', error);
+          }
+        } catch (error) {
+          console.error('Error saving link to Supabase:', error);
+        }
+      },
+
+      deleteLinkFromSupabase: async (linkId: string) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        try {
+          const { error } = await supabase
+            .from('saved_links' as any)
+            .delete()
+            .eq('id', linkId)
+            .eq('user_id', user.id);
+
+          if (error) {
+            console.error('Error deleting link from Supabase:', error);
+          }
+        } catch (error) {
+          console.error('Error deleting link from Supabase:', error);
+        }
       },
 
       // Legacy compatibility - redirects to new session-based system
