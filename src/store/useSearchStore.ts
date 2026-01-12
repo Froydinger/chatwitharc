@@ -51,7 +51,7 @@ export interface SearchSession {
   relatedQueries?: string[];
   sourceConversations?: Record<string, SourceConversation>; // key = url
   activeSourceUrl?: string | null;
-  currentTab?: 'search' | 'chats' | 'saved';
+  currentTab?: 'search' | 'history' | 'chats' | 'saved';
 }
 
 interface SearchState {
@@ -93,7 +93,7 @@ interface SearchState {
   moveLink: (linkId: string, fromListId: string, toListId: string) => void;
 
   // Source conversation actions
-  setCurrentTab: (sessionId: string, tab: 'search' | 'chats' | 'saved') => void;
+  setCurrentTab: (sessionId: string, tab: 'search' | 'history' | 'chats' | 'saved') => void;
   startSourceChat: (sessionId: string, source: SearchResult) => void;
   sendSourceMessage: (sessionId: string, sourceUrl: string, message: string, isLoading?: boolean) => Promise<void>;
   addSourceMessage: (sessionId: string, sourceUrl: string, message: SourceMessage) => void;
