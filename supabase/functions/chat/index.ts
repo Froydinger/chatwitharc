@@ -832,16 +832,9 @@ serve(async (req) => {
         ...(codeUpdate && { codeContent: codeUpdate.code, codeLanguage: codeUpdate.language, codeLabel: codeUpdate.label }),
       });
       
-      // Use EdgeRuntime.waitUntil to continue processing after response is sent
-      // @ts-ignore - EdgeRuntime is available in Supabase edge functions
-      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
-        EdgeRuntime.waitUntil(backgroundSaveTask);
-        console.log('🔄 Background save scheduled via EdgeRuntime.waitUntil');
-      } else {
-        // Fallback: don't await, just fire and forget
-        backgroundSaveTask.catch(e => console.error('Background save failed:', e));
-        console.log('🔄 Background save scheduled (fire and forget)');
-      }
+      // Fire and forget - don't await, just start the save
+      backgroundSaveTask.catch(e => console.error('Background save failed:', e));
+      console.log('🔄 Background save scheduled (fire and forget)');
     }
     
     return new Response(
