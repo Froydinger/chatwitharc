@@ -156,15 +156,15 @@ export function SearchCanvas() {
     setSearchQuery("");
 
     try {
-      // Add explicit instructions to synthesize and answer, not just list sources
-      const searchPrompt = `${query}
+      // Phrase as a natural request that triggers web search (don't force the tool)
+      const searchPrompt = `Search the web for: ${query}
 
-IMPORTANT: After searching the web, provide a comprehensive answer synthesizing information from the sources. Do NOT just say "click on the sources" - actually answer my question with details from what you found.`;
+Provide a comprehensive answer based on current information. Synthesize what you find into a clear, detailed response.`;
 
       const { data, error } = await supabase.functions.invoke("chat", {
         body: {
           messages: [{ role: "user", content: searchPrompt }],
-          forceWebSearch: true,
+          // Don't force web_search - let AI decide naturally (like regular chat)
         },
       });
 
