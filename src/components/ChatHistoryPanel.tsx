@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, MessageSquare, RefreshCw } from "lucide-react";
+import { Plus, Trash2, MessageSquare, RefreshCw, Search } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { GlassCard } from "@/components/ui/glass-card";
