@@ -163,7 +163,12 @@ export function SearchCanvas() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Search API error:", error);
+        throw error;
+      }
+
+      console.log("Search API response:", data);
 
       const results: SearchResult[] =
         data?.web_sources?.map((source: any, index: number) => ({
@@ -173,11 +178,31 @@ export function SearchCanvas() {
           snippet: source.snippet || source.content || "",
         })) || [];
 
-      const formattedContent = data?.choices?.[0]?.message?.content || "No results found.";
+      // Extract summary from the response - try multiple possible paths
+      let formattedContent =
+        data?.choices?.[0]?.message?.content ||
+        data?.message?.content ||
+        data?.content ||
+        data?.summary ||
+        "";
+
+      // If still empty, check if web_sources has a summary field
+      if (!formattedContent && data?.web_summary) {
+        formattedContent = data.web_summary;
+      }
+
+      // Final fallback - create a basic summary from sources
+      if (!formattedContent || formattedContent.trim() === "") {
+        console.warn("No summary found in API response, generating fallback");
+        formattedContent = `Found ${results.length} source${results.length !== 1 ? 's' : ''} for "${query}".\n\nClick on the sources to learn more.`;
+      }
+
+      console.log("Adding session with summary length:", formattedContent.length);
+
       const relatedQueries = undefined; // Related queries not yet implemented in backend
 
       addSession(query, results, formattedContent, relatedQueries);
-      
+
       toast({ title: `Found ${results.length} sources` });
     } catch (error) {
       console.error("Search error:", error);
@@ -353,22 +378,30 @@ export function SearchCanvas() {
         </div>
       </div>
 
-      {/* Tab Bar - Desktop (top) / Mobile (bottom) */}
-      {activeSession && (
+      {/* Tab Bar - Desktop (top) - show if activeSession OR if there are sessions */}
+      {(activeSession || sessions.length > 0) && (
         <div className="border-b border-border/20 glass-shimmer md:block hidden">
           <div className="flex items-center justify-center gap-1 px-4">
             <button
-              onClick={() => activeSessionId && setCurrentTab(activeSessionId, 'search')}
+              onClick={() => {
+                if (activeSessionId) {
+                  setCurrentTab(activeSessionId, 'search');
+                } else if (sessions.length > 0) {
+                  // If no active session, select the most recent one
+                  setActiveSession(sessions[sessions.length - 1].id);
+                }
+              }}
               className={cn(
                 "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all relative",
                 currentTab === 'search'
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
+              disabled={!activeSession && sessions.length === 0}
             >
               <Search className="w-4 h-4" />
               <span>Search</span>
-              {currentTab === 'search' && (
+              {currentTab === 'search' && activeSession && (
                 <motion.div
                   layoutId="activeTab"
                   className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
@@ -378,13 +411,20 @@ export function SearchCanvas() {
             </button>
 
             <button
-              onClick={() => activeSessionId && setCurrentTab(activeSessionId, 'chats')}
+              onClick={() => {
+                if (activeSessionId) {
+                  setCurrentTab(activeSessionId, 'chats');
+                } else if (sessions.length > 0) {
+                  setActiveSession(sessions[sessions.length - 1].id);
+                }
+              }}
               className={cn(
                 "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all relative",
                 currentTab === 'chats'
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
+              disabled={!activeSession && sessions.length === 0}
             >
               <MessageSquare className="w-4 h-4" />
               <span>Chats</span>
@@ -393,7 +433,7 @@ export function SearchCanvas() {
                   {chatCount}
                 </span>
               )}
-              {currentTab === 'chats' && (
+              {currentTab === 'chats' && activeSession && (
                 <motion.div
                   layoutId="activeTab"
                   className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
@@ -403,7 +443,14 @@ export function SearchCanvas() {
             </button>
 
             <button
-              onClick={() => activeSessionId && setCurrentTab(activeSessionId, 'saved')}
+              onClick={() => {
+                if (activeSessionId) {
+                  setCurrentTab(activeSessionId, 'saved');
+                } else {
+                  // Show saved tab without needing an active session
+                  setCurrentTab('temp', 'saved');
+                }
+              }}
               className={cn(
                 "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all relative",
                 currentTab === 'saved'
@@ -432,24 +479,17 @@ export function SearchCanvas() {
 
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden relative pb-16 md:pb-0">
-        {/* Left Sidebar - Sessions (hidden on mobile) */}
-        <div className="hidden md:flex w-64 flex-shrink-0 border-r border-border/40 flex-col glass-panel">
-          <div className="px-3 py-2 border-b border-border/20 bg-muted/5">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Search History ({sessions.length})
-            </p>
-          </div>
-          <ScrollArea className="flex-1">
-            <div className="p-2 space-y-1">
-              {sessions.length === 0 ? (
-                <div className="px-3 py-8 text-center">
-                  <Search className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
-                  <p className="text-xs text-muted-foreground">
-                    No searches yet
-                  </p>
-                </div>
-              ) : (
-                sessions
+        {/* Left Sidebar - Sessions (hidden on mobile) - show if there are sessions */}
+        {sessions.length > 0 && (
+          <div className="hidden md:flex w-64 flex-shrink-0 border-r border-border/40 flex-col glass-panel">
+            <div className="px-3 py-2 border-b border-border/20 bg-muted/5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Search History ({sessions.length})
+              </p>
+            </div>
+            <ScrollArea className="flex-1">
+              <div className="p-2 space-y-1">
+                {sessions
                   .slice()
                   .reverse()
                   .map((session) => (
@@ -461,11 +501,11 @@ export function SearchCanvas() {
                       onRemove={() => removeSession(session.id)}
                       formatTimestamp={formatTimestamp}
                     />
-                  ))
-              )}
-            </div>
-          </ScrollArea>
-        </div>
+                  ))}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
 
         {/* Main Content */}
         {currentTab === 'search' && activeSession && (
@@ -522,7 +562,7 @@ export function SearchCanvas() {
             onRemoveLink={removeLink}
             onSelectSession={(sessionId) => {
               setActiveSession(sessionId);
-              if (activeSessionId) setCurrentTab(activeSessionId, 'search');
+              setCurrentTab(sessionId, 'search');
             }}
             getFaviconUrl={getFaviconUrl}
             getHostname={getHostname}
@@ -530,7 +570,7 @@ export function SearchCanvas() {
           />
         )}
 
-        {!activeSession && (
+        {!activeSession && currentTab !== 'saved' && (
           <EmptyState onSearch={(q) => {
             setSearchQuery(q);
             searchInputRef.current?.focus();
@@ -538,31 +578,46 @@ export function SearchCanvas() {
         )}
       </div>
 
-      {/* Mobile Bottom Tab Bar */}
-      {activeSession && (
+      {/* Mobile Bottom Tab Bar - show if activeSession OR if there are sessions */}
+      {(activeSession || sessions.length > 0) && (
         <div className="md:hidden fixed bottom-0 left-0 right-0 glass-strong border-t border-border/40 safe-area-inset-bottom z-50">
           <div className="flex items-center justify-around px-2">
             <button
-              onClick={() => activeSessionId && setCurrentTab(activeSessionId, 'search')}
+              onClick={() => {
+                if (activeSessionId) {
+                  setCurrentTab(activeSessionId, 'search');
+                } else if (sessions.length > 0) {
+                  // If no active session, select the most recent one
+                  setActiveSession(sessions[sessions.length - 1].id);
+                }
+              }}
               className={cn(
                 "flex flex-col items-center gap-1 px-4 py-2 text-xs font-medium transition-all flex-1",
                 currentTab === 'search'
                   ? "text-primary"
                   : "text-muted-foreground"
               )}
+              disabled={!activeSession && sessions.length === 0}
             >
               <Search className="w-5 h-5" />
               <span>Search</span>
             </button>
 
             <button
-              onClick={() => activeSessionId && setCurrentTab(activeSessionId, 'chats')}
+              onClick={() => {
+                if (activeSessionId) {
+                  setCurrentTab(activeSessionId, 'chats');
+                } else if (sessions.length > 0) {
+                  setActiveSession(sessions[sessions.length - 1].id);
+                }
+              }}
               className={cn(
                 "flex flex-col items-center gap-1 px-4 py-2 text-xs font-medium transition-all flex-1 relative",
                 currentTab === 'chats'
                   ? "text-primary"
                   : "text-muted-foreground"
               )}
+              disabled={!activeSession && sessions.length === 0}
             >
               <MessageSquare className="w-5 h-5" />
               <span>Chats</span>
@@ -574,7 +629,14 @@ export function SearchCanvas() {
             </button>
 
             <button
-              onClick={() => activeSessionId && setCurrentTab(activeSessionId, 'saved')}
+              onClick={() => {
+                if (activeSessionId) {
+                  setCurrentTab(activeSessionId, 'saved');
+                } else {
+                  // Show saved tab without needing an active session
+                  setCurrentTab('temp', 'saved');
+                }
+              }}
               className={cn(
                 "flex flex-col items-center gap-1 px-4 py-2 text-xs font-medium transition-all flex-1 relative",
                 currentTab === 'saved'
