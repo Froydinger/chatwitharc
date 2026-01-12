@@ -48,7 +48,7 @@ import { useNavigate } from "react-router-dom";
 
 export function SearchCanvas() {
   const navigate = useNavigate();
-  const { createNewSessionWithResources } = useArcStore();
+  const { createNewSessionWithResources, loadSession, addMessage } = useArcStore();
   const {
     sessions,
     activeSessionId,
@@ -259,12 +259,22 @@ Provide a comprehensive answer based on current information. Synthesize what you
   };
 
   const handleCreateListAndSave = () => {
-    if (!newListName.trim() || !pendingSaveResult) return;
+    if (!newListName.trim()) return;
     const newListId = createList(newListName.trim());
-    handleSaveToList(pendingSaveResult, newListId);
+
+    // If there's a pending result, save it to the new list
+    if (pendingSaveResult) {
+      handleSaveToList(pendingSaveResult, newListId);
+      setPendingSaveResult(null);
+    } else {
+      toast({
+        title: "List created",
+        description: `"${newListName.trim()}" is ready for bookmarks`
+      });
+    }
+
     setNewListName("");
     setShowNewListDialog(false);
-    setPendingSaveResult(null);
   };
 
   const getFaviconUrl = (url: string) => {
@@ -563,7 +573,7 @@ Provide a comprehensive answer based on current information. Synthesize what you
             }}
             followUpInput={followUpInput}
             setFollowUpInput={setFollowUpInput}
-            onFollowUp={(message) => {
+            onFollowUp={async (message) => {
               if (!activeSession) return;
 
               // Convert all search results to chat resources
@@ -577,6 +587,16 @@ Provide a comprehensive answer based on current information. Synthesize what you
 
               // Create a new chat with all search results as context
               const newSessionId = createNewSessionWithResources(resources, message);
+
+              // Load the session and send the message
+              loadSession(newSessionId);
+
+              // Add the user's message to trigger AI response
+              await addMessage({
+                role: 'user',
+                content: message,
+                type: 'text'
+              });
 
               // Close search mode and navigate to the new chat
               closeSearch();
@@ -619,6 +639,9 @@ Provide a comprehensive answer based on current information. Synthesize what you
             onSelectSession={(sessionId) => {
               setActiveSession(sessionId);
               setCurrentTab(sessionId, 'search');
+            }}
+            onCreateList={() => {
+              setShowNewListDialog(true);
             }}
             onStartChat={(link) => {
               // Create a new chat with this saved link as a resource
@@ -732,7 +755,9 @@ Provide a comprehensive answer based on current information. Synthesize what you
       <Dialog open={showNewListDialog} onOpenChange={setShowNewListDialog}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Create New List</DialogTitle>
+            <DialogTitle>
+              {pendingSaveResult ? "Create List & Save Link" : "Create New List"}
+            </DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <Input
@@ -746,12 +771,16 @@ Provide a comprehensive answer based on current information. Synthesize what you
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewListDialog(false)}>
+            <Button variant="outline" onClick={() => {
+              setShowNewListDialog(false);
+              setPendingSaveResult(null);
+              setNewListName("");
+            }}>
               Cancel
             </Button>
             <Button onClick={handleCreateListAndSave} disabled={!newListName.trim()}>
               <Plus className="w-4 h-4 mr-1" />
-              Create & Save
+              {pendingSaveResult ? "Create & Save" : "Create List"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1283,6 +1312,7 @@ function LinksPanel({
   sessions,
   onRemoveLink,
   onSelectSession,
+  onCreateList,
   onStartChat,
   getFaviconUrl,
   getHostname,
@@ -1292,6 +1322,7 @@ function LinksPanel({
   sessions: SearchSession[];
   onRemoveLink: (listId: string, linkId: string) => void;
   onSelectSession: (sessionId: string) => void;
+  onCreateList: () => void;
   onStartChat: (link: any) => void;
   getFaviconUrl: (url: string) => string | null;
   getHostname: (url: string) => string;
@@ -1299,11 +1330,22 @@ function LinksPanel({
 }) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-4 py-3 border-b border-border/20 glass-shimmer">
-        <p className="text-sm font-medium text-foreground">Research</p>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Manage your searches and saved bookmarks
-        </p>
+      <div className="px-4 py-3 border-b border-border/20 glass-shimmer flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-foreground">Research</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Manage your searches and saved bookmarks
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onCreateList}
+          className="h-8 gap-1.5 text-xs flex-shrink-0"
+        >
+          <FolderPlus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">New List</span>
+        </Button>
       </div>
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-6">
