@@ -156,15 +156,15 @@ export function SearchCanvas() {
     setSearchQuery("");
 
     try {
-      // Add explicit instructions to synthesize and answer, not just list sources
-      const searchPrompt = `${query}
+      // Phrase as a natural request that triggers web search (don't force the tool)
+      const searchPrompt = `Search the web for: ${query}
 
-IMPORTANT: After searching the web, provide a comprehensive answer synthesizing information from the sources. Do NOT just say "click on the sources" - actually answer my question with details from what you found.`;
+Provide a comprehensive answer based on current information. Synthesize what you find into a clear, detailed response.`;
 
       const { data, error } = await supabase.functions.invoke("chat", {
         body: {
           messages: [{ role: "user", content: searchPrompt }],
-          forceWebSearch: true,
+          // Don't force web_search - let AI decide naturally (like regular chat)
         },
       });
 
@@ -1007,10 +1007,7 @@ function SessionDetail({
                         </p>
                       </div>
 
-                      <div className={cn(
-                        "flex items-center gap-1 transition-opacity",
-                        openDropdownId === result.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                      )}>
+                      <div className="flex items-center gap-1">
                         <DropdownMenu
                           onOpenChange={(open) => {
                             setOpenDropdownId(open ? result.id : null);
@@ -1020,7 +1017,12 @@ function SessionDetail({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 w-6 p-0"
+                              className={cn(
+                                "h-6 w-6 p-0 transition-opacity",
+                                openDropdownId === result.id
+                                  ? "opacity-100"
+                                  : "opacity-70 hover:opacity-100 md:opacity-50 md:group-hover:opacity-100"
+                              )}
                               onClick={(e) => e.stopPropagation()}
                             >
                               {isSaved ? (
@@ -1071,7 +1073,7 @@ function SessionDetail({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0"
+                          className="h-6 w-6 p-0 opacity-70 hover:opacity-100 md:opacity-50 md:group-hover:opacity-100 transition-opacity"
                           onClick={(e) => {
                             e.stopPropagation();
                             onStartChat(result);
@@ -1084,7 +1086,7 @@ function SessionDetail({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0"
+                          className="h-6 w-6 p-0 opacity-70 hover:opacity-100 md:opacity-50 md:group-hover:opacity-100 transition-opacity"
                           onClick={(e) => {
                             e.stopPropagation();
                             window.open(result.url, "_blank");
