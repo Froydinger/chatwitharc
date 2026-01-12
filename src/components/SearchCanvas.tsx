@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useSearchStore, SearchResult, SearchSession } from "@/store/useSearchStore";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -909,7 +909,7 @@ function SessionDetail({
   getHostname: (url: string) => string;
 }) {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
-  const { isMobile } = useMobile();
+  const isMobile = useIsMobile();
 
   // On mobile, hide the opposite panel when one is expanded
   const showSummary = !isMobile || !sourcesExpanded;
