@@ -467,7 +467,7 @@ serve(async (req) => {
 
     // Brief technical capabilities (trimmed from 100+ lines to essentials)
     enhancedSystemPrompt += '\n\n--- TOOLS ---\n' +
-      '• web_search: Get current info from the web\n' +
+      '• web_search: Get current info from the web - When you use this tool, ALWAYS synthesize and summarize the search results in your own words. NEVER just say "click on the sources" - actually answer the user\'s question using the information from the sources.\n' +
       '• search_past_chats: Analyze user\'s conversation history\n' +
       '• generate_file: Create downloadable docs (PDFs, etc.) - NOT for code\n' +
       '• Image generation: Users click the image button\n\n' +
@@ -764,7 +764,17 @@ serve(async (req) => {
       }
       
       // Second AI call with search results - use fetchWithRetry for resilience
-      // Keep tool_choice for canvas/code if user explicitly requested it
+      // IMPORTANT: For web search, let the AI respond naturally (don't force tools again)
+      // Only keep forced tool_choice for canvas/code if user explicitly requested it
+      let secondCallToolChoice = "auto";
+      if (wantsCode) {
+        secondCallToolChoice = { type: "function", function: { name: "update_code" } };
+      } else if (wantsCanvas) {
+        secondCallToolChoice = { type: "function", function: { name: "update_canvas" } };
+      }
+      // Don't force web_search on the second call - let AI generate the summary
+
+      console.log('🤖 Making second AI call to synthesize results');
       response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -775,7 +785,7 @@ serve(async (req) => {
           model: model || 'google/gemini-2.5-flash',
           messages: conversationMessages,
           tools: tools,
-          tool_choice: toolChoice, // Use same tool_choice as first call
+          tool_choice: secondCallToolChoice, // Don't force web_search on second call
         }),
       });
 
