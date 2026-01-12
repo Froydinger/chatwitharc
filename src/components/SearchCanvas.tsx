@@ -44,13 +44,13 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 
-export function SearchCanvas() {
   const {
     sessions,
     activeSessionId,
     isSearching,
     lists,
     pendingSearchQuery,
+    globalCurrentTab,
     closeSearch,
     setActiveSession,
     addSession,
@@ -98,8 +98,8 @@ export function SearchCanvas() {
     return sessions.find((s) => s.id === activeSessionId) || null;
   }, [sessions, activeSessionId]);
 
-  // Current tab for active session
-  const currentTab = activeSession?.currentTab || 'search';
+  // Use global current tab instead of session-specific one
+  const currentTab = globalCurrentTab;
 
   // Count of sources with conversations
   const chatCount = useMemo(() => {
@@ -397,8 +397,9 @@ Provide a comprehensive answer based on current information. Synthesize what you
                 if (activeSessionId) {
                   setCurrentTab(activeSessionId, 'search');
                 } else if (sessions.length > 0) {
-                  // If no active session, select the most recent one
-                  setActiveSession(sessions[sessions.length - 1].id);
+                  const latestSession = sessions[sessions.length - 1].id;
+                  setActiveSession(latestSession);
+                  setCurrentTab(latestSession, 'search');
                 }
               }}
               className={cn(
