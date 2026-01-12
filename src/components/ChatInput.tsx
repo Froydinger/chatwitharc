@@ -1117,8 +1117,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setInputValue("");
-                    // Open blank search canvas
-                    const { openSearchMode } = require("@/store/useSearchStore").useSearchStore.getState();
+                    // Open blank search canvas - use already imported openSearchMode
                     openSearchMode();
                     textareaRef.current?.focus();
                   }}

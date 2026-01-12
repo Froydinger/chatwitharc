@@ -242,23 +242,7 @@ export const useSearchStore = create<SearchState>()(
             activeSessionId: newActiveId,
           };
         });
-
-        // Delete from Supabase in background
-        (async () => {
-          try {
-            const { supabase } = await import('@/integrations/supabase/client');
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            await supabase
-              .from('search_sessions')
-              .delete()
-              .eq('user_id', user.id)
-              .eq('session_id', sessionId);
-          } catch (error) {
-            console.error('Error deleting search session from Supabase:', error);
-          }
-        })();
+        // Sessions are only persisted locally via zustand persist - no Supabase table needed
       },
 
       clearAllSessions: () => {
@@ -468,88 +452,21 @@ export const useSearchStore = create<SearchState>()(
         }));
       },
 
-      // Supabase sync
+      // Sync functions - sessions are stored locally via zustand persist
+      // No Supabase table needed - localStorage is sufficient for search sessions
       syncToSupabase: async () => {
-        const state = get();
-        const { supabase } = await import('@/integrations/supabase/client');
-
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
-
-          // Save all sessions to Supabase
-          for (const session of state.sessions) {
-            await get().saveSessionToSupabase(session);
-          }
-        } catch (error) {
-          console.error('Error syncing search sessions to Supabase:', error);
-        }
+        // Sessions are already persisted locally via zustand persist middleware
+        console.log('Search sessions synced locally');
       },
 
       syncFromSupabase: async () => {
-        const { supabase } = await import('@/integrations/supabase/client');
-
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
-
-          const { data, error } = await supabase
-            .from('search_sessions')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('timestamp', { ascending: false });
-
-          if (error) throw error;
-
-          if (data && data.length > 0) {
-            const sessions: SearchSession[] = data.map((row) => ({
-              id: row.session_id,
-              query: row.query,
-              results: row.results || [],
-              formattedContent: row.formatted_content || '',
-              timestamp: row.timestamp,
-              relatedQueries: row.related_queries,
-              sourceConversations: row.source_conversations,
-              activeSourceUrl: row.active_source_url,
-              currentTab: (row.current_tab as 'search' | 'chats' | 'saved') || 'search',
-            }));
-
-            set({ sessions });
-          }
-        } catch (error) {
-          console.error('Error syncing search sessions from Supabase:', error);
-        }
+        // Sessions are loaded from localStorage via zustand persist middleware
+        console.log('Search sessions loaded from local storage');
       },
 
-      saveSessionToSupabase: async (session: SearchSession) => {
-        const { supabase } = await import('@/integrations/supabase/client');
-
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
-
-          const { error } = await supabase
-            .from('search_sessions')
-            .upsert({
-              user_id: user.id,
-              session_id: session.id,
-              query: session.query,
-              results: session.results,
-              formatted_content: session.formattedContent,
-              related_queries: session.relatedQueries,
-              source_conversations: session.sourceConversations,
-              active_source_url: session.activeSourceUrl,
-              current_tab: session.currentTab,
-              timestamp: session.timestamp,
-              updated_at: new Date().toISOString(),
-            }, {
-              onConflict: 'user_id,session_id',
-            });
-
-          if (error) throw error;
-        } catch (error) {
-          console.error('Error saving search session to Supabase:', error);
-        }
+      saveSessionToSupabase: async (_session: SearchSession) => {
+        // Sessions are saved locally via zustand persist middleware
+        // No Supabase table needed
       },
 
       // Legacy compatibility - redirects to new session-based system
@@ -563,6 +480,30 @@ export const useSearchStore = create<SearchState>()(
         lists: state.lists,
         sessions: state.sessions,
       }),
+      merge: (persistedState: any, currentState: SearchState) => {
+        // Ensure we always have at least the default list
+        const persistedLists = persistedState?.lists || [];
+        const hasDefaultList = persistedLists.some((l: LinkList) => l.id === 'default');
+        
+        const lists = hasDefaultList 
+          ? persistedLists 
+          : [
+              {
+                id: 'default',
+                name: 'Saved Links',
+                createdAt: Date.now(),
+                links: [],
+              },
+              ...persistedLists,
+            ];
+
+        return {
+          ...currentState,
+          ...persistedState,
+          lists,
+          sessions: persistedState?.sessions || [],
+        };
+      },
     }
   )
 );
