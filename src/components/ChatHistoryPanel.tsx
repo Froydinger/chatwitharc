@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, MessageSquare, RefreshCw, Search } from "lucide-react";
+import { Plus, Trash2, MessageSquare, RefreshCw } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -27,11 +27,7 @@ export function ChatHistoryPanel() {
   } = useArcStore();
 
   const {
-    sessions: searchSessions,
-    activeSessionId: activeSearchSessionId,
-    setActiveSession: setActiveSearchSession,
     openSearchMode,
-    removeSession: removeSearchSession,
   } = useSearchStore();
 
   const { toast } = useToast();
@@ -60,34 +56,16 @@ export function ChatHistoryPanel() {
     goToChat();
   };
 
-  const handleLoadSearchSession = (sessionId: string) => {
-    setActiveSearchSession(sessionId);
-    openSearchMode();
-    goToChat();
-  };
-
-  const handleClickSession = (session: UnifiedSession) => {
-    if (session.type === 'chat') {
-      handleLoadSession(session.id);
-    } else {
-      handleLoadSearchSession(session.id);
-    }
-  };
-
-  const handleDeleteSession = async (sessionId: string, sessionType: 'chat' | 'search', event: React.MouseEvent) => {
+  const handleDeleteSession = async (sessionId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     setDeletingId(sessionId);
 
     try {
-      if (sessionType === 'chat') {
-        deleteSession(sessionId);
-      } else {
-        removeSearchSession(sessionId);
-      }
+      deleteSession(sessionId);
     } catch {
       toast({
         title: "Error",
-        description: `Failed to delete ${sessionType}`,
+        description: "Failed to delete chat",
         variant: "destructive"
       });
     } finally {
@@ -147,18 +125,9 @@ export function ChatHistoryPanel() {
         itemCount: session.messages.length,
       }));
 
-    // Convert search sessions to unified format
-    const searchItems: UnifiedSession[] = searchSessions.map(session => ({
-      id: session.id,
-      title: session.query,
-      timestamp: session.timestamp,
-      type: 'search' as const,
-      itemCount: session.results.length,
-    }));
-
-    // Combine and sort by timestamp (most recent first)
-    return [...chatItems, ...searchItems].sort((a, b) => b.timestamp - a.timestamp);
-  }, [chatSessions, searchSessions]);
+    // Only show chat sessions in main history (search sessions are in Search Mode tab)
+    return chatItems.sort((a, b) => b.timestamp - a.timestamp);
+  }, [chatSessions]);
 
   const totalMessages = useMemo(
     () => chatSessions.reduce((total, s) => total + s.messages.length, 0),
@@ -300,9 +269,7 @@ export function ChatHistoryPanel() {
           <PaginationButtons />
           <div className="space-y-2">
             {paginatedSessions.map((session) => {
-              const isActive = session.type === 'chat'
-                ? currentSessionId === session.id
-                : activeSearchSessionId === session.id;
+              const isActive = currentSessionId === session.id;
 
               return (
                 <div
@@ -314,20 +281,12 @@ export function ChatHistoryPanel() {
                       ? "border-primary/40 bg-primary/5 shadow-lg shadow-primary/5"
                       : "border-border/20 hover:border-border/40 hover:bg-background/60"
                   )}
-                  onClick={() => handleClickSession(session)}
+                  onClick={() => handleLoadSession(session.id)}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-start gap-2 flex-1 min-w-0">
-                      {/* Icon indicator for session type */}
-                      <div className={cn(
-                        "flex-shrink-0 mt-0.5",
-                        session.type === 'search' ? "text-orange-400" : "text-primary"
-                      )}>
-                        {session.type === 'search' ? (
-                          <Search className="h-4 w-4" />
-                        ) : (
-                          <MessageSquare className="h-4 w-4" />
-                        )}
+                      <div className="flex-shrink-0 mt-0.5 text-primary">
+                        <MessageSquare className="h-4 w-4" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className={cn(
@@ -338,7 +297,7 @@ export function ChatHistoryPanel() {
                         </h4>
                         <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
                           <span className="px-2 py-0.5 rounded-full bg-muted/30">
-                            {session.itemCount} {session.type === 'search' ? 'sources' : 'messages'}
+                            {session.itemCount} messages
                           </span>
                           <span>•</span>
                           <span>{new Date(session.timestamp).toLocaleDateString()}</span>
@@ -353,8 +312,8 @@ export function ChatHistoryPanel() {
                         "hover:bg-destructive/10 hover:text-destructive",
                         deletingId === session.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                       )}
-                      onClick={(e) => handleDeleteSession(session.id, session.type, e)}
-                      aria-label={`Delete ${session.type}`}
+                      onClick={(e) => handleDeleteSession(session.id, e)}
+                      aria-label="Delete chat"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

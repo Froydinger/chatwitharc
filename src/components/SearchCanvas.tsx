@@ -1737,6 +1737,24 @@ function HistoryView({
   onRemoveSession: (sessionId: string) => void;
   formatTimestamp: (timestamp: number) => string;
 }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
+
+  // Reverse sessions (most recent first) and paginate
+  const reversedSessions = useMemo(() => sessions.slice().reverse(), [sessions]);
+  const totalPages = Math.ceil(reversedSessions.length / ITEMS_PER_PAGE);
+
+  const paginatedSessions = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return reversedSessions.slice(startIndex, endIndex);
+  }, [reversedSessions, currentPage]);
+
+  // Reset to page 1 when sessions change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sessions.length]);
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="px-4 py-3 border-b border-border/20 glass-shimmer">
@@ -1755,11 +1773,38 @@ function HistoryView({
             </p>
           </div>
         ) : (
-          <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {sessions
-              .slice()
-              .reverse()
-              .map((session, index) => (
+          <>
+            {/* Pagination controls at top */}
+            {totalPages > 1 && (
+              <div className="p-4 pb-2 flex items-center justify-between gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="h-8"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  Prev
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="h-8"
+                >
+                  Next
+                  <ArrowLeft className="w-4 h-4 ml-1 rotate-180" />
+                </Button>
+              </div>
+            )}
+
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {paginatedSessions.map((session, index) => (
                 <motion.div
                   key={session.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -1811,7 +1856,37 @@ function HistoryView({
                   )}
                 </motion.div>
               ))}
-          </div>
+            </div>
+
+            {/* Pagination controls at bottom */}
+            {totalPages > 1 && (
+              <div className="p-4 pt-2 flex items-center justify-between gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="h-8"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  Prev
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="h-8"
+                >
+                  Next
+                  <ArrowLeft className="w-4 h-4 ml-1 rotate-180" />
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </ScrollArea>
     </div>
