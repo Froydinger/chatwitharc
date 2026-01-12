@@ -23,6 +23,14 @@ function extractCanvasTitle(content: string): string | null {
   return null;
 }
 
+export interface ChatResource {
+  id: string;
+  title: string;
+  url: string;
+  snippet?: string;
+  type: 'search_result' | 'saved_link';
+}
+
 export interface ChatSession {
   id: string;
   title: string;
@@ -30,6 +38,7 @@ export interface ChatSession {
   lastMessageAt: Date;
   messages: Message[];
   canvasContent?: string; // persisted per-session canvas document
+  resources?: ChatResource[]; // Multiple resources (search results, links) for context
 }
 
 export type MemoryActionType = 'memory_saved' | 'memory_accessed' | 'chats_searched' | 'web_searched';
@@ -76,6 +85,8 @@ export interface ArcState {
   currentSessionId: string | null;
   chatSessions: ChatSession[];
   createNewSession: () => string;
+  createNewSessionWithResources: (resources: ChatResource[], initialMessage?: string) => string;
+  addResourcesToSession: (sessionId: string, resources: ChatResource[]) => void;
   loadSession: (sessionId: string) => void;
   deleteSession: (sessionId: string) => void;
   clearAllSessions: () => void;
@@ -332,7 +343,7 @@ export const useArcStore = create<ArcState>()(
       
       createNewSession: () => {
         const state = get();
-        
+
         // If current session is empty, delete it first
         if (state.currentSessionId) {
           const currentSession = state.chatSessions.find(s => s.id === state.currentSessionId);
@@ -341,7 +352,7 @@ export const useArcStore = create<ArcState>()(
             get().deleteSession(state.currentSessionId);
           }
         }
-        
+
         // Reset model selection to default (Smart & Fast) for new chat
         sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash');
 
@@ -358,17 +369,73 @@ export const useArcStore = create<ArcState>()(
           messages: [],
           canvasContent: ''
         };
-        
+
         set((state) => ({
           chatSessions: [newSession, ...state.chatSessions],
           currentSessionId: sessionId,
           messages: []
         }));
-        
+
         // Save to Supabase
         get().saveChatToSupabase(newSession);
-        
+
         return sessionId;
+      },
+
+      createNewSessionWithResources: (resources, initialMessage) => {
+        const state = get();
+
+        // If current session is empty, delete it first
+        if (state.currentSessionId) {
+          const currentSession = state.chatSessions.find(s => s.id === state.currentSessionId);
+          if (currentSession && currentSession.messages.length === 0) {
+            get().deleteSession(state.currentSessionId);
+          }
+        }
+
+        // Reset model selection to default
+        sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash');
+
+        // Clear the canvas store
+        useCanvasStore.getState().hydrateFromSession('');
+
+        const sessionId = crypto.randomUUID();
+        const newSession: ChatSession = {
+          id: sessionId,
+          title: initialMessage || "Research Chat",
+          createdAt: new Date(),
+          lastMessageAt: new Date(),
+          messages: [],
+          canvasContent: '',
+          resources: resources
+        };
+
+        set((state) => ({
+          chatSessions: [newSession, ...state.chatSessions],
+          currentSessionId: sessionId,
+          messages: []
+        }));
+
+        // Save to Supabase
+        get().saveChatToSupabase(newSession);
+
+        return sessionId;
+      },
+
+      addResourcesToSession: (sessionId, resources) => {
+        set((state) => ({
+          chatSessions: state.chatSessions.map(s =>
+            s.id === sessionId
+              ? { ...s, resources: [...(s.resources || []), ...resources] }
+              : s
+          )
+        }));
+
+        // Update in Supabase
+        const session = get().chatSessions.find(s => s.id === sessionId);
+        if (session) {
+          get().saveChatToSupabase(session);
+        }
       },
       
       loadSession: (sessionId) => {
