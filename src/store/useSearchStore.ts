@@ -567,26 +567,49 @@ export const useSearchStore = create<SearchState>()(
           if (sessionsError) {
             console.error('Error fetching search sessions:', sessionsError);
           } else if (sessionsData && sessionsData.length > 0) {
-            const sessions: SearchSession[] = sessionsData.map((s: any) => ({
-              id: s.id,
-              query: s.query,
-              results: s.results || [],
-              formattedContent: s.formatted_content || '',
-              timestamp: new Date(s.created_at).getTime(),
-              relatedQueries: s.related_queries || [],
-              sourceConversations: s.source_conversations || {},
-            }));
+            const sessions: SearchSession[] = sessionsData.map((s: any) => {
+              // Ensure formattedContent is not empty
+              const formattedContent = s.formatted_content || '';
+              if (!formattedContent.trim()) {
+                console.warn(`Session ${s.id} has empty formatted_content, using fallback`);
+              }
 
-            // Merge with local sessions (prefer Supabase data for conflicts)
+              return {
+                id: s.id,
+                query: s.query,
+                results: s.results || [],
+                formattedContent: formattedContent || `Search results for "${s.query}"`,
+                timestamp: new Date(s.created_at).getTime(),
+                relatedQueries: s.related_queries || [],
+                sourceConversations: s.source_conversations || {},
+              };
+            });
+
+            // Merge with local sessions (prefer Supabase data for conflicts, but keep local if it has better content)
             const state = get();
-            const localSessionIds = new Set(state.sessions.map(s => s.id));
-            const mergedSessions = [
-              ...sessions,
-              ...state.sessions.filter(s => !sessionsData.some((db: any) => db.id === s.id)),
-            ];
+            const mergedSessions: SearchSession[] = [];
+            const supabaseSessionMap = new Map(sessions.map(s => [s.id, s]));
+
+            // Add Supabase sessions, but prefer local version if it has content and Supabase doesn't
+            sessions.forEach(supabaseSession => {
+              const localSession = state.sessions.find(s => s.id === supabaseSession.id);
+              if (localSession && localSession.formattedContent.trim() && !supabaseSession.formattedContent.trim()) {
+                console.log(`Keeping local session ${supabaseSession.id} with better content`);
+                mergedSessions.push(localSession);
+              } else {
+                mergedSessions.push(supabaseSession);
+              }
+            });
+
+            // Add local-only sessions
+            state.sessions.forEach(localSession => {
+              if (!supabaseSessionMap.has(localSession.id)) {
+                mergedSessions.push(localSession);
+              }
+            });
 
             set({ sessions: mergedSessions });
-            console.log(`✅ Loaded ${sessions.length} search sessions from Supabase`);
+            console.log(`✅ Loaded ${sessions.length} search sessions from Supabase, merged with ${state.sessions.length} local sessions`);
           }
 
           // Fetch saved links from Supabase
@@ -657,6 +680,12 @@ export const useSearchStore = create<SearchState>()(
         if (!user) return;
 
         try {
+          // Validate that we have content before saving
+          if (!session.formattedContent || !session.formattedContent.trim()) {
+            console.warn(`Session ${session.id} has empty formattedContent, not saving to Supabase`);
+            return;
+          }
+
           // Use type assertion since the types file may not be updated yet
           const { error } = await supabase
             .from('search_sessions' as any)
@@ -673,6 +702,8 @@ export const useSearchStore = create<SearchState>()(
 
           if (error) {
             console.error('Error saving session to Supabase:', error);
+          } else {
+            console.log(`✅ Saved session ${session.id} to Supabase with ${session.formattedContent.length} chars of content`);
           }
         } catch (error) {
           console.error('Error saving session to Supabase:', error);
