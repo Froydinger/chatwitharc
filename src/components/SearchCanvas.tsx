@@ -156,9 +156,14 @@ export function SearchCanvas() {
     setSearchQuery("");
 
     try {
+      // Add explicit instructions to synthesize and answer, not just list sources
+      const searchPrompt = `${query}
+
+IMPORTANT: After searching the web, provide a comprehensive answer synthesizing information from the sources. Do NOT just say "click on the sources" - actually answer my question with details from what you found.`;
+
       const { data, error } = await supabase.functions.invoke("chat", {
         body: {
-          messages: [{ role: "user", content: query }],
+          messages: [{ role: "user", content: searchPrompt }],
           forceWebSearch: true,
         },
       });
