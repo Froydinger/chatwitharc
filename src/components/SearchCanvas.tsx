@@ -1827,10 +1827,10 @@ function HistoryView({
 // Empty State Component
 function EmptyState({ onSearch }: { onSearch: (query: string) => void }) {
   const suggestions = [
-    "Latest AI developments",
-    "React best practices 2025",
-    "TypeScript tips and tricks",
-    "Web performance optimization",
+    "How to develop a daily reflection practice",
+    "Creative writing prompts for self-discovery",
+    "Building meaningful habits that last",
+    "Understanding your personal values",
   ];
 
   return (
