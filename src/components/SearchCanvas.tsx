@@ -1831,6 +1831,12 @@ function EmptyState({ onSearch }: { onSearch: (query: string) => void }) {
     "Creative writing prompts for self-discovery",
     "Building meaningful habits that last",
     "Understanding your personal values",
+    "Newest calming trends and mindfulness techniques",
+    "How to create a personal mission statement",
+    "Morning routines for mental clarity",
+    "Latest research on gratitude practices",
+    "Setting boundaries for better well-being",
+    "Emerging self-care practices in 2025",
   ];
 
   return (
