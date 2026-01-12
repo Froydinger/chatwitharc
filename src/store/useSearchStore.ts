@@ -69,6 +69,7 @@ interface SearchState {
   // View state
   showLinksPanel: boolean;
   pendingSearchQuery: string | null; // Query to auto-search when canvas opens
+  globalCurrentTab: 'search' | 'chats' | 'saved'; // Global tab state independent of sessions
 
   // Actions
   openSearchMode: (initialQuery?: string, initialResults?: SearchResult[], initialContent?: string) => void;
@@ -124,6 +125,7 @@ export const useSearchStore = create<SearchState>()(
       activeSessionId: null,
       showLinksPanel: false,
       pendingSearchQuery: null,
+      globalCurrentTab: 'search',
       lists: [
         {
           id: 'default',
@@ -383,6 +385,7 @@ export const useSearchStore = create<SearchState>()(
       // Source conversation actions
       setCurrentTab: (sessionId, tab) => {
         set((state) => ({
+          globalCurrentTab: tab,
           sessions: state.sessions.map((s) =>
             s.id === sessionId ? { ...s, currentTab: tab } : s
           ),
