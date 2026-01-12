@@ -26,7 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { useSearchStore, SearchResult, SearchSession } from "@/store/useSearchStore";
+import { useSearchStore, SearchResult, SearchSession, SourceMessage } from "@/store/useSearchStore";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
@@ -68,6 +68,7 @@ export function SearchCanvas() {
     setCurrentTab,
     startSourceChat,
     sendSourceMessage,
+    sendSummaryMessage,
     setActiveSource,
     setPendingSearchQuery,
     syncFromSupabase,
@@ -574,33 +575,10 @@ Provide a comprehensive answer based on current information. Synthesize what you
             followUpInput={followUpInput}
             setFollowUpInput={setFollowUpInput}
             onFollowUp={async (message) => {
-              if (!activeSession) return;
+              if (!activeSessionId) return;
 
-              // Convert all search results to chat resources
-              const resources: ChatResource[] = activeSession.results.map(result => ({
-                id: result.id,
-                title: result.title,
-                url: result.url,
-                snippet: result.snippet,
-                type: 'search_result' as const
-              }));
-
-              // Create a new chat with all search results as context
-              const newSessionId = createNewSessionWithResources(resources, message);
-
-              // Load the session and send the message
-              loadSession(newSessionId);
-
-              // Add the user's message to trigger AI response
-              await addMessage({
-                role: 'user',
-                content: message,
-                type: 'text'
-              });
-
-              // Close search mode and navigate to the new chat
-              closeSearch();
-              navigate(`/chat/${newSessionId}`);
+              // Send message within the summary (stays in search mode)
+              await sendSummaryMessage(activeSessionId, message);
               setFollowUpInput("");
             }}
             summaryExpanded={summaryExpanded}
@@ -1080,6 +1058,37 @@ function SessionDetail({
             )}
           </div>
         </ScrollArea>
+
+        {/* Conversation Messages */}
+        {session.summaryConversation && session.summaryConversation.length > 0 && (
+          <div className="border-t border-border/20 bg-muted/10">
+            <ScrollArea className="max-h-[300px]">
+              <div className="p-3 space-y-3">
+                {session.summaryConversation.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      "rounded-lg p-3 text-sm",
+                      msg.role === 'user'
+                        ? "bg-primary/10 text-foreground ml-4"
+                        : "bg-muted/50 text-foreground mr-4"
+                    )}
+                  >
+                    <div className="text-xs font-medium text-muted-foreground mb-1">
+                      {msg.role === 'user' ? 'You' : 'Assistant'}
+                    </div>
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      className="prose prose-sm dark:prose-invert max-w-none"
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
 
         {/* Follow-up Input Bar */}
         <div className="p-3 border-t border-border/20 bg-muted/30 flex-shrink-0">
