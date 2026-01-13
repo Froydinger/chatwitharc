@@ -64,7 +64,8 @@ export class AIService {
     messages: AIMessage[],
     profile?: { display_name?: string | null; context_info?: string | null, memory_info?: string | null, preferred_model?: string | null },
     onToolUsage?: (tools: string[]) => void,
-    sessionId?: string
+    sessionId?: string,
+    forceWebSearch?: boolean
   ): Promise<SendMessageResult> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Chat service is not available. Please configure Supabase.');
@@ -112,7 +113,8 @@ export class AIService {
                 messages: messages,
                 profile: effectiveProfile,
                 model: selectedModel,
-                sessionId: sessionId
+                sessionId: sessionId,
+                forceWebSearch: forceWebSearch || false
               }
             })
           );

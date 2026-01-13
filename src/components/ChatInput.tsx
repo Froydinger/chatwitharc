@@ -1,7 +1,7 @@
 // src/components/ChatInput.tsx
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
-import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Brain, Code2, PenLine, Search } from "lucide-react";
+import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Brain, Code2, PenLine, Search, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
@@ -581,13 +581,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     setForceSearchMode(false);
     setShowMenu(false);
 
-    // Search mode - just open the search canvas (blank or with a query)
-    if (wasSearchMode) {
-      const searchQuery = extractPrefixPrompt(userMessage);
-      openSearchMode(searchQuery || undefined); // Opens search canvas with query
-      // Canvas will auto-search if query provided
-      return;
-    }
+    // Search mode (/search) - now does a regular web search in chat (NOT Research Mode)
+    // Research Mode is opened separately via the button
+    // We set forceWebSearch flag so the chat API always does a web search
 
     // Reset cancellation flag
     cancelRequested = false;
@@ -814,7 +810,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           ? `IMPORTANT: Use the update_code tool (NOT update_canvas) to write code for this request: ${cleanedMessage}`
           : shouldRouteToCanvas
             ? `IMPORTANT: Use the update_canvas tool (NOT update_code) to write well-formatted markdown for this request:\n\n${cleanedMessage || userMessage}`
-            : cleanedMessage || userMessage;
+            : wasSearchMode
+              ? `Search the web for: ${cleanedMessage || userMessage}`
+              : cleanedMessage || userMessage;
 
         aiMessages.push({ role: "user", content: messageToSend });
 
@@ -826,6 +824,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         
         let didSearchWeb = false;
         const { currentSessionId } = useArcStore.getState();
+        // Pass forceWebSearch=true when user explicitly used /search command
         const result = await new AIService().sendMessage(aiMessages, profile, (tools) => {
           console.log('🔧 Tools used in handleSend:', tools);
           // Set indicators based on tool usage
@@ -838,7 +837,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             setSearchingWeb(true);
             didSearchWeb = true;
           }
-        }, currentSessionId || undefined);
+        }, currentSessionId || undefined, wasSearchMode);
         
         // Check if cancelled after getting response
         if (cancelRequested) {
@@ -1111,20 +1110,20 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               }}
             >
               <div className="flex flex-col items-stretch gap-2 w-full max-w-lg">
-                {/* Top row - Search Mode card */}
+                {/* Top row - Research Mode card */}
                 <button
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setInputValue("");
-                    // Open blank search canvas - use already imported openSearchMode
+                    // Open Research Mode (blank search canvas)
                     openSearchMode();
                     textareaRef.current?.focus();
                   }}
                   className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-orange-400/50 text-orange-400 hover:bg-orange-500/20 transition-colors shadow-xl"
                 >
-                  <Search className="h-4 w-4" />
-                  <span className="text-sm font-medium">Search Mode</span>
+                  <Sparkles className="h-4 w-4" />
+                  <span className="text-sm font-medium">Research Mode</span>
                 </button>
 
                 {/* Bottom row - Slash commands */}
@@ -1173,9 +1172,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                     setInputValue("search/");
                     textareaRef.current?.focus();
                   }}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-orange-400/50 text-orange-400 hover:bg-orange-500/20 transition-colors shadow-xl"
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-cyan-400/50 text-cyan-400 hover:bg-cyan-500/20 transition-colors shadow-xl"
                 >
-                  <Search className="h-4 w-4" />
+                  <Globe className="h-4 w-4" />
                   <span className="text-sm font-medium">search/</span>
                 </button>
                   {/* Dismiss button */}
