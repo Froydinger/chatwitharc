@@ -65,8 +65,8 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const { toast } = useToast();
   const [showHistory, setShowHistory] = useState(false);
   const [copied, setCopied] = useState(false);
-  // For code mode: show code editor by default so users can edit, toggle to preview
-  const [showCodeEditor, setShowCodeEditor] = useState(true);
+  // For code mode: show preview by default (full-width), toggle to show code
+  const [showCodeEditor, setShowCodeEditor] = useState(false);
 
   const isCodeMode = canvasType === 'code';
   const supportsPreview = isCodeMode && canPreview(codeLanguage);
@@ -258,20 +258,6 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowCodeEditor(true)}
-                className={cn(
-                  "h-7 px-2.5 rounded-md text-xs font-medium transition-colors",
-                  showCodeEditor
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Code className="w-3.5 h-3.5 mr-1" />
-                Code
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
                 onClick={() => setShowCodeEditor(false)}
                 className={cn(
                   "h-7 px-2.5 rounded-md text-xs font-medium transition-colors",
@@ -282,6 +268,20 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
               >
                 <Eye className="w-3.5 h-3.5 mr-1" />
                 Preview
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCodeEditor(true)}
+                className={cn(
+                  "h-7 px-2.5 rounded-md text-xs font-medium transition-colors",
+                  showCodeEditor
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Code className="w-3.5 h-3.5 mr-1" />
+                Code
               </Button>
             </div>
           )}
@@ -388,23 +388,14 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {isCodeMode ? (
-          // Code mode: show either code editor (default) or preview (full-width)
-          showCodeEditor ? (
-            // Code editor mode (default)
-            <CanvasCodeEditor
-              code={content}
-              language={codeLanguage}
-              onChange={(code) => setContent(code, false)}
-              readOnly={isAIWriting}
-              className="flex-1"
-            />
-          ) : supportsPreview ? (
-            // Preview mode (for previewable languages like HTML)
+          // Code mode: show either preview (full-width) or code editor (full-width)
+          supportsPreview && !showCodeEditor ? (
+            // Preview mode (default for previewable languages)
             <div className="flex-1 flex flex-col overflow-hidden">
               <CodePreview code={content} language={codeLanguage} />
             </div>
           ) : (
-            // Fallback to code editor if preview not supported
+            // Code editor mode
             <CanvasCodeEditor
               code={content}
               language={codeLanguage}
