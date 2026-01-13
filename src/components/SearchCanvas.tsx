@@ -18,6 +18,11 @@ import {
   MessageSquare,
   Send,
   ArrowLeft,
+  MoreHorizontal,
+  ArrowRightLeft,
+  Maximize2,
+  Minimize2,
+  GripVertical,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -65,6 +70,7 @@ export function SearchCanvas() {
     saveLink,
     createList,
     removeLink,
+    moveLink,
     setCurrentTab,
     startSourceChat,
     sendSourceMessage,
@@ -401,6 +407,26 @@ Provide a comprehensive answer based on current information. Synthesize what you
               </Button>
             )}
           </div>
+          
+          {/* Thinking indicator below search */}
+          <AnimatePresence>
+            {isSearching && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-3 flex items-center justify-center gap-2 text-sm text-muted-foreground"
+              >
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  <Sparkles className="w-4 h-4 text-primary" />
+                </motion.div>
+                <span>Researching the web...</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -606,6 +632,7 @@ Provide a comprehensive answer based on current information. Synthesize what you
             lists={lists}
             sessions={sessions}
             onRemoveLink={removeLink}
+            onMoveLink={moveLink}
             onSelectSession={(sessionId) => {
               setActiveSession(sessionId);
               setCurrentTab(sessionId, 'search');
@@ -1216,17 +1243,23 @@ function SessionDetail({
                               variant="ghost"
                               size="sm"
                               className={cn(
-                                "h-6 w-6 p-0 transition-opacity",
+                                "h-8 w-8 p-0 transition-opacity touch-manipulation",
                                 openDropdownId === result.id
                                   ? "opacity-100"
-                                  : "opacity-70 hover:opacity-100 md:opacity-50 md:group-hover:opacity-100"
+                                  : "opacity-100 md:opacity-50 md:group-hover:opacity-100"
                               )}
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
+                              onPointerDown={(e) => {
+                                e.stopPropagation();
+                              }}
                             >
                               {isSaved ? (
-                                <BookmarkCheck className="w-3.5 h-3.5 text-primary" />
+                                <BookmarkCheck className="w-4 h-4 text-primary" />
                               ) : (
-                                <Bookmark className="w-3.5 h-3.5" />
+                                <Bookmark className="w-4 h-4" />
                               )}
                             </Button>
                           </DropdownMenuTrigger>
@@ -1271,26 +1304,28 @@ function SessionDetail({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0 opacity-70 hover:opacity-100 md:opacity-50 md:group-hover:opacity-100 transition-opacity"
+                          className="h-8 w-8 p-0 opacity-100 md:opacity-50 md:group-hover:opacity-100 transition-opacity touch-manipulation"
                           onClick={(e) => {
                             e.stopPropagation();
                             onStartChat(result);
                           }}
+                          onPointerDown={(e) => e.stopPropagation()}
                           title="Chat about this source"
                         >
-                          <MessageSquare className="w-3.5 h-3.5" />
+                          <MessageSquare className="w-4 h-4" />
                         </Button>
 
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0 opacity-70 hover:opacity-100 md:opacity-50 md:group-hover:opacity-100 transition-opacity"
+                          className="h-8 w-8 p-0 opacity-100 md:opacity-50 md:group-hover:opacity-100 transition-opacity touch-manipulation"
                           onClick={(e) => {
                             e.stopPropagation();
                             window.open(result.url, "_blank");
                           }}
+                          onPointerDown={(e) => e.stopPropagation()}
                         >
-                          <ExternalLink className="w-3.5 h-3.5" />
+                          <ExternalLink className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
@@ -1330,6 +1365,7 @@ function LinksPanel({
   lists,
   sessions,
   onRemoveLink,
+  onMoveLink,
   onSelectSession,
   onCreateList,
   onStartChat,
@@ -1340,6 +1376,7 @@ function LinksPanel({
   lists: any[];
   sessions: SearchSession[];
   onRemoveLink: (listId: string, linkId: string) => void;
+  onMoveLink: (linkId: string, fromListId: string, toListId: string) => void;
   onSelectSession: (sessionId: string) => void;
   onCreateList: () => void;
   onStartChat: (link: any) => void;
@@ -1462,20 +1499,60 @@ function LinksPanel({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0 opacity-70 hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                          className="h-7 w-7 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation"
                           onClick={() => onStartChat(link)}
                           title="Chat about this link"
                         >
-                          <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                          <MessageSquare className="w-4 h-4 text-muted-foreground" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 opacity-70 hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                          onClick={() => onRemoveLink(list.id, link.id)}
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
-                        </Button>
+                        
+                        {/* Triple-dot menu for link management */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation"
+                            >
+                              <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            {/* Move to another list */}
+                            {lists.length > 1 && (
+                              <>
+                                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                  Move to list
+                                </div>
+                                {lists
+                                  .filter((l) => l.id !== list.id)
+                                  .map((targetList) => (
+                                    <DropdownMenuItem
+                                      key={targetList.id}
+                                      onClick={() => onMoveLink(link.id, list.id, targetList.id)}
+                                    >
+                                      <ArrowRightLeft className="w-3.5 h-3.5 mr-2" />
+                                      {targetList.name}
+                                    </DropdownMenuItem>
+                                  ))}
+                                <DropdownMenuSeparator />
+                              </>
+                            )}
+                            <DropdownMenuItem
+                              onClick={() => window.open(link.url, "_blank")}
+                            >
+                              <ExternalLink className="w-3.5 h-3.5 mr-2" />
+                              Open in new tab
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => onRemoveLink(list.id, link.id)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-2" />
+                              Remove
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   ))}
