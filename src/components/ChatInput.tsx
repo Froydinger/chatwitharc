@@ -1309,7 +1309,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                         </div>
                       </motion.button>
 
-                      {/* Search Mode - Second left */}
+                      {/* Research Mode - Second left */}
                       <motion.button
                         initial={{ opacity: 0, y: 40, rotate: -5, scale: 0.9 }}
                         animate={{
@@ -1334,9 +1334,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                       >
                         <div className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 h-full">
                           <span className="inline-flex h-8 w-8 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-orange-500/15 shrink-0 glass-shimmer ring-[0.5px] ring-orange-500/40">
-                            <Search className="h-4 w-4 sm:h-6 sm:w-6 text-orange-400" />
+                            <Globe className="h-4 w-4 sm:h-6 sm:w-6 text-orange-400" />
                           </span>
-                          <div className="text-[10px] sm:text-sm font-semibold">Search</div>
+                          <div className="text-[10px] sm:text-sm font-semibold">Research</div>
                         </div>
                       </motion.button>
 
