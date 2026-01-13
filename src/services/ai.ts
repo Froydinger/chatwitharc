@@ -65,7 +65,9 @@ export class AIService {
     profile?: { display_name?: string | null; context_info?: string | null, memory_info?: string | null, preferred_model?: string | null },
     onToolUsage?: (tools: string[]) => void,
     sessionId?: string,
-    forceWebSearch?: boolean
+    forceWebSearch?: boolean,
+    forceCanvas?: boolean,
+    forceCode?: boolean
   ): Promise<SendMessageResult> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Chat service is not available. Please configure Supabase.');
@@ -114,7 +116,9 @@ export class AIService {
                 profile: effectiveProfile,
                 model: selectedModel,
                 sessionId: sessionId,
-                forceWebSearch: forceWebSearch || false
+                forceWebSearch: forceWebSearch || false,
+                forceCanvas: forceCanvas || false,
+                forceCode: forceCode || false
               }
             })
           );
