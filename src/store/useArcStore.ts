@@ -697,11 +697,12 @@ export const useArcStore = create<ArcState>()(
           return createdId;
         }
 
-        set((s) => {
-          // Add new canvas message to preserve version history
-          // Canvas and code artifacts are mutually exclusive - remove all code messages when switching to canvas
-          const nonCodeMessages = s.messages.filter((m) => m.type !== 'code');
+        // Prepare the session to save outside of set() so we can await the save
+        let sessionToSave: ChatSession | null = null;
 
+        set((s) => {
+          // Keep all messages - don't delete code messages when adding canvas
+          // This preserves user's work history
           const newCanvasMessage: Message = {
             id: uniqueCanvasId,
             content: displayLabel,
@@ -713,10 +714,10 @@ export const useArcStore = create<ArcState>()(
             timestamp: new Date(),
           };
 
-          const updatedMessages = [...nonCodeMessages, newCanvasMessage];
+          const updatedMessages = [...s.messages, newCanvasMessage];
 
           const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
-          const sessionToSave: ChatSession = {
+          sessionToSave = {
             id: sessionId,
             title: existingSession?.title || 'New Chat',
             createdAt: existingSession?.createdAt || new Date(),
@@ -727,17 +728,21 @@ export const useArcStore = create<ArcState>()(
 
           const updatedSessions = s.chatSessions.map((cs) => (cs.id === sessionId ? sessionToSave : cs));
 
-          // Persist async
-          get().saveChatToSupabase(sessionToSave).catch((error) => {
-            console.error('❌ Failed to save canvas message to Supabase:', error);
-          });
-
           return {
             ...s,
             messages: updatedMessages,
             chatSessions: updatedSessions,
           };
         });
+
+        // AWAIT the save to ensure persistence before returning
+        if (sessionToSave) {
+          try {
+            await get().saveChatToSupabase(sessionToSave);
+          } catch (error) {
+            console.error('❌ Failed to save canvas message to Supabase:', error);
+          }
+        }
 
         return uniqueCanvasId;
       },
@@ -763,11 +768,12 @@ export const useArcStore = create<ArcState>()(
           return createdId;
         }
 
-        set((s) => {
-          // Add new code message to preserve version history
-          // Canvas and code artifacts are mutually exclusive - remove all canvas messages when switching to code
-          const nonCanvasMessages = s.messages.filter((m) => m.type !== 'canvas');
+        // Prepare the session to save outside of set() so we can await the save
+        let sessionToSave: ChatSession | null = null;
 
+        set((s) => {
+          // Keep all messages - don't delete canvas messages when adding code
+          // This preserves user's work history
           const newCodeMessage: Message = {
             id: uniqueCodeId,
             content: displayLabel,
@@ -780,10 +786,10 @@ export const useArcStore = create<ArcState>()(
             timestamp: new Date(),
           };
 
-          const updatedMessages = [...nonCanvasMessages, newCodeMessage];
+          const updatedMessages = [...s.messages, newCodeMessage];
 
           const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
-          const sessionToSave: ChatSession = {
+          sessionToSave = {
             id: sessionId,
             title: existingSession?.title || 'New Chat',
             createdAt: existingSession?.createdAt || new Date(),
@@ -794,16 +800,21 @@ export const useArcStore = create<ArcState>()(
 
           const updatedSessions = s.chatSessions.map((cs) => (cs.id === sessionId ? sessionToSave : cs));
 
-          get().saveChatToSupabase(sessionToSave).catch((error) => {
-            console.error('❌ Failed to save code message to Supabase:', error);
-          });
-
           return {
             ...s,
             messages: updatedMessages,
             chatSessions: updatedSessions,
           };
         });
+
+        // AWAIT the save to ensure persistence before returning
+        if (sessionToSave) {
+          try {
+            await get().saveChatToSupabase(sessionToSave);
+          } catch (error) {
+            console.error('❌ Failed to save code message to Supabase:', error);
+          }
+        }
 
         return uniqueCodeId;
       },

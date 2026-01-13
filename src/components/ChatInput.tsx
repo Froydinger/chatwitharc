@@ -962,7 +962,7 @@ INSTRUCTIONS: Modify the existing code above according to the user's request. Ou
             // Immediately persist canvas content to the current session so it survives navigation
             const { currentSessionId, updateSessionCanvasContent } = useArcStore.getState();
             if (currentSessionId) {
-              updateSessionCanvasContent(currentSessionId, canvasContentToSave);
+              await updateSessionCanvasContent(currentSessionId, canvasContentToSave);
             }
 
             // Upsert a single canvas-type message inline in chat
