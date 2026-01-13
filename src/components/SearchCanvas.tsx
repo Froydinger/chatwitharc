@@ -651,11 +651,10 @@ Provide a comprehensive answer based on current information. Synthesize what you
         {currentTab === 'saved' && (
           <LinksPanel
             lists={lists}
-            sessions={sessions}
             onRemoveLink={removeLink}
-            onSelectSession={(sessionId) => {
-              setActiveSession(sessionId);
-              setCurrentTab(sessionId, 'search');
+            onMoveLink={(linkId, fromListId, toListId) => {
+              moveLink(linkId, fromListId, toListId);
+              toast({ title: "Link moved" });
             }}
             onCreateList={() => {
               setShowNewListDialog(true);
@@ -673,11 +672,11 @@ Provide a comprehensive answer based on current information. Synthesize what you
                 }
               } else {
                 // Create a minimal session for this link
-                const newResult: SearchResult = { 
-                  id: link.id, 
-                  title: link.title, 
-                  url: link.url, 
-                  snippet: link.snippet || "" 
+                const newResult: SearchResult = {
+                  id: link.id,
+                  title: link.title,
+                  url: link.url,
+                  snippet: link.snippet || ""
                 };
                 addSession(
                   `Chat about: ${link.title}`,
@@ -695,9 +694,42 @@ Provide a comprehensive answer based on current information. Synthesize what you
                 }, 100);
               }
             }}
+            onStartChatWithMultiple={(links) => {
+              // Create a session with all the selected links and start a chat about them
+              const results: SearchResult[] = links.map((link: any, index: number) => ({
+                id: link.id || `link-${index}`,
+                title: link.title,
+                url: link.url,
+                snippet: link.snippet || ""
+              }));
+
+              const titles = links.slice(0, 3).map((l: any) => l.title).join(", ");
+              const queryTitle = links.length > 3
+                ? `${titles}, and ${links.length - 3} more`
+                : titles;
+
+              addSession(
+                `Research: ${queryTitle}`,
+                results,
+                `Researching ${links.length} sources:\n\n${links.map((l: any, i: number) => `${i + 1}. **${l.title}**\n   ${l.url}`).join('\n\n')}`,
+                undefined
+              );
+
+              // Switch to the new session
+              setTimeout(() => {
+                const latestSession = useSearchStore.getState().sessions[useSearchStore.getState().sessions.length - 1];
+                if (latestSession) {
+                  setActiveSession(latestSession.id);
+                  setCurrentTab(latestSession.id, 'search');
+                  toast({
+                    title: `Started research with ${links.length} sources`,
+                    description: "Ask questions about these sources in the follow-up input"
+                  });
+                }
+              }, 100);
+            }}
             getFaviconUrl={getFaviconUrl}
             getHostname={getHostname}
-            formatTimestamp={formatTimestamp}
           />
         )}
 
@@ -1338,171 +1370,303 @@ function SessionDetail({
 // Links Panel Component
 function LinksPanel({
   lists,
-  sessions,
   onRemoveLink,
-  onSelectSession,
+  onMoveLink,
   onCreateList,
   onStartChat,
+  onStartChatWithMultiple,
   getFaviconUrl,
   getHostname,
-  formatTimestamp,
 }: {
   lists: any[];
-  sessions: SearchSession[];
   onRemoveLink: (listId: string, linkId: string) => void;
-  onSelectSession: (sessionId: string) => void;
+  onMoveLink: (linkId: string, fromListId: string, toListId: string) => void;
   onCreateList: () => void;
   onStartChat: (link: any) => void;
+  onStartChatWithMultiple: (links: any[]) => void;
   getFaviconUrl: (url: string) => string | null;
   getHostname: (url: string) => string;
-  formatTimestamp: (timestamp: number) => string;
 }) {
+  const [selectedLinks, setSelectedLinks] = useState<Set<string>>(new Set());
+  const [isSelectMode, setIsSelectMode] = useState(false);
+
+  const toggleLinkSelection = (linkId: string) => {
+    setSelectedLinks(prev => {
+      const next = new Set(prev);
+      if (next.has(linkId)) {
+        next.delete(linkId);
+      } else {
+        next.add(linkId);
+      }
+      return next;
+    });
+  };
+
+  const selectAllInList = (list: any) => {
+    setSelectedLinks(prev => {
+      const next = new Set(prev);
+      list.links.forEach((link: any) => next.add(link.id));
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedLinks(new Set());
+    setIsSelectMode(false);
+  };
+
+  const getSelectedLinksData = () => {
+    const selected: any[] = [];
+    lists.forEach(list => {
+      list.links.forEach((link: any) => {
+        if (selectedLinks.has(link.id)) {
+          selected.push(link);
+        }
+      });
+    });
+    return selected;
+  };
+
+  const handleChatWithSelected = () => {
+    const links = getSelectedLinksData();
+    if (links.length > 0) {
+      onStartChatWithMultiple(links);
+      clearSelection();
+    }
+  };
+
+  const handleChatWithList = (list: any) => {
+    if (list.links.length > 0) {
+      onStartChatWithMultiple(list.links);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="px-4 py-3 border-b border-border/20 glass-shimmer flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-foreground">Research</p>
+          <p className="text-sm font-medium text-foreground">Saved Links</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Manage your searches and saved bookmarks
+            Organize and chat with your bookmarks
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onCreateList}
-          className="h-8 gap-1.5 text-xs flex-shrink-0"
-        >
-          <FolderPlus className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">New List</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          {isSelectMode ? (
+            <>
+              <span className="text-xs text-muted-foreground">
+                {selectedLinks.size} selected
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleChatWithSelected}
+                disabled={selectedLinks.size === 0}
+                className="h-8 gap-1.5 text-xs"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Chat
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearSelection}
+                className="h-8 text-xs"
+              >
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsSelectMode(true)}
+                className="h-8 text-xs text-muted-foreground"
+              >
+                Select
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCreateList}
+                className="h-8 gap-1.5 text-xs flex-shrink-0"
+              >
+                <FolderPlus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">New List</span>
+              </Button>
+            </>
+          )}
+        </div>
       </div>
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-6">
-          {/* Past Searches Section */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" />
-              Past Searches
-              <span className="text-xs text-muted-foreground font-normal">
-                ({sessions.length})
-              </span>
-            </h3>
-            {sessions.length === 0 ? (
-              <p className="text-xs text-muted-foreground pl-6">
-                No searches yet
+          {lists.length === 0 ? (
+            <div className="text-center py-8">
+              <Bookmark className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground">No saved links yet</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                Save links from search results to organize them here
               </p>
-            ) : (
-              <div className="space-y-2 pl-6">
-                {sessions
-                  .slice()
-                  .reverse()
-                  .map((session) => (
-                    <motion.div
-                      key={session.id}
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="group flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                      onClick={() => onSelectSession(session.id)}
-                    >
-                      <div className="flex-shrink-0 w-4 h-4 mt-0.5">
-                        <Search className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-foreground line-clamp-1">
-                          {session.query}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{session.results.length} sources</span>
-                          <span>•</span>
-                          <span>{formatTimestamp(session.timestamp)}</span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-              </div>
-            )}
-          </div>
-
-          {/* Saved Links Section */}
-          {lists.map((list) => (
-            <div key={list.id}>
-              <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                <Bookmark className="w-4 h-4 text-primary" />
-                {list.name}
-                <span className="text-xs text-muted-foreground font-normal">
-                  ({list.links.length})
-                </span>
-              </h3>
-              {list.links.length === 0 ? (
-                <p className="text-xs text-muted-foreground pl-6">
-                  No links saved yet
-                </p>
-              ) : (
-                <div className="space-y-2 pl-6">
-                  {list.links.map((link: any) => (
-                    <div
-                      key={link.id}
-                      className="group flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex-shrink-0 w-4 h-4 mt-0.5">
-                        {getFaviconUrl(link.url) ? (
-                          <img
-                            src={getFaviconUrl(link.url)!}
-                            alt=""
-                            className="w-4 h-4 rounded"
-                          />
-                        ) : (
-                          <Globe className="w-4 h-4 text-muted-foreground" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-foreground hover:text-primary line-clamp-1"
-                        >
-                          {link.title}
-                        </a>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {getHostname(link.url)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation"
-                          onClick={() => window.open(link.url, "_blank")}
-                          title="Open in new tab"
-                        >
-                          <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation"
-                          onClick={() => onStartChat(link)}
-                          title="Chat about this link"
-                        >
-                          <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation text-destructive hover:text-destructive"
-                          onClick={() => onRemoveLink(list.id, link.id)}
-                          title="Delete link"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-          ))}
+          ) : (
+            lists.map((list) => (
+              <div key={list.id}>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Bookmark className="w-4 h-4 text-primary" />
+                    {list.name}
+                    <span className="text-xs text-muted-foreground font-normal">
+                      ({list.links.length})
+                    </span>
+                  </h3>
+                  {list.links.length > 0 && (
+                    <div className="flex items-center gap-1">
+                      {isSelectMode && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => selectAllInList(list)}
+                          className="h-7 text-xs text-muted-foreground"
+                        >
+                          Select all
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleChatWithList(list)}
+                        className="h-7 gap-1 text-xs text-primary hover:text-primary"
+                        title="Chat about all links in this list"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        Chat with list
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {list.links.length === 0 ? (
+                  <p className="text-xs text-muted-foreground pl-6">
+                    No links saved yet
+                  </p>
+                ) : (
+                  <div className="space-y-1 pl-2">
+                    {list.links.map((link: any) => {
+                      const isSelected = selectedLinks.has(link.id);
+                      return (
+                        <div
+                          key={link.id}
+                          className={cn(
+                            "group flex items-start gap-2 p-2 rounded-lg transition-colors",
+                            isSelectMode ? "cursor-pointer" : "",
+                            isSelected ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted/50"
+                          )}
+                          onClick={isSelectMode ? () => toggleLinkSelection(link.id) : undefined}
+                        >
+                          {isSelectMode && (
+                            <div className="flex-shrink-0 w-4 h-4 mt-0.5">
+                              <div className={cn(
+                                "w-4 h-4 rounded border-2 flex items-center justify-center transition-colors",
+                                isSelected ? "bg-primary border-primary" : "border-muted-foreground/40"
+                              )}>
+                                {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex-shrink-0 w-4 h-4 mt-0.5">
+                            {getFaviconUrl(link.url) ? (
+                              <img
+                                src={getFaviconUrl(link.url)!}
+                                alt=""
+                                className="w-4 h-4 rounded"
+                              />
+                            ) : (
+                              <Globe className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <a
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-foreground hover:text-primary line-clamp-1"
+                              onClick={(e) => isSelectMode && e.preventDefault()}
+                            >
+                              {link.title}
+                            </a>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {getHostname(link.url)}
+                            </p>
+                          </div>
+                          {!isSelectMode && (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(link.url, "_blank");
+                                }}
+                                title="Open in new tab"
+                              >
+                                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onStartChat(link);
+                                }}
+                                title="Chat about this link"
+                              >
+                                <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                              </Button>
+                              {/* Move to another list */}
+                              {lists.length > 1 && (
+                                <select
+                                  className="h-7 text-xs bg-transparent border border-border/50 rounded px-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity cursor-pointer"
+                                  value=""
+                                  onChange={(e) => {
+                                    if (e.target.value) {
+                                      onMoveLink(link.id, list.id, e.target.value);
+                                      e.target.value = "";
+                                    }
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  title="Move to another list"
+                                >
+                                  <option value="" disabled>Move...</option>
+                                  {lists.filter(l => l.id !== list.id).map(targetList => (
+                                    <option key={targetList.id} value={targetList.id}>
+                                      {targetList.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onRemoveLink(list.id, link.id);
+                                }}
+                                title="Delete link"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </ScrollArea>
     </div>
