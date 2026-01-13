@@ -50,14 +50,26 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
     }
   }, [showThinking]);
 
-  // Cleanup audio when thinking ends
+  // Cleanup audio when thinking ends - always stop music when AI responds
   useEffect(() => {
-    if (!showThinking && audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current = null;
+    if (!showThinking) {
+      // Always cleanup when thinking stops, regardless of audioRef state
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
+      }
       setIsPlayingMusic(false);
     }
+
+    // Also cleanup on component unmount
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
+      }
+    };
   }, [showThinking]);
 
   const handlePlayMusic = () => {

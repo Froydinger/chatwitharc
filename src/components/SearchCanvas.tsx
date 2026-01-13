@@ -13,7 +13,6 @@ import {
   FolderPlus,
   Trash2,
   Clock,
-  Sparkles,
   ChevronRight,
   MessageSquare,
   Send,
@@ -332,7 +331,7 @@ Provide a comprehensive answer based on current information. Synthesize what you
           </Button>
 
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
+            <Search className="w-4 h-4 text-primary" />
             <span className="text-sm font-semibold text-foreground">
               Research Mode
             </span>
@@ -421,7 +420,7 @@ Provide a comprehensive answer based on current information. Synthesize what you
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                 >
-                  <Sparkles className="w-4 h-4 text-primary" />
+                  <Search className="w-4 h-4 text-primary" />
                 </motion.div>
                 <span>Researching the web...</span>
               </motion.div>
@@ -1099,8 +1098,8 @@ function SessionDetail({
 
         {/* Conversation Messages */}
         {session.summaryConversation && session.summaryConversation.length > 0 && (
-          <div className="border-t border-border/20 bg-muted/10">
-            <ScrollArea className="max-h-[300px]">
+          <div className="border-t border-border/20 bg-muted/10 flex-shrink-0 max-h-[300px] overflow-hidden">
+            <ScrollArea className="h-full max-h-[300px] overflow-auto">
               <div className="p-3 space-y-3">
                 {session.summaryConversation.map((msg) => (
                   <div
@@ -1165,7 +1164,8 @@ function SessionDetail({
         <div className={cn(
           "flex-shrink-0 flex flex-col overflow-hidden border-t md:border-t-0 border-border/20",
           sourcesExpanded ? "flex-1" : "w-full md:w-80",
-          isMobile && sourcesExpanded ? "h-full" : "md:flex-initial"
+          isMobile && sourcesExpanded ? "h-full" : "md:flex-initial",
+          !sourcesExpanded && isMobile && "max-h-[40vh]"
         )}>
           <div className="px-4 py-2 border-b border-border/20 glass-shimmer flex-shrink-0 flex items-center justify-between">
             <p className="text-xs font-medium text-muted-foreground">
@@ -1188,7 +1188,7 @@ function SessionDetail({
               )}
             </Button>
           </div>
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 overflow-auto">
           <div className="p-3 space-y-2">
             {session.results.map((result, index) => {
               const isSaved = savedUrls.has(result.url);
@@ -1243,7 +1243,7 @@ function SessionDetail({
                               variant="ghost"
                               size="sm"
                               className={cn(
-                                "h-8 w-8 p-0 transition-opacity touch-manipulation",
+                                "h-8 w-8 p-0 transition-opacity touch-manipulation relative z-10",
                                 openDropdownId === result.id
                                   ? "opacity-100"
                                   : "opacity-100 md:opacity-50 md:group-hover:opacity-100"
@@ -1253,6 +1253,9 @@ function SessionDetail({
                                 e.preventDefault();
                               }}
                               onPointerDown={(e) => {
+                                e.stopPropagation();
+                              }}
+                              onTouchStart={(e) => {
                                 e.stopPropagation();
                               }}
                             >
@@ -1265,8 +1268,9 @@ function SessionDetail({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
                             align="end"
-                            className="w-48"
+                            className="w-48 z-50"
                             onClick={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
                           >
                             {lists.length === 0 ? (
                               <div className="px-2 py-1.5 text-xs text-muted-foreground">
@@ -1512,12 +1516,15 @@ function LinksPanel({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 w-7 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation"
+                              className="h-7 w-7 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation relative z-10"
+                              onClick={(e) => e.stopPropagation()}
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onTouchStart={(e) => e.stopPropagation()}
                             >
                               <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuContent align="end" className="w-48 z-50" onPointerDown={(e) => e.stopPropagation()}>
                             {/* Move to another list */}
                             {lists.length > 1 && (
                               <>
@@ -1998,7 +2005,7 @@ function EmptyState({ onSearch }: { onSearch: (query: string) => void }) {
     <div className="flex-1 flex flex-col items-center justify-center p-8">
       <div className="max-w-md text-center">
         <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-          <Sparkles className="w-8 h-8 text-primary" />
+          <Search className="w-8 h-8 text-primary" />
         </div>
         <h2 className="text-xl font-semibold text-foreground mb-2">
           Start Researching
