@@ -851,12 +851,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
         if (isCodingRequest) {
           // Explicit code/ prefix - new code request
-          messageToSend = `IMPORTANT: Use the update_code tool (NOT update_canvas) to write code for this request: ${cleanedMessage}`;
+          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CODE: Use the update_code tool to write COMPLETE, FULL code for this request. Do NOT truncate, summarize, or cut short. Write the ENTIRE implementation: ${cleanedMessage}`;
         } else if (shouldRouteToCodeCanvas && canvasState.content) {
           // Code canvas is open and user wants to modify existing code
           const existingCode = canvasState.content;
           const language = canvasState.codeLanguage || 'html';
-          messageToSend = `IMPORTANT: The user has existing ${language} code in their Code Canvas. They want you to MODIFY this code based on their request. Use the update_code tool to output the COMPLETE modified code.
+          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CODE: The user has existing ${language} code. Modify it based on their request using the update_code tool. You MUST output the COMPLETE, FULL modified code - do NOT truncate, summarize, or cut off mid-way. Write EVERY line.
 
 EXISTING CODE TO MODIFY:
 \`\`\`${language}
@@ -865,9 +865,9 @@ ${existingCode}
 
 USER'S REQUEST: ${cleanedMessage || userMessage}
 
-INSTRUCTIONS: Modify the existing code above according to the user's request. Output the COMPLETE updated code using the update_code tool. Do NOT just describe the changes - actually implement them in the code.`;
+MANDATORY: Output the COMPLETE updated code. Never stop mid-sentence or mid-function. Include ALL code from start to finish.`;
         } else if (shouldRouteToCanvas) {
-          messageToSend = `IMPORTANT: Use the update_canvas tool (NOT update_code) to write well-formatted markdown for this request:\n\n${cleanedMessage || userMessage}`;
+          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: Use the update_canvas tool to write COMPLETE, FULL markdown content for this request. Do NOT truncate, summarize, or cut short. Write the ENTIRE piece from beginning to end - every paragraph, every section, complete thoughts. Never stop mid-sentence:\n\n${cleanedMessage || userMessage}`;
         } else if (wasSearchMode) {
           messageToSend = `Search the web for: ${cleanedMessage || userMessage}`;
         } else {
