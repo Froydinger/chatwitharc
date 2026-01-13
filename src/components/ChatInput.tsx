@@ -884,7 +884,22 @@ INSTRUCTIONS: Modify the existing code above according to the user's request. Ou
         
         let didSearchWeb = false;
         const { currentSessionId } = useArcStore.getState();
-        // Pass forceWebSearch=true when user explicitly used /search command
+
+        // Determine explicit mode flags to pass to backend
+        // This ensures the AI uses the correct tool without confusion
+        const shouldForceCode = isCodingRequest || shouldRouteToCodeCanvas;
+        const shouldForceCanvas = shouldRouteToCanvas && !shouldForceCode;
+
+        console.log('🎯 Canvas/Code mode detection:', {
+          isCodingRequest,
+          shouldRouteToCodeCanvas,
+          shouldRouteToCanvas,
+          shouldForceCode,
+          shouldForceCanvas,
+          wasSearchMode
+        });
+
+        // Pass flags to backend - canvas/code takes priority over web search
         const result = await new AIService().sendMessage(aiMessages, profile, (tools) => {
           console.log('🔧 Tools used in handleSend:', tools);
           // Set indicators based on tool usage
@@ -897,7 +912,7 @@ INSTRUCTIONS: Modify the existing code above according to the user's request. Ou
             setSearchingWeb(true);
             didSearchWeb = true;
           }
-        }, currentSessionId || undefined, wasSearchMode);
+        }, currentSessionId || undefined, wasSearchMode && !shouldForceCode && !shouldForceCanvas, shouldForceCanvas, shouldForceCode);
         
         // Check if cancelled after getting response
         if (cancelRequested) {

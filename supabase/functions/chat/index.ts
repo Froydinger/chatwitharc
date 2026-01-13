@@ -352,14 +352,16 @@ serve(async (req) => {
 
     console.log('Authenticated user:', user.id);
 
-    const { messages, profile, model, sessionId, forceWebSearch } = await req.json();
+    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode } = await req.json();
 
     console.log('📊 Request details:', {
       model: model || 'google/gemini-2.5-flash (default)',
       messageCount: messages?.length || 0,
       hasProfile: !!profile,
       sessionId: sessionId || 'none (will not save in background)',
-      forceWebSearch: !!forceWebSearch
+      forceWebSearch: !!forceWebSearch,
+      forceCanvas: !!forceCanvas,
+      forceCode: !!forceCode
     });
 
     // Input validation
@@ -539,13 +541,13 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "update_canvas",
-          description: "Write or update content in the user's writing Canvas. Use this tool when the user asks you to write, draft, or create content like blog posts, essays, articles, stories, notes, outlines, scripts, emails, etc. The content will appear in their Canvas editor where they can review and edit it. This is the PRIMARY tool for any writing/drafting request. Do NOT use generate_file for writing tasks - use update_canvas instead.",
+          description: "Write or update content in the user's writing Canvas. Use this tool when the user asks you to write, draft, edit, revise, improve, format, or create content like blog posts, essays, articles, stories, notes, outlines, scripts, emails, etc. CRITICAL: When the user has existing content and asks to modify it, you MUST use this tool to output the COMPLETE updated content. The content will appear in their Canvas editor where they can review and edit it. This is the PRIMARY and ONLY tool for any writing/drafting request - do NOT use web_search or any other tool when editing canvas content.",
           parameters: {
             type: "object",
             properties: {
               content: {
                 type: "string",
-                description: "The full markdown content to put in the Canvas. IMPORTANT: You MUST use proper markdown formatting - use # for h1, ## for h2, ### for h3 headings, **bold** for emphasis, *italic* for italics, - or * for bullet lists, 1. 2. 3. for numbered lists, > for blockquotes, and proper paragraph breaks. Never output plain unformatted text."
+                description: "The COMPLETE markdown content to put in the Canvas. When modifying existing content, include ALL the content, not just the changed parts. IMPORTANT: You MUST use proper markdown formatting - use # for h1, ## for h2, ### for h3 headings, **bold** for emphasis, *italic* for italics, - or * for bullet lists, 1. 2. 3. for numbered lists, > for blockquotes, and proper paragraph breaks."
               },
               label: {
                 type: "string",
@@ -561,13 +563,13 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "update_code",
-          description: "Write or update code in the user's Code Canvas. Use this tool when the user asks you to write, create, or build code, components, scripts, HTML pages, or any programming content. The code will appear in their Code Canvas editor with syntax highlighting and live preview. This is the PRIMARY tool for any coding request.",
+          description: "Write or update code in the user's Code Canvas. Use this tool when the user asks you to write, create, build, modify, update, fix, or enhance code, components, scripts, HTML pages, or any programming content. CRITICAL: When the user provides existing code and asks to modify it, you MUST use this tool to output the COMPLETE updated code - never just describe changes. The code will appear in their Code Canvas editor with syntax highlighting and live preview. This is the PRIMARY and ONLY tool for any coding request - do NOT use web_search or any other tool when editing code.",
           parameters: {
             type: "object",
             properties: {
               code: {
                 type: "string",
-                description: "The full code content to put in the Code Canvas."
+                description: "The COMPLETE code content to put in the Code Canvas. When modifying existing code, include ALL the code, not just the changed parts."
               },
               language: {
                 type: "string",
@@ -607,26 +609,45 @@ serve(async (req) => {
       }
     ];
 
-    // Detect if user explicitly wants canvas or code (from frontend prefix detection)
+    // Detect if user explicitly wants canvas or code
+    // Priority: forceCode/forceCanvas from frontend > message content detection > forceWebSearch
     const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
-    const wantsCanvas = lastUserMessage.includes('use the update_canvas tool');
-    const wantsCode = lastUserMessage.includes('use the update_code tool');
-    
-    // Determine tool_choice: force specific tool when user explicitly requests it
+    const messageWantsCanvas = lastUserMessage.includes('use the update_canvas tool') ||
+                               lastUserMessage.includes('update_canvas') ||
+                               lastUserMessage.includes('canvas tool');
+    const messageWantsCode = lastUserMessage.includes('use the update_code tool') ||
+                             lastUserMessage.includes('update_code') ||
+                             lastUserMessage.includes('code canvas') ||
+                             lastUserMessage.includes('existing code to modify');
+
+    // Use explicit flags from frontend, fallback to message detection
+    const wantsCanvas = forceCanvas || messageWantsCanvas;
+    const wantsCode = forceCode || messageWantsCode;
+
+    // Determine tool_choice: CANVAS/CODE ALWAYS TAKES PRIORITY over web search
+    // This prevents the AI from using web_search when user is clearly editing canvas/code
     let toolChoice: any = "auto";
-    if (forceWebSearch) {
+    let toolsToUse = tools; // Default to all tools
+
+    if (wantsCode) {
+      // Code editing takes highest priority - ONLY provide update_code tool
+      toolChoice = { type: "function", function: { name: "update_code" } };
+      toolsToUse = tools.filter(t => t.function.name === 'update_code');
+      console.log('🔧 Forcing update_code tool (code editing mode) - limiting to code tool only');
+    } else if (wantsCanvas) {
+      // Canvas editing takes second priority - ONLY provide update_canvas tool
+      toolChoice = { type: "function", function: { name: "update_canvas" } };
+      toolsToUse = tools.filter(t => t.function.name === 'update_canvas');
+      console.log('🔧 Forcing update_canvas tool (canvas editing mode) - limiting to canvas tool only');
+    } else if (forceWebSearch) {
+      // Web search only when not doing canvas/code editing
       toolChoice = { type: "function", function: { name: "web_search" } };
       console.log('🔧 Forcing web_search tool (forceWebSearch=true)');
-    } else if (wantsCode) {
-      toolChoice = { type: "function", function: { name: "update_code" } };
-      console.log('🔧 Forcing update_code tool');
-    } else if (wantsCanvas) {
-      toolChoice = { type: "function", function: { name: "update_canvas" } };
-      console.log('🔧 Forcing update_canvas tool');
     }
 
     // First AI call with tools - use fetchWithRetry for resilience
     console.log('🤖 Making AI request with model:', model || 'google/gemini-2.5-flash');
+    console.log('📋 Tools provided to AI:', toolsToUse.map(t => t.function.name));
     let response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -636,7 +657,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: model || 'google/gemini-2.5-flash',
         messages: conversationMessages,
-        tools: tools,
+        tools: toolsToUse,
         tool_choice: toolChoice,
       }),
     });
@@ -767,15 +788,22 @@ serve(async (req) => {
       }
       
       // Second AI call with search results - use fetchWithRetry for resilience
-      // IMPORTANT: For web search, let the AI respond naturally (don't force tools again)
-      // Only keep forced tool_choice for canvas/code if user explicitly requested it
+      // IMPORTANT: Keep canvas/code tool forced on second call to ensure AI uses correct tool
+      // Don't force web_search on second call - let AI generate the summary
       let secondCallToolChoice: string | { type: string; function: { name: string } } = "auto";
+      let secondCallTools = tools; // Default to all tools
+
       if (wantsCode) {
+        // Always force update_code if user is editing code
         secondCallToolChoice = { type: "function", function: { name: "update_code" } };
+        secondCallTools = tools.filter(t => t.function.name === 'update_code');
+        console.log('🔧 Second call: Maintaining update_code tool force');
       } else if (wantsCanvas) {
+        // Always force update_canvas if user is editing canvas
         secondCallToolChoice = { type: "function", function: { name: "update_canvas" } };
+        secondCallTools = tools.filter(t => t.function.name === 'update_canvas');
+        console.log('🔧 Second call: Maintaining update_canvas tool force');
       }
-      // Don't force web_search on the second call - let AI generate the summary
 
       console.log('🤖 Making second AI call to synthesize results');
       response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -787,8 +815,8 @@ serve(async (req) => {
         body: JSON.stringify({
           model: model || 'google/gemini-2.5-flash',
           messages: conversationMessages,
-          tools: tools,
-          tool_choice: secondCallToolChoice, // Don't force web_search on second call
+          tools: secondCallTools,
+          tool_choice: secondCallToolChoice,
         }),
       });
 
