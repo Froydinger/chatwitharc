@@ -17,8 +17,6 @@ import {
   MessageSquare,
   Send,
   ArrowLeft,
-  MoreHorizontal,
-  ArrowRightLeft,
   Maximize2,
   Minimize2,
   GripVertical,
@@ -32,13 +30,6 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useSearchStore, SearchResult, SearchSession, SourceMessage } from "@/store/useSearchStore";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -118,14 +109,21 @@ export function SearchCanvas() {
     return Object.keys(activeSession.sourceConversations).length;
   }, [activeSession]);
 
-  // Track which links are already saved
-  const savedUrls = useMemo(() => {
-    const urls = new Set<string>();
+  // Track which links are already saved and their info for removal
+  const savedUrlsMap = useMemo(() => {
+    const map = new Map<string, { listId: string; linkId: string }>();
     lists.forEach((list) => {
-      list.links.forEach((link) => urls.add(link.url));
+      list.links.forEach((link) => {
+        map.set(link.url, { listId: list.id, linkId: link.id });
+      });
     });
-    return urls;
+    return map;
   }, [lists]);
+
+  // Simple set for quick lookup
+  const savedUrls = useMemo(() => {
+    return new Set(savedUrlsMap.keys());
+  }, [savedUrlsMap]);
 
   // Count total saved links across all lists
   const totalSavedLinks = useMemo(() => {
@@ -262,6 +260,29 @@ Provide a comprehensive answer based on current information. Synthesize what you
       title: listName ? `Saved to ${listName}` : 'Link saved',
       description: result.title
     });
+  };
+
+  // Toggle save/unsave for a source
+  const handleToggleSave = (result: SearchResult) => {
+    const savedInfo = savedUrlsMap.get(result.url);
+
+    if (savedInfo) {
+      // Already saved - remove it
+      removeLink(savedInfo.listId, savedInfo.linkId);
+      toast({ title: "Link removed" });
+    } else {
+      // Not saved - save to default list
+      const defaultList = lists.find((l) => l.id === 'default') || lists[0];
+      if (defaultList) {
+        saveLink({
+          title: result.title,
+          url: result.url,
+          snippet: result.snippet,
+          listId: defaultList.id,
+        });
+        toast({ title: "Link saved" });
+      }
+    }
   };
 
   const handleCreateListAndSave = () => {
@@ -573,6 +594,7 @@ Provide a comprehensive answer based on current information. Synthesize what you
             copied={copied}
             lists={lists}
             onSaveToList={handleSaveToList}
+            onToggleSave={handleToggleSave}
             onNewList={(result) => {
               setPendingSaveResult(result);
               setShowNewListDialog(true);
@@ -631,7 +653,6 @@ Provide a comprehensive answer based on current information. Synthesize what you
             lists={lists}
             sessions={sessions}
             onRemoveLink={removeLink}
-            onMoveLink={moveLink}
             onSelectSession={(sessionId) => {
               setActiveSession(sessionId);
               setCurrentTab(sessionId, 'search');
@@ -935,6 +956,7 @@ function SessionDetail({
   copied,
   lists,
   onSaveToList,
+  onToggleSave,
   onNewList,
   onRelatedSearch,
   onStartChat,
@@ -956,6 +978,7 @@ function SessionDetail({
   copied: boolean;
   lists: any[];
   onSaveToList: (result: SearchResult, listId: string) => void;
+  onToggleSave: (result: SearchResult) => void;
   onNewList: (result: SearchResult) => void;
   onRelatedSearch: (query: string) => void;
   onStartChat: (source: SearchResult) => void;
@@ -969,7 +992,6 @@ function SessionDetail({
   getFaviconUrl: (url: string) => string | null;
   getHostname: (url: string) => string;
 }) {
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   // On mobile, hide the opposite panel when one is expanded
@@ -1233,77 +1255,28 @@ function SessionDetail({
                       </div>
 
                       <div className="flex items-center gap-1">
-                        <DropdownMenu
-                          onOpenChange={(open) => {
-                            setOpenDropdownId(open ? result.id : null);
+                        {/* Simple save toggle button */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={cn(
+                            "h-8 w-8 p-0 transition-all touch-manipulation",
+                            isSaved
+                              ? "text-primary hover:text-primary/80"
+                              : "opacity-100 md:opacity-50 md:group-hover:opacity-100"
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleSave(result);
                           }}
+                          title={isSaved ? "Remove from saved" : "Save link"}
                         >
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className={cn(
-                                "h-8 w-8 p-0 transition-opacity touch-manipulation relative z-10",
-                                openDropdownId === result.id
-                                  ? "opacity-100"
-                                  : "opacity-100 md:opacity-50 md:group-hover:opacity-100"
-                              )}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                              }}
-                              onPointerDown={(e) => {
-                                e.stopPropagation();
-                              }}
-                              onTouchStart={(e) => {
-                                e.stopPropagation();
-                              }}
-                            >
-                              {isSaved ? (
-                                <BookmarkCheck className="w-4 h-4 text-primary" />
-                              ) : (
-                                <Bookmark className="w-4 h-4" />
-                              )}
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            className="w-48 z-50"
-                            onClick={(e) => e.stopPropagation()}
-                            onPointerDown={(e) => e.stopPropagation()}
-                          >
-                            {lists.length === 0 ? (
-                              <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                                No lists available
-                              </div>
-                            ) : (
-                              lists.map((list) => (
-                                <DropdownMenuItem
-                                  key={list.id}
-                                  onSelect={(e) => {
-                                    e.preventDefault();
-                                    onSaveToList(result, list.id);
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Bookmark className="w-3.5 h-3.5 mr-2" />
-                                  {list.name}
-                                </DropdownMenuItem>
-                              ))
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onSelect={(e) => {
-                                e.preventDefault();
-                                onNewList(result);
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <FolderPlus className="w-3.5 h-3.5 mr-2" />
-                              New List...
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                          {isSaved ? (
+                            <BookmarkCheck className="w-4 h-4" />
+                          ) : (
+                            <Bookmark className="w-4 h-4" />
+                          )}
+                        </Button>
 
                         <Button
                           variant="ghost"
@@ -1313,7 +1286,6 @@ function SessionDetail({
                             e.stopPropagation();
                             onStartChat(result);
                           }}
-                          onPointerDown={(e) => e.stopPropagation()}
                           title="Chat about this source"
                         >
                           <MessageSquare className="w-4 h-4" />
@@ -1327,7 +1299,6 @@ function SessionDetail({
                             e.stopPropagation();
                             window.open(result.url, "_blank");
                           }}
-                          onPointerDown={(e) => e.stopPropagation()}
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Button>
@@ -1369,7 +1340,6 @@ function LinksPanel({
   lists,
   sessions,
   onRemoveLink,
-  onMoveLink,
   onSelectSession,
   onCreateList,
   onStartChat,
@@ -1380,7 +1350,6 @@ function LinksPanel({
   lists: any[];
   sessions: SearchSession[];
   onRemoveLink: (listId: string, linkId: string) => void;
-  onMoveLink: (linkId: string, fromListId: string, toListId: string) => void;
   onSelectSession: (sessionId: string) => void;
   onCreateList: () => void;
   onStartChat: (link: any) => void;
@@ -1504,62 +1473,29 @@ function LinksPanel({
                           variant="ghost"
                           size="sm"
                           className="h-7 w-7 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation"
+                          onClick={() => window.open(link.url, "_blank")}
+                          title="Open in new tab"
+                        >
+                          <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation"
                           onClick={() => onStartChat(link)}
                           title="Chat about this link"
                         >
                           <MessageSquare className="w-4 h-4 text-muted-foreground" />
                         </Button>
-                        
-                        {/* Triple-dot menu for link management */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation relative z-10"
-                              onClick={(e) => e.stopPropagation()}
-                              onPointerDown={(e) => e.stopPropagation()}
-                              onTouchStart={(e) => e.stopPropagation()}
-                            >
-                              <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48 z-50" onPointerDown={(e) => e.stopPropagation()}>
-                            {/* Move to another list */}
-                            {lists.length > 1 && (
-                              <>
-                                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                                  Move to list
-                                </div>
-                                {lists
-                                  .filter((l) => l.id !== list.id)
-                                  .map((targetList) => (
-                                    <DropdownMenuItem
-                                      key={targetList.id}
-                                      onClick={() => onMoveLink(link.id, list.id, targetList.id)}
-                                    >
-                                      <ArrowRightLeft className="w-3.5 h-3.5 mr-2" />
-                                      {targetList.name}
-                                    </DropdownMenuItem>
-                                  ))}
-                                <DropdownMenuSeparator />
-                              </>
-                            )}
-                            <DropdownMenuItem
-                              onClick={() => window.open(link.url, "_blank")}
-                            >
-                              <ExternalLink className="w-3.5 h-3.5 mr-2" />
-                              Open in new tab
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => onRemoveLink(list.id, link.id)}
-                            >
-                              <Trash2 className="w-3.5 h-3.5 mr-2" />
-                              Remove
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation text-destructive hover:text-destructive"
+                          onClick={() => onRemoveLink(list.id, link.id)}
+                          title="Delete link"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   ))}

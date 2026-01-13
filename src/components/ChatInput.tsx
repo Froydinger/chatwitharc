@@ -128,6 +128,42 @@ function looksLikeCanvasEditRequest(message: string): boolean {
   ];
   return keywords.some((k) => m.includes(k));
 }
+
+// Heuristic for when the Code Canvas is open and user is asking to modify/enhance the code
+function looksLikeCodeEditRequest(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+  const keywords = [
+    "make it",
+    "add",
+    "change",
+    "modify",
+    "update",
+    "fix",
+    "improve",
+    "enhance",
+    "include",
+    "remove",
+    "delete",
+    "style",
+    "color",
+    "animation",
+    "dashboard",
+    "button",
+    "feature",
+    "function",
+    "component",
+    "refactor",
+    "optimize",
+    "can you",
+    "please",
+    "i want",
+    "now",
+    "also",
+    "with",
+  ];
+  return keywords.some((k) => m.includes(k));
+}
 // Extract the prompt after the prefix (strips prefix/ or /prefix)
 function extractPrefixPrompt(message: string): string {
   return message
@@ -802,17 +838,41 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         const canvasState = useCanvasStore.getState();
         const shouldRouteToCanvas =
           wasCanvasMode ||
-          (canvasState.isOpen && looksLikeCanvasEditRequest(userMessage));
+          (canvasState.isOpen && canvasState.canvasType === 'writing' && looksLikeCanvasEditRequest(userMessage));
+
+        // Check if code canvas is open and user is asking to edit it
+        const isCodeCanvasOpen = canvasState.isOpen && canvasState.canvasType === 'code';
+        const shouldRouteToCodeCanvas = isCodeCanvasOpen && looksLikeCodeEditRequest(userMessage);
 
         const cleanedMessage = extractPrefixPrompt(userMessage);
-        // Explicitly instruct the AI which tool to use based on prefix
-        const messageToSend = isCodingRequest
-          ? `IMPORTANT: Use the update_code tool (NOT update_canvas) to write code for this request: ${cleanedMessage}`
-          : shouldRouteToCanvas
-            ? `IMPORTANT: Use the update_canvas tool (NOT update_code) to write well-formatted markdown for this request:\n\n${cleanedMessage || userMessage}`
-            : wasSearchMode
-              ? `Search the web for: ${cleanedMessage || userMessage}`
-              : cleanedMessage || userMessage;
+
+        // Build the message to send to AI
+        let messageToSend: string;
+
+        if (isCodingRequest) {
+          // Explicit code/ prefix - new code request
+          messageToSend = `IMPORTANT: Use the update_code tool (NOT update_canvas) to write code for this request: ${cleanedMessage}`;
+        } else if (shouldRouteToCodeCanvas && canvasState.content) {
+          // Code canvas is open and user wants to modify existing code
+          const existingCode = canvasState.content;
+          const language = canvasState.codeLanguage || 'html';
+          messageToSend = `IMPORTANT: The user has existing ${language} code in their Code Canvas. They want you to MODIFY this code based on their request. Use the update_code tool to output the COMPLETE modified code.
+
+EXISTING CODE TO MODIFY:
+\`\`\`${language}
+${existingCode}
+\`\`\`
+
+USER'S REQUEST: ${cleanedMessage || userMessage}
+
+INSTRUCTIONS: Modify the existing code above according to the user's request. Output the COMPLETE updated code using the update_code tool. Do NOT just describe the changes - actually implement them in the code.`;
+        } else if (shouldRouteToCanvas) {
+          messageToSend = `IMPORTANT: Use the update_canvas tool (NOT update_code) to write well-formatted markdown for this request:\n\n${cleanedMessage || userMessage}`;
+        } else if (wasSearchMode) {
+          messageToSend = `Search the web for: ${cleanedMessage || userMessage}`;
+        } else {
+          messageToSend = cleanedMessage || userMessage;
+        }
 
         aiMessages.push({ role: "user", content: messageToSend });
 
