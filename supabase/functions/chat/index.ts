@@ -481,12 +481,12 @@ serve(async (req) => {
       '• Use markdown code blocks (```html, ```css, ```js)\n' +
       '• Default to conversation, not coding\n';
 
-    // CRITICAL: Brevity reinforcement at the END (recency bias)
+    // CRITICAL: Brevity for conversation, but COMPLETE for tools
     enhancedSystemPrompt += '\n\n=== RESPONSE STYLE (CRITICAL) ===\n' +
-      'Keep responses SHORT and CONCISE by default.\n' +
-      'Be direct. No fluff. No unnecessary elaboration.\n' +
-      'Expand ONLY when the user asks for detail or the topic genuinely requires it.\n' +
-      'Match the energy and length of the user\'s message.';
+      'For REGULAR CONVERSATION: Keep responses SHORT and CONCISE. Be direct. No fluff.\n' +
+      'For TOOL OUTPUTS (update_canvas, update_code): Output the COMPLETE content. Never truncate or cut off.\n' +
+      'When using update_canvas or update_code tools, you MUST provide the FULL content - do not summarize or shorten.\n' +
+      'If writing a blog post, essay, or code - write the ENTIRE thing, not just a partial draft.';
 
     // Prepare messages with enhanced system prompt
     let conversationMessages = [
@@ -659,6 +659,7 @@ serve(async (req) => {
         messages: conversationMessages,
         tools: toolsToUse,
         tool_choice: toolChoice,
+        max_tokens: 65536, // Maximum output - no truncation
       }),
     });
 
@@ -678,6 +679,13 @@ serve(async (req) => {
 
     let data = await response.json();
     let assistantMessage = data.choices[0].message;
+
+    // Log if response was truncated due to token limit
+    const finishReason = data.choices[0]?.finish_reason;
+    if (finishReason === 'length') {
+      console.warn('⚠️ AI response was TRUNCATED due to max_tokens limit!');
+    }
+    console.log('📊 Response finish_reason:', finishReason);
 
     // Track which tools were used and web sources
     const toolsUsed: string[] = [];
@@ -817,6 +825,7 @@ serve(async (req) => {
           messages: conversationMessages,
           tools: secondCallTools,
           tool_choice: secondCallToolChoice,
+          max_tokens: 65536, // Maximum output - no truncation
         }),
       });
 
@@ -866,20 +875,24 @@ serve(async (req) => {
       code_update: codeUpdate
     };
     
-    // BACKGROUND SAVE: Save the AI response directly to the database
-    // This ensures the response is saved even if the client disconnects
+    // SAVE AI RESPONSE: Save the AI response directly to the database
+    // We AWAIT this to ensure data is persisted before returning to client
+    // This prevents "error reading a body from connection" errors and data loss
     if (sessionId && user) {
       const messageType = codeUpdate ? 'code' : (canvasUpdate ? 'canvas' : 'text');
-      const backgroundSaveTask = saveResponseToDatabase(user.id, sessionId, {
-        content: responseContent,
-        type: messageType,
-        ...(canvasUpdate && { canvasContent: canvasUpdate.content, canvasLabel: canvasUpdate.label }),
-        ...(codeUpdate && { codeContent: codeUpdate.code, codeLanguage: codeUpdate.language, codeLabel: codeUpdate.label }),
-      });
-      
-      // Fire and forget - don't await, just start the save
-      backgroundSaveTask.catch(e => console.error('Background save failed:', e));
-      console.log('🔄 Background save scheduled (fire and forget)');
+      try {
+        console.log('💾 Saving AI response to database...');
+        await saveResponseToDatabase(user.id, sessionId, {
+          content: responseContent,
+          type: messageType,
+          ...(canvasUpdate && { canvasContent: canvasUpdate.content, canvasLabel: canvasUpdate.label }),
+          ...(codeUpdate && { codeContent: codeUpdate.code, codeLanguage: codeUpdate.language, codeLabel: codeUpdate.label }),
+        });
+        console.log('✅ AI response saved successfully');
+      } catch (saveError) {
+        // Log but don't fail the response - the frontend will also save
+        console.error('⚠️ Background save failed (frontend will retry):', saveError);
+      }
     }
     
     return new Response(
