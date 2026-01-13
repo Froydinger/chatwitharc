@@ -769,7 +769,7 @@ serve(async (req) => {
       // Second AI call with search results - use fetchWithRetry for resilience
       // IMPORTANT: For web search, let the AI respond naturally (don't force tools again)
       // Only keep forced tool_choice for canvas/code if user explicitly requested it
-      let secondCallToolChoice = "auto";
+      let secondCallToolChoice: string | { type: string; function: { name: string } } = "auto";
       if (wantsCode) {
         secondCallToolChoice = { type: "function", function: { name: "update_code" } };
       } else if (wantsCanvas) {

@@ -43,12 +43,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useArcStore, ChatResource } from "@/store/useArcStore";
+import { useArcStore } from "@/store/useArcStore";
 import { useNavigate } from "react-router-dom";
 
 export function SearchCanvas() {
   const navigate = useNavigate();
-  const { createNewSessionWithResources, loadSession, addMessage } = useArcStore();
+  const { loadSession, addMessage } = useArcStore();
   const {
     sessions,
     activeSessionId,
@@ -328,7 +328,7 @@ Provide a comprehensive answer based on current information. Synthesize what you
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="text-sm font-semibold text-foreground">
-              Search Mode
+              Research Mode
             </span>
           </div>
         </div>
@@ -557,20 +557,12 @@ Provide a comprehensive answer based on current information. Synthesize what you
               searchInputRef.current?.focus();
             }}
             onStartChat={(source) => {
-              // Create a new chat with just this one source as a resource
-              const resource: ChatResource = {
-                id: source.id,
-                title: source.title,
-                url: source.url,
-                snippet: source.snippet,
-                type: 'search_result' as const
-              };
-
-              const newSessionId = createNewSessionWithResources([resource], `Chat about: ${source.title}`);
-
-              // Close search mode and navigate to the new chat
-              closeSearch();
-              navigate(`/chat/${newSessionId}`);
+              // Start a source conversation within Research Mode (don't leave)
+              if (activeSessionId) {
+                startSourceChat(activeSessionId, source);
+                // Switch to chats tab to show the conversation
+                setCurrentTab(activeSessionId, 'chats');
+              }
             }}
             followUpInput={followUpInput}
             setFollowUpInput={setFollowUpInput}
@@ -622,20 +614,39 @@ Provide a comprehensive answer based on current information. Synthesize what you
               setShowNewListDialog(true);
             }}
             onStartChat={(link) => {
-              // Create a new chat with this saved link as a resource
-              const resource: ChatResource = {
-                id: link.id,
-                title: link.title,
-                url: link.url,
-                snippet: link.snippet || "",
-                type: 'saved_link' as const
-              };
-
-              const newSessionId = createNewSessionWithResources([resource], `Chat about: ${link.title}`);
-
-              // Close search mode and navigate to the new chat
-              closeSearch();
-              navigate(`/chat/${newSessionId}`);
+              // For saved links, we need to either find an existing session or create one
+              // Then start a source chat within Research Mode
+              const existingSession = sessions.find(s => s.results.some(r => r.url === link.url));
+              if (existingSession) {
+                setActiveSession(existingSession.id);
+                const source = existingSession.results.find(r => r.url === link.url);
+                if (source) {
+                  startSourceChat(existingSession.id, source);
+                  setCurrentTab(existingSession.id, 'chats');
+                }
+              } else {
+                // Create a minimal session for this link
+                const newResult: SearchResult = { 
+                  id: link.id, 
+                  title: link.title, 
+                  url: link.url, 
+                  snippet: link.snippet || "" 
+                };
+                addSession(
+                  `Chat about: ${link.title}`,
+                  [newResult],
+                  `Research on: ${link.title}`,
+                  undefined
+                );
+                // After adding, get the latest session and start chat
+                setTimeout(() => {
+                  const latestSession = useSearchStore.getState().sessions[useSearchStore.getState().sessions.length - 1];
+                  if (latestSession) {
+                    startSourceChat(latestSession.id, newResult);
+                    setCurrentTab(latestSession.id, 'chats');
+                  }
+                }, 100);
+              }
             }}
             getFaviconUrl={getFaviconUrl}
             getHostname={getHostname}
@@ -1077,12 +1088,11 @@ function SessionDetail({
                     <div className="text-xs font-medium text-muted-foreground mb-1">
                       {msg.role === 'user' ? 'You' : 'Assistant'}
                     </div>
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      className="prose prose-sm dark:prose-invert max-w-none"
-                    >
-                      {msg.content}
-                    </ReactMarkdown>
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 ))}
               </div>
