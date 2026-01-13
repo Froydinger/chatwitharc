@@ -1065,7 +1065,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             </>
           ) : shouldShowSearchMode ? (
             <>
-              <Search className="h-5 w-5 text-orange-400" />
+              <Globe className="h-5 w-5 text-orange-400" />
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
                 ×
               </span>
@@ -1334,7 +1334,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                       >
                         <div className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 h-full">
                           <span className="inline-flex h-8 w-8 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-orange-500/15 shrink-0 glass-shimmer ring-[0.5px] ring-orange-500/40">
-                            <Globe className="h-4 w-4 sm:h-6 sm:w-6 text-orange-400" />
+                            <Search className="h-4 w-4 sm:h-6 sm:w-6 text-orange-400" />
                           </span>
                           <div className="text-[10px] sm:text-sm font-semibold">Research</div>
                         </div>
