@@ -708,34 +708,47 @@ serve(async (req) => {
         }
       }
       
-      // Second AI call with tool results - use fetchWithRetry for resilience
-      // IMPORTANT: Do NOT force tool_choice on second call!
-      // The first call already used the tool and produced output.
-      // The second call should just synthesize/summarize - forcing the tool again
-      // causes double work, wasted credits, and potential loops.
-      console.log('🤖 Making second AI call to synthesize results (no forced tool)');
-      response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: model || 'google/gemini-2.5-flash',
-          messages: conversationMessages,
-          // No tools on second call - just synthesize the results
-          max_tokens: 65536, // Maximum output - no truncation
-        }),
-      });
+      // For code/canvas updates, skip the second API call entirely - we already have the output!
+      // This dramatically reduces latency for /code commands (saves 30-60+ seconds)
+      // The second call was just to say "here's your code" which is unnecessary
+      if (codeUpdate || canvasUpdate) {
+        console.log('✅ Skipping second API call - code/canvas output already captured');
+        // Create a minimal synthetic response - the actual value is in codeUpdate/canvasUpdate
+        const briefMessage = codeUpdate
+          ? `Here's your ${codeUpdate.label || codeUpdate.language + ' code'}! I've added it to your Code Canvas.`
+          : `Here's your ${canvasUpdate!.label || 'content'}! I've added it to your Canvas.`;
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Lovable AI error (second call):', response.status, errorData);
-        throw new Error(`Lovable AI error: ${response.status}`);
+        data = {
+          choices: [{
+            message: { content: briefMessage },
+            finish_reason: 'stop'
+          }]
+        };
+      } else {
+        // For web_search and search_past_chats, we need the second call to synthesize results
+        console.log('🤖 Making second AI call to synthesize results (no forced tool)');
+        response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: model || 'google/gemini-2.5-flash',
+            messages: conversationMessages,
+            // No tools on second call - just synthesize the results
+            max_tokens: 65536, // Maximum output - no truncation
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error('Lovable AI error (second call):', response.status, errorData);
+          throw new Error(`Lovable AI error: ${response.status}`);
+        }
+
+        data = await response.json();
       }
-
-      data = await response.json();
-      // Second call has no tools - it just produces a text summary/response
       // Canvas/code updates were already captured from the first call
     }
     
