@@ -344,7 +344,7 @@ export const useArcStore = create<ArcState>()(
         }
 
         // Reset model selection to default (Smart & Fast) for new chat
-        sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash');
+        sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash-lite');
 
         // Clear the canvas store for the new session (sync - no await needed)
         useCanvasStore.getState().hydrateFromSession('');
@@ -384,7 +384,7 @@ export const useArcStore = create<ArcState>()(
         }
 
         // Reset model selection to default
-        sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash');
+        sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash-lite');
 
         // Clear the canvas store
         useCanvasStore.getState().hydrateFromSession('');
@@ -434,7 +434,7 @@ export const useArcStore = create<ArcState>()(
           console.log('Loading session:', sessionId, 'with', session.messages.length, 'messages');
 
           // Reset model selection to default (Smart & Fast) when switching to any chat
-          sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash');
+          sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash-lite');
 
           set({
             currentSessionId: sessionId,
@@ -725,13 +725,11 @@ export const useArcStore = create<ArcState>()(
           };
         });
 
-        // AWAIT the save to ensure persistence before returning
+        // Fire-and-forget save to Supabase (don't block UI)
         if (sessionToSave) {
-          try {
-            await get().saveChatToSupabase(sessionToSave);
-          } catch (error) {
+          get().saveChatToSupabase(sessionToSave).catch(error => {
             console.error('❌ Failed to save canvas message to Supabase:', error);
-          }
+          });
         }
 
         return uniqueCanvasId;
@@ -797,13 +795,11 @@ export const useArcStore = create<ArcState>()(
           };
         });
 
-        // AWAIT the save to ensure persistence before returning
+        // Fire-and-forget save to Supabase (don't block UI)
         if (sessionToSave) {
-          try {
-            await get().saveChatToSupabase(sessionToSave);
-          } catch (error) {
+          get().saveChatToSupabase(sessionToSave).catch(error => {
             console.error('❌ Failed to save code message to Supabase:', error);
-          }
+          });
         }
 
         return uniqueCodeId;
