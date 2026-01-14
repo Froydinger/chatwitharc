@@ -39,221 +39,27 @@ export interface SendMessageResult {
   codeUpdate?: CodeUpdate;
 }
 
-// Streaming event types
-export type StreamEvent = 
-  | { type: 'start'; streaming: boolean }
-  | { type: 'content'; content: string }
-  | { type: 'tool_start'; tool: string; query?: string; fileType?: string }
-  | { type: 'tool_complete'; tool: string; sources?: WebSource[]; result?: string }
-  | { type: 'canvas_update'; content: string; label?: string }
-  | { type: 'code_update'; code: string; language: string; label?: string }
-  | { type: 'synthesizing'; tools: string[] }
-  | { type: 'complete'; content: string; tool_calls_used?: string[]; web_sources?: WebSource[]; canvas_update?: CanvasUpdate; code_update?: CodeUpdate }
-  | { type: 'error'; error: string };
-
-export interface StreamCallbacks {
-  onContent?: (chunk: string, fullContent: string) => void;
-  onToolStart?: (tool: string, details?: any) => void;
-  onToolComplete?: (tool: string, result?: any) => void;
-  onCanvasUpdate?: (update: CanvasUpdate) => void;
-  onCodeUpdate?: (update: CodeUpdate) => void;
-  onSynthesizing?: (tools: string[]) => void;
-  onComplete?: (result: SendMessageResult) => void;
-  onError?: (error: string) => void;
-}
-
 export class AIService {
   private maxRetries = 2;
-  private timeoutMs = 180000; // 3 minute timeout for canvas/code operations
+  private timeoutMs = 60000; // 60 second timeout
 
   constructor() {
     // No API key needed - using secure edge function with Lovable Cloud
   }
 
-  // Stream message with real-time updates
-  async sendMessageStream(
-    messages: AIMessage[],
-    callbacks: StreamCallbacks,
-    options?: {
-      profile?: { display_name?: string | null; context_info?: string | null; memory_info?: string | null; preferred_model?: string | null };
-      sessionId?: string;
-      forceWebSearch?: boolean;
-      forceCanvas?: boolean;
-      forceCode?: boolean;
-    }
-  ): Promise<SendMessageResult> {
-    if (!supabase || !isSupabaseConfigured) {
-      throw new Error('Chat service is not available. Please configure Supabase.');
-    }
-
-    const { profile, sessionId, forceWebSearch, forceCanvas, forceCode } = options || {};
-
-    // Get session model
-    const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
-
-    console.log('🚀 Starting streaming request:', {
-      model: selectedModel,
-      forceCanvas,
-      forceCode,
-      forceWebSearch
-    });
-
-    // Get auth token
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) {
-      throw new Error('Not authenticated');
-    }
-
-    // Fetch fresh profile
-    let effectiveProfile = profile || {};
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('display_name, context_info, memory_info, preferred_model')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        if (data) {
-          effectiveProfile = { ...effectiveProfile, ...data };
-        }
-      }
-    } catch (e) {
-      console.warn('Falling back to provided profile:', e);
-    }
-
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-        messages,
-        profile: effectiveProfile,
-        model: selectedModel,
-        sessionId,
-        forceWebSearch: forceWebSearch || false,
-        forceCanvas: forceCanvas || false,
-        forceCode: forceCode || false,
-        stream: true,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      try {
-        const errorJson = JSON.parse(errorText);
-        throw new Error(errorJson.error || `Request failed: ${response.status}`);
-      } catch {
-        throw new Error(`Request failed: ${response.status} ${errorText}`);
-      }
-    }
-
-    if (!response.body) {
-      throw new Error('No response body');
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let fullContent = '';
-    let result: SendMessageResult = { content: '' };
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            continue; // Skip event type line, we parse from data
-          }
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim();
-            if (!data) continue;
-
-            try {
-              const event = JSON.parse(data);
-              
-              // Handle different event types
-              if (event.content !== undefined && !event.tool_calls_used) {
-                // Content chunk
-                fullContent += event.content;
-                callbacks.onContent?.(event.content, fullContent);
-              } else if (event.tool !== undefined && event.query !== undefined) {
-                // Tool start
-                callbacks.onToolStart?.(event.tool, event);
-              } else if (event.tool !== undefined && (event.sources !== undefined || event.result !== undefined)) {
-                // Tool complete
-                callbacks.onToolComplete?.(event.tool, event);
-              } else if (event.content !== undefined && event.label !== undefined && !event.code && !event.language) {
-                // Canvas update
-                const canvasUpdate = { content: event.content, label: event.label };
-                result.canvasUpdate = canvasUpdate;
-                callbacks.onCanvasUpdate?.(canvasUpdate);
-              } else if (event.code !== undefined && event.language !== undefined) {
-                // Code update
-                const codeUpdate = { code: event.code, language: event.language, label: event.label };
-                result.codeUpdate = codeUpdate;
-                callbacks.onCodeUpdate?.(codeUpdate);
-              } else if (event.tools !== undefined && Array.isArray(event.tools)) {
-                // Synthesizing
-                callbacks.onSynthesizing?.(event.tools);
-              } else if (event.tool_calls_used !== undefined) {
-                // Complete event
-                result = {
-                  content: event.content || fullContent,
-                  webSources: event.web_sources,
-                  canvasUpdate: event.canvas_update || result.canvasUpdate,
-                  codeUpdate: event.code_update || result.codeUpdate
-                };
-                callbacks.onComplete?.(result);
-              } else if (event.error !== undefined) {
-                // Error event
-                callbacks.onError?.(event.error);
-                throw new Error(event.error);
-              }
-            } catch (e) {
-              // Ignore parse errors for partial JSON
-              if (e instanceof Error && e.message !== 'Unexpected end of JSON input') {
-                console.warn('SSE parse error:', e);
-              }
-            }
-          }
-        }
-      }
-
-      // Process any remaining buffer
-      if (buffer.startsWith('data: ')) {
-        try {
-          const event = JSON.parse(buffer.slice(6).trim());
-          if (event.content && !event.tool_calls_used) {
-            fullContent += event.content;
-            callbacks.onContent?.(event.content, fullContent);
-          }
-        } catch (e) {}
-      }
-
-      // Ensure we have a final result
-      if (!result.content) {
-        result.content = fullContent;
-      }
-
-      return result;
-    } catch (error) {
-      console.error('Stream processing error:', error);
-      throw error;
-    }
+  // Wrapper for fetch with timeout
+  private async fetchWithTimeout(
+    fn: () => Promise<{ data: any; error: any }>,
+    timeoutMs = this.timeoutMs
+  ): Promise<{ data: any; error: any }> {
+    return Promise.race([
+      fn(),
+      new Promise<{ data: any; error: any }>((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out. Please try again.')), timeoutMs)
+      ),
+    ]);
   }
 
-  // Original non-streaming method for backward compatibility
   async sendMessage(
     messages: AIMessage[],
     profile?: { display_name?: string | null; context_info?: string | null, memory_info?: string | null, preferred_model?: string | null },
@@ -263,46 +69,126 @@ export class AIService {
     forceCanvas?: boolean,
     forceCode?: boolean
   ): Promise<SendMessageResult> {
-    // Use streaming internally but provide the same interface
-    return new Promise((resolve, reject) => {
-      let result: SendMessageResult = { content: '' };
-      let fullContent = '';
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('Chat service is not available. Please configure Supabase.');
+    }
 
-      this.sendMessageStream(messages, {
-        onContent: (chunk, full) => {
-          fullContent = full;
-        },
-        onToolStart: (tool) => {
-          // Could track tool usage here
-        },
-        onToolComplete: (tool, data) => {
-          if (onToolUsage) {
-            // Accumulate tools
+    try {
+      // Always fetch the freshest profile to include latest memory/context
+      let effectiveProfile = profile || {};
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('display_name, context_info, memory_info, preferred_model')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          if (data) {
+            effectiveProfile = { ...effectiveProfile, ...data };
           }
-        },
-        onCanvasUpdate: (update) => {
-          result.canvasUpdate = update;
-        },
-        onCodeUpdate: (update) => {
-          result.codeUpdate = update;
-        },
-        onComplete: (finalResult) => {
-          if (onToolUsage && finalResult.webSources) {
-            onToolUsage(['web_search']);
-          }
-          resolve(finalResult);
-        },
-        onError: (error) => {
-          reject(new Error(error));
         }
-      }, {
-        profile,
-        sessionId,
-        forceWebSearch,
-        forceCanvas,
-        forceCode
-      }).catch(reject);
-    });
+      } catch (e) {
+        console.warn('Falling back to provided profile:', e);
+      }
+
+      // Determine which model to use - check sessionStorage (session-only)
+      // This allows model changes within a session without persisting to database
+      // Always defaults to Smart & Fast on refresh (sessionStorage is cleared)
+      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
+
+      console.log('🤖 AI Model Selection:', {
+        fromSessionStorage: sessionStorage.getItem('arc_session_model'),
+        selectedModel: selectedModel,
+        isWise: selectedModel === 'google/gemini-3-pro-preview',
+        isFast: selectedModel === 'google/gemini-2.5-flash'
+      });
+
+      // Call the secure edge function with retry logic
+      let lastError: Error | null = null;
+      
+      for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+        try {
+          const { data, error } = await this.fetchWithTimeout(() =>
+            supabase.functions.invoke('chat', {
+              body: {
+                messages: messages,
+                profile: effectiveProfile,
+                model: selectedModel,
+                sessionId: sessionId,
+                forceWebSearch: forceWebSearch || false,
+                forceCanvas: forceCanvas || false,
+                forceCode: forceCode || false
+              }
+            })
+          );
+
+          if (error) {
+            // Don't retry on client errors (except rate limits)
+            if (error.message?.includes('Rate limit')) {
+              throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+            }
+            throw new Error(`Chat service error: ${error.message}`);
+          }
+
+          if (data.error) {
+            throw new Error(data.error);
+          }
+
+          // Notify about tool usage if callback provided
+          console.log('📦 Response data:', { 
+            hasToolCallsUsed: !!data.tool_calls_used, 
+            toolCallsUsed: data.tool_calls_used,
+            hasCallback: !!onToolUsage 
+          });
+          
+          if (onToolUsage && data.tool_calls_used && data.tool_calls_used.length > 0) {
+            console.log('🔔 Triggering onToolUsage callback with:', data.tool_calls_used);
+            onToolUsage(data.tool_calls_used);
+          }
+
+          return {
+            content: data.choices[0]?.message?.content || 'Sorry, I could not generate a response.',
+            webSources: data.web_sources,
+            canvasUpdate: data.canvas_update,
+            codeUpdate: data.code_update
+          };
+        } catch (err: any) {
+          lastError = err;
+          
+          // Check if it's a transient error worth retrying
+          const isTransient = 
+            err.message?.includes('timed out') ||
+            err.message?.includes('network') ||
+            err.message?.includes('502') ||
+            err.message?.includes('503') ||
+            err.message?.includes('504');
+          
+          if (isTransient && attempt < this.maxRetries) {
+            const delay = Math.pow(2, attempt) * 1000;
+            console.log(`⚠️ Retrying in ${delay}ms (attempt ${attempt + 1}/${this.maxRetries}):`, err.message);
+            await new Promise(r => setTimeout(r, delay));
+            continue;
+          }
+          
+          throw err;
+        }
+      }
+      
+      throw lastError || new Error('Max retries exceeded');
+    } catch (error) {
+      console.error('AI Service Error:', error);
+      // Provide more helpful error messages
+      if (error instanceof Error) {
+        if (error.message.includes('timed out')) {
+          throw new Error('The request took too long. Please try again with a shorter message.');
+        }
+        if (error.message.includes('Rate limit')) {
+          throw new Error('Too many requests. Please wait a moment and try again.');
+        }
+      }
+      throw error;
+    }
   }
 
   async sendMessageWithImage(messages: AIMessage[], base64Images: string | string[]): Promise<string> {
@@ -311,12 +197,14 @@ export class AIService {
     }
 
     try {
+      // Support both single image and array of images
       const images = Array.isArray(base64Images) ? base64Images : [base64Images];
 
       if (images.length > 4) {
         throw new Error('Maximum 4 images allowed for analysis');
       }
 
+      // Call edge function for image analysis
       const { data, error } = await supabase.functions.invoke('analyze-image', {
         body: { 
           messages,
@@ -346,8 +234,11 @@ export class AIService {
     }
 
     try {
+      // Generating image with Gemini
+      // Use session model if no specific model provided
       let modelToUse = preferredModel;
       if (!modelToUse) {
+        // Get model from sessionStorage (same as chat)
         modelToUse = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
       }
 
@@ -364,6 +255,7 @@ export class AIService {
       }
 
       if (data.error) {
+        // Create a more specific error with type information
         const errorObj: any = new Error(data.error);
         errorObj.errorType = data.errorType || 'unknown';
         throw errorObj;
@@ -373,6 +265,7 @@ export class AIService {
         throw new Error('Failed to generate image');
       }
 
+      // Return both imageUrl and model used
       return data.imageUrl;
     } catch (error) {
       console.error('Image generation error:', error);
@@ -386,12 +279,14 @@ export class AIService {
     }
 
     try {
+      // Support both single image and array of images (max 14 for combining with Gemini 3 Pro)
       const images = Array.isArray(baseImageUrls) ? baseImageUrls : [baseImageUrls];
 
       if (images.length > 14) {
         throw new Error('Maximum 14 images allowed for combining');
       }
 
+      // Use session model if no specific model provided
       const modelToUse = imageModel || sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
 
       const { data, error } = await supabase.functions.invoke('edit-image', {
@@ -408,6 +303,7 @@ export class AIService {
       }
 
       if (data.error) {
+        // Create a more specific error with type information
         const errorObj: any = new Error(data.error);
         errorObj.errorType = data.errorType || 'unknown';
         throw errorObj;
@@ -462,7 +358,9 @@ export class AIService {
     }
   }
 
+  // Helper to detect if AI response contains file generation request
   detectFileGeneration(content: string): { fileType?: string; prompt?: string } | null {
+    // Look for patterns like "generate a PDF about..." or "create a document for..."
     const filePatterns = [
       /generate (?:a |an )?(pdf|docx|txt|xlsx|csv|json|xml|html|md) (?:about |for |with |that |containing )?(.+)/i,
       /create (?:a |an )?(pdf|docx|txt|xlsx|csv|json|xml|html|md) (?:about |for |with |that |containing )?(.+)/i,
