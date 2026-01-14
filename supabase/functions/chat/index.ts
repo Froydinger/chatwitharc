@@ -399,7 +399,13 @@ serve(async (req) => {
       'For REGULAR CONVERSATION: Keep responses SHORT and CONCISE. Be direct. No fluff.\n' +
       'For TOOL OUTPUTS (update_canvas, update_code): Output the COMPLETE content. Never truncate or cut off.\n' +
       'When using update_canvas or update_code tools, you MUST provide the FULL content - do not summarize or shorten.\n' +
-      'If writing a blog post, essay, or code - write the ENTIRE thing, not just a partial draft.';
+      'If writing a blog post, essay, or code - write the ENTIRE thing, not just a partial draft.\n\n' +
+      '=== CODE OUTPUT RULES (CRITICAL) ===\n' +
+      '• ALWAYS output COMPLETE, FULL code - from <!DOCTYPE> to </html>\n' +
+      '• For HTML: Include ALL CSS in <style> tags and ALL JS in <script> tags - single file\n' +
+      '• When modifying code: PRESERVE ALL existing styles, animations, and features\n' +
+      '• NEVER remove CSS or functionality unless explicitly asked\n' +
+      '• NEVER truncate, summarize, or say "rest of code here" - output EVERYTHING';
 
     // Prepare messages with enhanced system prompt
     let conversationMessages = [
@@ -476,13 +482,13 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "update_code",
-          description: "Write or update code in the user's Code Canvas. Use this tool when the user asks you to write, create, build, modify, update, fix, or enhance code, components, scripts, HTML pages, or any programming content. CRITICAL: When the user provides existing code and asks to modify it, you MUST use this tool to output the COMPLETE updated code - never just describe changes. The code will appear in their Code Canvas editor with syntax highlighting and live preview. This is the PRIMARY and ONLY tool for any coding request - do NOT use web_search or any other tool when editing code.",
+          description: "Write or update code in the user's Code Canvas. Use this tool when the user asks you to write, create, build, modify, update, fix, or enhance code, components, scripts, HTML pages, or any programming content. CRITICAL RULES: 1) ALWAYS output COMPLETE code - never partial or truncated. 2) For HTML files, ALWAYS include ALL CSS styles (in <style> tags) and ALL JavaScript (in <script> tags) in the same file - the preview renders a single file. 3) When modifying existing code, PRESERVE ALL existing styles and functionality - NEVER remove CSS, animations, or features unless explicitly asked. 4) Output the FULL file from <!DOCTYPE> to </html>. The code will appear in their Code Canvas editor with live preview.",
           parameters: {
             type: "object",
             properties: {
               code: {
                 type: "string",
-                description: "The COMPLETE code content to put in the Code Canvas. When modifying existing code, include ALL the code, not just the changed parts."
+                description: "The COMPLETE code content. MUST include ALL HTML, CSS (<style>), and JavaScript (<script>) in one file. When modifying code, include EVERYTHING - all original styles, all original scripts, all original structure. NEVER omit or truncate. NEVER remove existing CSS or features."
               },
               language: {
                 type: "string",
