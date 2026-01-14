@@ -893,6 +893,19 @@ MANDATORY: Output the COMPLETE updated code. Never stop mid-sentence or mid-func
           messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: Use the update_canvas tool to write COMPLETE, FULL markdown content for this request. Do NOT truncate, summarize, or cut short. Write the ENTIRE piece from beginning to end - every paragraph, every section, complete thoughts. Never stop mid-sentence:\n\n${cleanedMessage || userMessage}`;
         } else if (wasSearchMode) {
           messageToSend = `Search the web for: ${cleanedMessage || userMessage}`;
+        } else if (isCodeCanvasOpen && canvasState.content) {
+          // Code canvas is open but user isn't explicitly asking to edit
+          // Still provide the code as context in case AI decides to modify it
+          const existingCode = canvasState.content;
+          const language = canvasState.codeLanguage || 'html';
+          messageToSend = `${cleanedMessage || userMessage}
+
+[CONTEXT: The user has a Code Canvas open with the following ${language} code. If you need to modify this code for any reason, you MUST preserve ALL existing CSS styles, animations, and functionality. Output the COMPLETE code with ALL original styling intact. NEVER strip or remove existing styles.]
+
+Current code (${existingCode.split('\n').length} lines):
+\`\`\`${language}
+${existingCode}
+\`\`\``;
         } else {
           messageToSend = cleanedMessage || userMessage;
         }
