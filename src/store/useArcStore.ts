@@ -725,13 +725,11 @@ export const useArcStore = create<ArcState>()(
           };
         });
 
-        // AWAIT the save to ensure persistence before returning
+        // Fire-and-forget save to Supabase (don't block UI)
         if (sessionToSave) {
-          try {
-            await get().saveChatToSupabase(sessionToSave);
-          } catch (error) {
+          get().saveChatToSupabase(sessionToSave).catch(error => {
             console.error('❌ Failed to save canvas message to Supabase:', error);
-          }
+          });
         }
 
         return uniqueCanvasId;
@@ -797,13 +795,11 @@ export const useArcStore = create<ArcState>()(
           };
         });
 
-        // AWAIT the save to ensure persistence before returning
+        // Fire-and-forget save to Supabase (don't block UI)
         if (sessionToSave) {
-          try {
-            await get().saveChatToSupabase(sessionToSave);
-          } catch (error) {
+          get().saveChatToSupabase(sessionToSave).catch(error => {
             console.error('❌ Failed to save code message to Supabase:', error);
-          }
+          });
         }
 
         return uniqueCodeId;
