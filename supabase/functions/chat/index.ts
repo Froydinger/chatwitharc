@@ -715,8 +715,8 @@ serve(async (req) => {
       }
       
       // For code/canvas updates, skip the second API call entirely - we already have the output!
-      // This dramatically reduces latency for /code commands (saves 30-60+ seconds)
-      // The second call was just to say "here's your code" which is unnecessary
+      // This dramatically reduces latency for /code and /write commands (saves 30-60+ seconds)
+      // The second call was just to say "here's your code/content" which is unnecessary
       if (codeUpdate || canvasUpdate) {
         console.log('✅ Skipping second API call - code/canvas output already captured');
         // Create a minimal synthetic response - the actual value is in codeUpdate/canvasUpdate
