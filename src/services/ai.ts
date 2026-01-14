@@ -41,7 +41,7 @@ export interface SendMessageResult {
 
 export class AIService {
   private maxRetries = 2;
-  private timeoutMs = 60000; // 60 second timeout
+  private timeoutMs = 120000; // 120 second timeout for complex code generation
 
   constructor() {
     // No API key needed - using secure edge function with Lovable Cloud
