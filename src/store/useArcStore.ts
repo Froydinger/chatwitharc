@@ -131,6 +131,8 @@ export interface ArcState {
   saveChatToSupabase: (session: ChatSession) => Promise<void>;
   isOnline: boolean;
   lastSyncAt: Date | null;
+  isSyncing: boolean;
+  syncedUserId: string | null;
 
   // Message Recovery
   recoverPendingMessages: () => Promise<void>;
@@ -146,6 +148,8 @@ export const useArcStore = create<ArcState>()(
       chatSessions: [],
       isOnline: navigator.onLine,
       lastSyncAt: null,
+      isSyncing: false,
+      syncedUserId: null,
 
       updateSessionCanvasContent: async (sessionId: string, canvasContent: string) => {
         const state = get();
@@ -170,14 +174,23 @@ export const useArcStore = create<ArcState>()(
           return;
         }
 
+        // Prevent concurrent syncs
+        if (get().isSyncing) {
+          console.log('⚠️ Sync already in progress, skipping');
+          return;
+        }
+
+        set({ isSyncing: true });
+
         try {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) {
             console.log('⚠️ No user found, skipping sync');
+            set({ isSyncing: false });
             return;
           }
 
-          console.log('🔄 Starting sync from Supabase...');
+          console.log('🔄 Starting sync from Supabase for user:', user.id);
           const { data: sessions, error } = await supabase
             .from('chat_sessions')
             .select('*')
@@ -186,7 +199,7 @@ export const useArcStore = create<ArcState>()(
 
           if (error) {
             console.error('❌ Sync error:', error);
-            set({ isOnline: false });
+            set({ isOnline: false, isSyncing: false });
             return;
           }
 
@@ -236,15 +249,18 @@ export const useArcStore = create<ArcState>()(
               chatSessions: loadedSessions,
               lastSyncAt: new Date(),
               isOnline: true,
+              isSyncing: false,
+              syncedUserId: user.id,
               // Restore messages for current session after sync (merged)
               messages: currentSession ? JSON.parse(JSON.stringify(currentSession.messages)) : state.messages
             });
           } else {
             console.log('📭 No sessions found in Supabase');
+            set({ isSyncing: false, syncedUserId: user.id });
           }
         } catch (error) {
           console.error('❌ Failed to sync from Supabase:', error);
-          set({ isOnline: false });
+          set({ isOnline: false, isSyncing: false });
         }
       },
 
