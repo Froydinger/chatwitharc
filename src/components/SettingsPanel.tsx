@@ -23,7 +23,6 @@ import {
   Palette,
   Check,
 } from "lucide-react";
-import { MemoryBankAccordion, parseMemoriesFromText, formatMemoriesToText } from "@/components/MemoryBankAccordion";
 import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
 import { useProfile } from "@/hooks/useProfile";
@@ -70,7 +69,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Brain, Shield } from "lucide-react";
+import { FileText, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export function SettingsPanel() {
@@ -139,13 +138,7 @@ export function SettingsPanel() {
   const [displayNameDirty, setDisplayNameDirty] = useState(false);
   const [contextDraft, setContextDraft] = useState("");
   const [contextDirty, setContextDirty] = useState(false);
-  const [memoryDraft, setMemoryDraft] = useState("");
-  const [memoryDirty, setMemoryDirty] = useState(false);
-
-  // Structured memories state
-  const [memories, setMemories] = useState<Array<{ id: string; date: string; content: string }>>([]);
-  const [memoriesDirty, setMemoriesDirty] = useState(false);
-  const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
+  const [isContextDialogOpen, setIsContextDialogOpen] = useState(false);
 
   // Model selector ref for popup positioning
   const modelSelectorRef = useRef<HTMLButtonElement>(null);
@@ -171,14 +164,6 @@ export function SettingsPanel() {
     if (!contextDirty) setContextDraft(profile?.context_info || "");
   }, [profile?.context_info, contextDirty]);
 
-  // Parse memories from text format on load (auto-migration)
-  useEffect(() => {
-    if (!memoriesDirty && profile?.memory_info) {
-      const parsed = parseMemoriesFromText(profile.memory_info);
-      setMemories(parsed);
-    }
-  }, [profile?.memory_info, memoriesDirty]);
-
   const handleSaveDisplayName = async () => {
     try {
       await updateProfile({ display_name: displayNameDraft.trim() });
@@ -203,40 +188,6 @@ export function SettingsPanel() {
         variant: "destructive",
       });
     }
-  };
-
-  const handleSaveMemory = async () => {
-    try {
-      // Convert structured memories back to text format for storage
-      const memoryText = formatMemoriesToText(memories);
-      await updateProfile({ memory_info: memoryText });
-      setMemoriesDirty(false);
-    } catch (e) {
-      toast({
-        title: "Save failed",
-        description: "Could not save your memory. Try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleClearMemory = async () => {
-    try {
-      await updateProfile({ memory_info: "" });
-      setMemories([]);
-      setMemoriesDirty(false);
-    } catch (e) {
-      toast({
-        title: "Clear failed",
-        description: "Could not clear your memory. Try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleMemoriesChange = (newMemories: Array<{ id: string; date: string; content: string }>) => {
-    setMemories(newMemories);
-    setMemoriesDirty(true);
   };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -529,35 +480,31 @@ export function SettingsPanel() {
             </div>
           </GlassCard>
 
-          {/* Memories and Context Button */}
+          {/* Context Button */}
           <GlassCard variant="bubble" className="p-6 space-y-3">
             <div className="flex items-center gap-3">
-              <Brain className="h-5 w-5 text-primary-glow" />
+              <FileText className="h-5 w-5 text-primary-glow" />
               <div>
-                <h3 className="text-lg font-semibold text-foreground">Memories and Context</h3>
-                <p className="text-sm text-muted-foreground">Teach Arc about yourself and set preferences</p>
+                <h3 className="text-lg font-semibold text-foreground">Context</h3>
+                <p className="text-sm text-muted-foreground">Give Arc extra context about yourself</p>
               </div>
             </div>
-            <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
+            <Dialog open={isContextDialogOpen} onOpenChange={setIsContextDialogOpen}>
               <DialogTrigger asChild>
                 <GlassButton className="w-full h-12 rounded-full outline-shimmer inline-flex items-center justify-center text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]">
-                  <Brain className="h-4 w-4 mr-2" />
-                  Memories and Context ({memories.length})
+                  <FileText className="h-4 w-4 mr-2" />
+                  Context
                 </GlassButton>
               </DialogTrigger>
-              <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] sm:max-h-[80vh] overflow-y-auto p-4 sm:p-6">
+              <DialogContent className="w-[95vw] max-w-lg max-h-[85vh] sm:max-h-[80vh] overflow-y-auto p-4 sm:p-6">
                 <DialogHeader>
-                  <DialogTitle className="text-base sm:text-lg">Memories and Context</DialogTitle>
-                  <DialogDescription className="text-xs sm:text-sm">Manage your personal information and memories</DialogDescription>
+                  <DialogTitle className="text-base sm:text-lg">Context</DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm">Tell Arc about yourself and your preferences</DialogDescription>
                 </DialogHeader>
 
-                <div className="py-3 sm:py-4 space-y-4 sm:space-y-6">
-                  {/* Context Section */}
+                <div className="py-3 sm:py-4">
                   <div className="space-y-2 sm:space-y-3">
-                    <div>
-                      <label className="text-xs sm:text-sm font-medium text-foreground">Context & Preferences</label>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Tell Arc about yourself and your needs</p>
-                    </div>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">This information helps Arc personalize responses to your needs</p>
                     <div className="space-y-2">
                       <Textarea
                         value={contextDraft}
@@ -566,7 +513,7 @@ export function SettingsPanel() {
                           setContextDirty(true);
                         }}
                         placeholder="I'm interested in... I prefer... I'm working on..."
-                        className="glass border-glass-border min-h-[60px] sm:min-h-[80px] resize-none text-sm"
+                        className="glass border-glass-border min-h-[120px] sm:min-h-[150px] resize-none text-sm"
                         disabled={updating}
                         autoFocus={false}
                         data-autofocus="false"
@@ -593,37 +540,7 @@ export function SettingsPanel() {
                       )}
                     </div>
                   </div>
-
-                  {/* Memory Bank Section */}
-                  <MemoryBankAccordion
-                    memories={memories}
-                    onMemoriesChange={handleMemoriesChange}
-                    onClearAll={handleClearMemory}
-                  />
                 </div>
-
-                {/* Auto-save memories */}
-                {memoriesDirty && (
-                  <DialogFooter>
-                    <GlassButton
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const parsed = parseMemoriesFromText(profile?.memory_info || "");
-                        setMemories(parsed);
-                        setMemoriesDirty(false);
-                      }}
-                      disabled={updating}
-                    >
-                      <RotateCcw className="w-3 h-3 mr-1" />
-                      Reset
-                    </GlassButton>
-                    <GlassButton variant="ghost" size="sm" onClick={handleSaveMemory} disabled={updating}>
-                      <Save className="w-3 h-3 mr-1" />
-                      Save Changes
-                    </GlassButton>
-                  </DialogFooter>
-                )}
               </DialogContent>
             </Dialog>
           </GlassCard>
