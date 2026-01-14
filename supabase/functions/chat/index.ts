@@ -11,95 +11,8 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// Background task to save AI response directly to the database
-// This ensures the response is saved even if the client disconnects
-async function saveResponseToDatabase(
-  userId: string,
-  sessionId: string | undefined,
-  assistantMessage: {
-    content: string;
-    canvasContent?: string;
-    canvasLabel?: string;
-    codeContent?: string;
-    codeLanguage?: string;
-    codeLabel?: string;
-    type: 'text' | 'canvas' | 'code';
-  },
-  retryCount = 0
-): Promise<void> {
-  if (!sessionId) {
-    console.log('⚠️ No sessionId provided, skipping background save');
-    return;
-  }
-
-  const maxRetries = 3;
-  
-  try {
-    console.log('💾 Background save: Saving AI response to session:', sessionId, `(attempt ${retryCount + 1})`);
-    
-    // Get current session
-    const { data: session, error: fetchError } = await supabase
-      .from('chat_sessions')
-      .select('messages')
-      .eq('id', sessionId)
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (fetchError || !session) {
-      console.error('❌ Background save: Could not fetch session:', fetchError);
-      if (retryCount < maxRetries) {
-        await new Promise(r => setTimeout(r, 1000 * (retryCount + 1))); // Exponential backoff
-        return saveResponseToDatabase(userId, sessionId, assistantMessage, retryCount + 1);
-      }
-      return;
-    }
-
-    const existingMessages = Array.isArray(session.messages) ? session.messages : [];
-    
-    // Create the new assistant message
-    const newMessage = {
-      id: `bg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      content: assistantMessage.content,
-      role: 'assistant',
-      type: assistantMessage.type,
-      timestamp: new Date().toISOString(),
-      ...(assistantMessage.canvasContent && { canvasContent: assistantMessage.canvasContent }),
-      ...(assistantMessage.canvasLabel && { canvasLabel: assistantMessage.canvasLabel }),
-      ...(assistantMessage.codeContent && { codeContent: assistantMessage.codeContent }),
-      ...(assistantMessage.codeLanguage && { codeLanguage: assistantMessage.codeLanguage }),
-      ...(assistantMessage.codeLabel && { codeLabel: assistantMessage.codeLabel }),
-    };
-
-    // Append the new message
-    const updatedMessages = [...existingMessages, newMessage];
-
-    // Save back to database
-    const { error: updateError } = await supabase
-      .from('chat_sessions')
-      .update({
-        messages: updatedMessages,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', sessionId)
-      .eq('user_id', userId);
-
-    if (updateError) {
-      console.error('❌ Background save: Failed to update session:', updateError);
-      if (retryCount < maxRetries) {
-        await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
-        return saveResponseToDatabase(userId, sessionId, assistantMessage, retryCount + 1);
-      }
-    } else {
-      console.log('✅ Background save: Successfully saved AI response to session:', sessionId);
-    }
-  } catch (error) {
-    console.error('❌ Background save error:', error);
-    if (retryCount < maxRetries) {
-      await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
-      return saveResponseToDatabase(userId, sessionId, assistantMessage, retryCount + 1);
-    }
-  }
-}
+// NOTE: saveResponseToDatabase was removed - frontend now handles all persistence
+// to avoid race conditions and duplicate messages from double-saves.
 
 // Retry wrapper for AI calls
 async function fetchWithRetry(
@@ -795,25 +708,12 @@ serve(async (req) => {
         }
       }
       
-      // Second AI call with search results - use fetchWithRetry for resilience
-      // IMPORTANT: Keep canvas/code tool forced on second call to ensure AI uses correct tool
-      // Don't force web_search on second call - let AI generate the summary
-      let secondCallToolChoice: string | { type: string; function: { name: string } } = "auto";
-      let secondCallTools = tools; // Default to all tools
-
-      if (wantsCode) {
-        // Always force update_code if user is editing code
-        secondCallToolChoice = { type: "function", function: { name: "update_code" } };
-        secondCallTools = tools.filter(t => t.function.name === 'update_code');
-        console.log('🔧 Second call: Maintaining update_code tool force');
-      } else if (wantsCanvas) {
-        // Always force update_canvas if user is editing canvas
-        secondCallToolChoice = { type: "function", function: { name: "update_canvas" } };
-        secondCallTools = tools.filter(t => t.function.name === 'update_canvas');
-        console.log('🔧 Second call: Maintaining update_canvas tool force');
-      }
-
-      console.log('🤖 Making second AI call to synthesize results');
+      // Second AI call with tool results - use fetchWithRetry for resilience
+      // IMPORTANT: Do NOT force tool_choice on second call!
+      // The first call already used the tool and produced output.
+      // The second call should just synthesize/summarize - forcing the tool again
+      // causes double work, wasted credits, and potential loops.
+      console.log('🤖 Making second AI call to synthesize results (no forced tool)');
       response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -823,8 +723,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: model || 'google/gemini-2.5-flash',
           messages: conversationMessages,
-          tools: secondCallTools,
-          tool_choice: secondCallToolChoice,
+          // No tools on second call - just synthesize the results
           max_tokens: 65536, // Maximum output - no truncation
         }),
       });
@@ -836,33 +735,8 @@ serve(async (req) => {
       }
 
       data = await response.json();
-      
-      // Check if the second call also used tools (e.g., update_canvas after search_past_chats)
-      const secondAssistantMessage = data.choices[0].message;
-      if (secondAssistantMessage.tool_calls && secondAssistantMessage.tool_calls.length > 0) {
-        for (const toolCall of secondAssistantMessage.tool_calls) {
-          if (toolCall.function.name === 'update_canvas') {
-            const args = JSON.parse(toolCall.function.arguments);
-            console.log('Canvas update in second call:', args.label || 'Untitled');
-            canvasUpdate = {
-              content: args.content,
-              label: args.label
-            };
-          } else if (toolCall.function.name === 'update_code') {
-            const args = JSON.parse(toolCall.function.arguments);
-            console.log('Code update in second call:', args.label || args.language);
-            codeUpdate = {
-              code: args.code,
-              language: args.language,
-              label: args.label
-            };
-          }
-          // Track additional tools used
-          if (toolCall.function?.name && !toolsUsed.includes(toolCall.function.name)) {
-            toolsUsed.push(toolCall.function.name);
-          }
-        }
-      }
+      // Second call has no tools - it just produces a text summary/response
+      // Canvas/code updates were already captured from the first call
     }
     
     // Add tool usage metadata, sources, canvas and code update to the response
@@ -875,26 +749,12 @@ serve(async (req) => {
       code_update: codeUpdate
     };
     
-    // SAVE AI RESPONSE: Save the AI response directly to the database
-    // We AWAIT this to ensure data is persisted before returning to client
-    // This prevents "error reading a body from connection" errors and data loss
-    if (sessionId && user) {
-      const messageType = codeUpdate ? 'code' : (canvasUpdate ? 'canvas' : 'text');
-      try {
-        console.log('💾 Saving AI response to database...');
-        await saveResponseToDatabase(user.id, sessionId, {
-          content: responseContent,
-          type: messageType,
-          ...(canvasUpdate && { canvasContent: canvasUpdate.content, canvasLabel: canvasUpdate.label }),
-          ...(codeUpdate && { codeContent: codeUpdate.code, codeLanguage: codeUpdate.language, codeLabel: codeUpdate.label }),
-        });
-        console.log('✅ AI response saved successfully');
-      } catch (saveError) {
-        // Log but don't fail the response - the frontend will also save
-        console.error('⚠️ Background save failed (frontend will retry):', saveError);
-      }
-    }
-    
+    // NOTE: We no longer save from the backend - the frontend handles all persistence.
+    // This prevents race conditions and duplicate messages that occurred when both
+    // backend and frontend tried to save the same message simultaneously.
+    // The frontend's upsertCanvasMessage/upsertCodeMessage/addMessage properly
+    // merge with existing session data and handle all save scenarios.
+
     return new Response(
       JSON.stringify(finalResponse),
       { 
