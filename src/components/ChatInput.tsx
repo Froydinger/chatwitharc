@@ -809,14 +809,26 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       if (userMessage) {
         (async () => {
           try {
-            const conversationContext = messages
+            // Get fresh messages from store to include latest
+            const currentMessages = useArcStore.getState().messages;
+            const conversationContext = currentMessages
               .filter((m) => m.type === "text")
               .map((m) => ({ role: m.role, content: m.content }));
 
+            console.log('🧠 Memory detection starting:', {
+              userMessage,
+              contextLength: conversationContext.length,
+              userName: profile?.display_name || "User"
+            });
+
             const userName = profile?.display_name || "User";
             const memoryItem = await detectMemoryCommand(userMessage, conversationContext, userName);
+
+            console.log('🧠 Memory detection result:', memoryItem);
+
             if (memoryItem) {
               const wasNew = await addToMemoryBank(memoryItem);
+              console.log('🧠 Memory save result:', { wasNew, content: memoryItem.content });
               if (wasNew) {
                 console.log('Memory saved:', memoryItem.content);
                 // Update the user message with the memory action
