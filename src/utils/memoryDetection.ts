@@ -38,6 +38,8 @@ ${existingMemoryContext}
 
 When the user shares NEW personal information or preferences that are NOT already saved, extract it as a clear, third-person factual statement about them.
 
+IMPORTANT: If the user says something like "remember that", "remember this", "remember those things", "save that to memory", etc. - look at the RECENT CONVERSATION CONTEXT to find what personal facts they want you to remember. Extract those facts, not just the command itself.
+
 Examples:
 - User says: "I really like soda!" → Extract: "${userName} likes soda"
 - User says: "For future reference, for UI stuff, I like Black glass, elasticy animations, and neon blue accent colors!" → Extract: "${userName} prefers black glass UI, elastic animations, and neon blue accent colors"
@@ -47,19 +49,21 @@ Examples:
 - User says: "I'm allergic to peanuts!" → Extract: "${userName} is allergic to peanuts"
 - User says: "I prefer they/them pronouns" → Extract: "${userName} uses they/them pronouns"
 - User says: "I'm working on a music app" → Extract: "${userName} is working on a music app"
+- User previously said "I'm non-binary" and now says "remember that" → Extract: "${userName} is non-binary"
+- User shared multiple facts and says "remember those things" → Extract ALL the new personal facts from the conversation, separated by " | "
 
 CRITICAL RULES:
-1. ALWAYS use "${userName}" at the start of the extracted fact (not "User" or "The user")
-2. Extract the MEANINGFUL personal information, not the AI's response or confirmation
-3. Make it a clear, factual third-person statement about ${userName}
-4. Keep it concise (under 150 characters)
+1. ALWAYS use "${userName}" at the start of each extracted fact (not "User" or "The user")
+2. Extract the MEANINGFUL personal information from the USER's messages, not the AI's responses
+3. Make it clear, factual third-person statements about ${userName}
+4. If multiple facts, separate them with " | " (e.g., "${userName} is non-binary | ${userName} likes coding")
 5. If the info is ALREADY in the saved memories above, return "NONE" - do NOT duplicate!
-6. If there's no NEW personal fact to remember (just questions or requests), return "NONE"
-7. ONLY return the extracted fact - no explanations, no quotes, no extra text
-8. Look at what the USER said, not what the assistant said
+6. If there's no NEW personal fact to remember (just questions or general requests), return "NONE"
+7. ONLY return the extracted facts - no explanations, no quotes, no extra text
+8. Look at what the USER said in recent messages, not what the assistant said
 9. If the user is using a prompt that includes their own info (like personalized prompts), that's NOT a new memory - return "NONE"
 
-What NEW personal fact should be remembered from this conversation?`;
+What NEW personal facts should be remembered from this conversation?`;
 
     // Build conversation context - include recent messages for context
     const contextMessages = recentMessages.slice(-6).map(m => ({
