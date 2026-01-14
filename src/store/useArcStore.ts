@@ -192,7 +192,6 @@ export const useArcStore = create<ArcState>()(
 
           if (sessions) {
             const state = get();
-            const sessionsToBackfill: ChatSession[] = [];
 
             const loadedSessions: ChatSession[] = sessions.map(session => {
               const remoteMessages: Message[] = Array.isArray(session.messages) ? (session.messages as any) : [];
@@ -210,20 +209,10 @@ export const useArcStore = create<ArcState>()(
                 }
               }
 
-              // BACKFILL: If session has canvas_content but no canvas message, inject one
-              const hasCanvasMessage = finalMessages.some((m: any) => m.type === 'canvas');
-              if (canvasContent && !hasCanvasMessage) {
-                console.log(`📝 Backfilling canvas message for session: ${session.id}`);
-                const syntheticCanvasMessage: Message = {
-                  id: `canvas-${session.id}`,
-                  content: "Here's your canvas draft:",
-                  role: 'assistant',
-                  type: 'canvas',
-                  canvasContent: canvasContent,
-                  timestamp: new Date(session.updated_at || session.created_at),
-                };
-                finalMessages = [...finalMessages, syntheticCanvasMessage];
-              }
+              // NOTE: We no longer backfill synthetic canvas messages.
+              // If a session has canvas_content but no canvas message, the content
+              // is still accessible via the Canvas panel (session.canvasContent).
+              // Creating synthetic messages caused confusion with old/errored canvases appearing.
 
               const loadedSession: ChatSession = {
                 id: session.id,
@@ -233,11 +222,6 @@ export const useArcStore = create<ArcState>()(
                 messages: finalMessages,
                 canvasContent: canvasContent
               };
-
-              // Track sessions that need backfill save
-              if (canvasContent && !hasCanvasMessage) {
-                sessionsToBackfill.push(loadedSession);
-              }
 
               return loadedSession;
             });
@@ -255,16 +239,6 @@ export const useArcStore = create<ArcState>()(
               // Restore messages for current session after sync (merged)
               messages: currentSession ? JSON.parse(JSON.stringify(currentSession.messages)) : state.messages
             });
-
-            // Persist backfilled sessions so the canvas message is saved
-            for (const session of sessionsToBackfill) {
-              try {
-                await get().saveChatToSupabase(session);
-                console.log(`✅ Backfilled canvas message saved for session: ${session.id}`);
-              } catch (e) {
-                console.error(`❌ Failed to save backfilled session: ${session.id}`, e);
-              }
-            }
           } else {
             console.log('📭 No sessions found in Supabase');
           }
