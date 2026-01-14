@@ -277,17 +277,22 @@ export async function addToMemoryBank(memoryItem: MemoryItem): Promise<boolean> 
     }
 
     const memoryEntry = `[${memoryItem.timestamp.toLocaleDateString()}] ${sanitized}`;
-    
+
     // Append new memory to existing memory
-    const updatedMemory = existingMemory 
+    const updatedMemory = existingMemory
       ? `${existingMemory}\n${memoryEntry}`
       : memoryEntry;
 
-    // Update profile with new memory
+    // Use upsert to handle case where profile might not exist yet
+    // (can happen with OAuth users if trigger failed)
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ memory_info: updatedMemory })
-      .eq('user_id', user.id);
+      .upsert({
+        user_id: user.id,
+        memory_info: updatedMemory
+      }, {
+        onConflict: 'user_id'
+      });
 
     if (updateError) throw updateError;
 
