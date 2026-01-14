@@ -95,13 +95,13 @@ export class AIService {
       // Determine which model to use - check sessionStorage (session-only)
       // This allows model changes within a session without persisting to database
       // Always defaults to Smart & Fast on refresh (sessionStorage is cleared)
-      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
+      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash-lite';
 
       console.log('🤖 AI Model Selection:', {
         fromSessionStorage: sessionStorage.getItem('arc_session_model'),
         selectedModel: selectedModel,
         isWise: selectedModel === 'google/gemini-3-pro-preview',
-        isFast: selectedModel === 'google/gemini-2.5-flash'
+        isFast: selectedModel === 'google/gemini-2.5-flash-lite'
       });
 
       // Call the secure edge function with retry logic
@@ -239,7 +239,7 @@ export class AIService {
       let modelToUse = preferredModel;
       if (!modelToUse) {
         // Get model from sessionStorage (same as chat)
-        modelToUse = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
+        modelToUse = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash-lite';
       }
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
@@ -287,7 +287,7 @@ export class AIService {
       }
 
       // Use session model if no specific model provided
-      const modelToUse = imageModel || sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash';
+      const modelToUse = imageModel || sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash-lite';
 
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: { 

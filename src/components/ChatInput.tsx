@@ -246,7 +246,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
   // Track current session model for brain icon state
   const [sessionModel, setSessionModel] = useState<string>(() =>
-    sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash'
+    sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash-lite'
   );
 
   // Auto-switch to Gemini 3 Pro when code/ mode is active (it's way better at code)
@@ -1276,7 +1276,7 @@ MANDATORY: Output the COMPLETE updated code. Never stop mid-sentence or mid-func
         <button
           onClick={async (e) => {
             const newModel = sessionModel === "google/gemini-3-pro-preview"
-              ? "google/gemini-2.5-flash"
+              ? "google/gemini-2.5-flash-lite"
               : "google/gemini-3-pro-preview";
             try {
               // Get button center position for popup

@@ -77,7 +77,7 @@ What NEW personal fact should be remembered from this conversation?`;
     const { data, error } = await supabase.functions.invoke('chat', {
       body: {
         messages,
-        model: 'google/gemini-2.5-flash'
+        model: 'google/gemini-2.5-flash-lite'
       }
     });
 
