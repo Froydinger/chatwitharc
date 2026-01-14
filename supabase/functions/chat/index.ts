@@ -12,7 +12,6 @@ const supabase = createClient(
 );
 
 // Background task to save AI response directly to the database
-// This ensures the response is saved even if the client disconnects
 async function saveResponseToDatabase(
   userId: string,
   sessionId: string | undefined,
@@ -37,7 +36,6 @@ async function saveResponseToDatabase(
   try {
     console.log('💾 Background save: Saving AI response to session:', sessionId, `(attempt ${retryCount + 1})`);
     
-    // Get current session
     const { data: session, error: fetchError } = await supabase
       .from('chat_sessions')
       .select('messages')
@@ -48,7 +46,7 @@ async function saveResponseToDatabase(
     if (fetchError || !session) {
       console.error('❌ Background save: Could not fetch session:', fetchError);
       if (retryCount < maxRetries) {
-        await new Promise(r => setTimeout(r, 1000 * (retryCount + 1))); // Exponential backoff
+        await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
         return saveResponseToDatabase(userId, sessionId, assistantMessage, retryCount + 1);
       }
       return;
@@ -56,7 +54,6 @@ async function saveResponseToDatabase(
 
     const existingMessages = Array.isArray(session.messages) ? session.messages : [];
     
-    // Create the new assistant message
     const newMessage = {
       id: `bg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       content: assistantMessage.content,
@@ -70,10 +67,8 @@ async function saveResponseToDatabase(
       ...(assistantMessage.codeLabel && { codeLabel: assistantMessage.codeLabel }),
     };
 
-    // Append the new message
     const updatedMessages = [...existingMessages, newMessage];
 
-    // Save back to database
     const { error: updateError } = await supabase
       .from('chat_sessions')
       .update({
@@ -90,7 +85,7 @@ async function saveResponseToDatabase(
         return saveResponseToDatabase(userId, sessionId, assistantMessage, retryCount + 1);
       }
     } else {
-      console.log('✅ Background save: Successfully saved AI response to session:', sessionId);
+      console.log('✅ Background save: Successfully saved AI response');
     }
   } catch (error) {
     console.error('❌ Background save error:', error);
@@ -101,49 +96,7 @@ async function saveResponseToDatabase(
   }
 }
 
-// Retry wrapper for AI calls
-async function fetchWithRetry(
-  url: string,
-  options: RequestInit,
-  maxRetries = 2
-): Promise<Response> {
-  let lastError: Error | null = null;
-  
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const response = await fetch(url, options);
-      
-      // Don't retry client errors (4xx) except rate limits
-      if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-        return response;
-      }
-      
-      // Retry on rate limits and server errors
-      if (response.status === 429 || response.status >= 500) {
-        if (attempt < maxRetries) {
-          const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 1s, 2s, 4s
-          console.log(`⚠️ AI call failed with ${response.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
-          await new Promise(r => setTimeout(r, delay));
-          continue;
-        }
-      }
-      
-      return response;
-    } catch (error) {
-      lastError = error as Error;
-      if (attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000;
-        console.log(`⚠️ AI call threw error, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries}):`, error);
-        await new Promise(r => setTimeout(r, delay));
-        continue;
-      }
-    }
-  }
-  
-  throw lastError || new Error('Max retries exceeded');
-}
-
-// Web search result interface
+// Web search result interfaces
 interface WebSearchResult {
   title: string;
   url: string;
@@ -166,16 +119,14 @@ async function webSearch(query: string): Promise<WebSearchResponse> {
     console.log('Performing web search for:', query);
     const response = await fetch('https://api.tavily.com/search', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         api_key: tavilyApiKey,
         query: query,
-        search_depth: 'advanced', // Changed from 'basic' for better quality
+        search_depth: 'advanced',
         max_results: 5,
         include_answer: true,
-        include_raw_content: true, // Now fetches full page content!
+        include_raw_content: true,
         include_images: false,
       }),
     });
@@ -189,11 +140,9 @@ async function webSearch(query: string): Promise<WebSearchResponse> {
     const data = await response.json();
     console.log('Search results received:', data.results?.length || 0, 'results');
     
-    // Extract sources for frontend display
     const sources: WebSearchResult[] = [];
-    
-    // Format results for the AI
     let searchSummary = '';
+    
     if (data.answer) {
       searchSummary = `Quick Answer: ${data.answer}\n\n`;
     }
@@ -202,12 +151,10 @@ async function webSearch(query: string): Promise<WebSearchResponse> {
       searchSummary += 'Search Results:\n';
       data.results.forEach((result: any, idx: number) => {
         searchSummary += `${idx + 1}. ${result.title}\n`;
-        // Use raw_content if available (full page text), otherwise fall back to snippet
         const pageContent = result.raw_content || result.content || '';
         searchSummary += `   ${pageContent}\n`;
         searchSummary += `   Source: ${result.url}\n\n`;
 
-        // Add to sources array for frontend (keep short snippet for display)
         sources.push({
           title: result.title,
           url: result.url,
@@ -227,61 +174,44 @@ async function webSearch(query: string): Promise<WebSearchResponse> {
   }
 }
 
-// Search past chats tool - AI-powered analysis
+// Search past chats tool
 async function searchPastChats(query: string, authHeader: string | null): Promise<string> {
   try {
     console.log('Searching past chats for:', query);
     
     if (!authHeader) {
-      console.error('No auth header provided for chat search');
       return "Unable to search past chats: Not authenticated.";
     }
 
-    // Create supabase client with auth token
     const token = authHeader.replace('Bearer ', '');
     const supabaseWithAuth = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
-          headers: {
-            Authorization: authHeader
-          }
+          headers: { Authorization: authHeader }
         }
       }
     );
 
-    // Get user from token
     const { data: { user }, error: userError } = await supabaseWithAuth.auth.getUser(token);
     
     if (userError || !user) {
-      console.error('Auth error in chat search:', userError);
       return "Unable to search past chats: Authentication failed.";
     }
 
-    console.log('Authenticated user for chat search:', user.id);
-
-    // Get ALL chat sessions with full content (no limits for better context)
     const { data: sessions, error: sessionsError } = await supabaseWithAuth
       .from('chat_sessions')
       .select('id, title, messages, created_at, updated_at')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
-      .limit(1000); // Very high limit to get all chats
+      .limit(1000);
 
-    if (sessionsError) {
-      console.error('Chat search error:', sessionsError);
-      return "Unable to search past chats.";
+    if (sessionsError || !sessions || sessions.length === 0) {
+      return sessions ? "No past chats found." : "Unable to search past chats.";
     }
 
-    if (!sessions || sessions.length === 0) {
-      return "No past chats found.";
-    }
-
-    console.log(`Analyzing ${sessions.length} recent conversations`);
-
-    // Build comprehensive context from conversations
-    let conversationContext = `I found ${sessions.length} recent conversations. Here's what I gathered:\n\n`;
+    let conversationContext = `I found ${sessions.length} recent conversations:\n\n`;
     
     sessions.forEach((session: any, idx) => {
       const title = session.title || 'Untitled';
@@ -290,11 +220,9 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
       
       conversationContext += `--- Conversation ${idx + 1}: "${title}" (${date}) ---\n`;
 
-      // Include ALL conversation content with NO limits for comprehensive context
       messages.forEach((msg: any) => {
         if (msg.role && msg.content) {
           const prefix = msg.role === 'user' ? 'User' : 'Assistant';
-          // Include full message content (no truncation)
           conversationContext += `${prefix}: ${msg.content}\n`;
         }
       });
@@ -302,12 +230,7 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
       conversationContext += '\n';
     });
 
-    conversationContext += `\nNow analyze these conversations to answer: "${query}"\n`;
-    conversationContext += `Please synthesize insights, identify patterns, make inferences, and provide a thoughtful analysis based on what you see in these conversations.`;
-
-    console.log('📊 Conversation context length:', conversationContext.length);
-    console.log('📝 First 500 chars:', conversationContext.slice(0, 500));
-
+    conversationContext += `\nAnalyze these conversations to answer: "${query}"`;
     return conversationContext;
   } catch (error: unknown) {
     console.error('Past chat search error:', error);
@@ -316,8 +239,13 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
   }
 }
 
+// SSE Helper to send events
+function sendSSE(controller: ReadableStreamDefaultController, event: string, data: any) {
+  const encoder = new TextEncoder();
+  controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+}
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -328,89 +256,66 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'Missing authorization header' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Verify user token
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      console.error('Authentication failed:', authError);
       return new Response(
         JSON.stringify({ error: 'Invalid or expired token' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log('Authenticated user:', user.id);
 
-    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode } = await req.json();
+    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream = true } = await req.json();
 
     console.log('📊 Request details:', {
-      model: model || 'google/gemini-2.5-flash (default)',
+      model: model || 'google/gemini-2.5-flash',
       messageCount: messages?.length || 0,
-      hasProfile: !!profile,
-      sessionId: sessionId || 'none (will not save in background)',
+      sessionId: sessionId || 'none',
       forceWebSearch: !!forceWebSearch,
       forceCanvas: !!forceCanvas,
-      forceCode: !!forceCode
+      forceCode: !!forceCode,
+      stream: !!stream
     });
 
     // Input validation
     if (!messages || !Array.isArray(messages)) {
       return new Response(
         JSON.stringify({ error: 'Messages must be an array' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Validate message count (prevent DoS)
     if (messages.length > 100) {
       return new Response(
         JSON.stringify({ error: 'Too many messages (max 100)' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Validate individual messages
+    // Validate messages
     for (const msg of messages) {
       if (!msg.role || !msg.content) {
         return new Response(
           JSON.stringify({ error: 'Invalid message format' }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      // Limit message content length (prevent DoS)
       if (typeof msg.content === 'string' && msg.content.length > 50000) {
         return new Response(
           JSON.stringify({ error: 'Message content too long (max 50000 characters)' }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }
 
-    // Validate model if provided
+    // Validate model
     const allowedModels = [
       'google/gemini-3-pro-preview',
       'google/gemini-2.5-pro',
@@ -423,14 +328,11 @@ serve(async (req) => {
     if (model && !allowedModels.includes(model)) {
       return new Response(
         JSON.stringify({ error: 'Invalid model specified' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Fetch admin settings for system prompt and global context
+    // Fetch admin settings
     const { data: settingsData } = await supabase
       .from('admin_settings')
       .select('key, value')
@@ -443,20 +345,10 @@ serve(async (req) => {
 
     const systemPrompt = settings.system_prompt || 'You are Arc AI, a helpful assistant.';
     const globalContext = settings.global_context || '';
-    const enableStepByStep = settings.enable_step_by_step === 'true';
 
-    // Check if this is a wellness check or step-by-step type request
-    const lastMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
-    const isWellnessCheck = lastMessage.includes('wellness check') || 
-                           lastMessage.includes('mood') ||
-                           lastMessage.includes('energy level') ||
-                           lastMessage.includes('step by step') ||
-                           lastMessage.includes('guide me through');
-
-    // Build enhanced system prompt - Admin prompt is PRIMARY and defines personality/behavior
+    // Build enhanced system prompt
     let enhancedSystemPrompt = systemPrompt;
 
-    // Add user context (keep this minimal)
     if (profile?.display_name) {
       enhancedSystemPrompt += `\n\nUser: ${profile.display_name}`;
     }
@@ -470,28 +362,20 @@ serve(async (req) => {
       enhancedSystemPrompt += `\n\nGlobal: ${globalContext}`;
     }
 
-    // Brief technical capabilities (trimmed from 100+ lines to essentials)
     enhancedSystemPrompt += '\n\n--- TOOLS ---\n' +
-      '• web_search: Get current info from the web - When you use this tool, ALWAYS synthesize and summarize the search results in your own words. NEVER just say "click on the sources" - actually answer the user\'s question using the information from the sources.\n' +
+      '• web_search: Get current info from the web. ALWAYS synthesize and summarize results in your own words.\n' +
       '• search_past_chats: Analyze user\'s conversation history\n' +
-      '• generate_file: Create downloadable docs (PDFs, etc.) - NOT for code\n' +
-      '• Image generation: Users click the image button\n\n' +
-      '--- CODING (only when explicitly requested) ---\n' +
-      '• Trigger words: "build", "create", "code", "make", "write"\n' +
-      '• Use markdown code blocks (```html, ```css, ```js)\n' +
-      '• Default to conversation, not coding\n';
+      '• update_canvas: Write/edit content in the Canvas editor\n' +
+      '• update_code: Write/edit code in the Code Canvas\n' +
+      '• generate_file: Create downloadable files (PDFs, etc.)\n\n' +
+      '--- RESPONSE STYLE ---\n' +
+      'For REGULAR CONVERSATION: Keep responses concise and direct.\n' +
+      'For TOOL OUTPUTS (update_canvas, update_code): Output the COMPLETE content. NEVER truncate.\n' +
+      'When using update_canvas or update_code, you MUST provide FULL content - do not summarize.\n';
 
-    // CRITICAL: Brevity for conversation, but COMPLETE for tools
-    enhancedSystemPrompt += '\n\n=== RESPONSE STYLE (CRITICAL) ===\n' +
-      'For REGULAR CONVERSATION: Keep responses SHORT and CONCISE. Be direct. No fluff.\n' +
-      'For TOOL OUTPUTS (update_canvas, update_code): Output the COMPLETE content. Never truncate or cut off.\n' +
-      'When using update_canvas or update_code tools, you MUST provide the FULL content - do not summarize or shorten.\n' +
-      'If writing a blog post, essay, or code - write the ENTIRE thing, not just a partial draft.';
-
-    // Prepare messages with enhanced system prompt
-    let conversationMessages = [
+    const conversationMessages = [
       { role: 'system', content: enhancedSystemPrompt },
-      ...messages.filter(m => m.role !== 'system') // Remove any existing system messages
+      ...messages.filter((m: any) => m.role !== 'system')
     ];
     
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
@@ -499,20 +383,17 @@ serve(async (req) => {
       throw new Error('Lovable API key not configured');
     }
 
-    // Define tools including web search, chat search, canvas update, and file generation
+    // Define tools
     const tools = [
       {
         type: "function",
         function: {
           name: "web_search",
-          description: "Search the web ONLY for current information, news, facts, or real-time data from external sources. Use this when you need information beyond your training data. DO NOT use this tool for generating code, HTML, or any programming content - respond with those directly in your message.",
+          description: "Search the web for current information, news, facts, or real-time data.",
           parameters: {
             type: "object",
             properties: {
-              query: {
-                type: "string",
-                description: "The search query to look up on the web"
-              }
+              query: { type: "string", description: "The search query" }
             },
             required: ["query"],
             additionalProperties: false
@@ -523,14 +404,11 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "search_past_chats",
-          description: "Retrieves and analyzes the user's recent conversation history. This tool provides full conversation context (not just keyword matches) so you can synthesize insights, identify patterns, make inferences, and answer questions by actually reading through their chat history. Use this when the user asks questions about themselves, their interests, patterns, or anything that would require understanding their past conversations. The tool will provide you with actual conversation excerpts to analyze.",
+          description: "Retrieves and analyzes the user's conversation history.",
           parameters: {
             type: "object",
             properties: {
-              query: {
-                type: "string",
-                description: "The question or topic to analyze from past conversations. This guides what you should look for and synthesize from the conversation history provided."
-              }
+              query: { type: "string", description: "The question to analyze from past conversations" }
             },
             required: ["query"],
             additionalProperties: false
@@ -541,18 +419,12 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "update_canvas",
-          description: "Write or update content in the user's writing Canvas. Use this tool when the user asks you to write, draft, edit, revise, improve, format, or create content like blog posts, essays, articles, stories, notes, outlines, scripts, emails, etc. CRITICAL: When the user has existing content and asks to modify it, you MUST use this tool to output the COMPLETE updated content. The content will appear in their Canvas editor where they can review and edit it. This is the PRIMARY and ONLY tool for any writing/drafting request - do NOT use web_search or any other tool when editing canvas content.",
+          description: "Write or update content in the Canvas. Use for writing tasks like blog posts, essays, emails, etc. Output COMPLETE markdown content.",
           parameters: {
             type: "object",
             properties: {
-              content: {
-                type: "string",
-                description: "The COMPLETE markdown content to put in the Canvas. When modifying existing content, include ALL the content, not just the changed parts. IMPORTANT: You MUST use proper markdown formatting - use # for h1, ## for h2, ### for h3 headings, **bold** for emphasis, *italic* for italics, - or * for bullet lists, 1. 2. 3. for numbered lists, > for blockquotes, and proper paragraph breaks."
-              },
-              label: {
-                type: "string",
-                description: "A short label for this version (e.g., 'Blog Post Draft', 'Email Draft')"
-              }
+              content: { type: "string", description: "The COMPLETE markdown content" },
+              label: { type: "string", description: "A short label (e.g., 'Blog Post Draft')" }
             },
             required: ["content"],
             additionalProperties: false
@@ -563,22 +435,13 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "update_code",
-          description: "Write or update code in the user's Code Canvas. Use this tool when the user asks you to write, create, build, modify, update, fix, or enhance code, components, scripts, HTML pages, or any programming content. CRITICAL: When the user provides existing code and asks to modify it, you MUST use this tool to output the COMPLETE updated code - never just describe changes. The code will appear in their Code Canvas editor with syntax highlighting and live preview. This is the PRIMARY and ONLY tool for any coding request - do NOT use web_search or any other tool when editing code.",
+          description: "Write or update code in the Code Canvas. Output COMPLETE code.",
           parameters: {
             type: "object",
             properties: {
-              code: {
-                type: "string",
-                description: "The COMPLETE code content to put in the Code Canvas. When modifying existing code, include ALL the code, not just the changed parts."
-              },
-              language: {
-                type: "string",
-                description: "The programming language (e.g., 'javascript', 'typescript', 'tsx', 'html', 'css', 'python', 'sql')"
-              },
-              label: {
-                type: "string",
-                description: "A short label for this code (e.g., 'React Button Component', 'API Handler')"
-              }
+              code: { type: "string", description: "The COMPLETE code content" },
+              language: { type: "string", description: "Programming language (e.g., 'javascript', 'html', 'python')" },
+              label: { type: "string", description: "A short label (e.g., 'React Component')" }
             },
             required: ["code", "language"],
             additionalProperties: false
@@ -589,18 +452,12 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "generate_file",
-          description: "Generate a DOWNLOADABLE FILE (PDF, spreadsheet, data file). Use ONLY when the user explicitly wants to download a document - e.g., 'download as PDF', 'create a spreadsheet file', 'export to CSV'. For writing tasks like blog posts, essays, articles, emails, notes, etc. - use update_canvas instead, NOT this tool. For code - use update_code instead.",
+          description: "Generate a downloadable file (PDF, spreadsheet, etc.)",
           parameters: {
             type: "object",
             properties: {
-              fileType: {
-                type: "string",
-                description: "The type of file to generate (pdf, txt, xlsx, csv, json, etc.)"
-              },
-              prompt: {
-                type: "string",
-                description: "Detailed description of what content should be in the file"
-              }
+              fileType: { type: "string", description: "File type (pdf, txt, xlsx, csv, json)" },
+              prompt: { type: "string", description: "Content description for the file" }
             },
             required: ["fileType", "prompt"],
             additionalProperties: false
@@ -609,316 +466,391 @@ serve(async (req) => {
       }
     ];
 
-    // Detect if user explicitly wants canvas or code
-    // Priority: forceCode/forceCanvas from frontend > message content detection > forceWebSearch
-    const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
-    const messageWantsCanvas = lastUserMessage.includes('use the update_canvas tool') ||
-                               lastUserMessage.includes('update_canvas') ||
-                               lastUserMessage.includes('canvas tool');
-    const messageWantsCode = lastUserMessage.includes('use the update_code tool') ||
-                             lastUserMessage.includes('update_code') ||
-                             lastUserMessage.includes('code canvas') ||
-                             lastUserMessage.includes('existing code to modify');
-
-    // Use explicit flags from frontend, fallback to message detection
-    const wantsCanvas = forceCanvas || messageWantsCanvas;
-    const wantsCode = forceCode || messageWantsCode;
-
-    // Determine tool_choice: CANVAS/CODE ALWAYS TAKES PRIORITY over web search
-    // This prevents the AI from using web_search when user is clearly editing canvas/code
+    // Determine tool choice based on mode
     let toolChoice: any = "auto";
-    let toolsToUse = tools; // Default to all tools
+    let toolsToUse = tools;
 
-    if (wantsCode) {
-      // Code editing takes highest priority - ONLY provide update_code tool
+    if (forceCode) {
       toolChoice = { type: "function", function: { name: "update_code" } };
-      toolsToUse = tools.filter(t => t.function.name === 'update_code');
-      console.log('🔧 Forcing update_code tool (code editing mode) - limiting to code tool only');
-    } else if (wantsCanvas) {
-      // Canvas editing takes second priority - ONLY provide update_canvas tool
+      toolsToUse = tools.filter(t => t.function.name === 'update_code' || t.function.name === 'web_search');
+      console.log('🔧 Forcing update_code tool with web_search available');
+    } else if (forceCanvas) {
       toolChoice = { type: "function", function: { name: "update_canvas" } };
-      toolsToUse = tools.filter(t => t.function.name === 'update_canvas');
-      console.log('🔧 Forcing update_canvas tool (canvas editing mode) - limiting to canvas tool only');
+      toolsToUse = tools.filter(t => t.function.name === 'update_canvas' || t.function.name === 'web_search');
+      console.log('🔧 Forcing update_canvas tool with web_search available');
     } else if (forceWebSearch) {
-      // Web search only when not doing canvas/code editing
       toolChoice = { type: "function", function: { name: "web_search" } };
-      console.log('🔧 Forcing web_search tool (forceWebSearch=true)');
+      console.log('🔧 Forcing web_search tool');
     }
 
-    // First AI call with tools - use fetchWithRetry for resilience
-    console.log('🤖 Making AI request with model:', model || 'google/gemini-2.5-flash');
-    console.log('📋 Tools provided to AI:', toolsToUse.map(t => t.function.name));
-    let response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: model || 'google/gemini-2.5-flash',
-        messages: conversationMessages,
-        tools: toolsToUse,
-        tool_choice: toolChoice,
-        max_tokens: 65536, // Maximum output - no truncation
-      }),
+    // Use streaming for real-time response
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        try {
+          console.log('🚀 Starting streaming response...');
+          
+          // First AI call - try with streaming
+          const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${lovableApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: model || 'google/gemini-2.5-flash',
+              messages: conversationMessages,
+              tools: toolsToUse,
+              tool_choice: toolChoice,
+              max_tokens: 65536,
+              stream: true,
+            }),
+          });
+
+          if (!aiResponse.ok) {
+            const errorText = await aiResponse.text();
+            console.error('AI error:', aiResponse.status, errorText);
+            
+            if (aiResponse.status === 429) {
+              sendSSE(controller, 'error', { error: 'Rate limit exceeded. Please try again later.' });
+              controller.close();
+              return;
+            }
+            if (aiResponse.status === 402) {
+              sendSSE(controller, 'error', { error: 'Payment required. Please add credits to your workspace.' });
+              controller.close();
+              return;
+            }
+            
+            sendSSE(controller, 'error', { error: `AI error: ${aiResponse.status}` });
+            controller.close();
+            return;
+          }
+
+          // Process the streaming response
+          const reader = aiResponse.body?.getReader();
+          if (!reader) {
+            sendSSE(controller, 'error', { error: 'No response body' });
+            controller.close();
+            return;
+          }
+
+          const decoder = new TextDecoder();
+          let buffer = '';
+          let fullContent = '';
+          let toolCalls: any[] = [];
+          let currentToolCall: any = null;
+          let toolsUsed: string[] = [];
+          let webSources: WebSearchResult[] = [];
+          let canvasUpdate: { content: string; label?: string } | null = null;
+          let codeUpdate: { code: string; language: string; label?: string } | null = null;
+
+          // Send start event
+          sendSSE(controller, 'start', { streaming: true });
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6).trim();
+                if (data === '[DONE]') continue;
+
+                try {
+                  const parsed = JSON.parse(data);
+                  const delta = parsed.choices?.[0]?.delta;
+
+                  if (delta?.content) {
+                    fullContent += delta.content;
+                    // Stream content to client
+                    sendSSE(controller, 'content', { content: delta.content });
+                  }
+
+                  // Handle tool calls
+                  if (delta?.tool_calls) {
+                    for (const tc of delta.tool_calls) {
+                      if (tc.index !== undefined) {
+                        if (!toolCalls[tc.index]) {
+                          toolCalls[tc.index] = {
+                            id: tc.id || `tool_${tc.index}`,
+                            type: 'function',
+                            function: { name: '', arguments: '' }
+                          };
+                        }
+                        if (tc.function?.name) {
+                          toolCalls[tc.index].function.name = tc.function.name;
+                        }
+                        if (tc.function?.arguments) {
+                          toolCalls[tc.index].function.arguments += tc.function.arguments;
+                        }
+                      }
+                    }
+                  }
+                } catch (e) {
+                  // Ignore parse errors for partial JSON
+                }
+              }
+            }
+          }
+
+          // Process any remaining buffer
+          if (buffer.startsWith('data: ') && buffer.slice(6).trim() !== '[DONE]') {
+            try {
+              const parsed = JSON.parse(buffer.slice(6).trim());
+              if (parsed.choices?.[0]?.delta?.content) {
+                fullContent += parsed.choices[0].delta.content;
+                sendSSE(controller, 'content', { content: parsed.choices[0].delta.content });
+              }
+            } catch (e) {}
+          }
+
+          // Process tool calls if any
+          if (toolCalls.length > 0) {
+            console.log('🔧 Processing tool calls:', toolCalls.map(tc => tc.function.name));
+            
+            // Add assistant message with tool calls to conversation
+            const assistantMsgWithTools = {
+              role: 'assistant',
+              content: fullContent || null,
+              tool_calls: toolCalls
+            };
+            conversationMessages.push(assistantMsgWithTools);
+
+            // Execute each tool call
+            for (const toolCall of toolCalls) {
+              const toolName = toolCall.function.name;
+              toolsUsed.push(toolName);
+
+              try {
+                const args = JSON.parse(toolCall.function.arguments);
+
+                if (toolName === 'web_search') {
+                  sendSSE(controller, 'tool_start', { tool: 'web_search', query: args.query });
+                  const searchResponse = await webSearch(args.query);
+                  webSources = searchResponse.sources;
+                  conversationMessages.push({
+                    role: 'tool',
+                    tool_call_id: toolCall.id,
+                    content: searchResponse.summary
+                  });
+                  sendSSE(controller, 'tool_complete', { tool: 'web_search', sources: webSources });
+                } 
+                else if (toolName === 'search_past_chats') {
+                  sendSSE(controller, 'tool_start', { tool: 'search_past_chats' });
+                  const chatResults = await searchPastChats(args.query, authHeader);
+                  conversationMessages.push({
+                    role: 'tool',
+                    tool_call_id: toolCall.id,
+                    content: chatResults
+                  });
+                  sendSSE(controller, 'tool_complete', { tool: 'search_past_chats' });
+                }
+                else if (toolName === 'update_canvas') {
+                  canvasUpdate = { content: args.content, label: args.label };
+                  sendSSE(controller, 'canvas_update', canvasUpdate);
+                  conversationMessages.push({
+                    role: 'tool',
+                    tool_call_id: toolCall.id,
+                    content: `Canvas updated with "${args.label || 'New Draft'}"`
+                  });
+                }
+                else if (toolName === 'update_code') {
+                  codeUpdate = { code: args.code, language: args.language, label: args.label };
+                  sendSSE(controller, 'code_update', codeUpdate);
+                  conversationMessages.push({
+                    role: 'tool',
+                    tool_call_id: toolCall.id,
+                    content: `Code Canvas updated with ${args.language} code`
+                  });
+                }
+                else if (toolName === 'generate_file') {
+                  sendSSE(controller, 'tool_start', { tool: 'generate_file', fileType: args.fileType });
+                  const fileResponse = await supabase.functions.invoke('generate-file', {
+                    body: { fileType: args.fileType, prompt: args.prompt },
+                    headers: authHeader ? { Authorization: authHeader } : undefined
+                  });
+                  
+                  let fileResult = '';
+                  if (fileResponse.error || !fileResponse.data?.success) {
+                    fileResult = `Error generating file: ${fileResponse.error?.message || 'Unknown error'}`;
+                  } else {
+                    fileResult = `File generated: [${fileResponse.data.fileName}](${fileResponse.data.fileUrl})`;
+                  }
+                  conversationMessages.push({
+                    role: 'tool',
+                    tool_call_id: toolCall.id,
+                    content: fileResult
+                  });
+                  sendSSE(controller, 'tool_complete', { tool: 'generate_file', result: fileResult });
+                }
+              } catch (e) {
+                console.error('Tool execution error:', e);
+                conversationMessages.push({
+                  role: 'tool',
+                  tool_call_id: toolCall.id,
+                  content: `Error executing ${toolName}`
+                });
+              }
+            }
+
+            // If tools were used (except canvas/code which are final), make a second call
+            const needsSecondCall = toolsUsed.includes('web_search') || 
+                                   toolsUsed.includes('search_past_chats') ||
+                                   toolsUsed.includes('generate_file');
+
+            if (needsSecondCall) {
+              console.log('🔄 Making second AI call to synthesize results...');
+              sendSSE(controller, 'synthesizing', { tools: toolsUsed });
+
+              // Determine tool choice for second call
+              let secondToolChoice: any = "auto";
+              let secondTools = tools;
+
+              if (forceCode) {
+                secondToolChoice = { type: "function", function: { name: "update_code" } };
+                secondTools = tools.filter(t => t.function.name === 'update_code');
+              } else if (forceCanvas) {
+                secondToolChoice = { type: "function", function: { name: "update_canvas" } };
+                secondTools = tools.filter(t => t.function.name === 'update_canvas');
+              }
+
+              const secondResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${lovableApiKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: model || 'google/gemini-2.5-flash',
+                  messages: conversationMessages,
+                  tools: secondTools,
+                  tool_choice: secondToolChoice,
+                  max_tokens: 65536,
+                  stream: true,
+                }),
+              });
+
+              if (secondResponse.ok && secondResponse.body) {
+                const secondReader = secondResponse.body.getReader();
+                let secondBuffer = '';
+                fullContent = ''; // Reset for second response
+
+                while (true) {
+                  const { done, value } = await secondReader.read();
+                  if (done) break;
+
+                  secondBuffer += decoder.decode(value, { stream: true });
+                  const lines = secondBuffer.split('\n');
+                  secondBuffer = lines.pop() || '';
+
+                  for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                      const data = line.slice(6).trim();
+                      if (data === '[DONE]') continue;
+
+                      try {
+                        const parsed = JSON.parse(data);
+                        const delta = parsed.choices?.[0]?.delta;
+
+                        if (delta?.content) {
+                          fullContent += delta.content;
+                          sendSSE(controller, 'content', { content: delta.content });
+                        }
+
+                        // Handle tool calls in second response
+                        if (delta?.tool_calls) {
+                          for (const tc of delta.tool_calls) {
+                            if (tc.index !== undefined) {
+                              if (!toolCalls[tc.index + 100]) { // Offset to avoid collision
+                                toolCalls[tc.index + 100] = {
+                                  id: tc.id || `tool_2_${tc.index}`,
+                                  type: 'function',
+                                  function: { name: '', arguments: '' }
+                                };
+                              }
+                              if (tc.function?.name) {
+                                toolCalls[tc.index + 100].function.name = tc.function.name;
+                              }
+                              if (tc.function?.arguments) {
+                                toolCalls[tc.index + 100].function.arguments += tc.function.arguments;
+                              }
+                            }
+                          }
+                        }
+                      } catch (e) {}
+                    }
+                  }
+                }
+
+                // Process second response tool calls (for canvas/code updates after search)
+                for (let i = 100; i < toolCalls.length; i++) {
+                  const tc = toolCalls[i];
+                  if (!tc) continue;
+                  
+                  try {
+                    const args = JSON.parse(tc.function.arguments);
+                    if (tc.function.name === 'update_canvas') {
+                      canvasUpdate = { content: args.content, label: args.label };
+                      sendSSE(controller, 'canvas_update', canvasUpdate);
+                    } else if (tc.function.name === 'update_code') {
+                      codeUpdate = { code: args.code, language: args.language, label: args.label };
+                      sendSSE(controller, 'code_update', codeUpdate);
+                    }
+                  } catch (e) {}
+                }
+              }
+            }
+          }
+
+          // Send completion event with metadata
+          const finalData = {
+            content: fullContent,
+            tool_calls_used: toolsUsed,
+            web_sources: webSources.length > 0 ? webSources : undefined,
+            canvas_update: canvasUpdate,
+            code_update: codeUpdate
+          };
+          sendSSE(controller, 'complete', finalData);
+
+          // Save to database in background
+          if (sessionId && user) {
+            const messageType = codeUpdate ? 'code' : (canvasUpdate ? 'canvas' : 'text');
+            saveResponseToDatabase(user.id, sessionId, {
+              content: fullContent,
+              type: messageType,
+              ...(canvasUpdate && { canvasContent: canvasUpdate.content, canvasLabel: canvasUpdate.label }),
+              ...(codeUpdate && { codeContent: codeUpdate.code, codeLanguage: codeUpdate.language, codeLabel: codeUpdate.label }),
+            }).catch(e => console.error('Background save error:', e));
+          }
+
+          controller.close();
+        } catch (error) {
+          console.error('Streaming error:', error);
+          sendSSE(controller, 'error', { error: error instanceof Error ? error.message : 'Unknown error' });
+          controller.close();
+        }
+      }
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Lovable AI error:', response.status, errorData);
-      
-      if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again later.');
+    return new Response(readableStream, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
       }
-      if (response.status === 402) {
-        throw new Error('Payment required. Please add credits to your Lovable workspace.');
-      }
-      
-      throw new Error(`Lovable AI error: ${response.status} ${errorData}`);
-    }
-
-    let data = await response.json();
-    let assistantMessage = data.choices[0].message;
-
-    // Log if response was truncated due to token limit
-    const finishReason = data.choices[0]?.finish_reason;
-    if (finishReason === 'length') {
-      console.warn('⚠️ AI response was TRUNCATED due to max_tokens limit!');
-    }
-    console.log('📊 Response finish_reason:', finishReason);
-
-    // Track which tools were used and web sources
-    const toolsUsed: string[] = [];
-    let webSources: WebSearchResult[] = [];
-    let canvasUpdate: { content: string; label?: string } | null = null;
-    let codeUpdate: { code: string; language: string; label?: string } | null = null;
-    
-    // Check if the AI wants to use tools (web search or chat search)
-    if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-      assistantMessage.tool_calls.forEach((tc: any) => {
-        if (tc.function?.name) {
-          toolsUsed.push(tc.function.name);
-        }
-      });
-      console.log('AI requested tools:', toolsUsed);
-      
-      // Add the assistant's tool call to conversation
-      conversationMessages.push(assistantMessage);
-      
-      // Execute all tool calls
-      for (const toolCall of assistantMessage.tool_calls) {
-        if (toolCall.function.name === 'web_search') {
-          const args = JSON.parse(toolCall.function.arguments);
-          const searchResponse = await webSearch(args.query);
-          
-          // Store sources for frontend
-          webSources = searchResponse.sources;
-          
-          // Add tool response to conversation
-          conversationMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: searchResponse.summary
-          });
-        } else if (toolCall.function.name === 'search_past_chats') {
-          const args = JSON.parse(toolCall.function.arguments);
-          // Get auth token from request
-          const authHeader = req.headers.get('Authorization');
-          const chatResults = await searchPastChats(args.query, authHeader);
-          
-          // Add tool response to conversation
-          conversationMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: chatResults
-          });
-        } else if (toolCall.function.name === 'update_canvas') {
-          const args = JSON.parse(toolCall.function.arguments);
-          console.log('Canvas update requested:', args.label || 'Untitled');
-          
-          canvasUpdate = {
-            content: args.content,
-            label: args.label
-          };
-          
-          conversationMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: `Canvas updated successfully with "${args.label || 'New Draft'}". The content is now in the user's Canvas editor.`
-          });
-        } else if (toolCall.function.name === 'update_code') {
-          const args = JSON.parse(toolCall.function.arguments);
-          console.log('Code update requested:', args.label || args.language);
-          
-          codeUpdate = {
-            code: args.code,
-            language: args.language,
-            label: args.label
-          };
-          
-          conversationMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: `Code Canvas updated successfully with "${args.label || args.language + ' code'}". The code is now in the user's Code Canvas editor with syntax highlighting.`
-          });
-        } else if (toolCall.function.name === 'generate_file') {
-          const args = JSON.parse(toolCall.function.arguments);
-          
-          // Get auth header from request
-          const authHeader = req.headers.get('Authorization');
-          
-          // Call the generate-file function with auth header
-          const fileResponse = await supabase.functions.invoke('generate-file', {
-            body: { fileType: args.fileType, prompt: args.prompt },
-            headers: authHeader ? {
-              Authorization: authHeader
-            } : undefined
-          });
-          
-          let fileResult = '';
-          if (fileResponse.error || !fileResponse.data?.success) {
-            fileResult = `Error generating file: ${fileResponse.error?.message || fileResponse.data?.error || 'Unknown error'}`;
-            console.error('File generation failed:', fileResponse.error || fileResponse.data);
-          } else {
-            // IMPORTANT: Include markdown link that MUST be in the response
-            // The AI must include this exact markdown link in its response for the user to download the file
-            fileResult = `File generated successfully!\n\nIMPORTANT: You MUST include this exact markdown link in your response so the user can download the file:\n[${fileResponse.data.fileName}](${fileResponse.data.fileUrl})\n\nDo NOT paraphrase or say "link provided" - include the actual markdown link above.`;
-            console.log('File generated:', fileResponse.data.fileName);
-          }
-          
-          // Add tool response to conversation
-          conversationMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: fileResult
-          });
-        }
-      }
-      
-      // Second AI call with search results - use fetchWithRetry for resilience
-      // IMPORTANT: Keep canvas/code tool forced on second call to ensure AI uses correct tool
-      // Don't force web_search on second call - let AI generate the summary
-      let secondCallToolChoice: string | { type: string; function: { name: string } } = "auto";
-      let secondCallTools = tools; // Default to all tools
-
-      if (wantsCode) {
-        // Always force update_code if user is editing code
-        secondCallToolChoice = { type: "function", function: { name: "update_code" } };
-        secondCallTools = tools.filter(t => t.function.name === 'update_code');
-        console.log('🔧 Second call: Maintaining update_code tool force');
-      } else if (wantsCanvas) {
-        // Always force update_canvas if user is editing canvas
-        secondCallToolChoice = { type: "function", function: { name: "update_canvas" } };
-        secondCallTools = tools.filter(t => t.function.name === 'update_canvas');
-        console.log('🔧 Second call: Maintaining update_canvas tool force');
-      }
-
-      console.log('🤖 Making second AI call to synthesize results');
-      response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: model || 'google/gemini-2.5-flash',
-          messages: conversationMessages,
-          tools: secondCallTools,
-          tool_choice: secondCallToolChoice,
-          max_tokens: 65536, // Maximum output - no truncation
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Lovable AI error (second call):', response.status, errorData);
-        throw new Error(`Lovable AI error: ${response.status}`);
-      }
-
-      data = await response.json();
-      
-      // Check if the second call also used tools (e.g., update_canvas after search_past_chats)
-      const secondAssistantMessage = data.choices[0].message;
-      if (secondAssistantMessage.tool_calls && secondAssistantMessage.tool_calls.length > 0) {
-        for (const toolCall of secondAssistantMessage.tool_calls) {
-          if (toolCall.function.name === 'update_canvas') {
-            const args = JSON.parse(toolCall.function.arguments);
-            console.log('Canvas update in second call:', args.label || 'Untitled');
-            canvasUpdate = {
-              content: args.content,
-              label: args.label
-            };
-          } else if (toolCall.function.name === 'update_code') {
-            const args = JSON.parse(toolCall.function.arguments);
-            console.log('Code update in second call:', args.label || args.language);
-            codeUpdate = {
-              code: args.code,
-              language: args.language,
-              label: args.label
-            };
-          }
-          // Track additional tools used
-          if (toolCall.function?.name && !toolsUsed.includes(toolCall.function.name)) {
-            toolsUsed.push(toolCall.function.name);
-          }
-        }
-      }
-    }
-    
-    // Add tool usage metadata, sources, canvas and code update to the response
-    const responseContent = data.choices[0]?.message?.content || '';
-    const finalResponse = {
-      ...data,
-      tool_calls_used: toolsUsed,
-      web_sources: webSources.length > 0 ? webSources : undefined,
-      canvas_update: canvasUpdate,
-      code_update: codeUpdate
-    };
-    
-    // SAVE AI RESPONSE: Save the AI response directly to the database
-    // We AWAIT this to ensure data is persisted before returning to client
-    // This prevents "error reading a body from connection" errors and data loss
-    if (sessionId && user) {
-      const messageType = codeUpdate ? 'code' : (canvasUpdate ? 'canvas' : 'text');
-      try {
-        console.log('💾 Saving AI response to database...');
-        await saveResponseToDatabase(user.id, sessionId, {
-          content: responseContent,
-          type: messageType,
-          ...(canvasUpdate && { canvasContent: canvasUpdate.content, canvasLabel: canvasUpdate.label }),
-          ...(codeUpdate && { codeContent: codeUpdate.code, codeLanguage: codeUpdate.language, codeLabel: codeUpdate.label }),
-        });
-        console.log('✅ AI response saved successfully');
-      } catch (saveError) {
-        // Log but don't fail the response - the frontend will also save
-        console.error('⚠️ Background save failed (frontend will retry):', saveError);
-      }
-    }
-    
-    return new Response(
-      JSON.stringify(finalResponse),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
-    );
+    });
 
   } catch (error: unknown) {
     console.error('Chat function error:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     return new Response(
-      JSON.stringify({ 
-        error: message 
-      }),
-      { 
-        status: 500,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
+      JSON.stringify({ error: message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

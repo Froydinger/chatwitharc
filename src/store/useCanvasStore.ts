@@ -25,6 +25,11 @@ interface CanvasState {
   canvasType: CanvasType;
   codeLanguage: string;
   showCodePreview: boolean;
+  
+  // Streaming state
+  isStreaming: boolean;
+  streamingContent: string;
+  streamingLabel: string | null;
 
   // Actions
   openCanvas: (initialContent?: string) => void;
@@ -45,6 +50,12 @@ interface CanvasState {
   redo: () => void;
   clearCanvas: () => void;
   clearPendingPrompt: () => void;
+  
+  // Streaming actions
+  startStreaming: (type: CanvasType, language?: string) => void;
+  appendStreamContent: (chunk: string) => void;
+  finalizeStream: (label?: string) => void;
+  cancelStream: () => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
@@ -63,6 +74,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   canvasType: 'writing',
   codeLanguage: 'typescript',
   showCodePreview: true,
+  
+  // Streaming defaults
+  isStreaming: false,
+  streamingContent: '',
+  streamingLabel: null,
 
   openCanvas: (initialContent = '') => {
     const initialVersion: CanvasVersion = {
@@ -273,4 +289,57 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     undoStack: [],
     redoStack: [],
   }),
+
+  // Streaming actions
+  startStreaming: (type: CanvasType, language = 'typescript') => {
+    set({
+      isOpen: true,
+      isStreaming: true,
+      isAIWriting: true,
+      streamingContent: '',
+      streamingLabel: null,
+      content: '',
+      canvasType: type,
+      codeLanguage: language,
+      mode: 'sideBySide',
+    });
+  },
+
+  appendStreamContent: (chunk: string) => {
+    const state = get();
+    const newContent = state.streamingContent + chunk;
+    set({
+      streamingContent: newContent,
+      content: newContent,
+    });
+  },
+
+  finalizeStream: (label?: string) => {
+    const state = get();
+    const finalContent = state.streamingContent || state.content;
+    const newVersion: CanvasVersion = {
+      id: crypto.randomUUID(),
+      content: finalContent,
+      timestamp: Date.now(),
+      label: label || `AI Draft ${state.versions.length + 1}`,
+    };
+    set({
+      isStreaming: false,
+      isAIWriting: false,
+      content: finalContent,
+      streamingContent: '',
+      streamingLabel: null,
+      versions: [...state.versions, newVersion],
+      activeVersionIndex: state.versions.length,
+    });
+  },
+
+  cancelStream: () => {
+    set({
+      isStreaming: false,
+      isAIWriting: false,
+      streamingContent: '',
+      streamingLabel: null,
+    });
+  },
 }));
