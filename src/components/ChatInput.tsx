@@ -11,7 +11,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useAccentColor } from "@/hooks/useAccentColor";
 import { AIService } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from "@/utils/memoryDetection";
+// Memory detection disabled - using chat history search instead
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { useCanvasStore } from "@/store/useCanvasStore";
@@ -805,42 +805,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         type: "text"
       });
 
-      // Fire memory detection in background (non-blocking)
-      if (userMessage) {
-        (async () => {
-          try {
-            // Get fresh messages from store to include latest
-            const currentMessages = useArcStore.getState().messages;
-            const conversationContext = currentMessages
-              .filter((m) => m.type === "text")
-              .map((m) => ({ role: m.role, content: m.content }));
+      // Memory system disabled - using chat history search instead
+      // The AI uses search_past_chats tool to find relevant context from past conversations
+      // This is more natural - like how a brain recalls by searching through memories
 
-            console.log('🧠 Memory detection starting:', {
-              userMessage,
-              contextLength: conversationContext.length,
-              userName: profile?.display_name || "User"
-            });
-
-            const userName = profile?.display_name || "User";
-            const memoryItem = await detectMemoryCommand(userMessage, conversationContext, userName);
-
-            console.log('🧠 Memory detection result:', memoryItem);
-
-            if (memoryItem) {
-              const wasNew = await addToMemoryBank(memoryItem);
-              console.log('🧠 Memory save result:', { wasNew, content: memoryItem.content });
-              if (wasNew) {
-                console.log('Memory saved:', memoryItem.content);
-                // Update the user message with the memory action
-                updateMessageMemoryAction(userMessageId, { type: 'memory_saved' as const, content: memoryItem.content });
-              }
-            }
-          } catch (err) {
-            console.error('Background memory detection error:', err);
-          }
-        })();
-      }
-      
       try {
         const aiMessages = messages.filter((m) => m.type === "text").map((m) => ({ role: m.role, content: m.content }));
 
