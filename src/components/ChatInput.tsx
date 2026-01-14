@@ -249,14 +249,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash-lite'
   );
 
-  // Auto-switch to Gemini 3 Pro when code/ mode is active (it's way better at code)
-  useEffect(() => {
-    if (shouldShowCodeMode && sessionModel !== 'google/gemini-3-pro-preview') {
-      sessionStorage.setItem('arc_session_model', 'google/gemini-3-pro-preview');
-      setSessionModel('google/gemini-3-pro-preview');
-    }
-  }, [shouldShowCodeMode, sessionModel]);
-
   // Textarea auto-resize with cursor position preservation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cursorPositionRef = useRef<number | null>(null);
