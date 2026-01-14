@@ -266,8 +266,8 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Eye className="w-3.5 h-3.5 mr-1" />
-                Preview
+                <Eye className="w-3.5 h-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">Preview</span>
               </Button>
               <Button
                 variant="ghost"
@@ -280,8 +280,8 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Code className="w-3.5 h-3.5 mr-1" />
-                Code
+                <Code className="w-3.5 h-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">Code</span>
               </Button>
             </div>
           )}
