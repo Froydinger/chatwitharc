@@ -94,11 +94,49 @@ function checkForSearchRequest(message: string): boolean {
   return /^search\//.test(m) || /^\/search\b/.test(m);
 }
 
+// Detect conversational messages that should NOT trigger code/canvas updates
+// These are casual comments, questions, reactions - not actionable requests
+function isConversationalMessage(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+
+  // Short messages (under 30 chars) that are questions or reactions are usually conversational
+  const isShort = m.length < 30;
+
+  // Patterns that indicate casual conversation, not a code request
+  const conversationalPatterns = [
+    /^(wow|woah|whoa|cool|nice|awesome|great|amazing|neat|sweet|dope|sick|rad)/i,
+    /^(thanks|thank you|thx|ty|cheers)/i,
+    /^(ok|okay|k|sure|got it|understood|i see|makes sense)/i,
+    /^(how did|how does|how do|how is|how come|why did|why does|why do|what is|what does|what did|where did|where does|who|when)/i,
+    /^(that'?s?|this is|it'?s?) (cool|awesome|great|amazing|nice|interesting|neat|wild|crazy|insane)/i,
+    /^(lol|haha|hehe|lmao|rofl|omg|wtf)/i,
+    /^(yes|no|yeah|nah|yep|nope|yup)/i,
+    /\?{2,}/, // Multiple question marks indicate surprise/question
+    /!{2,}/, // Multiple exclamation marks indicate excitement
+  ];
+
+  // If it matches conversational patterns, it's conversational
+  if (conversationalPatterns.some(p => p.test(m))) return true;
+
+  // Short messages ending in ? are usually questions, not requests
+  if (isShort && m.endsWith('?')) return true;
+
+  // Very short messages (under 15 chars) without action words are usually reactions
+  if (m.length < 15 && !/(add|change|fix|update|make|create|build|remove|delete)/.test(m)) return true;
+
+  return false;
+}
+
 // Heuristic for when the Canvas is already open and the user is clearly asking
 // to format/rewrite the current draft (without using write/ prefix).
 function looksLikeCanvasEditRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
+
+  // First check if it's clearly conversational - if so, NOT an edit request
+  if (isConversationalMessage(m)) return false;
+
   const keywords = [
     "format",
     "reformat",
@@ -133,6 +171,10 @@ function looksLikeCanvasEditRequest(message: string): boolean {
 function looksLikeCodeEditRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
+
+  // First check if it's clearly conversational - if so, NOT an edit request
+  if (isConversationalMessage(m)) return false;
+
   const keywords = [
     "make it",
     "add",
@@ -164,6 +206,7 @@ function looksLikeCodeEditRequest(message: string): boolean {
   ];
   return keywords.some((k) => m.includes(k));
 }
+
 // Extract the prompt after the prefix (strips prefix/ or /prefix)
 function extractPrefixPrompt(message: string): string {
   return message
