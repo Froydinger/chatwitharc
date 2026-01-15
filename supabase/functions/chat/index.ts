@@ -141,7 +141,7 @@ async function webSearch(query: string): Promise<WebSearchResponse> {
 }
 
 // Search past chats tool - AI-powered analysis
-async function searchPastChats(query: string, authHeader: string | null): Promise<string> {
+async function searchPastChats(query: string, authHeader: string | null, options?: { limitContext?: boolean }): Promise<string> {
   try {
     console.log('Searching past chats for:', query);
     
@@ -174,13 +174,18 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
 
     console.log('Authenticated user for chat search:', user.id);
 
-    // Get ALL chat sessions with full content (no limits for better context)
+    // Limit chat history context based on parameters - canvas/code don't need full history
+    const limitedSearch = options?.limitContext;
+    const sessionLimit = limitedSearch ? 10 : 1000;
+    const contentLimit = limitedSearch ? 500 : undefined; // Truncate each message
+
+    // Get chat sessions with configurable limits
     const { data: sessions, error: sessionsError } = await supabaseWithAuth
       .from('chat_sessions')
       .select('id, title, messages, created_at, updated_at')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
-      .limit(1000); // Very high limit to get all chats
+      .limit(sessionLimit);
 
     if (sessionsError) {
       console.error('Chat search error:', sessionsError);
@@ -203,12 +208,15 @@ async function searchPastChats(query: string, authHeader: string | null): Promis
       
       conversationContext += `--- Conversation ${idx + 1}: "${title}" (${date}) ---\n`;
 
-      // Include ALL conversation content with NO limits for comprehensive context
+      // Include conversation content with optional limits
       messages.forEach((msg: any) => {
         if (msg.role && msg.content) {
           const prefix = msg.role === 'user' ? 'User' : 'Assistant';
-          // Include full message content (no truncation)
-          conversationContext += `${prefix}: ${msg.content}\n`;
+          // Apply content limit if set
+          const content = contentLimit && msg.content.length > contentLimit
+            ? msg.content.slice(0, contentLimit) + '...'
+            : msg.content;
+          conversationContext += `${prefix}: ${content}\n`;
         }
       });
       
@@ -548,6 +556,10 @@ serve(async (req) => {
     let toolChoice: any = "auto";
     let toolsToUse = tools; // Default to all tools
 
+    // For canvas/code operations, we skip the search tools to reduce latency
+    // The AI doesn't need to search chat history when generating code/content
+    const isCanvasOrCodeMode = wantsCode || wantsCanvas;
+    
     if (wantsCode) {
       // Code editing takes highest priority - ONLY provide update_code tool
       toolChoice = { type: "function", function: { name: "update_code" } };
@@ -563,24 +575,76 @@ serve(async (req) => {
       toolChoice = { type: "function", function: { name: "web_search" } };
       console.log('🔧 Forcing web_search tool (forceWebSearch=true)');
     }
+    
+    // For canvas/code mode, use a trimmed system prompt for better performance
+    if (isCanvasOrCodeMode) {
+      // Replace the long system prompt with a focused one for code/canvas
+      const focusedPrompt = wantsCode 
+        ? `You are Arc AI. Generate COMPLETE, FULL code as requested. Use the update_code tool.
+CRITICAL: Always output the ENTIRE code from start to finish. Never truncate.
+For HTML: Include ALL CSS in <style> and ALL JS in <script> tags in one file.
+When modifying code: PRESERVE all existing styles, animations, and features.`
+        : `You are Arc AI. Generate COMPLETE, FULL content as requested. Use the update_canvas tool.
+CRITICAL: Write the ENTIRE content from beginning to end. Never truncate or summarize.
+Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
+      
+      // Replace system message with focused version
+      conversationMessages[0] = { role: 'system', content: focusedPrompt };
+      console.log('⚡ Using optimized system prompt for canvas/code mode');
+    }
 
     // First AI call with tools - use fetchWithRetry for resilience
-    console.log('🤖 Making AI request with model:', model || 'google/gemini-2.5-flash');
+    const startTime = Date.now();
+    const selectedModel = model || 'google/gemini-2.5-flash';
+    const fallbackModel = 'google/gemini-2.5-flash'; // Fallback for canvas/code if Pro times out
+    
+    console.log('🤖 Making AI request with model:', selectedModel);
     console.log('📋 Tools provided to AI:', toolsToUse.map(t => t.function.name));
-    let response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: model || 'google/gemini-2.5-flash',
-        messages: conversationMessages,
-        tools: toolsToUse,
-        tool_choice: toolChoice,
-        max_tokens: 65536, // Maximum output - no truncation
-      }),
-    });
+    
+    let response: Response;
+    let usedFallback = false;
+    
+    try {
+      response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: conversationMessages,
+          tools: toolsToUse,
+          tool_choice: toolChoice,
+          max_tokens: 65536,
+        }),
+      });
+    } catch (primaryError) {
+      // If canvas/code mode with Gemini 3 Pro fails, try fallback to Flash
+      if (isCanvasOrCodeMode && selectedModel === 'google/gemini-3-pro-preview') {
+        console.log('⚠️ Primary model failed, trying fallback:', fallbackModel);
+        usedFallback = true;
+        response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: fallbackModel,
+            messages: conversationMessages,
+            tools: toolsToUse,
+            tool_choice: toolChoice,
+            max_tokens: 65536,
+          }),
+        });
+      } else {
+        throw primaryError;
+      }
+    }
+    
+    const elapsed = Date.now() - startTime;
+    console.log(`⏱️ AI request completed in ${(elapsed / 1000).toFixed(1)}s${usedFallback ? ' (used fallback)' : ''}`);
 
     if (!response.ok) {
       const errorData = await response.text();
