@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Bold,
@@ -67,9 +67,34 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const [copied, setCopied] = useState(false);
   // For code mode: show preview by default (full-width), toggle to show code
   const [showCodeEditor, setShowCodeEditor] = useState(false);
+  // Track elapsed time during AI generation
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const isCodeMode = canvasType === 'code';
   const supportsPreview = isCodeMode && canPreview(codeLanguage);
+
+  // Track elapsed time when AI is writing
+  useEffect(() => {
+    if (isAIWriting) {
+      setElapsedSeconds(0);
+      timerRef.current = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      setElapsedSeconds(0);
+    }
+    
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isAIWriting]);
 
   const editor = useEditor({
     editable: !isAIWriting && !isCodeMode,
@@ -240,7 +265,9 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
             {isAIWriting && (
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                <span className="text-xs">Writing...</span>
+                <span className="text-xs">
+                  Generating{elapsedSeconds > 0 ? ` (${elapsedSeconds}s)` : '...'}
+                </span>
               </div>
             )}
           </div>

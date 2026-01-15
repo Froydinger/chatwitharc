@@ -41,7 +41,8 @@ export interface SendMessageResult {
 
 export class AIService {
   private maxRetries = 2;
-  private timeoutMs = 120000; // 120 second timeout for complex code generation
+  private defaultTimeoutMs = 120000; // 120 second timeout for regular requests
+  private canvasTimeoutMs = 180000; // 180 second timeout for canvas/code generation (Gemini 3 Pro is slower)
 
   constructor() {
     // No API key needed - using secure edge function with Lovable Cloud
@@ -50,7 +51,7 @@ export class AIService {
   // Wrapper for fetch with timeout
   private async fetchWithTimeout(
     fn: () => Promise<{ data: any; error: any }>,
-    timeoutMs = this.timeoutMs
+    timeoutMs: number
   ): Promise<{ data: any; error: any }> {
     return Promise.race([
       fn(),
@@ -97,11 +98,17 @@ export class AIService {
       // Always defaults to Smart & Fast on refresh (sessionStorage is cleared)
       const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash-lite';
 
+      // Use longer timeout for canvas/code generation (especially with Gemini 3 Pro)
+      const isCanvasOrCode = forceCanvas || forceCode;
+      const timeoutMs = isCanvasOrCode ? this.canvasTimeoutMs : this.defaultTimeoutMs;
+
       console.log('🤖 AI Model Selection:', {
         fromSessionStorage: sessionStorage.getItem('arc_session_model'),
         selectedModel: selectedModel,
         isWise: selectedModel === 'google/gemini-3-pro-preview',
-        isFast: selectedModel === 'google/gemini-2.5-flash-lite'
+        isFast: selectedModel === 'google/gemini-2.5-flash-lite',
+        isCanvasOrCode,
+        timeoutMs
       });
 
       // Call the secure edge function with retry logic
@@ -109,6 +116,7 @@ export class AIService {
       
       for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
         try {
+          const startTime = Date.now();
           const { data, error } = await this.fetchWithTimeout(() =>
             supabase.functions.invoke('chat', {
               body: {
@@ -120,8 +128,12 @@ export class AIService {
                 forceCanvas: forceCanvas || false,
                 forceCode: forceCode || false
               }
-            })
+            }),
+            timeoutMs
           );
+          
+          const elapsed = Date.now() - startTime;
+          console.log(`⏱️ AI request completed in ${(elapsed / 1000).toFixed(1)}s`);
 
           if (error) {
             // Don't retry on client errors (except rate limits)

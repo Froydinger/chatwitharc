@@ -869,6 +869,16 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
         const cleanedMessage = extractPrefixPrompt(userMessage);
 
+        // Show expectation-setting toast for canvas/code with Gemini 3 Pro
+        const isUsingWiseModel = sessionModel === 'google/gemini-3-pro-preview';
+        if ((isCodingRequest || shouldRouteToCanvas || shouldRouteToCodeCanvas) && isUsingWiseModel) {
+          toast({
+            title: "Using Wise model",
+            description: "This may take 30-60 seconds for complex content",
+            duration: 4000,
+          });
+        }
+
         // Build the message to send to AI
         let messageToSend: string;
 
