@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { fileType, content, prompt } = await req.json();
+    const { fileType, content, prompt, model } = await req.json();
     const authHeader = req.headers.get('Authorization');
 
     // Input validation
@@ -119,6 +119,10 @@ For ZIP files:
 
 IMPORTANT: Output ONLY the file content (or JSON for ZIP), no explanations or markdown code blocks.`;
 
+    // Use passed model for file generation (defaults to Gemini 3 Flash)
+    const selectedModel = model || 'google/gemini-3-flash-preview';
+    console.log('Using model for file generation:', selectedModel);
+
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -126,7 +130,7 @@ IMPORTANT: Output ONLY the file content (or JSON for ZIP), no explanations or ma
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: selectedModel,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }

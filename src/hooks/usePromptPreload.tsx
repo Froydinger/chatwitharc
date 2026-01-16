@@ -35,10 +35,13 @@ async function generateAIPrompts(category: 'chat' | 'create' | 'write' | 'code')
   }
 
   try {
+    // Pass selected model for prompt generation
+    const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
     const { data, error } = await supabase.functions.invoke('generate-category-prompts', {
       body: {
         category,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        model: selectedModel
       }
     });
 

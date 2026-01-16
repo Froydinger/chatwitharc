@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { category } = await req.json();
+    const { category, model } = await req.json();
 
     if (!category || !['chat', 'create', 'write', 'code'].includes(category)) {
       throw new Error('Invalid category');
@@ -98,6 +98,10 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
+    // Use passed model for prompt generation (defaults to Gemini 3 Flash)
+    const selectedModel = model || 'google/gemini-3-flash-preview';
+    console.log('Using model for category prompts:', selectedModel);
+
     // Call AI to generate prompts
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -106,7 +110,7 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: selectedModel,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Generate 6 completely unique, never-before-seen ${category} prompts. Be wildly creative! Timestamp: ${timestamp}` }

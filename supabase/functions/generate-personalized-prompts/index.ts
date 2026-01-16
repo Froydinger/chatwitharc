@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { profile, recentChats } = await req.json();
+    const { profile, recentChats, model } = await req.json();
 
     // Extract user context
     const displayName = profile?.display_name || 'there';
@@ -37,6 +37,10 @@ serve(async (req) => {
       });
     }
 
+    // Use passed model for prompt generation (defaults to Gemini 3 Flash)
+    const selectedModel = model || 'google/gemini-3-flash-preview';
+    console.log('Using model for personalized prompts:', selectedModel);
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -44,7 +48,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: selectedModel,
         messages: [
           {
             role: 'system',

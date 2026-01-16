@@ -336,11 +336,13 @@ export class AIService {
         throw new Error('Maximum 4 images allowed for analysis');
       }
 
-      // Call edge function for image analysis
+      // Call edge function for image analysis - pass selected model
+      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
       const { data, error } = await supabase.functions.invoke('analyze-image', {
         body: { 
           messages,
-          images: images
+          images: images,
+          model: selectedModel
         }
       });
 
@@ -462,8 +464,11 @@ export class AIService {
 
       const { data: { session } } = await supabase.auth.getSession();
       
+      // Pass selected model for file generation
+      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
+      
       const { data, error } = await supabase.functions.invoke('generate-file', {
-        body: { fileType, prompt },
+        body: { fileType, prompt, model: selectedModel },
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`
         } : undefined
