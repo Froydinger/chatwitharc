@@ -18,6 +18,7 @@ export function VoiceModeController() {
     deactivateVoiceMode,
     setGeneratedImage,
     setIsGeneratingImage,
+    setLastGeneratedImageUrl,
   } = useVoiceModeStore();
 
   // Track initialization to prevent duplicate setup
@@ -37,6 +38,7 @@ export function VoiceModeController() {
       const imageUrl = await aiService.generateImage(prompt);
       console.log('VoiceModeController: Image generated:', imageUrl);
       setGeneratedImage(imageUrl);
+      setLastGeneratedImageUrl(imageUrl); // Track for attaching to conversation
       setIsGeneratingImage(false);
       return imageUrl;
     } catch (error) {
@@ -44,7 +46,7 @@ export function VoiceModeController() {
       setIsGeneratingImage(false);
       throw error;
     }
-  }, [setGeneratedImage, setIsGeneratingImage]);
+  }, [setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
 
   // Image dismiss handler
   const handleImageDismiss = useCallback(() => {
@@ -121,22 +123,40 @@ export function VoiceModeController() {
       initRef.current = false;
 
       // Get fresh conversation turns from store
-      const { conversationTurns, clearConversation } = useVoiceModeStore.getState();
+      const { conversationTurns, clearConversation, attachImageToLastAssistantTurn } = useVoiceModeStore.getState();
       
-      // Save conversation to chat history
-      if (conversationTurns.length > 0) {
-        console.log('Saving voice conversation:', conversationTurns.length, 'turns');
-        conversationTurns.forEach((turn) => {
-          addMessage({
-            content: turn.transcript,
-            role: turn.role,
-            type: 'text',
-          });
+      // Attach any pending image to the last assistant turn before saving
+      attachImageToLastAssistantTurn();
+      
+      // Get updated turns after attaching image
+      const { conversationTurns: finalTurns } = useVoiceModeStore.getState();
+      
+      // Save conversation to chat history (including images)
+      if (finalTurns.length > 0) {
+        console.log('Saving voice conversation:', finalTurns.length, 'turns');
+        
+        finalTurns.forEach((turn) => {
+          if (turn.imageUrl) {
+            // If this turn has an image, add the image first, then the text
+            addMessage({
+              content: turn.transcript,
+              role: turn.role,
+              type: 'image',
+              imageUrl: turn.imageUrl,
+            });
+          } else {
+            // Regular text message
+            addMessage({
+              content: turn.transcript,
+              role: turn.role,
+              type: 'text',
+            });
+          }
         });
 
         toast({
           title: 'Conversation saved',
-          description: `${conversationTurns.length} messages added to chat`,
+          description: `${finalTurns.length} messages added to chat`,
         });
         
         clearConversation();

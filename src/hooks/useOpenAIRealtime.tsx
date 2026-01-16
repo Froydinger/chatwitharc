@@ -112,11 +112,21 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         const aiTranscript = event.transcript || '';
         if (!aiTranscript.trim()) return;
         console.log('AI said:', aiTranscript);
+        
+        // Check if there's a pending image to attach to this turn
+        const { lastGeneratedImageUrl, attachImageToLastAssistantTurn } = useVoiceModeStore.getState();
+        
         addConversationTurn({
           role: 'assistant',
           transcript: aiTranscript,
-          timestamp: new Date()
+          timestamp: new Date(),
+          imageUrl: lastGeneratedImageUrl || undefined // Attach image if one was just generated
         });
+        
+        // Clear the pending image after attaching
+        if (lastGeneratedImageUrl) {
+          useVoiceModeStore.getState().setLastGeneratedImageUrl(null);
+        }
         break;
 
       case 'response.audio.delta':

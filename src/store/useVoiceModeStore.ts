@@ -9,6 +9,7 @@ interface VoiceTurn {
   role: 'user' | 'assistant';
   transcript: string;
   timestamp: Date;
+  imageUrl?: string; // If this turn included an image generation
 }
 
 interface VoiceModeState {
@@ -31,6 +32,7 @@ interface VoiceModeState {
   // Image generation state
   generatedImage: string | null;
   isGeneratingImage: boolean;
+  lastGeneratedImageUrl: string | null; // Track the last generated image to attach to next assistant turn
   
   // Actions
   activateVoiceMode: () => void;
@@ -46,6 +48,8 @@ interface VoiceModeState {
   toggleMute: () => void;
   setGeneratedImage: (url: string | null) => void;
   setIsGeneratingImage: (generating: boolean) => void;
+  setLastGeneratedImageUrl: (url: string | null) => void;
+  attachImageToLastAssistantTurn: () => void;
 }
 
 export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
@@ -60,6 +64,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   selectedVoice: 'cedar',
   generatedImage: null,
   isGeneratingImage: false,
+  lastGeneratedImageUrl: null,
   
   // Actions
   activateVoiceMode: () => {
@@ -70,7 +75,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       conversationTurns: [],
       isMuted: false,
       generatedImage: null,
-      isGeneratingImage: false
+      isGeneratingImage: false,
+      lastGeneratedImageUrl: null
     });
   },
   
@@ -83,7 +89,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       currentTranscript: '',
       isMuted: false,
       generatedImage: null,
-      isGeneratingImage: false
+      isGeneratingImage: false,
+      lastGeneratedImageUrl: null
     });
   },
   
@@ -112,5 +119,27 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   
   setGeneratedImage: (url) => set({ generatedImage: url }),
   
-  setIsGeneratingImage: (generating) => set({ isGeneratingImage: generating })
+  setIsGeneratingImage: (generating) => set({ isGeneratingImage: generating }),
+  
+  setLastGeneratedImageUrl: (url) => set({ lastGeneratedImageUrl: url }),
+  
+  // Attach the last generated image to the most recent assistant turn
+  attachImageToLastAssistantTurn: () => set((state) => {
+    const { lastGeneratedImageUrl, conversationTurns } = state;
+    if (!lastGeneratedImageUrl || conversationTurns.length === 0) return state;
+    
+    // Find the last assistant turn and attach the image
+    const updatedTurns = [...conversationTurns];
+    for (let i = updatedTurns.length - 1; i >= 0; i--) {
+      if (updatedTurns[i].role === 'assistant' && !updatedTurns[i].imageUrl) {
+        updatedTurns[i] = { ...updatedTurns[i], imageUrl: lastGeneratedImageUrl };
+        break;
+      }
+    }
+    
+    return { 
+      conversationTurns: updatedTurns,
+      lastGeneratedImageUrl: null // Clear after attaching
+    };
+  })
 }));
