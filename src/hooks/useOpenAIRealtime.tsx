@@ -18,6 +18,27 @@ let globalWs: WebSocket | null = null;
 let globalConnecting = false;
 let globalSessionId: string | null = null;
 
+// Speech detection debounce for iOS stability
+let speechStartedAt: number | null = null;
+let interruptTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+// Helper to detect garbled/stuttered transcription
+const isGarbledTranscription = (text: string): boolean => {
+  if (!text || text.length < 2) return true;
+  
+  // Check for repeated characters (e.g., "aaaaaaa")
+  if (/(.)\1{4,}/.test(text)) return true;
+  
+  // Check for repeated words 3+ times (e.g., "said said said")
+  if (/(\b\w+\b)\s+\1\s+\1/i.test(text)) return true;
+  
+  // Check for mostly non-alphabetic content
+  const alphaRatio = (text.match(/[a-zA-Z]/g) || []).length / text.length;
+  if (alphaRatio < 0.3 && text.length > 5) return true;
+  
+  return false;
+};
+
 export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   const [isConnected, setIsConnected] = useState(false);
   
@@ -49,6 +70,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }));
   }, []);
 
+  // Clear audio buffer to prevent leftover audio from previous turns
+  const clearAudioBuffer = useCallback(() => {
+    if (globalWs?.readyState === WebSocket.OPEN) {
+      console.log('Clearing input audio buffer');
+      globalWs.send(JSON.stringify({ type: 'input_audio_buffer.clear' }));
+    }
+  }, []);
+
   const handleServerEvent = useCallback((event: any) => {
     const { setStatus, setCurrentTranscript, addConversationTurn } = useVoiceModeStore.getState();
     
@@ -68,28 +97,53 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'input_audio_buffer.speech_started':
-        // User started speaking - check if AI was speaking (interrupt)
+        // User started speaking - debounce to prevent false interrupts on iOS
         const { status: currentStatus } = useVoiceModeStore.getState();
+        speechStartedAt = Date.now();
+        
         if (currentStatus === 'speaking') {
-          console.log('User interrupted AI - cancelling response');
-          // Cancel the current AI response
-          if (globalWs?.readyState === WebSocket.OPEN) {
-            globalWs.send(JSON.stringify({ type: 'response.cancel' }));
+          // Clear any existing timeout
+          if (interruptTimeoutId) {
+            clearTimeout(interruptTimeoutId);
           }
-          // Notify listeners to clear audio
-          optionsRef.current.onInterrupt?.();
+          
+          // Debounce: wait 300ms before interrupting to filter out brief noises
+          interruptTimeoutId = setTimeout(() => {
+            // Only interrupt if still detecting speech after 300ms
+            if (speechStartedAt && Date.now() - speechStartedAt >= 280) {
+              console.log('Sustained speech detected (300ms+) - interrupting AI');
+              if (globalWs?.readyState === WebSocket.OPEN) {
+                globalWs.send(JSON.stringify({ type: 'response.cancel' }));
+              }
+              optionsRef.current.onInterrupt?.();
+            }
+            interruptTimeoutId = null;
+          }, 300);
         }
         setStatus('listening');
         break;
 
       case 'input_audio_buffer.speech_stopped':
+        // Cancel pending interrupt if speech was too brief
+        if (interruptTimeoutId) {
+          console.log('Brief noise detected, not interrupting');
+          clearTimeout(interruptTimeoutId);
+          interruptTimeoutId = null;
+        }
+        speechStartedAt = null;
         setStatus('thinking');
         break;
 
       case 'conversation.item.input_audio_transcription.completed':
         // User's speech transcribed
         const userTranscript = event.transcript || '';
-        if (!userTranscript.trim()) return;
+        
+        // Filter out garbled/stuttered transcriptions
+        if (isGarbledTranscription(userTranscript)) {
+          console.warn('Ignoring garbled transcription:', userTranscript);
+          return;
+        }
+        
         console.log('User said:', userTranscript);
         setCurrentTranscript(userTranscript);
         addConversationTurn({
@@ -243,6 +297,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // Response complete - back to listening
         setStatus('listening');
         setCurrentTranscript('');
+        // Clear audio buffer to prevent leftover audio bleeding into next turn
+        clearAudioBuffer();
         break;
 
       case 'error':
@@ -269,7 +325,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         optionsRef.current.onError?.(event.error?.message || 'Server error');
         break;
     }
-  }, [sendFunctionResult]);
+  }, [sendFunctionResult, clearAudioBuffer]);
 
   const connect = useCallback(async (systemPrompt?: string) => {
     const { setStatus, selectedVoice } = useVoiceModeStore.getState();
@@ -326,9 +382,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             },
             turn_detection: {
               type: 'server_vad',
-              threshold: 0.6,
-              prefix_padding_ms: 400,
-              silence_duration_ms: 800,
+              threshold: 0.75,           // Raised from 0.6 - requires louder/clearer speech (iOS fix)
+              prefix_padding_ms: 500,    // Raised from 400 - more buffer before detecting speech
+              silence_duration_ms: 1200, // Raised from 800 - wait longer before ending turn
               create_response: true
             },
             // Register image generation tools

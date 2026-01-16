@@ -22,16 +22,28 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
 
   const startCapture = useCallback(async () => {
     try {
-      // Request microphone permission
+      // Detect iOS for specific audio constraints
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      
+      // Request microphone permission with iOS-optimized settings
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: 1,
           sampleRate: sampleRate,
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          // iOS Safari needs these explicit constraints for better noise handling
+          ...(isIOS && {
+            echoCancellation: { ideal: true },
+            noiseSuppression: { ideal: true },
+            autoGainControl: { ideal: true }
+          })
         }
       });
+      
+      console.log(`Audio capture started (iOS: ${isIOS})`);
 
       mediaStreamRef.current = stream;
       setHasPermission(true);
