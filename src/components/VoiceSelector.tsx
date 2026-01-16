@@ -41,20 +41,21 @@ const VOICE_AVATARS: Record<VoiceName, string> = {
   fable: fableAvatar,
 };
 
+// Whitelabeled display names (API voice IDs remain unchanged internally)
 const VOICES: { id: VoiceName; name: string; description: string; recommended?: boolean; noPreview?: boolean }[] = [
-  { id: 'marin', name: 'Marin', description: 'Expressive & natural', recommended: true, noPreview: true },
-  { id: 'cedar', name: 'Cedar', description: 'Natural & smooth', recommended: true, noPreview: true },
-  { id: 'coral', name: 'Coral', description: 'Warm & friendly' },
-  { id: 'sage', name: 'Sage', description: 'Calm & thoughtful' },
-  { id: 'alloy', name: 'Alloy', description: 'Neutral & balanced' },
-  { id: 'echo', name: 'Echo', description: 'Clear & direct' },
-  { id: 'shimmer', name: 'Shimmer', description: 'Bright & energetic' },
-  { id: 'ash', name: 'Ash', description: 'Soft & gentle' },
-  { id: 'ballad', name: 'Ballad', description: 'Expressive & dramatic' },
-  { id: 'verse', name: 'Verse', description: 'Articulate & refined' },
-  { id: 'nova', name: 'Nova', description: 'Warm & expressive' },
-  { id: 'onyx', name: 'Onyx', description: 'Deep & authoritative' },
-  { id: 'fable', name: 'Fable', description: 'Narrative & engaging' },
+  { id: 'marin', name: 'Marina', description: 'Expressive & natural', recommended: true, noPreview: true },
+  { id: 'cedar', name: 'Cedric', description: 'Natural & smooth', recommended: true, noPreview: true },
+  { id: 'coral', name: 'Cora', description: 'Warm & friendly' },
+  { id: 'sage', name: 'Sadie', description: 'Calm & thoughtful' },
+  { id: 'alloy', name: 'Alex', description: 'Neutral & balanced' },
+  { id: 'echo', name: 'Evan', description: 'Clear & direct' },
+  { id: 'shimmer', name: 'Shay', description: 'Bright & energetic' },
+  { id: 'ash', name: 'Ashton', description: 'Soft & gentle' },
+  { id: 'ballad', name: 'Blair', description: 'Expressive & dramatic' },
+  { id: 'verse', name: 'Vera', description: 'Articulate & refined' },
+  { id: 'nova', name: 'Nadia', description: 'Warm & expressive' },
+  { id: 'onyx', name: 'Oliver', description: 'Deep & authoritative' },
+  { id: 'fable', name: 'Fiona', description: 'Narrative & engaging' },
 ];
 
 export function VoiceSelector({ onSave }: VoiceSelectorProps) {
