@@ -170,12 +170,15 @@ export function MobileChatApp() {
   // Pre-generate prompts in background for instant access
   usePromptPreload();
 
-  // Initialize session model to Smart & Fast on mount (resets on refresh)
+  // Initialize session model to GPT Quick on mount (resets on refresh)
   useEffect(() => {
-    // Only set if not already set - this ensures it defaults to Quick on refresh
+    // Only set if not already set - this ensures it defaults to GPT on refresh
     // but preserves user changes during the session
     if (!sessionStorage.getItem('arc_session_model')) {
-      sessionStorage.setItem('arc_session_model', 'google/gemini-3-flash-preview');
+      sessionStorage.setItem('arc_session_model', 'openai/gpt-5-nano');
+    }
+    if (!sessionStorage.getItem('arc_model_provider')) {
+      sessionStorage.setItem('arc_model_provider', 'gpt');
     }
   }, []);
 

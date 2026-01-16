@@ -96,6 +96,11 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     };
   }, [isAIWriting]);
 
+  // Ref to prevent feedback loops: when we programmatically setContent, 
+  // TipTap fires onUpdate which would wipe the store during streaming
+  const isApplyingRemoteUpdateRef = useRef(false);
+  const lastSyncedContent = useRef<string>("");
+
   const editor = useEditor({
     editable: !isAIWriting && !isCodeMode,
     extensions: [
@@ -107,6 +112,9 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     ],
     content: content || "", // Initialize with current store content
     onUpdate: ({ editor: ed }) => {
+      // CRITICAL: Don't update store during AI writing OR during programmatic setContent
+      if (isAIWriting || isApplyingRemoteUpdateRef.current) return;
+      
       const md = editorGetMarkdown(ed as ReturnType<typeof useEditor>);
       if (md !== undefined && md !== content) {
         setContent(md, false);
@@ -114,18 +122,28 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     },
   }, [isCodeMode]); // Re-create editor when switching modes
 
+  // Keep editor editable state in sync with isAIWriting
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(!isAIWriting && !isCodeMode);
+    }
+  }, [editor, isAIWriting, isCodeMode]);
+
   // Sync editor when store content changes (writing mode only)
-  // Use a ref to track if we need to force sync on editor ready
-  const lastSyncedContent = useRef<string>("");
-  
   useEffect(() => {
     if (!editor || isCodeMode) return;
     
     const currentMd = editorGetMarkdown(editor);
     // Sync if content differs from what's in the editor
-    if (content !== undefined && currentMd !== content && content !== lastSyncedContent.current) {
+    if (content !== undefined && currentMd !== content) {
+      // Set flag BEFORE setContent to prevent onUpdate from firing back
+      isApplyingRemoteUpdateRef.current = true;
       editor.commands.setContent(content, { contentType: 'markdown' });
       lastSyncedContent.current = content;
+      // Clear flag after microtask (after onUpdate would have fired)
+      queueMicrotask(() => {
+        isApplyingRemoteUpdateRef.current = false;
+      });
     }
   }, [content, editor, isCodeMode]);
   
@@ -136,8 +154,12 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     // Small delay to ensure editor is fully initialized
     const timer = setTimeout(() => {
       if (content && content !== lastSyncedContent.current) {
+        isApplyingRemoteUpdateRef.current = true;
         editor.commands.setContent(content, { contentType: 'markdown' });
         lastSyncedContent.current = content;
+        queueMicrotask(() => {
+          isApplyingRemoteUpdateRef.current = false;
+        });
       }
     }, 50);
     

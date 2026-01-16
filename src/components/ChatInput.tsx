@@ -299,15 +299,15 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   // Show slash picker when user types just "/"
   const showSlashPicker = inputValue.trim() === "/";
 
-  // Track current session model for brain icon state
+  // Track current session model for brain icon state - default to GPT Quick
   const [sessionModel, setSessionModel] = useState<string>(() =>
-    sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview'
+    sessionStorage.getItem('arc_session_model') || 'openai/gpt-5-nano'
   );
   
-  // Track provider for cycling through correct models
+  // Track provider for cycling through correct models - default to GPT
   const [modelProvider, setModelProvider] = useState<'gemini' | 'gpt'>(() => {
     const stored = sessionStorage.getItem('arc_model_provider');
-    return (stored === 'gpt' ? 'gpt' : 'gemini') as 'gemini' | 'gpt';
+    return (stored === 'gemini' ? 'gemini' : 'gpt') as 'gemini' | 'gpt';
   });
 
   // Auto-switch to Pro when code/ mode is active (it's way better at code)

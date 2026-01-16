@@ -95,8 +95,8 @@ export class AIService {
 
       // Determine which model to use - check sessionStorage (session-only)
       // This allows model changes within a session without persisting to database
-      // Always defaults to Quick on refresh (sessionStorage is cleared)
-      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
+      // Always defaults to GPT Quick on refresh (sessionStorage is cleared)
+      const selectedModel = sessionStorage.getItem('arc_session_model') || 'openai/gpt-5-nano';
 
       // Use longer timeout for canvas/code generation (especially with Gemini 3 Pro)
       const isCanvasOrCode = forceCanvas || forceCode;
@@ -222,8 +222,8 @@ export class AIService {
       throw new Error('Chat service is not available. Please configure Supabase.');
     }
 
-    // Get model from session storage - use correct key
-    const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
+    // Get model from session storage - default to GPT Quick
+    const selectedModel = sessionStorage.getItem('arc_session_model') || 'openai/gpt-5-nano';
 
     // Use hardcoded fallbacks to ensure URL is never undefined
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://jxywhodnndagbsmnbnnw.supabase.co";
@@ -336,8 +336,8 @@ export class AIService {
         throw new Error('Maximum 4 images allowed for analysis');
       }
 
-      // Call edge function for image analysis - pass selected model
-      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
+      // Call edge function for image analysis - pass selected model (default GPT Quick)
+      const selectedModel = sessionStorage.getItem('arc_session_model') || 'openai/gpt-5-nano';
       const { data, error } = await supabase.functions.invoke('analyze-image', {
         body: { 
           messages,
@@ -368,12 +368,12 @@ export class AIService {
     }
 
     try {
-      // Generating image with Gemini
-      // Use session model if no specific model provided
+      // Generating image with Gemini (image gen always uses Gemini regardless of chat model)
+      // Use session model if no specific model provided - backend will map to Gemini image model
       let modelToUse = preferredModel;
       if (!modelToUse) {
-        // Get model from sessionStorage (same as chat)
-        modelToUse = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
+        // Get model from sessionStorage (backend maps to appropriate Gemini image model)
+        modelToUse = sessionStorage.getItem('arc_session_model') || 'openai/gpt-5-nano';
       }
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
@@ -420,8 +420,8 @@ export class AIService {
         throw new Error('Maximum 14 images allowed for combining');
       }
 
-      // Use session model if no specific model provided
-      const modelToUse = imageModel || sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
+      // Use session model if no specific model provided (backend maps to Gemini for images)
+      const modelToUse = imageModel || sessionStorage.getItem('arc_session_model') || 'openai/gpt-5-nano';
 
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: { 
@@ -464,8 +464,8 @@ export class AIService {
 
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Pass selected model for file generation
-      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
+      // Pass selected model for file generation (default GPT Quick)
+      const selectedModel = sessionStorage.getItem('arc_session_model') || 'openai/gpt-5-nano';
       
       const { data, error } = await supabase.functions.invoke('generate-file', {
         body: { fileType, prompt, model: selectedModel },
