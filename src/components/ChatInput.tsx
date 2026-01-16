@@ -956,146 +956,102 @@ ${existingCode}
           wasSearchMode
         });
 
-        // Use streaming for canvas/code mode
-        const useStreaming = shouldForceCode || shouldForceCanvas;
+        // Always use streaming for all messages
+        const aiService = new AIService();
+        let streamedContent = '';
+        let streamMode: 'canvas' | 'code' | 'text' = shouldForceCode ? 'code' : shouldForceCanvas ? 'canvas' : 'text';
+        let streamLabel = '';
+        let streamLanguage = 'html';
+        let streamWebSources: any[] = [];
+        let streamingMessageId: string | null = null;
         
-        if (useStreaming) {
-          // Streaming mode for canvas/code
-          const aiService = new AIService();
-          let streamedContent = '';
-          let streamMode: 'canvas' | 'code' = shouldForceCode ? 'code' : 'canvas';
-          let streamLabel = '';
-          let streamLanguage = 'html';
-          
-          await aiService.sendMessageStreaming(
-            aiMessages,
-            profile,
-            shouldForceCanvas,
-            shouldForceCode,
-            // onStart - open canvas immediately
-            (mode) => {
-              streamMode = mode;
+        await aiService.sendMessageStreaming(
+          aiMessages,
+          profile,
+          shouldForceCanvas,
+          shouldForceCode,
+          // onStart - open canvas immediately if canvas/code mode, or add placeholder message for text
+          async (mode) => {
+            streamMode = mode;
+            if (mode === 'code' || mode === 'canvas') {
               const { startStreaming } = useCanvasStore.getState();
               startStreaming(mode === 'code' ? 'code' : 'writing', 'html');
-            },
-            // onDelta - stream content to canvas
-            (delta) => {
-              streamedContent += delta;
+            } else {
+              // For text, add a streaming message that we'll update
+              streamingMessageId = await addMessage({
+                content: '▍', // Cursor indicator
+                role: 'assistant',
+                type: 'text',
+              });
+            }
+          },
+          // onDelta - stream content to canvas or update message
+          (delta) => {
+            streamedContent += delta;
+            if (streamMode === 'code' || streamMode === 'canvas') {
               const { streamContent } = useCanvasStore.getState();
               streamContent(delta);
-            },
-            // onDone - finalize
-            async (result) => {
-              streamLabel = result.label || '';
-              streamLanguage = result.language || 'html';
-              
+            } else if (streamingMessageId) {
+              // Update the streaming message with accumulated content
+              const { editMessage } = useArcStore.getState();
+              editMessage(streamingMessageId, streamedContent + '▍');
+            }
+          },
+          // onDone - finalize
+          async (result) => {
+            streamLabel = result.label || '';
+            streamLanguage = result.language || 'html';
+            streamWebSources = result.webSources || [];
+            
+            // Determine memory action
+            let memoryAction: any = undefined;
+            if (streamWebSources.length > 0) {
+              memoryAction = { type: 'web_searched' as const, sources: streamWebSources, query: userMessage };
+            }
+            
+            if (result.mode === 'code') {
               const { setAIWriting, setCodeLanguage } = useCanvasStore.getState();
               setAIWriting(false);
-              
-              if (result.mode === 'code') {
-                setCodeLanguage(result.language || 'html');
-                // Save to history
-                await upsertCodeMessage(result.content, result.language || 'html', result.label, undefined);
-              } else {
-                // Canvas mode
-                await upsertCanvasMessage(result.content, result.label, undefined);
+              setCodeLanguage(result.language || 'html');
+              // Save to history
+              await upsertCodeMessage(result.content, result.language || 'html', result.label, memoryAction);
+            } else if (result.mode === 'canvas') {
+              const { setAIWriting } = useCanvasStore.getState();
+              setAIWriting(false);
+              await upsertCanvasMessage(result.content, result.label, memoryAction);
+            } else if (streamingMessageId) {
+              // Update the final content without cursor
+              const { editMessage, updateMessageMemoryAction } = useArcStore.getState();
+              editMessage(streamingMessageId, result.content);
+              if (memoryAction) {
+                updateMessageMemoryAction(streamingMessageId, memoryAction);
               }
-              
-              // Persist to session
+            }
+            
+            // Persist to session for canvas/code
+            if (result.mode === 'code' || result.mode === 'canvas') {
               const { currentSessionId, updateSessionCanvasContent } = useArcStore.getState();
               if (currentSessionId) {
                 await updateSessionCanvasContent(currentSessionId, result.content);
               }
-            },
-            // onError
-            (errorMsg) => {
+            }
+          },
+          // onError
+          (errorMsg) => {
+            if (streamMode === 'code' || streamMode === 'canvas') {
               const { setAIWriting } = useCanvasStore.getState();
               setAIWriting(false);
-              toast({ title: "Error", description: errorMsg, variant: "destructive" });
             }
-          );
-        } else {
-          // Non-streaming mode for regular messages
-          // Pass flags to backend - canvas/code takes priority over web search
-          const result = await new AIService().sendMessage(aiMessages, profile, (tools) => {
-            console.log('🔧 Tools used in handleSend:', tools);
-            // Set indicators based on tool usage
-            if (tools.includes('search_past_chats')) {
-              console.log('✅ Setting searchingChats in handleSend');
-              setSearchingChats(true);
-              didSearchChats = true;
+            if (streamingMessageId) {
+              // Update message with error
+              const { editMessage } = useArcStore.getState();
+              editMessage(streamingMessageId, 'Sorry, I encountered an error. Please try again.');
             }
-            if (tools.includes('web_search')) {
-              setSearchingWeb(true);
-              didSearchWeb = true;
-            }
-          }, currentSessionId || undefined, wasSearchMode && !shouldForceCode && !shouldForceCanvas, shouldForceCanvas, shouldForceCode);
-          
-          // Check if cancelled after getting response
-          if (cancelRequested) {
-            setSearchingChats(false);
-            setAccessingMemory(false);
-            setSearchingWeb(false);
-            return;
-          }
-          
-          // Keep indicators visible for 2 seconds so user sees them
-          setTimeout(() => {
-            setSearchingChats(false);
-            setAccessingMemory(false);
-            setSearchingWeb(false);
-          }, 2000);
-          
-          // Determine memory action based on what tools were used
-          let memoryAction: any = undefined;
-          if (didSearchWeb && result.webSources && result.webSources.length > 0) {
-            memoryAction = { type: 'web_searched' as const, sources: result.webSources, query: userMessage };
-          } else if (didSearchChats) {
-            memoryAction = { type: 'chats_searched' as const };
-          }
-          
-          // Handle code update if AI used the update_code tool
-          if (result.codeUpdate) {
-            const { openCodeCanvas } = useCanvasStore.getState();
-            openCodeCanvas(result.codeUpdate.code, result.codeUpdate.language, result.codeUpdate.label);
-            
-            // Upsert a single code-type message in chat
-            await upsertCodeMessage(
-              result.codeUpdate.code,
-              result.codeUpdate.language,
-              result.codeUpdate.label,
-              memoryAction
-            );
-          }
-          // Handle canvas update if AI used the update_canvas tool
-          else {
-            const canvasContentToSave = result.canvasUpdate?.content ?? (shouldRouteToCanvas ? result.content : null);
-
-            if (canvasContentToSave) {
-              const { setAIContent, reopenCanvas } = useCanvasStore.getState();
-              setAIContent(canvasContentToSave, result.canvasUpdate?.label || "Canvas Update");
-              reopenCanvas();
-
-              // Immediately persist canvas content to the current session so it survives navigation
-              const { currentSessionId, updateSessionCanvasContent } = useArcStore.getState();
-              if (currentSessionId) {
-                await updateSessionCanvasContent(currentSessionId, canvasContentToSave);
-              }
-
-              // Upsert a single canvas-type message inline in chat
-              const canvasLabel = result.canvasUpdate?.label || undefined;
-              await upsertCanvasMessage(canvasContentToSave, canvasLabel, memoryAction);
-            } else {
-              // Regular text response (no canvas or code)
-              await addMessage({
-                content: result.content,
-                role: "assistant",
-                type: "text",
-                memoryAction,
-              });
-            }
-          }
-        }
+            toast({ title: "Error", description: errorMsg, variant: "destructive" });
+          },
+          currentSessionId || undefined,
+          wasSearchMode && !shouldForceCode && !shouldForceCanvas
+        );
       } catch (err: any) {
         // Check if request was cancelled
         if (cancelRequested) {

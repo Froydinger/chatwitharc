@@ -203,16 +203,18 @@ export class AIService {
     }
   }
 
-  // Streaming method for canvas/code content
+  // Generic streaming method for ALL messages (canvas, code, or regular text)
   async sendMessageStreaming(
     messages: AIMessage[],
     profile?: { display_name?: string | null; context_info?: string | null; memory_info?: string | null; preferred_model?: string | null },
     forceCanvas: boolean = false,
     forceCode: boolean = false,
-    onStart?: (mode: 'canvas' | 'code') => void,
+    onStart?: (mode: 'canvas' | 'code' | 'text') => void,
     onDelta?: (content: string) => void,
-    onDone?: (result: { mode: 'canvas' | 'code'; content: string; label?: string; language?: string }) => void,
-    onError?: (error: string) => void
+    onDone?: (result: { mode: 'canvas' | 'code' | 'text'; content: string; label?: string; language?: string; webSources?: WebSource[] }) => void,
+    onError?: (error: string) => void,
+    sessionId?: string,
+    forceWebSearch?: boolean
   ): Promise<void> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Chat service is not available. Please configure Supabase.');
@@ -225,11 +227,15 @@ export class AIService {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://jxywhodnndagbsmnbnnw.supabase.co";
     const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4eXdob2RubmRhZ2JzbW5ibm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwOTkwNjUsImV4cCI6MjA4MTY3NTA2NX0.tmqRRB4jbOOR0FWVsS8zXer_2IZLjzsPb2D3Ozu2bKk";
 
+    // Get the user's actual session token (NOT the anon key)
+    const { data: { session } } = await supabase.auth.getSession();
+    const authToken = session?.access_token || supabaseKey;
+
     const response = await fetch(`${supabaseUrl}/functions/v1/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseKey}`,
+        'Authorization': `Bearer ${authToken}`,
       },
       body: JSON.stringify({
         messages,
@@ -237,6 +243,8 @@ export class AIService {
         model: selectedModel,
         forceCanvas,
         forceCode,
+        forceWebSearch,
+        sessionId,
         stream: true
       }),
     });
@@ -287,15 +295,16 @@ export class AIService {
             const event = JSON.parse(jsonStr);
 
             if (event.type === 'start') {
-              onStart?.(event.mode);
+              onStart?.(event.mode || 'text');
             } else if (event.type === 'delta') {
               onDelta?.(event.content);
             } else if (event.type === 'done') {
               onDone?.({
-                mode: event.mode,
+                mode: event.mode || 'text',
                 content: event.content,
                 label: event.label,
-                language: event.language
+                language: event.language,
+                webSources: event.webSources
               });
             } else if (event.type === 'error') {
               onError?.(event.message);
