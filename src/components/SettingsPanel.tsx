@@ -42,6 +42,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { fadeInVariants, staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
+import { VoiceSelector } from "@/components/VoiceSelector";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -557,6 +558,18 @@ export function SettingsPanel() {
               </div>
             </div>
 
+          </GlassCard>
+
+          {/* Voice Mode Section */}
+          <GlassCard variant="bubble" className="p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <Mic className="h-5 w-5 text-primary-glow" />
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Voice Mode</h3>
+                <p className="text-sm text-muted-foreground">Choose your AI assistant's voice</p>
+              </div>
+            </div>
+            <VoiceSelector />
           </GlassCard>
 
         </TabsContent>
