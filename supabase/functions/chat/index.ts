@@ -772,13 +772,22 @@ Output the complete, finished writing using the update_canvas tool.`;
                         // - update_canvas tool streams "content"
                         // - update_code tool streams "code"
                         const streamKey = wantsCode || toolName === 'update_code' ? 'code' : 'content';
-                        const keyRegex = new RegExp(`"${streamKey}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)$`);
-                        const keyMatch = argumentsBuffer.match(keyRegex);
+                        
+                        // Try to match partial content (incomplete JSON - still being streamed)
+                        // The $ anchor matches content that ends mid-string (no closing quote yet)
+                        let keyMatch = argumentsBuffer.match(new RegExp(`"${streamKey}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)$`));
+                        
+                        // Also try to match complete content (closed quote) for models that send larger chunks
+                        if (!keyMatch) {
+                          keyMatch = argumentsBuffer.match(new RegExp(`"${streamKey}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`));
+                        }
+                        
                         if (keyMatch) {
                           const partialValue = keyMatch[1]
                             .replace(/\\n/g, '\n')
                             .replace(/\\"/g, '"')
-                            .replace(/\\\\/g, '\\');
+                            .replace(/\\\\/g, '\\')
+                            .replace(/\\t/g, '\t');
 
                           // Only send if we have new content
                           if (partialValue.length > lastSentToolLength) {
