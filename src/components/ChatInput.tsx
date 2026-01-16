@@ -1039,7 +1039,9 @@ ${existingCode}
             }
             
             if (result.mode === 'code') {
-              const { setAIWriting, setCodeLanguage } = useCanvasStore.getState();
+              const { setAIWriting, setCodeLanguage, setContent } = useCanvasStore.getState();
+              // Ensure canvas shows final code even if no deltas streamed
+              setContent(result.content || '', false);
               setAIWriting(false);
               setCodeLanguage(result.language || 'html');
               // Save to history
@@ -1054,7 +1056,9 @@ ${existingCode}
                 });
               }
             } else if (result.mode === 'canvas') {
-              const { setAIWriting } = useCanvasStore.getState();
+              const { setAIWriting, setContent } = useCanvasStore.getState();
+              // Ensure canvas shows final writing even if no deltas streamed
+              setContent(result.content || '', false);
               setAIWriting(false);
               await upsertCanvasMessage(result.content, result.label, memoryAction);
             } else if (streamingMessageId) {
