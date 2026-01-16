@@ -27,6 +27,8 @@ import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { usePromptPreload } from "@/hooks/usePromptPreload";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useMusicStore, musicTracks } from "@/store/useMusicStore";
+import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
+import { VoiceModeController } from "@/components/VoiceModeController";
 
 /** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
@@ -170,16 +172,10 @@ export function MobileChatApp() {
   // Pre-generate prompts in background for instant access
   usePromptPreload();
 
-  // Initialize session model to GPT Quick on mount (resets on refresh)
+  // Initialize session model to GPT 5 Mini on mount (hardcoded for chat)
   useEffect(() => {
-    // Only set if not already set - this ensures it defaults to GPT on refresh
-    // but preserves user changes during the session
-    if (!sessionStorage.getItem('arc_session_model')) {
-      sessionStorage.setItem('arc_session_model', 'openai/gpt-5-nano');
-    }
-    if (!sessionStorage.getItem('arc_model_provider')) {
-      sessionStorage.setItem('arc_model_provider', 'gpt');
-    }
+    // Hardcode chat model - no user selection
+    sessionStorage.setItem('arc_session_model', 'openai/gpt-5-mini');
   }, []);
 
   // Track if running as PWA or Electron app
@@ -1227,6 +1223,12 @@ export function MobileChatApp() {
         @media (max-width: 480px){ .glass-dock{ padding: 8px; max-width: 92vw; } .glass-dock .chat-input-halo{ padding: 6px 8px !important; } }
         @media (prefers-reduced-motion: reduce){ .glass-dock, .glass-dock:hover{ transition: none !important; transform: none !important; } }
       `}</style>
+
+      {/* Voice Mode Overlay */}
+      <VoiceModeOverlay />
+      
+      {/* Voice Mode Controller (orchestrates the conversation) */}
+      <VoiceModeController />
     </div>
   );
 }

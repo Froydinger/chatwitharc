@@ -12,6 +12,8 @@ export interface Profile {
   accent_color: string | null;
   theme_preference: string | null;
   preferred_model: string | null;
+  research_model: string | null;
+  preferred_voice: string | null;
   created_at: string;
   updated_at: string;
 }
