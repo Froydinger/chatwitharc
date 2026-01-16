@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { category, model } = await req.json();
+    const { category } = await req.json();
 
     if (!category || !['chat', 'create', 'write', 'code'].includes(category)) {
       throw new Error('Invalid category');
@@ -98,28 +98,20 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Use passed model for prompt generation (defaults to Gemini 3 Flash)
-    const selectedModel = model || 'google/gemini-3-flash-preview';
-    console.log('Using model for category prompts:', selectedModel);
+    // Always use Gemini 2.5 Flash for prompt generation - fast, efficient, reliable
+    const PROMPT_MODEL = 'google/gemini-2.5-flash';
+    console.log('Using model for category prompts:', PROMPT_MODEL);
 
-    // Build request body - use different token param for OpenAI vs Gemini models
-    const isOpenAIModel = selectedModel.startsWith('openai/');
-    const requestBody: Record<string, unknown> = {
-      model: selectedModel,
+    const requestBody = {
+      model: PROMPT_MODEL,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Generate 6 completely unique, never-before-seen ${category} prompts. Be wildly creative! Timestamp: ${timestamp}` }
       ],
-      temperature: 1.0, // Maximum creativity for variety
+      temperature: 1.0,
       top_p: 0.95,
+      max_tokens: 2000,
     };
-    
-    // OpenAI models use max_completion_tokens, Gemini uses max_tokens
-    if (isOpenAIModel) {
-      requestBody.max_completion_tokens = 2000;
-    } else {
-      requestBody.max_tokens = 2000;
-    }
 
     // Call AI to generate prompts
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

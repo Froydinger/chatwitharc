@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { profile, recentChats, model } = await req.json();
+    const { profile, recentChats } = await req.json();
 
     // Extract user context
     const displayName = profile?.display_name || 'there';
@@ -37,14 +37,12 @@ serve(async (req) => {
       });
     }
 
-    // Use passed model for prompt generation (defaults to Gemini 3 Flash)
-    const selectedModel = model || 'google/gemini-3-flash-preview';
-    console.log('Using model for personalized prompts:', selectedModel);
+    // Always use Gemini 2.5 Flash for prompt generation - fast, efficient, reliable
+    const PROMPT_MODEL = 'google/gemini-2.5-flash';
+    console.log('Using model for personalized prompts:', PROMPT_MODEL);
 
-    // Build request body - use different token param for OpenAI vs Gemini models
-    const isOpenAIModel = selectedModel.startsWith('openai/');
-    const requestBody: Record<string, unknown> = {
-      model: selectedModel,
+    const requestBody = {
+      model: PROMPT_MODEL,
       messages: [
         {
           role: 'system',
@@ -91,14 +89,8 @@ Keep "text" short (25-35 chars), put full context in "fullPrompt".`
         }
       ],
       temperature: 0.8,
+      max_tokens: 500,
     };
-    
-    // OpenAI models use max_completion_tokens, Gemini uses max_tokens
-    if (isOpenAIModel) {
-      requestBody.max_completion_tokens = 500;
-    } else {
-      requestBody.max_tokens = 500;
-    }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',

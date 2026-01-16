@@ -17,14 +17,8 @@ serve(async (req) => {
       throw new Error('No authorization header');
     }
 
-    // Parse request body for model parameter
-    let model = 'google/gemini-3-flash-preview';
-    try {
-      const body = await req.json();
-      if (body?.model) model = body.model;
-    } catch {
-      // No body or invalid JSON, use default model
-    }
+    // Always use Gemini 2.5 Flash for prompt generation - fast, efficient, reliable
+    const PROMPT_MODEL = 'google/gemini-2.5-flash';
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -107,26 +101,7 @@ Example format:
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Use passed model for prompt generation
-    console.log('Using model for smart prompts:', model);
-
-    // Build request body - use different token param for OpenAI vs Gemini models
-    const isOpenAIModel = model.startsWith('openai/');
-    const requestBody: Record<string, unknown> = {
-      model: model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: 'Generate 6 personalized smart prompts for me based on my profile and chat history.' }
-      ],
-      temperature: 0.8,
-    };
-    
-    // OpenAI models use max_completion_tokens, Gemini uses max_tokens
-    if (isOpenAIModel) {
-      requestBody.max_completion_tokens = 1000;
-    } else {
-      requestBody.max_tokens = 1000;
-    }
+    console.log('Using model for smart prompts:', PROMPT_MODEL);
 
     // Call AI to generate prompts
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -135,7 +110,15 @@ Example format:
         'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        model: PROMPT_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: 'Generate 6 personalized smart prompts for me based on my profile and chat history.' }
+        ],
+        temperature: 0.8,
+        max_tokens: 1000,
+      }),
     });
 
     if (!response.ok) {
