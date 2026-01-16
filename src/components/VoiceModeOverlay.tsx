@@ -99,6 +99,7 @@ export function VoiceModeOverlay() {
 
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               {/* Generated Image Display */}
+              {/* Generated Image Display */}
               <AnimatePresence>
                 {(generatedImage || isGeneratingImage) && (
                   <motion.div
@@ -106,12 +107,12 @@ export function VoiceModeOverlay() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className="absolute top-24 left-1/2 -translate-x-1/2 z-10"
+                    className="absolute top-20 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-10 flex justify-center"
                   >
                     {isGeneratingImage ? (
                       // Loading skeleton
-                      <div className="flex flex-col items-center">
-                        <div className="relative w-[200px] h-[200px] rounded-2xl overflow-hidden bg-muted/30 border border-primary/20">
+                      <div className="flex flex-col items-center w-full max-w-[200px]">
+                        <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-muted/30 border border-primary/20">
                           <div className="absolute inset-0 flex items-center justify-center">
                             <div className="flex flex-col items-center gap-3">
                               <motion.div
@@ -134,11 +135,11 @@ export function VoiceModeOverlay() {
                       </div>
                     ) : generatedImage ? (
                       // Generated image
-                      <div className="relative">
+                      <div className="relative w-full max-w-[260px]">
                         <motion.img 
                           src={generatedImage} 
                           alt="Generated" 
-                          className="max-w-[280px] max-h-[280px] rounded-2xl shadow-2xl border border-primary/20 object-contain bg-background/50"
+                          className="w-full max-h-[260px] rounded-2xl shadow-2xl border border-primary/20 object-contain bg-background/50"
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ delay: 0.1 }}

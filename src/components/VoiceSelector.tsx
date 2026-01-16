@@ -23,12 +23,12 @@ const VOICE_AVATARS: Record<VoiceName, string> = {
   onyx: onyxAvatar,
 };
 
-// 4 voices only: Marina, Cedric, Alex, Oliver
+// 4 voices only: Marina, Cedric, Alex, Oliver (all noPreview - chat to hear)
 const VOICES: { id: VoiceName; name: string; description: string; recommended?: boolean; noPreview?: boolean }[] = [
   { id: 'marin', name: 'Marina', description: 'Expressive & natural', recommended: true, noPreview: true },
   { id: 'cedar', name: 'Cedric', description: 'Natural & smooth', recommended: true, noPreview: true },
-  { id: 'alloy', name: 'Alex', description: 'Neutral & balanced' },
-  { id: 'onyx', name: 'Oliver', description: 'Deep & authoritative' },
+  { id: 'alloy', name: 'Alex', description: 'Neutral & balanced', noPreview: true },
+  { id: 'onyx', name: 'Oliver', description: 'Deep & authoritative', noPreview: true },
 ];
 
 export function VoiceSelector({ onSave }: VoiceSelectorProps) {
