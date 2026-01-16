@@ -14,11 +14,22 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
   const workletNodeRef = useRef<AudioWorkletNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const visibilityHandlerRef = useRef<(() => void) | null>(null);
   
   const [isCapturing, setIsCapturing] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   
   const { setInputAmplitude } = useVoiceModeStore();
+  
+  // Resume AudioContext when app returns from background (iOS/Android)
+  const handleVisibilityChange = useCallback(() => {
+    if (document.visibilityState === 'visible' && audioContextRef.current) {
+      if (audioContextRef.current.state === 'suspended') {
+        console.log('Resuming AudioContext after background');
+        audioContextRef.current.resume().catch(console.error);
+      }
+    }
+  }, []);
 
   const startCapture = useCallback(async () => {
     try {
@@ -58,6 +69,10 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       // Create audio context
       const audioContext = new AudioContext({ sampleRate });
       audioContextRef.current = audioContext;
+      
+      // Add visibility change listener to resume context when app returns from background
+      visibilityHandlerRef.current = handleVisibilityChange;
+      document.addEventListener('visibilitychange', handleVisibilityChange);
 
       // Create source from microphone
       const source = audioContext.createMediaStreamSource(stream);
@@ -125,6 +140,12 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
+    }
+
+    // Remove visibility change listener
+    if (visibilityHandlerRef.current) {
+      document.removeEventListener('visibilitychange', visibilityHandlerRef.current);
+      visibilityHandlerRef.current = null;
     }
 
     // Close audio context
