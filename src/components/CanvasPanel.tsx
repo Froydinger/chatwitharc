@@ -119,17 +119,11 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     if (!editor || isCodeMode) return;
     
     const currentMd = editorGetMarkdown(editor);
-    if (currentMd !== content && content !== undefined) {
+    // Always sync if content differs - handles both streaming updates and initial load
+    if (content !== undefined && currentMd !== content) {
       editor.commands.setContent(content, { contentType: 'markdown' });
     }
   }, [content, editor, isCodeMode]);
-
-  // Initialize editor with store content on mount
-  useEffect(() => {
-    if (editor && content && !isCodeMode) {
-      editor.commands.setContent(content, { contentType: 'markdown' });
-    }
-  }, [editor, isCodeMode]);
 
   // Word/char counts
   const { wordCount, charCount, lineCount } = useMemo(() => {
