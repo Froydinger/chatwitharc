@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useVoiceModeStore } from '@/store/useVoiceModeStore';
 import { useOpenAIRealtime } from '@/hooks/useOpenAIRealtime';
 import { useAudioCapture } from '@/hooks/useAudioCapture';
@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AIService } from '@/services/ai';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
+import { setGlobalInterruptHandler } from './VoiceModeOverlay';
 
 const aiService = new AIService();
 
@@ -266,7 +267,21 @@ export function VoiceModeController() {
     onWebSearch: handleWebSearch,
   });
 
-  // Manual interrupt is handled automatically by server VAD when user starts speaking
+  // Manual interrupt handler for tap-to-interrupt on orb
+  const handleManualInterrupt = useCallback(() => {
+    console.log('Manual interrupt triggered via orb tap');
+    cancelResponse();
+    clearQueue();
+    useVoiceModeStore.getState().setStatus('listening');
+  }, [cancelResponse, clearQueue]);
+
+  // Register the interrupt handler globally so VoiceModeOverlay orb can use it
+  useLayoutEffect(() => {
+    setGlobalInterruptHandler(handleManualInterrupt);
+    return () => {
+      setGlobalInterruptHandler(null);
+    };
+  }, [handleManualInterrupt]);
 
   // Audio capture from microphone
   const { startCapture, stopCapture } = useAudioCapture({

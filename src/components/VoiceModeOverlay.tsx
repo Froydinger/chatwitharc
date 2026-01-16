@@ -1,6 +1,14 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
+import { useCallback } from "react";
+
+// Global ref to allow interrupt from overlay - set by VoiceModeController
+let globalInterruptHandler: (() => void) | null = null;
+
+export function setGlobalInterruptHandler(handler: (() => void) | null) {
+  globalInterruptHandler = handler;
+}
 
 export function VoiceModeOverlay() {
   const {
@@ -19,6 +27,17 @@ export function VoiceModeOverlay() {
     isSearching,
   } = useVoiceModeStore();
 
+  // Handle orb tap to interrupt when AI is speaking or audio is playing
+  const handleOrbInterrupt = useCallback(() => {
+    if ((status === 'speaking' || isAudioPlaying) && globalInterruptHandler) {
+      console.log('Orb tapped - interrupting AI');
+      // Trigger haptic feedback on supported devices
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+      globalInterruptHandler();
+    }
+  }, [status, isAudioPlaying]);
 
   if (!isActive) return null;
 
@@ -45,7 +64,7 @@ export function VoiceModeOverlay() {
       case 'connecting': return 'Connecting...';
       case 'listening': return 'Listening...';
       case 'thinking': return 'Thinking...';
-      case 'speaking': return 'Speaking...';
+      case 'speaking': return 'Tap orb to interrupt';
       default: return 'Tap to speak';
     }
   };
@@ -211,9 +230,9 @@ export function VoiceModeOverlay() {
                 )}
               </AnimatePresence>
 
-              {/* Animated liquid orb */}
+              {/* Animated liquid orb - TAP TO INTERRUPT when AI is speaking */}
               <motion.div
-                className="relative"
+                className={`relative ${(status === 'speaking' || isAudioPlaying) ? 'cursor-pointer' : ''}`}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ 
                   scale: 1, 
@@ -222,6 +241,9 @@ export function VoiceModeOverlay() {
                 }}
                 exit={{ scale: 0, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                onClick={handleOrbInterrupt}
+                role={(status === 'speaking' || isAudioPlaying) ? 'button' : undefined}
+                aria-label={(status === 'speaking' || isAudioPlaying) ? 'Tap to interrupt' : undefined}
               >
                 {/* Outer glow rings */}
                 <motion.div
