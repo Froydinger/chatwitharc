@@ -102,23 +102,33 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
     const selectedModel = model || 'google/gemini-3-flash-preview';
     console.log('Using model for category prompts:', selectedModel);
 
-    // Call AI to generate prompts with explicit max_tokens to prevent truncation
+    // Build request body - use different token param for OpenAI vs Gemini models
+    const isOpenAIModel = selectedModel.startsWith('openai/');
+    const requestBody: Record<string, unknown> = {
+      model: selectedModel,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Generate 6 completely unique, never-before-seen ${category} prompts. Be wildly creative! Timestamp: ${timestamp}` }
+      ],
+      temperature: 1.0, // Maximum creativity for variety
+      top_p: 0.95,
+    };
+    
+    // OpenAI models use max_completion_tokens, Gemini uses max_tokens
+    if (isOpenAIModel) {
+      requestBody.max_completion_tokens = 2000;
+    } else {
+      requestBody.max_tokens = 2000;
+    }
+
+    // Call AI to generate prompts
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: selectedModel,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Generate 6 completely unique, never-before-seen ${category} prompts. Be wildly creative! Timestamp: ${timestamp}` }
-        ],
-        temperature: 1.0, // Maximum creativity for variety
-        top_p: 0.95,
-        max_tokens: 2000, // Ensure enough tokens to complete the JSON response
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
