@@ -602,6 +602,12 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
     const selectedModel = model || 'google/gemini-3-flash-preview';
     const fallbackModel = 'google/gemini-3-flash-preview'; // Fallback for canvas/code if Pro times out
     
+    // OpenAI models use max_completion_tokens, Gemini uses max_tokens
+    const isOpenAIModel = selectedModel.startsWith('openai/');
+    const tokenParam = isOpenAIModel 
+      ? { max_completion_tokens: 65536 }
+      : { max_tokens: 65536 };
+    
     console.log('🤖 Making AI request with model:', selectedModel);
     console.log('📋 Tools provided to AI:', toolsToUse.map(t => t.function.name));
     
@@ -620,7 +626,7 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
           messages: conversationMessages,
           tools: toolsToUse,
           tool_choice: toolChoice,
-          max_tokens: 65536,
+          ...tokenParam,
         }),
       });
     } catch (primaryError) {
@@ -639,7 +645,7 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
             messages: conversationMessages,
             tools: toolsToUse,
             tool_choice: toolChoice,
-            max_tokens: 65536,
+            max_tokens: 65536, // Fallback is always Gemini
           }),
         });
       } else {
