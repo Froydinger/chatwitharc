@@ -98,7 +98,7 @@ export function VoiceModeOverlay() {
                 <SelectTrigger className="w-32 glass-shimmer border-border/40">
                   <SelectValue placeholder="Voice" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[200]">
                   {VOICE_OPTIONS.map((voice) => (
                     <SelectItem key={voice.value} value={voice.value}>
                       {voice.label}

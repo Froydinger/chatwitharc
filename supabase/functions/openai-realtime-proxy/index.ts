@@ -39,6 +39,8 @@ serve(async (req) => {
   const { socket: clientSocket, response } = Deno.upgradeWebSocket(req);
 
   let openaiSocket: WebSocket | null = null;
+  let openaiReady = false;
+  const messageBuffer: string[] = [];
 
   clientSocket.onopen = () => {
     console.log('Client connected to proxy');
@@ -54,6 +56,15 @@ serve(async (req) => {
 
     openaiSocket.onopen = () => {
       console.log('Connected to OpenAI Realtime');
+      openaiReady = true;
+      
+      // Send any buffered messages
+      while (messageBuffer.length > 0) {
+        const msg = messageBuffer.shift();
+        if (msg && openaiSocket?.readyState === WebSocket.OPEN) {
+          openaiSocket.send(msg);
+        }
+      }
     };
 
     openaiSocket.onmessage = (event) => {
@@ -75,6 +86,7 @@ serve(async (req) => {
 
     openaiSocket.onclose = (event) => {
       console.log('OpenAI connection closed:', event.code, event.reason);
+      openaiReady = false;
       if (clientSocket.readyState === WebSocket.OPEN) {
         clientSocket.close(1000, 'OpenAI connection closed');
       }
@@ -82,11 +94,14 @@ serve(async (req) => {
   };
 
   clientSocket.onmessage = (event) => {
+    const data = typeof event.data === 'string' ? event.data : '';
+    
     // Forward client messages to OpenAI
-    if (openaiSocket?.readyState === WebSocket.OPEN) {
-      openaiSocket.send(event.data);
+    if (openaiReady && openaiSocket?.readyState === WebSocket.OPEN) {
+      openaiSocket.send(data);
     } else {
-      console.warn('OpenAI socket not ready, buffering message');
+      // Buffer messages until OpenAI is ready
+      messageBuffer.push(data);
     }
   };
 
@@ -96,6 +111,7 @@ serve(async (req) => {
 
   clientSocket.onclose = () => {
     console.log('Client disconnected');
+    openaiReady = false;
     if (openaiSocket?.readyState === WebSocket.OPEN) {
       openaiSocket.close();
     }
