@@ -66,7 +66,11 @@ You're now in voice conversation mode. Keep everything you know about being Arc,
     // Add voice-specific tools
     voicePrompt += `\n\n--- VOICE TOOLS ---
 • IMAGE GENERATION: When user asks to create/draw/show an image, use generate_image. When done with image, use close_image.
-• WEB SEARCH: For current events, news, scores, or real-time info, use web_search. Summarize results conversationally.`;
+• WEB SEARCH: For current events, news, scores, or real-time info, use web_search. Summarize results conversationally.
+  CRITICAL: Listen VERY carefully to exact names, titles, and proper nouns. Common misheards:
+  - "Win the Night" (a wellness podcast at winthenight.org) NOT "Wind of Change"
+  - "Arc AI" or "Chat with Arc" (this app at chatwitharc.com)
+  Before searching, confirm the exact term you heard if it sounds like a proper noun or title.`;
 
     return voicePrompt;
   } catch (error) {
