@@ -13,13 +13,15 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   const isPlayingRef = useRef(false);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const isInterruptedRef = useRef(false);
   
   const [isPlaying, setIsPlaying] = useState(false);
   
   const { setOutputAmplitude, status } = useVoiceModeStore();
 
   const initAudioContext = useCallback(() => {
-    if (!audioContextRef.current) {
+    if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
       audioContextRef.current = new AudioContext({ sampleRate });
       
       // Create analyser for output amplitude
@@ -31,6 +33,11 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   }, [sampleRate]);
 
   const playAudioChunk = useCallback(async (audioData: Int16Array) => {
+    // Don't play if interrupted
+    if (isInterruptedRef.current) {
+      return;
+    }
+    
     const audioContext = initAudioContext();
     
     // Convert Int16 to Float32
@@ -46,6 +53,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     // Create and play source
     const source = audioContext.createBufferSource();
     source.buffer = audioBuffer;
+    currentSourceRef.current = source;
     
     if (analyserRef.current) {
       source.connect(analyserRef.current);
@@ -58,6 +66,15 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     isPlayingRef.current = true;
     
     source.onended = () => {
+      currentSourceRef.current = null;
+      
+      // Don't continue if interrupted
+      if (isInterruptedRef.current) {
+        setIsPlaying(false);
+        isPlayingRef.current = false;
+        return;
+      }
+      
       // Check if there's more audio in queue
       if (audioQueueRef.current.length > 0) {
         const nextChunk = audioQueueRef.current.shift()!;
@@ -70,6 +87,11 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   }, [initAudioContext, sampleRate]);
 
   const queueAudio = useCallback((audioData: Int16Array) => {
+    // Don't queue if interrupted
+    if (isInterruptedRef.current) {
+      return;
+    }
+    
     if (isPlayingRef.current) {
       audioQueueRef.current.push(audioData);
     } else {
@@ -78,11 +100,43 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   }, [playAudioChunk]);
 
   const clearQueue = useCallback(() => {
+    // Set interrupted flag to prevent new audio from playing
+    isInterruptedRef.current = true;
     audioQueueRef.current = [];
-  }, []);
+    
+    // Stop currently playing audio source immediately
+    if (currentSourceRef.current) {
+      try {
+        currentSourceRef.current.stop();
+      } catch (e) {
+        // Source might already be stopped
+      }
+      currentSourceRef.current = null;
+    }
+    
+    isPlayingRef.current = false;
+    setIsPlaying(false);
+    setOutputAmplitude(0);
+    
+    // Reset interrupted flag after a short delay to allow new responses
+    setTimeout(() => {
+      isInterruptedRef.current = false;
+    }, 100);
+  }, [setOutputAmplitude]);
 
   const stopPlayback = useCallback(() => {
-    clearQueue();
+    isInterruptedRef.current = true;
+    audioQueueRef.current = [];
+    
+    if (currentSourceRef.current) {
+      try {
+        currentSourceRef.current.stop();
+      } catch (e) {
+        // Source might already be stopped
+      }
+      currentSourceRef.current = null;
+    }
+    
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
@@ -91,7 +145,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     isPlayingRef.current = false;
     setIsPlaying(false);
     setOutputAmplitude(0);
-  }, [clearQueue, setOutputAmplitude]);
+  }, [setOutputAmplitude]);
 
   // Update output amplitude when speaking
   useEffect(() => {
