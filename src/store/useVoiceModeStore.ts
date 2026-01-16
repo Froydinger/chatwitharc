@@ -1,0 +1,89 @@
+import { create } from 'zustand';
+
+export type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking';
+
+export type VoiceName = 'echo' | 'alloy' | 'shimmer' | 'ash' | 'ballad' | 'coral' | 'sage' | 'verse';
+
+interface VoiceTurn {
+  role: 'user' | 'assistant';
+  transcript: string;
+  timestamp: Date;
+}
+
+interface VoiceModeState {
+  // Core state
+  isActive: boolean;
+  status: VoiceStatus;
+  
+  // Audio levels for orb animation
+  inputAmplitude: number;
+  outputAmplitude: number;
+  
+  // Transcripts
+  currentTranscript: string;
+  conversationTurns: VoiceTurn[];
+  
+  // Voice preference
+  selectedVoice: VoiceName;
+  
+  // Actions
+  activateVoiceMode: () => void;
+  deactivateVoiceMode: () => void;
+  setStatus: (status: VoiceStatus) => void;
+  setInputAmplitude: (amplitude: number) => void;
+  setOutputAmplitude: (amplitude: number) => void;
+  setCurrentTranscript: (transcript: string) => void;
+  addConversationTurn: (turn: VoiceTurn) => void;
+  clearConversation: () => void;
+  setSelectedVoice: (voice: VoiceName) => void;
+}
+
+export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
+  // Initial state
+  isActive: false,
+  status: 'idle',
+  inputAmplitude: 0,
+  outputAmplitude: 0,
+  currentTranscript: '',
+  conversationTurns: [],
+  selectedVoice: 'echo',
+  
+  // Actions
+  activateVoiceMode: () => {
+    set({ 
+      isActive: true, 
+      status: 'connecting',
+      currentTranscript: '',
+      conversationTurns: []
+    });
+  },
+  
+  deactivateVoiceMode: () => {
+    set({ 
+      isActive: false, 
+      status: 'idle',
+      inputAmplitude: 0,
+      outputAmplitude: 0,
+      currentTranscript: ''
+    });
+  },
+  
+  setStatus: (status) => set({ status }),
+  
+  setInputAmplitude: (amplitude) => set({ inputAmplitude: amplitude }),
+  
+  setOutputAmplitude: (amplitude) => set({ outputAmplitude: amplitude }),
+  
+  setCurrentTranscript: (transcript) => set({ currentTranscript: transcript }),
+  
+  addConversationTurn: (turn) => set((state) => ({
+    conversationTurns: [...state.conversationTurns, turn]
+  })),
+  
+  clearConversation: () => set({ 
+    conversationTurns: [],
+    currentTranscript: ''
+  }),
+  
+  setSelectedVoice: (voice) => set({ selectedVoice: voice })
+}));

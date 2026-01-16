@@ -1,7 +1,7 @@
 // src/components/ChatInput.tsx
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
-import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Brain, Code2, PenLine, Search, Globe, Square } from "lucide-react";
+import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Mic, Code2, PenLine, Search, Globe, Square } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
@@ -17,6 +17,7 @@ import { PromptLibrary } from "@/components/PromptLibrary";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSearchStore } from "@/store/useSearchStore";
+import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { cn } from "@/lib/utils";
 
 // Global cancellation flag and AbortController
@@ -139,6 +140,41 @@ function isConversationalMessage(message: string): boolean {
   if (m.length < 15 && !/(add|change|fix|update|make|create|build|remove|delete)/.test(m)) return true;
 
   return false;
+}
+
+// Smart detection for natural language code/canvas requests (without requiring / prefix)
+function looksLikeNaturalCodeRequest(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+  
+  // Skip if it's conversational
+  if (isConversationalMessage(m)) return false;
+  
+  // Patterns that strongly indicate code generation intent
+  const codePatterns = [
+    /^(build|create|make|code|develop|write)\s+(me\s+)?(a|an|the)?\s*(website|webpage|web page|app|application|landing page|dashboard|form|calculator|game|tool|component|ui|interface)/i,
+    /^(can you|could you|please)?\s*(build|create|make|code|develop|write)\s+(me\s+)?(a|an|the)?\s*(website|webpage|web page|app|application|landing page|dashboard|form|calculator|game|tool|component|ui|interface)/i,
+    /^(i need|i want)\s+(a|an|the)?\s*(website|webpage|web page|app|application|landing page|dashboard|form|calculator|game|tool|component|ui|interface)/i,
+  ];
+  
+  return codePatterns.some(p => p.test(m));
+}
+
+function looksLikeNaturalCanvasRequest(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+  
+  // Skip if it's conversational
+  if (isConversationalMessage(m)) return false;
+  
+  // Patterns that strongly indicate writing/canvas intent
+  const canvasPatterns = [
+    /^(write|compose|draft|create)\s+(me\s+)?(a|an|the)?\s*(poem|essay|article|blog|story|letter|email|script|speech|song|lyrics|haiku|limerick|sonnet)/i,
+    /^(can you|could you|please)?\s*(write|compose|draft|create)\s+(me\s+)?(a|an|the)?\s*(poem|essay|article|blog|story|letter|email|script|speech|song|lyrics|haiku|limerick|sonnet)/i,
+    /^(i need|i want)\s+(a|an|the)?\s*(poem|essay|article|blog|story|letter|email|script|speech|song|lyrics)/i,
+  ];
+  
+  return canvasPatterns.some(p => p.test(m));
 }
 
 // Heuristic for when the Canvas is already open and the user is clearly asking
@@ -301,25 +337,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   // Show slash picker when user types just "/"
   const showSlashPicker = inputValue.trim() === "/";
 
-  // Track current session model for brain icon state - default to GPT Quick
-  const [sessionModel, setSessionModel] = useState<string>(() =>
-    sessionStorage.getItem('arc_session_model') || 'openai/gpt-5-nano'
-  );
-  
-  // Track provider for cycling through correct models - default to GPT
-  const [modelProvider, setModelProvider] = useState<'gemini' | 'gpt'>(() => {
-    const stored = sessionStorage.getItem('arc_model_provider');
-    return (stored === 'gemini' ? 'gemini' : 'gpt') as 'gemini' | 'gpt';
-  });
-
-  // Auto-switch to Pro when code/ mode is active (it's way better at code)
-  useEffect(() => {
-    const proModel = modelProvider === 'gpt' ? 'openai/gpt-5' : 'google/gemini-3-pro-preview';
-    if (shouldShowCodeMode && sessionModel !== proModel) {
-      sessionStorage.setItem('arc_session_model', proModel);
-      setSessionModel(proModel);
-    }
-  }, [shouldShowCodeMode, sessionModel, modelProvider]);
+  // Voice mode store
+  const { activateVoiceMode } = useVoiceModeStore();
 
   // Textarea auto-resize with cursor position preservation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -394,24 +413,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   useEffect(() => {
     onImagesChange?.(selectedImages.length > 0);
   }, [selectedImages.length, onImagesChange]);
-
-  // Sync session model and provider state with sessionStorage (for chat switching)
-  useEffect(() => {
-    const syncSessionState = () => {
-      const storedModel = sessionStorage.getItem('arc_session_model');
-      const storedProvider = sessionStorage.getItem('arc_model_provider');
-      if (storedModel && storedModel !== sessionModel) {
-        setSessionModel(storedModel);
-      }
-      if (storedProvider && storedProvider !== modelProvider) {
-        setModelProvider(storedProvider as 'gemini' | 'gpt');
-      }
-    };
-
-    // Check periodically to detect external changes (e.g., from chat switching)
-    const interval = setInterval(syncSessionState, 300);
-    return () => clearInterval(interval);
-  }, [sessionModel, modelProvider]);
 
   // Close tiles on outside click / esc
   useEffect(() => {
@@ -825,7 +826,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
         try {
           const apiPrompt = `Generate an image: ${imagePrompt}`;
-          const genUrl = await ai.generateImage(apiPrompt, sessionModel);
+          const genUrl = await ai.generateImage(apiPrompt);
           let finalUrl = genUrl;
           try {
             const resp = await fetch(genUrl);
@@ -893,16 +894,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         const shouldRouteToCodeCanvas = isCodeCanvasOpen && looksLikeCodeEditRequest(userMessage);
 
         const cleanedMessage = extractPrefixPrompt(userMessage);
-
-        // Show expectation-setting toast for canvas/code with Gemini 3 Pro
-        const isUsingWiseModel = sessionModel === 'google/gemini-3-pro-preview';
-        if ((isCodingRequest || shouldRouteToCanvas || shouldRouteToCodeCanvas) && isUsingWiseModel) {
-          toast({
-            title: "Using Wise model",
-            description: "This may take 30-60 seconds for complex content",
-            duration: 4000,
-          });
-        }
 
         // Build the message to send to AI
         let messageToSend: string;
@@ -1394,74 +1385,19 @@ ${existingCode}
           portalRoot
         )}
 
-        {/* Brain Icon Toggle - cycles through model tiers */}
+        {/* Mic Icon - Voice Mode */}
         <button
-          onClick={async (e) => {
-            // Define model tiers for each provider
-            const geminiTiers = ['google/gemini-3-flash-preview', 'google/gemini-3-pro-preview'];
-            const gptTiers = ['openai/gpt-5-nano', 'openai/gpt-5.2', 'openai/gpt-5'];
-            
-            const currentTiers = modelProvider === 'gpt' ? gptTiers : geminiTiers;
-            const currentIndex = currentTiers.indexOf(sessionModel);
-            
-            // If current model is not in the list (e.g., first load), start at first model
-            // Otherwise advance to the NEXT model (skip showing current first)
-            let nextIndex: number;
-            if (currentIndex === -1) {
-              // Model not in tiers, start at first
-              nextIndex = 0;
-            } else {
-              // Advance to next model directly (this makes clicking feel responsive)
-              nextIndex = (currentIndex + 1) % currentTiers.length;
-            }
-            const newModel = currentTiers[nextIndex];
-            
-            try {
-              // Get button center position for popup
-              const rect = e.currentTarget.getBoundingClientRect();
-
-              // Update sessionStorage so the model is actually used for API calls
-              sessionStorage.setItem('arc_session_model', newModel);
-              setSessionModel(newModel);
-
-              // Update profile for UI persistence (optional)
-              await updateProfile({ preferred_model: newModel });
-
-              // Determine tier name based on model
-              let tierName = 'Quick';
-              if (newModel === 'google/gemini-3-pro-preview' || newModel === 'openai/gpt-5') {
-                tierName = 'Wise & Thoughtful';
-              } else if (newModel === 'openai/gpt-5.2') {
-                tierName = 'Smarter & Quick';
-              }
-
-              // Show bouncy popup from brain icon
-              showPopup(tierName, rect.left + rect.width / 2, rect.top + rect.height / 2);
-            } catch (e) {
-              console.error("Failed to toggle model:", e);
-            }
-          }}
+          onClick={() => activateVoiceMode()}
           className={[
             "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-            // Highlight when using Pro/Wise tier
-            (sessionModel === "google/gemini-3-pro-preview" || sessionModel === "openai/gpt-5")
-              ? "!bg-primary/20 text-primary ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
-              : sessionModel === "openai/gpt-5.2"
-                ? "!bg-primary/10 text-primary ring-1 ring-primary/50"
-                : "text-muted-foreground hover:text-foreground",
+            "text-muted-foreground hover:text-foreground hover:!bg-primary/10",
             // Hide on mobile when typing (isActive), show on desktop always
             isActive ? "hidden sm:flex" : "flex",
           ].join(" ")}
-          aria-label="Toggle AI model"
-          title={
-            sessionModel === "google/gemini-3-pro-preview" || sessionModel === "openai/gpt-5" 
-              ? "Wise & Thoughtful" 
-              : sessionModel === "openai/gpt-5.2" 
-                ? "Smarter & Quick" 
-                : "Quick"
-          }
+          aria-label="Voice mode"
+          title="Voice mode"
         >
-          <Brain className="h-5 w-5" />
+          <Mic className="h-5 w-5" />
         </button>
 
         {/* Send / Stop Button */}
