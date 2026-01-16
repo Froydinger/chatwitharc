@@ -1380,7 +1380,17 @@ ${existingCode}
             
             const currentTiers = modelProvider === 'gpt' ? gptTiers : geminiTiers;
             const currentIndex = currentTiers.indexOf(sessionModel);
-            const nextIndex = (currentIndex + 1) % currentTiers.length;
+            
+            // If current model is not in the list (e.g., first load), start at first model
+            // Otherwise advance to the NEXT model (skip showing current first)
+            let nextIndex: number;
+            if (currentIndex === -1) {
+              // Model not in tiers, start at first
+              nextIndex = 0;
+            } else {
+              // Advance to next model directly (this makes clicking feel responsive)
+              nextIndex = (currentIndex + 1) % currentTiers.length;
+            }
             const newModel = currentTiers[nextIndex];
             
             try {
@@ -1440,7 +1450,9 @@ ${existingCode}
             }}
             className={[
               "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-              "!bg-destructive/80 text-destructive-foreground ring-2 ring-destructive !shadow-[0_0_12px_rgba(239,68,68,0.3)]",
+              accentColor === "noir"
+                ? "!bg-white/80 text-black ring-2 ring-white/60 !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
+                : "!bg-primary/80 text-primary-foreground ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]",
             ].join(" ")}
             aria-label="Stop"
           >
