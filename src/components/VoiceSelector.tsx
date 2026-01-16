@@ -11,7 +11,9 @@ interface VoiceSelectorProps {
   onSave?: () => void;
 }
 
-const VOICES: { id: VoiceName; name: string; description: string }[] = [
+const VOICES: { id: VoiceName; name: string; description: string; recommended?: boolean }[] = [
+  { id: 'marin', name: 'Marin', description: 'Expressive & natural', recommended: true },
+  { id: 'cedar', name: 'Cedar', description: 'Natural & smooth', recommended: true },
   { id: 'coral', name: 'Coral', description: 'Warm & friendly' },
   { id: 'sage', name: 'Sage', description: 'Calm & thoughtful' },
   { id: 'alloy', name: 'Alloy', description: 'Neutral & balanced' },
@@ -20,6 +22,9 @@ const VOICES: { id: VoiceName; name: string; description: string }[] = [
   { id: 'ash', name: 'Ash', description: 'Soft & gentle' },
   { id: 'ballad', name: 'Ballad', description: 'Expressive & dramatic' },
   { id: 'verse', name: 'Verse', description: 'Articulate & refined' },
+  { id: 'nova', name: 'Nova', description: 'Warm & expressive' },
+  { id: 'onyx', name: 'Onyx', description: 'Deep & authoritative' },
+  { id: 'fable', name: 'Fable', description: 'Narrative & engaging' },
 ];
 
 export function VoiceSelector({ onSave }: VoiceSelectorProps) {
@@ -141,8 +146,13 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-medium text-sm">{voice.name}</span>
+                    {voice.recommended && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-600 dark:text-green-400">
+                        Best
+                      </span>
+                    )}
                     {isCurrent && !hasChanges && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary">
                         Current

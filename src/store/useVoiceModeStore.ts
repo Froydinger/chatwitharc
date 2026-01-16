@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 export type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking';
 
-export type VoiceName = 'echo' | 'alloy' | 'shimmer' | 'ash' | 'ballad' | 'coral' | 'sage' | 'verse';
+export type VoiceName = 'marin' | 'cedar' | 'coral' | 'sage' | 'alloy' | 'echo' | 'shimmer' | 'ash' | 'ballad' | 'verse' | 'nova' | 'onyx' | 'fable';
 
 interface VoiceTurn {
   role: 'user' | 'assistant';
