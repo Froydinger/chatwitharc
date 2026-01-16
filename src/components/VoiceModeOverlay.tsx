@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, Volume2 } from "lucide-react";
+import { X, Mic, MicOff, Volume2 } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { VoiceModeController } from "./VoiceModeController";
 
@@ -10,17 +10,30 @@ export function VoiceModeOverlay() {
     inputAmplitude,
     outputAmplitude,
     currentTranscript,
+    isMuted,
     deactivateVoiceMode,
+    toggleMute,
   } = useVoiceModeStore();
 
   if (!isActive) return null;
 
   // Determine orb animation based on status
-  const amplitude = status === 'speaking' ? outputAmplitude : inputAmplitude;
+  const amplitude = status === 'speaking' ? outputAmplitude : (isMuted ? 0 : inputAmplitude);
   const orbScale = 1 + amplitude * 0.4;
   const glowIntensity = 40 + amplitude * 60;
 
+  const getStatusIcon = () => {
+    if (isMuted) {
+      return <MicOff className="w-4 h-4 text-destructive" />;
+    }
+    if (status === 'speaking') {
+      return <Volume2 className="w-4 h-4" />;
+    }
+    return <Mic className="w-4 h-4" />;
+  };
+
   const getStatusText = () => {
+    if (isMuted) return 'Muted';
     switch (status) {
       case 'connecting': return 'Connecting...';
       case 'listening': return 'Listening...';
@@ -28,13 +41,6 @@ export function VoiceModeOverlay() {
       case 'speaking': return 'Speaking...';
       default: return 'Tap to speak';
     }
-  };
-
-  const getStatusIcon = () => {
-    if (status === 'speaking') {
-      return <Volume2 className="w-4 h-4" />;
-    }
-    return <Mic className="w-4 h-4" />;
   };
 
   return (
@@ -66,8 +72,26 @@ export function VoiceModeOverlay() {
               <X className="w-6 h-6 text-foreground" />
             </motion.button>
 
-
-            {/* Center content */}
+            {/* Mute button */}
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ delay: 0.15 }}
+              onClick={toggleMute}
+              className={`absolute top-6 left-6 z-10 p-3 rounded-full glass-shimmer transition-colors ${
+                isMuted 
+                  ? 'bg-destructive/20 hover:bg-destructive/30' 
+                  : 'hover:bg-muted/50'
+              }`}
+              aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
+            >
+              {isMuted ? (
+                <MicOff className="w-6 h-6 text-destructive" />
+              ) : (
+                <Mic className="w-6 h-6 text-foreground" />
+              )}
+            </motion.button>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               {/* Animated liquid orb */}
               <motion.div

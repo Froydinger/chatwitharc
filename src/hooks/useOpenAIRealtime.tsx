@@ -5,6 +5,7 @@ interface UseOpenAIRealtimeOptions {
   onTranscriptUpdate?: (transcript: string, isFinal: boolean) => void;
   onAudioData?: (audioData: Int16Array) => void;
   onError?: (error: string) => void;
+  onInterrupt?: () => void;
 }
 
 // Singleton WebSocket instance to prevent duplicates
@@ -40,6 +41,17 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'input_audio_buffer.speech_started':
+        // User started speaking - check if AI was speaking (interrupt)
+        const { status: currentStatus } = useVoiceModeStore.getState();
+        if (currentStatus === 'speaking') {
+          console.log('User interrupted AI - cancelling response');
+          // Cancel the current AI response
+          if (globalWs?.readyState === WebSocket.OPEN) {
+            globalWs.send(JSON.stringify({ type: 'response.cancel' }));
+          }
+          // Notify listeners to clear audio
+          optionsRef.current.onInterrupt?.();
+        }
         setStatus('listening');
         break;
 
@@ -257,11 +269,19 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
   }, []);
 
+  const cancelResponse = useCallback(() => {
+    if (globalWs?.readyState !== WebSocket.OPEN) return;
+    
+    console.log('Manually cancelling AI response');
+    globalWs.send(JSON.stringify({ type: 'response.cancel' }));
+  }, []);
+
   return {
     isConnected,
     connect,
     disconnect,
     sendAudio,
-    updateVoice
+    updateVoice,
+    cancelResponse
   };
 }

@@ -14,6 +14,7 @@ interface VoiceModeState {
   // Core state
   isActive: boolean;
   status: VoiceStatus;
+  isMuted: boolean;
   
   // Audio levels for orb animation
   inputAmplitude: number;
@@ -36,12 +37,15 @@ interface VoiceModeState {
   addConversationTurn: (turn: VoiceTurn) => void;
   clearConversation: () => void;
   setSelectedVoice: (voice: VoiceName) => void;
+  setMuted: (muted: boolean) => void;
+  toggleMute: () => void;
 }
 
 export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   // Initial state
   isActive: false,
   status: 'idle',
+  isMuted: false,
   inputAmplitude: 0,
   outputAmplitude: 0,
   currentTranscript: '',
@@ -54,7 +58,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       isActive: true, 
       status: 'connecting',
       currentTranscript: '',
-      conversationTurns: []
+      conversationTurns: [],
+      isMuted: false
     });
   },
   
@@ -64,7 +69,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       status: 'idle',
       inputAmplitude: 0,
       outputAmplitude: 0,
-      currentTranscript: ''
+      currentTranscript: '',
+      isMuted: false
     });
   },
   
@@ -85,5 +91,9 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
     currentTranscript: ''
   }),
   
-  setSelectedVoice: (voice) => set({ selectedVoice: voice })
+  setSelectedVoice: (voice) => set({ selectedVoice: voice }),
+  
+  setMuted: (muted) => set({ isMuted: muted }),
+  
+  toggleMute: () => set((state) => ({ isMuted: !state.isMuted }))
 }));
