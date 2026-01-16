@@ -97,19 +97,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'input_audio_buffer.speech_started':
-        // User started speaking - immediately interrupt if AI is speaking
-        const { status: currentStatus } = useVoiceModeStore.getState();
+        // User started speaking - just update status, don't auto-interrupt
+        // Manual tap-to-interrupt is preferred for reliability
         speechStartedAt = Date.now();
-        
-        if (currentStatus === 'speaking') {
-          // Cancel the AI response immediately - no debounce for interrupts
-          console.log('User speech detected while AI speaking - interrupting immediately');
-          if (globalWs?.readyState === WebSocket.OPEN) {
-            globalWs.send(JSON.stringify({ type: 'response.cancel' }));
-          }
-          // Clear audio queue immediately so user doesn't hear more AI speech
-          optionsRef.current.onInterrupt?.();
-        }
         setStatus('listening');
         break;
 
