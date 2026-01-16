@@ -1,7 +1,7 @@
 // src/components/ChatInput.tsx
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
-import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Brain, Code2, PenLine, Search, Globe } from "lucide-react";
+import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Brain, Code2, PenLine, Search, Globe, Square } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
@@ -18,16 +18,28 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { cn } from "@/lib/utils";
 
-// Global cancellation flag
+// Global cancellation flag and AbortController
 let cancelRequested = false;
+let currentAbortController: AbortController | null = null;
 
 export const cancelCurrentRequest = () => {
   cancelRequested = true;
+  // Abort any ongoing fetch request
+  if (currentAbortController) {
+    currentAbortController.abort();
+    currentAbortController = null;
+  }
   const store = useArcStore.getState();
   store.setLoading(false);
   store.setGeneratingImage(false);
   store.setSearchingChats(false);
   store.setAccessingMemory(false);
+  
+  // Also stop canvas AI writing state
+  const canvasStore = useCanvasStore.getState();
+  if (canvasStore.isAIWriting) {
+    canvasStore.setAIWriting(false);
+  }
 };
 
 /* ---------------- Helpers ---------------- */
@@ -914,20 +926,21 @@ MANDATORY: Output the COMPLETE updated code. Never stop mid-sentence or mid-func
           messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: Use the update_canvas tool to write COMPLETE, FULL markdown content for this request. Do NOT truncate, summarize, or cut short. Write the ENTIRE piece from beginning to end - every paragraph, every section, complete thoughts. Never stop mid-sentence:\n\n${cleanedMessage || userMessage}`;
         } else if (wasSearchMode) {
           messageToSend = `Search the web for: ${cleanedMessage || userMessage}`;
-        } else if (isCodeCanvasOpen && canvasState.content) {
-          // Code canvas is open but user isn't explicitly asking to edit
-          // Still provide the code as context in case AI decides to modify it
+        } else if (isCodeCanvasOpen && canvasState.content && !isConversationalMessage(userMessage)) {
+          // Code canvas is open and user isn't explicitly asking to edit, but also not conversational
+          // Only provide code context for messages that might be related to the code
           const existingCode = canvasState.content;
           const language = canvasState.codeLanguage || 'html';
           messageToSend = `${cleanedMessage || userMessage}
 
-[CONTEXT: The user has a Code Canvas open with the following ${language} code. If you need to modify this code for any reason, you MUST preserve ALL existing CSS styles, animations, and functionality. Output the COMPLETE code with ALL original styling intact. NEVER strip or remove existing styles.]
+[CONTEXT: The user has a Code Canvas open with the following ${language} code. ONLY modify this code if the user is explicitly asking for changes. For casual conversation like "great!", "looks good", questions about how something works, etc. - just respond conversationally WITHOUT updating the code.]
 
 Current code (${existingCode.split('\n').length} lines):
 \`\`\`${language}
 ${existingCode}
 \`\`\``;
         } else {
+          // Conversational message or no canvas - just send as-is
           messageToSend = cleanedMessage || userMessage;
         }
 
@@ -964,6 +977,10 @@ ${existingCode}
         let streamLanguage = 'html';
         let streamWebSources: any[] = [];
         let streamingMessageId: string | null = null;
+        
+        // Create AbortController for this request
+        currentAbortController = new AbortController();
+        const abortSignal = currentAbortController.signal;
         
         await aiService.sendMessageStreaming(
           aiMessages,
@@ -1020,9 +1037,10 @@ ${existingCode}
               setAIWriting(false);
               await upsertCanvasMessage(result.content, result.label, memoryAction);
             } else if (streamingMessageId) {
-              // Update the final content without cursor
+              // Update the final content without cursor - ensure cursor is removed
               const { editMessage, updateMessageMemoryAction } = useArcStore.getState();
-              editMessage(streamingMessageId, result.content);
+              const finalContent = result.content.replace(/▍$/g, '').replace(/\|$/g, ''); // Clean any cursor remnants
+              editMessage(streamingMessageId, finalContent);
               if (memoryAction) {
                 updateMessageMemoryAction(streamingMessageId, memoryAction);
               }
@@ -1043,15 +1061,22 @@ ${existingCode}
               setAIWriting(false);
             }
             if (streamingMessageId) {
-              // Update message with error
+              // Update message with error - remove cursor
               const { editMessage } = useArcStore.getState();
-              editMessage(streamingMessageId, 'Sorry, I encountered an error. Please try again.');
+              editMessage(streamingMessageId, streamedContent || 'Sorry, I encountered an error. Please try again.');
             }
-            toast({ title: "Error", description: errorMsg, variant: "destructive" });
+            // Only show error toast if not aborted
+            if (!abortSignal.aborted) {
+              toast({ title: "Error", description: errorMsg, variant: "destructive" });
+            }
           },
           currentSessionId || undefined,
-          wasSearchMode && !shouldForceCode && !shouldForceCanvas
+          wasSearchMode && !shouldForceCode && !shouldForceCanvas,
+          abortSignal
         );
+        
+        // Clean up abort controller
+        currentAbortController = null;
       } catch (err: any) {
         // Check if request was cancelled
         if (cancelRequested) {
@@ -1406,22 +1431,38 @@ ${existingCode}
           <Brain className="h-5 w-5" />
         </button>
 
-        {/* Send */}
-        <button
-          onClick={() => handleSend()}
-          disabled={isLoading || (!inputValue.trim() && selectedImages.length === 0)}
-          className={[
-            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-            inputValue.trim() || selectedImages.length
-              ? accentColor === "noir"
-                ? "!bg-white/90 text-black ring-2 ring-white/60 hover:!bg-white !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
-                : "!bg-primary/80 text-primary-foreground ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
-              : "text-muted-foreground cursor-not-allowed",
-          ].join(" ")}
-          aria-label="Send"
-        >
-          <ArrowRight className="h-5 w-5" />
-        </button>
+        {/* Send / Stop Button */}
+        {isLoading ? (
+          <button
+            onClick={() => {
+              cancelCurrentRequest();
+              toast({ title: "Stopped", description: "Request cancelled" });
+            }}
+            className={[
+              "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
+              "!bg-destructive/80 text-destructive-foreground ring-2 ring-destructive !shadow-[0_0_12px_rgba(239,68,68,0.3)]",
+            ].join(" ")}
+            aria-label="Stop"
+          >
+            <Square className="h-4 w-4 fill-current" />
+          </button>
+        ) : (
+          <button
+            onClick={() => handleSend()}
+            disabled={!inputValue.trim() && selectedImages.length === 0}
+            className={[
+              "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
+              inputValue.trim() || selectedImages.length
+                ? accentColor === "noir"
+                  ? "!bg-white/90 text-black ring-2 ring-white/60 hover:!bg-white !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
+                  : "!bg-primary/80 text-primary-foreground ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
+                : "text-muted-foreground cursor-not-allowed",
+            ].join(" ")}
+            aria-label="Send"
+          >
+            <ArrowRight className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       {/* Tiles menu - bouncy popup above input */}

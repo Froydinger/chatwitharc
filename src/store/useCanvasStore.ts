@@ -64,7 +64,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   // Code mode defaults
   canvasType: 'writing',
   codeLanguage: 'typescript',
-  showCodePreview: true,
+  showCodePreview: false, // Default to showing code editor so users see generation
 
   openCanvas: (initialContent = '') => {
     const initialVersion: CanvasVersion = {
@@ -129,7 +129,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       pendingPrompt: null,
       canvasType: 'code',
       codeLanguage: language,
-      showCodePreview: true,
+      showCodePreview: false, // Show code editor by default
       isAIWriting: false,
     });
   },
@@ -153,7 +153,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       pendingPrompt: null,
       canvasType: type,
       codeLanguage: language,
-      showCodePreview: true,
+      showCodePreview: false, // Show code editor by default
       isAIWriting: false,
     });
   },
@@ -221,7 +221,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       isAIWriting: true,
       canvasType: mode,
       codeLanguage: language,
-      showCodePreview: mode === 'code',
+      showCodePreview: false, // Always show code editor during generation so users see streaming
       mode: 'sideBySide',
       pendingPrompt: null,
     });
