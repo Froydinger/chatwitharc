@@ -95,8 +95,8 @@ export class AIService {
 
       // Determine which model to use - check sessionStorage (session-only)
       // This allows model changes within a session without persisting to database
-      // Always defaults to Smart & Fast on refresh (sessionStorage is cleared)
-      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash-lite';
+      // Always defaults to Quick on refresh (sessionStorage is cleared)
+      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
 
       // Use longer timeout for canvas/code generation (especially with Gemini 3 Pro)
       const isCanvasOrCode = forceCanvas || forceCode;
@@ -371,7 +371,7 @@ export class AIService {
       let modelToUse = preferredModel;
       if (!modelToUse) {
         // Get model from sessionStorage (same as chat)
-        modelToUse = sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash-lite';
+        modelToUse = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
       }
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
@@ -419,7 +419,7 @@ export class AIService {
       }
 
       // Use session model if no specific model provided
-      const modelToUse = imageModel || sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash-lite';
+      const modelToUse = imageModel || sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
 
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: { 

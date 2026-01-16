@@ -344,6 +344,7 @@ serve(async (req) => {
       // Legacy support
       'google/gemini-2.5-flash',
       'google/gemini-2.5-flash-lite',
+      'google/gemini-3-flash-preview',  // New default
       'openai/gpt-5-mini'
     ];
     if (model && !allowedModels.includes(model)) {
@@ -1096,7 +1097,7 @@ Output the complete, finished writing using the update_canvas tool.`;
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: model || 'google/gemini-2.5-flash',
+            model: model || 'google/gemini-3-flash-preview',
             messages: conversationMessages,
             // No tools on second call - just synthesize the results
             max_tokens: 65536, // Maximum output - no truncation

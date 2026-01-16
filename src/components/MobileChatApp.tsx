@@ -172,10 +172,10 @@ export function MobileChatApp() {
 
   // Initialize session model to Smart & Fast on mount (resets on refresh)
   useEffect(() => {
-    // Only set if not already set - this ensures it defaults to Smart & Fast on refresh
+    // Only set if not already set - this ensures it defaults to Quick on refresh
     // but preserves user changes during the session
     if (!sessionStorage.getItem('arc_session_model')) {
-      sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash-lite');
+      sessionStorage.setItem('arc_session_model', 'google/gemini-3-flash-preview');
     }
   }, []);
 
@@ -509,8 +509,8 @@ export function MobileChatApp() {
     const newSessionId = createNewSession();
     navigate(`/chat/${newSessionId}`);
 
-    // Reset model to Smart & Fast for new chat (session only)
-    sessionStorage.setItem("arc_session_model", "google/gemini-2.5-flash-lite");
+    // Reset model to Quick for new chat (session only)
+    sessionStorage.setItem("arc_session_model", "google/gemini-3-flash-preview");
   };
 
   const handleDrop = (e: React.DragEvent) => {
