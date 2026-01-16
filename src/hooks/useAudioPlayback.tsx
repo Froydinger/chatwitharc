@@ -19,7 +19,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   
   const [isPlaying, setIsPlaying] = useState(false);
   
-  const { setOutputAmplitude, status } = useVoiceModeStore();
+  const { setOutputAmplitude, setIsAudioPlaying, status } = useVoiceModeStore();
   
   // Resume AudioContext when app returns from background (iOS/Android)
   useEffect(() => {
@@ -83,6 +83,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     
     source.start();
     setIsPlaying(true);
+    setIsAudioPlaying(true);
     isPlayingRef.current = true;
     
     source.onended = () => {
@@ -91,6 +92,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
       // Don't continue if interrupted
       if (isInterruptedRef.current) {
         setIsPlaying(false);
+        setIsAudioPlaying(false);
         isPlayingRef.current = false;
         return;
       }
@@ -101,6 +103,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
         playAudioChunk(nextChunk);
       } else {
         setIsPlaying(false);
+        setIsAudioPlaying(false);
         isPlayingRef.current = false;
       }
     };

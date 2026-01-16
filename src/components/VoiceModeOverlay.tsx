@@ -17,6 +17,7 @@ export function VoiceModeOverlay() {
     status,
     inputAmplitude,
     outputAmplitude,
+    isAudioPlaying,
     currentTranscript,
     isMuted,
     deactivateVoiceMode,
@@ -118,7 +119,7 @@ export function VoiceModeOverlay() {
 
             {/* Interrupt button - show when AI is speaking OR audio is still playing */}
             <AnimatePresence>
-              {(status === 'speaking' || outputAmplitude > 0.01) && (
+              {(status === 'speaking' || isAudioPlaying) && (
                 <motion.button
                   initial={{ opacity: 0, scale: 0.8, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
