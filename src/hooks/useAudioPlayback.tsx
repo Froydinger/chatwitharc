@@ -168,6 +168,9 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     isPlayingRef.current = false;
     setIsPlaying(false);
     setOutputAmplitude(0);
+    
+    // Reset interrupted flag so next session can play audio
+    isInterruptedRef.current = false;
   }, [setOutputAmplitude]);
 
   // Update output amplitude when speaking

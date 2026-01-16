@@ -420,8 +420,7 @@ export function VoiceModeOverlay() {
             </div>
           </motion.div>
 
-          {/* Voice mode controller (handles actual connection logic) */}
-          <VoiceModeController />
+          {/* VoiceModeController is mounted in MobileChatApp.tsx to prevent duplicate instances */}
         </>
       )}
     </AnimatePresence>

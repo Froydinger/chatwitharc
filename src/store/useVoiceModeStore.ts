@@ -96,6 +96,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       status: 'idle',
       inputAmplitude: 0,
       outputAmplitude: 0,
+      isAudioPlaying: false,
       currentTranscript: '',
       isMuted: false,
       generatedImage: null,
