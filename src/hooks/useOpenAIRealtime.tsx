@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { useVoiceModeStore, VoiceName } from '@/store/useVoiceModeStore';
 
 interface UseOpenAIRealtimeOptions {
@@ -9,7 +9,14 @@ interface UseOpenAIRealtimeOptions {
 
 export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   const wsRef = useRef<WebSocket | null>(null);
+  const connectingRef = useRef(false);
   const [isConnected, setIsConnected] = useState(false);
+  
+  // Use refs for callbacks to avoid recreating handlers
+  const optionsRef = useRef(options);
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
   
   const { 
     setStatus, 
@@ -19,11 +26,13 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   } = useVoiceModeStore();
 
   const connect = useCallback(async (systemPrompt?: string) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      console.log('Already connected to OpenAI Realtime');
+    // Prevent duplicate connections
+    if (wsRef.current?.readyState === WebSocket.OPEN || connectingRef.current) {
+      console.log('Already connected or connecting to OpenAI Realtime');
       return;
     }
 
+    connectingRef.current = true;
     setStatus('connecting');
 
     try {
@@ -36,6 +45,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       ws.onopen = () => {
         console.log('Connected to OpenAI Realtime proxy');
+        connectingRef.current = false;
         setIsConnected(true);
         setStatus('listening');
         
@@ -72,25 +82,30 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
-        options.onError?.('Connection error');
+        connectingRef.current = false;
+        optionsRef.current.onError?.('Connection error');
         setStatus('idle');
         setIsConnected(false);
       };
 
       ws.onclose = () => {
         console.log('Disconnected from OpenAI Realtime');
+        connectingRef.current = false;
         setIsConnected(false);
         setStatus('idle');
       };
 
     } catch (error) {
       console.error('Failed to connect:', error);
-      options.onError?.('Failed to connect to voice service');
+      connectingRef.current = false;
+      optionsRef.current.onError?.('Failed to connect to voice service');
       setStatus('idle');
     }
-  }, [selectedVoice, setStatus, options]);
+  }, [selectedVoice, setStatus]);
 
   const handleServerEvent = useCallback((event: any) => {
+    const { setStatus, setCurrentTranscript, addConversationTurn, currentTranscript } = useVoiceModeStore.getState();
+    
     switch (event.type) {
       case 'session.created':
         console.log('Session created:', event.session?.id);
@@ -111,28 +126,28 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'conversation.item.input_audio_transcription.completed':
         // User's speech transcribed
         const userTranscript = event.transcript || '';
+        console.log('User said:', userTranscript);
         setCurrentTranscript(userTranscript);
         addConversationTurn({
           role: 'user',
           transcript: userTranscript,
           timestamp: new Date()
         });
-        options.onTranscriptUpdate?.(userTranscript, true);
+        optionsRef.current.onTranscriptUpdate?.(userTranscript, true);
         break;
 
       case 'response.audio_transcript.delta':
         // AI is speaking - partial transcript
         setStatus('speaking');
         const partialTranscript = event.delta || '';
-        // Update transcript by appending to current state
-        const currentState = useVoiceModeStore.getState();
-        setCurrentTranscript(currentState.currentTranscript + partialTranscript);
-        options.onTranscriptUpdate?.(partialTranscript, false);
+        setCurrentTranscript(currentTranscript + partialTranscript);
+        optionsRef.current.onTranscriptUpdate?.(partialTranscript, false);
         break;
 
       case 'response.audio_transcript.done':
         // AI finished speaking transcript
         const aiTranscript = event.transcript || '';
+        console.log('AI said:', aiTranscript);
         addConversationTurn({
           role: 'assistant',
           transcript: aiTranscript,
@@ -149,22 +164,22 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             bytes[i] = binaryString.charCodeAt(i);
           }
           const audioData = new Int16Array(bytes.buffer);
-          options.onAudioData?.(audioData);
+          optionsRef.current.onAudioData?.(audioData);
         }
         break;
 
       case 'response.done':
-        // Response complete
+        // Response complete - back to listening
         setStatus('listening');
         setCurrentTranscript('');
         break;
 
       case 'error':
         console.error('Server error:', event.error);
-        options.onError?.(event.error?.message || 'Server error');
+        optionsRef.current.onError?.(event.error?.message || 'Server error');
         break;
     }
-  }, [setStatus, setCurrentTranscript, addConversationTurn, options]);
+  }, []);
 
   const disconnect = useCallback(() => {
     if (wsRef.current) {

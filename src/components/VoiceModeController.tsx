@@ -63,35 +63,46 @@ export function VoiceModeController() {
             variant: 'destructive',
           });
           deactivateVoiceMode();
+          hasConnectedRef.current = false;
         }
       };
 
       initVoiceMode();
     }
-
-    return () => {
-      if (!isActive && hasConnectedRef.current) {
-        hasConnectedRef.current = false;
-      }
-    };
   }, [isActive, connect, startCapture, toast, deactivateVoiceMode]);
 
-  // Disconnect when voice mode deactivates
+  // Disconnect when voice mode deactivates  
   useEffect(() => {
-    if (!isActive && hasConnectedRef.current) {
+    // Track previous isActive state
+    return () => {
+      // This runs when component unmounts or isActive changes
+    };
+  }, []);
+  
+  // Use a separate ref to track if we need to save on deactivate
+  const wasActiveRef = useRef(isActive);
+  
+  useEffect(() => {
+    const wasActive = wasActiveRef.current;
+    wasActiveRef.current = isActive;
+    
+    if (wasActive && !isActive && hasConnectedRef.current) {
       stopCapture();
       stopPlayback();
       disconnect();
       hasConnectedRef.current = false;
 
+      // Get fresh conversation turns from store
+      const { conversationTurns, clearConversation } = useVoiceModeStore.getState();
+      
       // Save conversation to chat history
       if (conversationTurns.length > 0) {
+        console.log('Saving voice conversation:', conversationTurns.length, 'turns');
         conversationTurns.forEach((turn) => {
           addMessage({
             content: turn.transcript,
             role: turn.role,
             type: 'text',
-            // Mark as voice-sourced (could add a 'source' field if needed)
           });
         });
 
@@ -99,9 +110,11 @@ export function VoiceModeController() {
           title: 'Conversation saved',
           description: `${conversationTurns.length} messages added to chat`,
         });
+        
+        clearConversation();
       }
     }
-  }, [isActive, conversationTurns, stopCapture, stopPlayback, disconnect, addMessage, toast]);
+  }, [isActive, stopCapture, stopPlayback, disconnect, addMessage, toast]);
 
   // Update voice when selection changes
   useEffect(() => {
