@@ -88,9 +88,10 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       const scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
       
       scriptProcessor.onaudioprocess = (event) => {
-        // Check mute state from store
-        const { isMuted } = useVoiceModeStore.getState();
-        if (isMuted) return; // Don't send audio when muted
+        // Check mute state AND speaking state from store
+        // Don't send audio when muted OR when AI is speaking (prevents echo/feedback)
+        const { isMuted, status } = useVoiceModeStore.getState();
+        if (isMuted || status === 'speaking') return;
         
         const inputData = event.inputBuffer.getChannelData(0);
         
