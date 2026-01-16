@@ -21,6 +21,7 @@ interface VoiceModeState {
   // Audio levels for orb animation
   inputAmplitude: number;
   outputAmplitude: number;
+  isAudioPlaying: boolean;
   
   // Transcripts
   currentTranscript: string;
@@ -43,6 +44,7 @@ interface VoiceModeState {
   setStatus: (status: VoiceStatus) => void;
   setInputAmplitude: (amplitude: number) => void;
   setOutputAmplitude: (amplitude: number) => void;
+  setIsAudioPlaying: (playing: boolean) => void;
   setCurrentTranscript: (transcript: string) => void;
   addConversationTurn: (turn: VoiceTurn) => void;
   clearConversation: () => void;
@@ -64,6 +66,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   isMuted: false,
   inputAmplitude: 0,
   outputAmplitude: 0,
+  isAudioPlaying: false,
   currentTranscript: '',
   conversationTurns: [],
   selectedVoice: 'cedar',
@@ -107,6 +110,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   setInputAmplitude: (amplitude) => set({ inputAmplitude: amplitude }),
   
   setOutputAmplitude: (amplitude) => set({ outputAmplitude: amplitude }),
+  
+  setIsAudioPlaying: (playing) => set({ isAudioPlaying: playing }),
   
   setCurrentTranscript: (transcript) => set({ currentTranscript: transcript }),
   
