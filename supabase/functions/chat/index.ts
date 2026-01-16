@@ -273,16 +273,17 @@ serve(async (req) => {
 
     console.log('Authenticated user:', user.id);
 
-    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode } = await req.json();
+    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream } = await req.json();
 
     console.log('📊 Request details:', {
-      model: model || 'google/gemini-2.5-flash (default)',
+      model: model || 'google/gemini-3-flash-preview (default)',
       messageCount: messages?.length || 0,
       hasProfile: !!profile,
       sessionId: sessionId || 'none (will not save in background)',
       forceWebSearch: !!forceWebSearch,
       forceCanvas: !!forceCanvas,
-      forceCode: !!forceCode
+      forceCode: !!forceCode,
+      stream: !!stream
     });
 
     // Input validation
@@ -623,6 +624,184 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
     console.log('🤖 Making AI request with model:', selectedModel);
     console.log('📋 Tools provided to AI:', toolsToUse.map(t => t.function.name));
     
+    // ========== STREAMING MODE FOR CANVAS/CODE ==========
+    // When stream=true and in canvas/code mode, stream the content directly to the client
+    if (stream && isCanvasOrCodeMode) {
+      console.log('🌊 Using streaming mode for canvas/code');
+      
+      const streamResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: conversationMessages,
+          tools: toolsToUse,
+          tool_choice: toolChoice,
+          stream: true,
+          ...tokenParam,
+        }),
+      });
+      
+      if (!streamResponse.ok) {
+        const errorData = await streamResponse.text();
+        console.error('Streaming error:', streamResponse.status, errorData);
+        
+        if (streamResponse.status === 429) {
+          return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        if (streamResponse.status === 402) {
+          return new Response(JSON.stringify({ error: 'Payment required' }), {
+            status: 402,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        return new Response(JSON.stringify({ error: `AI error: ${streamResponse.status}` }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // Transform the AI stream to extract tool call arguments
+      const reader = streamResponse.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+      
+      const encoder = new TextEncoder();
+      const decoder = new TextDecoder();
+      
+      let toolCallId = '';
+      let toolName = '';
+      let argumentsBuffer = '';
+      let lastSentLength = 0;
+      
+      const transformStream = new ReadableStream({
+        async start(controller) {
+          // Send initial event to indicate streaming started
+          const mode = wantsCode ? 'code' : 'canvas';
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'start', mode })}\n\n`));
+          
+          try {
+            let buffer = '';
+            
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              
+              buffer += decoder.decode(value, { stream: true });
+              
+              // Process complete SSE events
+              let newlineIndex: number;
+              while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+                let line = buffer.slice(0, newlineIndex);
+                buffer = buffer.slice(newlineIndex + 1);
+                
+                if (line.endsWith('\r')) line = line.slice(0, -1);
+                if (!line.startsWith('data: ')) continue;
+                
+                const jsonStr = line.slice(6).trim();
+                if (jsonStr === '[DONE]') continue;
+                
+                try {
+                  const parsed = JSON.parse(jsonStr);
+                  const delta = parsed.choices?.[0]?.delta;
+                  
+                  // Handle tool calls with streaming arguments
+                  if (delta?.tool_calls) {
+                    for (const tc of delta.tool_calls) {
+                      if (tc.id) toolCallId = tc.id;
+                      if (tc.function?.name) toolName = tc.function.name;
+                      if (tc.function?.arguments) {
+                        argumentsBuffer += tc.function.arguments;
+                        
+                        // Try to extract content from partial JSON
+                        // Look for "content": " pattern and extract subsequent characters
+                        const contentMatch = argumentsBuffer.match(/"content"\s*:\s*"((?:[^"\\]|\\.)*)$/);
+                        if (contentMatch) {
+                          // We have partial content - send it
+                          const partialContent = contentMatch[1]
+                            .replace(/\\n/g, '\n')
+                            .replace(/\\"/g, '"')
+                            .replace(/\\\\/g, '\\');
+                          
+                          // Only send if we have new content
+                          if (partialContent.length > lastSentLength) {
+                            const newContent = partialContent.slice(lastSentLength);
+                            lastSentLength = partialContent.length;
+                            
+                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                              type: 'delta', 
+                              content: newContent 
+                            })}\n\n`));
+                          }
+                        }
+                      }
+                    }
+                  }
+                } catch {
+                  // Incomplete JSON, continue
+                }
+              }
+            }
+            
+            // Parse final arguments to get complete content
+            let finalContent = '';
+            let label = '';
+            let language = '';
+            
+            try {
+              const args = JSON.parse(argumentsBuffer);
+              if (wantsCode) {
+                finalContent = args.code || '';
+                language = args.language || 'html';
+                label = args.label || '';
+              } else {
+                finalContent = args.content || '';
+                label = args.label || '';
+              }
+            } catch (e) {
+              console.error('Failed to parse tool arguments:', e);
+            }
+            
+            // Send final complete event
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+              type: 'done',
+              mode: wantsCode ? 'code' : 'canvas',
+              content: finalContent,
+              label,
+              language
+            })}\n\n`));
+            
+            controller.close();
+          } catch (error) {
+            console.error('Stream processing error:', error);
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+              type: 'error', 
+              message: error instanceof Error ? error.message : 'Stream error' 
+            })}\n\n`));
+            controller.close();
+          }
+        }
+      });
+      
+      return new Response(transformStream, {
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive'
+        }
+      });
+    }
+    
+    // ========== NON-STREAMING MODE ==========
     let response: Response;
     let usedFallback = false;
     

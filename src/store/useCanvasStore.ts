@@ -37,6 +37,8 @@ interface CanvasState {
   setContent: (content: string, saveToHistory?: boolean) => void;
   setAIContent: (content: string, label?: string) => void;
   setAIWriting: (isWriting: boolean) => void;
+  streamContent: (delta: string) => void;
+  startStreaming: (mode: CanvasType, language?: string) => void;
   setCodeLanguage: (language: string) => void;
   setShowCodePreview: (show: boolean) => void;
   saveVersion: (label?: string) => void;
@@ -210,6 +212,26 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   setAIWriting: (isWriting: boolean) => set({ isAIWriting: isWriting }),
+
+  // Start streaming mode - opens canvas and clears content
+  startStreaming: (mode: CanvasType, language = 'typescript') => {
+    set({
+      isOpen: true,
+      content: '',
+      isAIWriting: true,
+      canvasType: mode,
+      codeLanguage: language,
+      showCodePreview: mode === 'code',
+      mode: 'sideBySide',
+      pendingPrompt: null,
+    });
+  },
+
+  // Append streamed content
+  streamContent: (delta: string) => {
+    const state = get();
+    set({ content: state.content + delta });
+  },
 
   setCodeLanguage: (language: string) => set({ codeLanguage: language }),
   

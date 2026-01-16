@@ -203,6 +203,110 @@ export class AIService {
     }
   }
 
+  // Streaming method for canvas/code content
+  async sendMessageStreaming(
+    messages: AIMessage[],
+    profile?: { display_name?: string | null; context_info?: string | null; memory_info?: string | null; preferred_model?: string | null },
+    forceCanvas: boolean = false,
+    forceCode: boolean = false,
+    onStart?: (mode: 'canvas' | 'code') => void,
+    onDelta?: (content: string) => void,
+    onDone?: (result: { mode: 'canvas' | 'code'; content: string; label?: string; language?: string }) => void,
+    onError?: (error: string) => void
+  ): Promise<void> {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('Chat service is not available. Please configure Supabase.');
+    }
+
+    // Get model from session storage
+    const selectedModel = sessionStorage.getItem('arc-session-model') || 'google/gemini-3-flash-preview';
+
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({
+        messages,
+        profile,
+        model: selectedModel,
+        forceCanvas,
+        forceCode,
+        stream: true
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        onError?.('Rate limit exceeded. Please try again later.');
+        return;
+      }
+      if (response.status === 402) {
+        onError?.('Payment required. Please add credits.');
+        return;
+      }
+      const text = await response.text();
+      onError?.(`Request failed: ${text}`);
+      return;
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      onError?.('No response body');
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete SSE events
+        let newlineIndex: number;
+        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+          let line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (!line.startsWith('data: ')) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]' || !jsonStr) continue;
+
+          try {
+            const event = JSON.parse(jsonStr);
+
+            if (event.type === 'start') {
+              onStart?.(event.mode);
+            } else if (event.type === 'delta') {
+              onDelta?.(event.content);
+            } else if (event.type === 'done') {
+              onDone?.({
+                mode: event.mode,
+                content: event.content,
+                label: event.label,
+                language: event.language
+              });
+            } else if (event.type === 'error') {
+              onError?.(event.message);
+            }
+          } catch {
+            // Incomplete JSON, continue
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Stream reading error:', error);
+      onError?.(error instanceof Error ? error.message : 'Stream error');
+    }
+  }
+
   async sendMessageWithImage(messages: AIMessage[], base64Images: string | string[]): Promise<string> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Image analysis service is not available. Please configure Supabase.');
