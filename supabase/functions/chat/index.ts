@@ -599,8 +599,20 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
 
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
-    const selectedModel = model || 'google/gemini-3-flash-preview';
+    let selectedModel = model || 'google/gemini-3-flash-preview';
     const fallbackModel = 'google/gemini-3-flash-preview'; // Fallback for canvas/code if Pro times out
+    
+    // For code mode, upgrade to the best model for each provider
+    // Gemini: use gemini-3-pro-preview, GPT: use gpt-5.2
+    if (wantsCode) {
+      if (selectedModel.startsWith('google/')) {
+        selectedModel = 'google/gemini-3-pro-preview';
+        console.log('🔧 Code mode: upgraded Gemini model to gemini-3-pro-preview');
+      } else if (selectedModel.startsWith('openai/')) {
+        selectedModel = 'openai/gpt-5.2';
+        console.log('🔧 Code mode: upgraded GPT model to gpt-5.2');
+      }
+    }
     
     // OpenAI models use max_completion_tokens, Gemini uses max_tokens
     const isOpenAIModel = selectedModel.startsWith('openai/');
@@ -630,9 +642,16 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
         }),
       });
     } catch (primaryError) {
-      // If canvas/code mode with Gemini 3 Pro fails, try fallback to Flash
-      if (isCanvasOrCodeMode && selectedModel === 'google/gemini-3-pro-preview') {
-        console.log('⚠️ Primary model failed, trying fallback:', fallbackModel);
+      // If canvas/code mode with upgraded model fails, try fallback
+      const isUpgradedModel = selectedModel === 'google/gemini-3-pro-preview' || selectedModel === 'openai/gpt-5.2';
+      if (isCanvasOrCodeMode && isUpgradedModel) {
+        // For GPT fallback, use gpt-5-nano; for Gemini fallback, use gemini-3-flash-preview
+        const actualFallback = selectedModel.startsWith('openai/') ? 'openai/gpt-5-nano' : fallbackModel;
+        const fallbackTokenParam = actualFallback.startsWith('openai/') 
+          ? { max_completion_tokens: 65536 }
+          : { max_tokens: 65536 };
+        
+        console.log('⚠️ Primary model failed, trying fallback:', actualFallback);
         usedFallback = true;
         response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
@@ -641,11 +660,11 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: fallbackModel,
+            model: actualFallback,
             messages: conversationMessages,
             tools: toolsToUse,
             tool_choice: toolChoice,
-            max_tokens: 65536, // Fallback is always Gemini
+            ...fallbackTokenParam,
           }),
         });
       } else {
