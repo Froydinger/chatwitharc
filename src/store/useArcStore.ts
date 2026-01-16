@@ -343,8 +343,8 @@ export const useArcStore = create<ArcState>()(
           }
         }
 
-        // Reset model selection to default (Smart & Fast) for new chat
-        sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash-lite');
+        // Reset model selection to default (Quick) for new chat
+        sessionStorage.setItem('arc_session_model', 'google/gemini-3-flash-preview');
 
         // Clear the canvas store for the new session (sync - no await needed)
         useCanvasStore.getState().hydrateFromSession('');
@@ -384,7 +384,7 @@ export const useArcStore = create<ArcState>()(
         }
 
         // Reset model selection to default
-        sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash-lite');
+        sessionStorage.setItem('arc_session_model', 'google/gemini-3-flash-preview');
 
         // Clear the canvas store
         useCanvasStore.getState().hydrateFromSession('');
@@ -433,8 +433,8 @@ export const useArcStore = create<ArcState>()(
         if (session) {
           console.log('Loading session:', sessionId, 'with', session.messages.length, 'messages');
 
-          // Reset model selection to default (Smart & Fast) when switching to any chat
-          sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash-lite');
+          // Reset model selection to default (Quick) when switching to any chat
+          sessionStorage.setItem('arc_session_model', 'google/gemini-3-flash-preview');
 
           set({
             currentSessionId: sessionId,

@@ -289,16 +289,23 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
   // Track current session model for brain icon state
   const [sessionModel, setSessionModel] = useState<string>(() =>
-    sessionStorage.getItem('arc_session_model') || 'google/gemini-2.5-flash-lite'
+    sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview'
   );
+  
+  // Track provider for cycling through correct models
+  const [modelProvider, setModelProvider] = useState<'gemini' | 'gpt'>(() => {
+    const stored = sessionStorage.getItem('arc_model_provider');
+    return (stored === 'gpt' ? 'gpt' : 'gemini') as 'gemini' | 'gpt';
+  });
 
-  // Auto-switch to Gemini 3 Pro when code/ mode is active (it's way better at code)
+  // Auto-switch to Pro when code/ mode is active (it's way better at code)
   useEffect(() => {
-    if (shouldShowCodeMode && sessionModel !== 'google/gemini-3-pro-preview') {
-      sessionStorage.setItem('arc_session_model', 'google/gemini-3-pro-preview');
-      setSessionModel('google/gemini-3-pro-preview');
+    const proModel = modelProvider === 'gpt' ? 'openai/gpt-5' : 'google/gemini-3-pro-preview';
+    if (shouldShowCodeMode && sessionModel !== proModel) {
+      sessionStorage.setItem('arc_session_model', proModel);
+      setSessionModel(proModel);
     }
-  }, [shouldShowCodeMode, sessionModel]);
+  }, [shouldShowCodeMode, sessionModel, modelProvider]);
 
   // Textarea auto-resize with cursor position preservation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -374,19 +381,23 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     onImagesChange?.(selectedImages.length > 0);
   }, [selectedImages.length, onImagesChange]);
 
-  // Sync session model state with sessionStorage (for chat switching)
+  // Sync session model and provider state with sessionStorage (for chat switching)
   useEffect(() => {
-    const syncSessionModel = () => {
+    const syncSessionState = () => {
       const storedModel = sessionStorage.getItem('arc_session_model');
+      const storedProvider = sessionStorage.getItem('arc_model_provider');
       if (storedModel && storedModel !== sessionModel) {
         setSessionModel(storedModel);
+      }
+      if (storedProvider && storedProvider !== modelProvider) {
+        setModelProvider(storedProvider as 'gemini' | 'gpt');
       }
     };
 
     // Check periodically to detect external changes (e.g., from chat switching)
-    const interval = setInterval(syncSessionModel, 300);
+    const interval = setInterval(syncSessionState, 300);
     return () => clearInterval(interval);
-  }, [sessionModel]);
+  }, [sessionModel, modelProvider]);
 
   // Close tiles on outside click / esc
   useEffect(() => {
@@ -1318,12 +1329,18 @@ ${existingCode}
           portalRoot
         )}
 
-        {/* Brain Icon Toggle - hidden on mobile when typing */}
+        {/* Brain Icon Toggle - cycles through model tiers */}
         <button
           onClick={async (e) => {
-            const newModel = sessionModel === "google/gemini-3-pro-preview"
-              ? "google/gemini-2.5-flash-lite"
-              : "google/gemini-3-pro-preview";
+            // Define model tiers for each provider
+            const geminiTiers = ['google/gemini-3-flash-preview', 'google/gemini-3-pro-preview'];
+            const gptTiers = ['openai/gpt-5-nano', 'openai/gpt-5.2', 'openai/gpt-5'];
+            
+            const currentTiers = modelProvider === 'gpt' ? gptTiers : geminiTiers;
+            const currentIndex = currentTiers.indexOf(sessionModel);
+            const nextIndex = (currentIndex + 1) % currentTiers.length;
+            const newModel = currentTiers[nextIndex];
+            
             try {
               // Get button center position for popup
               const rect = e.currentTarget.getBoundingClientRect();
@@ -1335,26 +1352,39 @@ ${existingCode}
               // Update profile for UI persistence (optional)
               await updateProfile({ preferred_model: newModel });
 
+              // Determine tier name based on model
+              let tierName = 'Quick';
+              if (newModel === 'google/gemini-3-pro-preview' || newModel === 'openai/gpt-5') {
+                tierName = 'Wise & Thoughtful';
+              } else if (newModel === 'openai/gpt-5.2') {
+                tierName = 'Smarter & Quick';
+              }
+
               // Show bouncy popup from brain icon
-              showPopup(
-                newModel === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast",
-                rect.left + rect.width / 2,
-                rect.top + rect.height / 2
-              );
+              showPopup(tierName, rect.left + rect.width / 2, rect.top + rect.height / 2);
             } catch (e) {
               console.error("Failed to toggle model:", e);
             }
           }}
           className={[
             "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-            sessionModel === "google/gemini-3-pro-preview"
+            // Highlight when using Pro/Wise tier
+            (sessionModel === "google/gemini-3-pro-preview" || sessionModel === "openai/gpt-5")
               ? "!bg-primary/20 text-primary ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
-              : "text-muted-foreground hover:text-foreground",
+              : sessionModel === "openai/gpt-5.2"
+                ? "!bg-primary/10 text-primary ring-1 ring-primary/50"
+                : "text-muted-foreground hover:text-foreground",
             // Hide on mobile when typing (isActive), show on desktop always
             isActive ? "hidden sm:flex" : "flex",
           ].join(" ")}
           aria-label="Toggle AI model"
-          title={sessionModel === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast"}
+          title={
+            sessionModel === "google/gemini-3-pro-preview" || sessionModel === "openai/gpt-5" 
+              ? "Wise & Thoughtful" 
+              : sessionModel === "openai/gpt-5.2" 
+                ? "Smarter & Quick" 
+                : "Quick"
+          }
         >
           <Brain className="h-5 w-5" />
         </button>

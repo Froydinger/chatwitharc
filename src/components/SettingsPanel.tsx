@@ -104,26 +104,40 @@ export function SettingsPanel() {
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Session-only model preference (resets on refresh/new session)
-  // Always default to Smart & Fast - no persistence across sessions/refreshes
-  const [sessionModel, setSessionModel] = useState<string>('google/gemini-2.5-flash-lite');
+  // Default to Quick (Gemini 3 Flash)
+  const [sessionModel, setSessionModel] = useState<string>('google/gemini-3-flash-preview');
+  
+  // Provider toggle: 'gemini' or 'gpt'
+  const [modelProvider, setModelProvider] = useState<'gemini' | 'gpt'>(() => {
+    const stored = sessionStorage.getItem('arc_model_provider');
+    return (stored === 'gpt' ? 'gpt' : 'gemini') as 'gemini' | 'gpt';
+  });
   
   // Initialize and sync session model
   useEffect(() => {
-    // Clear any stored model on component mount to ensure fresh start
-    sessionStorage.removeItem('arc_session_model');
-    sessionStorage.setItem('arc_session_model', 'google/gemini-2.5-flash-lite');
+    // Get stored values or set defaults
+    const storedModel = sessionStorage.getItem('arc_session_model');
+    const storedProvider = sessionStorage.getItem('arc_model_provider');
     
-    // Sync local state with sessionStorage when it changes (e.g., when new chat is created)
+    if (!storedModel) {
+      sessionStorage.setItem('arc_session_model', 'google/gemini-3-flash-preview');
+    } else {
+      setSessionModel(storedModel);
+    }
+    
+    if (storedProvider) {
+      setModelProvider(storedProvider as 'gemini' | 'gpt');
+    }
+    
+    // Sync local state with sessionStorage when it changes
     const handleStorageSync = () => {
-      const storedModel = sessionStorage.getItem('arc_session_model');
-      if (storedModel) {
-        setSessionModel(storedModel);
-      }
+      const model = sessionStorage.getItem('arc_session_model');
+      const provider = sessionStorage.getItem('arc_model_provider');
+      if (model) setSessionModel(model);
+      if (provider) setModelProvider(provider as 'gemini' | 'gpt');
     };
     
-    // Check periodically to detect external changes
     const interval = setInterval(handleStorageSync, 500);
-    
     return () => clearInterval(interval);
   }, []);
 
@@ -591,33 +605,74 @@ export function SettingsPanel() {
             </div>
 
             {/* AI Model Selector */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
                 <Label className="text-foreground font-medium">AI Model</Label>
-                <p className="text-sm text-muted-foreground mt-1">Choose response speed and quality</p>
+                <p className="text-sm text-muted-foreground mt-1">Choose your AI provider and response quality</p>
               </div>
+              
+              {/* Provider Toggle */}
+              <div className="flex items-center gap-2 p-1 rounded-full glass border border-glass-border w-fit">
+                <button
+                  onClick={() => {
+                    setModelProvider('gemini');
+                    sessionStorage.setItem('arc_model_provider', 'gemini');
+                    // Reset to Gemini Quick
+                    const newModel = 'google/gemini-3-flash-preview';
+                    sessionStorage.setItem('arc_session_model', newModel);
+                    setSessionModel(newModel);
+                  }}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    modelProvider === 'gemini' 
+                      ? 'bg-primary/20 text-primary ring-1 ring-primary' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Gemini
+                </button>
+                <button
+                  onClick={() => {
+                    setModelProvider('gpt');
+                    sessionStorage.setItem('arc_model_provider', 'gpt');
+                    // Reset to GPT Quick
+                    const newModel = 'openai/gpt-5-nano';
+                    sessionStorage.setItem('arc_session_model', newModel);
+                    setSessionModel(newModel);
+                  }}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    modelProvider === 'gpt' 
+                      ? 'bg-primary/20 text-primary ring-1 ring-primary' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  GPT
+                </button>
+              </div>
+              
+              {/* Model Tier Selector */}
               <Select
                 value={sessionModel}
                 onValueChange={(value) => {
-                  // Store in sessionStorage only (not database)
                   sessionStorage.setItem('arc_session_model', value);
                   setSessionModel(value);
 
                   console.log('⚙️ Model changed in Settings:', {
+                    provider: modelProvider,
                     newModel: value,
-                    isWise: value === 'google/gemini-3-pro-preview',
-                    isFast: value === 'google/gemini-2.5-flash-lite',
                     sessionStorageValue: sessionStorage.getItem('arc_session_model')
                   });
 
                   // Get position from the selector trigger
                   const rect = modelSelectorRef.current?.getBoundingClientRect();
                   if (rect) {
-                    showPopup(
-                      value === "google/gemini-3-pro-preview" ? "Wise & Thoughtful" : "Smart & Fast",
-                      rect.left + rect.width / 2,
-                      rect.top + rect.height / 2
-                    );
+                    // Determine tier name based on model
+                    let tierName = 'Quick';
+                    if (value === 'google/gemini-3-pro-preview' || value === 'openai/gpt-5') {
+                      tierName = 'Wise & Thoughtful';
+                    } else if (value === 'openai/gpt-5.2') {
+                      tierName = 'Smarter & Quick';
+                    }
+                    showPopup(tierName, rect.left + rect.width / 2, rect.top + rect.height / 2);
                   }
                 }}
               >
@@ -625,18 +680,43 @@ export function SettingsPanel() {
                   <SelectValue placeholder="Select model" />
                 </SelectTrigger>
                 <SelectContent className="glass border-glass-border">
-                  <SelectItem value="google/gemini-2.5-flash-lite">
-                    <div className="flex flex-col items-start">
-                      <span className="font-medium">Smart & Fast</span>
-                      <span className="text-xs text-muted-foreground">Quick responses, great for most tasks</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="google/gemini-3-pro-preview">
-                    <div className="flex flex-col items-start">
-                      <span className="font-medium">Wise & Thoughtful</span>
-                      <span className="text-xs text-muted-foreground">Deep thinking for complex questions</span>
-                    </div>
-                  </SelectItem>
+                  {modelProvider === 'gemini' ? (
+                    <>
+                      <SelectItem value="google/gemini-3-flash-preview">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">Quick</span>
+                          <span className="text-xs text-muted-foreground">Fast responses for most tasks</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="google/gemini-3-pro-preview">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">Wise & Thoughtful</span>
+                          <span className="text-xs text-muted-foreground">Deep thinking for complex questions</span>
+                        </div>
+                      </SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="openai/gpt-5-nano">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">Quick</span>
+                          <span className="text-xs text-muted-foreground">Fast responses for most tasks</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="openai/gpt-5.2">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">Smarter & Quick</span>
+                          <span className="text-xs text-muted-foreground">Balanced speed and quality</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="openai/gpt-5">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">Wise & Thoughtful</span>
+                          <span className="text-xs text-muted-foreground">Deep thinking for complex questions</span>
+                        </div>
+                      </SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
