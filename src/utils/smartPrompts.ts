@@ -40,6 +40,8 @@ export async function fetchPersonalizedPrompts(
   }
 
   try {
+    // Pass selected model for personalized prompt generation
+    const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
     const { data, error } = await supabase.functions.invoke('generate-personalized-prompts', {
       body: {
         profile: profile ? {
@@ -50,6 +52,7 @@ export async function fetchPersonalizedPrompts(
         recentChats: chatSessions.slice(0, 5).map(chat => ({
           title: chat.title,
         })),
+        model: selectedModel
       },
     });
 

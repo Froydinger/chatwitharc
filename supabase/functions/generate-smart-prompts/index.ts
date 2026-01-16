@@ -17,6 +17,15 @@ serve(async (req) => {
       throw new Error('No authorization header');
     }
 
+    // Parse request body for model parameter
+    let model = 'google/gemini-3-flash-preview';
+    try {
+      const body = await req.json();
+      if (body?.model) model = body.model;
+    } catch {
+      // No body or invalid JSON, use default model
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -98,6 +107,9 @@ Example format:
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
+    // Use passed model for prompt generation
+    console.log('Using model for smart prompts:', model);
+
     // Call AI to generate prompts
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -106,7 +118,7 @@ Example format:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: 'Generate 6 personalized smart prompts for me based on my profile and chat history.' }

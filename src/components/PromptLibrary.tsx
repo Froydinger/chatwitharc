@@ -71,12 +71,15 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
 
     try {
       console.log(`🎲 Generating fresh AI prompts for ${category}...`);
+      // Pass selected model for prompt generation
+      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
       const { data, error } = await supabase.functions.invoke('generate-category-prompts', {
         body: {
           category,
           // Pass timestamp to ensure backend generates fresh prompts
           timestamp: Date.now(),
-          forceRefresh: forceRefresh
+          forceRefresh: forceRefresh,
+          model: selectedModel
         }
       });
 
@@ -179,8 +182,10 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
 
       setIsLoadingSmartPrompts(true);
 
+      // Pass selected model for smart prompt generation
+      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
       supabase.functions
-        .invoke('generate-smart-prompts')
+        .invoke('generate-smart-prompts', { body: { model: selectedModel } })
         .then(({ data, error }) => {
           if (error) {
             console.error('Failed to generate smart prompts:', error);

@@ -49,7 +49,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, image, images } = await req.json();
+    const { messages, image, images, model } = await req.json();
 
     // Support both single image and multiple images (up to 4)
     const imageArray = images || (image ? [image] : []);
@@ -88,7 +88,10 @@ serve(async (req) => {
       contentArray.push({ type: 'image_url', image_url: { url: img } });
     });
 
-    // Use Gemini for vision capabilities
+    // Use passed model for vision capabilities (defaults to Gemini 3 Flash)
+    const selectedModel = model || 'google/gemini-3-flash-preview';
+    console.log('Using model for image analysis:', selectedModel);
+    
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -96,7 +99,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: selectedModel,
         messages: [
           {
             role: 'system',
