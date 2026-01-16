@@ -11,6 +11,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useAccentColor } from "@/hooks/useAccentColor";
 import { AIService } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { useStreamingWithContinuation } from "@/hooks/useStreamingWithContinuation";
 // Memory detection disabled - using chat history search instead
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
@@ -270,6 +271,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
   const { openSearchMode } = useSearchStore();
+  const { streamWithContinuation } = useStreamingWithContinuation();
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -969,26 +971,27 @@ ${existingCode}
           wasSearchMode
         });
 
-        // Always use streaming for all messages
-        const aiService = new AIService();
+        // Always use streaming for all messages - with auto-continuation for incomplete code
         let streamedContent = '';
         let streamMode: 'canvas' | 'code' | 'text' = shouldForceCode ? 'code' : shouldForceCanvas ? 'canvas' : 'text';
-        let streamLabel = '';
-        let streamLanguage = 'html';
-        let streamWebSources: any[] = [];
         let streamingMessageId: string | null = null;
         
         // Create AbortController for this request
         currentAbortController = new AbortController();
         const abortSignal = currentAbortController.signal;
         
-        await aiService.sendMessageStreaming(
-          aiMessages,
+        await streamWithContinuation({
+          messages: aiMessages,
           profile,
-          shouldForceCanvas,
-          shouldForceCode,
+          forceCanvas: shouldForceCanvas,
+          forceCode: shouldForceCode,
+          sessionId: currentSessionId || undefined,
+          forceWebSearch: wasSearchMode && !shouldForceCode && !shouldForceCanvas,
+          abortSignal,
+          maxContinuations: 3, // Allow up to 3 auto-continuations for long code
+          
           // onStart - open canvas immediately if canvas/code mode, or add placeholder message for text
-          async (mode) => {
+          onStart: async (mode) => {
             streamMode = mode;
             if (mode === 'code' || mode === 'canvas') {
               const { startStreaming } = useCanvasStore.getState();
@@ -1002,8 +1005,9 @@ ${existingCode}
               });
             }
           },
+          
           // onDelta - stream content to canvas or update message
-          (delta) => {
+          onDelta: (delta) => {
             streamedContent += delta;
             if (streamMode === 'code' || streamMode === 'canvas') {
               const { streamContent } = useCanvasStore.getState();
@@ -1014,11 +1018,19 @@ ${existingCode}
               editMessage(streamingMessageId, streamedContent + '▍');
             }
           },
-          // onDone - finalize
-          async (result) => {
-            streamLabel = result.label || '';
-            streamLanguage = result.language || 'html';
-            streamWebSources = result.webSources || [];
+          
+          // onContinuing - show toast when auto-continuation kicks in
+          onContinuing: () => {
+            toast({ 
+              title: "Continuing generation...", 
+              description: "Code was incomplete, automatically continuing where it left off.",
+              variant: "default"
+            });
+          },
+          
+          // onDone - finalize (result includes wasContinued flag)
+          onDone: async (result) => {
+            const streamWebSources = result.webSources || [];
             
             // Determine memory action
             let memoryAction: any = undefined;
@@ -1032,6 +1044,15 @@ ${existingCode}
               setCodeLanguage(result.language || 'html');
               // Save to history
               await upsertCodeMessage(result.content, result.language || 'html', result.label, memoryAction);
+              
+              // Show completion toast if it was continued
+              if (result.wasContinued) {
+                toast({
+                  title: "Code generation complete!",
+                  description: "Successfully continued and finished the code.",
+                  variant: "default"
+                });
+              }
             } else if (result.mode === 'canvas') {
               const { setAIWriting } = useCanvasStore.getState();
               setAIWriting(false);
@@ -1054,8 +1075,9 @@ ${existingCode}
               }
             }
           },
+          
           // onError
-          (errorMsg) => {
+          onError: (errorMsg) => {
             if (streamMode === 'code' || streamMode === 'canvas') {
               const { setAIWriting } = useCanvasStore.getState();
               setAIWriting(false);
@@ -1069,11 +1091,8 @@ ${existingCode}
             if (!abortSignal.aborted) {
               toast({ title: "Error", description: errorMsg, variant: "destructive" });
             }
-          },
-          currentSessionId || undefined,
-          wasSearchMode && !shouldForceCode && !shouldForceCanvas,
-          abortSignal
-        );
+          }
+        });
         
         // Clean up abort controller
         currentAbortController = null;
