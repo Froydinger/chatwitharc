@@ -105,25 +105,44 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
       }),
       Markdown,
     ],
-    content: "",
+    content: content || "", // Initialize with current store content
     onUpdate: ({ editor: ed }) => {
       const md = editorGetMarkdown(ed as ReturnType<typeof useEditor>);
       if (md !== undefined && md !== content) {
         setContent(md, false);
       }
     },
-  });
+  }, [isCodeMode]); // Re-create editor when switching modes
 
   // Sync editor when store content changes (writing mode only)
+  // Use a ref to track if we need to force sync on editor ready
+  const lastSyncedContent = useRef<string>("");
+  
   useEffect(() => {
     if (!editor || isCodeMode) return;
     
     const currentMd = editorGetMarkdown(editor);
-    // Always sync if content differs - handles both streaming updates and initial load
-    if (content !== undefined && currentMd !== content) {
+    // Sync if content differs from what's in the editor
+    if (content !== undefined && currentMd !== content && content !== lastSyncedContent.current) {
       editor.commands.setContent(content, { contentType: 'markdown' });
+      lastSyncedContent.current = content;
     }
   }, [content, editor, isCodeMode]);
+  
+  // Force sync when editor becomes ready (handles initial mount race condition)
+  useEffect(() => {
+    if (!editor || isCodeMode) return;
+    
+    // Small delay to ensure editor is fully initialized
+    const timer = setTimeout(() => {
+      if (content && content !== lastSyncedContent.current) {
+        editor.commands.setContent(content, { contentType: 'markdown' });
+        lastSyncedContent.current = content;
+      }
+    }, 50);
+    
+    return () => clearTimeout(timer);
+  }, [editor, isCodeMode]); // Only run when editor changes (becomes ready)
 
   // Word/char counts
   const { wordCount, charCount, lineCount } = useMemo(() => {
