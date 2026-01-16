@@ -276,10 +276,10 @@ export function ChatHistoryPanel() {
                   key={`${session.type}-${session.id}`}
                   className={cn(
                     "p-4 cursor-pointer group transition-all rounded-2xl border",
-                    "bg-background/40 backdrop-blur-sm",
+                    "bg-background",
                     isActive
-                      ? "border-primary/40 bg-primary/5 shadow-lg shadow-primary/5"
-                      : "border-border/20 hover:border-border/40 hover:bg-background/60"
+                      ? "border-primary/50 bg-primary/10 shadow-lg shadow-primary/10"
+                      : "border-border hover:border-primary/30 hover:bg-muted/50"
                   )}
                   onClick={() => handleLoadSession(session.id)}
                 >
