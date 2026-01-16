@@ -343,8 +343,7 @@ export const useArcStore = create<ArcState>()(
           }
         }
 
-        // Reset model selection to default (Quick) for new chat
-        sessionStorage.setItem('arc_session_model', 'google/gemini-3-flash-preview');
+        // Don't reset model selection on new chat - preserve user's choice within session
 
         // Clear the canvas store for the new session (sync - no await needed)
         useCanvasStore.getState().hydrateFromSession('');
@@ -383,8 +382,7 @@ export const useArcStore = create<ArcState>()(
           }
         }
 
-        // Reset model selection to default
-        sessionStorage.setItem('arc_session_model', 'google/gemini-3-flash-preview');
+        // Don't reset model selection - preserve user's choice within session
 
         // Clear the canvas store
         useCanvasStore.getState().hydrateFromSession('');
@@ -433,8 +431,7 @@ export const useArcStore = create<ArcState>()(
         if (session) {
           console.log('Loading session:', sessionId, 'with', session.messages.length, 'messages');
 
-          // Reset model selection to default (Quick) when switching to any chat
-          sessionStorage.setItem('arc_session_model', 'google/gemini-3-flash-preview');
+          // Don't reset model selection when switching chats - preserve user's choice within session
 
           set({
             currentSessionId: sessionId,
