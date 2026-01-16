@@ -1,7 +1,15 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search } from "lucide-react";
+import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { VoiceModeController } from "./VoiceModeController";
+import { useCallback, useRef } from "react";
+
+// Global ref to allow interrupt from overlay
+let globalInterruptHandler: (() => void) | null = null;
+
+export function setGlobalInterruptHandler(handler: (() => void) | null) {
+  globalInterruptHandler = handler;
+}
 
 export function VoiceModeOverlay() {
   const {
@@ -18,6 +26,12 @@ export function VoiceModeOverlay() {
     setGeneratedImage,
     isSearching,
   } = useVoiceModeStore();
+
+  const handleInterrupt = useCallback(() => {
+    if (globalInterruptHandler) {
+      globalInterruptHandler();
+    }
+  }, []);
 
   if (!isActive) return null;
 
@@ -101,6 +115,24 @@ export function VoiceModeOverlay() {
                 <Mic className="w-6 h-6 text-foreground" />
               )}
             </motion.button>
+
+            {/* Interrupt button - only show when AI is speaking */}
+            <AnimatePresence>
+              {status === 'speaking' && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, y: 20 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  onClick={handleInterrupt}
+                  className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 px-6 py-3 rounded-full bg-primary/20 hover:bg-primary/30 border border-primary/30 transition-colors flex items-center gap-2"
+                  aria-label="Interrupt AI"
+                >
+                  <Hand className="w-5 h-5 text-primary" />
+                  <span className="text-sm font-medium text-primary">Tap to interrupt</span>
+                </motion.button>
+              )}
+            </AnimatePresence>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               {/* Search Loading Indicator */}

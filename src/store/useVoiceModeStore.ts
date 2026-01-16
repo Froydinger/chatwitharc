@@ -54,6 +54,7 @@ interface VoiceModeState {
   setLastGeneratedImageUrl: (url: string | null) => void;
   attachImageToLastAssistantTurn: () => void;
   setIsSearching: (searching: boolean) => void;
+  interruptAI: () => void;
 }
 
 export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
@@ -150,5 +151,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
     };
   }),
   
-  setIsSearching: (searching) => set({ isSearching: searching })
+  setIsSearching: (searching) => set({ isSearching: searching }),
+  
+  // Interrupt action - will be connected to actual interrupt logic externally
+  interruptAI: () => set({ status: 'listening' })
 }));

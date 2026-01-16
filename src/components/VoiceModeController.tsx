@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AIService } from '@/services/ai';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
+import { setGlobalInterruptHandler } from './VoiceModeOverlay';
 
 const aiService = new AIService();
 
@@ -243,7 +244,7 @@ export function VoiceModeController() {
   }, [setIsSearching, startLoadingMusic, stopLoadingMusic]);
 
   // OpenAI Realtime connection
-  const { isConnected, connect, disconnect, sendAudio, updateVoice } = useOpenAIRealtime({
+  const { isConnected, connect, disconnect, sendAudio, updateVoice, cancelResponse } = useOpenAIRealtime({
     onAudioData: (audioData) => {
       queueAudio(audioData);
     },
@@ -265,6 +266,22 @@ export function VoiceModeController() {
     onImageDismiss: handleImageDismiss,
     onWebSearch: handleWebSearch,
   });
+
+  // Manual interrupt handler for the UI button
+  const handleManualInterrupt = useCallback(() => {
+    console.log('Manual interrupt triggered');
+    cancelResponse();
+    clearQueue();
+    useVoiceModeStore.getState().setStatus('listening');
+  }, [cancelResponse, clearQueue]);
+
+  // Register the interrupt handler globally so VoiceModeOverlay can use it
+  useEffect(() => {
+    setGlobalInterruptHandler(handleManualInterrupt);
+    return () => {
+      setGlobalInterruptHandler(null);
+    };
+  }, [handleManualInterrupt]);
 
   // Audio capture from microphone
   const { startCapture, stopCapture } = useAudioCapture({
