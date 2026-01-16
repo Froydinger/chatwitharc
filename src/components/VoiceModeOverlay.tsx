@@ -1,15 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand } from "lucide-react";
+import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
-import { VoiceModeController } from "./VoiceModeController";
-import { useCallback, useRef } from "react";
-
-// Global ref to allow interrupt from overlay
-let globalInterruptHandler: (() => void) | null = null;
-
-export function setGlobalInterruptHandler(handler: (() => void) | null) {
-  globalInterruptHandler = handler;
-}
 
 export function VoiceModeOverlay() {
   const {
@@ -28,37 +19,6 @@ export function VoiceModeOverlay() {
     isSearching,
   } = useVoiceModeStore();
 
-  const handleInterrupt = useCallback(() => {
-    if (globalInterruptHandler) {
-      globalInterruptHandler();
-    }
-  }, []);
-
-  const handleInterruptPress = useCallback(
-    (e: React.PointerEvent<HTMLButtonElement> | React.MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      handleInterrupt();
-    },
-    [handleInterrupt]
-  );
-
-  // Handle orb tap to interrupt when AI is speaking
-  const handleOrbTap = useCallback(
-    (e: React.PointerEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      // Only interrupt when AI is speaking
-      if (status === 'speaking') {
-        // Trigger haptic feedback on supported devices
-        if (navigator.vibrate) {
-          navigator.vibrate(50);
-        }
-        handleInterrupt();
-      }
-    },
-    [status, handleInterrupt]
-  );
 
   if (!isActive) return null;
 
@@ -143,24 +103,7 @@ export function VoiceModeOverlay() {
               )}
             </motion.button>
 
-            {/* Interrupt button - show when AI is speaking OR audio is still playing */}
-            <AnimatePresence>
-              {(status === 'speaking' || isAudioPlaying) && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, y: 20 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  onPointerDown={handleInterruptPress}
-                  onClick={handleInterruptPress}
-                  className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 px-6 py-3 rounded-full bg-primary/20 hover:bg-primary/30 border border-primary/30 transition-colors flex items-center gap-2"
-                  aria-label="Interrupt AI"
-                >
-                  <Hand className="w-5 h-5 text-primary" />
-                  <span className="text-sm font-medium text-primary">Tap to interrupt</span>
-                </motion.button>
-              )}
-            </AnimatePresence>
+            {/* Interrupt happens automatically via VAD - no manual button needed */}
 
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               {/* Search Loading Indicator */}
@@ -268,9 +211,9 @@ export function VoiceModeOverlay() {
                 )}
               </AnimatePresence>
 
-              {/* Animated liquid orb - tappable to interrupt when speaking */}
+              {/* Animated liquid orb */}
               <motion.div
-                className={`relative ${status === 'speaking' ? 'cursor-pointer' : ''}`}
+                className="relative"
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ 
                   scale: 1, 
@@ -279,10 +222,6 @@ export function VoiceModeOverlay() {
                 }}
                 exit={{ scale: 0, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                onPointerDown={status === 'speaking' ? handleOrbTap : undefined}
-                onClick={status === 'speaking' ? handleOrbTap : undefined}
-                role={status === 'speaking' ? 'button' : undefined}
-                aria-label={status === 'speaking' ? 'Tap to interrupt' : undefined}
               >
                 {/* Outer glow rings */}
                 <motion.div

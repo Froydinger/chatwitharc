@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useVoiceModeStore } from '@/store/useVoiceModeStore';
 import { useOpenAIRealtime } from '@/hooks/useOpenAIRealtime';
 import { useAudioCapture } from '@/hooks/useAudioCapture';
@@ -8,7 +8,6 @@ import { useToast } from '@/hooks/use-toast';
 import { AIService } from '@/services/ai';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
-import { setGlobalInterruptHandler } from './VoiceModeOverlay';
 
 const aiService = new AIService();
 
@@ -100,7 +99,7 @@ function summarizeRecentChats(messages: Message[], maxMessages = 20): string {
   
   return `Here's what was discussed recently in our text chat (you can reference this naturally if relevant):\n${summary}`;
 }
-const LOADING_MUSIC_VOLUME = 0.14; // 14% volume for elevator music during loading
+const LOADING_MUSIC_VOLUME = 0.05; // 5% volume for elevator music during loading - very quiet
 
 export function VoiceModeController() {
   const { toast } = useToast();
@@ -267,22 +266,7 @@ export function VoiceModeController() {
     onWebSearch: handleWebSearch,
   });
 
-  // Manual interrupt handler for the UI button
-  const handleManualInterrupt = useCallback(() => {
-    console.log('Manual interrupt triggered');
-    cancelResponse();
-    clearQueue();
-    useVoiceModeStore.getState().setStatus('listening');
-  }, [cancelResponse, clearQueue]);
-
-  // Register the interrupt handler globally so VoiceModeOverlay can use it
-  // Use layout effect so it's available before the user can tap the button.
-  useLayoutEffect(() => {
-    setGlobalInterruptHandler(handleManualInterrupt);
-    return () => {
-      setGlobalInterruptHandler(null);
-    };
-  }, [handleManualInterrupt]);
+  // Manual interrupt is handled automatically by server VAD when user starts speaking
 
   // Audio capture from microphone
   const { startCapture, stopCapture } = useAudioCapture({
