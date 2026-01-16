@@ -772,27 +772,56 @@ Output the complete, finished writing using the update_canvas tool.`;
                         // - update_canvas tool streams "content"
                         // - update_code tool streams "code"
                         const streamKey = wantsCode || toolName === 'update_code' ? 'code' : 'content';
-                        
-                        // Try to match partial content (incomplete JSON - still being streamed)
-                        // The $ anchor matches content that ends mid-string (no closing quote yet)
-                        let keyMatch = argumentsBuffer.match(new RegExp(`"${streamKey}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)$`));
-                        
-                        // Also try to match complete content (closed quote) for models that send larger chunks
-                        if (!keyMatch) {
-                          keyMatch = argumentsBuffer.match(new RegExp(`"${streamKey}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`));
-                        }
-                        
-                        if (keyMatch) {
-                          const partialValue = keyMatch[1]
-                            .replace(/\\n/g, '\n')
-                            .replace(/\\"/g, '"')
-                            .replace(/\\\\/g, '\\')
-                            .replace(/\\t/g, '\t');
 
-                          // Only send if we have new content
-                          if (partialValue.length > lastSentToolLength) {
-                            const newContent = partialValue.slice(lastSentToolLength);
-                            lastSentToolLength = partialValue.length;
+                        // Robust extraction for both Gemini + GPT streaming:
+                        // Models may send tool arguments in many chunks or big chunks. Regex-only approaches
+                        // often fail when the JSON contains additional fields after the streamed string.
+                        const extractLatestStringValue = (bufferStr: string, key: string): string | null => {
+                          const keyIdx = bufferStr.lastIndexOf(`"${key}"`);
+                          if (keyIdx === -1) return null;
+
+                          const colonIdx = bufferStr.indexOf(':', keyIdx);
+                          if (colonIdx === -1) return null;
+
+                          // Find the opening quote for the string value
+                          const quoteIdx = bufferStr.indexOf('"', colonIdx);
+                          if (quoteIdx === -1) return null;
+
+                          let i = quoteIdx + 1;
+                          let escaped = false;
+                          for (; i < bufferStr.length; i++) {
+                            const ch = bufferStr[i];
+                            if (escaped) {
+                              escaped = false;
+                              continue;
+                            }
+                            if (ch === '\\') {
+                              escaped = true;
+                              continue;
+                            }
+                            if (ch === '"') {
+                              // Found closing quote
+                              break;
+                            }
+                          }
+
+                          const raw = i < bufferStr.length
+                            ? bufferStr.slice(quoteIdx + 1, i)
+                            : bufferStr.slice(quoteIdx + 1); // Unterminated string, take to end
+
+                          return raw
+                            .replace(/\\n/g, '\n')
+                            .replace(/\\t/g, '\t')
+                            .replace(/\\r/g, '\r')
+                            .replace(/\\"/g, '"')
+                            .replace(/\\\\/g, '\\');
+                        };
+
+                        const currentValue = extractLatestStringValue(argumentsBuffer, streamKey);
+                        if (currentValue) {
+                          if (currentValue.length > lastSentToolLength) {
+                            const newContent = currentValue.slice(lastSentToolLength);
+                            lastSentToolLength = currentValue.length;
 
                             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                               type: 'delta',
