@@ -97,39 +97,23 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'input_audio_buffer.speech_started':
-        // User started speaking - debounce to prevent false interrupts on iOS
+        // User started speaking - immediately interrupt if AI is speaking
         const { status: currentStatus } = useVoiceModeStore.getState();
         speechStartedAt = Date.now();
         
         if (currentStatus === 'speaking') {
-          // Clear any existing timeout
-          if (interruptTimeoutId) {
-            clearTimeout(interruptTimeoutId);
+          // Cancel the AI response immediately - no debounce for interrupts
+          console.log('User speech detected while AI speaking - interrupting immediately');
+          if (globalWs?.readyState === WebSocket.OPEN) {
+            globalWs.send(JSON.stringify({ type: 'response.cancel' }));
           }
-          
-          // Debounce: wait 300ms before interrupting to filter out brief noises
-          interruptTimeoutId = setTimeout(() => {
-            // Only interrupt if still detecting speech after 300ms
-            if (speechStartedAt && Date.now() - speechStartedAt >= 280) {
-              console.log('Sustained speech detected (300ms+) - interrupting AI');
-              if (globalWs?.readyState === WebSocket.OPEN) {
-                globalWs.send(JSON.stringify({ type: 'response.cancel' }));
-              }
-              optionsRef.current.onInterrupt?.();
-            }
-            interruptTimeoutId = null;
-          }, 300);
+          // Clear audio queue immediately so user doesn't hear more AI speech
+          optionsRef.current.onInterrupt?.();
         }
         setStatus('listening');
         break;
 
       case 'input_audio_buffer.speech_stopped':
-        // Cancel pending interrupt if speech was too brief
-        if (interruptTimeoutId) {
-          console.log('Brief noise detected, not interrupting');
-          clearTimeout(interruptTimeoutId);
-          interruptTimeoutId = null;
-        }
         speechStartedAt = null;
         setStatus('thinking');
         break;

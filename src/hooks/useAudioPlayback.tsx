@@ -15,10 +15,30 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   const animationFrameRef = useRef<number | null>(null);
   const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const isInterruptedRef = useRef(false);
+  const visibilityHandlerRef = useRef<(() => void) | null>(null);
   
   const [isPlaying, setIsPlaying] = useState(false);
   
   const { setOutputAmplitude, status } = useVoiceModeStore();
+  
+  // Resume AudioContext when app returns from background (iOS/Android)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && audioContextRef.current) {
+        if (audioContextRef.current.state === 'suspended') {
+          console.log('Resuming playback AudioContext after background');
+          audioContextRef.current.resume().catch(console.error);
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    visibilityHandlerRef.current = handleVisibilityChange;
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   const initAudioContext = useCallback(() => {
     if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
