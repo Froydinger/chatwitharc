@@ -16,12 +16,12 @@ export const CanvasAttachment = ({
   canvasLabel,
   className
 }: CanvasAttachmentProps) => {
-  const { hydrateFromSession, reopenCanvas } = useCanvasStore();
+  const { openWithContent } = useCanvasStore();
 
   const handleOpen = () => {
-    // Hydrate canvas with this content and open it
-    hydrateFromSession(canvasContent);
-    reopenCanvas();
+    // Use atomic openWithContent to set content AND open canvas in one operation
+    // This prevents race conditions where editor re-initializes with empty content
+    openWithContent(canvasContent, 'writing');
   };
 
   // Generate preview from content if not provided

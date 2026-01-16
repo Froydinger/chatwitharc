@@ -17,11 +17,11 @@ export function CodeArtifactCard({
   codeLabel,
   className
 }: CodeArtifactCardProps) {
-  const { hydrateFromSession, reopenCanvas } = useCanvasStore();
+  const { openWithContent } = useCanvasStore();
 
   const handleOpen = () => {
-    hydrateFromSession(codeContent, 'code', codeLanguage);
-    reopenCanvas();
+    // Use atomic openWithContent to prevent race conditions
+    openWithContent(codeContent, 'code', codeLanguage);
   };
 
   // Get first 3-4 lines for preview
