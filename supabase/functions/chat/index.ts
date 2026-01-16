@@ -624,10 +624,11 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
     console.log('🤖 Making AI request with model:', selectedModel);
     console.log('📋 Tools provided to AI:', toolsToUse.map(t => t.function.name));
     
-    // ========== STREAMING MODE FOR CANVAS/CODE ==========
-    // When stream=true and in canvas/code mode, stream the content directly to the client
-    if (stream && isCanvasOrCodeMode) {
-      console.log('🌊 Using streaming mode for canvas/code');
+    // ========== STREAMING MODE ==========
+    // When stream=true, stream content directly to client (for all message types)
+    if (stream) {
+      const isCanvasOrCodeMode = wantsCode || wantsCanvas;
+      console.log('🌊 Using streaming mode', isCanvasOrCodeMode ? 'for canvas/code' : 'for text');
       
       const streamResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
@@ -668,7 +669,7 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
         });
       }
       
-      // Transform the AI stream to extract tool call arguments
+      // Transform the AI stream to extract content (tool calls for canvas/code, or regular content for text)
       const reader = streamResponse.body?.getReader();
       if (!reader) {
         throw new Error('No response body');
@@ -677,15 +678,21 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
       const encoder = new TextEncoder();
       const decoder = new TextDecoder();
       
+      // For tool calls (canvas/code mode)
       let toolCallId = '';
       let toolName = '';
       let argumentsBuffer = '';
-      let lastSentLength = 0;
+      let lastSentToolLength = 0;
+      
+      // For regular text content
+      let textContent = '';
+      let lastSentTextLength = 0;
+      let isToolCallMode = isCanvasOrCodeMode; // Start based on mode, but can switch based on response
       
       const transformStream = new ReadableStream({
         async start(controller) {
           // Send initial event to indicate streaming started
-          const mode = wantsCode ? 'code' : 'canvas';
+          const mode = wantsCode ? 'code' : wantsCanvas ? 'canvas' : 'text';
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'start', mode })}\n\n`));
           
           try {
@@ -713,8 +720,26 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
                   const parsed = JSON.parse(jsonStr);
                   const delta = parsed.choices?.[0]?.delta;
                   
-                  // Handle tool calls with streaming arguments
+                  // Handle regular text content (for non-tool responses)
+                  if (delta?.content) {
+                    isToolCallMode = false;
+                    textContent += delta.content;
+                    
+                    // Send delta immediately
+                    if (textContent.length > lastSentTextLength) {
+                      const newContent = textContent.slice(lastSentTextLength);
+                      lastSentTextLength = textContent.length;
+                      
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                        type: 'delta', 
+                        content: newContent 
+                      })}\n\n`));
+                    }
+                  }
+                  
+                  // Handle tool calls with streaming arguments (for canvas/code)
                   if (delta?.tool_calls) {
+                    isToolCallMode = true;
                     for (const tc of delta.tool_calls) {
                       if (tc.id) toolCallId = tc.id;
                       if (tc.function?.name) toolName = tc.function.name;
@@ -732,9 +757,9 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
                             .replace(/\\\\/g, '\\');
                           
                           // Only send if we have new content
-                          if (partialContent.length > lastSentLength) {
-                            const newContent = partialContent.slice(lastSentLength);
-                            lastSentLength = partialContent.length;
+                          if (partialContent.length > lastSentToolLength) {
+                            const newContent = partialContent.slice(lastSentToolLength);
+                            lastSentToolLength = partialContent.length;
                             
                             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
                               type: 'delta', 
@@ -751,29 +776,42 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
               }
             }
             
-            // Parse final arguments to get complete content
+            // Determine final content and mode
             let finalContent = '';
             let label = '';
             let language = '';
+            let finalMode = 'text';
             
-            try {
-              const args = JSON.parse(argumentsBuffer);
-              if (wantsCode) {
-                finalContent = args.code || '';
-                language = args.language || 'html';
-                label = args.label || '';
-              } else {
-                finalContent = args.content || '';
-                label = args.label || '';
+            if (isToolCallMode && argumentsBuffer) {
+              // Parse tool arguments
+              try {
+                const args = JSON.parse(argumentsBuffer);
+                if (wantsCode) {
+                  finalContent = args.code || '';
+                  language = args.language || 'html';
+                  label = args.label || '';
+                  finalMode = 'code';
+                } else {
+                  finalContent = args.content || '';
+                  label = args.label || '';
+                  finalMode = 'canvas';
+                }
+              } catch (e) {
+                console.error('Failed to parse tool arguments:', e);
+                // Fall back to accumulated text if tool parsing fails
+                finalContent = textContent;
+                finalMode = 'text';
               }
-            } catch (e) {
-              console.error('Failed to parse tool arguments:', e);
+            } else {
+              // Regular text response
+              finalContent = textContent;
+              finalMode = 'text';
             }
             
             // Send final complete event
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
               type: 'done',
-              mode: wantsCode ? 'code' : 'canvas',
+              mode: finalMode,
               content: finalContent,
               label,
               language
