@@ -11,13 +11,13 @@ export function VoiceModeController() {
   const { addMessage } = useArcStore();
   const {
     isActive,
-    status,
     selectedVoice,
-    conversationTurns,
     deactivateVoiceMode,
   } = useVoiceModeStore();
 
-  const hasConnectedRef = useRef(false);
+  // Track initialization to prevent duplicate setup
+  const initRef = useRef(false);
+  const wasActiveRef = useRef(false);
   const previousVoiceRef = useRef(selectedVoice);
 
   // Audio playback for AI responses
@@ -46,15 +46,22 @@ export function VoiceModeController() {
     },
   });
 
-  // Connect when voice mode activates
+  // Single effect to handle activation/deactivation
   useEffect(() => {
-    if (isActive && !hasConnectedRef.current) {
-      hasConnectedRef.current = true;
+    const justActivated = isActive && !wasActiveRef.current;
+    const justDeactivated = !isActive && wasActiveRef.current;
+    
+    wasActiveRef.current = isActive;
+
+    if (justActivated && !initRef.current) {
+      initRef.current = true;
       
       const initVoiceMode = async () => {
         try {
+          console.log('Initializing voice mode...');
           await connect();
           await startCapture();
+          console.log('Voice mode initialized');
         } catch (error) {
           console.error('Failed to initialize voice mode:', error);
           toast({
@@ -63,34 +70,19 @@ export function VoiceModeController() {
             variant: 'destructive',
           });
           deactivateVoiceMode();
-          hasConnectedRef.current = false;
+          initRef.current = false;
         }
       };
 
       initVoiceMode();
     }
-  }, [isActive, connect, startCapture, toast, deactivateVoiceMode]);
 
-  // Disconnect when voice mode deactivates  
-  useEffect(() => {
-    // Track previous isActive state
-    return () => {
-      // This runs when component unmounts or isActive changes
-    };
-  }, []);
-  
-  // Use a separate ref to track if we need to save on deactivate
-  const wasActiveRef = useRef(isActive);
-  
-  useEffect(() => {
-    const wasActive = wasActiveRef.current;
-    wasActiveRef.current = isActive;
-    
-    if (wasActive && !isActive && hasConnectedRef.current) {
+    if (justDeactivated && initRef.current) {
+      console.log('Deactivating voice mode...');
       stopCapture();
       stopPlayback();
       disconnect();
-      hasConnectedRef.current = false;
+      initRef.current = false;
 
       // Get fresh conversation turns from store
       const { conversationTurns, clearConversation } = useVoiceModeStore.getState();
@@ -114,16 +106,28 @@ export function VoiceModeController() {
         clearConversation();
       }
     }
-  }, [isActive, stopCapture, stopPlayback, disconnect, addMessage, toast]);
+  }, [isActive, connect, disconnect, startCapture, stopCapture, stopPlayback, addMessage, toast, deactivateVoiceMode]);
 
-  // Update voice when selection changes
+  // Update voice when selection changes (only when connected)
   useEffect(() => {
     if (isConnected && selectedVoice !== previousVoiceRef.current) {
+      console.log('Voice changed from', previousVoiceRef.current, 'to', selectedVoice);
       previousVoiceRef.current = selectedVoice;
       updateVoice(selectedVoice);
     }
   }, [selectedVoice, isConnected, updateVoice]);
 
-  // This component doesn't render anything visible - it just manages the connection
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (initRef.current) {
+        stopCapture();
+        stopPlayback();
+        disconnect();
+        initRef.current = false;
+      }
+    };
+  }, [stopCapture, stopPlayback, disconnect]);
+
   return null;
 }
