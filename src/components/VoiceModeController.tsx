@@ -3,16 +3,104 @@ import { useVoiceModeStore } from '@/store/useVoiceModeStore';
 import { useOpenAIRealtime } from '@/hooks/useOpenAIRealtime';
 import { useAudioCapture } from '@/hooks/useAudioCapture';
 import { useAudioPlayback } from '@/hooks/useAudioPlayback';
-import { useArcStore } from '@/store/useArcStore';
+import { useArcStore, Message } from '@/store/useArcStore';
 import { useToast } from '@/hooks/use-toast';
 import { AIService } from '@/services/ai';
 import { supabase } from '@/integrations/supabase/client';
+import { useProfile } from '@/hooks/useProfile';
 
 const aiService = new AIService();
+
+// Build a voice-optimized system prompt from the same source as regular chat
+async function buildVoiceSystemPrompt(
+  profile: { display_name?: string | null; context_info?: string | null; memory_info?: string | null } | null,
+  recentChatSummary: string
+): Promise<string> {
+  try {
+    // Fetch the same admin settings the regular chat uses
+    const { data: settingsData } = await supabase
+      .from('admin_settings')
+      .select('key, value')
+      .in('key', ['system_prompt', 'global_context']);
+
+    const settings = settingsData?.reduce((acc, setting) => {
+      acc[setting.key] = setting.value;
+      return acc;
+    }, {} as Record<string, string>) || {};
+
+    let basePrompt = settings.system_prompt || 'You are Arc AI, a helpful assistant.';
+    const globalContext = settings.global_context || '';
+
+    // Add voice-specific adaptations while keeping the same personality
+    let voicePrompt = basePrompt;
+    
+    // Add voice mode context
+    voicePrompt += `\n\n--- VOICE MODE ---
+You're now in voice conversation mode. Keep everything you know about being Arc, but adapt for spoken dialogue:
+- Speak naturally and conversationally - this is a real-time voice chat
+- Keep responses SHORT - 1-3 sentences usually
+- React naturally like "oh nice!" or "hmm let me think..."
+- Match the energy of whoever you're talking to
+- Be warm, genuine, and present
+- It's okay to pause and think`;
+
+    // Add user context (same as regular chat)
+    if (profile?.display_name) {
+      voicePrompt += `\n\nUser: ${profile.display_name}`;
+    }
+    if (profile?.context_info?.trim()) {
+      voicePrompt += ` | Context: ${profile.context_info}`;
+    }
+    if (profile?.memory_info?.trim()) {
+      voicePrompt += `\n\n📝 Memories: ${profile.memory_info}`;
+    }
+    if (globalContext) {
+      voicePrompt += `\n\nGlobal: ${globalContext}`;
+    }
+
+    // Add recent chat context if available
+    if (recentChatSummary) {
+      voicePrompt += `\n\n--- RECENT CHAT CONTEXT ---\n${recentChatSummary}`;
+    }
+
+    // Add voice-specific tools
+    voicePrompt += `\n\n--- VOICE TOOLS ---
+• IMAGE GENERATION: When user asks to create/draw/show an image, use generate_image. When done with image, use close_image.
+• WEB SEARCH: For current events, news, scores, or real-time info, use web_search. Summarize results conversationally.`;
+
+    return voicePrompt;
+  } catch (error) {
+    console.error('Failed to fetch voice system prompt:', error);
+    // Fallback to a sensible default
+    return `You're Arc - a calm, friendly voice assistant. Be warm, conversational, and keep responses concise.`;
+  }
+}
+
+// Summarize recent chat messages for context
+function summarizeRecentChats(messages: Message[], maxMessages = 20): string {
+  if (!messages || messages.length === 0) return '';
+  
+  // Get the last N messages
+  const recent = messages.slice(-maxMessages);
+  
+  // Create a brief summary
+  const summary = recent.map(msg => {
+    const role = msg.role === 'user' ? 'User' : 'You';
+    // Truncate long messages
+    const content = msg.content.length > 200 
+      ? msg.content.substring(0, 200) + '...'
+      : msg.content;
+    return `${role}: ${content}`;
+  }).join('\n');
+  
+  return `Here's what was discussed recently in our text chat (you can reference this naturally if relevant):\n${summary}`;
+}
 const LOADING_MUSIC_VOLUME = 0.14; // 14% volume for elevator music during loading
+
 export function VoiceModeController() {
   const { toast } = useToast();
-  const { addMessage } = useArcStore();
+  const { addMessage, messages } = useArcStore();
+  const { profile } = useProfile();
   const {
     isActive,
     selectedVoice,
@@ -194,7 +282,13 @@ export function VoiceModeController() {
       const initVoiceMode = async () => {
         try {
           console.log('Initializing voice mode...');
-          await connect();
+          
+          // Build the system prompt with same personality as regular chat + chat history
+          const recentChatSummary = summarizeRecentChats(messages);
+          const voiceSystemPrompt = await buildVoiceSystemPrompt(profile, recentChatSummary);
+          console.log('Voice mode using unified system prompt with chat context');
+          
+          await connect(voiceSystemPrompt);
           await startCapture();
           console.log('Voice mode initialized');
         } catch (error) {
@@ -267,7 +361,7 @@ export function VoiceModeController() {
         clearConversation();
       }
     }
-  }, [isActive, connect, disconnect, startCapture, stopCapture, stopPlayback, stopLoadingMusic, addMessage, toast, deactivateVoiceMode]);
+  }, [isActive, connect, disconnect, startCapture, stopCapture, stopPlayback, stopLoadingMusic, addMessage, toast, deactivateVoiceMode, messages, profile]);
 
   // Update voice when selection changes (only when connected)
   useEffect(() => {
