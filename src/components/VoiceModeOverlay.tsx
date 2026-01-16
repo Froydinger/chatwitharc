@@ -265,7 +265,7 @@ export function VoiceModeOverlay() {
               >
                 {/* Outer glow rings */}
                 <motion.div
-                  className="absolute inset-0 rounded-full"
+                  className="absolute inset-0 rounded-full w-[200px] h-[200px] sm:w-[280px] sm:h-[280px] -ml-[12px] -mt-[12px] sm:-ml-[15px] sm:-mt-[15px]"
                   animate={{
                     scale: [1, 1.2, 1],
                     opacity: [0.3, 0.1, 0.3],
@@ -276,17 +276,13 @@ export function VoiceModeOverlay() {
                     ease: "easeInOut",
                   }}
                   style={{
-                    width: 280,
-                    height: 280,
-                    marginLeft: -15,
-                    marginTop: -15,
                     background: `radial-gradient(circle, hsl(var(--primary) / 0.2), transparent 70%)`,
                   }}
                 />
 
                 {/* Main orb */}
                 <motion.div
-                  className="w-[250px] h-[250px] rounded-full relative overflow-hidden"
+                  className="w-[175px] h-[175px] sm:w-[250px] sm:h-[250px] rounded-full relative overflow-hidden"
                   animate={{
                     scale: orbScale,
                     borderRadius: status === 'speaking' 
