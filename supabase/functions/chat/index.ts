@@ -746,24 +746,26 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
                       if (tc.function?.arguments) {
                         argumentsBuffer += tc.function.arguments;
                         
-                        // Try to extract content from partial JSON
-                        // Look for "content": " pattern and extract subsequent characters
-                        const contentMatch = argumentsBuffer.match(/"content"\s*:\s*"((?:[^"\\]|\\.)*)$/);
-                        if (contentMatch) {
-                          // We have partial content - send it
-                          const partialContent = contentMatch[1]
+                        // Try to extract content/code from partial JSON and stream it.
+                        // - update_canvas tool streams "content"
+                        // - update_code tool streams "code"
+                        const streamKey = wantsCode || toolName === 'update_code' ? 'code' : 'content';
+                        const keyRegex = new RegExp(`"${streamKey}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)$`);
+                        const keyMatch = argumentsBuffer.match(keyRegex);
+                        if (keyMatch) {
+                          const partialValue = keyMatch[1]
                             .replace(/\\n/g, '\n')
                             .replace(/\\"/g, '"')
                             .replace(/\\\\/g, '\\');
-                          
+
                           // Only send if we have new content
-                          if (partialContent.length > lastSentToolLength) {
-                            const newContent = partialContent.slice(lastSentToolLength);
-                            lastSentToolLength = partialContent.length;
-                            
-                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                              type: 'delta', 
-                              content: newContent 
+                          if (partialValue.length > lastSentToolLength) {
+                            const newContent = partialValue.slice(lastSentToolLength);
+                            lastSentToolLength = partialValue.length;
+
+                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                              type: 'delta',
+                              content: newContent
                             })}\n\n`));
                           }
                         }
