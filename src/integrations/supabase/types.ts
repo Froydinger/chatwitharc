@@ -150,6 +150,8 @@ export type Database = {
           id: string
           memory_info: string | null
           preferred_model: string | null
+          preferred_voice: string | null
+          research_model: string | null
           theme_preference: string | null
           updated_at: string | null
           user_id: string
@@ -163,6 +165,8 @@ export type Database = {
           id?: string
           memory_info?: string | null
           preferred_model?: string | null
+          preferred_voice?: string | null
+          research_model?: string | null
           theme_preference?: string | null
           updated_at?: string | null
           user_id: string
@@ -176,6 +180,8 @@ export type Database = {
           id?: string
           memory_info?: string | null
           preferred_model?: string | null
+          preferred_voice?: string | null
+          research_model?: string | null
           theme_preference?: string | null
           updated_at?: string | null
           user_id?: string
