@@ -252,18 +252,6 @@ export function VoiceModeOverlay() {
                 <span className="text-sm font-medium">{getStatusText()}</span>
               </motion.div>
 
-              {/* Live transcript */}
-              {currentTranscript && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-6 max-w-md px-6 text-center"
-                >
-                  <p className="text-lg text-foreground/80 italic">
-                    "{currentTranscript}"
-                  </p>
-                </motion.div>
-              )}
             </div>
           </motion.div>
 
