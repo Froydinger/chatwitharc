@@ -2,7 +2,8 @@ import { create } from 'zustand';
 
 export type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking';
 
-export type VoiceName = 'marin' | 'cedar' | 'coral' | 'sage' | 'alloy' | 'echo' | 'shimmer' | 'ash' | 'ballad' | 'verse' | 'nova' | 'onyx' | 'fable';
+// Reduced to 4 voices: Marina, Cedric, Alex, Oliver
+export type VoiceName = 'marin' | 'cedar' | 'alloy' | 'onyx';
 
 interface VoiceTurn {
   role: 'user' | 'assistant';
@@ -27,6 +28,10 @@ interface VoiceModeState {
   // Voice preference
   selectedVoice: VoiceName;
   
+  // Image generation state
+  generatedImage: string | null;
+  isGeneratingImage: boolean;
+  
   // Actions
   activateVoiceMode: () => void;
   deactivateVoiceMode: () => void;
@@ -39,6 +44,8 @@ interface VoiceModeState {
   setSelectedVoice: (voice: VoiceName) => void;
   setMuted: (muted: boolean) => void;
   toggleMute: () => void;
+  setGeneratedImage: (url: string | null) => void;
+  setIsGeneratingImage: (generating: boolean) => void;
 }
 
 export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
@@ -51,6 +58,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   currentTranscript: '',
   conversationTurns: [],
   selectedVoice: 'cedar',
+  generatedImage: null,
+  isGeneratingImage: false,
   
   // Actions
   activateVoiceMode: () => {
@@ -59,7 +68,9 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       status: 'connecting',
       currentTranscript: '',
       conversationTurns: [],
-      isMuted: false
+      isMuted: false,
+      generatedImage: null,
+      isGeneratingImage: false
     });
   },
   
@@ -70,7 +81,9 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       inputAmplitude: 0,
       outputAmplitude: 0,
       currentTranscript: '',
-      isMuted: false
+      isMuted: false,
+      generatedImage: null,
+      isGeneratingImage: false
     });
   },
   
@@ -95,5 +108,9 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   
   setMuted: (muted) => set({ isMuted: muted }),
   
-  toggleMute: () => set((state) => ({ isMuted: !state.isMuted }))
+  toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+  
+  setGeneratedImage: (url) => set({ generatedImage: url }),
+  
+  setIsGeneratingImage: (generating) => set({ isGeneratingImage: generating })
 }));
