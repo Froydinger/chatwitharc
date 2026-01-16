@@ -1,25 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mic, Volume2 } from "lucide-react";
-import { useVoiceModeStore, VoiceName } from "@/store/useVoiceModeStore";
+import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { VoiceModeController } from "./VoiceModeController";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const VOICE_OPTIONS: { value: VoiceName; label: string }[] = [
-  { value: 'echo', label: 'Echo' },
-  { value: 'alloy', label: 'Alloy' },
-  { value: 'shimmer', label: 'Shimmer' },
-  { value: 'ash', label: 'Ash' },
-  { value: 'ballad', label: 'Ballad' },
-  { value: 'coral', label: 'Coral' },
-  { value: 'sage', label: 'Sage' },
-  { value: 'verse', label: 'Verse' },
-];
 
 export function VoiceModeOverlay() {
   const {
@@ -28,9 +10,7 @@ export function VoiceModeOverlay() {
     inputAmplitude,
     outputAmplitude,
     currentTranscript,
-    selectedVoice,
     deactivateVoiceMode,
-    setSelectedVoice,
   } = useVoiceModeStore();
 
   if (!isActive) return null;
@@ -86,27 +66,6 @@ export function VoiceModeOverlay() {
               <X className="w-6 h-6 text-foreground" />
             </motion.button>
 
-            {/* Voice selector */}
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ delay: 0.15 }}
-              className="absolute top-6 left-6 z-10"
-            >
-              <Select value={selectedVoice} onValueChange={(v) => setSelectedVoice(v as VoiceName)}>
-                <SelectTrigger className="w-32 glass-shimmer border-border/40">
-                  <SelectValue placeholder="Voice" />
-                </SelectTrigger>
-                <SelectContent className="z-[200]">
-                  {VOICE_OPTIONS.map((voice) => (
-                    <SelectItem key={voice.value} value={voice.value}>
-                      {voice.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </motion.div>
 
             {/* Center content */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
