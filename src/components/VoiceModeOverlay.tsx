@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, MicOff, Volume2 } from "lucide-react";
+import { X, Mic, MicOff, Volume2, Loader2, ImageIcon } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { VoiceModeController } from "./VoiceModeController";
 
@@ -13,6 +13,9 @@ export function VoiceModeOverlay() {
     isMuted,
     deactivateVoiceMode,
     toggleMute,
+    generatedImage,
+    isGeneratingImage,
+    setGeneratedImage,
   } = useVoiceModeStore();
 
   if (!isActive) return null;
@@ -33,6 +36,7 @@ export function VoiceModeOverlay() {
   };
 
   const getStatusText = () => {
+    if (isGeneratingImage) return 'Generating image...';
     if (isMuted) return 'Muted';
     switch (status) {
       case 'connecting': return 'Connecting...';
@@ -92,12 +96,86 @@ export function VoiceModeOverlay() {
                 <Mic className="w-6 h-6 text-foreground" />
               )}
             </motion.button>
+
             <div className="absolute inset-0 flex flex-col items-center justify-center">
+              {/* Generated Image Display */}
+              <AnimatePresence>
+                {(generatedImage || isGeneratingImage) && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="absolute top-24 left-1/2 -translate-x-1/2 z-10"
+                  >
+                    {isGeneratingImage ? (
+                      // Loading skeleton
+                      <div className="flex flex-col items-center">
+                        <div className="relative w-[200px] h-[200px] rounded-2xl overflow-hidden bg-muted/30 border border-primary/20">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="flex flex-col items-center gap-3">
+                              <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                              >
+                                <ImageIcon className="w-8 h-8 text-primary/50" />
+                              </motion.div>
+                              <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                            </div>
+                          </div>
+                          {/* Shimmer effect */}
+                          <motion.div
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent"
+                            animate={{ x: ['-100%', '100%'] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                          />
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-3">Creating your image...</p>
+                      </div>
+                    ) : generatedImage ? (
+                      // Generated image
+                      <div className="relative">
+                        <motion.img 
+                          src={generatedImage} 
+                          alt="Generated" 
+                          className="max-w-[280px] max-h-[280px] rounded-2xl shadow-2xl border border-primary/20 object-contain bg-background/50"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.1 }}
+                        />
+                        <motion.button 
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.2 }}
+                          onClick={() => setGeneratedImage(null)}
+                          className="absolute -top-2 -right-2 p-1.5 rounded-full bg-background/90 border border-border shadow-lg hover:bg-muted transition-colors"
+                          aria-label="Close image"
+                        >
+                          <X className="w-4 h-4" />
+                        </motion.button>
+                        <motion.p 
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.3 }}
+                          className="text-center text-xs text-muted-foreground mt-2"
+                        >
+                          Say "close image" or tap × to dismiss
+                        </motion.p>
+                      </div>
+                    ) : null}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Animated liquid orb */}
               <motion.div
                 className="relative"
                 initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
+                animate={{ 
+                  scale: 1, 
+                  opacity: 1,
+                  y: (generatedImage || isGeneratingImage) ? 100 : 0 
+                }}
                 exit={{ scale: 0, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
               >
@@ -243,12 +321,19 @@ export function VoiceModeOverlay() {
               {/* Status text */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                animate={{ 
+                  opacity: 1, 
+                  y: (generatedImage || isGeneratingImage) ? 110 : 0 
+                }}
                 exit={{ opacity: 0, y: 10 }}
                 transition={{ delay: 0.2 }}
                 className="mt-8 flex items-center gap-2 text-muted-foreground"
               >
-                {getStatusIcon()}
+                {isGeneratingImage ? (
+                  <ImageIcon className="w-4 h-4" />
+                ) : (
+                  getStatusIcon()
+                )}
                 <span className="text-sm font-medium">{getStatusText()}</span>
               </motion.div>
 

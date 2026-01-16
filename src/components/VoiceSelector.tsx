@@ -6,20 +6,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-// Import voice avatars
+// Import only the 4 voice avatars we need
 import marinAvatar from '@/assets/voices/marin.png';
 import cedarAvatar from '@/assets/voices/cedar.png';
-import coralAvatar from '@/assets/voices/coral.png';
-import sageAvatar from '@/assets/voices/sage.png';
 import alloyAvatar from '@/assets/voices/alloy.png';
-import echoAvatar from '@/assets/voices/echo.png';
-import shimmerAvatar from '@/assets/voices/shimmer.png';
-import ashAvatar from '@/assets/voices/ash.png';
-import balladAvatar from '@/assets/voices/ballad.png';
-import verseAvatar from '@/assets/voices/verse.png';
-import novaAvatar from '@/assets/voices/nova.png';
 import onyxAvatar from '@/assets/voices/onyx.png';
-import fableAvatar from '@/assets/voices/fable.png';
 
 interface VoiceSelectorProps {
   onSave?: () => void;
@@ -28,34 +19,16 @@ interface VoiceSelectorProps {
 const VOICE_AVATARS: Record<VoiceName, string> = {
   marin: marinAvatar,
   cedar: cedarAvatar,
-  coral: coralAvatar,
-  sage: sageAvatar,
   alloy: alloyAvatar,
-  echo: echoAvatar,
-  shimmer: shimmerAvatar,
-  ash: ashAvatar,
-  ballad: balladAvatar,
-  verse: verseAvatar,
-  nova: novaAvatar,
   onyx: onyxAvatar,
-  fable: fableAvatar,
 };
 
-// Whitelabeled display names (API voice IDs remain unchanged internally)
+// 4 voices only: Marina, Cedric, Alex, Oliver
 const VOICES: { id: VoiceName; name: string; description: string; recommended?: boolean; noPreview?: boolean }[] = [
   { id: 'marin', name: 'Marina', description: 'Expressive & natural', recommended: true, noPreview: true },
   { id: 'cedar', name: 'Cedric', description: 'Natural & smooth', recommended: true, noPreview: true },
-  { id: 'coral', name: 'Cora', description: 'Warm & friendly' },
-  { id: 'sage', name: 'Sadie', description: 'Calm & thoughtful' },
   { id: 'alloy', name: 'Alex', description: 'Neutral & balanced' },
-  { id: 'echo', name: 'Evan', description: 'Clear & direct' },
-  { id: 'shimmer', name: 'Shay', description: 'Bright & energetic' },
-  { id: 'ash', name: 'Ashton', description: 'Soft & gentle' },
-  { id: 'ballad', name: 'Blair', description: 'Expressive & dramatic' },
-  { id: 'verse', name: 'Vera', description: 'Articulate & refined' },
-  { id: 'nova', name: 'Nadia', description: 'Warm & expressive' },
   { id: 'onyx', name: 'Oliver', description: 'Deep & authoritative' },
-  { id: 'fable', name: 'Fiona', description: 'Narrative & engaging' },
 ];
 
 export function VoiceSelector({ onSave }: VoiceSelectorProps) {

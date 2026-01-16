@@ -1,10 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useVoiceModeStore } from '@/store/useVoiceModeStore';
 import { useOpenAIRealtime } from '@/hooks/useOpenAIRealtime';
 import { useAudioCapture } from '@/hooks/useAudioCapture';
 import { useAudioPlayback } from '@/hooks/useAudioPlayback';
 import { useArcStore } from '@/store/useArcStore';
 import { useToast } from '@/hooks/use-toast';
+import { AIService } from '@/services/ai';
+
+const aiService = new AIService();
 
 export function VoiceModeController() {
   const { toast } = useToast();
@@ -13,6 +16,8 @@ export function VoiceModeController() {
     isActive,
     selectedVoice,
     deactivateVoiceMode,
+    setGeneratedImage,
+    setIsGeneratingImage,
   } = useVoiceModeStore();
 
   // Track initialization to prevent duplicate setup
@@ -22,6 +27,30 @@ export function VoiceModeController() {
 
   // Audio playback for AI responses
   const { queueAudio, stopPlayback, clearQueue } = useAudioPlayback();
+
+  // Image generation handler
+  const handleImageGenerate = useCallback(async (prompt: string): Promise<string> => {
+    console.log('VoiceModeController: Generating image with prompt:', prompt);
+    setIsGeneratingImage(true);
+    
+    try {
+      const imageUrl = await aiService.generateImage(prompt);
+      console.log('VoiceModeController: Image generated:', imageUrl);
+      setGeneratedImage(imageUrl);
+      setIsGeneratingImage(false);
+      return imageUrl;
+    } catch (error) {
+      console.error('VoiceModeController: Image generation failed:', error);
+      setIsGeneratingImage(false);
+      throw error;
+    }
+  }, [setGeneratedImage, setIsGeneratingImage]);
+
+  // Image dismiss handler
+  const handleImageDismiss = useCallback(() => {
+    console.log('VoiceModeController: Dismissing image');
+    setGeneratedImage(null);
+  }, [setGeneratedImage]);
 
   // OpenAI Realtime connection
   const { isConnected, connect, disconnect, sendAudio, updateVoice } = useOpenAIRealtime({
@@ -42,6 +71,8 @@ export function VoiceModeController() {
       });
       deactivateVoiceMode();
     },
+    onImageGenerate: handleImageGenerate,
+    onImageDismiss: handleImageDismiss,
   });
 
   // Audio capture from microphone

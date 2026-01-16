@@ -6,6 +6,9 @@ interface UseOpenAIRealtimeOptions {
   onAudioData?: (audioData: Int16Array) => void;
   onError?: (error: string) => void;
   onInterrupt?: () => void;
+  // Image generation callbacks
+  onImageGenerate?: (prompt: string) => Promise<string>;
+  onImageDismiss?: () => void;
 }
 
 // Singleton WebSocket instance to prevent duplicates
@@ -21,6 +24,28 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   useEffect(() => {
     optionsRef.current = options;
   }, [options]);
+
+  // Send function call result back to the session
+  const sendFunctionResult = useCallback((callId: string, result: string) => {
+    if (globalWs?.readyState !== WebSocket.OPEN) return;
+    
+    console.log('Sending function result:', { callId, result });
+    
+    // Send the function call output
+    globalWs.send(JSON.stringify({
+      type: 'conversation.item.create',
+      item: {
+        type: 'function_call_output',
+        call_id: callId,
+        output: result
+      }
+    }));
+    
+    // Trigger a response so the AI reacts to the result
+    globalWs.send(JSON.stringify({
+      type: 'response.create'
+    }));
+  }, []);
 
   const handleServerEvent = useCallback((event: any) => {
     const { setStatus, setCurrentTranscript, addConversationTurn } = useVoiceModeStore.getState();
@@ -112,6 +137,60 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         break;
 
+      case 'response.output_item.done':
+        // Check for function calls
+        if (event.item?.type === 'function_call') {
+          const { name, call_id, arguments: argsStr } = event.item;
+          console.log('Function call received:', { name, call_id, argsStr });
+          
+          if (name === 'generate_image') {
+            try {
+              const args = JSON.parse(argsStr || '{}');
+              const prompt = args.prompt || '';
+              console.log('Generating image with prompt:', prompt);
+              
+              // Call the image generation callback
+              if (optionsRef.current.onImageGenerate) {
+                optionsRef.current.onImageGenerate(prompt)
+                  .then((imageUrl) => {
+                    console.log('Image generated:', imageUrl);
+                    sendFunctionResult(call_id, JSON.stringify({ 
+                      success: true, 
+                      imageUrl,
+                      message: `Image generated successfully. The image is now displayed to the user. Describe what you created based on the prompt: "${prompt}"`
+                    }));
+                  })
+                  .catch((error) => {
+                    console.error('Image generation failed:', error);
+                    sendFunctionResult(call_id, JSON.stringify({ 
+                      success: false, 
+                      error: error.message || 'Failed to generate image'
+                    }));
+                  });
+              } else {
+                sendFunctionResult(call_id, JSON.stringify({ 
+                  success: false, 
+                  error: 'Image generation not available'
+                }));
+              }
+            } catch (e) {
+              console.error('Failed to parse function args:', e);
+              sendFunctionResult(call_id, JSON.stringify({ 
+                success: false, 
+                error: 'Invalid function arguments'
+              }));
+            }
+          } else if (name === 'close_image') {
+            console.log('Closing image');
+            optionsRef.current.onImageDismiss?.();
+            sendFunctionResult(call_id, JSON.stringify({ 
+              success: true, 
+              message: 'Image closed successfully'
+            }));
+          }
+        }
+        break;
+
       case 'response.done':
         // Response complete - back to listening
         setStatus('listening');
@@ -128,7 +207,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         optionsRef.current.onError?.(event.error?.message || 'Server error');
         break;
     }
-  }, []);
+  }, [sendFunctionResult]);
 
   const connect = useCallback(async (systemPrompt?: string) => {
     const { setStatus, selectedVoice } = useVoiceModeStore.getState();
@@ -182,7 +261,9 @@ Personality: You're warm but not over-the-top. You listen well and respond natur
 
 How you talk: Keep it natural and conversational. Speak at a comfortable pace. Use simple, clear language. It's okay to pause and think. Don't overuse filler words or try too hard to be casual. Just be genuine and present.
 
-Style: Keep responses concise - you're having a conversation, not giving a lecture. Match the energy of whoever you're talking to. If they're brief, be brief. If they want to chat more, go with it. Be helpful, be real, be easy to talk to.`,
+Style: Keep responses concise - you're having a conversation, not giving a lecture. Match the energy of whoever you're talking to. If they're brief, be brief. If they want to chat more, go with it. Be helpful, be real, be easy to talk to.
+
+IMAGE GENERATION: You can generate images! When the user asks you to create, generate, draw, show, or make an image of something, use the generate_image function. When they say they're done with the image, want to close it, or say "no more", use the close_image function.`,
             voice: currentVoice,
             input_audio_format: 'pcm16',
             output_audio_format: 'pcm16',
@@ -195,7 +276,34 @@ Style: Keep responses concise - you're having a conversation, not giving a lectu
               prefix_padding_ms: 400,
               silence_duration_ms: 800,
               create_response: true
-            }
+            },
+            // Register image generation tools
+            tools: [
+              {
+                type: 'function',
+                name: 'generate_image',
+                description: 'Generate an image based on user description. Use when user asks to create, generate, show, draw, or make an image or picture of something.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    prompt: {
+                      type: 'string',
+                      description: 'Detailed description of the image to generate'
+                    }
+                  },
+                  required: ['prompt']
+                }
+              },
+              {
+                type: 'function',
+                name: 'close_image',
+                description: 'Close/dismiss the currently displayed image. Use when user says "close image", "no more", "done with the image", "we\'re done", etc.',
+                parameters: {
+                  type: 'object',
+                  properties: {}
+                }
+              }
+            ]
           }
         }));
       };
