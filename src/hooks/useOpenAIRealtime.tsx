@@ -251,6 +251,20 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           console.log('No active response to cancel (harmless)');
           return;
         }
+        
+        // Check if this is a transient/recoverable error (don't crash voice mode)
+        const isTransientError = 
+          event.error?.message?.includes('Connection to AI service failed') ||
+          event.error?.message?.includes('timeout') ||
+          event.error?.message?.includes('rate limit') ||
+          event.error?.code === 'function_call_error';
+        
+        if (isTransientError) {
+          console.warn('Transient server error (voice mode continues):', event.error);
+          // Don't call onError for transient errors - voice mode stays active
+          return;
+        }
+        
         console.error('Server error:', event.error);
         optionsRef.current.onError?.(event.error?.message || 'Server error');
         break;

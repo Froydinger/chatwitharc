@@ -30,6 +30,9 @@ export function VoiceModeController() {
   
   // Audio ref for loading music
   const loadingMusicRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Abort controller for cancelling pending operations
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Audio playback for AI responses
   const { queueAudio, stopPlayback, clearQueue } = useAudioPlayback();
@@ -81,14 +84,29 @@ export function VoiceModeController() {
     setGeneratedImage(null);
   }, [setGeneratedImage]);
 
-  // Web search handler
+  // Web search handler with abort support
   const handleWebSearch = useCallback(async (query: string): Promise<string> => {
     console.log('VoiceModeController: Web search for:', query);
+    
+    // Check if voice mode is still active before starting
+    if (!useVoiceModeStore.getState().isActive) {
+      console.log('Voice mode inactive, aborting search');
+      return 'Search cancelled.';
+    }
+    
     setIsSearching(true);
     startLoadingMusic(); // Play elevator music while searching
     
+    // Create new abort controller for this search
+    abortControllerRef.current = new AbortController();
+    
     try {
       // Call the chat function with forceWebSearch to get real-time results
+      // Use a timeout to prevent hanging
+      const timeoutId = setTimeout(() => {
+        abortControllerRef.current?.abort();
+      }, 30000); // 30 second timeout
+      
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
           messages: [{ role: 'user', content: query }],
@@ -96,23 +114,39 @@ export function VoiceModeController() {
         }
       });
       
+      clearTimeout(timeoutId);
+      
+      // Check if voice mode is still active after search completes
+      if (!useVoiceModeStore.getState().isActive) {
+        console.log('Voice mode deactivated during search, discarding results');
+        stopLoadingMusic();
+        setIsSearching(false);
+        return 'Search completed but voice mode ended.';
+      }
+      
       stopLoadingMusic();
       setIsSearching(false);
       
       if (error) {
         console.error('Web search error:', error);
-        throw new Error(error.message);
+        // Return error message instead of throwing - keeps voice mode alive
+        return `I couldn't complete the search right now. The error was: ${error.message}. Would you like me to try again?`;
       }
       
       // Return the AI's response which includes web search results
-      const response = data?.choices?.[0]?.message?.content || 'No results found.';
+      const response = data?.choices?.[0]?.message?.content || 'No results found for that search.';
       console.log('VoiceModeController: Web search complete');
       return response;
-    } catch (error) {
+    } catch (error: any) {
       console.error('VoiceModeController: Web search failed:', error);
       stopLoadingMusic();
       setIsSearching(false);
-      throw error;
+      
+      // Return error message instead of throwing - keeps voice mode alive
+      if (error.name === 'AbortError') {
+        return 'The search took too long and was cancelled. Would you like me to try a simpler search?';
+      }
+      return `I ran into a problem searching for that: ${error.message || 'Unknown error'}. Want me to try again?`;
     }
   }, [setIsSearching, startLoadingMusic, stopLoadingMusic]);
 
@@ -180,6 +214,13 @@ export function VoiceModeController() {
 
     if (justDeactivated && initRef.current) {
       console.log('Deactivating voice mode...');
+      
+      // Abort any pending operations first
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      
       stopLoadingMusic(); // Ensure music stops on deactivation
       stopCapture();
       stopPlayback();
@@ -241,6 +282,9 @@ export function VoiceModeController() {
   useEffect(() => {
     return () => {
       if (initRef.current) {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
         stopLoadingMusic();
         stopCapture();
         stopPlayback();
