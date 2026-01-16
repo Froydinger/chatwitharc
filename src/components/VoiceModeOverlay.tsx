@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, MicOff, Volume2, Loader2, ImageIcon } from "lucide-react";
+import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { VoiceModeController } from "./VoiceModeController";
 
@@ -16,6 +16,7 @@ export function VoiceModeOverlay() {
     generatedImage,
     isGeneratingImage,
     setGeneratedImage,
+    isSearching,
   } = useVoiceModeStore();
 
   if (!isActive) return null;
@@ -36,6 +37,7 @@ export function VoiceModeOverlay() {
   };
 
   const getStatusText = () => {
+    if (isSearching) return 'Searching the web...';
     if (isGeneratingImage) return 'Generating image...';
     if (isMuted) return 'Muted';
     switch (status) {
@@ -46,6 +48,9 @@ export function VoiceModeOverlay() {
       default: return 'Tap to speak';
     }
   };
+  
+  // Check if any loading operation is in progress
+  const isLoading = isGeneratingImage || isSearching;
 
   return (
     <AnimatePresence>
@@ -98,7 +103,42 @@ export function VoiceModeOverlay() {
             </motion.button>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              {/* Generated Image Display */}
+              {/* Search Loading Indicator */}
+              <AnimatePresence>
+                {isSearching && !generatedImage && !isGeneratingImage && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="absolute top-20 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-10 flex justify-center"
+                  >
+                    <div className="flex flex-col items-center w-full max-w-[200px]">
+                      <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-muted/30 border border-primary/20">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="flex flex-col items-center gap-3">
+                            <motion.div
+                              animate={{ scale: [1, 1.2, 1] }}
+                              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                            >
+                              <Search className="w-8 h-8 text-primary/50" />
+                            </motion.div>
+                            <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                          </div>
+                        </div>
+                        {/* Shimmer effect */}
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent"
+                          animate={{ x: ['-100%', '100%'] }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-3">Searching the web...</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
               {/* Generated Image Display */}
               <AnimatePresence>
                 {(generatedImage || isGeneratingImage) && (

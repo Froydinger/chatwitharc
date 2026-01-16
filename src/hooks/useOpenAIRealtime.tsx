@@ -9,6 +9,8 @@ interface UseOpenAIRealtimeOptions {
   // Image generation callbacks
   onImageGenerate?: (prompt: string) => Promise<string>;
   onImageDismiss?: () => void;
+  // Web search callback
+  onWebSearch?: (query: string) => Promise<string>;
 }
 
 // Singleton WebSocket instance to prevent duplicates
@@ -198,6 +200,41 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               success: true, 
               message: 'Image closed successfully'
             }));
+          } else if (name === 'web_search') {
+            try {
+              const args = JSON.parse(argsStr || '{}');
+              const query = args.query || '';
+              console.log('Performing web search for:', query);
+              
+              if (optionsRef.current.onWebSearch) {
+                optionsRef.current.onWebSearch(query)
+                  .then((results) => {
+                    console.log('Web search completed');
+                    sendFunctionResult(call_id, JSON.stringify({ 
+                      success: true, 
+                      results: results
+                    }));
+                  })
+                  .catch((error) => {
+                    console.error('Web search failed:', error);
+                    sendFunctionResult(call_id, JSON.stringify({ 
+                      success: false, 
+                      error: error.message || 'Failed to search'
+                    }));
+                  });
+              } else {
+                sendFunctionResult(call_id, JSON.stringify({ 
+                  success: false, 
+                  error: 'Web search not available'
+                }));
+              }
+            } catch (e) {
+              console.error('Failed to parse web search args:', e);
+              sendFunctionResult(call_id, JSON.stringify({ 
+                success: false, 
+                error: 'Invalid search query'
+              }));
+            }
           }
         }
         break;
@@ -274,7 +311,9 @@ How you talk: Keep it natural and conversational. Speak at a comfortable pace. U
 
 Style: Keep responses concise - you're having a conversation, not giving a lecture. Match the energy of whoever you're talking to. If they're brief, be brief. If they want to chat more, go with it. Be helpful, be real, be easy to talk to.
 
-IMAGE GENERATION: You can generate images! When the user asks you to create, generate, draw, show, or make an image of something, use the generate_image function. When they say they're done with the image, want to close it, or say "no more", use the close_image function.`,
+IMAGE GENERATION: You can generate images! When the user asks you to create, generate, draw, show, or make an image of something, use the generate_image function. When they say they're done with the image, want to close it, or say "no more", use the close_image function.
+
+WEB SEARCH: You can search the web for real-time information! When the user asks about current events, news, recent movies, live scores, latest updates, or anything that requires up-to-date information, use the web_search function. After receiving results, summarize them conversationally.`,
             voice: currentVoice,
             input_audio_format: 'pcm16',
             output_audio_format: 'pcm16',
@@ -312,6 +351,21 @@ IMAGE GENERATION: You can generate images! When the user asks you to create, gen
                 parameters: {
                   type: 'object',
                   properties: {}
+                }
+              },
+              {
+                type: 'function',
+                name: 'web_search',
+                description: 'Search the web for real-time information. Use when user asks about current events, news, recent movies, sports scores, weather, latest updates, breaking news, or anything that requires up-to-date information from the internet.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    query: {
+                      type: 'string',
+                      description: 'The search query to look up on the web'
+                    }
+                  },
+                  required: ['query']
                 }
               }
             ]

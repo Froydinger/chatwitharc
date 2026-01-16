@@ -6,9 +6,10 @@ import { useAudioPlayback } from '@/hooks/useAudioPlayback';
 import { useArcStore } from '@/store/useArcStore';
 import { useToast } from '@/hooks/use-toast';
 import { AIService } from '@/services/ai';
+import { supabase } from '@/integrations/supabase/client';
 
 const aiService = new AIService();
-
+const LOADING_MUSIC_VOLUME = 0.14; // 14% volume for elevator music during loading
 export function VoiceModeController() {
   const { toast } = useToast();
   const { addMessage } = useArcStore();
@@ -19,20 +20,44 @@ export function VoiceModeController() {
     setGeneratedImage,
     setIsGeneratingImage,
     setLastGeneratedImageUrl,
+    setIsSearching,
   } = useVoiceModeStore();
 
   // Track initialization to prevent duplicate setup
   const initRef = useRef(false);
   const wasActiveRef = useRef(false);
   const previousVoiceRef = useRef(selectedVoice);
+  
+  // Audio ref for loading music
+  const loadingMusicRef = useRef<HTMLAudioElement | null>(null);
 
   // Audio playback for AI responses
   const { queueAudio, stopPlayback, clearQueue } = useAudioPlayback();
+  
+  // Start playing elevator music during loading
+  const startLoadingMusic = useCallback(() => {
+    if (!loadingMusicRef.current) {
+      loadingMusicRef.current = new Audio('/audio/elevator-music.mp3');
+      loadingMusicRef.current.loop = true;
+    }
+    loadingMusicRef.current.volume = LOADING_MUSIC_VOLUME;
+    loadingMusicRef.current.currentTime = 0;
+    loadingMusicRef.current.play().catch(console.error);
+  }, []);
+  
+  // Stop loading music
+  const stopLoadingMusic = useCallback(() => {
+    if (loadingMusicRef.current) {
+      loadingMusicRef.current.pause();
+      loadingMusicRef.current.currentTime = 0;
+    }
+  }, []);
 
   // Image generation handler
   const handleImageGenerate = useCallback(async (prompt: string): Promise<string> => {
     console.log('VoiceModeController: Generating image with prompt:', prompt);
     setIsGeneratingImage(true);
+    startLoadingMusic(); // Play elevator music while generating
     
     try {
       const imageUrl = await aiService.generateImage(prompt);
@@ -40,19 +65,56 @@ export function VoiceModeController() {
       setGeneratedImage(imageUrl);
       setLastGeneratedImageUrl(imageUrl); // Track for attaching to conversation
       setIsGeneratingImage(false);
+      stopLoadingMusic(); // Stop music when done
       return imageUrl;
     } catch (error) {
       console.error('VoiceModeController: Image generation failed:', error);
       setIsGeneratingImage(false);
+      stopLoadingMusic(); // Stop music on error too
       throw error;
     }
-  }, [setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
+  }, [setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl, startLoadingMusic, stopLoadingMusic]);
 
   // Image dismiss handler
   const handleImageDismiss = useCallback(() => {
     console.log('VoiceModeController: Dismissing image');
     setGeneratedImage(null);
   }, [setGeneratedImage]);
+
+  // Web search handler
+  const handleWebSearch = useCallback(async (query: string): Promise<string> => {
+    console.log('VoiceModeController: Web search for:', query);
+    setIsSearching(true);
+    startLoadingMusic(); // Play elevator music while searching
+    
+    try {
+      // Call the chat function with forceWebSearch to get real-time results
+      const { data, error } = await supabase.functions.invoke('chat', {
+        body: {
+          messages: [{ role: 'user', content: query }],
+          forceWebSearch: true
+        }
+      });
+      
+      stopLoadingMusic();
+      setIsSearching(false);
+      
+      if (error) {
+        console.error('Web search error:', error);
+        throw new Error(error.message);
+      }
+      
+      // Return the AI's response which includes web search results
+      const response = data?.choices?.[0]?.message?.content || 'No results found.';
+      console.log('VoiceModeController: Web search complete');
+      return response;
+    } catch (error) {
+      console.error('VoiceModeController: Web search failed:', error);
+      stopLoadingMusic();
+      setIsSearching(false);
+      throw error;
+    }
+  }, [setIsSearching, startLoadingMusic, stopLoadingMusic]);
 
   // OpenAI Realtime connection
   const { isConnected, connect, disconnect, sendAudio, updateVoice } = useOpenAIRealtime({
@@ -75,6 +137,7 @@ export function VoiceModeController() {
     },
     onImageGenerate: handleImageGenerate,
     onImageDismiss: handleImageDismiss,
+    onWebSearch: handleWebSearch,
   });
 
   // Audio capture from microphone
@@ -117,6 +180,7 @@ export function VoiceModeController() {
 
     if (justDeactivated && initRef.current) {
       console.log('Deactivating voice mode...');
+      stopLoadingMusic(); // Ensure music stops on deactivation
       stopCapture();
       stopPlayback();
       disconnect();
@@ -162,7 +226,7 @@ export function VoiceModeController() {
         clearConversation();
       }
     }
-  }, [isActive, connect, disconnect, startCapture, stopCapture, stopPlayback, addMessage, toast, deactivateVoiceMode]);
+  }, [isActive, connect, disconnect, startCapture, stopCapture, stopPlayback, stopLoadingMusic, addMessage, toast, deactivateVoiceMode]);
 
   // Update voice when selection changes (only when connected)
   useEffect(() => {
@@ -177,13 +241,14 @@ export function VoiceModeController() {
   useEffect(() => {
     return () => {
       if (initRef.current) {
+        stopLoadingMusic();
         stopCapture();
         stopPlayback();
         disconnect();
         initRef.current = false;
       }
     };
-  }, [stopCapture, stopPlayback, disconnect]);
+  }, [stopCapture, stopPlayback, stopLoadingMusic, disconnect]);
 
   return null;
 }
