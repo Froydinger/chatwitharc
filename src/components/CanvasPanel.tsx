@@ -114,15 +114,18 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     },
   });
 
-  // Sync editor when store content changes (writing mode only)
+  // Sync editor when store content changes (writing mode only) or when streaming ends
   useEffect(() => {
     if (!editor || isCodeMode) return;
     
-    const currentMd = editorGetMarkdown(editor);
-    if (currentMd !== content && content !== undefined) {
-      editor.commands.setContent(content, { contentType: 'markdown' });
+    // Only sync to editor when NOT streaming (avoids parsing issues during stream)
+    if (!isAIWriting) {
+      const currentMd = editorGetMarkdown(editor);
+      if (currentMd !== content && content !== undefined) {
+        editor.commands.setContent(content, { contentType: 'markdown' });
+      }
     }
-  }, [content, editor, isCodeMode]);
+  }, [content, editor, isCodeMode, isAIWriting]);
 
   // Initialize editor with store content on mount
   useEffect(() => {
@@ -435,26 +438,34 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           // Writing mode
           <ScrollArea className="flex-1">
             <div className="px-6 py-5 pb-24 md:pb-5 min-h-[300px]">
-              <EditorContent
-                editor={editor}
-                className={cn(
-                  "min-h-[300px]",
-                  "tiptap-editor prose prose-sm dark:prose-invert max-w-none",
-                  "focus:outline-none",
-                  "[&_.ProseMirror]:outline-none",
-                  "[&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-bold [&_.ProseMirror_h1]:mb-4 [&_.ProseMirror_h1]:mt-6",
-                  "[&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:mb-3 [&_.ProseMirror_h2]:mt-5",
-                  "[&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-medium [&_.ProseMirror_h3]:mb-2 [&_.ProseMirror_h3]:mt-4",
-                  "[&_.ProseMirror_p]:mb-3 [&_.ProseMirror_p]:leading-relaxed",
-                  "[&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ul]:mb-3",
-                  "[&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_ol]:mb-3",
-                  "[&_.ProseMirror_li]:mb-1",
-                  "[&_.ProseMirror_strong]:font-bold",
-                  "[&_.ProseMirror_em]:italic",
-                  "[&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:text-sm",
-                  "[&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-primary/30 [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_blockquote]:text-muted-foreground"
-                )}
-              />
+              {isAIWriting ? (
+                // During AI streaming, show raw markdown to avoid TipTap parsing issues
+                <pre className="whitespace-pre-wrap font-sans text-sm text-foreground leading-relaxed min-h-[300px]">
+                  {content || 'Generating...'}
+                  <span className="inline-block w-0.5 h-4 ml-0.5 bg-primary animate-pulse" />
+                </pre>
+              ) : (
+                <EditorContent
+                  editor={editor}
+                  className={cn(
+                    "min-h-[300px]",
+                    "tiptap-editor prose prose-sm dark:prose-invert max-w-none",
+                    "focus:outline-none",
+                    "[&_.ProseMirror]:outline-none",
+                    "[&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-bold [&_.ProseMirror_h1]:mb-4 [&_.ProseMirror_h1]:mt-6",
+                    "[&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:mb-3 [&_.ProseMirror_h2]:mt-5",
+                    "[&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-medium [&_.ProseMirror_h3]:mb-2 [&_.ProseMirror_h3]:mt-4",
+                    "[&_.ProseMirror_p]:mb-3 [&_.ProseMirror_p]:leading-relaxed",
+                    "[&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ul]:mb-3",
+                    "[&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_ol]:mb-3",
+                    "[&_.ProseMirror_li]:mb-1",
+                    "[&_.ProseMirror_strong]:font-bold",
+                    "[&_.ProseMirror_em]:italic",
+                    "[&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:text-sm",
+                    "[&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-primary/30 [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_blockquote]:text-muted-foreground"
+                  )}
+                />
+              )}
             </div>
           </ScrollArea>
         )}
