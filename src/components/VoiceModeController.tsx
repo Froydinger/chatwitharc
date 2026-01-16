@@ -21,12 +21,17 @@ export function VoiceModeController() {
   const previousVoiceRef = useRef(selectedVoice);
 
   // Audio playback for AI responses
-  const { queueAudio, stopPlayback } = useAudioPlayback();
+  const { queueAudio, stopPlayback, clearQueue } = useAudioPlayback();
 
   // OpenAI Realtime connection
   const { isConnected, connect, disconnect, sendAudio, updateVoice } = useOpenAIRealtime({
     onAudioData: (audioData) => {
       queueAudio(audioData);
+    },
+    onInterrupt: () => {
+      // User interrupted - clear any queued audio immediately
+      console.log('Clearing audio queue due to interruption');
+      clearQueue();
     },
     onError: (error) => {
       console.error('Voice mode error:', error);

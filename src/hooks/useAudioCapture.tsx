@@ -54,6 +54,10 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       const scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
       
       scriptProcessor.onaudioprocess = (event) => {
+        // Check mute state from store
+        const { isMuted } = useVoiceModeStore.getState();
+        if (isMuted) return; // Don't send audio when muted
+        
         const inputData = event.inputBuffer.getChannelData(0);
         
         // Convert Float32 to Int16
@@ -73,12 +77,15 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       const updateAmplitude = () => {
         if (!analyserRef.current) return;
         
+        // Check mute state - show 0 amplitude when muted
+        const { isMuted } = useVoiceModeStore.getState();
+        
         const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
         analyserRef.current.getByteFrequencyData(dataArray);
         
         // Calculate average amplitude (0-1)
         const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-        const normalized = average / 255;
+        const normalized = isMuted ? 0 : average / 255;
         
         setInputAmplitude(normalized);
         animationFrameRef.current = requestAnimationFrame(updateAmplitude);
