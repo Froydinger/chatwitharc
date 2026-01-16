@@ -41,18 +41,14 @@ serve(async (req) => {
     const selectedModel = model || 'google/gemini-3-flash-preview';
     console.log('Using model for personalized prompts:', selectedModel);
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: selectedModel,
-        messages: [
-          {
-            role: 'system',
-            content: `You generate personalized conversation prompts for a user to send to an AI assistant.
+    // Build request body - use different token param for OpenAI vs Gemini models
+    const isOpenAIModel = selectedModel.startsWith('openai/');
+    const requestBody: Record<string, unknown> = {
+      model: selectedModel,
+      messages: [
+        {
+          role: 'system',
+          content: `You generate personalized conversation prompts for a user to send to an AI assistant.
 
 User context that you ALREADY KNOW about them:
 ${userContext}
@@ -88,15 +84,29 @@ WRONG EXAMPLES (explicitly re-stating context - DON'T DO):
 ❌ "Given that I work in window sales..." (don't repeat known info)
 
 Keep "text" short (25-35 chars), put full context in "fullPrompt".`
-          },
-          {
-            role: 'user',
-            content: userContext
-          }
-        ],
-        temperature: 0.8,
-        max_tokens: 500,
-      }),
+        },
+        {
+          role: 'user',
+          content: userContext
+        }
+      ],
+      temperature: 0.8,
+    };
+    
+    // OpenAI models use max_completion_tokens, Gemini uses max_tokens
+    if (isOpenAIModel) {
+      requestBody.max_completion_tokens = 500;
+    } else {
+      requestBody.max_tokens = 500;
+    }
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
     });
 
     const data = await response.json();
