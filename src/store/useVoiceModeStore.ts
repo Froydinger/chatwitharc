@@ -34,6 +34,9 @@ interface VoiceModeState {
   isGeneratingImage: boolean;
   lastGeneratedImageUrl: string | null; // Track the last generated image to attach to next assistant turn
   
+  // Web search state
+  isSearching: boolean;
+  
   // Actions
   activateVoiceMode: () => void;
   deactivateVoiceMode: () => void;
@@ -50,6 +53,7 @@ interface VoiceModeState {
   setIsGeneratingImage: (generating: boolean) => void;
   setLastGeneratedImageUrl: (url: string | null) => void;
   attachImageToLastAssistantTurn: () => void;
+  setIsSearching: (searching: boolean) => void;
 }
 
 export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
@@ -65,6 +69,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   generatedImage: null,
   isGeneratingImage: false,
   lastGeneratedImageUrl: null,
+  isSearching: false,
   
   // Actions
   activateVoiceMode: () => {
@@ -76,7 +81,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       isMuted: false,
       generatedImage: null,
       isGeneratingImage: false,
-      lastGeneratedImageUrl: null
+      lastGeneratedImageUrl: null,
+      isSearching: false
     });
   },
   
@@ -90,7 +96,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       isMuted: false,
       generatedImage: null,
       isGeneratingImage: false,
-      lastGeneratedImageUrl: null
+      lastGeneratedImageUrl: null,
+      isSearching: false
     });
   },
   
@@ -141,5 +148,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       conversationTurns: updatedTurns,
       lastGeneratedImageUrl: null // Clear after attaching
     };
-  })
+  }),
+  
+  setIsSearching: (searching) => set({ isSearching: searching })
 }));
