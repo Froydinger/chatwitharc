@@ -1,19 +1,49 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Loader2, Check, Volume2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Play, Loader2, Check, Volume2, MessageCircle } from 'lucide-react';
 import { useVoiceModeStore, VoiceName } from '@/store/useVoiceModeStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
+// Import voice avatars
+import marinAvatar from '@/assets/voices/marin.png';
+import cedarAvatar from '@/assets/voices/cedar.png';
+import coralAvatar from '@/assets/voices/coral.png';
+import sageAvatar from '@/assets/voices/sage.png';
+import alloyAvatar from '@/assets/voices/alloy.png';
+import echoAvatar from '@/assets/voices/echo.png';
+import shimmerAvatar from '@/assets/voices/shimmer.png';
+import ashAvatar from '@/assets/voices/ash.png';
+import balladAvatar from '@/assets/voices/ballad.png';
+import verseAvatar from '@/assets/voices/verse.png';
+import novaAvatar from '@/assets/voices/nova.png';
+import onyxAvatar from '@/assets/voices/onyx.png';
+import fableAvatar from '@/assets/voices/fable.png';
+
 interface VoiceSelectorProps {
   onSave?: () => void;
 }
 
-const VOICES: { id: VoiceName; name: string; description: string; recommended?: boolean }[] = [
-  { id: 'marin', name: 'Marin', description: 'Expressive & natural', recommended: true },
-  { id: 'cedar', name: 'Cedar', description: 'Natural & smooth', recommended: true },
+const VOICE_AVATARS: Record<VoiceName, string> = {
+  marin: marinAvatar,
+  cedar: cedarAvatar,
+  coral: coralAvatar,
+  sage: sageAvatar,
+  alloy: alloyAvatar,
+  echo: echoAvatar,
+  shimmer: shimmerAvatar,
+  ash: ashAvatar,
+  ballad: balladAvatar,
+  verse: verseAvatar,
+  nova: novaAvatar,
+  onyx: onyxAvatar,
+  fable: fableAvatar,
+};
+
+const VOICES: { id: VoiceName; name: string; description: string; recommended?: boolean; noPreview?: boolean }[] = [
+  { id: 'marin', name: 'Marin', description: 'Expressive & natural', recommended: true, noPreview: true },
+  { id: 'cedar', name: 'Cedar', description: 'Natural & smooth', recommended: true, noPreview: true },
   { id: 'coral', name: 'Coral', description: 'Warm & friendly' },
   { id: 'sage', name: 'Sage', description: 'Calm & thoughtful' },
   { id: 'alloy', name: 'Alloy', description: 'Neutral & balanced' },
@@ -32,7 +62,6 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
   const { selectedVoice, setSelectedVoice, isActive, deactivateVoiceMode, activateVoiceMode } = useVoiceModeStore();
   
   const [playingVoice, setPlayingVoice] = useState<VoiceName | null>(null);
-  const [previewVoice, setPreviewVoice] = useState<VoiceName>(selectedVoice);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
 
   const playVoiceSample = async (voice: VoiceName) => {
@@ -43,7 +72,6 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
     }
 
     setPlayingVoice(voice);
-    setPreviewVoice(voice);
 
     try {
       const { data, error } = await supabase.functions.invoke('test-voice', {
@@ -83,15 +111,15 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
     }
   };
 
-  const handleSave = () => {
+  const handleSelectVoice = (voice: { id: VoiceName; noPreview?: boolean }) => {
     // Stop any playing audio
     if (audioElement) {
       audioElement.pause();
       audioElement.src = '';
     }
 
-    // Save the selected voice
-    setSelectedVoice(previewVoice);
+    // Set the voice immediately (auto-save)
+    setSelectedVoice(voice.id);
     
     // If voice mode is active, restart it with new voice
     if (isActive) {
@@ -101,38 +129,41 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
       }, 500);
       toast({
         title: 'Voice updated',
-        description: `Now using ${VOICES.find(v => v.id === previewVoice)?.name} voice. Restarting...`,
+        description: `Now using ${VOICES.find(v => v.id === voice.id)?.name} voice. Restarting...`,
       });
     } else {
       toast({
-        title: 'Voice saved',
-        description: `${VOICES.find(v => v.id === previewVoice)?.name} will be used for voice mode`,
+        title: 'Voice selected',
+        description: `${VOICES.find(v => v.id === voice.id)?.name} will be used for voice mode`,
       });
     }
 
     onSave?.();
   };
 
-  const hasChanges = previewVoice !== selectedVoice;
+  const handlePreviewClick = (e: React.MouseEvent, voice: { id: VoiceName; noPreview?: boolean }) => {
+    e.stopPropagation();
+    if (!voice.noPreview) {
+      playVoiceSample(voice.id);
+    }
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
         <Volume2 className="w-4 h-4" />
-        <span>Click a voice to preview it</span>
+        <span>Select a voice for voice mode</span>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         {VOICES.map((voice) => {
-          const isSelected = previewVoice === voice.id;
+          const isSelected = selectedVoice === voice.id;
           const isPlaying = playingVoice === voice.id;
-          const isCurrent = selectedVoice === voice.id;
 
           return (
             <motion.button
               key={voice.id}
-              onClick={() => playVoiceSample(voice.id)}
-              disabled={isPlaying}
+              onClick={() => handleSelectVoice(voice)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className={cn(
@@ -144,7 +175,16 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
                 isPlaying && "animate-pulse"
               )}
             >
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-3">
+                {/* Avatar */}
+                <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-muted">
+                  <img 
+                    src={VOICE_AVATARS[voice.id]} 
+                    alt={voice.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-medium text-sm">{voice.name}</span>
@@ -153,25 +193,40 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
                         Best
                       </span>
                     )}
-                    {isCurrent && !hasChanges && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary">
-                        Current
-                      </span>
+                    {isSelected && (
+                      <Check className="w-3.5 h-3.5 text-primary" />
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
                     {voice.description}
                   </p>
-                </div>
-                
-                <div className="flex-shrink-0">
-                  {isPlaying ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                  ) : isSelected ? (
-                    <Check className="w-4 h-4 text-primary" />
-                  ) : (
-                    <Play className="w-4 h-4 text-muted-foreground" />
-                  )}
+                  
+                  {/* Preview button or "chat to hear" text */}
+                  <div className="mt-1.5">
+                    {voice.noPreview ? (
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <MessageCircle className="w-3 h-3" />
+                        Chat to hear
+                      </span>
+                    ) : (
+                      <button
+                        onClick={(e) => handlePreviewClick(e, voice)}
+                        disabled={isPlaying}
+                        className={cn(
+                          "text-[10px] flex items-center gap-1 px-2 py-0.5 rounded",
+                          "bg-muted hover:bg-muted/80 transition-colors",
+                          isPlaying && "opacity-50"
+                        )}
+                      >
+                        {isPlaying ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Play className="w-3 h-3" />
+                        )}
+                        {isPlaying ? 'Playing...' : 'Preview'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -191,25 +246,6 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
           );
         })}
       </div>
-
-      {/* Save button */}
-      <AnimatePresence>
-        {hasChanges && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-          >
-            <Button 
-              onClick={handleSave} 
-              className="w-full"
-              size="sm"
-            >
-              Save & {isActive ? 'Restart Voice Mode' : 'Apply'}
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
