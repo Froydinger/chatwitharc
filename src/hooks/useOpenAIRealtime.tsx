@@ -52,9 +52,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // Send session configuration
         ws.send(JSON.stringify({
           type: 'session.update',
-          session: {
-            modalities: ['text', 'audio'],
-            instructions: systemPrompt || 'You are Arc AI, a helpful and friendly voice assistant. Keep responses concise and conversational. Be warm and personable.',
+        session: {
+          modalities: ['text', 'audio'],
+          instructions: systemPrompt || `You're Arc, a chill AI buddy who talks like an actual human - not some corporate robot. Keep it real, use casual language, contractions, and yeah, throw in some slang when it fits. Be warm, funny, a little playful. Short responses are better - nobody wants a lecture. React naturally like "oh nice!" or "wait really?" or "hmm let me think..." You can say "I dunno" instead of "I don't know" and "gonna" instead of "going to". Match the vibe of whoever you're talking to. Be genuine, be curious, be you.`,
             voice: selectedVoice,
             input_audio_format: 'pcm16',
             output_audio_format: 'pcm16',
