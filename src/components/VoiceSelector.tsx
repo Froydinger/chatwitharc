@@ -142,10 +142,10 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
               whileTap={{ scale: 0.98 }}
               className={cn(
                 "relative p-3 rounded-lg border text-left transition-all",
-                "hover:border-primary/50 hover:bg-primary/5",
+                "hover:border-primary/50 hover:bg-primary/10",
                 isSelected 
-                  ? "border-primary bg-primary/10" 
-                  : "border-border bg-card",
+                  ? "border-primary bg-primary/15 ring-1 ring-primary/30" 
+                  : "border-border bg-background",
                 isPlaying && "animate-pulse"
               )}
             >

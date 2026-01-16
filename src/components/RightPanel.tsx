@@ -63,7 +63,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         animate={{ x: isOpen ? "0%" : "-100%" }}
         transition={{ type: "spring", damping: 18, stiffness: 320, mass: 0.65 }}
         className={cn(
-          "fixed left-0 z-50 glass-strong border-r border-border/40 shadow-2xl",
+          "fixed left-0 z-50 panel-solid border-r border-border shadow-2xl",
           "w-full sm:w-96 lg:w-80 xl:w-96",
           "flex flex-col overflow-hidden"
         )}
@@ -78,9 +78,9 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           isStandaloneApp && "md:pt-[30px]"
         )}>
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border/40 glass-panel">
+          <div className="flex items-center justify-between p-4 border-b border-border bg-background">
           <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
-            <TabsList className="grid w-full grid-cols-4 glass-shimmer rounded-full">
+            <TabsList className="grid w-full grid-cols-4 bg-muted/50 rounded-full">
               <TabsTrigger value="history" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
                 <History className="h-4 w-4" />
               </TabsTrigger>
@@ -100,7 +100,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="ml-2 rounded-full glass-shimmer hover:border-destructive/50"
+              className="ml-2 rounded-full bg-muted/50 hover:bg-destructive/10 hover:text-destructive"
             >
               <X className="h-4 w-4" />
             </Button>

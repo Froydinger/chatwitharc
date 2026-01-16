@@ -303,6 +303,21 @@ All colors MUST be HSL for perfect glass effects.
     border-radius: var(--radius);
   }
 
+  /* Solid panel - fully opaque for sidebars and panels */
+  .panel-solid {
+    background: hsl(var(--background));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Mobile override for panels - ensure full opacity */
+  @media (max-width: 768px) {
+    .panel-solid {
+      background: hsl(var(--background));
+      backdrop-filter: none;
+    }
+  }
+
   .glass-glow {
     box-shadow:
       0 4px 32px hsla(var(--glass-glow), 0.12),
