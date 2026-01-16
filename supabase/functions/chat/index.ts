@@ -586,9 +586,17 @@ serve(async (req) => {
       // Replace the long system prompt with a focused one for code/canvas
       const focusedPrompt = wantsCode 
         ? `You are Arc AI. Generate COMPLETE, FULL code as requested. Use the update_code tool.
-CRITICAL: Always output the ENTIRE code from start to finish. Never truncate.
-For HTML: Include ALL CSS in <style> and ALL JS in <script> tags in one file.
-When modifying code: PRESERVE all existing styles, animations, and features.`
+
+CRITICAL CODE GUIDELINES:
+1. Always output the ENTIRE code from start to finish. Never truncate.
+2. For HTML: Include ALL CSS in <style> and ALL JS in <script> tags in one file.
+3. When modifying code: PRESERVE all existing styles, animations, and features.
+4. KEEP IT SIMPLE AND CONCISE. Aim for clean, minimal implementations.
+   - For a timer: ~100-200 lines max, not 1000 lines
+   - For a todo app: ~150-250 lines max
+   - Focus on core functionality first, keep styling elegant but minimal
+   - Don't over-engineer with unnecessary features unless asked
+5. Make apps unique and polished, but not bloated. Quality over quantity.`
         : `You are Arc AI. Generate COMPLETE, FULL content as requested. Use the update_canvas tool.
 CRITICAL: Write the ENTIRE content from beginning to end. Never truncate or summarize.
 Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;

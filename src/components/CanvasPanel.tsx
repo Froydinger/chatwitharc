@@ -65,8 +65,8 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const { toast } = useToast();
   const [showHistory, setShowHistory] = useState(false);
   const [copied, setCopied] = useState(false);
-  // For code mode: show preview by default (full-width), toggle to show code
-  const [showCodeEditor, setShowCodeEditor] = useState(false);
+  // For code mode: show code editor by default during generation, toggle to show preview
+  const [showCodeEditor, setShowCodeEditor] = useState(true);
   // Track elapsed time during AI generation
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);

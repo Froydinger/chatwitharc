@@ -204,6 +204,7 @@ export class AIService {
   }
 
   // Generic streaming method for ALL messages (canvas, code, or regular text)
+  // Returns an AbortController that can be used to cancel the request
   async sendMessageStreaming(
     messages: AIMessage[],
     profile?: { display_name?: string | null; context_info?: string | null; memory_info?: string | null; preferred_model?: string | null },
@@ -214,7 +215,8 @@ export class AIService {
     onDone?: (result: { mode: 'canvas' | 'code' | 'text'; content: string; label?: string; language?: string; webSources?: WebSource[] }) => void,
     onError?: (error: string) => void,
     sessionId?: string,
-    forceWebSearch?: boolean
+    forceWebSearch?: boolean,
+    abortSignal?: AbortSignal
   ): Promise<void> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Chat service is not available. Please configure Supabase.');
@@ -247,6 +249,7 @@ export class AIService {
         sessionId,
         stream: true
       }),
+      signal: abortSignal, // Allow cancellation
     });
 
     if (!response.ok) {
