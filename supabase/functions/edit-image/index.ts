@@ -56,12 +56,12 @@ serve(async (req) => {
     }
 
     // Map chat model to image model (same as generate-image)
-    // google/gemini-2.5-flash (Smart & Fast) → google/gemini-2.5-flash-image
+    // google/gemini-3-flash-preview (Quick) → google/gemini-2.5-flash-image
     // google/gemini-3-pro-preview (Wise & Thoughtful) → google/gemini-3-pro-image-preview
     let selectedModel = imageModel || 'google/gemini-2.5-flash-image';
     
     // If chat model was passed, map it to image model
-    if (imageModel === 'google/gemini-2.5-flash') {
+    if (imageModel === 'google/gemini-3-flash-preview' || imageModel === 'google/gemini-2.5-flash') {
       selectedModel = 'google/gemini-2.5-flash-image';
     } else if (imageModel === 'google/gemini-3-pro-preview') {
       selectedModel = 'google/gemini-3-pro-image-preview';

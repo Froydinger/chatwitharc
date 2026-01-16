@@ -39,7 +39,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { addMessage } = useArcStore();
   const { toast } = useToast();
   
-  // Model selection - defaults to last used model, or user's preferred model
+  // Model selection - defaults to last used model, or user's preferred model (image models stay on 2.5-flash-image)
   const [selectedModel, setSelectedModel] = useState<string>(() => {
     if (lastUsedModel) return lastUsedModel;
     return profile?.preferred_model === 'google/gemini-3-pro-preview' 

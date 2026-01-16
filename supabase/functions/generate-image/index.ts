@@ -48,7 +48,7 @@ serve(async (req) => {
     }
 
     // Map chat model preference to image model
-    // google/gemini-2.5-flash (Smart & Fast) → google/gemini-2.5-flash-image
+    // google/gemini-3-flash-preview (Quick) → google/gemini-2.5-flash-image
     // google/gemini-3-pro-preview (Wise & Thoughtful) → google/gemini-3-pro-image-preview
     const imageModel = preferredModel === 'google/gemini-3-pro-preview' 
       ? 'google/gemini-3-pro-image-preview'
