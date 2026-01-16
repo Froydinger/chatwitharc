@@ -597,9 +597,22 @@ CRITICAL CODE GUIDELINES:
    - Focus on core functionality first, keep styling elegant but minimal
    - Don't over-engineer with unnecessary features unless asked
 5. Make apps unique and polished, but not bloated. Quality over quantity.`
-        : `You are Arc AI. Generate COMPLETE, FULL content as requested. Use the update_canvas tool.
-CRITICAL: Write the ENTIRE content from beginning to end. Never truncate or summarize.
-Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
+        : `You are Arc AI, a helpful writing assistant. The user has requested written content.
+
+YOUR TASK: Write the ACTUAL content they requested (blog post, essay, article, email, etc.).
+DO NOT output instructions, prompts, outlines, or meta-content about what to write.
+DO NOT include placeholder text like "[insert X here]" or notes to yourself.
+WRITE the actual finished piece of writing, ready to read.
+
+Use proper markdown formatting:
+- # for main title
+- ## and ### for subheadings  
+- **bold** for emphasis
+- *italic* for subtle emphasis
+- - or * for bullet lists
+- Proper paragraph breaks
+
+Output the complete, finished writing using the update_canvas tool.`;
       
       // Replace system message with focused version
       conversationMessages[0] = { role: 'system', content: focusedPrompt };
