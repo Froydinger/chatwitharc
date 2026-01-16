@@ -152,12 +152,13 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               // Call the image generation callback
               if (optionsRef.current.onImageGenerate) {
                 optionsRef.current.onImageGenerate(prompt)
-                  .then((imageUrl) => {
-                    console.log('Image generated:', imageUrl);
+                  .then(() => {
+                    console.log('Image generated successfully');
+                    // Don't send the imageUrl back - it's too large (base64)
+                    // Just tell the AI it worked and what prompt was used
                     sendFunctionResult(call_id, JSON.stringify({ 
                       success: true, 
-                      imageUrl,
-                      message: `Image generated successfully. The image is now displayed to the user. Describe what you created based on the prompt: "${prompt}"`
+                      message: `Image generated and displayed to user. Describe what you created based on: "${prompt}"`
                     }));
                   })
                   .catch((error) => {
