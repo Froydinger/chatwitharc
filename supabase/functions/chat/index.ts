@@ -806,7 +806,7 @@ Output the complete, finished writing using the update_canvas tool.`;
             let finalMode = 'text';
             
             if (isToolCallMode && argumentsBuffer) {
-              // Parse tool arguments
+              // Parse tool arguments - handle potentially incomplete JSON
               try {
                 const args = JSON.parse(argumentsBuffer);
                 if (wantsCode) {
@@ -820,10 +820,25 @@ Output the complete, finished writing using the update_canvas tool.`;
                   finalMode = 'canvas';
                 }
               } catch (e) {
-                console.error('Failed to parse tool arguments:', e);
-                // Fall back to accumulated text if tool parsing fails
-                finalContent = textContent;
-                finalMode = 'text';
+                console.warn('JSON parse failed, extracting content from partial buffer');
+                // JSON is incomplete - extract content using regex (same as streaming)
+                const streamKey = wantsCode ? 'code' : 'content';
+                const keyRegex = new RegExp(`"${streamKey}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)`, 's');
+                const keyMatch = argumentsBuffer.match(keyRegex);
+                if (keyMatch) {
+                  finalContent = keyMatch[1]
+                    .replace(/\\n/g, '\n')
+                    .replace(/\\"/g, '"')
+                    .replace(/\\\\/g, '\\')
+                    .replace(/\\t/g, '\t');
+                  finalMode = wantsCode ? 'code' : 'canvas';
+                  console.log('Extracted content from partial JSON, length:', finalContent.length);
+                } else {
+                  // Fallback: use whatever text we accumulated
+                  console.error('Could not extract content from arguments buffer');
+                  finalContent = textContent || 'Content generation failed. Please try again.';
+                  finalMode = 'text';
+                }
               }
             } else {
               // Regular text response
@@ -831,23 +846,31 @@ Output the complete, finished writing using the update_canvas tool.`;
               finalMode = 'text';
             }
             
-            // Send final complete event
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-              type: 'done',
-              mode: finalMode,
-              content: finalContent,
-              label,
-              language
-            })}\n\n`));
-            
-            controller.close();
+            // Send final complete event (check if controller is still open)
+            try {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                type: 'done',
+                mode: finalMode,
+                content: finalContent,
+                label,
+                language
+              })}\n\n`));
+              controller.close();
+            } catch (closeError) {
+              // Controller may already be closed (e.g., client disconnected)
+              console.warn('Could not send final event, controller may be closed');
+            }
           } catch (error) {
             console.error('Stream processing error:', error);
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-              type: 'error', 
-              message: error instanceof Error ? error.message : 'Stream error' 
-            })}\n\n`));
-            controller.close();
+            try {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                type: 'error', 
+                message: error instanceof Error ? error.message : 'Stream error' 
+              })}\n\n`));
+              controller.close();
+            } catch {
+              // Controller already closed
+            }
           }
         }
       });
