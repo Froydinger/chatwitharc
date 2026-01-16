@@ -102,7 +102,7 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
     const selectedModel = model || 'google/gemini-3-flash-preview';
     console.log('Using model for category prompts:', selectedModel);
 
-    // Call AI to generate prompts
+    // Call AI to generate prompts with explicit max_tokens to prevent truncation
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -117,6 +117,7 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
         ],
         temperature: 1.0, // Maximum creativity for variety
         top_p: 0.95,
+        max_tokens: 2000, // Ensure enough tokens to complete the JSON response
       }),
     });
 
@@ -152,10 +153,38 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
 
       prompts = JSON.parse(jsonString);
     } catch (parseError: unknown) {
-      const parseMessage = parseError instanceof Error ? parseError.message : 'Unknown parse error';
-      console.error('JSON parse error:', parseMessage);
-      console.error('Attempted to parse:', jsonMatch[0].substring(0, 500));
-      throw new Error(`Failed to parse AI response JSON: ${parseMessage}`);
+      // Try to recover truncated JSON by extracting complete objects
+      console.warn('Initial JSON parse failed, attempting recovery...');
+      
+      let jsonString = jsonMatch[0]
+        .replace(/[\u201C\u201D]/g, '"')
+        .replace(/[\u2018\u2019]/g, "'")
+        .replace(/[\u2013\u2014]/g, '-')
+        .replace(/\u2026/g, '...')
+        .replace(/\r\n/g, ' ')
+        .replace(/\n/g, ' ')
+        .replace(/\t/g, ' ')
+        .replace(/\s+/g, ' ');
+      
+      // Find all complete JSON objects in the truncated response
+      const objectMatches = jsonString.matchAll(/\{"label":\s*"[^"]+",\s*"prompt":\s*"[^"]+"\}/g);
+      const recoveredPrompts = Array.from(objectMatches).map(m => {
+        try {
+          return JSON.parse(m[0]);
+        } catch {
+          return null;
+        }
+      }).filter(Boolean);
+      
+      if (recoveredPrompts.length >= 3) {
+        console.log(`Recovered ${recoveredPrompts.length} prompts from truncated response`);
+        prompts = recoveredPrompts;
+      } else {
+        const parseMessage = parseError instanceof Error ? parseError.message : 'Unknown parse error';
+        console.error('JSON parse error:', parseMessage);
+        console.error('Attempted to parse:', jsonMatch[0].substring(0, 500));
+        throw new Error(`Failed to parse AI response JSON: ${parseMessage}`);
+      }
     }
 
     return new Response(
