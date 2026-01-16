@@ -110,6 +110,24 @@ Example format:
     // Use passed model for prompt generation
     console.log('Using model for smart prompts:', model);
 
+    // Build request body - use different token param for OpenAI vs Gemini models
+    const isOpenAIModel = model.startsWith('openai/');
+    const requestBody: Record<string, unknown> = {
+      model: model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: 'Generate 6 personalized smart prompts for me based on my profile and chat history.' }
+      ],
+      temperature: 0.8,
+    };
+    
+    // OpenAI models use max_completion_tokens, Gemini uses max_tokens
+    if (isOpenAIModel) {
+      requestBody.max_completion_tokens = 1000;
+    } else {
+      requestBody.max_tokens = 1000;
+    }
+
     // Call AI to generate prompts
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -117,14 +135,7 @@ Example format:
         'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Generate 6 personalized smart prompts for me based on my profile and chat history.' }
-        ],
-        temperature: 0.8,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
