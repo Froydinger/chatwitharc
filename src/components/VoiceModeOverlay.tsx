@@ -43,6 +43,23 @@ export function VoiceModeOverlay() {
     [handleInterrupt]
   );
 
+  // Handle orb tap to interrupt when AI is speaking
+  const handleOrbTap = useCallback(
+    (e: React.PointerEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // Only interrupt when AI is speaking
+      if (status === 'speaking') {
+        // Trigger haptic feedback on supported devices
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
+        handleInterrupt();
+      }
+    },
+    [status, handleInterrupt]
+  );
+
   if (!isActive) return null;
 
   // Determine orb animation based on status
@@ -251,9 +268,9 @@ export function VoiceModeOverlay() {
                 )}
               </AnimatePresence>
 
-              {/* Animated liquid orb */}
+              {/* Animated liquid orb - tappable to interrupt when speaking */}
               <motion.div
-                className="relative"
+                className={`relative ${status === 'speaking' ? 'cursor-pointer' : ''}`}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ 
                   scale: 1, 
@@ -262,6 +279,10 @@ export function VoiceModeOverlay() {
                 }}
                 exit={{ scale: 0, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                onPointerDown={status === 'speaking' ? handleOrbTap : undefined}
+                onClick={status === 'speaking' ? handleOrbTap : undefined}
+                role={status === 'speaking' ? 'button' : undefined}
+                aria-label={status === 'speaking' ? 'Tap to interrupt' : undefined}
               >
                 {/* Outer glow rings */}
                 <motion.div

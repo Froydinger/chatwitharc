@@ -48,6 +48,29 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
       analyserRef.current = audioContextRef.current.createAnalyser();
       analyserRef.current.fftSize = 256;
       analyserRef.current.connect(audioContextRef.current.destination);
+      
+      // Set up MediaSession for background audio support on iOS/Android
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: 'Voice Mode',
+          artist: 'Arc',
+          album: 'Voice Conversation',
+        });
+        
+        // Handle pause action (when user pauses from lock screen/control center)
+        navigator.mediaSession.setActionHandler('pause', () => {
+          console.log('MediaSession: pause requested');
+          // This will trigger through the interrupt mechanism
+        });
+        
+        navigator.mediaSession.setActionHandler('play', () => {
+          console.log('MediaSession: play requested');
+          // Resume if paused
+          if (audioContextRef.current?.state === 'suspended') {
+            audioContextRef.current.resume();
+          }
+        });
+      }
     }
     return audioContextRef.current;
   }, [sampleRate]);
@@ -86,6 +109,11 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     setIsAudioPlaying(true);
     isPlayingRef.current = true;
     
+    // Update MediaSession playback state for background audio support
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'playing';
+    }
+    
     source.onended = () => {
       currentSourceRef.current = null;
       
@@ -105,6 +133,11 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
         setIsPlaying(false);
         setIsAudioPlaying(false);
         isPlayingRef.current = false;
+        
+        // Update MediaSession playback state
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'paused';
+        }
       }
     };
   }, [initAudioContext, sampleRate]);
