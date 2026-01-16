@@ -333,13 +333,17 @@ serve(async (req) => {
 
     // Validate model if provided
     const allowedModels = [
-      'google/gemini-3-pro-preview',
-      'google/gemini-2.5-pro',
+      // Gemini models (2 tiers)
+      'google/gemini-3-flash-preview',  // Quick
+      'google/gemini-3-pro-preview',    // Wise & Thoughtful
+      // GPT models (3 tiers)
+      'openai/gpt-5-nano',              // Quick
+      'openai/gpt-5.2',                 // Smarter & Quick
+      'openai/gpt-5',                   // Wise & Thoughtful
+      // Legacy support
       'google/gemini-2.5-flash',
       'google/gemini-2.5-flash-lite',
-      'openai/gpt-5',
-      'openai/gpt-5-mini',
-      'openai/gpt-5-nano'
+      'openai/gpt-5-mini'
     ];
     if (model && !allowedModels.includes(model)) {
       return new Response(
@@ -595,8 +599,8 @@ Use proper markdown: # for h1, ## for h2, **bold**, *italic*, - for bullets.`;
 
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
-    const selectedModel = model || 'google/gemini-2.5-flash';
-    const fallbackModel = 'google/gemini-2.5-flash'; // Fallback for canvas/code if Pro times out
+    const selectedModel = model || 'google/gemini-3-flash-preview';
+    const fallbackModel = 'google/gemini-3-flash-preview'; // Fallback for canvas/code if Pro times out
     
     console.log('🤖 Making AI request with model:', selectedModel);
     console.log('📋 Tools provided to AI:', toolsToUse.map(t => t.function.name));
