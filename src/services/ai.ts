@@ -93,20 +93,18 @@ export class AIService {
         console.warn('Falling back to provided profile:', e);
       }
 
-      // Determine which model to use - check sessionStorage (session-only)
-      // This allows model changes within a session without persisting to database
-      // Always defaults to GPT Quick on refresh (sessionStorage is cleared)
-      const selectedModel = sessionStorage.getItem('arc_session_model') || 'openai/gpt-5-nano';
+      // Simplified model routing - hardcoded by mode
+      // Chat: GPT 5 Mini, Code/Write: Gemini 3 Pro Preview
+      const isCanvasOrCode = forceCanvas || forceCode;
+      const selectedModel = isCanvasOrCode 
+        ? 'google/gemini-3-pro-preview'  // Code/Canvas mode
+        : 'openai/gpt-5-mini';           // Chat mode (default)
 
       // Use longer timeout for canvas/code generation (especially with Gemini 3 Pro)
-      const isCanvasOrCode = forceCanvas || forceCode;
       const timeoutMs = isCanvasOrCode ? this.canvasTimeoutMs : this.defaultTimeoutMs;
 
       console.log('🤖 AI Model Selection:', {
-        fromSessionStorage: sessionStorage.getItem('arc_session_model'),
         selectedModel: selectedModel,
-        isWise: selectedModel === 'google/gemini-3-pro-preview',
-        isFast: selectedModel === 'google/gemini-2.5-flash-lite',
         isCanvasOrCode,
         timeoutMs
       });
@@ -222,8 +220,10 @@ export class AIService {
       throw new Error('Chat service is not available. Please configure Supabase.');
     }
 
-    // Get model from session storage - default to GPT Quick
-    const selectedModel = sessionStorage.getItem('arc_session_model') || 'openai/gpt-5-nano';
+    // Simplified model routing - hardcoded by mode
+    const selectedModel = (forceCanvas || forceCode) 
+      ? 'google/gemini-3-pro-preview'  // Code/Canvas mode
+      : 'openai/gpt-5-mini';           // Chat mode (default)
 
     // Use hardcoded fallbacks to ensure URL is never undefined
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://jxywhodnndagbsmnbnnw.supabase.co";
@@ -336,8 +336,8 @@ export class AIService {
         throw new Error('Maximum 4 images allowed for analysis');
       }
 
-      // Call edge function for image analysis - pass selected model (default GPT Quick)
-      const selectedModel = sessionStorage.getItem('arc_session_model') || 'openai/gpt-5-nano';
+      // Use GPT 5 Mini for image analysis
+      const selectedModel = 'openai/gpt-5-mini';
       const { data, error } = await supabase.functions.invoke('analyze-image', {
         body: { 
           messages,
@@ -464,8 +464,8 @@ export class AIService {
 
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Pass selected model for file generation (default GPT Quick)
-      const selectedModel = sessionStorage.getItem('arc_session_model') || 'openai/gpt-5-nano';
+      // Use Gemini 3 Pro for file generation (complex content)
+      const selectedModel = 'google/gemini-3-pro-preview';
       
       const { data, error } = await supabase.functions.invoke('generate-file', {
         body: { fileType, prompt, model: selectedModel },
