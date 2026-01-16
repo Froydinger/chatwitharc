@@ -50,7 +50,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   outputAmplitude: 0,
   currentTranscript: '',
   conversationTurns: [],
-  selectedVoice: 'shimmer',
+  selectedVoice: 'coral',
   
   // Actions
   activateVoiceMode: () => {
