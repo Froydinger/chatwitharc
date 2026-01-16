@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useVoiceModeStore } from '@/store/useVoiceModeStore';
 import { useOpenAIRealtime } from '@/hooks/useOpenAIRealtime';
 import { useAudioCapture } from '@/hooks/useAudioCapture';
@@ -276,7 +276,8 @@ export function VoiceModeController() {
   }, [cancelResponse, clearQueue]);
 
   // Register the interrupt handler globally so VoiceModeOverlay can use it
-  useEffect(() => {
+  // Use layout effect so it's available before the user can tap the button.
+  useLayoutEffect(() => {
     setGlobalInterruptHandler(handleManualInterrupt);
     return () => {
       setGlobalInterruptHandler(null);

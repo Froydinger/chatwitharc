@@ -34,6 +34,15 @@ export function VoiceModeOverlay() {
     }
   }, []);
 
+  const handleInterruptPress = useCallback(
+    (e: React.PointerEvent<HTMLButtonElement> | React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handleInterrupt();
+    },
+    [handleInterrupt]
+  );
+
   if (!isActive) return null;
 
   // Determine orb animation based on status
@@ -125,7 +134,8 @@ export function VoiceModeOverlay() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.8, y: 20 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  onClick={handleInterrupt}
+                  onPointerDown={handleInterruptPress}
+                  onClick={handleInterruptPress}
                   className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 px-6 py-3 rounded-full bg-primary/20 hover:bg-primary/30 border border-primary/30 transition-colors flex items-center gap-2"
                   aria-label="Interrupt AI"
                 >
