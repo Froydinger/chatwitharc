@@ -100,7 +100,6 @@ function summarizeRecentChats(messages: Message[], maxMessages = 20): string {
   
   return `Here's what was discussed recently in our text chat (you can reference this naturally if relevant):\n${summary}`;
 }
-const LOADING_MUSIC_VOLUME = 0.05; // 5% volume for elevator music during loading - very quiet
 
 export function VoiceModeController() {
   const { toast } = useToast();
@@ -121,39 +120,16 @@ export function VoiceModeController() {
   const wasActiveRef = useRef(false);
   const previousVoiceRef = useRef(selectedVoice);
   
-  // Audio ref for loading music
-  const loadingMusicRef = useRef<HTMLAudioElement | null>(null);
-  
   // Abort controller for cancelling pending operations
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Audio playback for AI responses
   const { queueAudio, stopPlayback, clearQueue } = useAudioPlayback();
-  
-  // Start playing elevator music during loading
-  const startLoadingMusic = useCallback(() => {
-    if (!loadingMusicRef.current) {
-      loadingMusicRef.current = new Audio('/audio/elevator-music.mp3');
-      loadingMusicRef.current.loop = true;
-    }
-    loadingMusicRef.current.volume = LOADING_MUSIC_VOLUME;
-    loadingMusicRef.current.currentTime = 0;
-    loadingMusicRef.current.play().catch(console.error);
-  }, []);
-  
-  // Stop loading music
-  const stopLoadingMusic = useCallback(() => {
-    if (loadingMusicRef.current) {
-      loadingMusicRef.current.pause();
-      loadingMusicRef.current.currentTime = 0;
-    }
-  }, []);
 
-  // Image generation handler
+  // Image generation handler - NO music
   const handleImageGenerate = useCallback(async (prompt: string): Promise<string> => {
     console.log('VoiceModeController: Generating image with prompt:', prompt);
     setIsGeneratingImage(true);
-    startLoadingMusic(); // Play elevator music while generating
     
     try {
       const imageUrl = await aiService.generateImage(prompt);
@@ -161,15 +137,13 @@ export function VoiceModeController() {
       setGeneratedImage(imageUrl);
       setLastGeneratedImageUrl(imageUrl); // Track for attaching to conversation
       setIsGeneratingImage(false);
-      stopLoadingMusic(); // Stop music when done
       return imageUrl;
     } catch (error) {
       console.error('VoiceModeController: Image generation failed:', error);
       setIsGeneratingImage(false);
-      stopLoadingMusic(); // Stop music on error too
       throw error;
     }
-  }, [setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl, startLoadingMusic, stopLoadingMusic]);
+  }, [setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
 
   // Image dismiss handler
   const handleImageDismiss = useCallback(() => {
@@ -177,7 +151,7 @@ export function VoiceModeController() {
     setGeneratedImage(null);
   }, [setGeneratedImage]);
 
-  // Web search handler with abort support
+  // Web search handler with abort support - NO music
   const handleWebSearch = useCallback(async (query: string): Promise<string> => {
     console.log('VoiceModeController: Web search for:', query);
     
@@ -188,7 +162,6 @@ export function VoiceModeController() {
     }
     
     setIsSearching(true);
-    startLoadingMusic(); // Play elevator music while searching
     
     // Create new abort controller for this search
     abortControllerRef.current = new AbortController();
@@ -212,12 +185,10 @@ export function VoiceModeController() {
       // Check if voice mode is still active after search completes
       if (!useVoiceModeStore.getState().isActive) {
         console.log('Voice mode deactivated during search, discarding results');
-        stopLoadingMusic();
         setIsSearching(false);
         return 'Search completed but voice mode ended.';
       }
       
-      stopLoadingMusic();
       setIsSearching(false);
       
       if (error) {
@@ -232,7 +203,6 @@ export function VoiceModeController() {
       return response;
     } catch (error: any) {
       console.error('VoiceModeController: Web search failed:', error);
-      stopLoadingMusic();
       setIsSearching(false);
       
       // Return error message instead of throwing - keeps voice mode alive
@@ -241,7 +211,7 @@ export function VoiceModeController() {
       }
       return `I ran into a problem searching for that: ${error.message || 'Unknown error'}. Want me to try again?`;
     }
-  }, [setIsSearching, startLoadingMusic, stopLoadingMusic]);
+  }, [setIsSearching]);
 
   // OpenAI Realtime connection
   const { isConnected, connect, disconnect, sendAudio, updateVoice, cancelResponse } = useOpenAIRealtime({
@@ -267,15 +237,16 @@ export function VoiceModeController() {
     onWebSearch: handleWebSearch,
   });
 
-  // Manual interrupt handler for tap-to-interrupt on orb
+  // Manual interrupt handler for the big centered button
   const handleManualInterrupt = useCallback(() => {
-    console.log('Manual interrupt triggered via orb tap');
+    console.log('Manual interrupt triggered via button');
     cancelResponse();
     clearQueue();
+    stopPlayback();
     useVoiceModeStore.getState().setStatus('listening');
-  }, [cancelResponse, clearQueue]);
+  }, [cancelResponse, clearQueue, stopPlayback]);
 
-  // Register the interrupt handler globally so VoiceModeOverlay orb can use it
+  // Register the interrupt handler globally so VoiceModeOverlay button can use it
   useLayoutEffect(() => {
     setGlobalInterruptHandler(handleManualInterrupt);
     return () => {
@@ -336,7 +307,6 @@ export function VoiceModeController() {
         abortControllerRef.current = null;
       }
       
-      stopLoadingMusic(); // Ensure music stops on deactivation
       stopCapture();
       stopPlayback();
       disconnect();
@@ -382,7 +352,7 @@ export function VoiceModeController() {
         clearConversation();
       }
     }
-  }, [isActive, connect, disconnect, startCapture, stopCapture, stopPlayback, stopLoadingMusic, addMessage, toast, deactivateVoiceMode, messages, profile]);
+  }, [isActive, connect, disconnect, startCapture, stopCapture, stopPlayback, addMessage, toast, deactivateVoiceMode, messages, profile]);
 
   // Update voice when selection changes (only when connected)
   useEffect(() => {
@@ -400,14 +370,13 @@ export function VoiceModeController() {
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
         }
-        stopLoadingMusic();
         stopCapture();
         stopPlayback();
         disconnect();
         initRef.current = false;
       }
     };
-  }, [stopCapture, stopPlayback, stopLoadingMusic, disconnect]);
+  }, [stopCapture, stopPlayback, disconnect]);
 
   return null;
 }

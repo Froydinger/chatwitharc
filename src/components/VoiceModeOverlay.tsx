@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search } from "lucide-react";
+import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Square } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useCallback } from "react";
 
@@ -27,17 +27,17 @@ export function VoiceModeOverlay() {
     isSearching,
   } = useVoiceModeStore();
 
-  // Handle orb tap to interrupt when AI is speaking or audio is playing
-  const handleOrbInterrupt = useCallback(() => {
-    if ((status === 'speaking' || isAudioPlaying) && globalInterruptHandler) {
-      console.log('Orb tapped - interrupting AI');
+  // Handle interrupt button press
+  const handleInterrupt = useCallback(() => {
+    if (globalInterruptHandler) {
+      console.log('Interrupt button pressed');
       // Trigger haptic feedback on supported devices
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
       globalInterruptHandler();
     }
-  }, [status, isAudioPlaying]);
+  }, []);
 
   if (!isActive) return null;
 
@@ -45,6 +45,9 @@ export function VoiceModeOverlay() {
   const amplitude = status === 'speaking' ? outputAmplitude : (isMuted ? 0 : inputAmplitude);
   const orbScale = 1 + amplitude * 0.4;
   const glowIntensity = 40 + amplitude * 60;
+
+  // Check if interrupt button should be visible
+  const showInterruptButton = status === 'speaking' || isAudioPlaying;
 
   const getStatusIcon = () => {
     if (isMuted) {
@@ -64,7 +67,7 @@ export function VoiceModeOverlay() {
       case 'connecting': return 'Connecting...';
       case 'listening': return 'Listening...';
       case 'thinking': return 'Thinking...';
-      case 'speaking': return 'Tap orb to interrupt';
+      case 'speaking': return 'Speaking...';
       default: return 'Tap to speak';
     }
   };
@@ -121,8 +124,6 @@ export function VoiceModeOverlay() {
                 <Mic className="w-6 h-6 text-foreground" />
               )}
             </motion.button>
-
-            {/* Interrupt happens automatically via VAD - no manual button needed */}
 
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               {/* Search Loading Indicator */}
@@ -230,9 +231,9 @@ export function VoiceModeOverlay() {
                 )}
               </AnimatePresence>
 
-              {/* Animated liquid orb - TAP TO INTERRUPT when AI is speaking */}
+              {/* Animated liquid orb - NO tap interrupt, just visual */}
               <motion.div
-                className={`relative ${(status === 'speaking' || isAudioPlaying) ? 'cursor-pointer' : ''}`}
+                className="relative"
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ 
                   scale: 1, 
@@ -241,9 +242,6 @@ export function VoiceModeOverlay() {
                 }}
                 exit={{ scale: 0, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                onClick={handleOrbInterrupt}
-                role={(status === 'speaking' || isAudioPlaying) ? 'button' : undefined}
-                aria-label={(status === 'speaking' || isAudioPlaying) ? 'Tap to interrupt' : undefined}
               >
                 {/* Outer glow rings */}
                 <motion.div
@@ -398,6 +396,27 @@ export function VoiceModeOverlay() {
                 )}
                 <span className="text-sm font-medium">{getStatusText()}</span>
               </motion.div>
+
+              {/* BIG CENTERED INTERRUPT BUTTON - Only shows when AI is speaking */}
+              <AnimatePresence>
+                {showInterruptButton && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, y: 20 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    onClick={handleInterrupt}
+                    className="mt-8 px-10 py-5 rounded-full bg-destructive text-destructive-foreground
+                               text-lg font-semibold shadow-2xl
+                               hover:bg-destructive/90 active:scale-95 transition-all
+                               flex items-center gap-3"
+                    aria-label="Stop AI"
+                  >
+                    <Square className="w-6 h-6 fill-current" />
+                    <span>Stop</span>
+                  </motion.button>
+                )}
+              </AnimatePresence>
 
             </div>
           </motion.div>

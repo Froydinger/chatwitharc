@@ -88,10 +88,24 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       const scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
       
       scriptProcessor.onaudioprocess = (event) => {
-        // Check mute state AND speaking state from store
-        // Don't send audio when muted OR when AI is speaking (prevents echo/feedback)
-        const { isMuted, status } = useVoiceModeStore.getState();
-        if (isMuted || status === 'speaking') return;
+        // COMPREHENSIVE mic gating - only capture when explicitly LISTENING
+        // and not during any operation that could cause unwanted behavior
+        const { isMuted, status, isGeneratingImage, isSearching, isAudioPlaying } = useVoiceModeStore.getState();
+        
+        // Only capture audio when ALL of these are true:
+        // - Not muted
+        // - Status is 'listening' (not speaking, thinking, connecting, or idle)
+        // - No image generation in progress
+        // - No web search in progress
+        // - No audio currently playing
+        const shouldCapture = 
+          !isMuted && 
+          status === 'listening' && 
+          !isGeneratingImage && 
+          !isSearching && 
+          !isAudioPlaying;
+        
+        if (!shouldCapture) return;
         
         const inputData = event.inputBuffer.getChannelData(0);
         
