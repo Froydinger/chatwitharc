@@ -18,9 +18,8 @@ let globalWs: WebSocket | null = null;
 let globalConnecting = false;
 let globalSessionId: string | null = null;
 
-// Speech detection debounce for iOS stability
-let speechStartedAt: number | null = null;
-let interruptTimeoutId: ReturnType<typeof setTimeout> | null = null;
+// Tool calls in flight to prevent duplicate executions
+const toolCallsInFlight = new Set<string>();
 
 // Helper to detect garbled/stuttered transcription
 const isGarbledTranscription = (text: string): boolean => {
@@ -97,15 +96,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'input_audio_buffer.speech_started':
-        // User started speaking - just update status, don't auto-interrupt
-        // Manual tap-to-interrupt is preferred for reliability
-        speechStartedAt = Date.now();
-        setStatus('listening');
+        // Just log - NO status changes, NO voice-based interruption
+        // Mic is controlled separately - this is just VAD for turn detection
+        console.log('VAD: User speech detected (no auto-interrupt)');
         break;
 
       case 'input_audio_buffer.speech_stopped':
-        speechStartedAt = null;
-        setStatus('thinking');
+        // Just log - status will change when response starts/ends
+        console.log('VAD: User speech stopped');
         break;
 
       case 'conversation.item.input_audio_transcription.completed':
@@ -160,12 +158,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.audio.delta':
-        // Audio data from AI - check if we should play it
-        const { status: playbackStatus } = useVoiceModeStore.getState();
-        // Don't process audio if user is speaking (interrupted)
-        if (playbackStatus === 'listening' || playbackStatus === 'thinking') {
-          return; // Ignore audio data when user is speaking
-        }
+        // Audio data from AI - ALWAYS play it (no voice-based interruption)
+        // Only manual interrupt button can stop playback
         if (event.delta) {
           const binaryString = atob(event.delta);
           const bytes = new Uint8Array(binaryString.length);
@@ -178,10 +172,21 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.output_item.done':
-        // Check for function calls
+        // Check for function calls with deduplication guard
         if (event.item?.type === 'function_call') {
           const { name, call_id, arguments: argsStr } = event.item;
+          
+          // Guard against duplicate tool calls
+          if (toolCallsInFlight.has(call_id)) {
+            console.log('Tool call already in flight, ignoring:', call_id);
+            return;
+          }
+          toolCallsInFlight.add(call_id);
           console.log('Function call received:', { name, call_id, argsStr });
+          
+          const cleanupToolCall = () => {
+            toolCallsInFlight.delete(call_id);
+          };
           
           if (name === 'generate_image') {
             try {
@@ -194,12 +199,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 optionsRef.current.onImageGenerate(prompt)
                   .then(() => {
                     console.log('Image generated successfully');
-                    // Don't send the imageUrl back - it's too large (base64)
-                    // Just tell the AI it worked and what prompt was used
                     sendFunctionResult(call_id, JSON.stringify({ 
                       success: true, 
                       message: `Image generated and displayed to user. Describe what you created based on: "${prompt}"`
                     }));
+                    cleanupToolCall();
                   })
                   .catch((error) => {
                     console.error('Image generation failed:', error);
@@ -207,12 +211,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                       success: false, 
                       error: error.message || 'Failed to generate image'
                     }));
+                    cleanupToolCall();
                   });
               } else {
                 sendFunctionResult(call_id, JSON.stringify({ 
                   success: false, 
                   error: 'Image generation not available'
                 }));
+                cleanupToolCall();
               }
             } catch (e) {
               console.error('Failed to parse function args:', e);
@@ -220,6 +226,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 success: false, 
                 error: 'Invalid function arguments'
               }));
+              cleanupToolCall();
             }
           } else if (name === 'close_image') {
             console.log('Closing image');
@@ -228,6 +235,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               success: true, 
               message: 'Image closed successfully'
             }));
+            cleanupToolCall();
           } else if (name === 'web_search') {
             try {
               const args = JSON.parse(argsStr || '{}');
@@ -242,6 +250,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                       success: true, 
                       results: results
                     }));
+                    cleanupToolCall();
                   })
                   .catch((error) => {
                     console.error('Web search failed:', error);
@@ -249,12 +258,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                       success: false, 
                       error: error.message || 'Failed to search'
                     }));
+                    cleanupToolCall();
                   });
               } else {
                 sendFunctionResult(call_id, JSON.stringify({ 
                   success: false, 
                   error: 'Web search not available'
                 }));
+                cleanupToolCall();
               }
             } catch (e) {
               console.error('Failed to parse web search args:', e);
@@ -262,7 +273,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 success: false, 
                 error: 'Invalid search query'
               }));
+              cleanupToolCall();
             }
+          } else {
+            // Unknown tool - clean up
+            cleanupToolCall();
           }
         }
         break;
@@ -454,6 +469,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
     globalConnecting = false;
     globalSessionId = null;
+    toolCallsInFlight.clear(); // Clear tool calls on disconnect
     setIsConnected(false);
     setStatus('idle');
   }, []);
