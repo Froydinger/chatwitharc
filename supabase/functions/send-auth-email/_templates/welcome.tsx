@@ -110,6 +110,14 @@ export const WelcomeEmail = ({
                 </Column>
               </Row>
             </Section>
+            
+            {/* Pro Tip */}
+            <Section style={proTipSection}>
+              <Text style={proTipLabel}>💎 PRO TIP</Text>
+              <Text style={proTipText}>
+                You can ask Arc to generate images or search the web in voice mode! Just Ask Arc!
+              </Text>
+            </Section>
           </Section>
           
           {/* Footer */}
@@ -261,6 +269,29 @@ const tipHeading = {
 const tipDesc = {
   color: colors.textMuted,
   fontSize: '13px',
+  margin: '0',
+}
+
+const proTipSection = {
+  backgroundColor: colors.surfaceLight,
+  borderRadius: '12px',
+  padding: '16px 20px',
+  marginTop: '24px',
+  border: `1px solid ${colors.border}`,
+}
+
+const proTipLabel = {
+  color: colors.primaryGlow,
+  fontSize: '11px',
+  fontWeight: '700',
+  letterSpacing: '0.5px',
+  margin: '0 0 8px',
+}
+
+const proTipText = {
+  color: colors.textSecondary,
+  fontSize: '14px',
+  lineHeight: '20px',
   margin: '0',
 }
 
