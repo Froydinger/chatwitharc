@@ -155,6 +155,7 @@ export type Database = {
           theme_preference: string | null
           updated_at: string | null
           user_id: string
+          welcome_email_sent: boolean | null
         }
         Insert: {
           accent_color?: string | null
@@ -170,6 +171,7 @@ export type Database = {
           theme_preference?: string | null
           updated_at?: string | null
           user_id: string
+          welcome_email_sent?: boolean | null
         }
         Update: {
           accent_color?: string | null
@@ -185,6 +187,7 @@ export type Database = {
           theme_preference?: string | null
           updated_at?: string | null
           user_id?: string
+          welcome_email_sent?: boolean | null
         }
         Relationships: []
       }

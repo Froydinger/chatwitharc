@@ -9,6 +9,7 @@ interface Profile {
   context_info: string | null;
   created_at: string;
   updated_at: string;
+  welcome_email_sent?: boolean;
 }
 
 interface AuthContextType {
@@ -33,6 +34,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+
+  const sendWelcomeEmail = async (userId: string, displayName: string | null) => {
+    if (!supabase) return;
+
+    try {
+      // Send welcome email
+      await supabase.functions.invoke('send-welcome-email', {
+        body: { user_name: displayName },
+      });
+      
+      // Mark as sent in database
+      await supabase
+        .from('profiles')
+        .update({ welcome_email_sent: true })
+        .eq('user_id', userId);
+
+      console.log('✅ Welcome email sent on first login');
+    } catch (error) {
+      console.error('Welcome email failed:', error);
+    }
+  };
 
   const fetchProfile = async (userId: string) => {
     if (!supabase) return;
@@ -62,6 +84,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setNeedsOnboarding(false);
       }
+
+      // Send welcome email on first login (if not already sent)
+      if (data && !data.welcome_email_sent) {
+        // Use setTimeout to avoid blocking auth flow
+        setTimeout(() => {
+          sendWelcomeEmail(userId, data.display_name);
+        }, 1000);
+      }
     } catch (error) {
       console.error('Profile fetch error:', error);
       // Fallback: try to create profile if fetch fails
@@ -86,7 +116,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('profiles')
         .insert({
           user_id: userId,
-          display_name: displayName
+          display_name: displayName,
+          welcome_email_sent: false
         })
         .select()
         .single();
@@ -98,6 +129,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setProfile(data);
       setNeedsOnboarding(false);
+
+      // Send welcome email for new users
+      setTimeout(() => {
+        sendWelcomeEmail(userId, displayName);
+      }, 1000);
     } catch (error) {
       console.error('Profile creation error:', error);
     }
