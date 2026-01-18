@@ -55,17 +55,20 @@ serve(async (req) => {
       );
     }
 
-    // Map chat model to image model (same as generate-image)
+    // Map chat model to image model - ALWAYS use Gemini image models
+    // Image generation/editing requires Gemini models with modalities support
     // google/gemini-3-flash-preview (Quick) → google/gemini-2.5-flash-image
     // google/gemini-3-pro-preview (Wise & Thoughtful) → google/gemini-3-pro-image-preview
-    let selectedModel = imageModel || 'google/gemini-2.5-flash-image';
+    // Any other model (including OpenAI) → default to google/gemini-2.5-flash-image
+    let selectedModel = 'google/gemini-2.5-flash-image';
     
-    // If chat model was passed, map it to image model
-    if (imageModel === 'google/gemini-3-flash-preview' || imageModel === 'google/gemini-2.5-flash') {
-      selectedModel = 'google/gemini-2.5-flash-image';
-    } else if (imageModel === 'google/gemini-3-pro-preview') {
+    // If chat model was passed, map it to the appropriate image model
+    if (imageModel === 'google/gemini-3-pro-preview' || imageModel === 'google/gemini-3-pro-image-preview') {
       selectedModel = 'google/gemini-3-pro-image-preview';
+    } else if (imageModel === 'google/gemini-2.5-flash-image') {
+      selectedModel = 'google/gemini-2.5-flash-image';
     }
+    // All other models (OpenAI, etc.) default to google/gemini-2.5-flash-image
     
     console.log('Using image model:', selectedModel);
 
