@@ -5,13 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowLeft, User } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 type AuthMode = 'login' | 'signup' | 'forgot-password';
 
 export function AuthPage() {
   const [mode, setMode] = useState<AuthMode>('login');
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -28,7 +29,7 @@ export function AuthPage() {
       return;
     }
 
-    if (!email || (mode !== 'forgot-password' && !password)) {
+    if (!email || (mode !== 'forgot-password' && !password) || (mode === 'signup' && !name.trim())) {
       toast({
         title: "Error",
         description: mode === 'forgot-password' ? "Please enter your email" : "Please fill in all fields",
@@ -57,12 +58,26 @@ export function AuthPage() {
         toast({ title: "Welcome back!", description: "You've been signed in successfully" });
       } else {
         const redirectUrl = `${window.location.origin}/`;
-        const { error } = await supabase.auth.signUp({
+        const { error, data } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: redirectUrl },
+          options: { 
+            emailRedirectTo: redirectUrl,
+            data: {
+              display_name: name.trim(),
+            }
+          },
         });
         if (error) throw error;
+        
+        // Create/update profile with display name
+        if (data.user) {
+          await supabase.from('profiles').upsert({
+            user_id: data.user.id,
+            display_name: name.trim(),
+          }, { onConflict: 'user_id' });
+        }
+        
         toast({ title: "Account created!", description: "Welcome to ArcAI!" });
       }
     } catch (error: any) {
@@ -186,6 +201,28 @@ export function AuthPage() {
             autoComplete="on"
             className="space-y-4"
           >
+            {/* Name - only for signup */}
+            {mode === 'signup' && (
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-white">Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-white/70" />
+                  <Input
+                    id="name"
+                    name="name"
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Enter your name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="pl-10 bg-black border-white/20 text-white placeholder:text-white/50"
+                    disabled={loading}
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-white">Email</Label>
