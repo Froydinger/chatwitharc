@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Square } from "lucide-react";
+import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useCallback } from "react";
 
@@ -406,14 +406,14 @@ export function VoiceModeOverlay() {
                     exit={{ opacity: 0, scale: 0.8, y: 20 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
                     onClick={handleInterrupt}
-                    className="mt-8 px-10 py-5 rounded-full bg-destructive text-destructive-foreground
+                    className="mt-8 px-10 py-5 rounded-full bg-primary text-primary-foreground
                                text-lg font-semibold shadow-2xl
-                               hover:bg-destructive/90 active:scale-95 transition-all
+                               hover:bg-primary/90 active:scale-95 transition-all
                                flex items-center gap-3"
-                    aria-label="Stop AI"
+                    aria-label="Interrupt AI"
                   >
-                    <Square className="w-6 h-6 fill-current" />
-                    <span>Stop</span>
+                    <Hand className="w-6 h-6" />
+                    <span>Interrupt</span>
                   </motion.button>
                 )}
               </AnimatePresence>

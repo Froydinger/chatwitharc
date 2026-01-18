@@ -52,6 +52,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     versions,
     activeVersionIndex,
     isAIWriting,
+    isLoading,
     canvasType,
     codeLanguage,
     showCodePreview,
@@ -449,7 +450,18 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {isCodeMode ? (
+        {/* Loading State - shows when waiting for non-streaming generation */}
+        {isLoading ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-4">
+            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            <span className="text-muted-foreground text-lg">
+              {isCodeMode ? 'Generating code...' : 'Generating content...'}
+            </span>
+            <span className="text-muted-foreground/60 text-sm">
+              This may take a moment
+            </span>
+          </div>
+        ) : isCodeMode ? (
           // Code mode: show either preview (full-width) or code editor (full-width)
           supportsPreview && !showCodeEditor ? (
             // Preview mode (default for previewable languages)

@@ -18,6 +18,7 @@ interface CanvasState {
   redoStack: string[];
   isSaving: boolean;
   isAIWriting: boolean;
+  isLoading: boolean; // Loading state for non-streaming generation
   mode: 'standalone' | 'sideBySide';
   pendingPrompt: string | null;
   
@@ -33,10 +34,12 @@ interface CanvasState {
   openSideBySide: (prompt: string) => void;
   openCodeCanvas: (code: string, language: string, label?: string) => void;
   openWithContent: (content: string, type?: CanvasType, language?: string) => void;
+  openWithLoading: (type: CanvasType, language?: string) => void; // Open with loading state
   closeCanvas: () => void;
   setContent: (content: string, saveToHistory?: boolean) => void;
   setAIContent: (content: string, label?: string) => void;
   setAIWriting: (isWriting: boolean) => void;
+  setLoading: (loading: boolean) => void; // Control loading state
   streamContent: (delta: string) => void;
   startStreaming: (mode: CanvasType, language?: string) => void;
   setCodeLanguage: (language: string) => void;
@@ -58,6 +61,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   redoStack: [],
   isSaving: false,
   isAIWriting: false,
+  isLoading: false,
   mode: 'sideBySide',
   pendingPrompt: null,
   
@@ -169,11 +173,32 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       mode: 'sideBySide',
       pendingPrompt: prompt,
       isAIWriting: true,
+      isLoading: false,
+    });
+  },
+
+  // Open canvas with loading state (for non-streaming generation)
+  openWithLoading: (type: CanvasType, language = 'typescript') => {
+    set({
+      isOpen: true,
+      content: '',
+      versions: [],
+      activeVersionIndex: -1,
+      undoStack: [],
+      redoStack: [],
+      mode: 'sideBySide',
+      pendingPrompt: null,
+      isAIWriting: true,
+      isLoading: true, // Show loading spinner
+      canvasType: type,
+      codeLanguage: language,
+      showCodePreview: false,
     });
   },
 
   closeCanvas: () => set({
     isOpen: false,
+    isLoading: false,
     // Keep content and versions so user can reopen
     isAIWriting: false,
     mode: 'sideBySide',
@@ -212,6 +237,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   setAIWriting: (isWriting: boolean) => set({ isAIWriting: isWriting }),
+  
+  setLoading: (loading: boolean) => set({ isLoading: loading }),
 
   // Start streaming mode - opens canvas and clears content
   startStreaming: (mode: CanvasType, language = 'typescript') => {

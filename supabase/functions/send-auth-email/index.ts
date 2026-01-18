@@ -4,6 +4,8 @@ import { Resend } from 'https://esm.sh/resend@4.0.0'
 import { renderAsync } from 'https://esm.sh/@react-email/components@0.0.22'
 import { SignupConfirmationEmail } from './_templates/signup-confirmation.tsx'
 import { MagicLinkEmail } from './_templates/magic-link.tsx'
+import { WelcomeEmail } from './_templates/welcome.tsx'
+import { PasswordResetEmail } from './_templates/password-reset.tsx'
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string)
 const hookSecret = Deno.env.get('SEND_EMAIL_HOOK_SECRET') as string
@@ -61,9 +63,21 @@ Deno.serve(async (req) => {
           user_email: user.email,
         })
       )
-      subject = 'Welcome to ArcAI - Confirm your account'
+      subject = '✨ Welcome to ArcAI - Confirm your account'
+    } else if (email_action_type === 'recovery') {
+      html = await renderAsync(
+        React.createElement(PasswordResetEmail, {
+          supabase_url: Deno.env.get('SUPABASE_URL') ?? '',
+          token,
+          token_hash,
+          redirect_to,
+          email_action_type,
+          user_email: user.email,
+        })
+      )
+      subject = '🔐 Reset your ArcAI password'
     } else {
-      // magiclink, recovery, etc.
+      // magiclink, etc.
       html = await renderAsync(
         React.createElement(MagicLinkEmail, {
           supabase_url: Deno.env.get('SUPABASE_URL') ?? '',
@@ -74,11 +88,11 @@ Deno.serve(async (req) => {
           user_email: user.email,
         })
       )
-      subject = 'Your ArcAI login link'
+      subject = '🔑 Your ArcAI login link'
     }
 
     const { error } = await resend.emails.send({
-      from: 'ArcAI <noreply@yourdomain.com>', // Change this to your domain
+      from: 'ArcAI <hello@askarc.chat>',
       to: [user.email],
       subject,
       html,
@@ -88,6 +102,8 @@ Deno.serve(async (req) => {
       console.error('Resend error:', error)
       throw error
     }
+
+    console.log(`✅ Email sent successfully to ${user.email} (type: ${email_action_type})`)
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
