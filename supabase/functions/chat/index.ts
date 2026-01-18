@@ -1128,6 +1128,12 @@ Output the complete, finished writing using the update_canvas tool.`;
       } else {
         // For web_search and search_past_chats, we need the second call to synthesize results
         console.log('🤖 Making second AI call to synthesize results (no forced tool)');
+        
+        // Use correct token parameter based on model
+        const isOpenAIModel = (model || '').toLowerCase().includes('openai') || 
+                              (model || '').toLowerCase().includes('gpt-');
+        const tokenParam = isOpenAIModel ? 'max_completion_tokens' : 'max_tokens';
+        
         response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -1138,7 +1144,7 @@ Output the complete, finished writing using the update_canvas tool.`;
             model: model || 'google/gemini-3-flash-preview',
             messages: conversationMessages,
             // No tools on second call - just synthesize the results
-            max_tokens: 65536, // Maximum output - no truncation
+            [tokenParam]: 65536, // Maximum output - no truncation
           }),
         });
 
