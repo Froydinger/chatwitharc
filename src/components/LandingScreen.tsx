@@ -107,9 +107,9 @@ const AppMockup = () => {
         {/* Main Content Area */}
         <div className="p-8 md:p-16 flex flex-col items-center justify-center min-h-[400px] md:min-h-[500px] relative">
 
-          {/* Hero Text inside App */}
+        {/* Hero Text inside App */}
           <h2 className="text-3xl md:text-5xl font-bold mb-8 text-center text-white tracking-tight">
-            Arc and shine.
+            Hey Marv, let's Arc.
           </h2>
 
           {/* Floating Prompts */}
@@ -449,10 +449,10 @@ export function LandingScreen() {
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight leading-tight">
-            Your mind, <span className="gradient-text">amplified.</span>
+            Marv's mind, <span className="gradient-text">amplified.</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-400 mb-8 max-w-xl mx-auto leading-relaxed">
-            The intelligent AI companion that adapts to you. Create, code, and think with fluid, intuitive conversations.
+            Your personal AI companion built just for you, Marv. Create, code, and think with fluid, intuitive conversations.
           </p>
 
           <div className="flex flex-col items-center justify-center space-y-4">
@@ -541,8 +541,8 @@ export function LandingScreen() {
           />
           <FeatureCard
             icon={Brain}
-            title="Personal Memory"
-            description="ArcAi remembers your preferences and context. Your conversations adapt to your unique workflow and style."
+            title="Marv's Memory"
+            description="ArcAi remembers your preferences and context, Marv. Your conversations adapt to your unique workflow and style."
             color="from-purple-400 to-pink-500"
           />
           <FeatureCard
@@ -559,9 +559,9 @@ export function LandingScreen() {
         <div className="glass-panel max-w-4xl mx-auto rounded-3xl p-12 md:p-20 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-700"></div>
 
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Always Free, Forever.</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">Always Free for Marv.</h2>
           <p className="text-gray-400 mb-6 max-w-lg mx-auto">
-            Experience AI conversations that adapt to you—whether you're coding, creating, or need to think out loud. Always free, no subscriptions. Ever. We mean it.
+            Your personal AI playground, Marv—whether you're coding, creating, or need to think out loud. Always free, no subscriptions. Ever. We mean it.
           </p>
           <p className="text-gray-500 text-sm mb-10 max-w-md mx-auto italic">
             Some premium features may be added in the future, but chat and core features will always remain free. We promise.
