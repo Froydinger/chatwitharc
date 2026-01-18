@@ -19,6 +19,24 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  const sendWelcomeEmail = async (userName: string) => {
+    try {
+      if (!supabase) return;
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      await supabase.functions.invoke('send-welcome-email', {
+        body: { user_name: userName },
+      });
+      
+      console.log('✅ Welcome email sent');
+    } catch (error) {
+      // Don't block onboarding if email fails
+      console.error('Welcome email failed:', error);
+    }
+  };
+
   const handleComplete = async () => {
     if (!displayName.trim()) {
       toast({
@@ -51,6 +69,9 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
         .eq('user_id', user.id);
 
       if (error) throw error;
+
+      // Send welcome email in background (don't await)
+      sendWelcomeEmail(displayName.trim());
 
       toast({
         title: "Welcome!",
