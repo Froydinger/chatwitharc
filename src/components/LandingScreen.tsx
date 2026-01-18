@@ -107,9 +107,9 @@ const AppMockup = () => {
         {/* Main Content Area */}
         <div className="p-8 md:p-16 flex flex-col items-center justify-center min-h-[400px] md:min-h-[500px] relative">
 
-        {/* Hero Text inside App */}
+          {/* Hero Text inside App */}
           <h2 className="text-3xl md:text-5xl font-bold mb-8 text-center text-white tracking-tight">
-            Hey Marv, let's Arc.
+            Arc and shine.
           </h2>
 
           {/* Floating Prompts */}
@@ -242,6 +242,7 @@ export function LandingScreen() {
   const [isPWAMode, setIsPWAMode] = useState(false);
   const [snarkyMessage, setSnarkyMessage] = useState<string | null>(null);
   const [isLogoSpinning, setIsLogoSpinning] = useState(false);
+  const [showStickyHeader, setShowStickyHeader] = useState(false);
   const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const downloadUrl = "https://froydinger.blog/wp-content/uploads/2025/11/ArcAi-for-Mac-1.0.2.zip";
@@ -254,6 +255,14 @@ export function LandingScreen() {
     setIsMobile(isMobileDevice());
     setIsWindowsDevice(isWindows());
     setIsPWAMode(isPWA());
+
+    // Handle scroll for sticky header
+    const handleScroll = () => {
+      setShowStickyHeader(window.scrollY > 100);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Cleanup timeout on unmount
@@ -305,127 +314,150 @@ export function LandingScreen() {
       {/* Background Image */}
       <BackgroundGradients />
 
-      {/* Fixed Navigation Header - Always sticky */}
-      <nav
-        className="fixed left-0 right-0 z-50 glass-panel border-b border-white/10 backdrop-blur-xl"
-        style={{
-          top: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'
-        }}
-      >
-        <div className="flex items-center justify-between px-4 py-3 md:px-8 max-w-7xl mx-auto">
-          <div className="flex items-center space-x-3">
-            {/* Logo Orb - clickable with snarky messages */}
-            <div className="relative">
-              <button
-                className="rounded-full backdrop-blur-2xl bg-background/60 hover:bg-background/80 transition-all overflow-hidden shadow-lg p-2 cursor-pointer"
-                style={{ border: 'none' }}
-                onClick={() => {
-                  // Clear any existing timeout
-                  if (snarkyTimeoutRef.current) {
-                    clearTimeout(snarkyTimeoutRef.current);
-                  }
-
-                  // Trigger spin animation
-                  setIsLogoSpinning(true);
-                  setTimeout(() => setIsLogoSpinning(false), 600);
-
-                  const snarkyMessages = [
-                    "I'm an Arc, not a miracle worker.",
-                    "Still better than a straight line.",
-                    "Bending over backwards for you... literally.",
-                    "An Arc in the dark is still an Arc.",
-                    "Going full circle? That's a different shape.",
-                    "Arc you serious right now?",
-                    "I've got Range. Get it? Arc range?",
-                    "Curving expectations since forever.",
-                    "Not all heroes are straight... lines.",
-                    "Arc-ing up for another day of this.",
-                    "Mathematically superior to lines.",
-                    "I've seen some angles in my time.",
-                    "Peak performance. Literally.",
-                    "The curve is the path to enlightenment.",
-                    "Straight lines are so last century.",
-                    "Arc-ane knowledge at your service.",
-                    "Riding the curve of innovation.",
-                    "I put the 'arc' in 'arc-hitecture'.",
-                    "No straight answers here, only curves.",
-                    "Bending the rules, one degree at a time.",
-                    "Circumference? More like circum-friends.",
-                    "I'm on a trajectory to greatness.",
-                    "Curveball specialist.",
-                    "The scenic route is always better.",
-                    "I don't do linear thinking.",
-                    "Arc responsibly.",
-                    "Angles fear me. Curves respect me.",
-                    "I'm well-rounded, unlike those lines.",
-                    "Taking the high road... literally arcing.",
-                    "Every journey has its ups and downs. I'm both.",
-                  ];
-                  const randomMessage = snarkyMessages[Math.floor(Math.random() * snarkyMessages.length)];
-                  setSnarkyMessage(randomMessage);
-
-                  // Set new timeout and store reference
-                  snarkyTimeoutRef.current = setTimeout(() => {
-                    setSnarkyMessage(null);
-                    snarkyTimeoutRef.current = null;
-                  }, 2500);
-                }}
-              >
-                <motion.div
-                  animate={isLogoSpinning ? { rotate: 360 } : { rotate: 0 }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}
-                >
-                  <ThemedLogo keepOriginal className="w-8 h-8" />
-                </motion.div>
-              </button>
-
-              {/* Snarky Message Popup */}
-              <AnimatePresence>
-                {snarkyMessage && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.9 }}
-                    className="absolute left-0 top-14 z-50 min-w-[200px] max-w-[280px]"
-                  >
-                    <div className="glass-panel px-4 py-3 rounded-xl border border-primary/30 shadow-lg">
-                      <p className="text-sm text-foreground font-medium">{snarkyMessage}</p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-            <span className="text-xl tracking-tight text-white">
-              <span className="font-thin">Arc</span>
-              <span className="font-light">Ai</span>
-            </span>
-          </div>
-          <div className="hidden md:flex items-center space-x-6">
-            <a href="#features" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Features</a>
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="px-5 py-2.5 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity"
-            >
-              Sign In / Sign Up
-            </button>
-          </div>
-          <button
-            className="md:hidden text-white"
-            onClick={() => setShowMobileMenu(!showMobileMenu)}
+      {/* Sticky Header */}
+      <AnimatePresence>
+        {showStickyHeader && (
+          <motion.nav
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            className="fixed left-0 right-0 z-50 glass-panel border-b border-white/10 backdrop-blur-xl"
+            style={{
+              top: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'
+            }}
           >
-            <Menu className="w-6 h-6" />
+            <div className="flex items-center justify-between px-4 py-3 md:px-8 max-w-7xl mx-auto">
+              <div className="flex items-center space-x-3">
+                <ThemedLogo keepOriginal className="w-6 h-6" />
+                <span className="text-lg tracking-tight text-white">
+                  <span className="font-thin">Arc</span>
+                  <span className="font-light">Ai</span>
+                </span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <a href="#features" className="hidden md:block text-sm font-medium text-gray-400 hover:text-white transition-colors">Features</a>
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity"
+                >
+                  Sign In / Sign Up
+                </button>
+              </div>
+            </div>
+          </motion.nav>
+        )}
+      </AnimatePresence>
+
+      {/* Navigation */}
+      <nav className="relative z-50 flex items-center justify-between px-4 py-4 md:px-8 max-w-7xl mx-auto">
+        <div className="flex items-center space-x-3">
+          {/* Logo Orb - clickable with snarky messages */}
+          <div className="relative">
+            <button
+              className="rounded-full backdrop-blur-2xl bg-background/60 hover:bg-background/80 transition-all overflow-hidden shadow-lg p-2 cursor-pointer"
+              style={{ border: 'none' }}
+              onClick={() => {
+                // Clear any existing timeout
+                if (snarkyTimeoutRef.current) {
+                  clearTimeout(snarkyTimeoutRef.current);
+                }
+
+                // Trigger spin animation
+                setIsLogoSpinning(true);
+                setTimeout(() => setIsLogoSpinning(false), 600);
+
+                const snarkyMessages = [
+                  "I'm an Arc, not a miracle worker.",
+                  "Still better than a straight line.",
+                  "Bending over backwards for you... literally.",
+                  "An Arc in the dark is still an Arc.",
+                  "Going full circle? That's a different shape.",
+                  "Arc you serious right now?",
+                  "I've got Range. Get it? Arc range?",
+                  "Curving expectations since forever.",
+                  "Not all heroes are straight... lines.",
+                  "Arc-ing up for another day of this.",
+                  "Mathematically superior to lines.",
+                  "I've seen some angles in my time.",
+                  "Peak performance. Literally.",
+                  "The curve is the path to enlightenment.",
+                  "Straight lines are so last century.",
+                  "Arc-ane knowledge at your service.",
+                  "Riding the curve of innovation.",
+                  "I put the 'arc' in 'arc-hitecture'.",
+                  "No straight answers here, only curves.",
+                  "Bending the rules, one degree at a time.",
+                  "Circumference? More like circum-friends.",
+                  "I'm on a trajectory to greatness.",
+                  "Curveball specialist.",
+                  "The scenic route is always better.",
+                  "I don't do linear thinking.",
+                  "Arc responsibly.",
+                  "Angles fear me. Curves respect me.",
+                  "I'm well-rounded, unlike those lines.",
+                  "Taking the high road... literally arcing.",
+                  "Every journey has its ups and downs. I'm both.",
+                ];
+                const randomMessage = snarkyMessages[Math.floor(Math.random() * snarkyMessages.length)];
+                setSnarkyMessage(randomMessage);
+
+                // Set new timeout and store reference
+                snarkyTimeoutRef.current = setTimeout(() => {
+                  setSnarkyMessage(null);
+                  snarkyTimeoutRef.current = null;
+                }, 2500);
+              }}
+            >
+              <motion.div
+                animate={isLogoSpinning ? { rotate: 360 } : { rotate: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              >
+                <ThemedLogo keepOriginal className="w-8 h-8" />
+              </motion.div>
+            </button>
+
+            {/* Snarky Message Popup */}
+            <AnimatePresence>
+              {snarkyMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                  className="absolute left-0 top-14 z-50 min-w-[200px] max-w-[280px]"
+                >
+                  <div className="glass-panel px-4 py-3 rounded-xl border border-primary/30 shadow-lg">
+                    <p className="text-sm text-foreground font-medium">{snarkyMessage}</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <span className="text-xl tracking-tight text-white">
+            <span className="font-thin">Arc</span>
+            <span className="font-light">Ai</span>
+          </span>
+        </div>
+        <div className="hidden md:flex items-center space-x-6">
+          <a href="#features" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Features</a>
+          <button
+            onClick={() => setShowAuthModal(true)}
+            className="px-5 py-2.5 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity"
+          >
+            Sign In / Sign Up
           </button>
         </div>
+        <button
+          className="md:hidden text-white"
+          onClick={() => setShowMobileMenu(!showMobileMenu)}
+        >
+          <Menu className="w-6 h-6" />
+        </button>
       </nav>
 
       {/* Mobile Menu */}
       {showMobileMenu && (
-        <div 
-          className="md:hidden fixed right-6 z-50 glass-panel rounded-2xl p-4 space-y-3 min-w-[200px]"
-          style={{
-            top: isAdminBannerActive ? 'calc(var(--admin-banner-height, 0px) + 70px)' : '70px'
-          }}
-        >
+        <div className="md:hidden fixed top-20 right-6 z-50 glass-panel rounded-2xl p-4 space-y-3 min-w-[200px]">
           <a href="#features" className="block text-gray-400 hover:text-white transition-colors">Features</a>
           <button
             onClick={() => { setShowAuthModal(true); setShowMobileMenu(false); }}
@@ -436,8 +468,8 @@ export function LandingScreen() {
         </div>
       )}
 
-      {/* Hero Section - add padding top for fixed header */}
-      <main className="relative z-10 pt-20 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center">
+      {/* Hero Section */}
+      <main className="relative z-10 pt-4 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center">
         <div className="text-center max-w-3xl mx-auto mb-16 animate-fade-in">
           {/* Main Logo */}
           <div className="mb-8 flex justify-center">
@@ -449,10 +481,10 @@ export function LandingScreen() {
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight leading-tight">
-            Marv's mind, <span className="gradient-text">amplified.</span>
+            Your mind, <span className="gradient-text">amplified.</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-400 mb-8 max-w-xl mx-auto leading-relaxed">
-            Your personal AI companion built just for you, Marv. Create, code, and think with fluid, intuitive conversations.
+            The intelligent AI companion that adapts to you. Create, code, and think with fluid, intuitive conversations.
           </p>
 
           <div className="flex flex-col items-center justify-center space-y-4">
@@ -541,8 +573,8 @@ export function LandingScreen() {
           />
           <FeatureCard
             icon={Brain}
-            title="Marv's Memory"
-            description="ArcAi remembers your preferences and context, Marv. Your conversations adapt to your unique workflow and style."
+            title="Personal Memory"
+            description="ArcAi remembers your preferences and context. Your conversations adapt to your unique workflow and style."
             color="from-purple-400 to-pink-500"
           />
           <FeatureCard
@@ -559,9 +591,9 @@ export function LandingScreen() {
         <div className="glass-panel max-w-4xl mx-auto rounded-3xl p-12 md:p-20 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-700"></div>
 
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Always Free for Marv.</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">Always Free, Forever.</h2>
           <p className="text-gray-400 mb-6 max-w-lg mx-auto">
-            Your personal AI playground, Marv—whether you're coding, creating, or need to think out loud. Always free, no subscriptions. Ever. We mean it.
+            Experience AI conversations that adapt to you—whether you're coding, creating, or need to think out loud. Always free, no subscriptions. Ever. We mean it.
           </p>
           <p className="text-gray-500 text-sm mb-10 max-w-md mx-auto italic">
             Some premium features may be added in the future, but chat and core features will always remain free. We promise.
