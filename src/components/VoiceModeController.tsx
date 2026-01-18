@@ -243,7 +243,12 @@ export function VoiceModeController() {
     cancelResponse();
     clearQueue();
     stopPlayback();
-    useVoiceModeStore.getState().setStatus('listening');
+    // Reset ALL relevant states to properly resume listening
+    const store = useVoiceModeStore.getState();
+    store.setStatus('listening');
+    store.setIsAudioPlaying(false);
+    store.setIsGeneratingImage(false);
+    store.setIsSearching(false);
   }, [cancelResponse, clearQueue, stopPlayback]);
 
   // Register the interrupt handler globally so VoiceModeOverlay button can use it

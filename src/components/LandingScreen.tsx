@@ -592,8 +592,11 @@ export function LandingScreen() {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-700"></div>
 
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Always Free, Forever.</h2>
-          <p className="text-gray-400 mb-10 max-w-lg mx-auto">
+          <p className="text-gray-400 mb-6 max-w-lg mx-auto">
             Experience AI conversations that adapt to you—whether you're coding, creating, or need to think out loud. Always free, no subscriptions. Ever. We mean it.
+          </p>
+          <p className="text-gray-500 text-sm mb-10 max-w-md mx-auto italic">
+            Some premium features may be added in the future, but chat and core features will always remain free. We promise.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

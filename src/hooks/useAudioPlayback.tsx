@@ -172,13 +172,14 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     
     isPlayingRef.current = false;
     setIsPlaying(false);
+    setIsAudioPlaying(false); // Ensure store state is also reset
     setOutputAmplitude(0);
     
     // Reset interrupted flag after a short delay to allow new responses
     setTimeout(() => {
       isInterruptedRef.current = false;
     }, 100);
-  }, [setOutputAmplitude]);
+  }, [setOutputAmplitude, setIsAudioPlaying]);
 
   const stopPlayback = useCallback(() => {
     isInterruptedRef.current = true;

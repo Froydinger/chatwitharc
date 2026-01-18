@@ -13,7 +13,7 @@ import {
 } from 'https://esm.sh/@react-email/components@0.0.22'
 import * as React from 'https://esm.sh/react@18.3.1'
 
-interface MagicLinkEmailProps {
+interface PasswordResetEmailProps {
   supabase_url: string
   email_action_type: string
   redirect_to: string
@@ -22,77 +22,75 @@ interface MagicLinkEmailProps {
   user_email: string
 }
 
-export const MagicLinkEmail = ({
+export const PasswordResetEmail = ({
   token_hash,
   supabase_url,
   email_action_type,
   redirect_to,
-  token,
   user_email,
-}: MagicLinkEmailProps) => {
+}: PasswordResetEmailProps) => {
   const verifyUrl = `${supabase_url}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${redirect_to}`
   const baseUrl = redirect_to ? `${redirect_to.split('/')[0]}//${redirect_to.split('/')[2]}` : 'https://chatwitharc.lovable.app'
   
   return (
     <Html>
       <Head />
-      <Preview>Your secure ArcAI login link is ready 🔑</Preview>
+      <Preview>Reset your ArcAI password 🔐</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header */}
           <Section style={headerSection}>
             <Img
               src={`${baseUrl}/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png`}
-              width="64"
-              height="64"
+              width="56"
+              height="56"
               alt="ArcAI"
               style={logo}
             />
-            <Text style={brandName}>ArcAI</Text>
           </Section>
           
           {/* Main Card */}
           <Section style={cardSection}>
             <div style={iconContainer}>
-              <Text style={keyIcon}>🔑</Text>
+              <Text style={lockIcon}>🔐</Text>
             </div>
             
-            <Heading style={h1}>Sign in to ArcAI</Heading>
+            <Heading style={h1}>Reset your password</Heading>
             
             <Text style={subtitle}>
-              Click the button below to securely access your account
+              We received a request to reset the password for your ArcAI account 
+              associated with <strong>{user_email}</strong>.
             </Text>
             
             <Section style={buttonContainer}>
               <Button style={primaryButton} href={verifyUrl}>
-                Sign In Now
+                Reset Password
               </Button>
             </Section>
             
             <Hr style={divider} />
             
-            <Text style={orText}>Or use this temporary code:</Text>
-            
-            <Section style={codeContainer}>
-              <Text style={codeText}>{token}</Text>
+            <Section style={warningSection}>
+              <Text style={warningIcon}>⚠️</Text>
+              <Text style={warningText}>
+                This link will expire in 24 hours. If you didn't request a password reset, 
+                please ignore this email or contact us if you're concerned about your account security.
+              </Text>
             </Section>
             
-            <Text style={codeHint}>
-              This code expires in 24 hours
+            <Text style={linkFallback}>
+              If the button doesn't work, copy and paste this link into your browser:
             </Text>
-          </Section>
-          
-          {/* Security Notice */}
-          <Section style={securitySection}>
-            <Text style={securityIcon}>🔒</Text>
-            <Text style={securityText}>
-              This login link is unique to you. Don't share it with anyone.
-              If you didn't request this, you can safely ignore this email.
+            <Text style={linkText}>
+              {verifyUrl}
             </Text>
           </Section>
           
           {/* Footer */}
           <Section style={footer}>
+            <Text style={footerText}>
+              Need help? Reply to this email and we'll assist you.
+            </Text>
             <Text style={footerCopyright}>
               © 2025 ArcAI by Win The Night Productions
             </Text>
@@ -114,6 +112,8 @@ const colors = {
   textSecondary: '#a1a1aa',
   textMuted: '#71717a',
   border: '#27272a',
+  warning: '#f59e0b',
+  warningBg: '#451a03',
 }
 
 const main = {
@@ -130,25 +130,17 @@ const container = {
 
 const headerSection = {
   textAlign: 'center' as const,
-  marginBottom: '32px',
+  marginBottom: '24px',
 }
 
 const logo = {
-  margin: '0 auto 12px',
+  margin: '0 auto',
   borderRadius: '12px',
-}
-
-const brandName = {
-  color: colors.text,
-  fontSize: '20px',
-  fontWeight: '300',
-  margin: '0',
-  letterSpacing: '0.05em',
 }
 
 const cardSection = {
   backgroundColor: colors.surface,
-  padding: '40px 32px',
+  padding: '36px 28px',
   borderRadius: '20px',
   border: `1px solid ${colors.border}`,
   textAlign: 'center' as const,
@@ -158,16 +150,16 @@ const iconContainer = {
   marginBottom: '16px',
 }
 
-const keyIcon = {
+const lockIcon = {
   fontSize: '48px',
   margin: '0',
 }
 
 const h1 = {
   color: colors.text,
-  fontSize: '28px',
+  fontSize: '26px',
   fontWeight: '600',
-  margin: '0 0 12px',
+  margin: '0 0 16px',
 }
 
 const subtitle = {
@@ -190,7 +182,7 @@ const primaryButton = {
   textDecoration: 'none',
   textAlign: 'center' as const,
   display: 'inline-block',
-  padding: '14px 48px',
+  padding: '14px 40px',
   border: 'none',
   boxShadow: `0 8px 20px ${colors.primary}30`,
 }
@@ -200,62 +192,49 @@ const divider = {
   margin: '0 0 24px',
 }
 
-const orText = {
-  color: colors.textMuted,
-  fontSize: '13px',
-  margin: '0 0 16px',
-}
-
-const codeContainer = {
-  backgroundColor: colors.surfaceLight,
-  border: `2px dashed ${colors.border}`,
+const warningSection = {
+  backgroundColor: colors.warningBg,
+  border: `1px solid ${colors.warning}40`,
   borderRadius: '12px',
-  padding: '20px 24px',
-  marginBottom: '12px',
-}
-
-const codeText = {
-  color: colors.text,
-  fontSize: '24px',
-  fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
-  fontWeight: '700',
-  letterSpacing: '0.15em',
-  margin: '0',
-}
-
-const codeHint = {
-  color: colors.textMuted,
-  fontSize: '12px',
-  margin: '0',
-}
-
-const securitySection = {
-  backgroundColor: colors.surfaceLight,
-  padding: '20px 24px',
-  borderRadius: '12px',
-  marginTop: '24px',
-  display: 'flex' as const,
-  alignItems: 'flex-start' as const,
-  gap: '12px',
-}
-
-const securityIcon = {
-  fontSize: '20px',
-  margin: '0',
-  flexShrink: 0,
-}
-
-const securityText = {
-  color: colors.textMuted,
-  fontSize: '13px',
-  lineHeight: '20px',
-  margin: '0',
+  padding: '16px 20px',
+  marginBottom: '24px',
   textAlign: 'left' as const,
 }
 
+const warningIcon = {
+  fontSize: '18px',
+  margin: '0 0 8px',
+}
+
+const warningText = {
+  color: colors.warning,
+  fontSize: '13px',
+  lineHeight: '20px',
+  margin: '0',
+}
+
+const linkFallback = {
+  color: colors.textMuted,
+  fontSize: '12px',
+  margin: '0 0 8px',
+}
+
+const linkText = {
+  color: colors.primary,
+  fontSize: '11px',
+  wordBreak: 'break-all' as const,
+  margin: '0',
+}
+
 const footer = {
-  paddingTop: '32px',
+  paddingTop: '28px',
   textAlign: 'center' as const,
+}
+
+const footerText = {
+  color: colors.textSecondary,
+  fontSize: '13px',
+  margin: '0 0 12px',
 }
 
 const footerCopyright = {
@@ -264,4 +243,4 @@ const footerCopyright = {
   margin: '0',
 }
 
-export default MagicLinkEmail
+export default PasswordResetEmail
