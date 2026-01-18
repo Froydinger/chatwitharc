@@ -47,12 +47,13 @@ serve(async (req) => {
       throw new Error('Lovable API key not configured');
     }
 
-    // Map chat model preference to image model
-    // google/gemini-3-flash-preview (Quick) → google/gemini-2.5-flash-image
-    // google/gemini-3-pro-preview (Wise & Thoughtful) → google/gemini-3-pro-image-preview
-    const imageModel = preferredModel === 'google/gemini-3-pro-preview' 
-      ? 'google/gemini-3-pro-image-preview'
-      : 'google/gemini-2.5-flash-image';
+    // Default to Pro image model for best quality
+    // Only use Flash if explicitly requested (e.g., "fast" option in editor)
+    // google/gemini-2.5-flash-image = fast/quick option
+    // google/gemini-3-pro-image-preview = default high quality
+    const imageModel = preferredModel === 'google/gemini-2.5-flash-image' || preferredModel === 'google/gemini-3-flash-preview'
+      ? 'google/gemini-2.5-flash-image'
+      : 'google/gemini-3-pro-image-preview';
     
     console.log('Using image model:', imageModel);
 
