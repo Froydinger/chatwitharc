@@ -164,6 +164,7 @@ const logo = {
   margin: '0 auto',
   borderRadius: '16px',
   boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+  backgroundColor: '#000000',
 }
 
 const cardSection = {
