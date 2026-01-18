@@ -962,135 +962,161 @@ ${existingCode}
           wasSearchMode
         });
 
-        // Always use streaming for all messages - with auto-continuation for incomplete code
-        let streamedContent = '';
-        let streamMode: 'canvas' | 'code' | 'text' = shouldForceCode ? 'code' : shouldForceCanvas ? 'canvas' : 'text';
-        let streamingMessageId: string | null = null;
-        
-        // Create AbortController for this request
-        currentAbortController = new AbortController();
-        const abortSignal = currentAbortController.signal;
-        
-        await streamWithContinuation({
-          messages: aiMessages,
-          profile,
-          forceCanvas: shouldForceCanvas,
-          forceCode: shouldForceCode,
-          sessionId: currentSessionId || undefined,
-          forceWebSearch: wasSearchMode && !shouldForceCode && !shouldForceCanvas,
-          abortSignal,
-          maxContinuations: 3, // Allow up to 3 auto-continuations for long code
+        // For canvas/code: use streaming with auto-continuation
+        // For regular text chat: use non-streaming (handles web search properly)
+        if (shouldForceCode || shouldForceCanvas) {
+          // STREAMING MODE - for canvas/code generation
+          let streamedContent = '';
+          let streamMode: 'canvas' | 'code' | 'text' = shouldForceCode ? 'code' : 'canvas';
           
-          // onStart - open canvas immediately if canvas/code mode, or add placeholder message for text
-          onStart: async (mode) => {
-            streamMode = mode;
-            if (mode === 'code' || mode === 'canvas') {
+          // Create AbortController for this request
+          currentAbortController = new AbortController();
+          const abortSignal = currentAbortController.signal;
+          
+          await streamWithContinuation({
+            messages: aiMessages,
+            profile,
+            forceCanvas: shouldForceCanvas,
+            forceCode: shouldForceCode,
+            sessionId: currentSessionId || undefined,
+            forceWebSearch: false, // No web search in canvas/code mode
+            abortSignal,
+            maxContinuations: 3, // Allow up to 3 auto-continuations for long code
+            
+            // onStart - open canvas immediately
+            onStart: async (mode) => {
+              streamMode = mode;
               const { startStreaming } = useCanvasStore.getState();
               startStreaming(mode === 'code' ? 'code' : 'writing', 'html');
-            } else {
-              // For text, add a streaming message that we'll update
-              streamingMessageId = await addMessage({
-                content: '▍', // Cursor indicator
-                role: 'assistant',
-                type: 'text',
-              });
-            }
-          },
-          
-          // onDelta - stream content to canvas or update message
-          onDelta: (delta) => {
-            streamedContent += delta;
-            if (streamMode === 'code' || streamMode === 'canvas') {
+            },
+            
+            // onDelta - stream content to canvas
+            onDelta: (delta) => {
+              streamedContent += delta;
               const { streamContent } = useCanvasStore.getState();
               streamContent(delta);
-            } else if (streamingMessageId) {
-              // Update the streaming message with accumulated content
-              const { editMessage } = useArcStore.getState();
-              editMessage(streamingMessageId, streamedContent + '▍');
-            }
-          },
-          
-          // onContinuing - show toast when auto-continuation kicks in
-          onContinuing: () => {
-            toast({ 
-              title: "Continuing generation...", 
-              description: "Code was incomplete, automatically continuing where it left off.",
-              variant: "default"
-            });
-          },
-          
-          // onDone - finalize (result includes wasContinued flag)
-          onDone: async (result) => {
-            const streamWebSources = result.webSources || [];
+            },
             
-            // Determine memory action
-            let memoryAction: any = undefined;
-            if (streamWebSources.length > 0) {
-              memoryAction = { type: 'web_searched' as const, sources: streamWebSources, query: userMessage };
-            }
+            // onContinuing - show toast when auto-continuation kicks in
+            onContinuing: () => {
+              toast({ 
+                title: "Continuing generation...", 
+                description: "Code was incomplete, automatically continuing where it left off.",
+                variant: "default"
+              });
+            },
             
-            if (result.mode === 'code') {
-              const { setAIWriting, setCodeLanguage, setContent } = useCanvasStore.getState();
-              // Ensure canvas shows final code even if no deltas streamed
-              setContent(result.content || '', false);
-              setAIWriting(false);
-              setCodeLanguage(result.language || 'html');
-              // Save to history
-              await upsertCodeMessage(result.content, result.language || 'html', result.label, memoryAction);
+            // onDone - finalize (result includes wasContinued flag)
+            onDone: async (result) => {
+              const streamWebSources = result.webSources || [];
               
-              // Show completion toast if it was continued
-              if (result.wasContinued) {
-                toast({
-                  title: "Code generation complete!",
-                  description: "Successfully continued and finished the code.",
-                  variant: "default"
-                });
+              // Determine memory action
+              let memoryAction: any = undefined;
+              if (streamWebSources.length > 0) {
+                memoryAction = { type: 'web_searched' as const, sources: streamWebSources, query: userMessage };
               }
-            } else if (result.mode === 'canvas') {
-              const { setAIWriting, setContent } = useCanvasStore.getState();
-              // Ensure canvas shows final writing even if no deltas streamed
-              setContent(result.content || '', false);
-              setAIWriting(false);
-              await upsertCanvasMessage(result.content, result.label, memoryAction);
-            } else if (streamingMessageId) {
-              // Update the final content without cursor - ensure cursor is removed
-              const { editMessage, updateMessageMemoryAction } = useArcStore.getState();
-              const finalContent = result.content.replace(/▍$/g, '').replace(/\|$/g, ''); // Clean any cursor remnants
-              editMessage(streamingMessageId, finalContent);
-              if (memoryAction) {
-                updateMessageMemoryAction(streamingMessageId, memoryAction);
+              
+              if (result.mode === 'code') {
+                const { setAIWriting, setCodeLanguage, setContent } = useCanvasStore.getState();
+                // Ensure canvas shows final code even if no deltas streamed
+                setContent(result.content || '', false);
+                setAIWriting(false);
+                setCodeLanguage(result.language || 'html');
+                // Save to history
+                await upsertCodeMessage(result.content, result.language || 'html', result.label, memoryAction);
+                
+                // Show completion toast if it was continued
+                if (result.wasContinued) {
+                  toast({
+                    title: "Code generation complete!",
+                    description: "Successfully continued and finished the code.",
+                    variant: "default"
+                  });
+                }
+              } else if (result.mode === 'canvas') {
+                const { setAIWriting, setContent } = useCanvasStore.getState();
+                // Ensure canvas shows final writing even if no deltas streamed
+                setContent(result.content || '', false);
+                setAIWriting(false);
+                await upsertCanvasMessage(result.content, result.label, memoryAction);
               }
-            }
-            
-            // Persist to session for canvas/code
-            if (result.mode === 'code' || result.mode === 'canvas') {
+              
+              // Persist to session for canvas/code
               const { currentSessionId, updateSessionCanvasContent } = useArcStore.getState();
               if (currentSessionId) {
                 await updateSessionCanvasContent(currentSessionId, result.content);
               }
-            }
-          },
-          
-          // onError
-          onError: (errorMsg) => {
-            if (streamMode === 'code' || streamMode === 'canvas') {
+            },
+            
+            // onError
+            onError: (errorMsg) => {
               const { setAIWriting } = useCanvasStore.getState();
               setAIWriting(false);
+              // Only show error toast if not aborted
+              if (!abortSignal.aborted) {
+                toast({ title: "Error", description: errorMsg, variant: "destructive" });
+              }
             }
-            if (streamingMessageId) {
-              // Update message with error - remove cursor
-              const { editMessage } = useArcStore.getState();
-              editMessage(streamingMessageId, streamedContent || 'Sorry, I encountered an error. Please try again.');
+          });
+          
+          // Clean up abort controller
+          currentAbortController = null;
+        } else {
+          // NON-STREAMING MODE - for regular text chat (handles web search properly)
+          // The ThinkingIndicator component will show while isLoading is true
+          // We don't add a placeholder message - the thinking indicator handles UI
+          
+          try {
+            const ai = new AIService();
+            const result = await ai.sendMessage(
+              aiMessages,
+              profile,
+              (tools) => {
+                // Handle tool usage - show indicator if web search was used
+                if (tools.includes('web_search')) {
+                  didSearchWeb = true;
+                }
+              },
+              currentSessionId || undefined,
+              wasSearchMode, // forceWebSearch
+              false, // forceCanvas
+              false  // forceCode
+            );
+            
+            // Determine memory action
+            let memoryAction: any = undefined;
+            if (result.webSources && result.webSources.length > 0) {
+              memoryAction = { type: 'web_searched' as const, sources: result.webSources, query: userMessage };
             }
-            // Only show error toast if not aborted
-            if (!abortSignal.aborted) {
-              toast({ title: "Error", description: errorMsg, variant: "destructive" });
+            
+            // Add the complete response as a new message
+            await addMessage({
+              content: result.content,
+              role: 'assistant',
+              type: 'text',
+              memoryAction
+            });
+            
+            // Handle canvas/code updates if the AI decided to use those tools
+            if (result.codeUpdate) {
+              const { openCodeCanvas } = useCanvasStore.getState();
+              openCodeCanvas(result.codeUpdate.code, result.codeUpdate.language || 'html', result.codeUpdate.label);
+              await upsertCodeMessage(result.codeUpdate.code, result.codeUpdate.language || 'html', result.codeUpdate.label);
+            } else if (result.canvasUpdate) {
+              const { openCanvas } = useCanvasStore.getState();
+              openCanvas(result.canvasUpdate.content);
+              await upsertCanvasMessage(result.canvasUpdate.content, result.canvasUpdate.label);
             }
+          } catch (err: any) {
+            // On error, add error message
+            await addMessage({
+              content: 'Sorry, I encountered an error. Please try again.',
+              role: 'assistant',
+              type: 'text'
+            });
+            throw err; // Re-throw to be caught by outer catch
           }
-        });
-        
-        // Clean up abort controller
-        currentAbortController = null;
+        }
       } catch (err: any) {
         // Check if request was cancelled
         if (cancelRequested) {
