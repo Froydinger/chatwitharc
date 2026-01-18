@@ -54,7 +54,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           options: { emailRedirectTo: redirectUrl },
         });
         if (error) throw error;
-        toast({ title: "Account created!", description: "Please check your email to verify your account" });
+        toast({ title: "Welcome to ArcAI!", description: "Your account has been created" });
         onClose();
       }
     } catch (error: any) {
