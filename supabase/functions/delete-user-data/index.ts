@@ -12,7 +12,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
+    // Create client with user's auth for verification
+    const supabaseUser = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
@@ -23,7 +24,7 @@ Deno.serve(async (req) => {
     )
 
     // Verify user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser()
     if (authError || !user) {
       console.error('Authentication error:', authError)
       return new Response(
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
       
       return new Response(
         JSON.stringify({
-          warning: "⚠️ PERMANENT DELETE WARNING ⚠️\n\nThis action will PERMANENTLY delete:\n• All your chat sessions and conversations\n• Your profile information\n• Your memory data\n\nThis action CANNOT be undone.\n\nType the confirmation code to proceed:",
+          warning: "⚠️ PERMANENT DELETE WARNING ⚠️\n\nThis action will PERMANENTLY delete:\n• All your chat sessions and conversations\n• Your profile information\n• Your memory data\n• Your account entirely\n\nThis action CANNOT be undone.\n\nType the confirmation code to proceed:",
           confirmationCode: warningCode,
           message: "Data deletion requires confirmation"
         }),
@@ -60,51 +61,84 @@ Deno.serve(async (req) => {
         )
       }
 
-      console.log(`Starting data deletion for user: ${user.id}`)
+      console.log(`🗑️ Starting FULL account deletion for user: ${user.id} (${user.email})`)
 
-      // Delete user's chat sessions (RLS ensures only their data is deleted)
-      const { error: sessionsError } = await supabase
+      // Create admin client with service role for full deletion
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        }
+      )
+
+      // Delete user's data from all tables
+      const deletionResults: Record<string, boolean> = {}
+
+      // 1. Delete chat sessions
+      const { error: sessionsError } = await supabaseAdmin
         .from('chat_sessions')
         .delete()
         .eq('user_id', user.id)
+      deletionResults.chatSessions = !sessionsError
+      if (sessionsError) console.error('Error deleting chat sessions:', sessionsError)
 
-      if (sessionsError) {
-        console.error('Error deleting chat sessions:', sessionsError)
-        return new Response(
-          JSON.stringify({ error: 'Failed to delete chat sessions' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-
-      // Clear profile data but keep the record (just clear personal info)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          display_name: 'Deleted User',
-          avatar_url: null,
-          memory_info: null,
-          context_info: null
-        })
+      // 2. Delete search sessions
+      const { error: searchError } = await supabaseAdmin
+        .from('search_sessions')
+        .delete()
         .eq('user_id', user.id)
+      deletionResults.searchSessions = !searchError
+      if (searchError) console.error('Error deleting search sessions:', searchError)
 
-      if (profileError) {
-        console.error('Error clearing profile:', profileError)
+      // 3. Delete saved links
+      const { error: linksError } = await supabaseAdmin
+        .from('saved_links')
+        .delete()
+        .eq('user_id', user.id)
+      deletionResults.savedLinks = !linksError
+      if (linksError) console.error('Error deleting saved links:', linksError)
+
+      // 4. Delete generated files
+      const { error: filesError } = await supabaseAdmin
+        .from('generated_files')
+        .delete()
+        .eq('user_id', user.id)
+      deletionResults.generatedFiles = !filesError
+      if (filesError) console.error('Error deleting generated files:', filesError)
+
+      // 5. Delete profile
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .delete()
+        .eq('user_id', user.id)
+      deletionResults.profile = !profileError
+      if (profileError) console.error('Error deleting profile:', profileError)
+
+      // 6. Delete the auth user account entirely
+      const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
+      deletionResults.authUser = !deleteUserError
+      if (deleteUserError) {
+        console.error('Error deleting auth user:', deleteUserError)
         return new Response(
-          JSON.stringify({ error: 'Failed to clear profile data' }),
+          JSON.stringify({ 
+            error: 'Failed to delete user account',
+            details: deleteUserError.message 
+          }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
-      console.log(`Successfully deleted data for user: ${user.id}`)
+      console.log(`✅ Successfully deleted user account and all data for: ${user.id}`)
 
       return new Response(
         JSON.stringify({
           success: true,
-          message: 'All your data has been permanently deleted.',
-          deleted: {
-            chatSessions: true,
-            profileData: true
-          }
+          message: 'Your account and all data have been permanently deleted.',
+          deleted: deletionResults
         }),
         { 
           status: 200, 
