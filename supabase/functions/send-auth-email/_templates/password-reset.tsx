@@ -41,7 +41,7 @@ export const PasswordResetEmail = ({
           {/* Header */}
           <Section style={headerSection}>
             <Img
-              src={`${baseUrl}/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png`}
+              src={`${baseUrl}/arc-logo-ui.png`}
               width="56"
               height="56"
               alt="ArcAI"

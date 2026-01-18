@@ -37,7 +37,7 @@ const generateWelcomeEmailHtml = (displayName: string, baseUrl: string) => `
     
     <!-- Header with gradient -->
     <div style="background: linear-gradient(135deg, ${colors.accent} 0%, ${colors.primary} 50%, ${colors.primaryGlow} 100%); padding: 48px 0 64px; text-align: center; border-radius: 0 0 24px 24px;">
-      <img src="${baseUrl}/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png" width="80" height="80" alt="ArcAI" style="margin: 0 auto; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+      <img src="${baseUrl}/arc-logo-ui.png" width="80" height="80" alt="ArcAI" style="margin: 0 auto; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
     </div>
     
     <!-- Main Card -->

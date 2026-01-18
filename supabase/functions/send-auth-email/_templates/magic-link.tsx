@@ -42,7 +42,7 @@ export const MagicLinkEmail = ({
           {/* Header */}
           <Section style={headerSection}>
             <Img
-              src={`${baseUrl}/lovable-uploads/72a60af7-4760-4f2e-9000-1ca90800ae61.png`}
+              src={`${baseUrl}/arc-logo-ui.png`}
               width="64"
               height="64"
               alt="ArcAI"
