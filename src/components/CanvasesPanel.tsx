@@ -128,17 +128,21 @@ export function CanvasesPanel() {
         }
 
         // Extract code-type messages (code canvases)
-        if (message.type === 'code' && typeof message.content === 'string') {
-          items.push({
-            id: `code-${message.id}`,
-            type: 'code',
-            content: message.content,
-            language: (message as any).codeLanguage || 'text',
-            sessionId: session.id,
-            sessionTitle: session.title ?? "Untitled chat",
-            timestamp: coerced,
-            label: (message as any).codeLabel || 'Code Canvas',
-          });
+        // Use codeContent (actual code) not content (which is just the label)
+        if (message.type === 'code') {
+          const codeContent = (message as any).codeContent;
+          if (typeof codeContent === 'string' && codeContent.length > 0) {
+            items.push({
+              id: `code-${message.id}`,
+              type: 'code',
+              content: codeContent,
+              language: (message as any).codeLanguage || 'text',
+              sessionId: session.id,
+              sessionTitle: session.title ?? "Untitled chat",
+              timestamp: coerced,
+              label: (message as any).codeLabel || 'Code Canvas',
+            });
+          }
         }
 
         // Also extract markdown code blocks from assistant messages

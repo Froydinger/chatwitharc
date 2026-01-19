@@ -983,12 +983,10 @@ ${existingCode}
             abortSignal,
             maxContinuations: 3, // Allow up to 3 auto-continuations for long code
 
-            // onStart - open canvas with loading state (NO streaming - just show spinner)
+            // onStart - just track mode, DON'T open canvas yet (wait for code to be ready)
             onStart: async (mode) => {
               streamMode = mode;
-              const { openWithLoading } = useCanvasStore.getState();
-              openWithLoading(mode === 'code' ? 'code' : 'writing', 'html');
-              console.log(`🔄 Canvas opened with loading spinner in ${mode} mode`);
+              console.log(`🔄 Code generation started in ${mode} mode (canvas will open when ready)`);
             },
 
             // onDelta - accumulate content but DON'T stream to canvas (user wants no streaming)
@@ -1017,23 +1015,14 @@ ${existingCode}
               }
               
               if (result.mode === 'code') {
-                const { setAIWriting, setCodeLanguage, setContent, setLoading, content: currentContent } = useCanvasStore.getState();
+                const { openCodeCanvas } = useCanvasStore.getState();
+                const finalContent = result.content || '';
 
-                // CRITICAL: Use the longer content to avoid losing code
-                let finalContent = result.content || '';
-                if (currentContent.length > finalContent.length + 50) {
-                  console.warn('⚠️ Result content is shorter than current canvas content, keeping current');
-                  console.log(`📏 Current: ${currentContent.length} chars, Result: ${finalContent.length} chars`);
-                  finalContent = currentContent;
-                } else if (finalContent.length > 100) {
-                  console.log(`✅ Replacing loading canvas with generated code: ${finalContent.length} chars`);
-                }
+                console.log(`✅ Opening canvas with generated code: ${finalContent.length} chars`);
 
-                // Stop loading and show final code all at once (no streaming)
-                setLoading(false);
-                setContent(finalContent, false);
-                setAIWriting(false);
-                setCodeLanguage(result.language || 'html');
+                // Open canvas with final code (only opens now, not before)
+                openCodeCanvas(finalContent, result.language || 'html', result.label);
+
                 // Save to history
                 await upsertCodeMessage(finalContent, result.language || 'html', result.label, memoryAction);
                 
@@ -1046,22 +1035,14 @@ ${existingCode}
                   });
                 }
               } else if (result.mode === 'canvas') {
-                const { setAIWriting, setContent, setLoading, content: currentContent } = useCanvasStore.getState();
+                const { openWithContent } = useCanvasStore.getState();
+                const finalContent = result.content || '';
 
-                // CRITICAL: Use the longer content to avoid losing writing
-                let finalContent = result.content || '';
-                if (currentContent.length > finalContent.length + 50) {
-                  console.warn('⚠️ Result content is shorter than current canvas content, keeping current');
-                  console.log(`📏 Current: ${currentContent.length} chars, Result: ${finalContent.length} chars`);
-                  finalContent = currentContent;
-                } else if (finalContent.length > 100) {
-                  console.log(`✅ Replacing loading canvas with generated content: ${finalContent.length} chars`);
-                }
+                console.log(`✅ Opening canvas with generated writing: ${finalContent.length} chars`);
 
-                // Stop loading and show final writing all at once (no streaming)
-                setLoading(false);
-                setContent(finalContent, false);
-                setAIWriting(false);
+                // Open canvas with final writing (only opens now, not before)
+                openWithContent(finalContent, 'writing');
+
                 await upsertCanvasMessage(finalContent, result.label, memoryAction);
               }
               
