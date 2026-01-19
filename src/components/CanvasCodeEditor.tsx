@@ -1,6 +1,6 @@
 import { useCallback, useRef, useMemo, useState, useEffect } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { cn } from '@/lib/utils';
 import { normalizeLanguage } from '@/utils/codeUtils';
 
@@ -27,7 +27,7 @@ const MemoizedHighlighter = ({
   return (
     <SyntaxHighlighter
       language={normalizedLang}
-      style={isDark ? oneDark : oneLight}
+      style={isDark ? vscDarkPlus : vs}
       customStyle={{
         margin: 0,
         padding: 0,
