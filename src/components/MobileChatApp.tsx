@@ -172,10 +172,10 @@ export function MobileChatApp() {
   // Pre-generate prompts in background for instant access
   usePromptPreload();
 
-  // Initialize session model to GPT 5 Mini on mount (hardcoded for chat)
+  // Initialize session model to Gemini 3 Flash on mount (fast chat model)
   useEffect(() => {
     // Hardcode chat model - no user selection
-    sessionStorage.setItem('arc_session_model', 'openai/gpt-5-mini');
+    sessionStorage.setItem('arc_session_model', 'google/gemini-3-flash-preview');
   }, []);
 
   // Track if running as PWA or Electron app
