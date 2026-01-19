@@ -982,19 +982,19 @@ ${existingCode}
             forceWebSearch: false, // No web search in canvas/code mode
             abortSignal,
             maxContinuations: 3, // Allow up to 3 auto-continuations for long code
-            
-            // onStart - open canvas immediately
+
+            // onStart - open canvas with loading state (NO streaming - just show spinner)
             onStart: async (mode) => {
               streamMode = mode;
-              const { startStreaming } = useCanvasStore.getState();
-              startStreaming(mode === 'code' ? 'code' : 'writing', 'html');
+              const { openWithLoading } = useCanvasStore.getState();
+              openWithLoading(mode === 'code' ? 'code' : 'writing', 'html');
+              console.log(`🔄 Canvas opened with loading spinner in ${mode} mode`);
             },
-            
-            // onDelta - stream content to canvas
+
+            // onDelta - accumulate content but DON'T stream to canvas (user wants no streaming)
             onDelta: (delta) => {
               streamedContent += delta;
-              const { streamContent } = useCanvasStore.getState();
-              streamContent(delta);
+              // Don't call streamContent - we'll set all content at once when done
             },
             
             // onContinuing - show toast when auto-continuation kicks in
@@ -1017,7 +1017,7 @@ ${existingCode}
               }
               
               if (result.mode === 'code') {
-                const { setAIWriting, setCodeLanguage, setContent, content: currentContent } = useCanvasStore.getState();
+                const { setAIWriting, setCodeLanguage, setContent, setLoading, content: currentContent } = useCanvasStore.getState();
 
                 // CRITICAL: Use the longer content to avoid losing code
                 let finalContent = result.content || '';
@@ -1026,10 +1026,11 @@ ${existingCode}
                   console.log(`📏 Current: ${currentContent.length} chars, Result: ${finalContent.length} chars`);
                   finalContent = currentContent;
                 } else if (finalContent.length > 100) {
-                  console.log(`✅ Setting canvas content: ${finalContent.length} chars`);
+                  console.log(`✅ Replacing loading canvas with generated code: ${finalContent.length} chars`);
                 }
 
-                // Ensure canvas shows final code even if no deltas streamed
+                // Stop loading and show final code all at once (no streaming)
+                setLoading(false);
                 setContent(finalContent, false);
                 setAIWriting(false);
                 setCodeLanguage(result.language || 'html');
@@ -1045,7 +1046,7 @@ ${existingCode}
                   });
                 }
               } else if (result.mode === 'canvas') {
-                const { setAIWriting, setContent, content: currentContent } = useCanvasStore.getState();
+                const { setAIWriting, setContent, setLoading, content: currentContent } = useCanvasStore.getState();
 
                 // CRITICAL: Use the longer content to avoid losing writing
                 let finalContent = result.content || '';
@@ -1053,9 +1054,12 @@ ${existingCode}
                   console.warn('⚠️ Result content is shorter than current canvas content, keeping current');
                   console.log(`📏 Current: ${currentContent.length} chars, Result: ${finalContent.length} chars`);
                   finalContent = currentContent;
+                } else if (finalContent.length > 100) {
+                  console.log(`✅ Replacing loading canvas with generated content: ${finalContent.length} chars`);
                 }
 
-                // Ensure canvas shows final writing even if no deltas streamed
+                // Stop loading and show final writing all at once (no streaming)
+                setLoading(false);
                 setContent(finalContent, false);
                 setAIWriting(false);
                 await upsertCanvasMessage(finalContent, result.label, memoryAction);
