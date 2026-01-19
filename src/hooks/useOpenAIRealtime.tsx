@@ -362,7 +362,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           type: 'session.update',
           session: {
             modalities: ['text', 'audio'],
-            instructions: systemPrompt || `You're Arc - a calm, friendly voice assistant. Be warm, conversational, and genuine. Keep responses concise.`,
+            instructions: systemPrompt || `You're Arc - a calm, friendly voice assistant. Be warm, conversational, and genuine. Keep responses concise. When generating an image, say something casual and friendly first like "Hold on one sec while I whip that up for you" or "Let me create that for you real quick" before calling the generate_image function.`,
             voice: currentVoice,
             input_audio_format: 'pcm16',
             output_audio_format: 'pcm16',
