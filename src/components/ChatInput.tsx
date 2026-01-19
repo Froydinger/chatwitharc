@@ -983,10 +983,12 @@ ${existingCode}
             abortSignal,
             maxContinuations: 3, // Allow up to 3 auto-continuations for long code
 
-            // onStart - just track mode, DON'T open canvas yet (wait for code to be ready)
+            // onStart - open canvas with loading spinner (magical reveal when code is ready)
             onStart: async (mode) => {
               streamMode = mode;
-              console.log(`🔄 Code generation started in ${mode} mode (canvas will open when ready)`);
+              const { openWithLoading } = useCanvasStore.getState();
+              openWithLoading(mode === 'code' ? 'code' : 'writing', 'html');
+              console.log(`🔄 Canvas opened with loader in ${mode} mode`);
             },
 
             // onDelta - accumulate content but DON'T stream to canvas (user wants no streaming)
@@ -1015,18 +1017,21 @@ ${existingCode}
               }
               
               if (result.mode === 'code') {
-                const { openWithContent } = useCanvasStore.getState();
+                const { setContent, setLoading, setCodeLanguage, setAIWriting } = useCanvasStore.getState();
                 const finalContent = result.content || '';
                 const lang = result.language || 'html';
 
-                console.log(`✅ Opening canvas with generated code: ${finalContent.length} chars, lang: ${lang}`);
+                console.log(`✅ Revealing code in canvas: ${finalContent.length} chars, lang: ${lang}`);
 
-                // Use openWithContent (same as tile click) to ensure content is set atomically
-                openWithContent(finalContent, 'code', lang);
+                // Fill the loading canvas with actual code (magical reveal!)
+                setCodeLanguage(lang);
+                setContent(finalContent, false);
+                setAIWriting(false);
+                setLoading(false);
 
                 // Save to history
                 await upsertCodeMessage(finalContent, lang, result.label, memoryAction);
-                
+
                 // Show completion toast if it was continued
                 if (result.wasContinued) {
                   toast({
@@ -1036,13 +1041,15 @@ ${existingCode}
                   });
                 }
               } else if (result.mode === 'canvas') {
-                const { openWithContent } = useCanvasStore.getState();
+                const { setContent, setLoading, setAIWriting } = useCanvasStore.getState();
                 const finalContent = result.content || '';
 
-                console.log(`✅ Opening canvas with generated writing: ${finalContent.length} chars`);
+                console.log(`✅ Revealing writing in canvas: ${finalContent.length} chars`);
 
-                // Open canvas with final writing (only opens now, not before)
-                openWithContent(finalContent, 'writing');
+                // Fill the loading canvas with actual content (magical reveal!)
+                setContent(finalContent, false);
+                setAIWriting(false);
+                setLoading(false);
 
                 await upsertCanvasMessage(finalContent, result.label, memoryAction);
               }
@@ -1056,8 +1063,10 @@ ${existingCode}
             
             // onError
             onError: (errorMsg) => {
-              const { setAIWriting } = useCanvasStore.getState();
+              const { setAIWriting, setLoading, closeCanvas } = useCanvasStore.getState();
               setAIWriting(false);
+              setLoading(false);
+              closeCanvas(); // Close the loading canvas on error
               // Only show error toast if not aborted
               if (!abortSignal.aborted) {
                 toast({ title: "Error", description: errorMsg, variant: "destructive" });
