@@ -281,7 +281,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     <div className={cn("flex flex-col h-full bg-background", className)}>
       {/* Header - Glassy style */}
       <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/20 bg-gradient-to-r from-background/80 via-background/60 to-background/80 backdrop-blur-xl">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Button
             variant="ghost"
             size="sm"
@@ -301,13 +301,13 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
                 <FileText className="w-4 h-4 text-primary" />
               </div>
             )}
-            <span className="text-sm font-semibold text-foreground">
+            <span className="text-sm font-semibold text-foreground hidden sm:inline">
               {isCodeMode ? getLanguageDisplay(codeLanguage) : 'Canvas'}
             </span>
             {isAIWriting && (
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                <span className="text-xs font-medium">
+                <span className="text-xs font-medium hidden sm:inline">
                   Generating{elapsedSeconds > 0 ? ` (${elapsedSeconds}s)` : '...'}
                 </span>
               </div>
@@ -329,28 +329,28 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
                 size="sm"
                 onClick={() => setShowCodeEditor(false)}
                 className={cn(
-                  "h-8 px-3 rounded-lg text-xs font-medium transition-all",
+                  "h-8 px-2 sm:px-3 rounded-lg text-xs font-medium transition-all",
                   !showCodeEditor
                     ? "bg-primary/20 text-primary shadow-sm border border-primary/30"
                     : "text-muted-foreground hover:text-foreground hover:bg-white/10"
                 )}
               >
-                <Eye className="w-3.5 h-3.5 mr-1.5" />
-                Preview
+                <Eye className="w-3.5 h-3.5 sm:mr-1.5" />
+                <span className="hidden sm:inline">Preview</span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowCodeEditor(true)}
                 className={cn(
-                  "h-8 px-3 rounded-lg text-xs font-medium transition-all",
+                  "h-8 px-2 sm:px-3 rounded-lg text-xs font-medium transition-all",
                   showCodeEditor
                     ? "bg-primary/20 text-primary shadow-sm border border-primary/30"
                     : "text-muted-foreground hover:text-foreground hover:bg-white/10"
                 )}
               >
-                <Code className="w-3.5 h-3.5 mr-1.5" />
-                Code
+                <Code className="w-3.5 h-3.5 sm:mr-1.5" />
+                <span className="hidden sm:inline">Code</span>
               </Button>
             </div>
           )}
