@@ -133,7 +133,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       pendingPrompt: null,
       canvasType: 'code',
       codeLanguage: language,
-      showCodePreview: false, // Show code editor by default
+      showCodePreview: true, // Show preview first
       isAIWriting: false,
     });
   },
@@ -159,7 +159,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       pendingPrompt: null,
       canvasType: type,
       codeLanguage: language,
-      showCodePreview: false,
+      showCodePreview: true, // Show preview first for code
       isAIWriting: false,
       isLoading: false,
     });
