@@ -1015,16 +1015,17 @@ ${existingCode}
               }
               
               if (result.mode === 'code') {
-                const { openCodeCanvas } = useCanvasStore.getState();
+                const { openWithContent } = useCanvasStore.getState();
                 const finalContent = result.content || '';
+                const lang = result.language || 'html';
 
-                console.log(`✅ Opening canvas with generated code: ${finalContent.length} chars`);
+                console.log(`✅ Opening canvas with generated code: ${finalContent.length} chars, lang: ${lang}`);
 
-                // Open canvas with final code (only opens now, not before)
-                openCodeCanvas(finalContent, result.language || 'html', result.label);
+                // Use openWithContent (same as tile click) to ensure content is set atomically
+                openWithContent(finalContent, 'code', lang);
 
                 // Save to history
-                await upsertCodeMessage(finalContent, result.language || 'html', result.label, memoryAction);
+                await upsertCodeMessage(finalContent, lang, result.label, memoryAction);
                 
                 // Show completion toast if it was continued
                 if (result.wasContinued) {
