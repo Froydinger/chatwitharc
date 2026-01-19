@@ -983,12 +983,10 @@ ${existingCode}
             abortSignal,
             maxContinuations: 3, // Allow up to 3 auto-continuations for long code
 
-            // onStart - open canvas with loading spinner (magical reveal when code is ready)
+            // onStart - just track the mode, don't open canvas yet
             onStart: async (mode) => {
               streamMode = mode;
-              const { openWithLoading } = useCanvasStore.getState();
-              openWithLoading(mode === 'code' ? 'code' : 'writing', 'html');
-              console.log(`🔄 Canvas opened with loader in ${mode} mode`);
+              console.log(`🔄 Code generation started in ${mode} mode`);
             },
 
             // onDelta - accumulate content but DON'T stream to canvas (user wants no streaming)
@@ -1020,10 +1018,10 @@ ${existingCode}
               const finalContent = streamedContent || result.content || '';
               const lang = result.language || 'html';
 
-              console.log(`✅ Code ready: ${finalContent.length} chars, lang: ${lang}`);
+              console.log(`✅ Code ready: streamed=${streamedContent.length}, result=${(result.content||'').length}, using=${finalContent.length} chars`);
 
               if (result.mode === 'code') {
-                // Use openWithContent - same atomic operation as clicking a tile
+                // Open canvas with the content directly - no loading state
                 const { openWithContent } = useCanvasStore.getState();
                 openWithContent(finalContent, 'code', lang);
 
@@ -1038,7 +1036,7 @@ ${existingCode}
                   });
                 }
               } else if (result.mode === 'canvas') {
-                // Use openWithContent - same atomic operation as clicking a tile
+                // Open canvas with the content directly - no loading state
                 const { openWithContent } = useCanvasStore.getState();
                 openWithContent(finalContent, 'writing');
 
@@ -1052,13 +1050,8 @@ ${existingCode}
               }
             },
             
-            // onError
+            // onError - just show toast, canvas isn't open yet
             onError: (errorMsg) => {
-              const { setAIWriting, setLoading, closeCanvas } = useCanvasStore.getState();
-              setAIWriting(false);
-              setLoading(false);
-              closeCanvas(); // Close the loading canvas on error
-              // Only show error toast if not aborted
               if (!abortSignal.aborted) {
                 toast({ title: "Error", description: errorMsg, variant: "destructive" });
               }
