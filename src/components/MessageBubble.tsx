@@ -21,6 +21,7 @@ import { CanvasAttachment } from "@/components/CanvasAttachment";
 import { CodeArtifactCard } from "@/components/CodeArtifactCard";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { MemoryIndicator } from "@/components/MemoryIndicator";
+import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
 
 interface MessageBubbleProps {
   message: Message;
@@ -375,10 +376,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                                     const urlParts = href.split('/');
                                     const fullFileName = urlParts[urlParts.length - 1];
                                     const fileName = fullFileName.replace(/^generated-\d+-/, ''); // Remove timestamp prefix
-                                    
+
                                     // Determine file type from extension
                                     const fileExt = fileName.split('.').pop()?.toLowerCase() || 'file';
-                                    
+
                                     return (
                                       <div className="my-4">
                                         <FileAttachment
@@ -390,6 +391,35 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                                       </div>
                                     );
                                   }
+
+                                  // Detect YouTube links and embed them
+                                  if (href && getYouTubeVideoId(href)) {
+                                    const linkText = typeof children === 'string' ? children :
+                                      (Array.isArray(children) ? children.join('') : String(children));
+                                    return (
+                                      <div className="my-4">
+                                        <MediaEmbed
+                                          url={href}
+                                          title={linkText !== href ? linkText : undefined}
+                                        />
+                                      </div>
+                                    );
+                                  }
+
+                                  // Detect direct image URLs and embed them
+                                  if (href && isImageUrl(href)) {
+                                    const linkText = typeof children === 'string' ? children :
+                                      (Array.isArray(children) ? children.join('') : String(children));
+                                    return (
+                                      <div className="my-4">
+                                        <MediaEmbed
+                                          url={href}
+                                          title={linkText !== href ? linkText : undefined}
+                                        />
+                                      </div>
+                                    );
+                                  }
+
                                   // Regular link
                                   return <a href={href} className="text-primary underline hover:text-primary/80" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
                                 },

@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "@/components/CodeBlock";
 import { FileAttachment } from "@/components/FileAttachment";
+import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
 
 interface TypewriterMarkdownProps {
   text: string;
@@ -134,7 +135,7 @@ export const TypewriterMarkdown = ({
               href.includes('.supabase.co/storage/') ||
               href.includes('generated-files/')
             );
-            
+
             if (isGeneratedFile) {
               const urlParts = href.split('/');
               const fullFileName = urlParts[urlParts.length - 1];
@@ -142,7 +143,7 @@ export const TypewriterMarkdown = ({
               const decodedFileName = decodeURIComponent(fullFileName);
               const fileName = decodedFileName.replace(/^generated-\d+-/, '');
               const fileExt = fileName.split('.').pop()?.toLowerCase() || 'file';
-              
+
               return (
                 <div className="my-4">
                   <FileAttachment
@@ -154,6 +155,35 @@ export const TypewriterMarkdown = ({
                 </div>
               );
             }
+
+            // Detect YouTube links and embed them
+            if (href && getYouTubeVideoId(href)) {
+              const linkText = typeof children === 'string' ? children :
+                (Array.isArray(children) ? children.join('') : String(children));
+              return (
+                <div className="my-4">
+                  <MediaEmbed
+                    url={href}
+                    title={linkText !== href ? linkText : undefined}
+                  />
+                </div>
+              );
+            }
+
+            // Detect direct image URLs and embed them
+            if (href && isImageUrl(href)) {
+              const linkText = typeof children === 'string' ? children :
+                (Array.isArray(children) ? children.join('') : String(children));
+              return (
+                <div className="my-4">
+                  <MediaEmbed
+                    url={href}
+                    title={linkText !== href ? linkText : undefined}
+                  />
+                </div>
+              );
+            }
+
             return <a href={href} className="text-primary underline hover:text-primary/80" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
           },
           ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-3 space-y-1.5" {...props} />,
