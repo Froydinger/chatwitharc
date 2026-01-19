@@ -99,21 +99,31 @@ export function useStreamingWithContinuation() {
             if (result.webSources?.length) {
               finalWebSources = [...finalWebSources, ...result.webSources];
             }
-            
+
+            // CRITICAL FIX: Use result.content as fallback if accumulated content is suspiciously short
+            // This handles cases where delta streaming fails but the backend sends complete content in the done event
+            let contentToUse = accumulatedContent;
+            if (result.content && result.content.length > accumulatedContent.length + 50) {
+              console.warn('⚠️ Accumulated content is shorter than result.content, using result.content as fallback');
+              console.log(`📏 Accumulated: ${accumulatedContent.length} chars, Result: ${result.content.length} chars`);
+              contentToUse = result.content;
+              accumulatedContent = result.content; // Update accumulated content for continuation check
+            }
+
             // Check if code generation is complete
             const isComplete = finalMode !== 'code' || isCodeComplete(accumulatedContent, finalLanguage);
-            
+
             if (!isComplete && continuationCount < maxContinuations && !abortSignal?.aborted) {
               // Code is incomplete - trigger continuation
               continuationCount++;
               continuationCountRef.current = continuationCount;
-              
+
               console.log(`🔄 Auto-continuing code generation (attempt ${continuationCount}/${maxContinuations})`);
               console.log(`📏 Current content length: ${accumulatedContent.length} chars`);
-              
+
               // Notify UI that we're continuing
               onContinuing?.();
-              
+
               // Add continuation prompt to messages
               const continuationPrompt = createContinuationPrompt(accumulatedContent, finalLanguage);
               currentMessages = [
@@ -122,7 +132,7 @@ export function useStreamingWithContinuation() {
                 { role: 'assistant' as const, content: '```' + finalLanguage + '\n' + accumulatedContent }, // Partial response
                 { role: 'user' as const, content: continuationPrompt } // Continue prompt
               ];
-              
+
               // Small delay before continuation to avoid rate limits
               setTimeout(() => {
                 runStreamingRequest(true).then(resolve);
@@ -131,12 +141,12 @@ export function useStreamingWithContinuation() {
               // Complete or max continuations reached
               if (continuationCount > 0) {
                 console.log(`✅ Code generation complete after ${continuationCount} continuation(s)`);
-                console.log(`📏 Final content length: ${accumulatedContent.length} chars`);
+                console.log(`📏 Final content length: ${contentToUse.length} chars`);
               }
-              
+
               onDone?.({
                 mode: finalMode,
-                content: accumulatedContent,
+                content: contentToUse,
                 label: finalLabel,
                 language: finalLanguage,
                 webSources: finalWebSources,
@@ -160,7 +170,10 @@ export function useStreamingWithContinuation() {
               });
               resolve(true);
             } else {
-              onError?.(error);
+              // Don't call onError for aborted requests (user cancelled)
+              if (!abortSignal?.aborted) {
+                onError?.(error);
+              }
               resolve(false);
             }
           },
