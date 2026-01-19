@@ -1,16 +1,23 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Globe, ChevronDown, ExternalLink } from "lucide-react";
+import { Globe, ChevronDown, ExternalLink, Play, Image as ImageIcon } from "lucide-react";
 import { WebSource } from "@/store/useArcStore";
+import { MediaEmbeds, getMediaType } from "@/components/MediaEmbed";
 
 interface SourcesAccordionProps {
   sources: WebSource[];
+  showMediaEmbeds?: boolean;
 }
 
-export const SourcesAccordion = ({ sources }: SourcesAccordionProps) => {
+export const SourcesAccordion = ({ sources, showMediaEmbeds = true }: SourcesAccordionProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   if (!sources || sources.length === 0) return null;
+
+  // Count media items
+  const mediaItems = sources.filter(s => getMediaType(s.url) !== 'none');
+  const videoCount = sources.filter(s => getMediaType(s.url) === 'youtube').length;
+  const imageCount = sources.filter(s => getMediaType(s.url) === 'image').length;
 
   // Extract domain from URL for display
   const getDomain = (url: string) => {
@@ -39,15 +46,35 @@ export const SourcesAccordion = ({ sources }: SourcesAccordionProps) => {
       transition={{ duration: 0.2 }}
       className="mt-3 w-full max-w-full overflow-hidden"
     >
+      {/* Media Embeds (shown above accordion when enabled) */}
+      {showMediaEmbeds && mediaItems.length > 0 && (
+        <MediaEmbeds
+          sources={sources.map(s => ({ url: s.url, title: s.title }))}
+          maxItems={3}
+        />
+      )}
+
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/50 border border-border/40 hover:bg-muted/70 transition-colors group w-fit max-w-full"
+        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/50 border border-border/40 hover:bg-muted/70 transition-colors group w-fit max-w-full mt-3"
       >
         <Globe className="h-3.5 w-3.5 text-primary/70" />
         <span className="text-xs font-medium text-muted-foreground">
-          Links & sources
+          {sources.length} source{sources.length !== 1 ? 's' : ''}
         </span>
+        {videoCount > 0 && (
+          <span className="flex items-center gap-1 text-[10px] text-red-500/80">
+            <Play className="h-3 w-3" />
+            {videoCount}
+          </span>
+        )}
+        {imageCount > 0 && (
+          <span className="flex items-center gap-1 text-[10px] text-primary/80">
+            <ImageIcon className="h-3 w-3" />
+            {imageCount}
+          </span>
+        )}
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
