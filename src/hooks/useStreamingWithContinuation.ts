@@ -81,6 +81,7 @@ export function useStreamingWithContinuation() {
           (mode) => {
             if (isFirstChunk) {
               finalMode = mode;
+              console.log(`🚀 Streaming started in ${mode} mode`);
               onStart?.(mode);
               isFirstChunk = false;
             }
@@ -89,6 +90,9 @@ export function useStreamingWithContinuation() {
           (delta) => {
             requestContent += delta;
             accumulatedContent += delta;
+            if (accumulatedContent.length % 500 === 0 || accumulatedContent.length < 100) {
+              console.log(`📝 Streaming progress: ${accumulatedContent.length} chars`);
+            }
             onDelta?.(delta);
           },
           // onDone
