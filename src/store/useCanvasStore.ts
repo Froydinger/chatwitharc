@@ -157,8 +157,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       pendingPrompt: null,
       canvasType: type,
       codeLanguage: language,
-      showCodePreview: false, // Show code editor by default
+      showCodePreview: false,
       isAIWriting: false,
+      isLoading: false, // CRITICAL: Clear loading state
     });
   },
 
