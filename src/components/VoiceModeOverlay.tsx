@@ -125,7 +125,7 @@ export function VoiceModeOverlay() {
               )}
             </motion.button>
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
               {/* Search Loading Indicator */}
               <AnimatePresence>
                 {isSearching && !generatedImage && !isGeneratingImage && (
@@ -134,7 +134,7 @@ export function VoiceModeOverlay() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className="absolute top-20 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-10 flex justify-center"
+                    className="mb-8 flex justify-center w-full"
                   >
                     <div className="flex flex-col items-center w-full max-w-[200px]">
                       <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-muted/30 border border-primary/20">
@@ -161,7 +161,7 @@ export function VoiceModeOverlay() {
                   </motion.div>
                 )}
               </AnimatePresence>
-              
+
               {/* Generated Image Display */}
               <AnimatePresence>
                 {(generatedImage || isGeneratingImage) && (
@@ -170,7 +170,7 @@ export function VoiceModeOverlay() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className="absolute top-20 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-10 flex justify-center"
+                    className="mb-8 flex justify-center w-full"
                   >
                     {isGeneratingImage ? (
                       // Loading skeleton
@@ -199,15 +199,15 @@ export function VoiceModeOverlay() {
                     ) : generatedImage ? (
                       // Generated image
                       <div className="relative w-full max-w-[260px]">
-                        <motion.img 
-                          src={generatedImage} 
-                          alt="Generated" 
+                        <motion.img
+                          src={generatedImage}
+                          alt="Generated"
                           className="w-full max-h-[260px] rounded-2xl shadow-2xl border border-primary/20 object-contain bg-background/50"
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ delay: 0.1 }}
                         />
-                        <motion.button 
+                        <motion.button
                           initial={{ opacity: 0, scale: 0.8 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: 0.2 }}
@@ -217,7 +217,7 @@ export function VoiceModeOverlay() {
                         >
                           <X className="w-4 h-4" />
                         </motion.button>
-                        <motion.p 
+                        <motion.p
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ delay: 0.3 }}
@@ -235,11 +235,7 @@ export function VoiceModeOverlay() {
               <motion.div
                 className="relative"
                 initial={{ scale: 0, opacity: 0 }}
-                animate={{ 
-                  scale: 1, 
-                  opacity: 1,
-                  y: (generatedImage || isGeneratingImage) ? 100 : 0 
-                }}
+                animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
               >
@@ -381,13 +377,10 @@ export function VoiceModeOverlay() {
               {/* Status text */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ 
-                  opacity: 1, 
-                  y: (generatedImage || isGeneratingImage) ? 110 : 0 
-                }}
+                animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
                 transition={{ delay: 0.2 }}
-                className="mt-8 flex items-center gap-2 text-muted-foreground"
+                className="mt-6 flex items-center gap-2 text-muted-foreground"
               >
                 {isGeneratingImage ? (
                   <ImageIcon className="w-4 h-4" />
@@ -406,7 +399,7 @@ export function VoiceModeOverlay() {
                     exit={{ opacity: 0, scale: 0.8, y: 20 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
                     onClick={handleInterrupt}
-                    className="mt-8 px-10 py-5 rounded-full bg-primary text-primary-foreground
+                    className="mt-6 px-10 py-5 rounded-full bg-primary text-primary-foreground
                                text-lg font-semibold shadow-2xl
                                hover:bg-primary/90 active:scale-95 transition-all
                                flex items-center gap-3"
