@@ -281,7 +281,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     <div className={cn("flex flex-col h-full bg-background", className)}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Button
             variant="ghost"
             size="sm"
@@ -297,13 +297,13 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
             ) : (
               <FileText className="w-4 h-4 text-primary" />
             )}
-            <span className="text-sm font-medium text-foreground">
+            <span className="text-sm font-medium text-foreground hidden sm:inline">
               {isCodeMode ? getLanguageDisplay(codeLanguage) : 'Canvas'}
             </span>
             {isAIWriting && (
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                <span className="text-xs">
+                <span className="text-xs hidden sm:inline">
                   Generating{elapsedSeconds > 0 ? ` (${elapsedSeconds}s)` : '...'}
                 </span>
               </div>
