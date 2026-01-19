@@ -1018,10 +1018,12 @@ ${existingCode}
               
               if (result.mode === 'code') {
                 const { setContent, setLoading, setCodeLanguage, setAIWriting } = useCanvasStore.getState();
-                const finalContent = result.content || '';
+                // CRITICAL: Use locally accumulated streamedContent, NOT result.content
+                // result.content may have excerpt/summary, streamedContent has actual code
+                const finalContent = streamedContent || result.content || '';
                 const lang = result.language || 'html';
 
-                console.log(`✅ Revealing code in canvas: ${finalContent.length} chars, lang: ${lang}`);
+                console.log(`✅ Revealing code in canvas: ${finalContent.length} chars (streamed: ${streamedContent.length}, result: ${(result.content || '').length}), lang: ${lang}`);
 
                 // Fill the loading canvas with actual code (magical reveal!)
                 setCodeLanguage(lang);
@@ -1042,9 +1044,10 @@ ${existingCode}
                 }
               } else if (result.mode === 'canvas') {
                 const { setContent, setLoading, setAIWriting } = useCanvasStore.getState();
-                const finalContent = result.content || '';
+                // CRITICAL: Use locally accumulated streamedContent, NOT result.content
+                const finalContent = streamedContent || result.content || '';
 
-                console.log(`✅ Revealing writing in canvas: ${finalContent.length} chars`);
+                console.log(`✅ Revealing writing in canvas: ${finalContent.length} chars (streamed: ${streamedContent.length})`);
 
                 // Fill the loading canvas with actual content (magical reveal!)
                 setContent(finalContent, false);
@@ -1054,10 +1057,10 @@ ${existingCode}
                 await upsertCanvasMessage(finalContent, result.label, memoryAction);
               }
               
-              // Persist to session for canvas/code
+              // Persist to session for canvas/code (use streamedContent, not result.content)
               const { currentSessionId, updateSessionCanvasContent } = useArcStore.getState();
               if (currentSessionId) {
-                await updateSessionCanvasContent(currentSessionId, result.content);
+                await updateSessionCanvasContent(currentSessionId, streamedContent || result.content);
               }
             },
             
