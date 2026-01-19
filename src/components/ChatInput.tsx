@@ -1016,25 +1016,20 @@ ${existingCode}
                 memoryAction = { type: 'web_searched' as const, sources: streamWebSources, query: userMessage };
               }
               
+              // Get the FULL code - prefer streamedContent, fallback to result.content
+              const finalContent = streamedContent || result.content || '';
+              const lang = result.language || 'html';
+
+              console.log(`✅ Code ready: ${finalContent.length} chars, lang: ${lang}`);
+
               if (result.mode === 'code') {
-                const { setContent, setLoading, setCodeLanguage, setAIWriting } = useCanvasStore.getState();
-                // CRITICAL: Use locally accumulated streamedContent, NOT result.content
-                // result.content may have excerpt/summary, streamedContent has actual code
-                const finalContent = streamedContent || result.content || '';
-                const lang = result.language || 'html';
-
-                console.log(`✅ Revealing code in canvas: ${finalContent.length} chars (streamed: ${streamedContent.length}, result: ${(result.content || '').length}), lang: ${lang}`);
-
-                // Fill the loading canvas with actual code (magical reveal!)
-                setCodeLanguage(lang);
-                setContent(finalContent, false);
-                setAIWriting(false);
-                setLoading(false);
+                // Use openWithContent - same atomic operation as clicking a tile
+                const { openWithContent } = useCanvasStore.getState();
+                openWithContent(finalContent, 'code', lang);
 
                 // Save to history
                 await upsertCodeMessage(finalContent, lang, result.label, memoryAction);
 
-                // Show completion toast if it was continued
                 if (result.wasContinued) {
                   toast({
                     title: "Code generation complete!",
@@ -1043,16 +1038,9 @@ ${existingCode}
                   });
                 }
               } else if (result.mode === 'canvas') {
-                const { setContent, setLoading, setAIWriting } = useCanvasStore.getState();
-                // CRITICAL: Use locally accumulated streamedContent, NOT result.content
-                const finalContent = streamedContent || result.content || '';
-
-                console.log(`✅ Revealing writing in canvas: ${finalContent.length} chars (streamed: ${streamedContent.length})`);
-
-                // Fill the loading canvas with actual content (magical reveal!)
-                setContent(finalContent, false);
-                setAIWriting(false);
-                setLoading(false);
+                // Use openWithContent - same atomic operation as clicking a tile
+                const { openWithContent } = useCanvasStore.getState();
+                openWithContent(finalContent, 'writing');
 
                 await upsertCanvasMessage(finalContent, result.label, memoryAction);
               }
