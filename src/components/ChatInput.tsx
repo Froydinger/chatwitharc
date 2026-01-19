@@ -1017,13 +1017,24 @@ ${existingCode}
               }
               
               if (result.mode === 'code') {
-                const { setAIWriting, setCodeLanguage, setContent } = useCanvasStore.getState();
+                const { setAIWriting, setCodeLanguage, setContent, content: currentContent } = useCanvasStore.getState();
+
+                // CRITICAL: Use the longer content to avoid losing code
+                let finalContent = result.content || '';
+                if (currentContent.length > finalContent.length + 50) {
+                  console.warn('⚠️ Result content is shorter than current canvas content, keeping current');
+                  console.log(`📏 Current: ${currentContent.length} chars, Result: ${finalContent.length} chars`);
+                  finalContent = currentContent;
+                } else if (finalContent.length > 100) {
+                  console.log(`✅ Setting canvas content: ${finalContent.length} chars`);
+                }
+
                 // Ensure canvas shows final code even if no deltas streamed
-                setContent(result.content || '', false);
+                setContent(finalContent, false);
                 setAIWriting(false);
                 setCodeLanguage(result.language || 'html');
                 // Save to history
-                await upsertCodeMessage(result.content, result.language || 'html', result.label, memoryAction);
+                await upsertCodeMessage(finalContent, result.language || 'html', result.label, memoryAction);
                 
                 // Show completion toast if it was continued
                 if (result.wasContinued) {
@@ -1034,11 +1045,20 @@ ${existingCode}
                   });
                 }
               } else if (result.mode === 'canvas') {
-                const { setAIWriting, setContent } = useCanvasStore.getState();
+                const { setAIWriting, setContent, content: currentContent } = useCanvasStore.getState();
+
+                // CRITICAL: Use the longer content to avoid losing writing
+                let finalContent = result.content || '';
+                if (currentContent.length > finalContent.length + 50) {
+                  console.warn('⚠️ Result content is shorter than current canvas content, keeping current');
+                  console.log(`📏 Current: ${currentContent.length} chars, Result: ${finalContent.length} chars`);
+                  finalContent = currentContent;
+                }
+
                 // Ensure canvas shows final writing even if no deltas streamed
-                setContent(result.content || '', false);
+                setContent(finalContent, false);
                 setAIWriting(false);
-                await upsertCanvasMessage(result.content, result.label, memoryAction);
+                await upsertCanvasMessage(finalContent, result.label, memoryAction);
               }
               
               // Persist to session for canvas/code
