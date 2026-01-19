@@ -178,7 +178,7 @@ Provide a comprehensive answer based on current information. Synthesize what you
       const { data, error } = await supabase.functions.invoke("chat", {
         body: {
           messages: [{ role: "user", content: searchPrompt }],
-          // Don't force web_search - let AI decide naturally (like regular chat)
+          model: 'openai/gpt-5-mini', // Research mode uses GPT 5 Mini (better at researching)
         },
       });
 
