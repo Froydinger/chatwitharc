@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import * as React from "react";
 
 interface CodePreviewProps {
@@ -7,7 +7,20 @@ interface CodePreviewProps {
 }
 
 export function CodePreview({ code, language }: CodePreviewProps) {
+  // Check if dark mode is enabled
+  const [isDark, setIsDark] = useState(true);
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains('dark'));
+  }, []);
   const htmlContent = useMemo(() => {
+    // Base dark mode styles
+    const darkModeStyles = isDark ? `
+      body {
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+      }
+    ` : '';
+
     if (language === "html") {
       return code;
     } else if (language === "css") {
@@ -18,6 +31,7 @@ export function CodePreview({ code, language }: CodePreviewProps) {
               <meta charset="UTF-8">
               <style>
                 body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; }
+                ${darkModeStyles}
                 ${code}
               </style>
             </head>
@@ -38,13 +52,15 @@ export function CodePreview({ code, language }: CodePreviewProps) {
               <meta charset="UTF-8">
               <style>
                 body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; }
+                ${darkModeStyles}
                 #output {
-                  background: #f5f5f5;
-                  border: 1px solid #ddd;
+                  background: ${isDark ? '#2d2d2d' : '#f5f5f5'};
+                  border: 1px solid ${isDark ? '#404040' : '#ddd'};
                   border-radius: 8px;
                   padding: 16px;
                   margin-top: 16px;
                   min-height: 100px;
+                  color: ${isDark ? '#d4d4d4' : '#000'};
                 }
               </style>
             </head>
@@ -65,7 +81,7 @@ export function CodePreview({ code, language }: CodePreviewProps) {
                   ${code}
                 } catch (err) {
                   const errorDiv = document.createElement('div');
-                  errorDiv.style.color = 'red';
+                  errorDiv.style.color = '${isDark ? '#f48771' : 'red'}';
                   errorDiv.textContent = 'Error: ' + err.message;
                   document.getElementById('output').appendChild(errorDiv);
                 }
@@ -82,21 +98,24 @@ export function CodePreview({ code, language }: CodePreviewProps) {
               <meta charset="UTF-8">
               <style>
                 body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; }
-                .info-box { 
-                  background: #fff3e0; 
-                  border: 1px solid #ff9800; 
-                  border-radius: 8px; 
-                  padding: 16px; 
+                ${darkModeStyles}
+                .info-box {
+                  background: ${isDark ? '#2d2d2d' : '#fff3e0'};
+                  border: 1px solid ${isDark ? '#404040' : '#ff9800'};
+                  border-radius: 8px;
+                  padding: 16px;
                   margin-bottom: 16px;
+                  color: ${isDark ? '#d4d4d4' : '#000'};
                 }
-                pre { 
-                  background: #f5f5f5; 
-                  border: 1px solid #ddd; 
-                  border-radius: 8px; 
-                  padding: 16px; 
+                pre {
+                  background: ${isDark ? '#1e1e1e' : '#f5f5f5'};
+                  border: 1px solid ${isDark ? '#404040' : '#ddd'};
+                  border-radius: 8px;
+                  padding: 16px;
                   overflow-x: auto;
                   white-space: pre-wrap;
                   word-wrap: break-word;
+                  color: ${isDark ? '#d4d4d4' : '#000'};
                 }
               </style>
             </head>
@@ -110,12 +129,13 @@ export function CodePreview({ code, language }: CodePreviewProps) {
           </html>
         `;
     }
-  }, [code, language]);
+  }, [code, language, isDark]);
 
   return (
     <div className="border-t border-border/40 h-full overflow-auto">
       <iframe
-        className="w-full min-h-[600px] h-full bg-white"
+        className="w-full min-h-[600px] h-full"
+        style={{ backgroundColor: isDark ? '#1e1e1e' : '#ffffff' }}
         srcDoc={htmlContent}
         sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
         title="Code Preview"
