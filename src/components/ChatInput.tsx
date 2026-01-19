@@ -1021,12 +1021,20 @@ ${existingCode}
               console.log(`✅ Code ready: streamed=${streamedContent.length}, result=${(result.content||'').length}, using=${finalContent.length} chars`);
 
               if (result.mode === 'code') {
-                // Save to history FIRST to ensure content is persisted
+                // Save to history FIRST
                 await upsertCodeMessage(finalContent, lang, result.label, memoryAction);
 
-                // Now open canvas with the same content
+                // Read content back from saved message (same source as tile click)
+                const messages = useArcStore.getState().messages;
+                const lastCodeMsg = [...messages].reverse().find(m => m.type === 'code');
+                const verifiedContent = (lastCodeMsg as any)?.codeContent || finalContent;
+                const verifiedLang = (lastCodeMsg as any)?.codeLanguage || lang;
+
+                console.log(`📦 Opening canvas with verified content: ${verifiedContent.length} chars`);
+
+                // Open canvas with verified content from saved message
                 const { openWithContent } = useCanvasStore.getState();
-                openWithContent(finalContent, 'code', lang);
+                openWithContent(verifiedContent, 'code', verifiedLang);
 
                 if (result.wasContinued) {
                   toast({
@@ -1039,9 +1047,14 @@ ${existingCode}
                 // Save to history FIRST
                 await upsertCanvasMessage(finalContent, result.label, memoryAction);
 
-                // Now open canvas with the same content
+                // Read content back from saved message
+                const messages = useArcStore.getState().messages;
+                const lastCanvasMsg = [...messages].reverse().find(m => m.type === 'canvas');
+                const verifiedContent = (lastCanvasMsg as any)?.canvasContent || finalContent;
+
+                // Open canvas with verified content
                 const { openWithContent } = useCanvasStore.getState();
-                openWithContent(finalContent, 'writing');
+                openWithContent(verifiedContent, 'writing');
               }
               
               // Persist to session for canvas/code (use streamedContent, not result.content)
