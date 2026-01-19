@@ -377,7 +377,7 @@ export function VoiceModeOverlay() {
 
               {/* Ear icon when listening */}
               <AnimatePresence>
-                {status === 'listening' && !isMuted && !isGeneratingImage && !isSearching && (
+                {status === 'listening' && !isMuted && !isGeneratingImage && !isSearching && !showInterruptButton && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
