@@ -279,31 +279,35 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
+      {/* Header - Glassy style */}
+      <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/20 bg-gradient-to-r from-background/80 via-background/60 to-background/80 backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="sm"
             onClick={closeCanvas}
-            className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            className="h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all"
           >
             <ChevronLeft className="w-5 h-5" />
           </Button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {isCodeMode ? (
-              <Code className="w-4 h-4 text-primary" />
+              <div className="p-1.5 rounded-lg bg-primary/15">
+                <Code className="w-4 h-4 text-primary" />
+              </div>
             ) : (
-              <FileText className="w-4 h-4 text-primary" />
+              <div className="p-1.5 rounded-lg bg-primary/15">
+                <FileText className="w-4 h-4 text-primary" />
+              </div>
             )}
-            <span className="text-sm font-medium text-foreground">
+            <span className="text-sm font-semibold text-foreground">
               {isCodeMode ? getLanguageDisplay(codeLanguage) : 'Canvas'}
             </span>
             {isAIWriting && (
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                <span className="text-xs">
+                <span className="text-xs font-medium">
                   Generating{elapsedSeconds > 0 ? ` (${elapsedSeconds}s)` : '...'}
                 </span>
               </div>
@@ -312,83 +316,85 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-muted-foreground mr-2 hidden sm:block">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground/80 mr-1 hidden sm:block font-medium">
             {isCodeMode ? `${lineCount} lines` : `${wordCount} words`}
           </span>
 
           {/* Toggle between Code and Preview for code mode */}
           {isCodeMode && supportsPreview && (
-            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5">
+            <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-xl p-1 backdrop-blur-sm">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowCodeEditor(false)}
                 className={cn(
-                  "h-7 px-2.5 rounded-md text-xs font-medium transition-colors",
+                  "h-8 px-3 rounded-lg text-xs font-medium transition-all",
                   !showCodeEditor
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary/20 text-primary shadow-sm border border-primary/30"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/10"
                 )}
               >
-                <Eye className="w-3.5 h-3.5 sm:mr-1" />
-                <span className="hidden sm:inline">Preview</span>
+                <Eye className="w-3.5 h-3.5 mr-1.5" />
+                Preview
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowCodeEditor(true)}
                 className={cn(
-                  "h-7 px-2.5 rounded-md text-xs font-medium transition-colors",
+                  "h-8 px-3 rounded-lg text-xs font-medium transition-all",
                   showCodeEditor
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary/20 text-primary shadow-sm border border-primary/30"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/10"
                 )}
               >
-                <Code className="w-3.5 h-3.5 sm:mr-1" />
-                <span className="hidden sm:inline">Code</span>
+                <Code className="w-3.5 h-3.5 mr-1.5" />
+                Code
               </Button>
             </div>
           )}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowHistory(!showHistory)}
-            className={cn(
-              "h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground",
-              showHistory && "bg-muted text-foreground"
-            )}
-            title="History"
-          >
-            <History className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-1 ml-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowHistory(!showHistory)}
+              className={cn(
+                "h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all",
+                showHistory && "bg-white/10 text-foreground"
+              )}
+              title="History"
+            >
+              <History className="w-4 h-4" />
+            </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCopy}
-            disabled={!content}
-            className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-40"
-            title="Copy"
-          >
-            {copied ? (
-              <Check className="w-4 h-4 text-primary" />
-            ) : (
-              <Copy className="w-4 h-4" />
-            )}
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopy}
+              disabled={!content}
+              className="h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 disabled:opacity-40 transition-all"
+              title="Copy"
+            >
+              {copied ? (
+                <Check className="w-4 h-4 text-primary" />
+              ) : (
+                <Copy className="w-4 h-4" />
+              )}
+            </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDownload}
-            disabled={!content}
-            className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-40"
-            title="Download"
-          >
-            <Download className="w-4 h-4" />
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDownload}
+              disabled={!content}
+              className="h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 disabled:opacity-40 transition-all"
+              title="Download"
+            >
+              <Download className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
