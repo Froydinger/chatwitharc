@@ -1020,12 +1020,15 @@ ${existingCode}
               const finalContent = streamedContent || result.content || '';
               const lang = result.language || 'html';
 
-              console.log(`✅ Code ready: ${finalContent.length} chars, lang: ${lang}`);
+              console.log(`✅ Code ready: streamed=${streamedContent.length}, result=${(result.content||'').length}, using=${finalContent.length} chars`);
 
               if (result.mode === 'code') {
-                // Use openWithContent - same atomic operation as clicking a tile
-                const { openWithContent } = useCanvasStore.getState();
-                openWithContent(finalContent, 'code', lang);
+                // Set content directly on the already-open loading canvas
+                const { setContent, setLoading, setCodeLanguage, setAIWriting } = useCanvasStore.getState();
+                setCodeLanguage(lang);
+                setContent(finalContent, false);
+                setAIWriting(false);
+                setLoading(false);
 
                 // Save to history
                 await upsertCodeMessage(finalContent, lang, result.label, memoryAction);
@@ -1038,9 +1041,11 @@ ${existingCode}
                   });
                 }
               } else if (result.mode === 'canvas') {
-                // Use openWithContent - same atomic operation as clicking a tile
-                const { openWithContent } = useCanvasStore.getState();
-                openWithContent(finalContent, 'writing');
+                // Set content directly on the already-open loading canvas
+                const { setContent, setLoading, setAIWriting } = useCanvasStore.getState();
+                setContent(finalContent, false);
+                setAIWriting(false);
+                setLoading(false);
 
                 await upsertCanvasMessage(finalContent, result.label, memoryAction);
               }
