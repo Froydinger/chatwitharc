@@ -1021,12 +1021,12 @@ ${existingCode}
               console.log(`✅ Code ready: streamed=${streamedContent.length}, result=${(result.content||'').length}, using=${finalContent.length} chars`);
 
               if (result.mode === 'code') {
-                // Open canvas with the content directly - no loading state
+                // Save to history FIRST to ensure content is persisted
+                await upsertCodeMessage(finalContent, lang, result.label, memoryAction);
+
+                // Now open canvas with the same content
                 const { openWithContent } = useCanvasStore.getState();
                 openWithContent(finalContent, 'code', lang);
-
-                // Save to history
-                await upsertCodeMessage(finalContent, lang, result.label, memoryAction);
 
                 if (result.wasContinued) {
                   toast({
@@ -1036,11 +1036,12 @@ ${existingCode}
                   });
                 }
               } else if (result.mode === 'canvas') {
-                // Open canvas with the content directly - no loading state
+                // Save to history FIRST
+                await upsertCanvasMessage(finalContent, result.label, memoryAction);
+
+                // Now open canvas with the same content
                 const { openWithContent } = useCanvasStore.getState();
                 openWithContent(finalContent, 'writing');
-
-                await upsertCanvasMessage(finalContent, result.label, memoryAction);
               }
               
               // Persist to session for canvas/code (use streamedContent, not result.content)

@@ -140,27 +140,35 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   // Atomic action to set content AND open the canvas in one operation
   openWithContent: (content: string, type: CanvasType = 'writing', language = 'typescript') => {
+    // CRITICAL: First close canvas to clear any stale state
+    set({ isOpen: false, content: '' });
+
+    // Then immediately reopen with fresh content
     const initialVersion: CanvasVersion = {
       id: crypto.randomUUID(),
       content,
       timestamp: Date.now(),
       label: 'Restored',
     };
-    set({
-      isOpen: true,
-      content,
-      versions: content ? [initialVersion] : [],
-      activeVersionIndex: content ? 0 : -1,
-      undoStack: [],
-      redoStack: [],
-      mode: 'sideBySide',
-      pendingPrompt: null,
-      canvasType: type,
-      codeLanguage: language,
-      showCodePreview: false,
-      isAIWriting: false,
-      isLoading: false, // CRITICAL: Clear loading state
-    });
+
+    // Use setTimeout to ensure React processes the close before open
+    setTimeout(() => {
+      set({
+        isOpen: true,
+        content,
+        versions: content ? [initialVersion] : [],
+        activeVersionIndex: content ? 0 : -1,
+        undoStack: [],
+        redoStack: [],
+        mode: 'sideBySide',
+        pendingPrompt: null,
+        canvasType: type,
+        codeLanguage: language,
+        showCodePreview: false,
+        isAIWriting: false,
+        isLoading: false,
+      });
+    }, 10);
   },
 
   openSideBySide: (prompt: string) => {
