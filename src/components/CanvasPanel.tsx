@@ -111,11 +111,13 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
       }),
       Markdown,
     ],
-    content: content || "", // Initialize with current store content
+    // CRITICAL: Don't initialize with code content - TipTap will mangle it
+    content: isCodeMode ? '' : (content || ""),
     onUpdate: ({ editor: ed }) => {
-      // CRITICAL: Don't update store during AI writing OR during programmatic setContent
-      if (isAIWriting || isApplyingRemoteUpdateRef.current) return;
-      
+      // CRITICAL: Don't update store during AI writing, programmatic setContent, OR code mode
+      // Code mode content must NEVER be processed by TipTap
+      if (isAIWriting || isApplyingRemoteUpdateRef.current || isCodeMode) return;
+
       const md = editorGetMarkdown(ed as ReturnType<typeof useEditor>);
       if (md !== undefined && md !== content) {
         setContent(md, false);
