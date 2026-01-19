@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand } from "lucide-react";
+import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useCallback } from "react";
 
@@ -42,9 +42,10 @@ export function VoiceModeOverlay() {
   if (!isActive) return null;
 
   // Determine orb animation based on status
+  // Reduced sensitivity to make animation more subtle and less "crazy"
   const amplitude = status === 'speaking' ? outputAmplitude : (isMuted ? 0 : inputAmplitude);
-  const orbScale = 1 + amplitude * 0.4;
-  const glowIntensity = 40 + amplitude * 60;
+  const orbScale = 1 + amplitude * 0.15; // Reduced from 0.4 for subtler scaling
+  const glowIntensity = 30 + amplitude * 30; // Reduced from 40 + 60 for calmer glow
 
   // Check if interrupt button should be visible
   const showInterruptButton = status === 'speaking' || isAudioPlaying;
@@ -374,21 +375,40 @@ export function VoiceModeOverlay() {
                 </motion.div>
               </motion.div>
 
-              {/* Status text */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{ delay: 0.2 }}
-                className="mt-6 flex items-center gap-2 text-muted-foreground"
-              >
-                {isGeneratingImage ? (
-                  <ImageIcon className="w-4 h-4" />
-                ) : (
-                  getStatusIcon()
+              {/* Ear icon when listening */}
+              <AnimatePresence>
+                {status === 'listening' && !isMuted && !isGeneratingImage && !isSearching && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3 }}
+                    className="mt-4"
+                  >
+                    <Ear className="w-6 h-6 text-muted-foreground/60" />
+                  </motion.div>
                 )}
-                <span className="text-sm font-medium">{getStatusText()}</span>
-              </motion.div>
+              </AnimatePresence>
+
+              {/* Status text - only show when generating image or searching */}
+              <AnimatePresence>
+                {(isGeneratingImage || isSearching) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    transition={{ delay: 0.2 }}
+                    className="mt-6 flex items-center gap-2 text-muted-foreground"
+                  >
+                    {isGeneratingImage ? (
+                      <ImageIcon className="w-4 h-4" />
+                    ) : (
+                      <Search className="w-4 h-4" />
+                    )}
+                    <span className="text-sm font-medium">{getStatusText()}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* BIG CENTERED INTERRUPT BUTTON - Only shows when AI is speaking */}
               <AnimatePresence>
