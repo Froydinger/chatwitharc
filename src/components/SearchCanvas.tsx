@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, memo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -46,7 +46,387 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { supabase } from "@/integrations/supabase/client";
+
+// Inline Citation Component - shows clickable source references in the text
+function InlineCitation({
+  index,
+  source,
+  getFaviconUrl
+}: {
+  index: number;
+  source: SearchResult;
+  getFaviconUrl: (url: string) => string | null;
+}) {
+  const hostname = (() => {
+    try {
+      return new URL(source.url).hostname.replace("www.", "");
+    } catch {
+      return source.url;
+    }
+  })();
+
+  return (
+    <HoverCard openDelay={200} closeDelay={100}>
+      <HoverCardTrigger asChild>
+        <a
+          href={source.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 mx-0.5 text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors align-baseline cursor-pointer no-underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {index}
+        </a>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-80 p-3" side="top" align="start">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+            {getFaviconUrl(source.url) ? (
+              <img
+                src={getFaviconUrl(source.url)!}
+                alt=""
+                className="w-5 h-5 rounded"
+              />
+            ) : (
+              <Globe className="w-4 h-4 text-muted-foreground" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground line-clamp-2 mb-1">
+              {source.title}
+            </p>
+            <p className="text-xs text-muted-foreground mb-2">{hostname}</p>
+            {source.snippet && (
+              <p className="text-xs text-muted-foreground/80 line-clamp-2">
+                {source.snippet}
+              </p>
+            )}
+          </div>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+
+// Process content to add inline citations
+function processContentWithCitations(
+  content: string,
+  sources: SearchResult[],
+  getFaviconUrl: (url: string) => string | null
+): React.ReactNode[] {
+  // Match citation patterns like [1], [2], [1,2], [1][2], etc.
+  const citationRegex = /\[(\d+(?:,\s*\d+)*)\]|\[(\d+)\]\[(\d+)\]/g;
+
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+
+  while ((match = citationRegex.exec(content)) !== null) {
+    // Add text before the citation
+    if (match.index > lastIndex) {
+      parts.push(content.slice(lastIndex, match.index));
+    }
+
+    // Parse citation numbers
+    const citationText = match[1] || `${match[2]},${match[3]}`;
+    const citations = citationText.split(/,\s*/).map(n => parseInt(n.trim(), 10));
+
+    // Add citation components
+    citations.forEach((num, idx) => {
+      const sourceIndex = num - 1; // Citations are 1-indexed
+      if (sourceIndex >= 0 && sourceIndex < sources.length) {
+        parts.push(
+          <InlineCitation
+            key={`citation-${key++}`}
+            index={num}
+            source={sources[sourceIndex]}
+            getFaviconUrl={getFaviconUrl}
+          />
+        );
+      } else {
+        // If source doesn't exist, just show the number
+        parts.push(
+          <span key={`citation-${key++}`} className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 mx-0.5 text-xs font-medium bg-muted text-muted-foreground rounded-md">
+            {num}
+          </span>
+        );
+      }
+    });
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [content];
+}
+
+// Props interface for SavedLinksSidebar
+interface SavedLinksSidebarProps {
+  className?: string;
+  lists: LinkList[];
+  activeListId: string;
+  setActiveListId: (id: string) => void;
+  isSelectMode: boolean;
+  setIsSelectMode: (mode: boolean) => void;
+  selectedLinks: Set<string>;
+  onToggleSelectLink: (id: string) => void;
+  onSelectAll: () => void;
+  onClearSelection: () => void;
+  onChatWithSelected: () => void;
+  onDeleteSelected: () => void;
+  onChatWithLink: (link: SavedLink) => void;
+  onRemoveLink: (listId: string, linkId: string) => void;
+  onShowNewListDialog: () => void;
+  getFaviconUrl: (url: string) => string | null;
+  getHostname: (url: string) => string;
+  allSavedLinksCount: number;
+}
+
+// Memoized SavedLinksSidebar component to prevent re-renders
+const SavedLinksSidebar = memo(function SavedLinksSidebar({
+  className,
+  lists,
+  activeListId,
+  setActiveListId,
+  isSelectMode,
+  setIsSelectMode,
+  selectedLinks,
+  onToggleSelectLink,
+  onSelectAll,
+  onClearSelection,
+  onChatWithSelected,
+  onDeleteSelected,
+  onChatWithLink,
+  onRemoveLink,
+  onShowNewListDialog,
+  getFaviconUrl,
+  getHostname,
+  allSavedLinksCount,
+}: SavedLinksSidebarProps) {
+  const activeList = lists.find((l) => l.id === activeListId) || lists[0];
+
+  return (
+    <div className={cn("flex flex-col h-full", className)}>
+      {/* Sidebar Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
+        <div className="flex items-center gap-2">
+          <Library className="w-5 h-5 text-primary" />
+          <span className="font-semibold">Saved</span>
+          <span className="text-xs text-muted-foreground">({allSavedLinksCount})</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {isSelectMode ? (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onSelectAll}
+                className="h-8 text-xs"
+              >
+                All
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClearSelection}
+                className="h-8 text-xs"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsSelectMode(true)}
+              className="h-8 text-xs"
+              disabled={allSavedLinksCount === 0}
+            >
+              Select
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* List Tabs */}
+      <div className="flex items-center gap-1 px-3 py-2 border-b border-border/20 overflow-x-auto no-scrollbar">
+        {lists.map((list) => (
+          <button
+            key={list.id}
+            onClick={() => setActiveListId(list.id)}
+            className={cn(
+              "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
+              activeListId === list.id
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted/50 text-muted-foreground hover:bg-muted"
+            )}
+          >
+            {list.name}
+            <span className="ml-1 opacity-70">({list.links.length})</span>
+          </button>
+        ))}
+        <button
+          onClick={onShowNewListDialog}
+          className="p-1.5 rounded-full bg-muted/50 text-muted-foreground hover:bg-muted transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Selection Actions Bar */}
+      <AnimatePresence>
+        {isSelectMode && selectedLinks.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="px-3 py-2 border-b border-border/20 bg-primary/5"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">{selectedLinks.size} selected</span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={onChatWithSelected}
+                  className="h-7 text-xs gap-1"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  Chat
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onDeleteSelected}
+                  className="h-7 text-xs text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Links List */}
+      <div className="flex-1 overflow-auto">
+        {activeList && activeList.links.length > 0 ? (
+          <div className="p-2 space-y-1">
+            {activeList.links.map((link) => {
+              const isSelected = selectedLinks.has(link.id);
+              return (
+                <div
+                  key={link.id}
+                  className={cn(
+                    "group relative rounded-lg border transition-all",
+                    isSelected
+                      ? "border-primary bg-primary/5"
+                      : "border-transparent hover:border-border/50 hover:bg-muted/30"
+                  )}
+                >
+                  <div className="flex items-start gap-2 p-2">
+                    {/* Checkbox / Favicon */}
+                    {isSelectMode ? (
+                      <button
+                        onClick={() => onToggleSelectLink(link.id)}
+                        className="mt-0.5 flex-shrink-0"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="w-5 h-5 text-primary" />
+                        ) : (
+                          <Square className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </button>
+                    ) : (
+                      <div className="mt-0.5 flex-shrink-0 w-5 h-5">
+                        {getFaviconUrl(link.url) ? (
+                          <img
+                            src={getFaviconUrl(link.url)!}
+                            alt=""
+                            className="w-5 h-5 rounded"
+                          />
+                        ) : (
+                          <Globe className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-sm font-medium text-foreground hover:text-primary line-clamp-2 transition-colors"
+                      >
+                        {link.title}
+                      </a>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {getHostname(link.url)}
+                      </p>
+                    </div>
+
+                    {/* Actions */}
+                    {!isSelectMode && (
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => onChatWithLink(link)}
+                          className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                          title="Chat about this link"
+                        >
+                          <MessageCircle className="w-4 h-4 text-primary" />
+                        </button>
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                        >
+                          <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                        </a>
+                        <button
+                          onClick={() => onRemoveLink(link.listId, link.id)}
+                          className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-32 text-center p-4">
+            <Bookmark className="w-8 h-8 text-muted-foreground/50 mb-2" />
+            <p className="text-sm text-muted-foreground">No saved links yet</p>
+            <p className="text-xs text-muted-foreground/70">
+              Save sources from your research
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
 
 export function SearchCanvas() {
   const {
@@ -392,213 +772,26 @@ export function SearchCanvas() {
     return date.toLocaleDateString();
   };
 
-  // Saved Links Sidebar Component
-  const SavedLinksSidebar = ({ className }: { className?: string }) => (
-    <div className={cn("flex flex-col h-full", className)}>
-      {/* Sidebar Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
-        <div className="flex items-center gap-2">
-          <Library className="w-5 h-5 text-primary" />
-          <span className="font-semibold">Saved</span>
-          <span className="text-xs text-muted-foreground">({allSavedLinks.length})</span>
-        </div>
-        <div className="flex items-center gap-1">
-          {isSelectMode ? (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSelectAll}
-                className="h-8 text-xs"
-              >
-                All
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClearSelection}
-                className="h-8 text-xs"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsSelectMode(true)}
-              className="h-8 text-xs"
-              disabled={allSavedLinks.length === 0}
-            >
-              Select
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* List Tabs */}
-      <div className="flex items-center gap-1 px-3 py-2 border-b border-border/20 overflow-x-auto no-scrollbar">
-        {lists.map((list) => (
-          <button
-            key={list.id}
-            onClick={() => setActiveListId(list.id)}
-            className={cn(
-              "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
-              activeListId === list.id
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted"
-            )}
-          >
-            {list.name}
-            <span className="ml-1 opacity-70">({list.links.length})</span>
-          </button>
-        ))}
-        <button
-          onClick={() => setShowNewListDialog(true)}
-          className="p-1.5 rounded-full bg-muted/50 text-muted-foreground hover:bg-muted transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Selection Actions Bar */}
-      <AnimatePresence>
-        {isSelectMode && selectedLinks.size > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="px-3 py-2 border-b border-border/20 bg-primary/5"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">{selectedLinks.size} selected</span>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleChatWithSelected}
-                  className="h-7 text-xs gap-1"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  Chat
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDeleteSelected}
-                  className="h-7 text-xs text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Links List */}
-      <div className="flex-1 overflow-auto">
-        {activeList && activeList.links.length > 0 ? (
-          <div className="p-2 space-y-1">
-            {activeList.links.map((link) => {
-              const isSelected = selectedLinks.has(link.id);
-              return (
-                <motion.div
-                  key={link.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className={cn(
-                    "group relative rounded-lg border transition-all",
-                    isSelected
-                      ? "border-primary bg-primary/5"
-                      : "border-transparent hover:border-border/50 hover:bg-muted/30"
-                  )}
-                >
-                  <div className="flex items-start gap-2 p-2">
-                    {/* Checkbox / Favicon */}
-                    {isSelectMode ? (
-                      <button
-                        onClick={() => handleToggleSelectLink(link.id)}
-                        className="mt-0.5 flex-shrink-0"
-                      >
-                        {isSelected ? (
-                          <CheckSquare className="w-5 h-5 text-primary" />
-                        ) : (
-                          <Square className="w-5 h-5 text-muted-foreground" />
-                        )}
-                      </button>
-                    ) : (
-                      <div className="mt-0.5 flex-shrink-0 w-5 h-5">
-                        {getFaviconUrl(link.url) ? (
-                          <img
-                            src={getFaviconUrl(link.url)!}
-                            alt=""
-                            className="w-5 h-5 rounded"
-                          />
-                        ) : (
-                          <Globe className="w-5 h-5 text-muted-foreground" />
-                        )}
-                      </div>
-                    )}
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block text-sm font-medium text-foreground hover:text-primary line-clamp-2 transition-colors"
-                      >
-                        {link.title}
-                      </a>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {getHostname(link.url)}
-                      </p>
-                    </div>
-
-                    {/* Actions */}
-                    {!isSelectMode && (
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => handleChatWithLink(link)}
-                          className="p-1.5 rounded-md hover:bg-muted transition-colors"
-                          title="Chat about this link"
-                        >
-                          <MessageCircle className="w-4 h-4 text-primary" />
-                        </button>
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 rounded-md hover:bg-muted transition-colors"
-                        >
-                          <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                        </a>
-                        <button
-                          onClick={() => removeLink(link.listId, link.id)}
-                          className="p-1.5 rounded-md hover:bg-muted transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-32 text-center p-4">
-            <Bookmark className="w-8 h-8 text-muted-foreground/50 mb-2" />
-            <p className="text-sm text-muted-foreground">No saved links yet</p>
-            <p className="text-xs text-muted-foreground/70">
-              Save sources from your research
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  // Memoized sidebar props
+  const sidebarProps = useMemo(() => ({
+    lists,
+    activeListId,
+    setActiveListId,
+    isSelectMode,
+    setIsSelectMode,
+    selectedLinks,
+    onToggleSelectLink: handleToggleSelectLink,
+    onSelectAll: handleSelectAll,
+    onClearSelection: handleClearSelection,
+    onChatWithSelected: handleChatWithSelected,
+    onDeleteSelected: handleDeleteSelected,
+    onChatWithLink: handleChatWithLink,
+    onRemoveLink: removeLink,
+    onShowNewListDialog: () => setShowNewListDialog(true),
+    getFaviconUrl,
+    getHostname,
+    allSavedLinksCount: allSavedLinks.length,
+  }), [lists, activeListId, isSelectMode, selectedLinks, allSavedLinks.length]);
 
   return (
     <div
@@ -677,7 +870,7 @@ export function SearchCanvas() {
                   exit={{ opacity: 0, height: 0 }}
                   className="border-b border-border/30 bg-card/50 overflow-hidden"
                 >
-                  <SavedLinksSidebar />
+                  <SavedLinksSidebar {...sidebarProps} />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -944,14 +1137,25 @@ export function SearchCanvas() {
                   </div>
                 )}
 
-                {/* Main Answer - Blog Style */}
+                {/* Main Answer - Blog Style with Inline Citations */}
                 <article className="mb-8">
                   <div className="prose prose-neutral dark:prose-invert max-w-none">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        p: ({ node, ...props }) => (
-                          <p className="text-base sm:text-lg leading-relaxed mb-4 text-foreground/90" {...props} />
+                        // Custom text renderer to process citations like [1], [2]
+                        text: ({ node }) => {
+                          const text = String(node.value || '');
+                          // Check if text contains citation patterns
+                          if (/\[\d+\]/.test(text)) {
+                            return <>{processContentWithCitations(text, activeSession.results, getFaviconUrl)}</>;
+                          }
+                          return <>{text}</>;
+                        },
+                        p: ({ node, children, ...props }) => (
+                          <p className="text-base sm:text-lg leading-relaxed mb-4 text-foreground/90" {...props}>
+                            {children}
+                          </p>
                         ),
                         h1: ({ node, ...props }) => (
                           <h1 className="text-2xl sm:text-3xl font-bold mt-8 mb-4 text-foreground" {...props} />
@@ -968,21 +1172,38 @@ export function SearchCanvas() {
                         ol: ({ node, ...props }) => (
                           <ol className="list-decimal pl-5 mb-4 space-y-2" {...props} />
                         ),
-                        li: ({ node, ...props }) => (
-                          <li className="text-base sm:text-lg leading-relaxed text-foreground/90" {...props} />
+                        li: ({ node, children, ...props }) => (
+                          <li className="text-base sm:text-lg leading-relaxed text-foreground/90" {...props}>
+                            {children}
+                          </li>
                         ),
                         strong: ({ node, ...props }) => (
                           <strong className="font-semibold text-foreground" {...props} />
                         ),
-                        a: ({ node, href, ...props }) => (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline underline-offset-2"
-                            {...props}
-                          />
-                        ),
+                        a: ({ node, href, children, ...props }) => {
+                          // Check if this is a source link (matches one of our sources)
+                          const sourceIndex = activeSession.results.findIndex(r => r.url === href);
+                          if (sourceIndex !== -1) {
+                            return (
+                              <InlineCitation
+                                index={sourceIndex + 1}
+                                source={activeSession.results[sourceIndex]}
+                                getFaviconUrl={getFaviconUrl}
+                              />
+                            );
+                          }
+                          return (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline underline-offset-2"
+                              {...props}
+                            >
+                              {children}
+                            </a>
+                          );
+                        },
                         code: ({ node, className, ...props }) => {
                           const isInline = !className;
                           return isInline ? (
@@ -1127,7 +1348,7 @@ export function SearchCanvas() {
         {/* Desktop: Right Sidebar for Saved Links */}
         {!isMobile && (
           <div className="w-80 border-l border-border/30 bg-card/30 flex-shrink-0">
-            <SavedLinksSidebar />
+            <SavedLinksSidebar {...sidebarProps} />
           </div>
         )}
       </div>

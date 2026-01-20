@@ -671,23 +671,41 @@ export const useSearchStore = create<SearchState>()(
               };
             });
 
-            // Merge with local sessions (prefer Supabase data for conflicts, but keep local if it has better content)
+            // Merge with local sessions - combine best of both
             const state = get();
             const mergedSessions: SearchSession[] = [];
             const supabaseSessionMap = new Map(sessions.map(s => [s.id, s]));
+            const localSessionMap = new Map(state.sessions.map(s => [s.id, s]));
 
-            // Add Supabase sessions, but prefer local version if it has content and Supabase doesn't
+            // Process all Supabase sessions, merging with local data
             sessions.forEach(supabaseSession => {
-              const localSession = state.sessions.find(s => s.id === supabaseSession.id);
-              if (localSession && localSession.formattedContent.trim() && !supabaseSession.formattedContent.trim()) {
-                console.log(`Keeping local session ${supabaseSession.id} with better content`);
-                mergedSessions.push(localSession);
+              const localSession = localSessionMap.get(supabaseSession.id);
+
+              if (localSession) {
+                // Merge: use better content and combine conversations
+                const mergedSession: SearchSession = {
+                  ...supabaseSession,
+                  // Use local content if Supabase is empty
+                  formattedContent: supabaseSession.formattedContent.trim()
+                    ? supabaseSession.formattedContent
+                    : localSession.formattedContent,
+                  // Merge summaryConversation - use whichever has more messages
+                  summaryConversation: (supabaseSession.summaryConversation?.length || 0) >= (localSession.summaryConversation?.length || 0)
+                    ? supabaseSession.summaryConversation
+                    : localSession.summaryConversation,
+                  // Merge sourceConversations
+                  sourceConversations: {
+                    ...localSession.sourceConversations,
+                    ...supabaseSession.sourceConversations,
+                  },
+                };
+                mergedSessions.push(mergedSession);
               } else {
                 mergedSessions.push(supabaseSession);
               }
             });
 
-            // Add local-only sessions
+            // Add local-only sessions (not in Supabase yet)
             state.sessions.forEach(localSession => {
               if (!supabaseSessionMap.has(localSession.id)) {
                 mergedSessions.push(localSession);
