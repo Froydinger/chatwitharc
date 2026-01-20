@@ -170,9 +170,9 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
       
       // Find all complete JSON objects in the truncated response
       const objectMatches = jsonString.matchAll(/\{"label":\s*"[^"]+",\s*"prompt":\s*"[^"]+"\}/g);
-      const recoveredPrompts = Array.from(objectMatches).map(m => {
+      const recoveredPrompts = Array.from(objectMatches).map((m: RegExpMatchArray) => {
         try {
-          return JSON.parse(m[0]);
+          return JSON.parse(m[0] as string);
         } catch {
           return null;
         }
