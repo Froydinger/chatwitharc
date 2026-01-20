@@ -8,7 +8,6 @@ import {
   BookmarkCheck,
   Copy,
   Check,
-  Plus,
   ChevronDown,
   ChevronUp,
   Clock,
@@ -20,7 +19,6 @@ import {
   CheckSquare,
   Square,
   Trash2,
-  FolderPlus,
   X,
   Library,
 } from "lucide-react";
@@ -30,22 +28,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { useSearchStore, SearchResult, SavedLink, LinkList } from "@/store/useSearchStore";
+import { useSearchStore, SearchResult, SavedLink } from "@/store/useSearchStore";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 
 export function SearchCanvas() {
@@ -61,7 +45,6 @@ export function SearchCanvas() {
     clearAllSessions,
     setSearching,
     saveLink,
-    createList,
     removeLink,
     setPendingSearchQuery,
     syncFromSupabase,
@@ -79,13 +62,9 @@ export function SearchCanvas() {
   const [showHistory, setShowHistory] = useState(true);
   const [showSources, setShowSources] = useState(false);
   const [followUpInput, setFollowUpInput] = useState("");
-  const [newListName, setNewListName] = useState("");
-  const [showNewListDialog, setShowNewListDialog] = useState(false);
-  const [pendingSaveResult, setPendingSaveResult] = useState<SearchResult | null>(null);
   const [showSavedLinks, setShowSavedLinks] = useState(false);
   const [selectedLinks, setSelectedLinks] = useState<Set<string>>(new Set());
   const [isSelectMode, setIsSelectMode] = useState(false);
-  const [activeListId, setActiveListId] = useState<string>("default");
 
   // Track if running as PWA or Electron app for traffic lights spacing
   const [isPWAMode, setIsPWAMode] = useState(false);
@@ -104,15 +83,15 @@ export function SearchCanvas() {
     return sessions.find((s) => s.id === activeSessionId) || null;
   }, [sessions, activeSessionId]);
 
-  // Get active list
-  const activeList = useMemo(() => {
-    return lists.find((l) => l.id === activeListId) || lists[0];
-  }, [lists, activeListId]);
-
-  // Get all saved links across all lists
-  const allSavedLinks = useMemo(() => {
-    return lists.flatMap((list) => list.links);
+  // Get only the default list for saved links
+  const defaultList = useMemo(() => {
+    return lists.find((l) => l.id === 'default') || lists[0];
   }, [lists]);
+
+  // Get links from the default list only
+  const defaultListLinks = useMemo(() => {
+    return defaultList?.links || [];
+  }, [defaultList]);
 
   // Track which links are already saved
   const savedUrlsMap = useMemo(() => {
@@ -272,28 +251,6 @@ export function SearchCanvas() {
     await sendSummaryMessage(activeSessionId, message);
   };
 
-  const handleCreateListAndSave = () => {
-    if (!newListName.trim()) return;
-    const newListId = createList(newListName.trim());
-
-    if (pendingSaveResult) {
-      saveLink({
-        title: pendingSaveResult.title,
-        url: pendingSaveResult.url,
-        snippet: pendingSaveResult.snippet,
-        listId: newListId,
-      });
-      toast({ title: `Saved to ${newListName.trim()}` });
-      setPendingSaveResult(null);
-    } else {
-      toast({ title: "List created" });
-    }
-
-    setNewListName("");
-    setShowNewListDialog(false);
-    setActiveListId(newListId);
-  };
-
   const handleToggleSelectLink = (linkId: string) => {
     setSelectedLinks((prev) => {
       const next = new Set(prev);
@@ -307,8 +264,8 @@ export function SearchCanvas() {
   };
 
   const handleSelectAll = () => {
-    if (activeList) {
-      const allIds = new Set(activeList.links.map((l) => l.id));
+    if (defaultListLinks.length > 0) {
+      const allIds = new Set(defaultListLinks.map((l) => l.id));
       setSelectedLinks(allIds);
     }
   };
@@ -336,7 +293,7 @@ export function SearchCanvas() {
   const handleChatWithSelected = () => {
     if (selectedLinks.size === 0) return;
 
-    const selectedLinkObjects = allSavedLinks.filter((l) => selectedLinks.has(l.id));
+    const selectedLinkObjects = defaultListLinks.filter((l) => selectedLinks.has(l.id));
     const contextMessage = `I want to discuss these ${selectedLinkObjects.length} saved links:\n\n${selectedLinkObjects.map((l, i) => `${i + 1}. ${l.title}\n   URL: ${l.url}${l.snippet ? `\n   Snippet: ${l.snippet}` : ''}`).join('\n\n')}\n\nPlease help me understand how these topics relate or explore them together.`;
 
     if (activeSessionId) {
@@ -354,7 +311,7 @@ export function SearchCanvas() {
 
   const handleDeleteSelected = () => {
     selectedLinks.forEach((linkId) => {
-      const link = allSavedLinks.find((l) => l.id === linkId);
+      const link = defaultListLinks.find((l) => l.id === linkId);
       if (link) {
         removeLink(link.listId, linkId);
       }
@@ -392,7 +349,7 @@ export function SearchCanvas() {
     return date.toLocaleDateString();
   };
 
-  // Saved Links Sidebar Component
+  // Saved Links Sidebar Component - Only shows default Saved Links list
   const SavedLinksSidebar = ({ className }: { className?: string }) => (
     <div className={cn("flex flex-col h-full", className)}>
       {/* Sidebar Header */}
@@ -400,7 +357,7 @@ export function SearchCanvas() {
         <div className="flex items-center gap-2">
           <Library className="w-5 h-5 text-primary" />
           <span className="font-semibold">Saved</span>
-          <span className="text-xs text-muted-foreground">({allSavedLinks.length})</span>
+          <span className="text-xs text-muted-foreground">({defaultListLinks.length})</span>
         </div>
         <div className="flex items-center gap-1">
           {isSelectMode ? (
@@ -428,37 +385,12 @@ export function SearchCanvas() {
               size="sm"
               onClick={() => setIsSelectMode(true)}
               className="h-8 text-xs"
-              disabled={allSavedLinks.length === 0}
+              disabled={defaultListLinks.length === 0}
             >
               Select
             </Button>
           )}
         </div>
-      </div>
-
-      {/* List Tabs */}
-      <div className="flex items-center gap-1 px-3 py-2 border-b border-border/20 overflow-x-auto no-scrollbar">
-        {lists.map((list) => (
-          <button
-            key={list.id}
-            onClick={() => setActiveListId(list.id)}
-            className={cn(
-              "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
-              activeListId === list.id
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted"
-            )}
-          >
-            {list.name}
-            <span className="ml-1 opacity-70">({list.links.length})</span>
-          </button>
-        ))}
-        <button
-          onClick={() => setShowNewListDialog(true)}
-          className="p-1.5 rounded-full bg-muted/50 text-muted-foreground hover:bg-muted transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
       </div>
 
       {/* Selection Actions Bar */}
@@ -496,17 +428,15 @@ export function SearchCanvas() {
         )}
       </AnimatePresence>
 
-      {/* Links List */}
+      {/* Links List - Only default list */}
       <div className="flex-1 overflow-auto">
-        {activeList && activeList.links.length > 0 ? (
+        {defaultListLinks.length > 0 ? (
           <div className="p-2 space-y-1">
-            {activeList.links.map((link) => {
+            {defaultListLinks.map((link) => {
               const isSelected = selectedLinks.has(link.id);
               return (
-                <motion.div
+                <div
                   key={link.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
                   className={cn(
                     "group relative rounded-lg border transition-all",
                     isSelected
@@ -583,7 +513,7 @@ export function SearchCanvas() {
                       </div>
                     )}
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </div>
@@ -654,7 +584,7 @@ export function SearchCanvas() {
               )}
             >
               <Library className="w-4 h-4" />
-              <span className="text-xs text-muted-foreground">({allSavedLinks.length})</span>
+              <span className="text-xs text-muted-foreground">({defaultListLinks.length})</span>
             </Button>
           )}
         </div>
@@ -1132,40 +1062,6 @@ export function SearchCanvas() {
         )}
       </div>
 
-      {/* New List Dialog */}
-      <Dialog open={showNewListDialog} onOpenChange={setShowNewListDialog}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>
-              {pendingSaveResult ? "Create List & Save Link" : "Create New List"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <Input
-              placeholder="List name..."
-              value={newListName}
-              onChange={(e) => setNewListName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleCreateListAndSave();
-              }}
-              autoFocus
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowNewListDialog(false);
-              setPendingSaveResult(null);
-              setNewListName("");
-            }}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateListAndSave} disabled={!newListName.trim()}>
-              <Plus className="w-4 h-4 mr-1" />
-              {pendingSaveResult ? "Create & Save" : "Create List"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
