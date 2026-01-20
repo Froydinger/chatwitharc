@@ -642,22 +642,19 @@ export const useSearchStore = create<SearchState>()(
           return;
         }
 
-        // Wait for hydration to complete before syncing
-        const state = get();
-        if (!state.hasHydrated) {
+        // Wait for hydration to complete before syncing (with retries)
+        let attempts = 0;
+        while (!get().hasHydrated && attempts < 10) {
           console.log('Waiting for hydration before syncing from Supabase...');
-          // Wait a bit for hydration, then retry
-          await new Promise(resolve => setTimeout(resolve, 100));
-          const newState = get();
-          if (!newState.hasHydrated) {
-            console.log('Hydration not complete, skipping sync');
-            return;
-          }
+          await new Promise(resolve => setTimeout(resolve, 50));
+          attempts++;
         }
 
         // Don't set isSyncing to avoid UI flicker - sync silently in background
 
         try {
+          // Get fresh state after hydration
+          const state = get();
           // Fetch search sessions from Supabase
           const { data: sessionsData, error: sessionsError } = await supabase
             .from('search_sessions' as any)
@@ -931,11 +928,13 @@ export const useSearchStore = create<SearchState>()(
           ...persistedState,
           lists,
           sessions: persistedState?.sessions || [],
+          hasHydrated: true, // Mark as hydrated in merge
         };
       },
       onRehydrateStorage: () => (state) => {
         if (state) {
-          state.hasHydrated = true;
+          // Use setState to properly update the store
+          useSearchStore.setState({ hasHydrated: true });
           console.log('✅ Search store hydrated with', state.sessions?.length || 0, 'sessions');
         }
       },
