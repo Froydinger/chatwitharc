@@ -193,6 +193,7 @@ interface SavedLinksSidebarProps {
   onDeleteSelected: () => void;
   onChatWithLink: (link: SavedLink) => void;
   onRemoveLink: (listId: string, linkId: string) => void;
+  onDeleteList: (listId: string) => void;
   onShowNewListDialog: () => void;
   getFaviconUrl: (url: string) => string | null;
   getHostname: (url: string) => string;
@@ -215,6 +216,7 @@ const SavedLinksSidebar = memo(function SavedLinksSidebar({
   onDeleteSelected,
   onChatWithLink,
   onRemoveLink,
+  onDeleteList,
   onShowNewListDialog,
   getFaviconUrl,
   getHostname,
@@ -268,19 +270,44 @@ const SavedLinksSidebar = memo(function SavedLinksSidebar({
       {/* List Tabs */}
       <div className="flex items-center gap-1 px-3 py-2 border-b border-border/20 overflow-x-auto no-scrollbar">
         {lists.map((list) => (
-          <button
-            key={list.id}
-            onClick={() => setActiveListId(list.id)}
-            className={cn(
-              "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
-              activeListId === list.id
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted"
-            )}
-          >
-            {list.name}
-            <span className="ml-1 opacity-70">({list.links.length})</span>
-          </button>
+          <DropdownMenu key={list.id}>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
+                  activeListId === list.id
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                )}
+              >
+                {list.name}
+                <span className="ml-1 opacity-70">({list.links.length})</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-40">
+              <DropdownMenuItem onClick={() => setActiveListId(list.id)}>
+                <CheckSquare className="w-4 h-4 mr-2" />
+                View list
+              </DropdownMenuItem>
+              {list.id !== 'default' && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (activeListId === list.id) {
+                        setActiveListId('default');
+                      }
+                      onDeleteList(list.id);
+                    }}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete list
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         ))}
         <button
           onClick={onShowNewListDialog}
@@ -442,6 +469,7 @@ export function SearchCanvas() {
     setSearching,
     saveLink,
     createList,
+    deleteList,
     removeLink,
     setPendingSearchQuery,
     syncFromSupabase,
@@ -787,6 +815,7 @@ export function SearchCanvas() {
     onDeleteSelected: handleDeleteSelected,
     onChatWithLink: handleChatWithLink,
     onRemoveLink: removeLink,
+    onDeleteList: deleteList,
     onShowNewListDialog: () => setShowNewListDialog(true),
     getFaviconUrl,
     getHostname,
@@ -910,27 +939,6 @@ export function SearchCanvas() {
                   </div>
                 </div>
 
-                {/* Searching Indicator */}
-                <AnimatePresence>
-                  {isSearching && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -5 }}
-                      className="absolute left-0 right-0 -bottom-10 flex justify-center"
-                    >
-                      <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm">
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        >
-                          <Globe className="w-4 h-4" />
-                        </motion.div>
-                        <span>Searching the web...</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
             </div>
 
@@ -993,8 +1001,30 @@ export function SearchCanvas() {
               )}
             </AnimatePresence>
 
+            {/* Searching State - Full Loading View */}
+            {isSearching && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col items-center justify-center py-20"
+              >
+                <div className="relative w-16 h-16 mb-6">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-0 rounded-full border-2 border-primary/20 border-t-primary"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Globe className="w-6 h-6 text-primary" />
+                  </div>
+                </div>
+                <h3 className="text-lg font-medium text-foreground mb-2">Searching the web...</h3>
+                <p className="text-sm text-muted-foreground">Finding the best sources for you</p>
+              </motion.div>
+            )}
+
             {/* Active Session Content */}
-            {activeSession ? (
+            {!isSearching && activeSession ? (
               <motion.div
                 key={activeSession.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -1294,7 +1324,7 @@ export function SearchCanvas() {
                   </div>
                 </div>
               </motion.div>
-            ) : (
+            ) : !isSearching ? (
               /* Empty State */
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -1341,7 +1371,7 @@ export function SearchCanvas() {
                   ))}
                 </div>
               </motion.div>
-            )}
+            ) : null}
           </div>
         </div>
 
