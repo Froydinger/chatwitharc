@@ -46,7 +46,136 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { supabase } from "@/integrations/supabase/client";
+
+// Inline Citation Component - shows clickable source references in the text
+function InlineCitation({
+  index,
+  source,
+  getFaviconUrl
+}: {
+  index: number;
+  source: SearchResult;
+  getFaviconUrl: (url: string) => string | null;
+}) {
+  const hostname = (() => {
+    try {
+      return new URL(source.url).hostname.replace("www.", "");
+    } catch {
+      return source.url;
+    }
+  })();
+
+  return (
+    <HoverCard openDelay={200} closeDelay={100}>
+      <HoverCardTrigger asChild>
+        <a
+          href={source.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 mx-0.5 text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors align-baseline cursor-pointer no-underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {index}
+        </a>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-80 p-3" side="top" align="start">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+            {getFaviconUrl(source.url) ? (
+              <img
+                src={getFaviconUrl(source.url)!}
+                alt=""
+                className="w-5 h-5 rounded"
+              />
+            ) : (
+              <Globe className="w-4 h-4 text-muted-foreground" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground line-clamp-2 mb-1">
+              {source.title}
+            </p>
+            <p className="text-xs text-muted-foreground mb-2">{hostname}</p>
+            {source.snippet && (
+              <p className="text-xs text-muted-foreground/80 line-clamp-2">
+                {source.snippet}
+              </p>
+            )}
+          </div>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+
+// Process content to add inline citations
+function processContentWithCitations(
+  content: string,
+  sources: SearchResult[],
+  getFaviconUrl: (url: string) => string | null
+): React.ReactNode[] {
+  // Match citation patterns like [1], [2], [1,2], [1][2], etc.
+  const citationRegex = /\[(\d+(?:,\s*\d+)*)\]|\[(\d+)\]\[(\d+)\]/g;
+
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+
+  while ((match = citationRegex.exec(content)) !== null) {
+    // Add text before the citation
+    if (match.index > lastIndex) {
+      parts.push(content.slice(lastIndex, match.index));
+    }
+
+    // Parse citation numbers
+    const citationText = match[1] || `${match[2]},${match[3]}`;
+    const citations = citationText.split(/,\s*/).map(n => parseInt(n.trim(), 10));
+
+    // Add citation components
+    citations.forEach((num, idx) => {
+      const sourceIndex = num - 1; // Citations are 1-indexed
+      if (sourceIndex >= 0 && sourceIndex < sources.length) {
+        parts.push(
+          <InlineCitation
+            key={`citation-${key++}`}
+            index={num}
+            source={sources[sourceIndex]}
+            getFaviconUrl={getFaviconUrl}
+          />
+        );
+      } else {
+        // If source doesn't exist, just show the number
+        parts.push(
+          <span key={`citation-${key++}`} className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 mx-0.5 text-xs font-medium bg-muted text-muted-foreground rounded-md">
+            {num}
+          </span>
+        );
+      }
+    });
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [content];
+}
 
 export function SearchCanvas() {
   const {
@@ -944,14 +1073,25 @@ export function SearchCanvas() {
                   </div>
                 )}
 
-                {/* Main Answer - Blog Style */}
+                {/* Main Answer - Blog Style with Inline Citations */}
                 <article className="mb-8">
                   <div className="prose prose-neutral dark:prose-invert max-w-none">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        p: ({ node, ...props }) => (
-                          <p className="text-base sm:text-lg leading-relaxed mb-4 text-foreground/90" {...props} />
+                        // Custom text renderer to process citations like [1], [2]
+                        text: ({ node }) => {
+                          const text = String(node.value || '');
+                          // Check if text contains citation patterns
+                          if (/\[\d+\]/.test(text)) {
+                            return <>{processContentWithCitations(text, activeSession.results, getFaviconUrl)}</>;
+                          }
+                          return <>{text}</>;
+                        },
+                        p: ({ node, children, ...props }) => (
+                          <p className="text-base sm:text-lg leading-relaxed mb-4 text-foreground/90" {...props}>
+                            {children}
+                          </p>
                         ),
                         h1: ({ node, ...props }) => (
                           <h1 className="text-2xl sm:text-3xl font-bold mt-8 mb-4 text-foreground" {...props} />
@@ -968,21 +1108,38 @@ export function SearchCanvas() {
                         ol: ({ node, ...props }) => (
                           <ol className="list-decimal pl-5 mb-4 space-y-2" {...props} />
                         ),
-                        li: ({ node, ...props }) => (
-                          <li className="text-base sm:text-lg leading-relaxed text-foreground/90" {...props} />
+                        li: ({ node, children, ...props }) => (
+                          <li className="text-base sm:text-lg leading-relaxed text-foreground/90" {...props}>
+                            {children}
+                          </li>
                         ),
                         strong: ({ node, ...props }) => (
                           <strong className="font-semibold text-foreground" {...props} />
                         ),
-                        a: ({ node, href, ...props }) => (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline underline-offset-2"
-                            {...props}
-                          />
-                        ),
+                        a: ({ node, href, children, ...props }) => {
+                          // Check if this is a source link (matches one of our sources)
+                          const sourceIndex = activeSession.results.findIndex(r => r.url === href);
+                          if (sourceIndex !== -1) {
+                            return (
+                              <InlineCitation
+                                index={sourceIndex + 1}
+                                source={activeSession.results[sourceIndex]}
+                                getFaviconUrl={getFaviconUrl}
+                              />
+                            );
+                          }
+                          return (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline underline-offset-2"
+                              {...props}
+                            >
+                              {children}
+                            </a>
+                          );
+                        },
                         code: ({ node, className, ...props }) => {
                           const isInline = !className;
                           return isInline ? (
