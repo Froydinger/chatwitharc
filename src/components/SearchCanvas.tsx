@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  X,
   Search,
   Globe,
   ExternalLink,
@@ -17,15 +16,21 @@ import {
   ArrowLeft,
   Sparkles,
   RotateCcw,
+  MessageCircle,
+  CheckSquare,
+  Square,
+  Trash2,
+  FolderPlus,
+  X,
+  Library,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { useSearchStore, SearchResult, SearchSession, SourceMessage } from "@/store/useSearchStore";
+import { useSearchStore, SearchResult, SavedLink, LinkList } from "@/store/useSearchStore";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Dialog,
@@ -34,6 +39,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 
 export function SearchCanvas() {
@@ -46,7 +58,6 @@ export function SearchCanvas() {
     closeSearch,
     setActiveSession,
     addSession,
-    removeSession,
     clearAllSessions,
     setSearching,
     saveLink,
@@ -65,12 +76,16 @@ export function SearchCanvas() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [copied, setCopied] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
   const [showSources, setShowSources] = useState(false);
   const [followUpInput, setFollowUpInput] = useState("");
   const [newListName, setNewListName] = useState("");
   const [showNewListDialog, setShowNewListDialog] = useState(false);
   const [pendingSaveResult, setPendingSaveResult] = useState<SearchResult | null>(null);
+  const [showSavedLinks, setShowSavedLinks] = useState(false);
+  const [selectedLinks, setSelectedLinks] = useState<Set<string>>(new Set());
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [activeListId, setActiveListId] = useState<string>("default");
 
   // Track if running as PWA or Electron app for traffic lights spacing
   const [isPWAMode, setIsPWAMode] = useState(false);
@@ -88,6 +103,16 @@ export function SearchCanvas() {
   const activeSession = useMemo(() => {
     return sessions.find((s) => s.id === activeSessionId) || null;
   }, [sessions, activeSessionId]);
+
+  // Get active list
+  const activeList = useMemo(() => {
+    return lists.find((l) => l.id === activeListId) || lists[0];
+  }, [lists, activeListId]);
+
+  // Get all saved links across all lists
+  const allSavedLinks = useMemo(() => {
+    return lists.flatMap((list) => list.links);
+  }, [lists]);
 
   // Track which links are already saved
   const savedUrlsMap = useMemo(() => {
@@ -128,12 +153,17 @@ export function SearchCanvas() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        closeSearch();
+        if (isSelectMode) {
+          setIsSelectMode(false);
+          setSelectedLinks(new Set());
+        } else {
+          closeSearch();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [closeSearch]);
+  }, [closeSearch, isSelectMode]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -261,6 +291,76 @@ export function SearchCanvas() {
 
     setNewListName("");
     setShowNewListDialog(false);
+    setActiveListId(newListId);
+  };
+
+  const handleToggleSelectLink = (linkId: string) => {
+    setSelectedLinks((prev) => {
+      const next = new Set(prev);
+      if (next.has(linkId)) {
+        next.delete(linkId);
+      } else {
+        next.add(linkId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (activeList) {
+      const allIds = new Set(activeList.links.map((l) => l.id));
+      setSelectedLinks(allIds);
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedLinks(new Set());
+    setIsSelectMode(false);
+  };
+
+  const handleChatWithLink = (link: SavedLink) => {
+    // Build context from the link and start a conversation
+    const contextMessage = `I want to discuss this saved link:\n\nTitle: ${link.title}\nURL: ${link.url}${link.snippet ? `\nSnippet: ${link.snippet}` : ''}\n\nPlease help me understand or explore this topic further.`;
+
+    if (activeSessionId) {
+      sendSummaryMessage(activeSessionId, contextMessage);
+    } else {
+      // If no active session, create a search for the link title
+      handleSearch(`Explain: ${link.title}`);
+    }
+
+    toast({ title: "Starting conversation about link" });
+    if (isMobile) setShowSavedLinks(false);
+  };
+
+  const handleChatWithSelected = () => {
+    if (selectedLinks.size === 0) return;
+
+    const selectedLinkObjects = allSavedLinks.filter((l) => selectedLinks.has(l.id));
+    const contextMessage = `I want to discuss these ${selectedLinkObjects.length} saved links:\n\n${selectedLinkObjects.map((l, i) => `${i + 1}. ${l.title}\n   URL: ${l.url}${l.snippet ? `\n   Snippet: ${l.snippet}` : ''}`).join('\n\n')}\n\nPlease help me understand how these topics relate or explore them together.`;
+
+    if (activeSessionId) {
+      sendSummaryMessage(activeSessionId, contextMessage);
+    } else {
+      // Create a search combining the topics
+      const topics = selectedLinkObjects.map((l) => l.title).join(', ');
+      handleSearch(`Compare and discuss: ${topics}`);
+    }
+
+    toast({ title: `Starting conversation about ${selectedLinks.size} links` });
+    handleClearSelection();
+    if (isMobile) setShowSavedLinks(false);
+  };
+
+  const handleDeleteSelected = () => {
+    selectedLinks.forEach((linkId) => {
+      const link = allSavedLinks.find((l) => l.id === linkId);
+      if (link) {
+        removeLink(link.listId, linkId);
+      }
+    });
+    toast({ title: `Deleted ${selectedLinks.size} links` });
+    handleClearSelection();
   };
 
   const getFaviconUrl = (url: string) => {
@@ -292,6 +392,214 @@ export function SearchCanvas() {
     return date.toLocaleDateString();
   };
 
+  // Saved Links Sidebar Component
+  const SavedLinksSidebar = ({ className }: { className?: string }) => (
+    <div className={cn("flex flex-col h-full", className)}>
+      {/* Sidebar Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
+        <div className="flex items-center gap-2">
+          <Library className="w-5 h-5 text-primary" />
+          <span className="font-semibold">Saved</span>
+          <span className="text-xs text-muted-foreground">({allSavedLinks.length})</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {isSelectMode ? (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSelectAll}
+                className="h-8 text-xs"
+              >
+                All
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearSelection}
+                className="h-8 text-xs"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsSelectMode(true)}
+              className="h-8 text-xs"
+              disabled={allSavedLinks.length === 0}
+            >
+              Select
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* List Tabs */}
+      <div className="flex items-center gap-1 px-3 py-2 border-b border-border/20 overflow-x-auto no-scrollbar">
+        {lists.map((list) => (
+          <button
+            key={list.id}
+            onClick={() => setActiveListId(list.id)}
+            className={cn(
+              "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
+              activeListId === list.id
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted/50 text-muted-foreground hover:bg-muted"
+            )}
+          >
+            {list.name}
+            <span className="ml-1 opacity-70">({list.links.length})</span>
+          </button>
+        ))}
+        <button
+          onClick={() => setShowNewListDialog(true)}
+          className="p-1.5 rounded-full bg-muted/50 text-muted-foreground hover:bg-muted transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Selection Actions Bar */}
+      <AnimatePresence>
+        {isSelectMode && selectedLinks.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="px-3 py-2 border-b border-border/20 bg-primary/5"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">{selectedLinks.size} selected</span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleChatWithSelected}
+                  className="h-7 text-xs gap-1"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  Chat
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDeleteSelected}
+                  className="h-7 text-xs text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Links List */}
+      <div className="flex-1 overflow-auto">
+        {activeList && activeList.links.length > 0 ? (
+          <div className="p-2 space-y-1">
+            {activeList.links.map((link) => {
+              const isSelected = selectedLinks.has(link.id);
+              return (
+                <motion.div
+                  key={link.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className={cn(
+                    "group relative rounded-lg border transition-all",
+                    isSelected
+                      ? "border-primary bg-primary/5"
+                      : "border-transparent hover:border-border/50 hover:bg-muted/30"
+                  )}
+                >
+                  <div className="flex items-start gap-2 p-2">
+                    {/* Checkbox / Favicon */}
+                    {isSelectMode ? (
+                      <button
+                        onClick={() => handleToggleSelectLink(link.id)}
+                        className="mt-0.5 flex-shrink-0"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="w-5 h-5 text-primary" />
+                        ) : (
+                          <Square className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </button>
+                    ) : (
+                      <div className="mt-0.5 flex-shrink-0 w-5 h-5">
+                        {getFaviconUrl(link.url) ? (
+                          <img
+                            src={getFaviconUrl(link.url)!}
+                            alt=""
+                            className="w-5 h-5 rounded"
+                          />
+                        ) : (
+                          <Globe className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-sm font-medium text-foreground hover:text-primary line-clamp-2 transition-colors"
+                      >
+                        {link.title}
+                      </a>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {getHostname(link.url)}
+                      </p>
+                    </div>
+
+                    {/* Actions */}
+                    {!isSelectMode && (
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleChatWithLink(link)}
+                          className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                          title="Chat about this link"
+                        >
+                          <MessageCircle className="w-4 h-4 text-primary" />
+                        </button>
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                        >
+                          <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                        </a>
+                        <button
+                          onClick={() => removeLink(link.listId, link.id)}
+                          className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-32 text-center p-4">
+            <Bookmark className="w-8 h-8 text-muted-foreground/50 mb-2" />
+            <p className="text-sm text-muted-foreground">No saved links yet</p>
+            <p className="text-xs text-muted-foreground/70">
+              Save sources from your research
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div
       className={cn(
@@ -299,7 +607,7 @@ export function SearchCanvas() {
         (isPWAMode || isElectronApp) && "pt-[34px]"
       )}
     >
-      {/* Minimal Header */}
+      {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-border/20">
         <div className="flex items-center gap-3">
           <Button
@@ -333,458 +641,495 @@ export function SearchCanvas() {
               <span className="text-xs text-muted-foreground">({sessions.length})</span>
             </Button>
           )}
+
+          {/* Mobile: Toggle saved links panel */}
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSavedLinks(!showSavedLinks)}
+              className={cn(
+                "h-9 gap-2 text-sm",
+                showSavedLinks && "bg-muted"
+              )}
+            >
+              <Library className="w-4 h-4" />
+              <span className="text-xs text-muted-foreground">({allSavedLinks.length})</span>
+            </Button>
+          )}
         </div>
       </header>
 
-      {/* Main Content */}
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 overflow-auto"
-      >
-        <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10">
+      {/* Main Layout: Content + Sidebar on Desktop */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Main Content */}
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-auto"
+        >
+          {/* Mobile: Saved Links Panel (collapsible at top) */}
+          {isMobile && (
+            <AnimatePresence>
+              {showSavedLinks && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 300 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="border-b border-border/30 bg-card/50 overflow-hidden"
+                >
+                  <SavedLinksSidebar />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          )}
 
-          {/* Search Input - Always visible at top */}
-          <div className="mb-8">
-            <div className="relative">
-              <div className={cn(
-                "relative rounded-2xl border transition-all duration-200",
-                "bg-muted/30 border-border/50",
-                "focus-within:border-primary/50 focus-within:bg-background focus-within:shadow-lg focus-within:shadow-primary/5"
-              )}>
-                <div className="flex items-center gap-3 px-4">
-                  <Search className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                  <Input
-                    ref={searchInputRef}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSearch(searchQuery);
-                    }}
-                    placeholder="Ask anything..."
-                    className="flex-1 border-0 bg-transparent h-12 sm:h-14 text-base sm:text-lg placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
-                    disabled={isSearching}
-                  />
-                  {searchQuery && !isSearching && (
-                    <Button
-                      onClick={() => handleSearch(searchQuery)}
-                      size="sm"
-                      className="h-8 px-4 rounded-xl"
-                    >
-                      Search
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Searching Indicator */}
-              <AnimatePresence>
-                {isSearching && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    className="absolute left-0 right-0 -bottom-10 flex justify-center"
-                  >
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm">
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10">
+            {/* Search Input */}
+            <div className="mb-8">
+              <div className="relative">
+                <div className={cn(
+                  "relative rounded-2xl border transition-all duration-200",
+                  "bg-muted/30 border-border/50",
+                  "focus-within:border-primary/50 focus-within:bg-background focus-within:shadow-lg focus-within:shadow-primary/5"
+                )}>
+                  <div className="flex items-center gap-3 px-4">
+                    <Search className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                    <Input
+                      ref={searchInputRef}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSearch(searchQuery);
+                      }}
+                      placeholder="Ask anything..."
+                      className="flex-1 border-0 bg-transparent h-12 sm:h-14 text-base sm:text-lg placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      disabled={isSearching}
+                    />
+                    {searchQuery && !isSearching && (
+                      <Button
+                        onClick={() => handleSearch(searchQuery)}
+                        size="sm"
+                        className="h-8 px-4 rounded-xl"
                       >
-                        <Globe className="w-4 h-4" />
-                      </motion.div>
-                      <span>Searching the web...</span>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
+                        Search
+                      </Button>
+                    )}
+                  </div>
+                </div>
 
-          {/* History Dropdown */}
-          <AnimatePresence>
-            {showHistory && sessions.length > 0 && (
+                {/* Searching Indicator */}
+                <AnimatePresence>
+                  {isSearching && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      className="absolute left-0 right-0 -bottom-10 flex justify-center"
+                    >
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        >
+                          <Globe className="w-4 h-4" />
+                        </motion.div>
+                        <span>Searching the web...</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* History Dropdown */}
+            <AnimatePresence>
+              {showHistory && sessions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-8 overflow-hidden"
+                >
+                  <div className="rounded-xl border border-border/50 bg-card/50 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-medium text-muted-foreground">Recent Searches</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          clearAllSessions();
+                          setShowHistory(false);
+                        }}
+                        className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                      >
+                        Clear all
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {sessions.slice().reverse().slice(0, 10).map((session) => (
+                        <motion.button
+                          key={session.id}
+                          onClick={() => {
+                            setActiveSession(session.id);
+                            setShowHistory(false);
+                          }}
+                          className={cn(
+                            "w-full text-left px-3 py-2.5 rounded-lg transition-colors",
+                            "hover:bg-muted/50",
+                            session.id === activeSessionId && "bg-primary/10 text-primary"
+                          )}
+                          whileHover={{ x: 4 }}
+                        >
+                          <p className="text-sm font-medium line-clamp-1">{session.query}</p>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                            <span>{session.results.length} sources</span>
+                            <span>·</span>
+                            <span>{formatTimestamp(session.timestamp)}</span>
+                            {session.summaryConversation && session.summaryConversation.length > 0 && (
+                              <>
+                                <span>·</span>
+                                <span>{Math.floor(session.summaryConversation.length / 2)} follow-ups</span>
+                              </>
+                            )}
+                          </div>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Active Session Content */}
+            {activeSession ? (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mb-8 overflow-hidden"
+                key={activeSession.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
               >
-                <div className="rounded-xl border border-border/50 bg-card/50 p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-medium text-muted-foreground">Recent Searches</h3>
+                {/* Query Title - Blog Style */}
+                <div className="mb-6">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight mb-3">
+                    {activeSession.query}
+                  </h1>
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-4 h-4" />
+                      {formatTimestamp(activeSession.timestamp)}
+                    </span>
+                    <span>·</span>
+                    <span className="flex items-center gap-1.5">
+                      <Globe className="w-4 h-4" />
+                      {activeSession.results.length} sources
+                    </span>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        clearAllSessions();
-                        setShowHistory(false);
-                      }}
-                      className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                      onClick={handleCopy}
+                      className="h-7 gap-1.5 text-xs ml-auto"
                     >
-                      Clear all
+                      {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copied ? "Copied" : "Copy"}
                     </Button>
                   </div>
-                  <div className="space-y-2">
-                    {sessions.slice().reverse().slice(0, 10).map((session) => (
-                      <motion.button
-                        key={session.id}
-                        onClick={() => {
-                          setActiveSession(session.id);
-                          setShowHistory(false);
-                        }}
-                        className={cn(
-                          "w-full text-left px-3 py-2.5 rounded-lg transition-colors",
-                          "hover:bg-muted/50",
-                          session.id === activeSessionId && "bg-primary/10 text-primary"
+                </div>
+
+                {/* Sources - Collapsible Pills */}
+                {activeSession.results.length > 0 && (
+                  <div className="mb-8">
+                    <button
+                      onClick={() => setShowSources(!showSources)}
+                      className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-3"
+                    >
+                      <span>Sources</span>
+                      {showSources ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+
+                    <AnimatePresence>
+                      {showSources && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="flex flex-wrap gap-2">
+                            {activeSession.results.map((result, index) => {
+                              const isSaved = savedUrls.has(result.url);
+                              return (
+                                <motion.div
+                                  key={result.id}
+                                  initial={{ opacity: 0, scale: 0.9 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  transition={{ delay: index * 0.03 }}
+                                  className="group flex items-center gap-2 px-3 py-2 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-all"
+                                >
+                                  <div className="flex-shrink-0 w-4 h-4">
+                                    {getFaviconUrl(result.url) ? (
+                                      <img
+                                        src={getFaviconUrl(result.url)!}
+                                        alt=""
+                                        className="w-4 h-4 rounded"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = "none";
+                                        }}
+                                      />
+                                    ) : (
+                                      <Globe className="w-4 h-4 text-muted-foreground" />
+                                    )}
+                                  </div>
+                                  <span className="text-sm text-foreground max-w-[150px] truncate">
+                                    {getHostname(result.url)}
+                                  </span>
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleSave(result);
+                                      }}
+                                      className={cn(
+                                        "p-1 rounded hover:bg-muted transition-colors",
+                                        isSaved && "text-primary"
+                                      )}
+                                    >
+                                      {isSaved ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+                                    </button>
+                                    <a
+                                      href={result.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="p-1 rounded hover:bg-muted transition-colors"
+                                    >
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                    </a>
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Collapsed preview */}
+                    {!showSources && (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {activeSession.results.slice(0, 5).map((result) => (
+                          <a
+                            key={result.id}
+                            href={result.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-border/40 bg-muted/30 hover:bg-muted/50 transition-colors text-xs"
+                          >
+                            {getFaviconUrl(result.url) && (
+                              <img
+                                src={getFaviconUrl(result.url)!}
+                                alt=""
+                                className="w-3.5 h-3.5 rounded"
+                              />
+                            )}
+                            <span className="text-muted-foreground">{getHostname(result.url)}</span>
+                          </a>
+                        ))}
+                        {activeSession.results.length > 5 && (
+                          <span className="text-xs text-muted-foreground px-2">
+                            +{activeSession.results.length - 5} more
+                          </span>
                         )}
-                        whileHover={{ x: 4 }}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Main Answer - Blog Style */}
+                <article className="mb-8">
+                  <div className="prose prose-neutral dark:prose-invert max-w-none">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({ node, ...props }) => (
+                          <p className="text-base sm:text-lg leading-relaxed mb-4 text-foreground/90" {...props} />
+                        ),
+                        h1: ({ node, ...props }) => (
+                          <h1 className="text-2xl sm:text-3xl font-bold mt-8 mb-4 text-foreground" {...props} />
+                        ),
+                        h2: ({ node, ...props }) => (
+                          <h2 className="text-xl sm:text-2xl font-semibold mt-6 mb-3 text-foreground" {...props} />
+                        ),
+                        h3: ({ node, ...props }) => (
+                          <h3 className="text-lg sm:text-xl font-semibold mt-5 mb-2 text-foreground" {...props} />
+                        ),
+                        ul: ({ node, ...props }) => (
+                          <ul className="list-disc pl-5 mb-4 space-y-2" {...props} />
+                        ),
+                        ol: ({ node, ...props }) => (
+                          <ol className="list-decimal pl-5 mb-4 space-y-2" {...props} />
+                        ),
+                        li: ({ node, ...props }) => (
+                          <li className="text-base sm:text-lg leading-relaxed text-foreground/90" {...props} />
+                        ),
+                        strong: ({ node, ...props }) => (
+                          <strong className="font-semibold text-foreground" {...props} />
+                        ),
+                        a: ({ node, href, ...props }) => (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline underline-offset-2"
+                            {...props}
+                          />
+                        ),
+                        code: ({ node, className, ...props }) => {
+                          const isInline = !className;
+                          return isInline ? (
+                            <code className="px-1.5 py-0.5 bg-muted rounded text-sm font-mono" {...props} />
+                          ) : (
+                            <code className="block p-4 bg-muted rounded-lg text-sm font-mono overflow-x-auto" {...props} />
+                          );
+                        },
+                        blockquote: ({ node, ...props }) => (
+                          <blockquote className="border-l-4 border-primary/30 pl-4 italic text-muted-foreground my-4" {...props} />
+                        ),
+                      }}
+                    >
+                      {activeSession.formattedContent}
+                    </ReactMarkdown>
+                  </div>
+                </article>
+
+                {/* Follow-up Conversation Thread */}
+                {activeSession.summaryConversation && activeSession.summaryConversation.length > 0 && (
+                  <div className="mb-8 border-t border-border/30 pt-8">
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <RotateCcw className="w-5 h-5 text-primary" />
+                      Follow-up Questions
+                    </h3>
+                    <div className="space-y-6">
+                      {activeSession.summaryConversation.reduce((acc: JSX.Element[], msg, idx, arr) => {
+                        if (msg.role === 'user') {
+                          const response = arr[idx + 1];
+                          acc.push(
+                            <motion.div
+                              key={msg.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="rounded-xl border border-border/50 bg-card/30 overflow-hidden"
+                            >
+                              <div className="px-4 py-3 bg-primary/5 border-b border-border/30">
+                                <p className="font-medium text-foreground">{msg.content}</p>
+                              </div>
+                              {response && response.role === 'assistant' && (
+                                <div className="px-4 py-4">
+                                  <div className="prose prose-neutral dark:prose-invert prose-sm max-w-none">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                      {response.content}
+                                    </ReactMarkdown>
+                                  </div>
+                                </div>
+                              )}
+                            </motion.div>
+                          );
+                        }
+                        return acc;
+                      }, [])}
+                    </div>
+                  </div>
+                )}
+
+                {/* Follow-up Input */}
+                <div className="sticky bottom-4 z-10">
+                  <div className={cn(
+                    "relative rounded-2xl border transition-all duration-200",
+                    "bg-background/95 backdrop-blur-lg border-border/50 shadow-lg",
+                    "focus-within:border-primary/50"
+                  )}>
+                    <div className="flex items-center gap-3 px-4">
+                      <Input
+                        ref={followUpInputRef}
+                        value={followUpInput}
+                        onChange={(e) => setFollowUpInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey && followUpInput.trim()) {
+                            e.preventDefault();
+                            handleFollowUp();
+                          }
+                        }}
+                        placeholder="Ask a follow-up question..."
+                        className="flex-1 border-0 bg-transparent h-12 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                      <Button
+                        onClick={handleFollowUp}
+                        disabled={!followUpInput.trim()}
+                        size="sm"
+                        className="h-9 w-9 p-0 rounded-xl"
                       >
-                        <p className="text-sm font-medium line-clamp-1">{session.query}</p>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <span>{session.results.length} sources</span>
-                          <span>·</span>
-                          <span>{formatTimestamp(session.timestamp)}</span>
-                          {session.summaryConversation && session.summaryConversation.length > 0 && (
-                            <>
-                              <span>·</span>
-                              <span>{Math.floor(session.summaryConversation.length / 2)} follow-ups</span>
-                            </>
-                          )}
-                        </div>
-                      </motion.button>
-                    ))}
+                        <Send className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Active Session Content */}
-          {activeSession ? (
-            <motion.div
-              key={activeSession.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              {/* Query Title - Blog Style */}
-              <div className="mb-6">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight mb-3">
-                  {activeSession.query}
-                </h1>
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="w-4 h-4" />
-                    {formatTimestamp(activeSession.timestamp)}
-                  </span>
-                  <span>·</span>
-                  <span className="flex items-center gap-1.5">
-                    <Globe className="w-4 h-4" />
-                    {activeSession.results.length} sources
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCopy}
-                    className="h-7 gap-1.5 text-xs ml-auto"
-                  >
-                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copied ? "Copied" : "Copy"}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Sources - Collapsible Pills */}
-              {activeSession.results.length > 0 && (
-                <div className="mb-8">
-                  <button
-                    onClick={() => setShowSources(!showSources)}
-                    className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-3"
-                  >
-                    <span>Sources</span>
-                    {showSources ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </button>
-
-                  <AnimatePresence>
-                    {showSources && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="flex flex-wrap gap-2">
-                          {activeSession.results.map((result, index) => {
-                            const isSaved = savedUrls.has(result.url);
-                            return (
-                              <motion.div
-                                key={result.id}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: index * 0.03 }}
-                                className="group flex items-center gap-2 px-3 py-2 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-all"
-                              >
-                                <div className="flex-shrink-0 w-4 h-4">
-                                  {getFaviconUrl(result.url) ? (
-                                    <img
-                                      src={getFaviconUrl(result.url)!}
-                                      alt=""
-                                      className="w-4 h-4 rounded"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).style.display = "none";
-                                      }}
-                                    />
-                                  ) : (
-                                    <Globe className="w-4 h-4 text-muted-foreground" />
-                                  )}
-                                </div>
-                                <span className="text-sm text-foreground max-w-[150px] truncate">
-                                  {getHostname(result.url)}
-                                </span>
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleToggleSave(result);
-                                    }}
-                                    className={cn(
-                                      "p-1 rounded hover:bg-muted transition-colors",
-                                      isSaved && "text-primary"
-                                    )}
-                                  >
-                                    {isSaved ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
-                                  </button>
-                                  <a
-                                    href={result.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="p-1 rounded hover:bg-muted transition-colors"
-                                  >
-                                    <ExternalLink className="w-3.5 h-3.5" />
-                                  </a>
-                                </div>
-                              </motion.div>
-                            );
-                          })}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Collapsed preview */}
-                  {!showSources && (
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {activeSession.results.slice(0, 5).map((result) => (
-                        <a
-                          key={result.id}
-                          href={result.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-border/40 bg-muted/30 hover:bg-muted/50 transition-colors text-xs"
-                        >
-                          {getFaviconUrl(result.url) && (
-                            <img
-                              src={getFaviconUrl(result.url)!}
-                              alt=""
-                              className="w-3.5 h-3.5 rounded"
-                            />
-                          )}
-                          <span className="text-muted-foreground">{getHostname(result.url)}</span>
-                        </a>
-                      ))}
-                      {activeSession.results.length > 5 && (
-                        <span className="text-xs text-muted-foreground px-2">
-                          +{activeSession.results.length - 5} more
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Main Answer - Blog Style */}
-              <article className="mb-8">
-                <div className="prose prose-neutral dark:prose-invert max-w-none">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      p: ({ node, ...props }) => (
-                        <p className="text-base sm:text-lg leading-relaxed mb-4 text-foreground/90" {...props} />
-                      ),
-                      h1: ({ node, ...props }) => (
-                        <h1 className="text-2xl sm:text-3xl font-bold mt-8 mb-4 text-foreground" {...props} />
-                      ),
-                      h2: ({ node, ...props }) => (
-                        <h2 className="text-xl sm:text-2xl font-semibold mt-6 mb-3 text-foreground" {...props} />
-                      ),
-                      h3: ({ node, ...props }) => (
-                        <h3 className="text-lg sm:text-xl font-semibold mt-5 mb-2 text-foreground" {...props} />
-                      ),
-                      ul: ({ node, ...props }) => (
-                        <ul className="list-disc pl-5 mb-4 space-y-2" {...props} />
-                      ),
-                      ol: ({ node, ...props }) => (
-                        <ol className="list-decimal pl-5 mb-4 space-y-2" {...props} />
-                      ),
-                      li: ({ node, ...props }) => (
-                        <li className="text-base sm:text-lg leading-relaxed text-foreground/90" {...props} />
-                      ),
-                      strong: ({ node, ...props }) => (
-                        <strong className="font-semibold text-foreground" {...props} />
-                      ),
-                      a: ({ node, href, ...props }) => (
-                        <a
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline underline-offset-2"
-                          {...props}
-                        />
-                      ),
-                      code: ({ node, className, ...props }) => {
-                        const isInline = !className;
-                        return isInline ? (
-                          <code className="px-1.5 py-0.5 bg-muted rounded text-sm font-mono" {...props} />
-                        ) : (
-                          <code className="block p-4 bg-muted rounded-lg text-sm font-mono overflow-x-auto" {...props} />
-                        );
-                      },
-                      blockquote: ({ node, ...props }) => (
-                        <blockquote className="border-l-4 border-primary/30 pl-4 italic text-muted-foreground my-4" {...props} />
-                      ),
-                    }}
-                  >
-                    {activeSession.formattedContent}
-                  </ReactMarkdown>
-                </div>
-              </article>
-
-              {/* Follow-up Conversation Thread */}
-              {activeSession.summaryConversation && activeSession.summaryConversation.length > 0 && (
-                <div className="mb-8 border-t border-border/30 pt-8">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <RotateCcw className="w-5 h-5 text-primary" />
-                    Follow-up Questions
-                  </h3>
-                  <div className="space-y-6">
-                    {activeSession.summaryConversation.reduce((acc: JSX.Element[], msg, idx, arr) => {
-                      // Group user message with assistant response
-                      if (msg.role === 'user') {
-                        const response = arr[idx + 1];
-                        acc.push(
-                          <motion.div
-                            key={msg.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="rounded-xl border border-border/50 bg-card/30 overflow-hidden"
-                          >
-                            {/* User Question */}
-                            <div className="px-4 py-3 bg-primary/5 border-b border-border/30">
-                              <p className="font-medium text-foreground">{msg.content}</p>
-                            </div>
-
-                            {/* Assistant Response */}
-                            {response && response.role === 'assistant' && (
-                              <div className="px-4 py-4">
-                                <div className="prose prose-neutral dark:prose-invert prose-sm max-w-none">
-                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                    {response.content}
-                                  </ReactMarkdown>
-                                </div>
-                              </div>
-                            )}
-                          </motion.div>
-                        );
-                      }
-                      return acc;
-                    }, [])}
+            ) : (
+              /* Empty State */
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center py-12"
+              >
+                <div className="relative w-20 h-20 mx-auto mb-6">
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkles className="w-10 h-10 text-primary" />
                   </div>
                 </div>
-              )}
 
-              {/* Follow-up Input */}
-              <div className="sticky bottom-4 z-10">
-                <div className={cn(
-                  "relative rounded-2xl border transition-all duration-200",
-                  "bg-background/95 backdrop-blur-lg border-border/50 shadow-lg",
-                  "focus-within:border-primary/50"
-                )}>
-                  <div className="flex items-center gap-3 px-4">
-                    <Input
-                      ref={followUpInputRef}
-                      value={followUpInput}
-                      onChange={(e) => setFollowUpInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey && followUpInput.trim()) {
-                          e.preventDefault();
-                          handleFollowUp();
-                        }
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
+                  Ask anything
+                </h2>
+                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                  Get instant answers with real-time web search powered by Perplexity AI
+                </p>
+
+                {/* Suggestion Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
+                  {[
+                    "What's new in AI today?",
+                    "How does quantum computing work?",
+                    "Best practices for productivity",
+                    "Future of renewable energy",
+                  ].map((suggestion) => (
+                    <motion.button
+                      key={suggestion}
+                      onClick={() => {
+                        setSearchQuery(suggestion);
+                        handleSearch(suggestion);
                       }}
-                      placeholder="Ask a follow-up question..."
-                      className="flex-1 border-0 bg-transparent h-12 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
-                    />
-                    <Button
-                      onClick={handleFollowUp}
-                      disabled={!followUpInput.trim()}
-                      size="sm"
-                      className="h-9 w-9 p-0 rounded-xl"
+                      className="text-left px-4 py-3 rounded-xl border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-all group"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
+                      <div className="flex items-center gap-2">
+                        <Search className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                        <span className="text-sm text-foreground">{suggestion}</span>
+                      </div>
+                    </motion.button>
+                  ))}
                 </div>
-              </div>
-            </motion.div>
-          ) : (
-            /* Empty State */
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center py-12"
-            >
-              <div className="relative w-20 h-20 mx-auto mb-6">
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Sparkles className="w-10 h-10 text-primary" />
-                </div>
-              </div>
-
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
-                Ask anything
-              </h2>
-              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                Get instant answers with real-time web search powered by Perplexity AI
-              </p>
-
-              {/* Suggestion Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
-                {[
-                  "What's new in AI today?",
-                  "How does quantum computing work?",
-                  "Best practices for productivity",
-                  "Future of renewable energy",
-                ].map((suggestion) => (
-                  <motion.button
-                    key={suggestion}
-                    onClick={() => {
-                      setSearchQuery(suggestion);
-                      handleSearch(suggestion);
-                    }}
-                    className="text-left px-4 py-3 rounded-xl border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-all group"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Search className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                      <span className="text-sm text-foreground">{suggestion}</span>
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            )}
+          </div>
         </div>
+
+        {/* Desktop: Right Sidebar for Saved Links */}
+        {!isMobile && (
+          <div className="w-80 border-l border-border/30 bg-card/30 flex-shrink-0">
+            <SavedLinksSidebar />
+          </div>
+        )}
       </div>
 
       {/* New List Dialog */}
