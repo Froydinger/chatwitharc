@@ -1,49 +1,42 @@
-// src/components/LinksPanel.tsx
-import React, { useMemo, useState } from "react";
-import { Link2, Trash2, ChevronDown, ChevronRight, Pencil, X, Plus } from "lucide-react";
-
-// UI components (assumed available in your project)
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Link2,
+  Trash2,
+  ExternalLink,
+  Plus,
+  FolderPlus,
+  ChevronRight,
+  MoreHorizontal,
+  Edit2,
+  Globe,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { useSearchStore, LinkList, SavedLink } from "@/store/useSearchStore";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Separator } from "@/components/ui/separator";
-
-// Hooks (assumed available)
-import { useToast } from "@/hooks/use-toast";
-import { useSearchStore } from "@/store/useSearchStore"; // adjust path if different
-
-// A defensive, typed shape to help readability
-type LinkItem = {
-  id: string;
-  url: string;
-  title?: string;
-  timestamp?: number;
-};
-
-type LinkList = {
-  id: string;
-  name: string;
-  links: LinkItem[];
-};
 
 export function LinksPanel() {
   const { lists, createList, deleteList, renameList, removeLink } = useSearchStore();
   const { toast } = useToast();
 
-  // Track which lists are expanded
   const [expandedLists, setExpandedLists] = useState<Set<string>>(new Set(["default"]));
-  // New list dialog
   const [showNewListDialog, setShowNewListDialog] = useState(false);
   const [newListName, setNewListName] = useState("");
-  // Inline rename
   const [editingListId, setEditingListId] = useState<string | null>(null);
   const [editListName, setEditListName] = useState("");
 
-  const totalLinks = useMemo(
-    () => lists.reduce((acc: number, list: LinkList) => acc + (list.links?.length ?? 0), 0),
-    [lists],
-  );
+  const totalLinks = lists.reduce((acc, list) => acc + list.links.length, 0);
 
   const toggleList = (listId: string) => {
     setExpandedLists((prev) => {
@@ -58,66 +51,29 @@ export function LinksPanel() {
   };
 
   const handleCreateList = () => {
-    const name = newListName.trim();
-    if (!name) {
-      toast({ title: "Please enter a list name" });
-      return;
-    }
-    try {
-      createList(name);
-      setNewListName("");
-      setShowNewListDialog(false);
-      toast({ title: "List created" });
-    } catch (err) {
-      toast({ title: "Failed to create list" });
-    }
-  };
-
-  const handleStartRename = (listId: string, currentName: string) => {
-    setEditingListId(listId);
-    setEditListName(currentName);
+    if (!newListName.trim()) return;
+    createList(newListName.trim());
+    setNewListName("");
+    setShowNewListDialog(false);
+    toast({ title: "List created" });
   };
 
   const handleRenameList = (listId: string) => {
-    const name = editListName.trim();
-    if (!name) {
-      toast({ title: "Please enter a valid name" });
-      return;
-    }
-    try {
-      renameList(listId, name);
-      setEditingListId(null);
-      setEditListName("");
-      toast({ title: "List renamed" });
-    } catch (err) {
-      toast({ title: "Failed to rename list" });
-    }
-  };
-
-  const handleCancelRename = () => {
+    if (!editListName.trim()) return;
+    renameList(listId, editListName.trim());
     setEditingListId(null);
     setEditListName("");
+    toast({ title: "List renamed" });
   };
 
   const handleDeleteList = (listId: string, listName: string) => {
-    const confirmed = window.confirm(`Delete list "${listName}"? This cannot be undone.`);
-    if (!confirmed) return;
-    try {
-      deleteList(listId);
-      // If it was expanded, collapse state is fine; no need to adjust
-      toast({ title: `Deleted "${listName}"` });
-    } catch (err) {
-      toast({ title: "Failed to delete list" });
-    }
+    deleteList(listId);
+    toast({ title: `Deleted "${listName}"` });
   };
 
   const handleRemoveLink = (listId: string, linkId: string) => {
-    try {
-      removeLink(listId, linkId);
-      toast({ title: "Link removed" });
-    } catch (err) {
-      toast({ title: "Failed to remove link" });
-    }
+    removeLink(listId, linkId);
+    toast({ title: "Link removed" });
   };
 
   const getFaviconUrl = (url: string) => {
@@ -131,14 +87,13 @@ export function LinksPanel() {
 
   const getHostname = (url: string) => {
     try {
-      return new URL(url).hostname.replace(/^www\./, "");
+      return new URL(url).hostname.replace("www.", "");
     } catch {
       return url;
     }
   };
 
-  const formatDate = (timestamp?: number) => {
-    if (!timestamp) return "";
+  const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString(undefined, {
       month: "short",
       day: "numeric",
@@ -155,206 +110,203 @@ export function LinksPanel() {
             <h2 className="text-sm font-medium text-foreground">Saved Links</h2>
             <span className="text-xs text-muted-foreground">({totalLinks})</span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => setShowNewListDialog(true)}
-            aria-label="Create new list"
-            title="Create new list"
-          >
-            <Plus className="w-4 h-4" />
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setShowNewListDialog(true)}>
+            <FolderPlus className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
       {/* Lists */}
-      <div className="flex-1 overflow-auto px-2 py-2">
-        {lists.length === 0 ? (
-          <div className="text-sm text-muted-foreground px-2 py-6">No lists yet. Create one with the + button.</div>
-        ) : (
-          <div className="space-y-2">
-            {lists.map((list: LinkList) => {
-              const isOpen = expandedLists.has(list.id);
-              const isEditing = editingListId === list.id;
-
-              return (
-                <div key={list.id} className="rounded-md border border-border/30 bg-background/50">
-                  <Collapsible open={isOpen} onOpenChange={() => toggleList(list.id)}>
-                    <div className="flex items-center justify-between px-3 py-2">
-                      <CollapsibleTrigger asChild>
-                        <button
-                          type="button"
-                          className="flex items-center gap-2 hover:opacity-80"
-                          onClick={() => toggleList(list.id)}
-                          aria-expanded={isOpen}
-                          aria-controls={`list-${list.id}-content`}
+      <ScrollArea className="flex-1">
+        <div className="p-3 space-y-2">
+          {lists.length === 0 ? (
+            <div className="text-center py-8">
+              <Link2 className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground">No saved links yet</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Save links from search results</p>
+            </div>
+          ) : (
+            lists.map((list) => (
+              <Collapsible key={list.id} open={expandedLists.has(list.id)} onOpenChange={() => toggleList(list.id)}>
+                <div className="rounded-lg border border-border/30 bg-card/30 overflow-hidden">
+                  {/* List Header */}
+                  <CollapsibleTrigger asChild>
+                    <div className="flex items-center justify-between px-3 py-2 hover:bg-muted/30 cursor-pointer group">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <motion.div
+                          animate={{ rotate: expandedLists.has(list.id) ? 90 : 0 }}
+                          transition={{ duration: 0.15 }}
                         >
-                          {isOpen ? (
-                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                          )}
-                          {isEditing ? (
-                            <div className="flex items-center gap-2">
-                              <Input
-                                value={editListName}
-                                onChange={(e) => setEditListName(e.target.value)}
-                                className="h-7 w-40"
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    handleRenameList(list.id);
-                                  } else if (e.key === "Escape") {
-                                    e.preventDefault();
-                                    handleCancelRename();
-                                  }
-                                }}
-                              />
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                className="h-7"
-                                onClick={() => handleRenameList(list.id)}
-                              >
-                                Save
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-7" onClick={handleCancelRename}>
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <span className="text-sm font-medium text-foreground">
-                              {list.name}{" "}
-                              <span className="text-xs text-muted-foreground">({list.links?.length ?? 0})</span>
-                            </span>
-                          )}
-                        </button>
-                      </CollapsibleTrigger>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        </motion.div>
 
-                      <div className="flex items-center gap-1">
-                        {!isEditing && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => handleStartRename(list.id, list.name)}
-                            aria-label={`Rename ${list.name}`}
-                            title="Rename list"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
+                        {editingListId === list.id ? (
+                          <Input
+                            value={editListName}
+                            onChange={(e) => setEditListName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleRenameList(list.id);
+                              if (e.key === "Escape") setEditingListId(null);
+                            }}
+                            onBlur={() => handleRenameList(list.id)}
+                            className="h-6 text-sm py-0 px-2"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <span className="text-sm font-medium text-foreground truncate">{list.name}</span>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-red-500 hover:text-red-600"
-                          onClick={() => handleDeleteList(list.id, list.name)}
-                          aria-label={`Delete ${list.name}`}
-                          title="Delete list"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <span className="text-xs text-muted-foreground">({list.links.length})</span>
                       </div>
+
+                      {list.id !== "default" && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="w-3.5 h-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingListId(list.id);
+                                setEditListName(list.name);
+                              }}
+                            >
+                              <Edit2 className="w-3.5 h-3.5 mr-2" />
+                              Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteList(list.id, list.name);
+                              }}
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
+                  </CollapsibleTrigger>
 
-                    <CollapsibleContent id={`list-${list.id}-content`}>
-                      <Separator className="opacity-50" />
-                      <div className="px-3 py-2 space-y-2">
-                        {list.links?.length ? (
-                          list.links.map((link) => {
-                            const favicon = getFaviconUrl(link.url);
-                            const hostname = getHostname(link.url);
-                            const date = formatDate(link.timestamp);
-
-                            return (
-                              <div
-                                key={link.id}
-                                className="flex items-center justify-between rounded-sm px-2 py-2 hover:bg-muted/30"
-                              >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  {favicon ? (
+                  {/* Links */}
+                  <CollapsibleContent>
+                    <AnimatePresence>
+                      {list.links.length === 0 ? (
+                        <div className="px-3 py-4 text-center border-t border-border/20">
+                          <p className="text-xs text-muted-foreground">No links in this list</p>
+                        </div>
+                      ) : (
+                        <div className="border-t border-border/20">
+                          {list.links.map((link, index) => (
+                            <motion.div
+                              key={link.id}
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="group/link"
+                            >
+                              <div className="flex items-start gap-2 px-3 py-2 hover:bg-muted/20 border-b border-border/10 last:border-b-0">
+                                <div className="flex-shrink-0 w-4 h-4 mt-0.5">
+                                  {getFaviconUrl(link.url) ? (
                                     <img
-                                      src={favicon}
+                                      src={getFaviconUrl(link.url)!}
                                       alt=""
-                                      className="w-4 h-4 rounded-sm"
-                                      loading="lazy"
-                                      referrerPolicy="no-referrer"
+                                      className="w-4 h-4 rounded"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = "none";
+                                      }}
                                     />
                                   ) : (
-                                    <div className="w-4 h-4 rounded-sm bg-muted" />
+                                    <Globe className="w-4 h-4 text-muted-foreground" />
                                   )}
-                                  <div className="flex flex-col min-w-0">
-                                    <a
-                                      href={link.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-sm text-foreground truncate hover:underline"
-                                      title={link.title || link.url}
-                                    >
-                                      {link.title || link.url}
-                                    </a>
-                                    <div className="text-xs text-muted-foreground truncate">
-                                      {hostname}
-                                      {date ? ` • ${date}` : ""}
-                                    </div>
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                  <a
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm font-medium text-foreground hover:text-primary line-clamp-1 transition-colors"
+                                  >
+                                    {link.title}
+                                  </a>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-xs text-muted-foreground truncate">
+                                      {getHostname(link.url)}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground/60">
+                                      · {formatDate(link.savedAt)}
+                                    </span>
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-1 shrink-0">
+                                <div className="flex items-center gap-1 opacity-0 group-hover/link:opacity-100 transition-opacity">
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-7 w-7 p-0"
-                                    onClick={() => handleRemoveLink(list.id, link.id)}
-                                    aria-label="Remove link"
-                                    title="Remove link"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => window.open(link.url, "_blank")}
                                   >
-                                    <X className="w-4 h-4" />
+                                    <ExternalLink className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                    onClick={() => handleRemoveLink(list.id, link.id)}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
                                   </Button>
                                 </div>
                               </div>
-                            );
-                          })
-                        ) : (
-                          <div className="text-xs text-muted-foreground px-1 py-2">No links in this list.</div>
-                        )}
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </AnimatePresence>
+                  </CollapsibleContent>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+              </Collapsible>
+            ))
+          )}
+        </div>
+      </ScrollArea>
 
       {/* New List Dialog */}
       <Dialog open={showNewListDialog} onOpenChange={setShowNewListDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Create new list</DialogTitle>
+            <DialogTitle>Create New List</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-2 py-2">
+          <div className="py-4">
             <Input
-              placeholder="List name"
+              placeholder="List name..."
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleCreateList();
-                }
+                if (e.key === "Enter") handleCreateList();
               }}
               autoFocus
             />
           </div>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setShowNewListDialog(false)}>
+            <Button variant="outline" onClick={() => setShowNewListDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateList}>Create</Button>
+            <Button onClick={handleCreateList} disabled={!newListName.trim()}>
+              <Plus className="w-4 h-4 mr-1" />
+              Create
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
