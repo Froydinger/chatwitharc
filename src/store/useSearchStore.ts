@@ -667,6 +667,7 @@ export const useSearchStore = create<SearchState>()(
                 timestamp: new Date(s.created_at).getTime(),
                 relatedQueries: s.related_queries || [],
                 sourceConversations: s.source_conversations || {},
+                summaryConversation: s.summary_conversation || [],
               };
             });
 
@@ -782,6 +783,7 @@ export const useSearchStore = create<SearchState>()(
               formatted_content: session.formattedContent,
               related_queries: session.relatedQueries || [],
               source_conversations: session.sourceConversations || {},
+              summary_conversation: session.summaryConversation || [],
               updated_at: new Date().toISOString(),
             } as any, { onConflict: 'id' });
 
