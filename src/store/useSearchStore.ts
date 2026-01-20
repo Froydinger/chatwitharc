@@ -585,22 +585,25 @@ export const useSearchStore = create<SearchState>()(
       },
 
       addSummaryMessage: (sessionId, message) => {
-        set((state) => ({
-          sessions: state.sessions.map((s) => {
-            if (s.id !== sessionId) return s;
+        // Get current session first
+        const currentSession = get().sessions.find(s => s.id === sessionId);
+        if (!currentSession) return;
 
-            return {
-              ...s,
-              summaryConversation: [...(s.summaryConversation || []), message],
-            };
-          }),
+        // Build the updated session
+        const updatedSession = {
+          ...currentSession,
+          summaryConversation: [...(currentSession.summaryConversation || []), message],
+        };
+
+        // Update state
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.id === sessionId ? updatedSession : s
+          ),
         }));
 
-        // Update in Supabase
-        const session = get().sessions.find(s => s.id === sessionId);
-        if (session) {
-          get().saveSessionToSupabase(session).catch(console.error);
-        }
+        // Save the updated session to Supabase (use the computed session, not refetched)
+        get().saveSessionToSupabase(updatedSession).catch(console.error);
       },
 
       // Supabase sync functions
