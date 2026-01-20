@@ -95,13 +95,12 @@ export class AIService {
       }
 
       // Simplified model routing - hardcoded by mode
-      // Chat: Gemini 3 Flash (fast), Code/Write: Gemini 3 Pro, Research: GPT 5 Mini (better at research)
+      // Chat: Gemini 3 Flash (fast), Code/Write: Gemini 3 Pro
+      // Note: Research mode now uses Perplexity via separate edge function (perplexity-search)
       const isCanvasOrCode = forceCanvas || forceCode;
       const selectedModel = isCanvasOrCode
         ? 'google/gemini-3-pro-preview'  // Code/Canvas mode
-        : forceResearch
-          ? 'openai/gpt-5-mini'          // Research mode (better at researching)
-          : 'google/gemini-3-flash-preview'; // Chat mode (default - fast)
+        : 'google/gemini-3-flash-preview'; // Chat mode (default - fast)
 
       // Use longer timeout for canvas/code generation (especially with Gemini 3 Pro)
       const timeoutMs = isCanvasOrCode ? this.canvasTimeoutMs : this.defaultTimeoutMs;
@@ -109,7 +108,6 @@ export class AIService {
       console.log('🤖 AI Model Selection:', {
         selectedModel: selectedModel,
         isCanvasOrCode,
-        forceResearch,
         timeoutMs
       });
 
