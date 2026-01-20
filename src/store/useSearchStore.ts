@@ -59,6 +59,7 @@ interface SearchState {
   isOpen: boolean;
   isSearching: boolean;
   isSyncing: boolean;
+  hasHydrated: boolean; // Track if localStorage has been loaded
 
   // Session-based search
   sessions: SearchSession[];
@@ -126,6 +127,7 @@ export const useSearchStore = create<SearchState>()(
       isOpen: false,
       isSearching: false,
       isSyncing: false,
+      hasHydrated: false,
       sessions: [],
       activeSessionId: null,
       showLinksPanel: false,
@@ -640,8 +642,20 @@ export const useSearchStore = create<SearchState>()(
           return;
         }
 
-        // Don't set isSyncing to avoid UI flicker - sync silently in background
+        // Wait for hydration to complete before syncing
         const state = get();
+        if (!state.hasHydrated) {
+          console.log('Waiting for hydration before syncing from Supabase...');
+          // Wait a bit for hydration, then retry
+          await new Promise(resolve => setTimeout(resolve, 100));
+          const newState = get();
+          if (!newState.hasHydrated) {
+            console.log('Hydration not complete, skipping sync');
+            return;
+          }
+        }
+
+        // Don't set isSyncing to avoid UI flicker - sync silently in background
 
         try {
           // Fetch search sessions from Supabase
@@ -918,6 +932,12 @@ export const useSearchStore = create<SearchState>()(
           lists,
           sessions: persistedState?.sessions || [],
         };
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.hasHydrated = true;
+          console.log('✅ Search store hydrated with', state.sessions?.length || 0, 'sessions');
+        }
       },
     }
   )
