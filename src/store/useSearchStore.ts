@@ -583,31 +583,22 @@ export const useSearchStore = create<SearchState>()(
       },
 
       addSummaryMessage: (sessionId, message) => {
-        // Find the current session first
-        const currentSession = get().sessions.find(s => s.id === sessionId);
-        if (!currentSession) {
-          console.error('Session not found for addSummaryMessage:', sessionId);
-          return;
-        }
-
-        // Create the updated session with the new message
-        const updatedSession: SearchSession = {
-          ...currentSession,
-          summaryConversation: [...(currentSession.summaryConversation || []), message],
-        };
-
-        // Update state
         set((state) => ({
-          sessions: state.sessions.map((s) =>
-            s.id === sessionId ? updatedSession : s
-          ),
+          sessions: state.sessions.map((s) => {
+            if (s.id !== sessionId) return s;
+
+            return {
+              ...s,
+              summaryConversation: [...(s.summaryConversation || []), message],
+            };
+          }),
         }));
 
-        // Save to Supabase with the explicitly updated session
-        console.log(`📝 Saving session ${sessionId} with ${updatedSession.summaryConversation?.length || 0} messages`);
-        get().saveSessionToSupabase(updatedSession).catch((error) => {
-          console.error('Failed to save session to Supabase:', error);
-        });
+        // Update in Supabase
+        const session = get().sessions.find(s => s.id === sessionId);
+        if (session) {
+          get().saveSessionToSupabase(session).catch(console.error);
+        }
       },
 
       // Supabase sync functions
@@ -816,17 +807,8 @@ export const useSearchStore = create<SearchState>()(
 
           if (error) {
             console.error('Error saving session to Supabase:', error);
-            console.error('Session data that failed:', {
-              id: session.id,
-              query: session.query,
-              summaryConversationLength: session.summaryConversation?.length || 0,
-            });
           } else {
-            console.log(`✅ Saved session ${session.id} to Supabase:`, {
-              contentLength: session.formattedContent.length,
-              summaryConversations: session.summaryConversation?.length || 0,
-              sourceConversations: Object.keys(session.sourceConversations || {}).length,
-            });
+            console.log(`✅ Saved session ${session.id} to Supabase with ${session.formattedContent.length} chars of content`);
           }
         } catch (error) {
           console.error('Error saving session to Supabase:', error);
