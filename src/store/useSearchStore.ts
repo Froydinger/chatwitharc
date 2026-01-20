@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { supabase } from '@/integrations/supabase/client';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface SearchResult {
   id: string;
@@ -13,7 +13,7 @@ export interface SearchResult {
 export interface SourceMessage {
   id: string;
   content: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   timestamp: number;
 }
 
@@ -51,7 +51,7 @@ export interface SearchSession {
   relatedQueries?: string[];
   sourceConversations?: Record<string, SourceConversation>; // key = url
   activeSourceUrl?: string | null;
-  currentTab?: 'search' | 'chats' | 'saved';
+  currentTab?: "search" | "chats" | "saved";
   summaryConversation?: SourceMessage[]; // Follow-up conversation within the summary
 }
 
@@ -70,32 +70,32 @@ interface SearchState {
   // View state
   showLinksPanel: boolean;
   pendingSearchQuery: string | null; // Query to auto-search when canvas opens
-  globalCurrentTab: 'search' | 'chats' | 'saved'; // Global tab state independent of sessions
+  globalCurrentTab: "search" | "chats" | "saved"; // Global tab state independent of sessions
 
   // Actions
   openSearchMode: (initialQuery?: string, initialResults?: SearchResult[], initialContent?: string) => void;
   closeSearch: () => void;
   setSearching: (isSearching: boolean) => void;
   setPendingSearchQuery: (query: string | null) => void;
-  
+
   // Session actions
   addSession: (query: string, results: SearchResult[], formattedContent: string, relatedQueries?: string[]) => string;
   setActiveSession: (sessionId: string) => void;
-  updateSession: (sessionId: string, updates: Partial<Omit<SearchSession, 'id' | 'timestamp'>>) => void;
+  updateSession: (sessionId: string, updates: Partial<Omit<SearchSession, "id" | "timestamp">>) => void;
   removeSession: (sessionId: string) => void;
   clearAllSessions: () => void;
-  
+
   // Link list actions
   toggleLinksPanel: () => void;
   createList: (name: string) => string;
   deleteList: (listId: string) => void;
   renameList: (listId: string, newName: string) => void;
-  saveLink: (link: Omit<SavedLink, 'id' | 'savedAt'>) => void;
+  saveLink: (link: Omit<SavedLink, "id" | "savedAt">) => void;
   removeLink: (listId: string, linkId: string) => void;
   moveLink: (linkId: string, fromListId: string, toListId: string) => void;
 
   // Source conversation actions
-  setCurrentTab: (sessionId: string, tab: 'search' | 'chats' | 'saved') => void;
+  setCurrentTab: (sessionId: string, tab: "search" | "chats" | "saved") => void;
   startSourceChat: (sessionId: string, source: SearchResult) => void;
   sendSourceMessage: (sessionId: string, sourceUrl: string, message: string, isLoading?: boolean) => Promise<void>;
   addSourceMessage: (sessionId: string, sourceUrl: string, message: SourceMessage) => void;
@@ -130,31 +130,31 @@ export const useSearchStore = create<SearchState>()(
       activeSessionId: null,
       showLinksPanel: false,
       pendingSearchQuery: null,
-      globalCurrentTab: 'search',
+      globalCurrentTab: "search",
       lists: [
         {
-          id: 'default',
-          name: 'Saved Links',
+          id: "default",
+          name: "Saved Links",
           createdAt: Date.now(),
           links: [],
         },
       ],
-      
+
       // Legacy computed properties
       get query() {
         const state = get();
-        const activeSession = state.sessions.find(s => s.id === state.activeSessionId);
-        return activeSession?.query ?? '';
+        const activeSession = state.sessions.find((s) => s.id === state.activeSessionId);
+        return activeSession?.query ?? "";
       },
       get results() {
         const state = get();
-        const activeSession = state.sessions.find(s => s.id === state.activeSessionId);
+        const activeSession = state.sessions.find((s) => s.id === state.activeSessionId);
         return activeSession?.results ?? [];
       },
       get formattedContent() {
         const state = get();
-        const activeSession = state.sessions.find(s => s.id === state.activeSessionId);
-        return activeSession?.formattedContent ?? '';
+        const activeSession = state.sessions.find((s) => s.id === state.activeSessionId);
+        return activeSession?.formattedContent ?? "";
       },
 
       openSearchMode: (initialQuery, initialResults, initialContent) => {
@@ -165,7 +165,7 @@ export const useSearchStore = create<SearchState>()(
           const sessionId = crypto.randomUUID();
           const newSession: SearchSession = {
             id: sessionId,
-            query: initialQuery || 'Web Search Results',
+            query: initialQuery || "Web Search Results",
             results: initialResults,
             formattedContent: initialContent,
             timestamp: Date.now(),
@@ -231,9 +231,7 @@ export const useSearchStore = create<SearchState>()(
 
       updateSession: (sessionId, updates) => {
         set((state) => ({
-          sessions: state.sessions.map((s) =>
-            s.id === sessionId ? { ...s, ...updates } : s
-          ),
+          sessions: state.sessions.map((s) => (s.id === sessionId ? { ...s, ...updates } : s)),
         }));
 
         // Save updated session to Supabase
@@ -295,10 +293,10 @@ export const useSearchStore = create<SearchState>()(
       },
 
       deleteList: (listId) => {
-        if (listId === 'default') return;
+        if (listId === "default") return;
         const state = get();
         const list = state.lists.find((l) => l.id === listId);
-        
+
         // Delete all links in the list from Supabase
         if (list) {
           list.links.forEach((link) => {
@@ -313,11 +311,9 @@ export const useSearchStore = create<SearchState>()(
 
       renameList: (listId, newName) => {
         set((state) => ({
-          lists: state.lists.map((l) =>
-            l.id === listId ? { ...l, name: newName } : l
-          ),
+          lists: state.lists.map((l) => (l.id === listId ? { ...l, name: newName } : l)),
         }));
-        
+
         // Update all links in this list in Supabase with new list name
         const state = get();
         const list = state.lists.find((l) => l.id === listId);
@@ -334,15 +330,13 @@ export const useSearchStore = create<SearchState>()(
           id: crypto.randomUUID(),
           savedAt: Date.now(),
         };
-        
+
         const state = get();
         const list = state.lists.find((l) => l.id === link.listId);
-        const listName = list?.name || 'Saved Links';
+        const listName = list?.name || "Saved Links";
 
         set((state) => ({
-          lists: state.lists.map((l) =>
-            l.id === link.listId ? { ...l, links: [...l.links, newLink] } : l
-          ),
+          lists: state.lists.map((l) => (l.id === link.listId ? { ...l, links: [...l.links, newLink] } : l)),
         }));
 
         // Save to Supabase in background
@@ -352,9 +346,7 @@ export const useSearchStore = create<SearchState>()(
       removeLink: (listId, linkId) => {
         set((state) => ({
           lists: state.lists.map((l) =>
-            l.id === listId
-              ? { ...l, links: l.links.filter((link) => link.id !== linkId) }
-              : l
+            l.id === listId ? { ...l, links: l.links.filter((link) => link.id !== linkId) } : l,
           ),
         }));
 
@@ -391,9 +383,7 @@ export const useSearchStore = create<SearchState>()(
       setCurrentTab: (sessionId, tab) => {
         set((state) => ({
           globalCurrentTab: tab,
-          sessions: state.sessions.map((s) =>
-            s.id === sessionId ? { ...s, currentTab: tab } : s
-          ),
+          sessions: state.sessions.map((s) => (s.id === sessionId ? { ...s, currentTab: tab } : s)),
         }));
       },
 
@@ -417,9 +407,9 @@ export const useSearchStore = create<SearchState>()(
                     [source.url]: conversation,
                   },
                   activeSourceUrl: source.url,
-                  currentTab: 'chats',
+                  currentTab: "chats",
                 }
-              : s
+              : s,
           ),
         }));
 
@@ -439,7 +429,7 @@ export const useSearchStore = create<SearchState>()(
         const userMessage: SourceMessage = {
           id: crypto.randomUUID(),
           content: message,
-          role: 'user',
+          role: "user",
           timestamp: Date.now(),
         };
 
@@ -453,14 +443,14 @@ export const useSearchStore = create<SearchState>()(
           const conversation = session.sourceConversations?.[sourceUrl];
           const contextPrompt = `You are chatting about this source:\nTitle: ${conversation?.sourceTitle}\nURL: ${sourceUrl}\nSnippet: ${conversation?.sourceSnippet}\n\nUser: ${message}`;
 
-          const { data, error } = await supabase.functions.invoke('chat', {
+          const { data, error } = await supabase.functions.invoke("chat", {
             body: {
               messages: [
-                ...(conversation?.messages.map(m => ({
+                ...(conversation?.messages.map((m) => ({
                   role: m.role,
                   content: m.content,
                 })) || []),
-                { role: 'user', content: contextPrompt },
+                { role: "user", content: contextPrompt },
               ],
             },
           });
@@ -469,18 +459,18 @@ export const useSearchStore = create<SearchState>()(
 
           const assistantMessage: SourceMessage = {
             id: crypto.randomUUID(),
-            content: data?.choices?.[0]?.message?.content || 'Sorry, I could not respond.',
-            role: 'assistant',
+            content: data?.choices?.[0]?.message?.content || "Sorry, I could not respond.",
+            role: "assistant",
             timestamp: Date.now(),
           };
 
           get().addSourceMessage(sessionId, sourceUrl, assistantMessage);
         } catch (error) {
-          console.error('Source chat error:', error);
+          console.error("Source chat error:", error);
           const errorMessage: SourceMessage = {
             id: crypto.randomUUID(),
-            content: 'Sorry, I encountered an error. Please try again.',
-            role: 'assistant',
+            content: "Sorry, I encountered an error. Please try again.",
+            role: "assistant",
             timestamp: Date.now(),
           };
           get().addSourceMessage(sessionId, sourceUrl, errorMessage);
@@ -518,9 +508,7 @@ export const useSearchStore = create<SearchState>()(
 
       setActiveSource: (sessionId, sourceUrl) => {
         set((state) => ({
-          sessions: state.sessions.map((s) =>
-            s.id === sessionId ? { ...s, activeSourceUrl: sourceUrl } : s
-          ),
+          sessions: state.sessions.map((s) => (s.id === sessionId ? { ...s, activeSourceUrl: sourceUrl } : s)),
         }));
       },
 
@@ -534,7 +522,7 @@ export const useSearchStore = create<SearchState>()(
         const userMessage: SourceMessage = {
           id: crypto.randomUUID(),
           content: message,
-          role: 'user',
+          role: "user",
           timestamp: Date.now(),
         };
 
@@ -543,19 +531,19 @@ export const useSearchStore = create<SearchState>()(
         try {
           // Build context from all search results
           const resultsContext = session.results
-            .map(r => `Title: ${r.title}\nURL: ${r.url}\nSnippet: ${r.snippet}`)
-            .join('\n\n');
+            .map((r) => `Title: ${r.title}\nURL: ${r.url}\nSnippet: ${r.snippet}`)
+            .join("\n\n");
 
           const contextPrompt = `You are having a conversation about this search summary for "${session.query}":\n\n${session.formattedContent}\n\nSearch Results:\n${resultsContext}\n\nUser: ${message}`;
 
-          const { data, error } = await supabase.functions.invoke('chat', {
+          const { data, error } = await supabase.functions.invoke("chat", {
             body: {
               messages: [
-                ...(session.summaryConversation?.map(m => ({
+                ...(session.summaryConversation?.map((m) => ({
                   role: m.role,
                   content: m.content,
                 })) || []),
-                { role: 'user', content: contextPrompt },
+                { role: "user", content: contextPrompt },
               ],
             },
           });
@@ -564,18 +552,18 @@ export const useSearchStore = create<SearchState>()(
 
           const assistantMessage: SourceMessage = {
             id: crypto.randomUUID(),
-            content: data?.choices?.[0]?.message?.content || 'Sorry, I could not respond.',
-            role: 'assistant',
+            content: data?.choices?.[0]?.message?.content || "Sorry, I could not respond.",
+            role: "assistant",
             timestamp: Date.now(),
           };
 
           get().addSummaryMessage(sessionId, assistantMessage);
         } catch (error) {
-          console.error('Summary chat error:', error);
+          console.error("Summary chat error:", error);
           const errorMessage: SourceMessage = {
             id: crypto.randomUUID(),
-            content: 'Sorry, I encountered an error. Please try again.',
-            role: 'assistant',
+            content: "Sorry, I encountered an error. Please try again.",
+            role: "assistant",
             timestamp: Date.now(),
           };
           get().addSummaryMessage(sessionId, errorMessage);
@@ -595,7 +583,7 @@ export const useSearchStore = create<SearchState>()(
         }));
 
         // Update in Supabase
-        const session = get().sessions.find(s => s.id === sessionId);
+        const session = get().sessions.find((s) => s.id === sessionId);
         if (session) {
           get().saveSessionToSupabase(session).catch(console.error);
         }
@@ -604,9 +592,11 @@ export const useSearchStore = create<SearchState>()(
       // Supabase sync functions
       syncToSupabase: async () => {
         const state = get();
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) {
-          console.log('No user logged in, skipping sync to Supabase');
+          console.log("No user logged in, skipping sync to Supabase");
           return;
         }
 
@@ -625,18 +615,20 @@ export const useSearchStore = create<SearchState>()(
             }
           }
 
-          console.log('✅ Synced search data to Supabase');
+          console.log("✅ Synced search data to Supabase");
         } catch (error) {
-          console.error('Failed to sync to Supabase:', error);
+          console.error("Failed to sync to Supabase:", error);
         } finally {
           set({ isSyncing: false });
         }
       },
 
       syncFromSupabase: async () => {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) {
-          console.log('No user logged in, skipping sync from Supabase');
+          console.log("No user logged in, skipping sync from Supabase");
           return;
         }
 
@@ -645,16 +637,16 @@ export const useSearchStore = create<SearchState>()(
         try {
           // Fetch search sessions from Supabase
           const { data: sessionsData, error: sessionsError } = await supabase
-            .from('search_sessions' as any)
-            .select('*')
-            .order('created_at', { ascending: false });
+            .from("search_sessions" as any)
+            .select("*")
+            .order("created_at", { ascending: false });
 
           if (sessionsError) {
-            console.error('Error fetching search sessions:', sessionsError);
+            console.error("Error fetching search sessions:", sessionsError);
           } else if (sessionsData && sessionsData.length > 0) {
             const sessions: SearchSession[] = sessionsData.map((s: any) => {
               // Ensure formattedContent is not empty
-              const formattedContent = s.formatted_content || '';
+              const formattedContent = s.formatted_content || "";
               if (!formattedContent.trim()) {
                 console.warn(`Session ${s.id} has empty formatted_content, using fallback`);
               }
@@ -674,11 +666,11 @@ export const useSearchStore = create<SearchState>()(
             // Merge with local sessions (prefer Supabase data for conflicts, but keep local if it has better content)
             const state = get();
             const mergedSessions: SearchSession[] = [];
-            const supabaseSessionMap = new Map(sessions.map(s => [s.id, s]));
+            const supabaseSessionMap = new Map(sessions.map((s) => [s.id, s]));
 
             // Add Supabase sessions, but prefer local version if it has content and Supabase doesn't
-            sessions.forEach(supabaseSession => {
-              const localSession = state.sessions.find(s => s.id === supabaseSession.id);
+            sessions.forEach((supabaseSession) => {
+              const localSession = state.sessions.find((s) => s.id === supabaseSession.id);
               if (localSession && localSession.formattedContent.trim() && !supabaseSession.formattedContent.trim()) {
                 console.log(`Keeping local session ${supabaseSession.id} with better content`);
                 mergedSessions.push(localSession);
@@ -688,33 +680,35 @@ export const useSearchStore = create<SearchState>()(
             });
 
             // Add local-only sessions
-            state.sessions.forEach(localSession => {
+            state.sessions.forEach((localSession) => {
               if (!supabaseSessionMap.has(localSession.id)) {
                 mergedSessions.push(localSession);
               }
             });
 
             set({ sessions: mergedSessions });
-            console.log(`✅ Loaded ${sessions.length} search sessions from Supabase, merged with ${state.sessions.length} local sessions`);
+            console.log(
+              `✅ Loaded ${sessions.length} search sessions from Supabase, merged with ${state.sessions.length} local sessions`,
+            );
           }
 
           // Fetch saved links from Supabase
           const { data: linksData, error: linksError } = await supabase
-            .from('saved_links' as any)
-            .select('*')
-            .order('saved_at', { ascending: false });
+            .from("saved_links" as any)
+            .select("*")
+            .order("saved_at", { ascending: false });
 
           if (linksError) {
-            console.error('Error fetching saved links:', linksError);
+            console.error("Error fetching saved links:", linksError);
           } else if (linksData && linksData.length > 0) {
             // Group links by list_id
             const linksByList: Record<string, { name: string; links: SavedLink[] }> = {};
-            
+
             linksData.forEach((l: any) => {
-              const listId = l.list_id || 'default';
+              const listId = l.list_id || "default";
               if (!linksByList[listId]) {
                 linksByList[listId] = {
-                  name: l.list_name || 'Saved Links',
+                  name: l.list_name || "Saved Links",
                   links: [],
                 };
               }
@@ -730,18 +724,18 @@ export const useSearchStore = create<SearchState>()(
 
             // Build lists array
             const lists: LinkList[] = [];
-            
+
             // Always include default list
             lists.push({
-              id: 'default',
-              name: linksByList['default']?.name || 'Saved Links',
+              id: "default",
+              name: linksByList["default"]?.name || "Saved Links",
               createdAt: Date.now(),
-              links: linksByList['default']?.links || [],
+              links: linksByList["default"]?.links || [],
             });
 
             // Add other lists
             Object.entries(linksByList).forEach(([listId, data]) => {
-              if (listId !== 'default') {
+              if (listId !== "default") {
                 lists.push({
                   id: listId,
                   name: data.name,
@@ -755,14 +749,16 @@ export const useSearchStore = create<SearchState>()(
             console.log(`✅ Loaded ${linksData.length} saved links from Supabase`);
           }
         } catch (error) {
-          console.error('Failed to sync from Supabase:', error);
+          console.error("Failed to sync from Supabase:", error);
         } finally {
           set({ isSyncing: false });
         }
       },
 
       saveSessionToSupabase: async (session: SearchSession) => {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) return;
 
         try {
@@ -773,9 +769,8 @@ export const useSearchStore = create<SearchState>()(
           }
 
           // Use type assertion since the types file may not be updated yet
-          const { error } = await supabase
-            .from('search_sessions' as any)
-            .upsert({
+          const { error } = await supabase.from("search_sessions" as any).upsert(
+            {
               id: session.id,
               user_id: user.id,
               query: session.query,
@@ -785,45 +780,52 @@ export const useSearchStore = create<SearchState>()(
               source_conversations: session.sourceConversations || {},
               summary_conversation: session.summaryConversation || [],
               updated_at: new Date().toISOString(),
-            } as any, { onConflict: 'id' });
+            } as any,
+            { onConflict: "id" },
+          );
 
           if (error) {
-            console.error('Error saving session to Supabase:', error);
+            console.error("Error saving session to Supabase:", error);
           } else {
-            console.log(`✅ Saved session ${session.id} to Supabase with ${session.formattedContent.length} chars of content`);
+            console.log(
+              `✅ Saved session ${session.id} to Supabase with ${session.formattedContent.length} chars of content`,
+            );
           }
         } catch (error) {
-          console.error('Error saving session to Supabase:', error);
+          console.error("Error saving session to Supabase:", error);
         }
       },
 
       deleteSessionFromSupabase: async (sessionId: string) => {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) return;
 
         try {
           const { error } = await supabase
-            .from('search_sessions' as any)
+            .from("search_sessions" as any)
             .delete()
-            .eq('id', sessionId)
-            .eq('user_id', user.id);
+            .eq("id", sessionId)
+            .eq("user_id", user.id);
 
           if (error) {
-            console.error('Error deleting session from Supabase:', error);
+            console.error("Error deleting session from Supabase:", error);
           }
         } catch (error) {
-          console.error('Error deleting session from Supabase:', error);
+          console.error("Error deleting session from Supabase:", error);
         }
       },
 
       saveLinkToSupabase: async (link: SavedLink, listName: string) => {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) return;
 
         try {
-          const { error } = await supabase
-            .from('saved_links' as any)
-            .upsert({
+          const { error } = await supabase.from("saved_links" as any).upsert(
+            {
               id: link.id,
               user_id: user.id,
               list_id: link.listId,
@@ -832,32 +834,36 @@ export const useSearchStore = create<SearchState>()(
               url: link.url,
               snippet: link.snippet,
               saved_at: new Date(link.savedAt).toISOString(),
-            } as any, { onConflict: 'id' });
+            } as any,
+            { onConflict: "id" },
+          );
 
           if (error) {
-            console.error('Error saving link to Supabase:', error);
+            console.error("Error saving link to Supabase:", error);
           }
         } catch (error) {
-          console.error('Error saving link to Supabase:', error);
+          console.error("Error saving link to Supabase:", error);
         }
       },
 
       deleteLinkFromSupabase: async (linkId: string) => {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) return;
 
         try {
           const { error } = await supabase
-            .from('saved_links' as any)
+            .from("saved_links" as any)
             .delete()
-            .eq('id', linkId)
-            .eq('user_id', user.id);
+            .eq("id", linkId)
+            .eq("user_id", user.id);
 
           if (error) {
-            console.error('Error deleting link from Supabase:', error);
+            console.error("Error deleting link from Supabase:", error);
           }
         } catch (error) {
-          console.error('Error deleting link from Supabase:', error);
+          console.error("Error deleting link from Supabase:", error);
         }
       },
 
@@ -867,22 +873,25 @@ export const useSearchStore = create<SearchState>()(
       },
     }),
     {
-      name: 'arc-search-store',
+      name: "arc-search-store",
       partialize: (state) => ({
         lists: state.lists,
         sessions: state.sessions,
       }),
-      merge: (persistedState: any, currentState: SearchState) => {
+      merge: (persistedState, currentState) => {
+        // Fix for "Property does not exist on type unknown" error
+        const typedPersistedState = persistedState as Partial<SearchState> | undefined;
+
         // Ensure we always have at least the default list
-        const persistedLists = persistedState?.lists || [];
-        const hasDefaultList = persistedLists.some((l: LinkList) => l.id === 'default');
-        
-        const lists = hasDefaultList 
-          ? persistedLists 
+        const persistedLists = typedPersistedState?.lists || [];
+        const hasDefaultList = persistedLists.some((l: LinkList) => l.id === "default");
+
+        const lists = hasDefaultList
+          ? persistedLists
           : [
               {
-                id: 'default',
-                name: 'Saved Links',
+                id: "default",
+                name: "Saved Links",
                 createdAt: Date.now(),
                 links: [],
               },
@@ -891,11 +900,11 @@ export const useSearchStore = create<SearchState>()(
 
         return {
           ...currentState,
-          ...persistedState,
+          ...(typedPersistedState || {}),
           lists,
-          sessions: persistedState?.sessions || [],
+          sessions: typedPersistedState?.sessions || [],
         };
       },
-    }
-  )
+    },
+  ),
 );
