@@ -650,10 +650,11 @@ export const useSearchStore = create<SearchState>()(
           attempts++;
         }
 
-        const state = get();
         // Don't set isSyncing to avoid UI flicker - sync silently in background
 
         try {
+          // Get fresh state after hydration
+          const state = get();
           // Fetch search sessions from Supabase
           const { data: sessionsData, error: sessionsError } = await supabase
             .from('search_sessions' as any)
