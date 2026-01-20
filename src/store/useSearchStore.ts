@@ -640,7 +640,8 @@ export const useSearchStore = create<SearchState>()(
           return;
         }
 
-        set({ isSyncing: true });
+        // Don't set isSyncing to avoid UI flicker - sync silently in background
+        const state = get();
 
         try {
           // Fetch search sessions from Supabase
@@ -651,14 +652,9 @@ export const useSearchStore = create<SearchState>()(
 
           if (sessionsError) {
             console.error('Error fetching search sessions:', sessionsError);
-          } else if (sessionsData && sessionsData.length > 0) {
-            const sessions: SearchSession[] = sessionsData.map((s: any) => {
-              // Ensure formattedContent is not empty
+          } else if (sessionsData) {
+            const supabaseSessions: SearchSession[] = sessionsData.map((s: any) => {
               const formattedContent = s.formatted_content || '';
-              if (!formattedContent.trim()) {
-                console.warn(`Session ${s.id} has empty formatted_content, using fallback`);
-              }
-
               return {
                 id: s.id,
                 query: s.query,
@@ -671,31 +667,56 @@ export const useSearchStore = create<SearchState>()(
               };
             });
 
-            // Merge with local sessions (prefer Supabase data for conflicts, but keep local if it has better content)
-            const state = get();
+            // Smart merge: prefer local data when it's more complete (has more follow-ups, etc.)
             const mergedSessions: SearchSession[] = [];
-            const supabaseSessionMap = new Map(sessions.map(s => [s.id, s]));
+            const supabaseSessionMap = new Map(supabaseSessions.map(s => [s.id, s]));
+            const localSessionMap = new Map(state.sessions.map(s => [s.id, s]));
+            const processedIds = new Set<string>();
 
-            // Add Supabase sessions, but prefer local version if it has content and Supabase doesn't
-            sessions.forEach(supabaseSession => {
-              const localSession = state.sessions.find(s => s.id === supabaseSession.id);
-              if (localSession && localSession.formattedContent.trim() && !supabaseSession.formattedContent.trim()) {
-                console.log(`Keeping local session ${supabaseSession.id} with better content`);
+            // Process all unique session IDs
+            const allIds = new Set([...supabaseSessionMap.keys(), ...localSessionMap.keys()]);
+
+            allIds.forEach(id => {
+              const localSession = localSessionMap.get(id);
+              const supabaseSession = supabaseSessionMap.get(id);
+
+              if (localSession && supabaseSession) {
+                // Both exist - smart merge: prefer the one with more data
+                const localFollowUps = localSession.summaryConversation?.length || 0;
+                const supabaseFollowUps = supabaseSession.summaryConversation?.length || 0;
+                const localHasContent = localSession.formattedContent?.trim();
+                const supabaseHasContent = supabaseSession.formattedContent?.trim();
+
+                // Prefer local if it has more follow-ups OR if it has content and Supabase doesn't
+                if (localFollowUps > supabaseFollowUps || (localHasContent && !supabaseHasContent)) {
+                  mergedSessions.push(localSession);
+                  // Sync the local session back to Supabase
+                  get().saveSessionToSupabase(localSession).catch(console.error);
+                } else if (supabaseFollowUps > localFollowUps) {
+                  // Supabase has more follow-ups
+                  mergedSessions.push(supabaseSession);
+                } else {
+                  // Same follow-up count - use the one with newer timestamp or prefer Supabase
+                  mergedSessions.push(localSession.timestamp > supabaseSession.timestamp ? localSession : supabaseSession);
+                }
+              } else if (localSession) {
+                // Only exists locally - keep and sync to Supabase
                 mergedSessions.push(localSession);
-              } else {
+                get().saveSessionToSupabase(localSession).catch(console.error);
+              } else if (supabaseSession) {
+                // Only exists in Supabase - add to local
                 mergedSessions.push(supabaseSession);
               }
+              processedIds.add(id);
             });
 
-            // Add local-only sessions
-            state.sessions.forEach(localSession => {
-              if (!supabaseSessionMap.has(localSession.id)) {
-                mergedSessions.push(localSession);
-              }
-            });
-
-            set({ sessions: mergedSessions });
-            console.log(`✅ Loaded ${sessions.length} search sessions from Supabase, merged with ${state.sessions.length} local sessions`);
+            // Only update if there are actual changes
+            if (mergedSessions.length > 0 || state.sessions.length !== mergedSessions.length) {
+              // Sort by timestamp descending
+              mergedSessions.sort((a, b) => b.timestamp - a.timestamp);
+              set({ sessions: mergedSessions });
+              console.log(`✅ Synced ${mergedSessions.length} search sessions`);
+            }
           }
 
           // Fetch saved links from Supabase
@@ -706,58 +727,60 @@ export const useSearchStore = create<SearchState>()(
 
           if (linksError) {
             console.error('Error fetching saved links:', linksError);
-          } else if (linksData && linksData.length > 0) {
-            // Group links by list_id
-            const linksByList: Record<string, { name: string; links: SavedLink[] }> = {};
-            
-            linksData.forEach((l: any) => {
-              const listId = l.list_id || 'default';
-              if (!linksByList[listId]) {
-                linksByList[listId] = {
-                  name: l.list_name || 'Saved Links',
-                  links: [],
-                };
-              }
-              linksByList[listId].links.push({
+          } else if (linksData) {
+            // Get current default list links
+            const currentDefaultList = state.lists.find(l => l.id === 'default');
+            const currentLinks = currentDefaultList?.links || [];
+            const currentLinkIds = new Set(currentLinks.map(l => l.id));
+
+            // Build links from Supabase (only for default list now)
+            const supabaseLinks: SavedLink[] = linksData
+              .filter((l: any) => !l.list_id || l.list_id === 'default')
+              .map((l: any) => ({
                 id: l.id,
                 title: l.title,
                 url: l.url,
                 snippet: l.snippet,
                 savedAt: new Date(l.saved_at).getTime(),
-                listId: listId,
-              });
-            });
+                listId: 'default',
+              }));
 
-            // Build lists array
-            const lists: LinkList[] = [];
-            
-            // Always include default list
-            lists.push({
-              id: 'default',
-              name: linksByList['default']?.name || 'Saved Links',
-              createdAt: Date.now(),
-              links: linksByList['default']?.links || [],
-            });
+            const supabaseLinkIds = new Set(supabaseLinks.map(l => l.id));
 
-            // Add other lists
-            Object.entries(linksByList).forEach(([listId, data]) => {
-              if (listId !== 'default') {
-                lists.push({
-                  id: listId,
-                  name: data.name,
-                  createdAt: Date.now(),
-                  links: data.links,
-                });
+            // Merge: keep all local links and add any Supabase-only links
+            const mergedLinks: SavedLink[] = [...currentLinks];
+
+            supabaseLinks.forEach(supabaseLink => {
+              if (!currentLinkIds.has(supabaseLink.id)) {
+                mergedLinks.push(supabaseLink);
               }
             });
 
-            set({ lists });
-            console.log(`✅ Loaded ${linksData.length} saved links from Supabase`);
+            // Also sync local-only links to Supabase
+            currentLinks.forEach(localLink => {
+              if (!supabaseLinkIds.has(localLink.id)) {
+                get().saveLinkToSupabase(localLink, 'Saved Links').catch(console.error);
+              }
+            });
+
+            // Only update if there are changes
+            if (mergedLinks.length !== currentLinks.length) {
+              // Sort by savedAt descending
+              mergedLinks.sort((a, b) => b.savedAt - a.savedAt);
+
+              set({
+                lists: [{
+                  id: 'default',
+                  name: 'Saved Links',
+                  createdAt: currentDefaultList?.createdAt || Date.now(),
+                  links: mergedLinks,
+                }],
+              });
+              console.log(`✅ Synced ${mergedLinks.length} saved links`);
+            }
           }
         } catch (error) {
           console.error('Failed to sync from Supabase:', error);
-        } finally {
-          set({ isSyncing: false });
         }
       },
 
