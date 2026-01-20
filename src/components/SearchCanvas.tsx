@@ -21,6 +21,7 @@ import {
   Trash2,
   X,
   Library,
+  Plus,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -558,6 +559,39 @@ export function SearchCanvas() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* New Search Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setActiveSession(null as any);
+              setSearchQuery("");
+              setHistoryPage(0);
+              searchInputRef.current?.focus();
+            }}
+            className="h-9 w-9 p-0 rounded-full hover:bg-muted"
+            title="New search"
+          >
+            <Plus className="w-5 h-5" />
+          </Button>
+
+          {/* History Button */}
+          {sessions.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowHistory(!showHistory)}
+              className={cn(
+                "h-9 gap-2 text-sm",
+                showHistory && "bg-muted"
+              )}
+            >
+              <Clock className="w-4 h-4" />
+              <span className="hidden sm:inline">History</span>
+              <span className="text-xs text-muted-foreground">({sessions.length})</span>
+            </Button>
+          )}
+
           {/* Mobile: Toggle saved links panel */}
           {isMobile && (
             <Button
@@ -575,6 +609,101 @@ export function SearchCanvas() {
           )}
         </div>
       </header>
+
+      {/* History Dropdown - Shows above active session when open */}
+      <AnimatePresence>
+        {showHistory && sessions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="border-b border-border/30 bg-card/50 overflow-hidden"
+          >
+            <div className="max-w-3xl mx-auto px-4 py-4">
+              <div className="rounded-xl border border-border/50 bg-background/50 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium text-muted-foreground">Recent Searches</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      clearAllSessions();
+                      setShowHistory(false);
+                      setHistoryPage(0);
+                    }}
+                    className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                  >
+                    Clear all
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {sessions
+                    .slice()
+                    .reverse()
+                    .slice(historyPage * HISTORY_PAGE_SIZE, (historyPage + 1) * HISTORY_PAGE_SIZE)
+                    .map((session) => (
+                      <motion.button
+                        key={session.id}
+                        onClick={() => {
+                          setActiveSession(session.id);
+                          setShowHistory(false);
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-2.5 rounded-lg transition-colors",
+                          "hover:bg-muted/50",
+                          session.id === activeSessionId && "bg-primary/10 text-primary"
+                        )}
+                        whileHover={{ x: 4 }}
+                      >
+                        <p className="text-sm font-medium line-clamp-1">{session.query}</p>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          <span>{session.results.length} sources</span>
+                          <span>·</span>
+                          <span>{formatTimestamp(session.timestamp)}</span>
+                          {session.summaryConversation && session.summaryConversation.length > 0 && (
+                            <>
+                              <span>·</span>
+                              <span>{Math.floor(session.summaryConversation.length / 2)} follow-ups</span>
+                            </>
+                          )}
+                        </div>
+                      </motion.button>
+                    ))}
+                </div>
+
+                {/* Pagination Controls */}
+                {sessions.length > HISTORY_PAGE_SIZE && (
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
+                    <span className="text-xs text-muted-foreground">
+                      {historyPage * HISTORY_PAGE_SIZE + 1}-{Math.min((historyPage + 1) * HISTORY_PAGE_SIZE, sessions.length)} of {sessions.length}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setHistoryPage(Math.max(0, historyPage - 1))}
+                        disabled={historyPage === 0}
+                        className="h-7 px-2 text-xs"
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setHistoryPage(historyPage + 1)}
+                        disabled={(historyPage + 1) * HISTORY_PAGE_SIZE >= sessions.length}
+                        className="h-7 px-2 text-xs"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Layout: Content + Sidebar on Desktop */}
       <div className="flex-1 flex overflow-hidden">
