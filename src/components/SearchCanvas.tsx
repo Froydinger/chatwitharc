@@ -70,7 +70,7 @@ export function SearchCanvas() {
   const [smartSuggestions, setSmartSuggestions] = useState<Array<{ label: string; prompt: string }>>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const HISTORY_PAGE_SIZE = 5;
-  
+
   // Default fallback suggestions for research
   const defaultSuggestions = [
     { label: "🤖 AI News", prompt: "What's new in AI today?" },
@@ -84,8 +84,8 @@ export function SearchCanvas() {
   const [isElectronApp, setIsElectronApp] = useState(false);
 
   useEffect(() => {
-    const checkPWA = window.matchMedia('(display-mode: standalone)').matches ||
-                     (window.navigator as any).standalone === true;
+    const checkPWA =
+      window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
     const checkElectron = /electron/i.test(navigator.userAgent);
     setIsPWAMode(checkPWA);
     setIsElectronApp(checkElectron);
@@ -98,7 +98,7 @@ export function SearchCanvas() {
 
   // Get only the default list for saved links
   const defaultList = useMemo(() => {
-    return lists.find((l) => l.id === 'default') || lists[0];
+    return lists.find((l) => l.id === "default") || lists[0];
   }, [lists]);
 
   // Get links from the default list only
@@ -129,24 +129,24 @@ export function SearchCanvas() {
     const loadSmartSuggestions = async () => {
       setIsLoadingSuggestions(true);
       try {
-        const { data, error } = await supabase.functions.invoke('generate-smart-prompts', {
-          body: { context: 'research' }
+        const { data, error } = await supabase.functions.invoke("generate-smart-prompts", {
+          body: { context: "research" },
         });
-        
+
         if (error) throw error;
-        
+
         if (data?.prompts && Array.isArray(data.prompts)) {
           // Take first 4 for research mode
           setSmartSuggestions(data.prompts.slice(0, 4));
         }
       } catch (err) {
-        console.error('Failed to load smart suggestions:', err);
+        console.error("Failed to load smart suggestions:", err);
         // Will fallback to default suggestions
       } finally {
         setIsLoadingSuggestions(false);
       }
     };
-    
+
     loadSmartSuggestions();
   }, []);
 
@@ -181,7 +181,7 @@ export function SearchCanvas() {
       setTimeout(() => {
         scrollContainerRef.current?.scrollTo({
           top: scrollContainerRef.current.scrollHeight,
-          behavior: 'smooth'
+          behavior: "smooth",
         });
       }, 100);
     }
@@ -198,7 +198,7 @@ export function SearchCanvas() {
       const { data, error } = await supabase.functions.invoke("perplexity-search", {
         body: {
           query: query,
-          model: 'sonar-pro',
+          model: "sonar-pro",
         },
       });
 
@@ -218,12 +218,12 @@ export function SearchCanvas() {
 
       toast({
         title: `Found ${results.length} sources`,
-        description: "Powered by Perplexity AI"
+        description: "Powered by Perplexity AI",
       });
     } catch (error: any) {
       console.error("Search error:", error);
 
-      if (error.message?.includes('Rate limit') || error.message?.includes('429')) {
+      if (error.message?.includes("Rate limit") || error.message?.includes("429")) {
         toast({
           title: "Rate limit exceeded",
           description: "Please wait a moment and try again",
@@ -260,7 +260,7 @@ export function SearchCanvas() {
       removeLink(savedInfo.listId, savedInfo.linkId);
       toast({ title: "Removed from saved" });
     } else {
-      const defaultList = lists.find((l) => l.id === 'default') || lists[0];
+      const defaultList = lists.find((l) => l.id === "default") || lists[0];
       if (defaultList) {
         saveLink({
           title: result.title,
@@ -308,7 +308,7 @@ export function SearchCanvas() {
 
   const handleChatWithLink = (link: SavedLink) => {
     // Build context from the link and start a conversation
-    const contextMessage = `I want to discuss this saved link:\n\nTitle: ${link.title}\nURL: ${link.url}${link.snippet ? `\nSnippet: ${link.snippet}` : ''}\n\nPlease help me understand or explore this topic further.`;
+    const contextMessage = `I want to discuss this saved link:\n\nTitle: ${link.title}\nURL: ${link.url}${link.snippet ? `\nSnippet: ${link.snippet}` : ""}\n\nPlease help me understand or explore this topic further.`;
 
     if (activeSessionId) {
       sendSummaryMessage(activeSessionId, contextMessage);
@@ -325,13 +325,13 @@ export function SearchCanvas() {
     if (selectedLinks.size === 0) return;
 
     const selectedLinkObjects = defaultListLinks.filter((l) => selectedLinks.has(l.id));
-    const contextMessage = `I want to discuss these ${selectedLinkObjects.length} saved links:\n\n${selectedLinkObjects.map((l, i) => `${i + 1}. ${l.title}\n   URL: ${l.url}${l.snippet ? `\n   Snippet: ${l.snippet}` : ''}`).join('\n\n')}\n\nPlease help me understand how these topics relate or explore them together.`;
+    const contextMessage = `I want to discuss these ${selectedLinkObjects.length} saved links:\n\n${selectedLinkObjects.map((l, i) => `${i + 1}. ${l.title}\n   URL: ${l.url}${l.snippet ? `\n   Snippet: ${l.snippet}` : ""}`).join("\n\n")}\n\nPlease help me understand how these topics relate or explore them together.`;
 
     if (activeSessionId) {
       sendSummaryMessage(activeSessionId, contextMessage);
     } else {
       // Create a search combining the topics
-      const topics = selectedLinkObjects.map((l) => l.title).join(', ');
+      const topics = selectedLinkObjects.map((l) => l.title).join(", ");
       handleSearch(`Compare and discuss: ${topics}`);
     }
 
@@ -393,20 +393,10 @@ export function SearchCanvas() {
         <div className="flex items-center gap-1">
           {isSelectMode ? (
             <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSelectAll}
-                className="h-8 text-xs"
-              >
+              <Button variant="ghost" size="sm" onClick={handleSelectAll} className="h-8 text-xs">
                 All
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClearSelection}
-                className="h-8 text-xs"
-              >
+              <Button variant="ghost" size="sm" onClick={handleClearSelection} className="h-8 text-xs">
                 <X className="w-4 h-4" />
               </Button>
             </>
@@ -436,12 +426,7 @@ export function SearchCanvas() {
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">{selectedLinks.size} selected</span>
               <div className="flex items-center gap-1">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleChatWithSelected}
-                  className="h-7 text-xs gap-1"
-                >
+                <Button variant="default" size="sm" onClick={handleChatWithSelected} className="h-7 text-xs gap-1">
                   <MessageCircle className="w-3.5 h-3.5" />
                   Chat
                 </Button>
@@ -472,16 +457,13 @@ export function SearchCanvas() {
                     "group relative rounded-lg border transition-all",
                     isSelected
                       ? "border-primary bg-primary/5"
-                      : "border-transparent hover:border-border/50 hover:bg-muted/30"
+                      : "border-transparent hover:border-border/50 hover:bg-muted/30",
                   )}
                 >
                   <div className="flex items-start gap-2 p-2">
                     {/* Checkbox / Favicon */}
                     {isSelectMode ? (
-                      <button
-                        onClick={() => handleToggleSelectLink(link.id)}
-                        className="mt-0.5 flex-shrink-0"
-                      >
+                      <button onClick={() => handleToggleSelectLink(link.id)} className="mt-0.5 flex-shrink-0">
                         {isSelected ? (
                           <CheckSquare className="w-5 h-5 text-primary" />
                         ) : (
@@ -491,11 +473,7 @@ export function SearchCanvas() {
                     ) : (
                       <div className="mt-0.5 flex-shrink-0 w-5 h-5">
                         {getFaviconUrl(link.url) ? (
-                          <img
-                            src={getFaviconUrl(link.url)!}
-                            alt=""
-                            className="w-5 h-5 rounded"
-                          />
+                          <img src={getFaviconUrl(link.url)!} alt="" className="w-5 h-5 rounded" />
                         ) : (
                           <Globe className="w-5 h-5 text-muted-foreground" />
                         )}
@@ -512,9 +490,7 @@ export function SearchCanvas() {
                       >
                         {link.title}
                       </a>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {getHostname(link.url)}
-                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{getHostname(link.url)}</p>
                     </div>
 
                     {/* Actions */}
@@ -552,9 +528,7 @@ export function SearchCanvas() {
           <div className="flex flex-col items-center justify-center h-32 text-center p-4">
             <Bookmark className="w-8 h-8 text-muted-foreground/50 mb-2" />
             <p className="text-sm text-muted-foreground">No saved links yet</p>
-            <p className="text-xs text-muted-foreground/70">
-              Save sources from your research
-            </p>
+            <p className="text-xs text-muted-foreground/70">Save sources from your research</p>
           </div>
         )}
       </div>
@@ -562,21 +536,11 @@ export function SearchCanvas() {
   );
 
   return (
-    <div
-      className={cn(
-        "flex flex-col h-full w-full bg-background",
-        (isPWAMode || isElectronApp) && "pt-[34px]"
-      )}
-    >
+    <div className={cn("flex flex-col h-full w-full bg-background", (isPWAMode || isElectronApp) && "pt-[34px]")}>
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-border/20">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={closeSearch}
-            className="h-9 w-9 p-0 rounded-full hover:bg-muted"
-          >
+          <Button variant="ghost" size="sm" onClick={closeSearch} className="h-9 w-9 p-0 rounded-full hover:bg-muted">
             <ArrowLeft className="w-5 h-5" />
           </Button>
 
@@ -609,10 +573,7 @@ export function SearchCanvas() {
               variant="ghost"
               size="sm"
               onClick={() => setShowHistory(!showHistory)}
-              className={cn(
-                "h-9 gap-2 text-sm",
-                showHistory && "bg-muted"
-              )}
+              className={cn("h-9 gap-2 text-sm", showHistory && "bg-muted")}
             >
               <Clock className="w-4 h-4" />
               <span className="hidden sm:inline">History</span>
@@ -626,10 +587,7 @@ export function SearchCanvas() {
               variant="ghost"
               size="sm"
               onClick={() => setShowSavedLinks(!showSavedLinks)}
-              className={cn(
-                "h-9 gap-2 text-sm",
-                showSavedLinks && "bg-muted"
-              )}
+              className={cn("h-9 gap-2 text-sm", showSavedLinks && "bg-muted")}
             >
               <Library className="w-4 h-4" />
               <span className="text-xs text-muted-foreground">({defaultListLinks.length})</span>
@@ -679,7 +637,7 @@ export function SearchCanvas() {
                         className={cn(
                           "w-full text-left px-3 py-2.5 rounded-lg transition-colors",
                           "hover:bg-muted/50",
-                          session.id === activeSessionId && "bg-primary/10 text-primary"
+                          session.id === activeSessionId && "bg-primary/10 text-primary",
                         )}
                         whileHover={{ x: 4 }}
                       >
@@ -703,7 +661,8 @@ export function SearchCanvas() {
                 {sessions.length > HISTORY_PAGE_SIZE && (
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
                     <span className="text-xs text-muted-foreground">
-                      {historyPage * HISTORY_PAGE_SIZE + 1}-{Math.min((historyPage + 1) * HISTORY_PAGE_SIZE, sessions.length)} of {sessions.length}
+                      {historyPage * HISTORY_PAGE_SIZE + 1}-
+                      {Math.min((historyPage + 1) * HISTORY_PAGE_SIZE, sessions.length)} of {sessions.length}
                     </span>
                     <div className="flex items-center gap-1">
                       <Button
@@ -737,46 +696,46 @@ export function SearchCanvas() {
       {!(isMobile && activeSession) && (
         <div className="border-b border-border/20 bg-background/80 backdrop-blur-sm">
           <div className="max-w-3xl mx-auto px-4 py-4">
+            <div className="relative">
+              <div
+                className={cn(
+                  "glass-dock !rounded-full !p-1 transition-all duration-200",
+                  "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]",
+                  "flex items-center gap-3 px-4",
+                )}
+              >
+                {/* Left search icon */}
+                <div className="shrink-0 flex items-center justify-center text-muted-foreground">
+                  <Search className="h-5 w-5" />
+                </div>
 
-			<div className="relative">
-				<div className={cn(
-					"glass-dock !rounded-full !p-1 transition-all duration-200",
-					"focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]",
-					"flex items-center gap-3 px-4"
-				)}>
-					{/* Left search icon */}
-					<div className="shrink-0 flex items-center justify-center text-muted-foreground">
-						<Search className="h-5 w-5" />
-					</div>
-                  
-                  <input
-                    ref={searchInputRef}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSearch(searchQuery);
-                    }}
-                    placeholder="Research anything..."
-                    className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60 pl-[5px]"
-                    disabled={isSearching}
-                  />
-                  
-					{/* Right send button */}
-					{searchQuery && !isSearching && (
-						<button
-							onClick={() => handleSearch(searchQuery)}
-							className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
-						>
-							<Send className="h-4 w-4" />
-						</button>
-					)}
-				</div>
+                <input
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSearch(searchQuery);
+                  }}
+                  placeholder="Research anything..."
+                  className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60 pl-[15px]"
+                  disabled={isSearching}
+                />
 
+                {/* Right send button */}
+                {searchQuery && !isSearching && (
+                  <button
+                    onClick={() => handleSearch(searchQuery)}
+                    className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Send className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
-      
+
       {/* Mobile: New Search FAB when in active session */}
       {isMobile && activeSession && (
         <motion.button
@@ -796,10 +755,7 @@ export function SearchCanvas() {
       {/* Main Layout: Content + Sidebar on Desktop */}
       <div className="flex-1 flex overflow-hidden">
         {/* Main Content */}
-        <div
-          ref={scrollContainerRef}
-          className="flex-1 overflow-auto"
-        >
+        <div ref={scrollContainerRef} className="flex-1 overflow-auto">
           {/* Mobile: Saved Links Panel (collapsible at top) */}
           {isMobile && (
             <AnimatePresence>
@@ -817,7 +773,6 @@ export function SearchCanvas() {
           )}
 
           <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10">
-
             {/* Active Session Content */}
             {activeSession ? (
               <motion.div
@@ -841,12 +796,7 @@ export function SearchCanvas() {
                       <Globe className="w-4 h-4" />
                       {activeSession.results.length} sources
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCopy}
-                      className="h-7 gap-1.5 text-xs ml-auto"
-                    >
+                    <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 gap-1.5 text-xs ml-auto">
                       {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                       {copied ? "Copied" : "Copy"}
                     </Button>
@@ -908,10 +858,14 @@ export function SearchCanvas() {
                                       }}
                                       className={cn(
                                         "p-1 rounded hover:bg-muted transition-colors",
-                                        isSaved && "text-primary"
+                                        isSaved && "text-primary",
                                       )}
                                     >
-                                      {isSaved ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+                                      {isSaved ? (
+                                        <BookmarkCheck className="w-3.5 h-3.5" />
+                                      ) : (
+                                        <Bookmark className="w-3.5 h-3.5" />
+                                      )}
                                     </button>
                                     <a
                                       href={result.url}
@@ -943,11 +897,7 @@ export function SearchCanvas() {
                             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-border/40 bg-muted/30 hover:bg-muted/50 transition-colors text-xs"
                           >
                             {getFaviconUrl(result.url) && (
-                              <img
-                                src={getFaviconUrl(result.url)!}
-                                alt=""
-                                className="w-3.5 h-3.5 rounded"
-                              />
+                              <img src={getFaviconUrl(result.url)!} alt="" className="w-3.5 h-3.5 rounded" />
                             )}
                             <span className="text-muted-foreground">{getHostname(result.url)}</span>
                           </a>
@@ -980,43 +930,39 @@ export function SearchCanvas() {
                         h3: ({ node, ...props }) => (
                           <h3 className="text-lg sm:text-xl font-semibold mt-5 mb-2 text-foreground" {...props} />
                         ),
-                        ul: ({ node, ...props }) => (
-                          <ul className="list-disc pl-5 mb-4 space-y-2" {...props} />
-                        ),
-                        ol: ({ node, ...props }) => (
-                          <ol className="list-decimal pl-5 mb-4 space-y-2" {...props} />
-                        ),
+                        ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-4 space-y-2" {...props} />,
+                        ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-4 space-y-2" {...props} />,
                         li: ({ node, ...props }) => (
                           <li className="text-base sm:text-lg leading-relaxed text-foreground/90" {...props} />
                         ),
-                        strong: ({ node, ...props }) => (
-                          <strong className="font-semibold text-foreground" {...props} />
-                        ),
+                        strong: ({ node, ...props }) => <strong className="font-semibold text-foreground" {...props} />,
                         a: ({ node, href, children, ...props }) => {
                           // Detect YouTube links and embed them
                           if (href && getYouTubeVideoId(href)) {
-                            const linkText = typeof children === 'string' ? children :
-                              (Array.isArray(children) ? children.join('') : String(children));
+                            const linkText =
+                              typeof children === "string"
+                                ? children
+                                : Array.isArray(children)
+                                  ? children.join("")
+                                  : String(children);
                             return (
                               <div className="my-4">
-                                <MediaEmbed
-                                  url={href}
-                                  title={linkText !== href ? linkText : undefined}
-                                />
+                                <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} />
                               </div>
                             );
                           }
 
                           // Detect direct image URLs and embed them
                           if (href && isImageUrl(href)) {
-                            const linkText = typeof children === 'string' ? children :
-                              (Array.isArray(children) ? children.join('') : String(children));
+                            const linkText =
+                              typeof children === "string"
+                                ? children
+                                : Array.isArray(children)
+                                  ? children.join("")
+                                  : String(children);
                             return (
                               <div className="my-4">
-                                <MediaEmbed
-                                  url={href}
-                                  title={linkText !== href ? linkText : undefined}
-                                />
+                                <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} />
                               </div>
                             );
                           }
@@ -1038,11 +984,17 @@ export function SearchCanvas() {
                           return isInline ? (
                             <code className="px-1.5 py-0.5 bg-muted rounded text-sm font-mono" {...props} />
                           ) : (
-                            <code className="block p-4 bg-muted rounded-lg text-sm font-mono overflow-x-auto" {...props} />
+                            <code
+                              className="block p-4 bg-muted rounded-lg text-sm font-mono overflow-x-auto"
+                              {...props}
+                            />
                           );
                         },
                         blockquote: ({ node, ...props }) => (
-                          <blockquote className="border-l-4 border-primary/30 pl-4 italic text-muted-foreground my-4" {...props} />
+                          <blockquote
+                            className="border-l-4 border-primary/30 pl-4 italic text-muted-foreground my-4"
+                            {...props}
+                          />
                         ),
                       }}
                     >
@@ -1055,7 +1007,7 @@ export function SearchCanvas() {
                 {activeSession.summaryConversation && activeSession.summaryConversation.length > 0 && (
                   <div className="space-y-8">
                     {activeSession.summaryConversation.reduce((acc: JSX.Element[], msg, idx, arr) => {
-                      if (msg.role === 'user') {
+                      if (msg.role === "user") {
                         const response = arr[idx + 1];
                         acc.push(
                           <motion.div
@@ -1069,9 +1021,9 @@ export function SearchCanvas() {
                               <MessageCircle className="w-5 h-5 text-primary" />
                               {msg.content}
                             </h2>
-                            
+
                             {/* Response Content - Same markdown styling */}
-                            {response && response.role === 'assistant' && (
+                            {response && response.role === "assistant" && (
                               <>
                                 {/* New sources pill if any */}
                                 {response.sources && response.sources.length > 0 && (
@@ -1089,30 +1041,39 @@ export function SearchCanvas() {
                                           alt=""
                                           className="w-4 h-4 rounded"
                                           onError={(e) => {
-                                            (e.target as HTMLImageElement).style.display = 'none';
+                                            (e.target as HTMLImageElement).style.display = "none";
                                           }}
                                         />
                                         <span className="text-muted-foreground truncate max-w-[150px]">
-                                          {new URL(source.url).hostname.replace('www.', '')}
+                                          {new URL(source.url).hostname.replace("www.", "")}
                                         </span>
                                         <ExternalLink className="w-3 h-3 text-muted-foreground" />
                                       </a>
                                     ))}
                                   </div>
                                 )}
-                                
+
                                 <div className="prose prose-neutral dark:prose-invert prose-lg max-w-none">
                                   <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     components={{
                                       p: ({ node, ...props }) => (
-                                        <p className="text-base sm:text-lg leading-relaxed mb-4 text-foreground/90" {...props} />
+                                        <p
+                                          className="text-base sm:text-lg leading-relaxed mb-4 text-foreground/90"
+                                          {...props}
+                                        />
                                       ),
                                       h2: ({ node, ...props }) => (
-                                        <h2 className="text-xl sm:text-2xl font-semibold mt-6 mb-3 text-foreground" {...props} />
+                                        <h2
+                                          className="text-xl sm:text-2xl font-semibold mt-6 mb-3 text-foreground"
+                                          {...props}
+                                        />
                                       ),
                                       h3: ({ node, ...props }) => (
-                                        <h3 className="text-lg sm:text-xl font-semibold mt-5 mb-2 text-foreground" {...props} />
+                                        <h3
+                                          className="text-lg sm:text-xl font-semibold mt-5 mb-2 text-foreground"
+                                          {...props}
+                                        />
                                       ),
                                       ul: ({ node, ...props }) => (
                                         <ul className="list-disc pl-5 mb-4 space-y-2" {...props} />
@@ -1121,33 +1082,38 @@ export function SearchCanvas() {
                                         <ol className="list-decimal pl-5 mb-4 space-y-2" {...props} />
                                       ),
                                       li: ({ node, ...props }) => (
-                                        <li className="text-base sm:text-lg leading-relaxed text-foreground/90" {...props} />
+                                        <li
+                                          className="text-base sm:text-lg leading-relaxed text-foreground/90"
+                                          {...props}
+                                        />
                                       ),
                                       a: ({ node, href, children, ...props }) => {
                                         // Detect YouTube links and embed them
                                         if (href && getYouTubeVideoId(href)) {
-                                          const linkText = typeof children === 'string' ? children :
-                                            (Array.isArray(children) ? children.join('') : String(children));
+                                          const linkText =
+                                            typeof children === "string"
+                                              ? children
+                                              : Array.isArray(children)
+                                                ? children.join("")
+                                                : String(children);
                                           return (
                                             <div className="my-4">
-                                              <MediaEmbed
-                                                url={href}
-                                                title={linkText !== href ? linkText : undefined}
-                                              />
+                                              <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} />
                                             </div>
                                           );
                                         }
 
                                         // Detect direct image URLs and embed them
                                         if (href && isImageUrl(href)) {
-                                          const linkText = typeof children === 'string' ? children :
-                                            (Array.isArray(children) ? children.join('') : String(children));
+                                          const linkText =
+                                            typeof children === "string"
+                                              ? children
+                                              : Array.isArray(children)
+                                                ? children.join("")
+                                                : String(children);
                                           return (
                                             <div className="my-4">
-                                              <MediaEmbed
-                                                url={href}
-                                                title={linkText !== href ? linkText : undefined}
-                                              />
+                                              <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} />
                                             </div>
                                           );
                                         }
@@ -1166,12 +1132,12 @@ export function SearchCanvas() {
                                       },
                                     }}
                                   >
-                                    {response.content.replace(/\n\n---\n\*.*\*$/, '')}
+                                    {response.content.replace(/\n\n---\n\*.*\*$/, "")}
                                   </ReactMarkdown>
                                 </div>
                               </>
                             )}
-                            
+
                             {/* Loading state for pending response */}
                             {!response && (
                               <div className="flex items-center gap-3 text-muted-foreground">
@@ -1184,7 +1150,7 @@ export function SearchCanvas() {
                                 <span>Searching...</span>
                               </div>
                             )}
-                          </motion.div>
+                          </motion.div>,
                         );
                       }
                       return acc;
@@ -1197,39 +1163,41 @@ export function SearchCanvas() {
 
                 {/* Follow-up Input - Glass Dock Style */}
                 <div className="sticky bottom-6 z-10">
-					<div className={cn(
-						"glass-dock !rounded-full !p-1 transition-all duration-200",
-						"focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]",
-						"flex items-center gap-3 px-4"
-					)}>
-						<input
-                        ref={followUpInputRef}
-                        value={followUpInput}
-                        onChange={(e) => setFollowUpInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey && followUpInput.trim()) {
-                            e.preventDefault();
-                            handleFollowUp();
-                          }
-                        }}
-                        placeholder="Ask a follow-up..."
-                        className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60 pl-[5px]"
-							/>
-							
-							{/* Right send button */}
-							<button
-                        onClick={handleFollowUp}
-                        disabled={!followUpInput.trim()}
-                        className={cn(
-                          "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200",
-                          followUpInput.trim() 
-                            ? "bg-primary text-primary-foreground hover:bg-primary/90" 
-                            : "bg-muted text-muted-foreground cursor-not-allowed"
-                        )}
-							>
-								<Send className="h-4 w-4" />
-							</button>
-					</div>
+                  <div
+                    className={cn(
+                      "glass-dock !rounded-full !p-1 transition-all duration-200",
+                      "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]",
+                      "flex items-center gap-3 px-4",
+                    )}
+                  >
+                    <input
+                      ref={followUpInputRef}
+                      value={followUpInput}
+                      onChange={(e) => setFollowUpInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey && followUpInput.trim()) {
+                          e.preventDefault();
+                          handleFollowUp();
+                        }
+                      }}
+                      placeholder="Ask a follow-up..."
+                      className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60 pl-[5px]"
+                    />
+
+                    {/* Right send button */}
+                    <button
+                      onClick={handleFollowUp}
+                      disabled={!followUpInput.trim()}
+                      className={cn(
+                        "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200",
+                        followUpInput.trim()
+                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                          : "bg-muted text-muted-foreground cursor-not-allowed",
+                      )}
+                    >
+                      <Send className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ) : isSearching ? (
@@ -1242,7 +1210,7 @@ export function SearchCanvas() {
               >
                 <div className="relative w-20 h-20 mx-auto mb-6">
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5" />
-                  <motion.div 
+                  <motion.div
                     className="absolute inset-0 flex items-center justify-center"
                     animate={{ rotate: 360 }}
                     transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -1251,20 +1219,12 @@ export function SearchCanvas() {
                   </motion.div>
                 </div>
 
-                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
-                  Searching the web...
-                </h2>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  Finding the best sources for your query
-                </p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Searching the web...</h2>
+                <p className="text-muted-foreground max-w-md mx-auto">Finding the best sources for your query</p>
               </motion.div>
             ) : (
               /* Empty State */
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center py-12"
-              >
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-12">
                 <div className="relative w-20 h-20 mx-auto mb-6">
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5" />
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -1272,9 +1232,7 @@ export function SearchCanvas() {
                   </div>
                 </div>
 
-                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
-                  Ask anything
-                </h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Ask anything</h2>
                 <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Get instant answers with real-time web search powered by Perplexity AI
                 </p>
@@ -1282,7 +1240,7 @@ export function SearchCanvas() {
                 {/* Smart Suggestion Cards */}
                 <AnimatePresence mode="wait">
                   {isLoadingSuggestions ? (
-                    <motion.div 
+                    <motion.div
                       key="loading"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -1290,37 +1248,36 @@ export function SearchCanvas() {
                       className="flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto"
                     >
                       {[1, 2, 3, 4].map((i) => (
-                        <div
-                          key={i}
-                          className="h-12 w-36 rounded-full bg-muted/30 animate-pulse"
-                        />
+                        <div key={i} className="h-12 w-36 rounded-full bg-muted/30 animate-pulse" />
                       ))}
                     </motion.div>
                   ) : (
-                    <motion.div 
+                    <motion.div
                       key="suggestions"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3 }}
                       className="flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto"
                     >
-                      {(smartSuggestions.length > 0 ? smartSuggestions : defaultSuggestions).map((suggestion, index) => (
-                        <motion.button
-                          key={suggestion.label}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: index * 0.05 }}
-                          onClick={() => {
-                            setSearchQuery(suggestion.prompt);
-                            handleSearch(suggestion.prompt);
-                          }}
-                          className="px-4 py-2.5 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-primary/40 transition-all group"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <span className="text-sm font-medium text-foreground">{suggestion.label}</span>
-                        </motion.button>
-                      ))}
+                      {(smartSuggestions.length > 0 ? smartSuggestions : defaultSuggestions).map(
+                        (suggestion, index) => (
+                          <motion.button
+                            key={suggestion.label}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: index * 0.05 }}
+                            onClick={() => {
+                              setSearchQuery(suggestion.prompt);
+                              handleSearch(suggestion.prompt);
+                            }}
+                            className="px-4 py-2.5 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-primary/40 transition-all group"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <span className="text-sm font-medium text-foreground">{suggestion.label}</span>
+                          </motion.button>
+                        ),
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -1336,7 +1293,6 @@ export function SearchCanvas() {
           </div>
         )}
       </div>
-
     </div>
   );
 }
