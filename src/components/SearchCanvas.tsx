@@ -757,7 +757,7 @@ export function SearchCanvas() {
                       if (e.key === "Enter") handleSearch(searchQuery);
                     }}
                     placeholder="Research anything..."
-                    className="flex-1 border-0 bg-transparent h-12 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="landing-textarea flex-1 !border-0 !bg-transparent !shadow-none !ring-0 h-12 text-base placeholder:text-muted-foreground/60 focus-visible:!ring-0 focus-visible:!ring-offset-0 focus:!border-0 focus:!shadow-none"
                     disabled={isSearching}
                   />
                   
@@ -1215,7 +1215,7 @@ export function SearchCanvas() {
                           }
                         }}
                         placeholder="Ask a follow-up..."
-                        className="flex-1 border-0 bg-transparent h-12 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+                        className="landing-textarea flex-1 !border-0 !bg-transparent !shadow-none !ring-0 h-12 text-base placeholder:text-muted-foreground/60 focus-visible:!ring-0 focus-visible:!ring-offset-0 focus:!border-0 focus:!shadow-none"
                       />
                       
                       {/* Right send button */}
