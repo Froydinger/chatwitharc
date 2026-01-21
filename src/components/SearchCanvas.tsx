@@ -757,7 +757,7 @@ export function SearchCanvas() {
                       if (e.key === "Enter") handleSearch(searchQuery);
                     }}
                     placeholder="Research anything..."
-                    className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60"
+                    className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60 pl-[5px]"
                     disabled={isSearching}
                   />
                   
@@ -1213,7 +1213,7 @@ export function SearchCanvas() {
                           }
                         }}
                         placeholder="Ask a follow-up..."
-                        className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60"
+                        className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60 pl-[5px]"
 							/>
 							
 							{/* Right send button */}
