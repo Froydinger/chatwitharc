@@ -26,7 +26,6 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useSearchStore, SearchResult, SavedLink } from "@/store/useSearchStore";
@@ -749,7 +748,7 @@ export function SearchCanvas() {
                     <Search className="h-5 w-5" />
                   </div>
                   
-                  <Input
+                  <input
                     ref={searchInputRef}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -757,7 +756,7 @@ export function SearchCanvas() {
                       if (e.key === "Enter") handleSearch(searchQuery);
                     }}
                     placeholder="Research anything..."
-                    className="landing-textarea flex-1 !border-0 !bg-transparent !shadow-none !ring-0 h-12 text-base placeholder:text-muted-foreground/60 focus-visible:!ring-0 focus-visible:!ring-offset-0 focus:!border-0 focus:!shadow-none"
+                    className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60"
                     disabled={isSearching}
                   />
                   
@@ -1204,7 +1203,7 @@ export function SearchCanvas() {
                   )}>
                     <div className="flex items-center gap-3 px-4">
                       
-                      <Input
+                      <input
                         ref={followUpInputRef}
                         value={followUpInput}
                         onChange={(e) => setFollowUpInput(e.target.value)}
@@ -1215,7 +1214,7 @@ export function SearchCanvas() {
                           }
                         }}
                         placeholder="Ask a follow-up..."
-                        className="landing-textarea flex-1 !border-0 !bg-transparent !shadow-none !ring-0 h-12 text-base placeholder:text-muted-foreground/60 focus-visible:!ring-0 focus-visible:!ring-offset-0 focus:!border-0 focus:!shadow-none"
+                        className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60"
                       />
                       
                       {/* Right send button */}
