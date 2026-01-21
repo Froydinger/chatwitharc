@@ -1128,8 +1128,11 @@ export function SearchCanvas() {
                   </div>
                 )}
 
+                {/* Spacer for input bar */}
+                <div className="h-24" />
+
                 {/* Follow-up Input - Glass Dock Style */}
-                <div className="sticky bottom-4 z-10">
+                <div className="sticky bottom-6 z-10">
                   <div className={cn(
                     "glass-dock !rounded-full !p-1 transition-all duration-200",
                     "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]"
