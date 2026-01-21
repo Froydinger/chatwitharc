@@ -15,6 +15,7 @@ export interface SourceMessage {
   content: string;
   role: 'user' | 'assistant';
   timestamp: number;
+  sources?: SearchResult[]; // New sources found in follow-up searches
 }
 
 export interface SourceConversation {
@@ -526,13 +527,13 @@ export const useSearchStore = create<SearchState>()(
         }));
       },
 
-      // Summary conversation actions
+      // Summary conversation actions - now uses Perplexity for follow-up searches
       sendSummaryMessage: async (sessionId, message) => {
         const state = get();
         const session = state.sessions.find((s) => s.id === sessionId);
         if (!session) return;
 
-        // Add user message
+        // Add user message immediately
         const userMessage: SourceMessage = {
           id: crypto.randomUUID(),
           content: message,
@@ -543,37 +544,65 @@ export const useSearchStore = create<SearchState>()(
         get().addSummaryMessage(sessionId, userMessage);
 
         try {
-          // Build context from all search results
-          const resultsContext = session.results
-            .map(r => `Title: ${r.title}\nURL: ${r.url}\nSnippet: ${r.snippet}`)
-            .join('\n\n');
+          // Build context from previous conversation for Perplexity
+          const previousContext = session.summaryConversation
+            ?.filter(m => m.role === 'user' || m.role === 'assistant')
+            .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+            .join('\n\n') || '';
 
-          const contextPrompt = `You are having a conversation about this search summary for "${session.query}":\n\n${session.formattedContent}\n\nSearch Results:\n${resultsContext}\n\nUser: ${message}`;
+          const contextualQuery = previousContext
+            ? `Context from previous conversation about "${session.query}":\n${previousContext}\n\nFollow-up question: ${message}`
+            : `Follow-up to "${session.query}": ${message}`;
 
-          const { data, error } = await supabase.functions.invoke('chat', {
+          // Use Perplexity for follow-up search
+          const { data, error } = await supabase.functions.invoke('perplexity-search', {
             body: {
-              messages: [
-                ...(session.summaryConversation?.map(m => ({
-                  role: m.role,
-                  content: m.content,
-                })) || []),
-                { role: 'user', content: contextPrompt },
-              ],
+              query: contextualQuery,
+              model: 'sonar-pro',
             },
           });
 
           if (error) throw error;
 
+          // Extract new sources if any
+          const newSources = data?.sources?.map((source: any, index: number) => ({
+            id: `followup-${Date.now()}-${index}`,
+            title: source.title || `Source ${index + 1}`,
+            url: source.url,
+            snippet: source.snippet || '',
+          })) || [];
+
+          // Build response with sources reference
+          let responseContent = data?.content || 'Sorry, I could not find an answer.';
+          
+          // Add sources reference at the end if there are new sources
+          if (newSources.length > 0) {
+            responseContent += `\n\n---\n*${newSources.length} new source${newSources.length > 1 ? 's' : ''} found*`;
+          }
+
           const assistantMessage: SourceMessage = {
             id: crypto.randomUUID(),
-            content: data?.choices?.[0]?.message?.content || 'Sorry, I could not respond.',
+            content: responseContent,
             role: 'assistant',
             timestamp: Date.now(),
+            sources: newSources, // Attach sources to the message
           };
 
           get().addSummaryMessage(sessionId, assistantMessage);
+
+          // Merge new sources into session results (avoid duplicates by URL)
+          if (newSources.length > 0) {
+            const existingUrls = new Set(session.results.map(r => r.url));
+            const uniqueNewSources = newSources.filter((s: any) => !existingUrls.has(s.url));
+            
+            if (uniqueNewSources.length > 0) {
+              get().updateSession(sessionId, {
+                results: [...session.results, ...uniqueNewSources],
+              });
+            }
+          }
         } catch (error) {
-          console.error('Summary chat error:', error);
+          console.error('Follow-up search error:', error);
           const errorMessage: SourceMessage = {
             id: crypto.randomUUID(),
             content: 'Sorry, I encountered an error. Please try again.',

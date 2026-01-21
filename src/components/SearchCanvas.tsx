@@ -1019,42 +1019,112 @@ export function SearchCanvas() {
                   </div>
                 </article>
 
-                {/* Follow-up Conversation Thread */}
+                {/* Follow-up Research Threads - Same style as main content */}
                 {activeSession.summaryConversation && activeSession.summaryConversation.length > 0 && (
-                  <div className="mb-8 border-t border-border/30 pt-8">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <RotateCcw className="w-5 h-5 text-primary" />
-                      Follow-up Questions
-                    </h3>
-                    <div className="space-y-6">
-                      {activeSession.summaryConversation.reduce((acc: JSX.Element[], msg, idx, arr) => {
-                        if (msg.role === 'user') {
-                          const response = arr[idx + 1];
-                          acc.push(
-                            <motion.div
-                              key={msg.id}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              className="rounded-xl border border-border/50 bg-card/30 overflow-hidden"
-                            >
-                              <div className="px-4 py-3 bg-primary/5 border-b border-border/30">
-                                <p className="font-medium text-foreground">{msg.content}</p>
-                              </div>
-                              {response && response.role === 'assistant' && (
-                                <div className="px-4 py-4">
-                                  <div className="prose prose-neutral dark:prose-invert prose-sm max-w-none">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                      {response.content}
-                                    </ReactMarkdown>
+                  <div className="space-y-8">
+                    {activeSession.summaryConversation.reduce((acc: JSX.Element[], msg, idx, arr) => {
+                      if (msg.role === 'user') {
+                        const response = arr[idx + 1];
+                        acc.push(
+                          <motion.div
+                            key={msg.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="border-t border-border/30 pt-8"
+                          >
+                            {/* Follow-up Query as Sub-heading */}
+                            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
+                              <MessageCircle className="w-5 h-5 text-primary" />
+                              {msg.content}
+                            </h2>
+                            
+                            {/* Response Content - Same markdown styling */}
+                            {response && response.role === 'assistant' && (
+                              <>
+                                {/* New sources pill if any */}
+                                {response.sources && response.sources.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 mb-4">
+                                    {response.sources.map((source, sIdx) => (
+                                      <a
+                                        key={sIdx}
+                                        href={source.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-primary/40 transition-all text-sm"
+                                      >
+                                        <img
+                                          src={`https://www.google.com/s2/favicons?domain=${new URL(source.url).hostname}&sz=16`}
+                                          alt=""
+                                          className="w-4 h-4 rounded"
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                          }}
+                                        />
+                                        <span className="text-muted-foreground truncate max-w-[150px]">
+                                          {new URL(source.url).hostname.replace('www.', '')}
+                                        </span>
+                                        <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                                      </a>
+                                    ))}
                                   </div>
+                                )}
+                                
+                                <div className="prose prose-neutral dark:prose-invert prose-lg max-w-none">
+                                  <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                      p: ({ node, ...props }) => (
+                                        <p className="text-base sm:text-lg leading-relaxed mb-4 text-foreground/90" {...props} />
+                                      ),
+                                      h2: ({ node, ...props }) => (
+                                        <h2 className="text-xl sm:text-2xl font-semibold mt-6 mb-3 text-foreground" {...props} />
+                                      ),
+                                      h3: ({ node, ...props }) => (
+                                        <h3 className="text-lg sm:text-xl font-semibold mt-5 mb-2 text-foreground" {...props} />
+                                      ),
+                                      ul: ({ node, ...props }) => (
+                                        <ul className="list-disc pl-5 mb-4 space-y-2" {...props} />
+                                      ),
+                                      ol: ({ node, ...props }) => (
+                                        <ol className="list-decimal pl-5 mb-4 space-y-2" {...props} />
+                                      ),
+                                      li: ({ node, ...props }) => (
+                                        <li className="text-base sm:text-lg leading-relaxed text-foreground/90" {...props} />
+                                      ),
+                                      a: ({ node, href, ...props }) => (
+                                        <a
+                                          href={href}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-primary hover:underline underline-offset-2"
+                                          {...props}
+                                        />
+                                      ),
+                                    }}
+                                  >
+                                    {response.content.replace(/\n\n---\n\*.*\*$/, '')}
+                                  </ReactMarkdown>
                                 </div>
-                              )}
-                            </motion.div>
-                          );
-                        }
-                        return acc;
-                      }, [])}
-                    </div>
+                              </>
+                            )}
+                            
+                            {/* Loading state for pending response */}
+                            {!response && (
+                              <div className="flex items-center gap-3 text-muted-foreground">
+                                <motion.div
+                                  animate={{ rotate: 360 }}
+                                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                >
+                                  <Globe className="w-5 h-5 text-primary" />
+                                </motion.div>
+                                <span>Searching...</span>
+                              </div>
+                            )}
+                          </motion.div>
+                        );
+                      }
+                      return acc;
+                    }, [])}
                   </div>
                 )}
 
