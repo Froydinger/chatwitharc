@@ -729,16 +729,22 @@ export function SearchCanvas() {
           )}
 
           <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10">
-            {/* Search Input */}
+            {/* Search Input - Glass Dock Style */}
             <div className="mb-8">
               <div className="relative">
                 <div className={cn(
-                  "relative rounded-2xl border transition-all duration-200",
-                  "bg-muted/30 border-border/50",
-                  "focus-within:border-primary/50 focus-within:bg-background focus-within:shadow-lg focus-within:shadow-primary/5"
+                  "glass-dock !rounded-full !p-1 transition-all duration-200",
+                  "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]"
                 )}>
-                  <div className="flex items-center gap-3 px-4">
-                    <Search className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  <div className="flex items-center gap-3 px-2">
+                    {/* Left sparkles button */}
+                    <button
+                      type="button"
+                      className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer text-orange-400"
+                    >
+                      <Sparkles className="h-5 w-5" />
+                    </button>
+                    
                     <Input
                       ref={searchInputRef}
                       value={searchQuery}
@@ -747,17 +753,18 @@ export function SearchCanvas() {
                         if (e.key === "Enter") handleSearch(searchQuery);
                       }}
                       placeholder="Ask anything..."
-                      className="flex-1 border-0 bg-transparent h-12 sm:h-14 text-base sm:text-lg placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="flex-1 border-0 bg-transparent h-12 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
                       disabled={isSearching}
                     />
+                    
+                    {/* Right send button */}
                     {searchQuery && !isSearching && (
-                      <Button
+                      <button
                         onClick={() => handleSearch(searchQuery)}
-                        size="sm"
-                        className="h-8 px-4 rounded-xl"
+                        className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
                       >
-                        Search
-                      </Button>
+                        <Send className="h-4 w-4" />
+                      </button>
                     )}
                   </div>
                 </div>
@@ -1026,14 +1033,21 @@ export function SearchCanvas() {
                   </div>
                 )}
 
-                {/* Follow-up Input */}
+                {/* Follow-up Input - Glass Dock Style */}
                 <div className="sticky bottom-4 z-10">
                   <div className={cn(
-                    "relative rounded-2xl border transition-all duration-200",
-                    "bg-background/95 backdrop-blur-lg border-border/50 shadow-lg",
-                    "focus-within:border-primary/50"
+                    "glass-dock !rounded-full !p-1 transition-all duration-200",
+                    "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]"
                   )}>
-                    <div className="flex items-center gap-3 px-4">
+                    <div className="flex items-center gap-3 px-2">
+                      {/* Left sparkles button */}
+                      <button
+                        type="button"
+                        className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer text-muted-foreground hover:text-foreground"
+                      >
+                        <RotateCcw className="h-5 w-5" />
+                      </button>
+                      
                       <Input
                         ref={followUpInputRef}
                         value={followUpInput}
@@ -1047,14 +1061,20 @@ export function SearchCanvas() {
                         placeholder="Ask a follow-up question..."
                         className="flex-1 border-0 bg-transparent h-12 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
-                      <Button
+                      
+                      {/* Right send button */}
+                      <button
                         onClick={handleFollowUp}
                         disabled={!followUpInput.trim()}
-                        size="sm"
-                        className="h-9 w-9 p-0 rounded-xl"
+                        className={cn(
+                          "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200",
+                          followUpInput.trim() 
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                            : "bg-muted text-muted-foreground cursor-not-allowed"
+                        )}
                       >
-                        <Send className="w-4 h-4" />
-                      </Button>
+                        <Send className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
