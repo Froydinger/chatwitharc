@@ -736,14 +736,11 @@ export function SearchCanvas() {
                   "glass-dock !rounded-full !p-1 transition-all duration-200",
                   "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]"
                 )}>
-                  <div className="flex items-center gap-3 px-2">
-                    {/* Left sparkles button */}
-                    <button
-                      type="button"
-                      className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer text-orange-400"
-                    >
-                      <Sparkles className="h-5 w-5" />
-                    </button>
+                  <div className="flex items-center gap-3 px-4">
+                    {/* Left search icon */}
+                    <div className="shrink-0 flex items-center justify-center text-muted-foreground">
+                      <Search className="h-5 w-5" />
+                    </div>
                     
                     <Input
                       ref={searchInputRef}
@@ -752,7 +749,7 @@ export function SearchCanvas() {
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleSearch(searchQuery);
                       }}
-                      placeholder="Ask anything..."
+                      placeholder="Research anything..."
                       className="flex-1 border-0 bg-transparent h-12 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
                       disabled={isSearching}
                     />
@@ -1039,14 +1036,11 @@ export function SearchCanvas() {
                     "glass-dock !rounded-full !p-1 transition-all duration-200",
                     "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]"
                   )}>
-                    <div className="flex items-center gap-3 px-2">
-                      {/* Left sparkles button */}
-                      <button
-                        type="button"
-                        className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer text-muted-foreground hover:text-foreground"
-                      >
+                    <div className="flex items-center gap-3 px-4">
+                      {/* Left follow-up icon */}
+                      <div className="shrink-0 flex items-center justify-center text-muted-foreground">
                         <RotateCcw className="h-5 w-5" />
-                      </button>
+                      </div>
                       
                       <Input
                         ref={followUpInputRef}
@@ -1058,7 +1052,7 @@ export function SearchCanvas() {
                             handleFollowUp();
                           }
                         }}
-                        placeholder="Ask a follow-up question..."
+                        placeholder="Ask a follow-up..."
                         className="flex-1 border-0 bg-transparent h-12 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                       
