@@ -742,7 +742,7 @@ export function SearchCanvas() {
                 "glass-dock !rounded-full !p-1 transition-all duration-200",
                 "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]"
               )}>
-                <div className="flex items-center gap-3 px-4 !rounded-none">
+                <div className="flex items-center gap-3 px-4 !rounded-none bg-transparent !border-0 !shadow-none">
                   {/* Left search icon */}
                   <div className="shrink-0 flex items-center justify-center text-muted-foreground">
                     <Search className="h-5 w-5" />
@@ -1201,7 +1201,7 @@ export function SearchCanvas() {
                     "glass-dock !rounded-full !p-1 transition-all duration-200",
                     "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]"
                   )}>
-                    <div className="flex items-center gap-3 px-4 !rounded-none">
+                    <div className="flex items-center gap-3 px-4 !rounded-none bg-transparent !border-0 !shadow-none">
                       
                       <input
                         ref={followUpInputRef}
