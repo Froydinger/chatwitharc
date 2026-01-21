@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { useSearchStore, SearchResult, SavedLink } from "@/store/useSearchStore";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
+import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
 
 export function SearchCanvas() {
   const {
@@ -992,15 +993,47 @@ export function SearchCanvas() {
                         strong: ({ node, ...props }) => (
                           <strong className="font-semibold text-foreground" {...props} />
                         ),
-                        a: ({ node, href, ...props }) => (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline underline-offset-2"
-                            {...props}
-                          />
-                        ),
+                        a: ({ node, href, children, ...props }) => {
+                          // Detect YouTube links and embed them
+                          if (href && getYouTubeVideoId(href)) {
+                            const linkText = typeof children === 'string' ? children :
+                              (Array.isArray(children) ? children.join('') : String(children));
+                            return (
+                              <div className="my-4">
+                                <MediaEmbed
+                                  url={href}
+                                  title={linkText !== href ? linkText : undefined}
+                                />
+                              </div>
+                            );
+                          }
+
+                          // Detect direct image URLs and embed them
+                          if (href && isImageUrl(href)) {
+                            const linkText = typeof children === 'string' ? children :
+                              (Array.isArray(children) ? children.join('') : String(children));
+                            return (
+                              <div className="my-4">
+                                <MediaEmbed
+                                  url={href}
+                                  title={linkText !== href ? linkText : undefined}
+                                />
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline underline-offset-2"
+                              {...props}
+                            >
+                              {children}
+                            </a>
+                          );
+                        },
                         code: ({ node, className, ...props }) => {
                           const isInline = !className;
                           return isInline ? (
@@ -1091,15 +1124,47 @@ export function SearchCanvas() {
                                       li: ({ node, ...props }) => (
                                         <li className="text-base sm:text-lg leading-relaxed text-foreground/90" {...props} />
                                       ),
-                                      a: ({ node, href, ...props }) => (
-                                        <a
-                                          href={href}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-primary hover:underline underline-offset-2"
-                                          {...props}
-                                        />
-                                      ),
+                                      a: ({ node, href, children, ...props }) => {
+                                        // Detect YouTube links and embed them
+                                        if (href && getYouTubeVideoId(href)) {
+                                          const linkText = typeof children === 'string' ? children :
+                                            (Array.isArray(children) ? children.join('') : String(children));
+                                          return (
+                                            <div className="my-4">
+                                              <MediaEmbed
+                                                url={href}
+                                                title={linkText !== href ? linkText : undefined}
+                                              />
+                                            </div>
+                                          );
+                                        }
+
+                                        // Detect direct image URLs and embed them
+                                        if (href && isImageUrl(href)) {
+                                          const linkText = typeof children === 'string' ? children :
+                                            (Array.isArray(children) ? children.join('') : String(children));
+                                          return (
+                                            <div className="my-4">
+                                              <MediaEmbed
+                                                url={href}
+                                                title={linkText !== href ? linkText : undefined}
+                                              />
+                                            </div>
+                                          );
+                                        }
+
+                                        return (
+                                          <a
+                                            href={href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary hover:underline underline-offset-2"
+                                            {...props}
+                                          >
+                                            {children}
+                                          </a>
+                                        );
+                                      },
                                     }}
                                   >
                                     {response.content.replace(/\n\n---\n\*.*\*$/, '')}
