@@ -67,7 +67,17 @@ export function SearchCanvas() {
   const [selectedLinks, setSelectedLinks] = useState<Set<string>>(new Set());
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [historyPage, setHistoryPage] = useState(0);
+  const [smartSuggestions, setSmartSuggestions] = useState<Array<{ label: string; prompt: string }>>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const HISTORY_PAGE_SIZE = 5;
+  
+  // Default fallback suggestions for research
+  const defaultSuggestions = [
+    { label: "🤖 AI News", prompt: "What's new in AI today?" },
+    { label: "⚛️ Quantum", prompt: "How does quantum computing work?" },
+    { label: "📈 Productivity", prompt: "Best practices for productivity" },
+    { label: "🌱 Energy", prompt: "Future of renewable energy" },
+  ];
 
   // Track if running as PWA or Electron app for traffic lights spacing
   const [isPWAMode, setIsPWAMode] = useState(false);
@@ -114,12 +124,30 @@ export function SearchCanvas() {
     syncFromSupabase().catch(console.error);
   }, []);
 
-  // Focus search input on mount
+  // Load smart suggestions on mount
   useEffect(() => {
-    const timer = setTimeout(() => {
-      searchInputRef.current?.focus();
-    }, 100);
-    return () => clearTimeout(timer);
+    const loadSmartSuggestions = async () => {
+      setIsLoadingSuggestions(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-smart-prompts', {
+          body: { context: 'research' }
+        });
+        
+        if (error) throw error;
+        
+        if (data?.prompts && Array.isArray(data.prompts)) {
+          // Take first 4 for research mode
+          setSmartSuggestions(data.prompts.slice(0, 4));
+        }
+      } catch (err) {
+        console.error('Failed to load smart suggestions:', err);
+        // Will fallback to default suggestions
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    };
+    
+    loadSmartSuggestions();
   }, []);
 
   // Auto-search if there's a pending query
@@ -705,68 +733,86 @@ export function SearchCanvas() {
         )}
       </AnimatePresence>
 
-      {/* Fixed Search Input Bar */}
-      <div className="border-b border-border/20 bg-background/80 backdrop-blur-sm">
-        <div className="max-w-3xl mx-auto px-4 py-4">
-          <div className="relative">
-            <div className={cn(
-              "glass-dock !rounded-full !p-1 transition-all duration-200",
-              "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]"
-            )}>
-              <div className="flex items-center gap-3 px-4">
-                {/* Left search icon */}
-                <div className="shrink-0 flex items-center justify-center text-muted-foreground">
-                  <Search className="h-5 w-5" />
-                </div>
-                
-                <Input
-                  ref={searchInputRef}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSearch(searchQuery);
-                  }}
-                  placeholder="Research anything..."
-                  className="flex-1 border-0 bg-transparent h-12 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  disabled={isSearching}
-                />
-                
-                {/* Right send button */}
-                {searchQuery && !isSearching && (
-                  <button
-                    onClick={() => handleSearch(searchQuery)}
-                    className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    <Send className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Searching Indicator */}
-            <AnimatePresence>
-              {isSearching && (
-                <motion.div
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  className="absolute left-0 right-0 -bottom-10 flex justify-center"
-                >
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    >
-                      <Globe className="w-4 h-4" />
-                    </motion.div>
-                    <span>Searching the web...</span>
+      {/* Fixed Search Input Bar - Hide on mobile when in active session */}
+      {!(isMobile && activeSession) && (
+        <div className="border-b border-border/20 bg-background/80 backdrop-blur-sm">
+          <div className="max-w-3xl mx-auto px-4 py-4">
+            <div className="relative">
+              <div className={cn(
+                "glass-dock !rounded-full !p-1 transition-all duration-200",
+                "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]"
+              )}>
+                <div className="flex items-center gap-3 px-4">
+                  {/* Left search icon */}
+                  <div className="shrink-0 flex items-center justify-center text-muted-foreground">
+                    <Search className="h-5 w-5" />
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  
+                  <Input
+                    ref={searchInputRef}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSearch(searchQuery);
+                    }}
+                    placeholder="Research anything..."
+                    className="flex-1 border-0 bg-transparent h-12 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    disabled={isSearching}
+                  />
+                  
+                  {/* Right send button */}
+                  {searchQuery && !isSearching && (
+                    <button
+                      onClick={() => handleSearch(searchQuery)}
+                      className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      <Send className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Searching Indicator */}
+              <AnimatePresence>
+                {isSearching && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="absolute left-0 right-0 -bottom-10 flex justify-center"
+                  >
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      >
+                        <Globe className="w-4 h-4" />
+                      </motion.div>
+                      <span>Searching the web...</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+      
+      {/* Mobile: New Search FAB when in active session */}
+      {isMobile && activeSession && (
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          onClick={() => {
+            setActiveSession(null as any);
+            setSearchQuery("");
+            setHistoryPage(0);
+          }}
+          className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+        >
+          <Plus className="h-6 w-6" />
+        </motion.button>
+      )}
 
       {/* Main Layout: Content + Sidebar on Desktop */}
       <div className="flex-1 flex overflow-hidden">
@@ -1093,31 +1139,34 @@ export function SearchCanvas() {
                   Get instant answers with real-time web search powered by Perplexity AI
                 </p>
 
-                {/* Suggestion Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
-                  {[
-                    "What's new in AI today?",
-                    "How does quantum computing work?",
-                    "Best practices for productivity",
-                    "Future of renewable energy",
-                  ].map((suggestion) => (
-                    <motion.button
-                      key={suggestion}
-                      onClick={() => {
-                        setSearchQuery(suggestion);
-                        handleSearch(suggestion);
-                      }}
-                      className="text-left px-4 py-3 rounded-xl border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-all group"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Search className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                        <span className="text-sm text-foreground">{suggestion}</span>
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
+                {/* Smart Suggestion Cards */}
+                {isLoadingSuggestions ? (
+                  <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className="h-12 w-36 rounded-full bg-muted/30 animate-pulse"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto">
+                    {(smartSuggestions.length > 0 ? smartSuggestions : defaultSuggestions).map((suggestion) => (
+                      <motion.button
+                        key={suggestion.label}
+                        onClick={() => {
+                          setSearchQuery(suggestion.prompt);
+                          handleSearch(suggestion.prompt);
+                        }}
+                        className="px-4 py-2.5 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-primary/40 transition-all group"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <span className="text-sm font-medium text-foreground">{suggestion.label}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             )}
           </div>
