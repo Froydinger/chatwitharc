@@ -150,7 +150,7 @@ serve(async (req) => {
     console.log('Perplexity response received, citations:', data.citations?.length || 0);
 
     // Extract content and citations
-    const content = data.choices?.[0]?.message?.content || '';
+    let content = data.choices?.[0]?.message?.content || '';
     const citations: string[] = data.citations || [];
 
     // Convert citations to SearchResult format
@@ -168,6 +168,27 @@ serve(async (req) => {
         url,
         snippet: '', // Perplexity doesn't provide snippets directly
       };
+    });
+
+    // Replace citation references [1], [2], etc. with actual markdown links
+    citations.forEach((url: string, index: number) => {
+      let domain = '';
+      try {
+        domain = new URL(url).hostname.replace('www.', '');
+      } catch {
+        domain = url;
+      }
+      
+      // Replace [n] with markdown link - handle various formats
+      const citationNum = index + 1;
+      const patterns = [
+        new RegExp(`\\[${citationNum}\\]`, 'g'),  // [1]
+        new RegExp(`\\[\\[${citationNum}\\]\\]`, 'g'),  // [[1]]
+      ];
+      
+      patterns.forEach(pattern => {
+        content = content.replace(pattern, `[${domain}](${url})`);
+      });
     });
 
     return new Response(
