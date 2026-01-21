@@ -1140,33 +1140,50 @@ export function SearchCanvas() {
                 </p>
 
                 {/* Smart Suggestion Cards */}
-                {isLoadingSuggestions ? (
-                  <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className="h-12 w-36 rounded-full bg-muted/30 animate-pulse"
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto">
-                    {(smartSuggestions.length > 0 ? smartSuggestions : defaultSuggestions).map((suggestion) => (
-                      <motion.button
-                        key={suggestion.label}
-                        onClick={() => {
-                          setSearchQuery(suggestion.prompt);
-                          handleSearch(suggestion.prompt);
-                        }}
-                        className="px-4 py-2.5 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-primary/40 transition-all group"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <span className="text-sm font-medium text-foreground">{suggestion.label}</span>
-                      </motion.button>
-                    ))}
-                  </div>
-                )}
+                <AnimatePresence mode="wait">
+                  {isLoadingSuggestions ? (
+                    <motion.div 
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto"
+                    >
+                      {[1, 2, 3, 4].map((i) => (
+                        <div
+                          key={i}
+                          className="h-12 w-36 rounded-full bg-muted/30 animate-pulse"
+                        />
+                      ))}
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      key="suggestions"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto"
+                    >
+                      {(smartSuggestions.length > 0 ? smartSuggestions : defaultSuggestions).map((suggestion, index) => (
+                        <motion.button
+                          key={suggestion.label}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: index * 0.05 }}
+                          onClick={() => {
+                            setSearchQuery(suggestion.prompt);
+                            handleSearch(suggestion.prompt);
+                          }}
+                          className="px-4 py-2.5 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-primary/40 transition-all group"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <span className="text-sm font-medium text-foreground">{suggestion.label}</span>
+                        </motion.button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
           </div>
