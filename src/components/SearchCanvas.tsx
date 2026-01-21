@@ -1181,7 +1181,7 @@ export function SearchCanvas() {
                         }
                       }}
                       placeholder="Ask a follow-up..."
-                      className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60 pl-[5px]"
+                      className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60 pl-[15px]"
                     />
 
                     {/* Right send button */}
