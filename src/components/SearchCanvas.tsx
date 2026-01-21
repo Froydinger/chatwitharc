@@ -737,16 +737,17 @@ export function SearchCanvas() {
       {!(isMobile && activeSession) && (
         <div className="border-b border-border/20 bg-background/80 backdrop-blur-sm">
           <div className="max-w-3xl mx-auto px-4 py-4">
-            <div className="relative">
-              <div className={cn(
-                "glass-dock !rounded-full !p-1 transition-all duration-200",
-                "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]"
-              )}>
-                <div className="flex items-center gap-3 px-4 !rounded-none bg-transparent !border-0 !shadow-none">
-                  {/* Left search icon */}
-                  <div className="shrink-0 flex items-center justify-center text-muted-foreground">
-                    <Search className="h-5 w-5" />
-                  </div>
+
+			<div className="relative">
+				<div className={cn(
+					"glass-dock !rounded-full !p-1 transition-all duration-200",
+					"focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]",
+					"flex items-center gap-3 px-4"
+				)}>
+					{/* Left search icon */}
+					<div className="shrink-0 flex items-center justify-center text-muted-foreground">
+						<Search className="h-5 w-5" />
+					</div>
                   
                   <input
                     ref={searchInputRef}
@@ -760,17 +761,16 @@ export function SearchCanvas() {
                     disabled={isSearching}
                   />
                   
-                  {/* Right send button */}
-                  {searchQuery && !isSearching && (
-                    <button
-                      onClick={() => handleSearch(searchQuery)}
-                      className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                      <Send className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              </div>
+					{/* Right send button */}
+					{searchQuery && !isSearching && (
+						<button
+							onClick={() => handleSearch(searchQuery)}
+							className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
+						>
+							<Send className="h-4 w-4" />
+						</button>
+					)}
+				</div>
 
             </div>
           </div>
@@ -1197,13 +1197,12 @@ export function SearchCanvas() {
 
                 {/* Follow-up Input - Glass Dock Style */}
                 <div className="sticky bottom-6 z-10">
-                  <div className={cn(
-                    "glass-dock !rounded-full !p-1 transition-all duration-200",
-                    "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]"
-                  )}>
-                    <div className="flex items-center gap-3 px-4 !rounded-none bg-transparent !border-0 !shadow-none">
-                      
-                      <input
+					<div className={cn(
+						"glass-dock !rounded-full !p-1 transition-all duration-200",
+						"focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]",
+						"flex items-center gap-3 px-4"
+					)}>
+						<input
                         ref={followUpInputRef}
                         value={followUpInput}
                         onChange={(e) => setFollowUpInput(e.target.value)}
@@ -1215,10 +1214,10 @@ export function SearchCanvas() {
                         }}
                         placeholder="Ask a follow-up..."
                         className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60"
-                      />
-                      
-                      {/* Right send button */}
-                      <button
+							/>
+							
+							{/* Right send button */}
+							<button
                         onClick={handleFollowUp}
                         disabled={!followUpInput.trim()}
                         className={cn(
@@ -1227,11 +1226,10 @@ export function SearchCanvas() {
                             ? "bg-primary text-primary-foreground hover:bg-primary/90" 
                             : "bg-muted text-muted-foreground cursor-not-allowed"
                         )}
-                      >
-                        <Send className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
+							>
+								<Send className="h-4 w-4" />
+							</button>
+					</div>
                 </div>
               </motion.div>
             ) : isSearching ? (
