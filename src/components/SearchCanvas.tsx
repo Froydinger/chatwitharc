@@ -705,6 +705,69 @@ export function SearchCanvas() {
         )}
       </AnimatePresence>
 
+      {/* Fixed Search Input Bar */}
+      <div className="border-b border-border/20 bg-background/80 backdrop-blur-sm">
+        <div className="max-w-3xl mx-auto px-4 py-4">
+          <div className="relative">
+            <div className={cn(
+              "glass-dock !rounded-full !p-1 transition-all duration-200",
+              "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]"
+            )}>
+              <div className="flex items-center gap-3 px-4">
+                {/* Left search icon */}
+                <div className="shrink-0 flex items-center justify-center text-muted-foreground">
+                  <Search className="h-5 w-5" />
+                </div>
+                
+                <Input
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSearch(searchQuery);
+                  }}
+                  placeholder="Research anything..."
+                  className="flex-1 border-0 bg-transparent h-12 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  disabled={isSearching}
+                />
+                
+                {/* Right send button */}
+                {searchQuery && !isSearching && (
+                  <button
+                    onClick={() => handleSearch(searchQuery)}
+                    className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Send className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Searching Indicator */}
+            <AnimatePresence>
+              {isSearching && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  className="absolute left-0 right-0 -bottom-10 flex justify-center"
+                >
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Globe className="w-4 h-4" />
+                    </motion.div>
+                    <span>Searching the web...</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+
       {/* Main Layout: Content + Sidebar on Desktop */}
       <div className="flex-1 flex overflow-hidden">
         {/* Main Content */}
@@ -729,66 +792,6 @@ export function SearchCanvas() {
           )}
 
           <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10">
-            {/* Search Input - Glass Dock Style */}
-            <div className="mb-8">
-              <div className="relative">
-                <div className={cn(
-                  "glass-dock !rounded-full !p-1 transition-all duration-200",
-                  "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]"
-                )}>
-                  <div className="flex items-center gap-3 px-4">
-                    {/* Left search icon */}
-                    <div className="shrink-0 flex items-center justify-center text-muted-foreground">
-                      <Search className="h-5 w-5" />
-                    </div>
-                    
-                    <Input
-                      ref={searchInputRef}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSearch(searchQuery);
-                      }}
-                      placeholder="Research anything..."
-                      className="flex-1 border-0 bg-transparent h-12 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
-                      disabled={isSearching}
-                    />
-                    
-                    {/* Right send button */}
-                    {searchQuery && !isSearching && (
-                      <button
-                        onClick={() => handleSearch(searchQuery)}
-                        className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
-                      >
-                        <Send className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Searching Indicator */}
-                <AnimatePresence>
-                  {isSearching && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -5 }}
-                      className="absolute left-0 right-0 -bottom-10 flex justify-center"
-                    >
-                      <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm">
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        >
-                          <Globe className="w-4 h-4" />
-                        </motion.div>
-                        <span>Searching the web...</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
 
             {/* Active Session Content */}
             {activeSession ? (
@@ -1119,90 +1122,6 @@ export function SearchCanvas() {
                     </motion.button>
                   ))}
                 </div>
-
-                {/* History Section - Below Quick Prompts */}
-                {sessions.length > 0 && (
-                  <div className="mt-10 max-w-lg mx-auto">
-                    <div className="rounded-xl border border-border/50 bg-card/50 p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-medium text-muted-foreground text-left">Recent Searches</h3>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            clearAllSessions();
-                            setHistoryPage(0);
-                          }}
-                          className="h-7 text-xs text-muted-foreground hover:text-destructive"
-                        >
-                          Clear all
-                        </Button>
-                      </div>
-                      <div className="space-y-2">
-                        {sessions
-                          .slice()
-                          .reverse()
-                          .slice(historyPage * HISTORY_PAGE_SIZE, (historyPage + 1) * HISTORY_PAGE_SIZE)
-                          .map((session) => (
-                            <motion.button
-                              key={session.id}
-                              onClick={() => {
-                                setActiveSession(session.id);
-                              }}
-                              className={cn(
-                                "w-full text-left px-3 py-2.5 rounded-lg transition-colors",
-                                "hover:bg-muted/50",
-                                session.id === activeSessionId && "bg-primary/10 text-primary"
-                              )}
-                              whileHover={{ x: 4 }}
-                            >
-                              <p className="text-sm font-medium line-clamp-1">{session.query}</p>
-                              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                                <span>{session.results.length} sources</span>
-                                <span>·</span>
-                                <span>{formatTimestamp(session.timestamp)}</span>
-                                {session.summaryConversation && session.summaryConversation.length > 0 && (
-                                  <>
-                                    <span>·</span>
-                                    <span>{Math.floor(session.summaryConversation.length / 2)} follow-ups</span>
-                                  </>
-                                )}
-                              </div>
-                            </motion.button>
-                          ))}
-                      </div>
-
-                      {/* Pagination Controls */}
-                      {sessions.length > HISTORY_PAGE_SIZE && (
-                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
-                          <span className="text-xs text-muted-foreground">
-                            {historyPage * HISTORY_PAGE_SIZE + 1}-{Math.min((historyPage + 1) * HISTORY_PAGE_SIZE, sessions.length)} of {sessions.length}
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setHistoryPage(Math.max(0, historyPage - 1))}
-                              disabled={historyPage === 0}
-                              className="h-7 px-2 text-xs"
-                            >
-                              Previous
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setHistoryPage(historyPage + 1)}
-                              disabled={(historyPage + 1) * HISTORY_PAGE_SIZE >= sessions.length}
-                              className="h-7 px-2 text-xs"
-                            >
-                              Next
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </motion.div>
             )}
           </div>
