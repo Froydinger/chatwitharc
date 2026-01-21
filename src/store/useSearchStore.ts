@@ -683,14 +683,16 @@ export const useSearchStore = create<SearchState>()(
 
             // Smart merge: prefer local data when it's more complete (has more follow-ups, etc.)
             const mergedSessions: SearchSession[] = [];
-            const supabaseSessionMap = new Map(supabaseSessions.map(s => [s.id, s]));
-            const localSessionMap = new Map(state.sessions.map(s => [s.id, s]));
+            const supabaseSessionMap: Map<string, SearchSession> = new Map();
+            supabaseSessions.forEach(s => supabaseSessionMap.set(s.id, s));
+            const localSessionMap: Map<string, SearchSession> = new Map();
+            state.sessions.forEach(s => localSessionMap.set(s.id, s));
             const processedIds = new Set<string>();
 
             // Process all unique session IDs
-            const allIds = new Set([...supabaseSessionMap.keys(), ...localSessionMap.keys()]);
+            const allIds = new Set<string>([...supabaseSessionMap.keys(), ...localSessionMap.keys()]);
 
-            allIds.forEach(id => {
+            allIds.forEach((id: string) => {
               const localSession = localSessionMap.get(id);
               const supabaseSession = supabaseSessionMap.get(id);
 

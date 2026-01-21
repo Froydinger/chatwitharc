@@ -236,6 +236,7 @@ export type Database = {
           related_queries: Json | null
           results: Json | null
           source_conversations: Json | null
+          summary_conversation: Json | null
           updated_at: string
           user_id: string
         }
@@ -247,6 +248,7 @@ export type Database = {
           related_queries?: Json | null
           results?: Json | null
           source_conversations?: Json | null
+          summary_conversation?: Json | null
           updated_at?: string
           user_id: string
         }
@@ -258,6 +260,7 @@ export type Database = {
           related_queries?: Json | null
           results?: Json | null
           source_conversations?: Json | null
+          summary_conversation?: Json | null
           updated_at?: string
           user_id?: string
         }
