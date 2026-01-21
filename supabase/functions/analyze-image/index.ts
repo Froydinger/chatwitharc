@@ -88,8 +88,8 @@ serve(async (req) => {
       contentArray.push({ type: 'image_url', image_url: { url: img } });
     });
 
-    // Use passed model for vision capabilities (defaults to Gemini 3 Flash)
-    const selectedModel = model || 'google/gemini-3-flash-preview';
+    // Use passed model for vision capabilities (defaults to Gemini 2.5 Flash for speed)
+    const selectedModel = model || 'google/gemini-2.5-flash';
     console.log('Using model for image analysis:', selectedModel);
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
