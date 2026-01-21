@@ -772,27 +772,6 @@ export function SearchCanvas() {
                 </div>
               </div>
 
-              {/* Searching Indicator */}
-              <AnimatePresence>
-                {isSearching && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    className="absolute left-0 right-0 -bottom-10 flex justify-center"
-                  >
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm">
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      >
-                        <Globe className="w-4 h-4" />
-                      </motion.div>
-                      <span>Searching the web...</span>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
           </div>
         </div>
@@ -1117,6 +1096,32 @@ export function SearchCanvas() {
                     </div>
                   </div>
                 </div>
+              </motion.div>
+            ) : isSearching ? (
+              /* Searching State - Replaces Empty State */
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="text-center py-12"
+              >
+                <div className="relative w-20 h-20 mx-auto mb-6">
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5" />
+                  <motion.div 
+                    className="absolute inset-0 flex items-center justify-center"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Globe className="w-10 h-10 text-primary" />
+                  </motion.div>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
+                  Searching the web...
+                </h2>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Finding the best sources for your query
+                </p>
               </motion.div>
             ) : (
               /* Empty State */
