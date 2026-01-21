@@ -337,6 +337,15 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   // Show slash picker when user types just "/"
   const showSlashPicker = inputValue.trim() === "/";
 
+  // Handle /research command to open research mode
+  useEffect(() => {
+    const val = inputValue.trim().toLowerCase();
+    if (val === "/research") {
+      setInputValue("");
+      openSearchMode();
+    }
+  }, [inputValue, openSearchMode]);
+
   // Voice mode store
   const { activateVoiceMode } = useVoiceModeStore();
 
@@ -1244,7 +1253,7 @@ ${existingCode}
               : shouldShowCanvasMode
               ? "!bg-purple-500/20 ring-1 ring-purple-400/50 !shadow-[0_0_24px_rgba(168,85,247,0.25)]"
               : shouldShowSearchMode
-              ? "!bg-orange-500/20 ring-1 ring-orange-400/50 !shadow-[0_0_24px_rgba(251,146,60,0.25)]"
+              ? "!bg-cyan-500/20 ring-1 ring-cyan-400/50 !shadow-[0_0_24px_rgba(34,211,238,0.25)]"
               : "text-muted-foreground hover:text-foreground",
           ].join(" ")}
           onClick={() => {
@@ -1292,7 +1301,7 @@ ${existingCode}
             </>
           ) : shouldShowSearchMode ? (
             <>
-              <Globe className="h-5 w-5 text-orange-400" />
+              <Globe className="h-5 w-5 text-cyan-400" />
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
                 ×
               </span>
