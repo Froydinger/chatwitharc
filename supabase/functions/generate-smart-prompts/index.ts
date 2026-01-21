@@ -17,6 +17,10 @@ serve(async (req) => {
       throw new Error('No authorization header');
     }
 
+    // Get request body to check for context
+    const body = await req.json().catch(() => ({}));
+    const context = body?.context || 'general';
+
     // Always use Gemini 2.5 Flash for prompt generation - fast, efficient, reliable
     const PROMPT_MODEL = 'google/gemini-2.5-flash';
 
@@ -58,8 +62,46 @@ serve(async (req) => {
       });
     }
 
-    // Build prompt for AI
-    const systemPrompt = `You generate personalized prompt suggestions for a user to send to an AI assistant.
+    // Build prompt for AI based on context type
+    const isResearch = context === 'research';
+    
+    const systemPrompt = isResearch 
+      ? `You generate personalized RESEARCH prompt suggestions for a user to search the web.
+
+IMPORTANT CONTEXT - This is information ABOUT THE USER that you already know:
+${profile?.display_name ? `- The user's name is: ${profile.display_name}` : ''}
+${profile?.memory_info ? `- Things the user has shared about themselves: ${profile.memory_info}` : ''}
+${profile?.context_info ? `- Additional context about the user: ${profile.context_info}` : ''}
+
+${chatContext}
+
+Generate 6 smart, personalized RESEARCH/SEARCH prompt suggestions.
+
+CRITICAL RULES:
+1. These are for WEB SEARCH - prompts should be things worth researching online
+2. Reference user's interests, work, and context IMPLICITLY
+3. Focus on: industry news, market research, competitive analysis, learning topics, current events
+4. Make them specific and timely - things that benefit from fresh web data
+
+GOOD RESEARCH EXAMPLES:
+✅ "Latest trends in AI startups 2025" (for a founder)
+✅ "Best practices for podcast monetization" (for a podcaster)
+✅ "React 19 new features and migration guide" (for a developer)
+✅ "Recent SEC filings for [industry] companies" (for finance role)
+✅ "What's new in [their city] tech scene this week"
+
+BAD EXAMPLES (not research-oriented):
+❌ "Help me write an email" (not a search query)
+❌ "What should I prioritize today" (not web research)
+❌ "Generate a business plan" (creative task, not search)
+
+Return ONLY a JSON array with exactly 6 objects, each with "label" and "prompt" fields.
+Example format:
+[
+  {"label": "🔬 AI Research", "prompt": "Latest breakthroughs in AI agents 2025"},
+  ...
+]`
+      : `You generate personalized prompt suggestions for a user to send to an AI assistant.
 
 IMPORTANT CONTEXT - This is information ABOUT THE USER that you already know:
 ${profile?.display_name ? `- The user's name is: ${profile.display_name}` : ''}
@@ -101,7 +143,7 @@ Example format:
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log('Using model for smart prompts:', PROMPT_MODEL);
+    console.log('Using model for smart prompts:', PROMPT_MODEL, 'context:', context);
 
     // Call AI to generate prompts
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -114,7 +156,10 @@ Example format:
         model: PROMPT_MODEL,
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Generate 6 personalized smart prompts for me based on my profile and chat history.' }
+          { role: 'user', content: isResearch 
+            ? 'Generate 6 personalized research/search prompts for me based on my profile and interests.'
+            : 'Generate 6 personalized smart prompts for me based on my profile and chat history.' 
+          }
         ],
         temperature: 0.8,
         max_tokens: 1000,
