@@ -15,6 +15,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   const animationFrameRef = useRef<number | null>(null);
   const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const isInterruptedRef = useRef(false);
+  const interruptTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const visibilityHandlerRef = useRef<(() => void) | null>(null);
   
   const [isPlaying, setIsPlaying] = useState(false);
@@ -147,8 +148,16 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     if (isInterruptedRef.current) {
       return;
     }
-    
+
+    // Cap queue at 100 chunks to prevent memory accumulation (~2.5MB max)
+    const MAX_QUEUE_SIZE = 100;
+
     if (isPlayingRef.current) {
+      // If queue is full, drop oldest chunks to make room
+      if (audioQueueRef.current.length >= MAX_QUEUE_SIZE) {
+        console.warn('Audio queue full, dropping oldest chunk');
+        audioQueueRef.current.shift();
+      }
       audioQueueRef.current.push(audioData);
     } else {
       playAudioChunk(audioData);
@@ -156,10 +165,16 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   }, [playAudioChunk]);
 
   const clearQueue = useCallback(() => {
+    // Clear any existing interrupt timeout to prevent race conditions
+    if (interruptTimeoutRef.current) {
+      clearTimeout(interruptTimeoutRef.current);
+      interruptTimeoutRef.current = null;
+    }
+
     // Set interrupted flag to prevent new audio from playing
     isInterruptedRef.current = true;
     audioQueueRef.current = [];
-    
+
     // Stop currently playing audio source immediately
     if (currentSourceRef.current) {
       try {
@@ -169,22 +184,30 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
       }
       currentSourceRef.current = null;
     }
-    
+
     isPlayingRef.current = false;
     setIsPlaying(false);
     setIsAudioPlaying(false); // Ensure store state is also reset
     setOutputAmplitude(0);
-    
+
     // Reset interrupted flag after a short delay to allow new responses
-    setTimeout(() => {
+    // Store timeout ref so it can be cancelled if needed
+    interruptTimeoutRef.current = setTimeout(() => {
       isInterruptedRef.current = false;
+      interruptTimeoutRef.current = null;
     }, 100);
   }, [setOutputAmplitude, setIsAudioPlaying]);
 
   const stopPlayback = useCallback(() => {
+    // Clear any pending interrupt timeout
+    if (interruptTimeoutRef.current) {
+      clearTimeout(interruptTimeoutRef.current);
+      interruptTimeoutRef.current = null;
+    }
+
     isInterruptedRef.current = true;
     audioQueueRef.current = [];
-    
+
     if (currentSourceRef.current) {
       try {
         currentSourceRef.current.stop();
@@ -193,7 +216,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
       }
       currentSourceRef.current = null;
     }
-    
+
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
@@ -202,7 +225,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     isPlayingRef.current = false;
     setIsPlaying(false);
     setOutputAmplitude(0);
-    
+
     // Reset interrupted flag so next session can play audio
     isInterruptedRef.current = false;
   }, [setOutputAmplitude]);
@@ -248,6 +271,11 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      // Clear any pending interrupt timeout
+      if (interruptTimeoutRef.current) {
+        clearTimeout(interruptTimeoutRef.current);
+        interruptTimeoutRef.current = null;
+      }
       stopPlayback();
     };
   }, [stopPlayback]);

@@ -116,9 +116,16 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   
   setCurrentTranscript: (transcript) => set({ currentTranscript: transcript }),
   
-  addConversationTurn: (turn) => set((state) => ({
-    conversationTurns: [...state.conversationTurns, turn]
-  })),
+  addConversationTurn: (turn) => set((state) => {
+    // Cap at 50 turns to prevent memory leak in long conversations
+    const MAX_TURNS = 50;
+    const newTurns = [...state.conversationTurns, turn];
+    // If over limit, remove oldest turns (keep most recent)
+    const trimmedTurns = newTurns.length > MAX_TURNS
+      ? newTurns.slice(-MAX_TURNS)
+      : newTurns;
+    return { conversationTurns: trimmedTurns };
+  }),
   
   clearConversation: () => set({ 
     conversationTurns: [],

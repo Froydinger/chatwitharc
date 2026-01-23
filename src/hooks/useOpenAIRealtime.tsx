@@ -19,7 +19,20 @@ let globalConnecting = false;
 let globalSessionId: string | null = null;
 
 // Tool calls in flight to prevent duplicate executions
-const toolCallsInFlight = new Set<string>();
+// Now uses Map with timestamps for automatic cleanup
+const toolCallsInFlight = new Map<string, number>();
+const TOOL_CALL_TIMEOUT_MS = 60000; // 60 seconds max for any tool call
+
+// Cleanup stale tool calls periodically
+const cleanupStaleToolCalls = () => {
+  const now = Date.now();
+  for (const [callId, timestamp] of toolCallsInFlight.entries()) {
+    if (now - timestamp > TOOL_CALL_TIMEOUT_MS) {
+      console.warn('Cleaning up stale tool call:', callId);
+      toolCallsInFlight.delete(callId);
+    }
+  }
+};
 
 // Helper to detect garbled/stuttered transcription
 const isGarbledTranscription = (text: string): boolean => {
@@ -176,14 +189,17 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (event.item?.type === 'function_call') {
           const { name, call_id, arguments: argsStr } = event.item;
           
+          // Clean up any stale tool calls before checking
+          cleanupStaleToolCalls();
+
           // Guard against duplicate tool calls
           if (toolCallsInFlight.has(call_id)) {
             console.log('Tool call already in flight, ignoring:', call_id);
             return;
           }
-          toolCallsInFlight.add(call_id);
+          toolCallsInFlight.set(call_id, Date.now());
           console.log('Function call received:', { name, call_id, argsStr });
-          
+
           const cleanupToolCall = () => {
             toolCallsInFlight.delete(call_id);
           };
@@ -436,6 +452,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         globalConnecting = false;
         globalWs = null;
         globalSessionId = null;
+        toolCallsInFlight.clear(); // Clear stale tool calls on error
         optionsRef.current.onError?.('Connection error');
         setStatus('idle');
         setIsConnected(false);
@@ -446,6 +463,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         globalConnecting = false;
         globalWs = null;
         globalSessionId = null;
+        toolCallsInFlight.clear(); // Clear all tool calls on close
         setIsConnected(false);
         setStatus('idle');
       };
@@ -455,6 +473,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       globalConnecting = false;
       globalWs = null;
       globalSessionId = null;
+      toolCallsInFlight.clear(); // Clear stale tool calls on connection failure
       optionsRef.current.onError?.('Failed to connect to voice service');
       setStatus('idle');
     }
@@ -462,14 +481,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
   const disconnect = useCallback(() => {
     const { setStatus } = useVoiceModeStore.getState();
-    
+
     if (globalWs) {
       globalWs.close();
       globalWs = null;
     }
     globalConnecting = false;
     globalSessionId = null;
-    toolCallsInFlight.clear(); // Clear tool calls on disconnect
+    toolCallsInFlight.clear(); // Clear all tool calls on disconnect
     setIsConnected(false);
     setStatus('idle');
   }, []);
