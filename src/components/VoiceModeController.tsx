@@ -12,10 +12,62 @@ import { setGlobalInterruptHandler } from './VoiceModeOverlay';
 
 const aiService = new AIService();
 
+// Fetch and summarize past chat sessions for voice mode context
+async function fetchPastChatHistory(maxSessions = 5, maxMessagesPerSession = 10): Promise<string> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return '';
+
+    // Fetch recent chat sessions with messages
+    const { data: sessions, error } = await supabase
+      .from('chat_sessions')
+      .select('title, messages, updated_at')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(maxSessions);
+
+    if (error || !sessions || sessions.length === 0) return '';
+
+    // Build a summary of past conversations
+    const summaries: string[] = [];
+
+    for (const session of sessions) {
+      const messages = Array.isArray(session.messages) ? session.messages : [];
+      if (messages.length === 0) continue;
+
+      // Get key exchanges from this session (user questions + AI responses)
+      const keyExchanges = messages
+        .slice(-maxMessagesPerSession)
+        .filter((m: any) => m.content && m.content.length > 5)
+        .map((m: any) => {
+          const role = m.role === 'user' ? 'User' : 'Arc';
+          // Truncate long messages
+          const content = m.content.length > 150
+            ? m.content.substring(0, 150) + '...'
+            : m.content;
+          return `${role}: ${content}`;
+        });
+
+      if (keyExchanges.length > 0) {
+        const sessionTitle = session.title || 'Untitled Chat';
+        summaries.push(`[${sessionTitle}]\n${keyExchanges.join('\n')}`);
+      }
+    }
+
+    if (summaries.length === 0) return '';
+
+    return summaries.join('\n\n---\n\n');
+  } catch (error) {
+    console.error('Failed to fetch past chat history:', error);
+    return '';
+  }
+}
+
 // Build a voice-optimized system prompt from the same source as regular chat
 async function buildVoiceSystemPrompt(
   profile: { display_name?: string | null; context_info?: string | null; memory_info?: string | null } | null,
-  recentChatSummary: string
+  recentChatSummary: string,
+  pastChatHistory: string
 ): Promise<string> {
   try {
     // Fetch the same admin settings the regular chat uses
@@ -59,9 +111,14 @@ You're now in voice conversation mode. Keep everything you know about being Arc,
       voicePrompt += `\n\nGlobal: ${globalContext}`;
     }
 
-    // Add recent chat context if available
+    // Add recent chat context if available (current session)
     if (recentChatSummary) {
-      voicePrompt += `\n\n--- RECENT CHAT CONTEXT ---\n${recentChatSummary}`;
+      voicePrompt += `\n\n--- CURRENT SESSION CONTEXT ---\n${recentChatSummary}`;
+    }
+
+    // Add past chat history (previous sessions) for evolving knowledge
+    if (pastChatHistory) {
+      voicePrompt += `\n\n--- PAST CONVERSATIONS (for context, reference naturally when relevant) ---\n${pastChatHistory}`;
     }
 
     // Add voice-specific tools
@@ -279,12 +336,16 @@ export function VoiceModeController() {
       const initVoiceMode = async () => {
         try {
           console.log('Initializing voice mode...');
-          
+
+          // Fetch past chat history from database for evolving knowledge
+          const pastChatHistory = await fetchPastChatHistory(5, 10);
+          console.log('Voice mode: Loaded past chat history from', pastChatHistory ? 'database' : 'none available');
+
           // Build the system prompt with same personality as regular chat + chat history
           const recentChatSummary = summarizeRecentChats(messages);
-          const voiceSystemPrompt = await buildVoiceSystemPrompt(profile, recentChatSummary);
+          const voiceSystemPrompt = await buildVoiceSystemPrompt(profile, recentChatSummary, pastChatHistory);
           console.log('Voice mode using unified system prompt with chat context');
-          
+
           await connect(voiceSystemPrompt);
           await startCapture();
           console.log('Voice mode initialized');
