@@ -12,62 +12,89 @@ import { setGlobalInterruptHandler } from './VoiceModeOverlay';
 
 const aiService = new AIService();
 
-// Fetch and summarize past chat sessions for voice mode context
-async function fetchPastChatHistory(maxSessions = 5, maxMessagesPerSession = 10): Promise<string> {
+// Dynamic search through ALL past chat sessions
+async function searchAllPastChats(query: string): Promise<string> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return '';
+    if (!user) return 'Unable to access chat history - not authenticated.';
 
-    // Fetch recent chat sessions with messages
+    // Fetch ALL chat sessions (up to 1000 for comprehensive search)
     const { data: sessions, error } = await supabase
       .from('chat_sessions')
       .select('title, messages, updated_at')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
-      .limit(maxSessions);
+      .limit(1000);
 
-    if (error || !sessions || sessions.length === 0) return '';
+    if (error) {
+      console.error('Failed to fetch chat sessions:', error);
+      return 'Unable to search past chats right now.';
+    }
 
-    // Build a summary of past conversations
-    const summaries: string[] = [];
+    if (!sessions || sessions.length === 0) {
+      return 'No past conversations found to search through.';
+    }
+
+    // Build comprehensive context from all sessions
+    const queryLower = query.toLowerCase();
+    const relevantSessions: string[] = [];
+    let totalMessages = 0;
 
     for (const session of sessions) {
       const messages = Array.isArray(session.messages) ? session.messages : [];
       if (messages.length === 0) continue;
 
-      // Get key exchanges from this session (user questions + AI responses)
-      const keyExchanges = messages
-        .slice(-maxMessagesPerSession)
-        .filter((m: any) => m.content && m.content.length > 5)
-        .map((m: any) => {
-          const role = m.role === 'user' ? 'User' : 'Arc';
-          // Truncate long messages
-          const content = m.content.length > 150
-            ? m.content.substring(0, 150) + '...'
-            : m.content;
-          return `${role}: ${content}`;
-        });
+      // Check if any message in this session is relevant to the query
+      const relevantMessages = messages.filter((m: any) => {
+        if (!m.content) return false;
+        const contentLower = m.content.toLowerCase();
+        // Check if the message contains any word from the query
+        const queryWords = queryLower.split(/\s+/).filter(w => w.length > 2);
+        return queryWords.some(word => contentLower.includes(word)) || contentLower.includes(queryLower);
+      });
 
-      if (keyExchanges.length > 0) {
+      if (relevantMessages.length > 0 || sessions.indexOf(session) < 10) {
+        // Include if relevant OR if it's a recent session (top 10)
+        const sessionDate = new Date(session.updated_at).toLocaleDateString();
         const sessionTitle = session.title || 'Untitled Chat';
-        summaries.push(`[${sessionTitle}]\n${keyExchanges.join('\n')}`);
+
+        const messagesSummary = messages
+          .slice(-15) // Last 15 messages per session
+          .filter((m: any) => m.content && m.content.length > 5)
+          .map((m: any) => {
+            const role = m.role === 'user' ? 'User' : 'Arc';
+            const content = m.content.length > 300
+              ? m.content.substring(0, 300) + '...'
+              : m.content;
+            return `${role}: ${content}`;
+          })
+          .join('\n');
+
+        if (messagesSummary) {
+          relevantSessions.push(`--- "${sessionTitle}" (${sessionDate}) ---\n${messagesSummary}`);
+          totalMessages += messages.length;
+        }
       }
+
+      // Limit to avoid overwhelming context
+      if (relevantSessions.length >= 20) break;
     }
 
-    if (summaries.length === 0) return '';
+    if (relevantSessions.length === 0) {
+      return `I searched through ${sessions.length} conversations but didn't find anything specifically about "${query}".`;
+    }
 
-    return summaries.join('\n\n---\n\n');
+    return `I found ${relevantSessions.length} relevant conversations (${totalMessages} total messages) about "${query}":\n\n${relevantSessions.join('\n\n')}`;
   } catch (error) {
-    console.error('Failed to fetch past chat history:', error);
-    return '';
+    console.error('Failed to search past chats:', error);
+    return 'Unable to search past chats right now due to an error.';
   }
 }
 
 // Build a voice-optimized system prompt from the same source as regular chat
 async function buildVoiceSystemPrompt(
   profile: { display_name?: string | null; context_info?: string | null; memory_info?: string | null } | null,
-  recentChatSummary: string,
-  pastChatHistory: string
+  recentChatSummary: string
 ): Promise<string> {
   try {
     // Fetch the same admin settings the regular chat uses
@@ -116,11 +143,6 @@ You're now in voice conversation mode. Keep everything you know about being Arc,
       voicePrompt += `\n\n--- CURRENT SESSION CONTEXT ---\n${recentChatSummary}`;
     }
 
-    // Add past chat history (previous sessions) for evolving knowledge
-    if (pastChatHistory) {
-      voicePrompt += `\n\n--- PAST CONVERSATIONS (for context, reference naturally when relevant) ---\n${pastChatHistory}`;
-    }
-
     // Add voice-specific tools
     voicePrompt += `\n\n--- VOICE TOOLS ---
 • IMAGE GENERATION: When user asks to create/draw/show an image, use generate_image. When done with image, use close_image.
@@ -128,7 +150,13 @@ You're now in voice conversation mode. Keep everything you know about being Arc,
   CRITICAL: Listen VERY carefully to exact names, titles, and proper nouns. Common misheards:
   - "Win the Night" (a wellness podcast at winthenight.org) NOT "Wind of Change"
   - "Arc AI" or "Chat with Arc" (this app at chatwitharc.com)
-  Before searching, confirm the exact term you heard if it sounds like a proper noun or title.`;
+  Before searching, confirm the exact term you heard if it sounds like a proper noun or title.
+• SEARCH PAST CHATS: Use search_past_chats to search through ALL of the user's past conversations when they ask about:
+  - Something they mentioned before ("what did I say about...", "remember when I told you...")
+  - Their preferences, interests, or patterns ("what do I usually...", "what are my...")
+  - Past topics or discussions ("we talked about X before", "that thing we discussed...")
+  - Any context that would require knowing their history
+  This searches ALL past conversations dynamically, giving you evolving knowledge of the user.`;
 
     return voicePrompt;
   } catch (error) {
@@ -270,6 +298,30 @@ export function VoiceModeController() {
     }
   }, [setIsSearching]);
 
+  // Past chats search handler - dynamic search through all history
+  const handleSearchPastChats = useCallback(async (query: string): Promise<string> => {
+    console.log('VoiceModeController: Searching past chats for:', query);
+
+    // Check if voice mode is still active before starting
+    if (!useVoiceModeStore.getState().isActive) {
+      console.log('Voice mode inactive, aborting past chat search');
+      return 'Search cancelled.';
+    }
+
+    setIsSearching(true);
+
+    try {
+      const results = await searchAllPastChats(query);
+      console.log('VoiceModeController: Past chat search complete');
+      setIsSearching(false);
+      return results;
+    } catch (error: any) {
+      console.error('VoiceModeController: Past chat search failed:', error);
+      setIsSearching(false);
+      return `I had trouble searching through past conversations: ${error.message || 'Unknown error'}`;
+    }
+  }, [setIsSearching]);
+
   // OpenAI Realtime connection
   const { isConnected, connect, disconnect, sendAudio, updateVoice, cancelResponse } = useOpenAIRealtime({
     onAudioData: (audioData) => {
@@ -292,6 +344,7 @@ export function VoiceModeController() {
     onImageGenerate: handleImageGenerate,
     onImageDismiss: handleImageDismiss,
     onWebSearch: handleWebSearch,
+    onSearchPastChats: handleSearchPastChats,
   });
 
   // Manual interrupt handler for the big centered button
@@ -337,14 +390,11 @@ export function VoiceModeController() {
         try {
           console.log('Initializing voice mode...');
 
-          // Fetch past chat history from database for evolving knowledge
-          const pastChatHistory = await fetchPastChatHistory(5, 10);
-          console.log('Voice mode: Loaded past chat history from', pastChatHistory ? 'database' : 'none available');
-
-          // Build the system prompt with same personality as regular chat + chat history
+          // Build the system prompt with same personality as regular chat
+          // Past chat history is now accessed dynamically via search_past_chats tool
           const recentChatSummary = summarizeRecentChats(messages);
-          const voiceSystemPrompt = await buildVoiceSystemPrompt(profile, recentChatSummary, pastChatHistory);
-          console.log('Voice mode using unified system prompt with chat context');
+          const voiceSystemPrompt = await buildVoiceSystemPrompt(profile, recentChatSummary);
+          console.log('Voice mode using unified system prompt with dynamic chat search');
 
           await connect(voiceSystemPrompt);
           await startCapture();

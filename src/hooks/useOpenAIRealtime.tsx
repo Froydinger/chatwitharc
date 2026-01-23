@@ -11,6 +11,8 @@ interface UseOpenAIRealtimeOptions {
   onImageDismiss?: () => void;
   // Web search callback
   onWebSearch?: (query: string) => Promise<string>;
+  // Past chat search callback
+  onSearchPastChats?: (query: string) => Promise<string>;
 }
 
 // Singleton WebSocket instance to prevent duplicates
@@ -257,36 +259,75 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               const args = JSON.parse(argsStr || '{}');
               const query = args.query || '';
               console.log('Performing web search for:', query);
-              
+
               if (optionsRef.current.onWebSearch) {
                 optionsRef.current.onWebSearch(query)
                   .then((results) => {
                     console.log('Web search completed');
-                    sendFunctionResult(call_id, JSON.stringify({ 
-                      success: true, 
+                    sendFunctionResult(call_id, JSON.stringify({
+                      success: true,
                       results: results
                     }));
                     cleanupToolCall();
                   })
                   .catch((error) => {
                     console.error('Web search failed:', error);
-                    sendFunctionResult(call_id, JSON.stringify({ 
-                      success: false, 
+                    sendFunctionResult(call_id, JSON.stringify({
+                      success: false,
                       error: error.message || 'Failed to search'
                     }));
                     cleanupToolCall();
                   });
               } else {
-                sendFunctionResult(call_id, JSON.stringify({ 
-                  success: false, 
+                sendFunctionResult(call_id, JSON.stringify({
+                  success: false,
                   error: 'Web search not available'
                 }));
                 cleanupToolCall();
               }
             } catch (e) {
               console.error('Failed to parse web search args:', e);
-              sendFunctionResult(call_id, JSON.stringify({ 
-                success: false, 
+              sendFunctionResult(call_id, JSON.stringify({
+                success: false,
+                error: 'Invalid search query'
+              }));
+              cleanupToolCall();
+            }
+          } else if (name === 'search_past_chats') {
+            try {
+              const args = JSON.parse(argsStr || '{}');
+              const query = args.query || '';
+              console.log('Searching past chats for:', query);
+
+              if (optionsRef.current.onSearchPastChats) {
+                optionsRef.current.onSearchPastChats(query)
+                  .then((results) => {
+                    console.log('Past chat search completed');
+                    sendFunctionResult(call_id, JSON.stringify({
+                      success: true,
+                      context: results
+                    }));
+                    cleanupToolCall();
+                  })
+                  .catch((error) => {
+                    console.error('Past chat search failed:', error);
+                    sendFunctionResult(call_id, JSON.stringify({
+                      success: false,
+                      error: error.message || 'Failed to search past chats'
+                    }));
+                    cleanupToolCall();
+                  });
+              } else {
+                sendFunctionResult(call_id, JSON.stringify({
+                  success: false,
+                  error: 'Past chat search not available'
+                }));
+                cleanupToolCall();
+              }
+            } catch (e) {
+              console.error('Failed to parse past chat search args:', e);
+              sendFunctionResult(call_id, JSON.stringify({
+                success: false,
                 error: 'Invalid search query'
               }));
               cleanupToolCall();
@@ -428,6 +469,21 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                     query: {
                       type: 'string',
                       description: 'The EXACT search query the user spoke. Be very careful with names, titles, and proper nouns - transcribe them exactly as spoken.'
+                    }
+                  },
+                  required: ['query']
+                }
+              },
+              {
+                type: 'function',
+                name: 'search_past_chats',
+                description: 'Search through all of the user\'s past conversation history to find relevant context, patterns, preferences, or information discussed before. Use when the user asks about something they mentioned previously, their preferences, interests, past topics, what they told you before, patterns in their behavior, or anything that requires looking back at conversation history. This searches ALL past chats, not just recent ones.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    query: {
+                      type: 'string',
+                      description: 'The topic, question, or information to search for in past conversations. Be specific about what you\'re looking for.'
                     }
                   },
                   required: ['query']
