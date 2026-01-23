@@ -1166,10 +1166,6 @@ export function MobileChatApp() {
           padding: 10px;
           border-radius: 9999px;
           overflow: visible;
-          background: color-mix(in oklab, hsl(var(--background)) 82%, transparent);
-          border: 1px solid color-mix(in oklab, hsl(var(--border)) 35%, transparent);
-        }
-        .dark .glass-dock{
           background: linear-gradient(135deg, hsl(var(--background) / 0.7) 0%, hsl(var(--background) / 0.65) 50%, hsl(var(--primary) / 0.15) 100%);
           backdrop-filter: blur(24px) saturate(115%);
           -webkit-backdrop-filter: blur(24px) saturate(115%);
@@ -1179,9 +1175,9 @@ export function MobileChatApp() {
             inset 0 0 20px hsl(var(--primary-glow) / 0.12);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           cursor: text;
-         }
+        }
         .glass-dock::before{ display: none; }
-        .dark .glass-dock:hover{
+        .glass-dock:hover{
           transform: scale(1.02);
           background: linear-gradient(135deg, hsl(var(--background) / 0.68) 0%, hsl(var(--background) / 0.62) 50%, hsl(var(--primary) / 0.18) 100%);
           border-color: hsl(var(--primary) / 0.35);
@@ -1189,7 +1185,7 @@ export function MobileChatApp() {
             0 8px 32px rgba(0, 0, 0, 0.4),
             inset 0 0 24px hsl(var(--primary-glow) / 0.15);
         }
-        .dark .glass-dock:focus-within{
+        .glass-dock:focus-within{
           background: linear-gradient(135deg, hsl(var(--background) / 0.65) 0%, hsl(var(--background) / 0.6) 50%, hsl(var(--primary) / 0.22) 100%);
           border-color: hsl(var(--primary) / 0.4);
           box-shadow:
@@ -1198,13 +1194,13 @@ export function MobileChatApp() {
             0 0 32px hsl(var(--primary-glow) / 0.25);
         }
 
-        /* Hide button borders inside dark mode input bar for unified appearance */
-        .dark .glass-dock button{ border-color: transparent !important; }
-        .dark .glass-dock .ci-menu-btn{ background: rgba(255, 255, 255, 0.05) !important; }
-        .dark .glass-dock button:hover:not(:disabled){ background: rgba(255, 255, 255, 0.08) !important; }
+        /* Hide button borders inside input bar for unified appearance */
+        .glass-dock button{ border-color: transparent !important; }
+        .glass-dock .ci-menu-btn{ background: rgba(255, 255, 255, 0.05) !important; }
+        .glass-dock button:hover:not(:disabled){ background: rgba(255, 255, 255, 0.08) !important; }
 
         /* Remove textarea background to prevent layered rectangle appearance */
-        .dark .glass-dock textarea{ background: transparent !important; border-radius: 0 !important; }
+        .glass-dock textarea{ background: transparent !important; border-radius: 0 !important; }
         .glass-dock > *{ position: relative; z-index: 1; }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
         .glass-dock .chat-input-halo{
