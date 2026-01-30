@@ -12,31 +12,36 @@ import { setGlobalInterruptHandler } from './VoiceModeOverlay';
 
 const aiService = new AIService();
 
-// Dynamic search through ALL past chat sessions
+// Fast database-level search through past chat sessions
 async function searchAllPastChats(query: string): Promise<string> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return 'Unable to access chat history - not authenticated.';
 
-    // Fetch ALL chat sessions (up to 1000 for comprehensive search)
+    console.log('⚡ Using fast database-level search for:', query);
+    const startTime = Date.now();
+
+    // Use database function for fast full-text search (searches at DB level, not client)
     const { data: sessions, error } = await supabase
-      .from('chat_sessions')
-      .select('title, messages, updated_at')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false })
-      .limit(1000);
+      .rpc('search_chat_sessions', {
+        search_query: query,
+        searching_user_id: user.id,
+        max_sessions: 100 // Get top 100 matching sessions
+      });
 
     if (error) {
-      console.error('Failed to fetch chat sessions:', error);
-      return 'Unable to search past chats right now.';
+      console.error('Fast search failed, falling back:', error);
+      // Fallback to basic search if RPC fails
+      return await fallbackSearch(query, user.id);
     }
+
+    console.log(`⚡ Database search completed in ${Date.now() - startTime}ms, found ${sessions?.length || 0} matching sessions`);
 
     if (!sessions || sessions.length === 0) {
-      return 'No past conversations found to search through.';
+      return `I searched through your conversations but didn't find anything specifically about "${query}".`;
     }
 
-    // Build comprehensive context from all sessions with smart budget
-    const queryLower = query.toLowerCase();
+    // Build context from pre-filtered sessions (already relevant!)
     const relevantSessions: string[] = [];
     let totalMessages = 0;
     let totalCharacters = 0;
@@ -46,46 +51,32 @@ async function searchAllPastChats(query: string): Promise<string> {
       const messages = Array.isArray(session.messages) ? session.messages : [];
       if (messages.length === 0) continue;
 
-      // Check if any message in this session is relevant to the query
-      const relevantMessages = messages.filter((m: any) => {
-        if (!m.content) return false;
-        const contentLower = m.content.toLowerCase();
-        // Check if the message contains any word from the query
-        const queryWords = queryLower.split(/\s+/).filter(w => w.length > 2);
-        return queryWords.some(word => contentLower.includes(word)) || contentLower.includes(queryLower);
-      });
+      const sessionDate = new Date(session.updated_at).toLocaleDateString();
+      const sessionTitle = session.title || 'Untitled Chat';
 
-      if (relevantMessages.length > 0 || sessions.indexOf(session) < 10) {
-        // Include if relevant OR if it's a recent session (top 10)
-        const sessionDate = new Date(session.updated_at).toLocaleDateString();
-        const sessionTitle = session.title || 'Untitled Chat';
+      // Include full messages - no truncation
+      const messagesSummary = messages
+        .filter((m: any) => m.content && m.content.length > 5)
+        .map((m: any) => {
+          const role = m.role === 'user' ? 'User' : 'Arc';
+          return `${role}: ${m.content}`;
+        })
+        .join('\n');
 
-        // Include ALL messages, no slice limit, no truncation
-        const messagesSummary = messages
-          .filter((m: any) => m.content && m.content.length > 5)
-          .map((m: any) => {
-            const role = m.role === 'user' ? 'User' : 'Arc';
-            return `${role}: ${m.content}`; // Full content, no truncation
-          })
-          .join('\n');
-
-        if (messagesSummary) {
-          // Check if adding this session would exceed budget
-          if (totalCharacters + messagesSummary.length > CHARACTER_BUDGET) {
-            console.log(`Past chat search hit budget limit at ${relevantSessions.length} sessions, ${totalCharacters} chars`);
-            break;
-          }
-          
-          relevantSessions.push(`--- "${sessionTitle}" (${sessionDate}) ---\n${messagesSummary}`);
-          totalMessages += messages.length;
-          totalCharacters += messagesSummary.length;
+      if (messagesSummary) {
+        if (totalCharacters + messagesSummary.length > CHARACTER_BUDGET) {
+          console.log(`Past chat search hit budget limit at ${relevantSessions.length} sessions, ${totalCharacters} chars`);
+          break;
         }
+        
+        relevantSessions.push(`--- "${sessionTitle}" (${sessionDate}) ---\n${messagesSummary}`);
+        totalMessages += messages.length;
+        totalCharacters += messagesSummary.length;
       }
-      // No session limit - budget controls the cutoff
     }
 
     if (relevantSessions.length === 0) {
-      return `I searched through ${sessions.length} conversations but didn't find anything specifically about "${query}".`;
+      return `I searched through your conversations but didn't find anything specifically about "${query}".`;
     }
 
     return `I found ${relevantSessions.length} relevant conversations (${totalMessages} total messages) about "${query}":\n\n${relevantSessions.join('\n\n')}`;
@@ -93,6 +84,52 @@ async function searchAllPastChats(query: string): Promise<string> {
     console.error('Failed to search past chats:', error);
     return 'Unable to search past chats right now due to an error.';
   }
+}
+
+// Fallback search if database function isn't available
+async function fallbackSearch(query: string, userId: string): Promise<string> {
+  console.log('Using fallback client-side search');
+  
+  const { data: sessions, error } = await supabase
+    .from('chat_sessions')
+    .select('title, messages, updated_at')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+    .limit(50); // Smaller limit for fallback
+
+  if (error || !sessions || sessions.length === 0) {
+    return 'No past conversations found to search through.';
+  }
+
+  const queryLower = query.toLowerCase();
+  const relevantSessions: string[] = [];
+
+  for (const session of sessions) {
+    const messages = Array.isArray(session.messages) ? session.messages : [];
+    const hasMatch = messages.some((m: any) => 
+      m.content?.toLowerCase().includes(queryLower)
+    );
+
+    if (hasMatch || sessions.indexOf(session) < 5) {
+      const sessionDate = new Date(session.updated_at).toLocaleDateString();
+      const sessionTitle = session.title || 'Untitled Chat';
+      const messagesSummary = messages
+        .slice(-10)
+        .filter((m: any) => m.content)
+        .map((m: any) => `${m.role === 'user' ? 'User' : 'Arc'}: ${m.content.slice(0, 200)}`)
+        .join('\n');
+
+      if (messagesSummary) {
+        relevantSessions.push(`--- "${sessionTitle}" (${sessionDate}) ---\n${messagesSummary}`);
+      }
+    }
+
+    if (relevantSessions.length >= 20) break;
+  }
+
+  return relevantSessions.length > 0
+    ? `Found ${relevantSessions.length} conversations:\n\n${relevantSessions.join('\n\n')}`
+    : `No conversations found about "${query}".`;
 }
 
 // Build a voice-optimized system prompt from the same source as regular chat

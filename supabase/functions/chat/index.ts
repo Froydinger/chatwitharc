@@ -140,10 +140,11 @@ async function webSearch(query: string): Promise<WebSearchResponse> {
   }
 }
 
-// Search past chats tool - AI-powered analysis
+// Search past chats tool - Fast database-level search + AI-powered analysis
 async function searchPastChats(query: string, authHeader: string | null, options?: { limitContext?: boolean }): Promise<string> {
   try {
-    console.log('Searching past chats for:', query);
+    console.log('⚡ Fast searching past chats for:', query);
+    const startTime = Date.now();
     
     if (!authHeader) {
       console.error('No auth header provided for chat search');
@@ -174,34 +175,37 @@ async function searchPastChats(query: string, authHeader: string | null, options
 
     console.log('Authenticated user for chat search:', user.id);
 
-    // Limit chat history context based on parameters - canvas/code don't need full history
+    // Limit context for canvas/code modes
     const limitedSearch = options?.limitContext;
-    const sessionLimit = limitedSearch ? 10 : 10000; // Full recall: up to 10k sessions
-    const contentLimit = limitedSearch ? 500 : undefined; // No truncation for full searches
+    const maxSessions = limitedSearch ? 10 : 100;
+    const contentLimit = limitedSearch ? 500 : undefined;
 
-    // Get chat sessions with configurable limits
-    const { data: sessions, error: sessionsError } = await supabaseWithAuth
-      .from('chat_sessions')
-      .select('id, title, messages, created_at, updated_at')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false })
-      .limit(sessionLimit);
+    // Use fast database-level full-text search
+    const { data: sessions, error: searchError } = await supabaseWithAuth
+      .rpc('search_chat_sessions', {
+        search_query: query,
+        searching_user_id: user.id,
+        max_sessions: maxSessions
+      });
 
-    if (sessionsError) {
-      console.error('Chat search error:', sessionsError);
-      return "Unable to search past chats.";
+    console.log(`⚡ Database search completed in ${Date.now() - startTime}ms`);
+
+    if (searchError) {
+      console.error('Fast search failed, using fallback:', searchError);
+      // Fallback to basic query if RPC fails
+      return await fallbackChatSearch(query, user.id, supabaseWithAuth, limitedSearch);
     }
 
     if (!sessions || sessions.length === 0) {
-      return "No past chats found.";
+      return "No past chats found matching your query.";
     }
 
-    console.log(`Analyzing ${sessions.length} recent conversations`);
+    console.log(`Found ${sessions.length} matching conversations`);
 
-    // Build comprehensive context from conversations
-    let conversationContext = `I found ${sessions.length} recent conversations. Here's what I gathered:\n\n`;
+    // Build comprehensive context from pre-filtered (relevant) sessions
+    let conversationContext = `I found ${sessions.length} conversations matching "${query}". Here's what I gathered:\n\n`;
     
-    sessions.forEach((session: any, idx) => {
+    sessions.forEach((session: any, idx: number) => {
       const title = session.title || 'Untitled';
       const messages = Array.isArray(session.messages) ? session.messages : [];
       const date = new Date(session.updated_at).toLocaleDateString();
@@ -212,7 +216,6 @@ async function searchPastChats(query: string, authHeader: string | null, options
       messages.forEach((msg: any) => {
         if (msg.role && msg.content) {
           const prefix = msg.role === 'user' ? 'User' : 'Assistant';
-          // Apply content limit if set
           const content = contentLimit && msg.content.length > contentLimit
             ? msg.content.slice(0, contentLimit) + '...'
             : msg.content;
@@ -227,7 +230,6 @@ async function searchPastChats(query: string, authHeader: string | null, options
     conversationContext += `Please synthesize insights, identify patterns, make inferences, and provide a thoughtful analysis based on what you see in these conversations.`;
 
     console.log('📊 Conversation context length:', conversationContext.length);
-    console.log('📝 First 500 chars:', conversationContext.slice(0, 500));
 
     return conversationContext;
   } catch (error: unknown) {
@@ -235,6 +237,45 @@ async function searchPastChats(query: string, authHeader: string | null, options
     const message = error instanceof Error ? error.message : 'Unknown error';
     return `Search error: ${message}`;
   }
+}
+
+// Fallback search if database function isn't available
+async function fallbackChatSearch(
+  query: string, 
+  userId: string, 
+  client: any, 
+  limited?: boolean
+): Promise<string> {
+  console.log('Using fallback client-side search');
+  
+  const { data: sessions, error } = await client
+    .from('chat_sessions')
+    .select('id, title, messages, updated_at')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+    .limit(limited ? 10 : 50);
+
+  if (error || !sessions || sessions.length === 0) {
+    return "No past chats found.";
+  }
+
+  let context = `Found ${sessions.length} recent conversations:\n\n`;
+  sessions.forEach((session: any, idx: number) => {
+    const title = session.title || 'Untitled';
+    const messages = Array.isArray(session.messages) ? session.messages : [];
+    const date = new Date(session.updated_at).toLocaleDateString();
+    
+    context += `--- ${idx + 1}: "${title}" (${date}) ---\n`;
+    messages.slice(-5).forEach((msg: any) => {
+      if (msg.content) {
+        const prefix = msg.role === 'user' ? 'User' : 'Assistant';
+        context += `${prefix}: ${msg.content.slice(0, 200)}...\n`;
+      }
+    });
+    context += '\n';
+  });
+
+  return context;
 }
 
 serve(async (req) => {
