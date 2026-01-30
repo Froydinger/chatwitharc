@@ -272,6 +272,19 @@ export type Database = {
     }
     Functions: {
       is_admin_user: { Args: never; Returns: boolean }
+      search_chat_sessions: {
+        Args: {
+          max_sessions?: number
+          search_query: string
+          searching_user_id: string
+        }
+        Returns: {
+          id: string
+          messages: Json
+          title: string
+          updated_at: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
