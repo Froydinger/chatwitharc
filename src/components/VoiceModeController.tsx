@@ -35,10 +35,12 @@ async function searchAllPastChats(query: string): Promise<string> {
       return 'No past conversations found to search through.';
     }
 
-    // Build comprehensive context from all sessions
+    // Build comprehensive context from all sessions with smart budget
     const queryLower = query.toLowerCase();
     const relevantSessions: string[] = [];
     let totalMessages = 0;
+    let totalCharacters = 0;
+    const CHARACTER_BUDGET = 500000; // ~125k tokens - safe for all models
 
     for (const session of sessions) {
       const messages = Array.isArray(session.messages) ? session.messages : [];
@@ -58,26 +60,28 @@ async function searchAllPastChats(query: string): Promise<string> {
         const sessionDate = new Date(session.updated_at).toLocaleDateString();
         const sessionTitle = session.title || 'Untitled Chat';
 
+        // Include ALL messages, no slice limit, no truncation
         const messagesSummary = messages
-          .slice(-15) // Last 15 messages per session
           .filter((m: any) => m.content && m.content.length > 5)
           .map((m: any) => {
             const role = m.role === 'user' ? 'User' : 'Arc';
-            const content = m.content.length > 300
-              ? m.content.substring(0, 300) + '...'
-              : m.content;
-            return `${role}: ${content}`;
+            return `${role}: ${m.content}`; // Full content, no truncation
           })
           .join('\n');
 
         if (messagesSummary) {
+          // Check if adding this session would exceed budget
+          if (totalCharacters + messagesSummary.length > CHARACTER_BUDGET) {
+            console.log(`Past chat search hit budget limit at ${relevantSessions.length} sessions, ${totalCharacters} chars`);
+            break;
+          }
+          
           relevantSessions.push(`--- "${sessionTitle}" (${sessionDate}) ---\n${messagesSummary}`);
           totalMessages += messages.length;
+          totalCharacters += messagesSummary.length;
         }
       }
-
-      // Limit to avoid overwhelming context
-      if (relevantSessions.length >= 20) break;
+      // No session limit - budget controls the cutoff
     }
 
     if (relevantSessions.length === 0) {

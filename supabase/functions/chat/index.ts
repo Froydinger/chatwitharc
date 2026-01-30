@@ -176,8 +176,8 @@ async function searchPastChats(query: string, authHeader: string | null, options
 
     // Limit chat history context based on parameters - canvas/code don't need full history
     const limitedSearch = options?.limitContext;
-    const sessionLimit = limitedSearch ? 10 : 1000;
-    const contentLimit = limitedSearch ? 500 : undefined; // Truncate each message
+    const sessionLimit = limitedSearch ? 10 : 10000; // Full recall: up to 10k sessions
+    const contentLimit = limitedSearch ? 500 : undefined; // No truncation for full searches
 
     // Get chat sessions with configurable limits
     const { data: sessions, error: sessionsError } = await supabaseWithAuth
