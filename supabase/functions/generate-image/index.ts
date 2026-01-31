@@ -39,9 +39,10 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, preferredModel } = await req.json();
+    const { prompt, preferredModel, aspectRatio } = await req.json();
     console.log('Generating image with prompt:', prompt);
     console.log('Preferred model:', preferredModel);
+    console.log('Aspect ratio:', aspectRatio);
 
     if (!lovableApiKey) {
       throw new Error('Lovable API key not configured');
@@ -71,10 +72,17 @@ serve(async (req) => {
 
     const imageRestrictions = settingsData?.value || '';
 
+    // Build prompt with aspect ratio instruction if provided
+    let enhancedPrompt = prompt;
+    if (aspectRatio) {
+      enhancedPrompt = `Generate this image in ${aspectRatio} aspect ratio: ${prompt}`;
+      console.log('Added aspect ratio to prompt:', aspectRatio);
+    }
+
     // Append restrictions to prompt if they exist
     const finalPrompt = imageRestrictions
-      ? `${prompt}\n\nIMPORTANT RESTRICTIONS: ${imageRestrictions}`
-      : prompt;
+      ? `${enhancedPrompt}\n\nIMPORTANT RESTRICTIONS: ${imageRestrictions}`
+      : enhancedPrompt;
 
     console.log('Enhanced prompt with restrictions:', finalPrompt);
 

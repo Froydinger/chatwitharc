@@ -250,13 +250,14 @@ export function VoiceModeController() {
   // Audio playback for AI responses
   const { queueAudio, stopPlayback, clearQueue } = useAudioPlayback();
 
-  // Image generation handler - NO music
-  const handleImageGenerate = useCallback(async (prompt: string): Promise<string> => {
-    console.log('VoiceModeController: Generating image with prompt:', prompt);
+  // Image generation handler - with aspect ratio support, always uses Gemini 3 Pro
+  const handleImageGenerate = useCallback(async (prompt: string, aspectRatio?: string): Promise<string> => {
+    console.log('VoiceModeController: Generating image with prompt:', prompt, 'aspect ratio:', aspectRatio);
     setIsGeneratingImage(true);
     
     try {
-      const imageUrl = await aiService.generateImage(prompt);
+      // Force Gemini 3 Pro for voice mode image generation (pass undefined to use default Pro)
+      const imageUrl = await aiService.generateImage(prompt, undefined, aspectRatio);
       console.log('VoiceModeController: Image generated:', imageUrl);
       setGeneratedImage(imageUrl);
       setLastGeneratedImageUrl(imageUrl); // Track for attaching to conversation

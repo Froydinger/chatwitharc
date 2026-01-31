@@ -6,8 +6,8 @@ interface UseOpenAIRealtimeOptions {
   onAudioData?: (audioData: Int16Array) => void;
   onError?: (error: string) => void;
   onInterrupt?: () => void;
-  // Image generation callbacks
-  onImageGenerate?: (prompt: string) => Promise<string>;
+  // Image generation callbacks - now with aspect ratio support
+  onImageGenerate?: (prompt: string, aspectRatio?: string) => Promise<string>;
   onImageDismiss?: () => void;
   // Web search callback
   onWebSearch?: (query: string) => Promise<string>;
@@ -210,11 +210,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             try {
               const args = JSON.parse(argsStr || '{}');
               const prompt = args.prompt || '';
-              console.log('Generating image with prompt:', prompt);
+              const aspectRatio = args.aspect_ratio || '1:1';
+              console.log('Generating image with prompt:', prompt, 'aspect ratio:', aspectRatio);
               
-              // Call the image generation callback
+              // Call the image generation callback with aspect ratio
               if (optionsRef.current.onImageGenerate) {
-                optionsRef.current.onImageGenerate(prompt)
+                optionsRef.current.onImageGenerate(prompt, aspectRatio)
                   .then(() => {
                     console.log('Image generated successfully');
                     sendFunctionResult(call_id, JSON.stringify({ 
@@ -440,13 +441,17 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               {
                 type: 'function',
                 name: 'generate_image',
-                description: 'Generate an image based on user description. Use when user asks to create, generate, show, draw, or make an image or picture of something.',
+                description: 'Generate an image based on user description. Use when user asks to create, generate, show, draw, or make an image or picture of something. Always use Gemini 3 Pro for high quality.',
                 parameters: {
                   type: 'object',
                   properties: {
                     prompt: {
                       type: 'string',
                       description: 'Detailed description of the image to generate'
+                    },
+                    aspect_ratio: {
+                      type: 'string',
+                      description: 'Aspect ratio for the image. Options: "1:1" (square), "16:9" (widescreen/landscape), "9:16" (portrait/vertical), "4:3" (standard), "3:4" (tall). Default is 1:1 if not specified. Use 16:9 for landscapes, wallpapers, scenes. Use 9:16 for portraits, phone wallpapers. Use 1:1 for icons, profile pics.'
                     }
                   },
                   required: ['prompt']
