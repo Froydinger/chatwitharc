@@ -37,7 +37,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, baseImageUrl, baseImageUrls, imageModel } = await req.json();
+    const { prompt, baseImageUrl, baseImageUrls, imageModel, aspectRatio } = await req.json();
 
     if (!prompt) {
       return new Response(
@@ -55,14 +55,12 @@ serve(async (req) => {
       );
     }
 
-    // Default to Pro image model for best quality
-    // Only use Flash if explicitly requested via "fast" option in the editor
-    // google/gemini-2.5-flash-image = fast/quick option  
-    // google/gemini-3-pro-image-preview = default high quality
+    // ALWAYS use Gemini 3 Pro for highest quality
+    // Only use Flash if user EXPLICITLY selects "fast" mode in editor UI
     let selectedModel = 'google/gemini-3-pro-image-preview';
     
-    // Only use flash if explicitly chosen in the editor
-    if (imageModel === 'google/gemini-2.5-flash-image' || imageModel === 'google/gemini-3-flash-preview') {
+    // Only use flash if explicitly chosen by user in the editor
+    if (imageModel === 'google/gemini-2.5-flash-image') {
       selectedModel = 'google/gemini-2.5-flash-image';
     }
     
@@ -141,10 +139,17 @@ serve(async (req) => {
 
     const editPrompt = buildEditPrompt(prompt, imageArray.length);
 
+    // If aspect ratio is specified, add it to the prompt
+    let aspectPrompt = editPrompt;
+    if (aspectRatio) {
+      aspectPrompt = `Output the image in ${aspectRatio} aspect ratio. ${editPrompt}`;
+      console.log('Aspect ratio requested:', aspectRatio);
+    }
+
     // Append restrictions to prompt if they exist
     const finalEditPrompt = imageRestrictions
-      ? `${editPrompt}\n\nIMPORTANT RESTRICTIONS: ${imageRestrictions}`
-      : editPrompt;
+      ? `${aspectPrompt}\n\nIMPORTANT RESTRICTIONS: ${imageRestrictions}`
+      : aspectPrompt;
 
     console.log('Edit/combine prompt with restrictions:', finalEditPrompt);
 
