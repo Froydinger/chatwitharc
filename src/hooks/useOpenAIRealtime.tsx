@@ -630,11 +630,39 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     return true;
   }, []);
 
+  // Send an image to the conversation for vision analysis
+  const sendImage = useCallback((base64Image: string, isLiveCamera: boolean = false) => {
+    if (globalWs?.readyState !== WebSocket.OPEN) return;
+    
+    console.log(`Sending ${isLiveCamera ? 'camera frame' : 'attached image'} to conversation`);
+    
+    // Create a user message with the image
+    globalWs.send(JSON.stringify({
+      type: 'conversation.item.create',
+      item: {
+        type: 'message',
+        role: 'user',
+        content: [{
+          type: 'input_image',
+          image_url: `data:image/jpeg;base64,${base64Image}`
+        }]
+      }
+    }));
+    
+    // If it's a single attachment (not live camera), trigger a response
+    if (!isLiveCamera) {
+      globalWs.send(JSON.stringify({
+        type: 'response.create'
+      }));
+    }
+  }, []);
+
   return {
     isConnected,
     connect,
     disconnect,
     sendAudio,
+    sendImage,
     updateVoice,
     cancelResponse,
     commitAudioAndRespond
