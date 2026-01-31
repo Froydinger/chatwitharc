@@ -38,6 +38,9 @@ interface VoiceModeState {
   // Web search state
   isSearching: boolean;
   
+  // Track if user has spoken since unmuting (for mute-to-handoff)
+  hasPendingSpeech: boolean;
+  
   // Actions
   activateVoiceMode: () => void;
   deactivateVoiceMode: () => void;
@@ -56,6 +59,7 @@ interface VoiceModeState {
   setLastGeneratedImageUrl: (url: string | null) => void;
   attachImageToLastAssistantTurn: () => void;
   setIsSearching: (searching: boolean) => void;
+  setHasPendingSpeech: (pending: boolean) => void;
   interruptAI: () => void;
 }
 
@@ -74,6 +78,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   isGeneratingImage: false,
   lastGeneratedImageUrl: null,
   isSearching: false,
+  hasPendingSpeech: false,
   
   // Actions
   activateVoiceMode: () => {
@@ -86,7 +91,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       generatedImage: null,
       isGeneratingImage: false,
       lastGeneratedImageUrl: null,
-      isSearching: false
+      isSearching: false,
+      hasPendingSpeech: false
     });
   },
   
@@ -102,7 +108,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       generatedImage: null,
       isGeneratingImage: false,
       lastGeneratedImageUrl: null,
-      isSearching: false
+      isSearching: false,
+      hasPendingSpeech: false
     });
   },
   
@@ -165,6 +172,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   }),
   
   setIsSearching: (searching) => set({ isSearching: searching }),
+  
+  setHasPendingSpeech: (pending) => set({ hasPendingSpeech: pending }),
   
   // Interrupt action - will be connected to actual interrupt logic externally
   interruptAI: () => set({ status: 'listening' })

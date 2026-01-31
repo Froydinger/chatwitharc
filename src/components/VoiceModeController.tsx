@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AIService } from '@/services/ai';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
-import { setGlobalInterruptHandler } from './VoiceModeOverlay';
+import { setGlobalInterruptHandler, setGlobalMuteHandoffHandler } from './VoiceModeOverlay';
 
 const aiService = new AIService();
 
@@ -364,7 +364,7 @@ export function VoiceModeController() {
   }, [setIsSearching]);
 
   // OpenAI Realtime connection
-  const { isConnected, connect, disconnect, sendAudio, updateVoice, cancelResponse } = useOpenAIRealtime({
+  const { isConnected, connect, disconnect, sendAudio, updateVoice, cancelResponse, commitAudioAndRespond } = useOpenAIRealtime({
     onAudioData: (audioData) => {
       queueAudio(audioData);
     },
@@ -388,6 +388,10 @@ export function VoiceModeController() {
     onSearchPastChats: handleSearchPastChats,
   });
 
+  // Export commitAudioAndRespond for the overlay's mute button to use
+  const commitAudioAndRespondRef = useRef(commitAudioAndRespond);
+  commitAudioAndRespondRef.current = commitAudioAndRespond;
+
   // Manual interrupt handler for the big centered button
   const handleManualInterrupt = useCallback(() => {
     console.log('Manual interrupt triggered via button');
@@ -409,6 +413,14 @@ export function VoiceModeController() {
       setGlobalInterruptHandler(null);
     };
   }, [handleManualInterrupt]);
+
+  // Register the mute-handoff handler globally
+  useLayoutEffect(() => {
+    setGlobalMuteHandoffHandler(commitAudioAndRespond);
+    return () => {
+      setGlobalMuteHandoffHandler(null);
+    };
+  }, [commitAudioAndRespond]);
 
   // Audio capture from microphone
   const { startCapture, stopCapture } = useAudioCapture({

@@ -111,9 +111,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'input_audio_buffer.speech_started':
-        // Just log - NO status changes, NO voice-based interruption
-        // Mic is controlled separately - this is just VAD for turn detection
-        console.log('VAD: User speech detected (no auto-interrupt)');
+        // User started speaking - mark that we have pending speech for mute-handoff
+        console.log('VAD: User speech detected');
+        useVoiceModeStore.getState().setHasPendingSpeech(true);
         break;
 
       case 'input_audio_buffer.speech_stopped':
@@ -343,6 +343,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // Response complete - back to listening
         setStatus('listening');
         setCurrentTranscript('');
+        // Clear pending speech flag since turn is complete
+        useVoiceModeStore.getState().setHasPendingSpeech(false);
         // Clear audio buffer to prevent leftover audio bleeding into next turn
         clearAudioBuffer();
         break;
@@ -591,12 +593,40 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     globalWs.send(JSON.stringify({ type: 'response.cancel' }));
   }, []);
 
+  // Commit the current audio buffer and trigger AI response
+  // Used for "mute to handoff" - user mutes mic to signal end of turn
+  const commitAudioAndRespond = useCallback(() => {
+    if (globalWs?.readyState !== WebSocket.OPEN) return;
+    
+    const { hasPendingSpeech, setHasPendingSpeech, setStatus } = useVoiceModeStore.getState();
+    
+    if (!hasPendingSpeech) {
+      console.log('No pending speech to commit');
+      return false;
+    }
+    
+    console.log('Committing audio buffer and triggering response (mute handoff)');
+    
+    // Commit the audio buffer (tells OpenAI the user is done speaking)
+    globalWs.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+    
+    // Trigger a response
+    globalWs.send(JSON.stringify({ type: 'response.create' }));
+    
+    // Update status to thinking while we wait
+    setStatus('thinking');
+    setHasPendingSpeech(false);
+    
+    return true;
+  }, []);
+
   return {
     isConnected,
     connect,
     disconnect,
     sendAudio,
     updateVoice,
-    cancelResponse
+    cancelResponse,
+    commitAudioAndRespond
   };
 }
