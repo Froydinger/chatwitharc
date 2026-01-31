@@ -442,10 +442,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             },
             // Register image generation tools
             tools: [
-              {
+                {
                 type: 'function',
                 name: 'generate_image',
-                description: 'Generate an image based on user description. Use when user asks to create, generate, show, draw, or make an image or picture of something. Always use Gemini 3 Pro for high quality.',
+                description: 'Generate an image based on user description. Use when user asks to create, generate, show, draw, or make an image or picture of something. ALWAYS pay attention to size/shape requests - "wide", "widescreen", "landscape", "banner" = 16:9. "Tall", "portrait", "vertical", "phone wallpaper" = 9:16. "Square" or no preference = 1:1.',
                 parameters: {
                   type: 'object',
                   properties: {
@@ -455,10 +455,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                     },
                     aspect_ratio: {
                       type: 'string',
-                      description: 'Aspect ratio for the image. Options: "1:1" (square), "16:9" (widescreen/landscape), "9:16" (portrait/vertical), "4:3" (standard), "3:4" (tall). Default is 1:1 if not specified. Use 16:9 for landscapes, wallpapers, scenes. Use 9:16 for portraits, phone wallpapers. Use 1:1 for icons, profile pics.'
+                      enum: ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                      description: 'REQUIRED aspect ratio. MUST be specified based on user request: "wide"/"widescreen"/"landscape"/"banner"/"cinematic" = "16:9". "tall"/"portrait"/"vertical"/"phone wallpaper" = "9:16". "square" or unspecified = "1:1". Listen carefully for size/shape words!'
                     }
                   },
-                  required: ['prompt']
+                  required: ['prompt', 'aspect_ratio']
                 }
               },
               {
