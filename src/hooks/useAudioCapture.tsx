@@ -88,16 +88,18 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       const scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
       
       scriptProcessor.onaudioprocess = (event) => {
-        // COMPREHENSIVE mic gating - only capture when explicitly LISTENING
-        // and not during any operation that could cause unwanted behavior
+        // Mic gating - only capture when ready to listen
+        // IMPORTANT: Removed app visibility check to allow iOS PWA background conversations
         const { isMuted, status, isGeneratingImage, isSearching, isAudioPlaying } = useVoiceModeStore.getState();
         
         // Only capture audio when ALL of these are true:
-        // - Not muted
+        // - Not muted by user
         // - Status is 'listening' (not speaking, thinking, connecting, or idle)
         // - No image generation in progress
         // - No web search in progress
         // - No audio currently playing
+        // Note: We intentionally do NOT check document.visibilityState here
+        // so that iOS PWA can continue voice conversations in background
         const shouldCapture = 
           !isMuted && 
           status === 'listening' && 

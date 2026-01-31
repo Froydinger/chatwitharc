@@ -419,14 +419,11 @@ export function VoiceModeOverlay() {
                     exit={{ opacity: 0, scale: 0.8, y: 20 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
                     onClick={handleInterrupt}
-                    className="mt-6 px-10 py-5 rounded-full bg-primary text-primary-foreground
-                               text-lg font-semibold shadow-2xl
-                               hover:bg-primary/90 active:scale-95 transition-all
-                               flex items-center gap-3"
-                    aria-label="Interrupt AI"
+                    className="mt-6 p-5 rounded-full bg-primary text-primary-foreground
+                               shadow-2xl hover:bg-primary/90 active:scale-95 transition-all"
+                    aria-label="Stop"
                   >
-                    <Hand className="w-6 h-6" />
-                    <span>Interrupt</span>
+                    <Hand className="w-8 h-8" />
                   </motion.button>
                 )}
               </AnimatePresence>
