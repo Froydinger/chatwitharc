@@ -6,7 +6,8 @@ import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
 import { SmoothImage } from "@/components/ui/smooth-image";
-import { X, Sparkles, Zap, Brain, ImagePlus } from "lucide-react";
+import { X, Sparkles, Zap, Brain, ImagePlus, Mic } from "lucide-react";
+import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 
 interface ImageEditModalProps {
   isOpen: boolean;
@@ -380,29 +381,78 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-border/30 bg-muted/20">
-            <div className="flex items-center justify-end gap-3">
-              <Button 
-                variant="outline" 
-                onClick={onClose} 
-                disabled={isSubmitting}
-                className="min-w-[100px]"
-              >
-                Cancel
-              </Button>
+            <div className="flex items-center justify-between gap-3">
+              {/* Edit with Voice button on left */}
               <Button
-                onClick={handleSubmit}
-                disabled={isSubmitting || (!editInstruction.trim() && activeChips.length === 0)}
-                className="min-w-[120px] bg-primary hover:bg-primary/90"
+                variant="outline"
+                onClick={async () => {
+                  // Get the first image to attach for voice editing
+                  const imageToAttach = imageUrls[0];
+                  
+                  // Fetch the image and convert to base64
+                  try {
+                    const response = await fetch(imageToAttach);
+                    const blob = await response.blob();
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const base64 = (reader.result as string).split(',')[1]; // Remove data:image/...;base64, prefix
+                      const previewUrl = imageToAttach;
+                      
+                      // Attach image to voice mode store
+                      useVoiceModeStore.getState().setAttachedImage(base64, previewUrl);
+                      
+                      // Activate voice mode
+                      useVoiceModeStore.getState().activateVoiceMode();
+                      
+                      // Close the modal
+                      onClose();
+                      
+                      toast({
+                        title: "Voice editing",
+                        description: "Tell Arc how to edit your image",
+                      });
+                    };
+                    reader.readAsDataURL(blob);
+                  } catch (error) {
+                    console.error('Failed to load image for voice editing:', error);
+                    toast({
+                      title: "Error",
+                      description: "Failed to load image for voice editing",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                disabled={isSubmitting}
+                className="min-w-[140px] gap-2"
               >
-                {isSubmitting ? (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2 animate-spin" />
-                    Editing...
-                  </>
-                ) : (
-                  "Edit Image"
-                )}
+                <Mic className="h-4 w-4" />
+                Edit with Voice
               </Button>
+              
+              <div className="flex items-center gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={onClose} 
+                  disabled={isSubmitting}
+                  className="min-w-[100px]"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || (!editInstruction.trim() && activeChips.length === 0)}
+                  className="min-w-[120px] bg-primary hover:bg-primary/90"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2 animate-spin" />
+                      Editing...
+                    </>
+                  ) : (
+                    "Edit Image"
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
