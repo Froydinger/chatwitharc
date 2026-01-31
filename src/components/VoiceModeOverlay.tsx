@@ -1,12 +1,16 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear } from "lucide-react";
+import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera, CameraOff, Paperclip, SwitchCamera } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 
 // Global ref to allow interrupt from overlay - set by VoiceModeController
 let globalInterruptHandler: (() => void) | null = null;
 // Global ref for mute-handoff (commit audio and get response when user mutes after speaking)
 let globalMuteHandoffHandler: (() => boolean) | null = null;
+// Global ref for camera video element - set by VoiceModeController
+let globalVideoRef: React.RefObject<HTMLVideoElement> | null = null;
+// Global ref for camera switch handler
+let globalSwitchCameraHandler: (() => void) | null = null;
 
 export function setGlobalInterruptHandler(handler: (() => void) | null) {
   globalInterruptHandler = handler;
@@ -14,6 +18,14 @@ export function setGlobalInterruptHandler(handler: (() => void) | null) {
 
 export function setGlobalMuteHandoffHandler(handler: (() => boolean) | null) {
   globalMuteHandoffHandler = handler;
+}
+
+export function setGlobalVideoRef(ref: React.RefObject<HTMLVideoElement> | null) {
+  globalVideoRef = ref;
+}
+
+export function setGlobalSwitchCameraHandler(handler: (() => void) | null) {
+  globalSwitchCameraHandler = handler;
 }
 
 export function VoiceModeOverlay() {
@@ -31,7 +43,20 @@ export function VoiceModeOverlay() {
     isGeneratingImage,
     setGeneratedImage,
     isSearching,
+    // Camera state
+    isCameraActive,
+    activateCamera,
+    deactivateCamera,
+    cameraFacingMode,
+    // Attachment state
+    attachedImage,
+    attachedImagePreview,
+    clearAttachment,
+    setAttachedImage,
   } = useVoiceModeStore();
+
+  // File input ref for attachments
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle interrupt button press
   const handleInterrupt = useCallback(() => {
@@ -67,6 +92,61 @@ export function VoiceModeOverlay() {
       }, 50);
     }
   }, [isMuted, toggleMute]);
+
+  // Handle camera toggle
+  const handleCameraToggle = useCallback(() => {
+    if (isCameraActive) {
+      deactivateCamera();
+    } else {
+      activateCamera();
+    }
+    // Haptic feedback
+    if (navigator.vibrate) {
+      navigator.vibrate(30);
+    }
+  }, [isCameraActive, activateCamera, deactivateCamera]);
+
+  // Handle camera switch (front/back)
+  const handleCameraSwitch = useCallback(() => {
+    if (globalSwitchCameraHandler) {
+      globalSwitchCameraHandler();
+      if (navigator.vibrate) {
+        navigator.vibrate(30);
+      }
+    }
+  }, []);
+
+  // Handle attachment button click
+  const handleAttachClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  // Handle file selection
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      console.error('Invalid file type:', file.type);
+      return;
+    }
+
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      setAttachedImage(base64, previewUrl);
+      console.log('Image attached:', file.name);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input
+    e.target.value = '';
+  }, [setAttachedImage]);
 
   if (!isActive) return null;
 
@@ -134,6 +214,57 @@ export function VoiceModeOverlay() {
               <X className="w-6 h-6 text-foreground" />
             </motion.button>
 
+            {/* Top-right action buttons: Camera, Attachment */}
+            <div className="absolute top-6 right-20 z-10 flex items-center gap-2">
+              {/* Attachment button */}
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ delay: 0.12 }}
+                onClick={handleAttachClick}
+                disabled={!!attachedImage}
+                className={`p-3 rounded-full glass-shimmer transition-colors ${
+                  attachedImage
+                    ? 'bg-primary/20 border border-primary/40'
+                    : 'hover:bg-muted/50'
+                }`}
+                aria-label="Attach image"
+              >
+                <Paperclip className={`w-5 h-5 ${attachedImage ? 'text-primary' : 'text-foreground'}`} />
+              </motion.button>
+
+              {/* Camera button */}
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ delay: 0.14 }}
+                onClick={handleCameraToggle}
+                className={`p-3 rounded-full glass-shimmer transition-colors ${
+                  isCameraActive 
+                    ? 'bg-primary/20 border border-primary/40' 
+                    : 'hover:bg-muted/50'
+                }`}
+                aria-label={isCameraActive ? "Turn off camera" : "Turn on camera"}
+              >
+                {isCameraActive ? (
+                  <CameraOff className="w-5 h-5 text-primary" />
+                ) : (
+                  <Camera className="w-5 h-5 text-foreground" />
+                )}
+              </motion.button>
+            </div>
+
+            {/* Hidden file input for attachments */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+
             {/* Mute button - also triggers handoff when muting after speaking */}
             <motion.button
               initial={{ opacity: 0, scale: 0.8 }}
@@ -156,6 +287,92 @@ export function VoiceModeOverlay() {
             </motion.button>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
+              {/* Camera Preview */}
+              <AnimatePresence>
+                {isCameraActive && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="mb-6 flex justify-center w-full"
+                  >
+                    <div className="relative w-full max-w-[200px]">
+                      <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-muted/30 border-2 border-primary/40 shadow-lg">
+                        {/* Video element for camera feed - populated by VoiceModeController */}
+                        <video
+                          ref={(el) => {
+                            if (globalVideoRef && el) {
+                              // @ts-ignore - we need to set the ref
+                              globalVideoRef.current = el;
+                            }
+                          }}
+                          autoPlay
+                          playsInline
+                          muted
+                          className="w-full h-full object-cover"
+                          style={{ transform: cameraFacingMode === 'user' ? 'scaleX(-1)' : 'none' }}
+                        />
+                        {/* Camera indicator */}
+                        <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-background/80 backdrop-blur-sm">
+                          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                          <span className="text-xs font-medium">LIVE</span>
+                        </div>
+                        {/* Switch camera button */}
+                        <motion.button
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          onClick={handleCameraSwitch}
+                          className="absolute bottom-2 right-2 p-2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background transition-colors"
+                          aria-label="Switch camera"
+                        >
+                          <SwitchCamera className="w-4 h-4" />
+                        </motion.button>
+                      </div>
+                      <p className="text-center text-xs text-muted-foreground mt-2">
+                        Arc can see what you see
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Attached Image Preview */}
+              <AnimatePresence>
+                {attachedImagePreview && !isCameraActive && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="mb-6 flex justify-center w-full"
+                  >
+                    <div className="relative w-full max-w-[200px]">
+                      <motion.img
+                        src={attachedImagePreview}
+                        alt="Attached"
+                        className="w-full max-h-[200px] rounded-2xl shadow-lg border-2 border-primary/40 object-contain bg-background/50"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                      />
+                      {/* Dismiss button */}
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        onClick={clearAttachment}
+                        className="absolute -top-2 -right-2 p-1.5 rounded-full bg-background/90 border border-border shadow-lg hover:bg-muted transition-colors"
+                        aria-label="Remove attachment"
+                      >
+                        <X className="w-4 h-4" />
+                      </motion.button>
+                      <p className="text-center text-xs text-muted-foreground mt-2">
+                        Ask Arc about this image
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Search Loading Indicator */}
               <AnimatePresence>
                 {isSearching && !generatedImage && !isGeneratingImage && (

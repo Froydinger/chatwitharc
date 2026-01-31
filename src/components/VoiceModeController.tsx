@@ -3,12 +3,18 @@ import { useVoiceModeStore } from '@/store/useVoiceModeStore';
 import { useOpenAIRealtime } from '@/hooks/useOpenAIRealtime';
 import { useAudioCapture } from '@/hooks/useAudioCapture';
 import { useAudioPlayback } from '@/hooks/useAudioPlayback';
+import { useCameraCapture } from '@/hooks/useCameraCapture';
 import { useArcStore, Message } from '@/store/useArcStore';
 import { useToast } from '@/hooks/use-toast';
 import { AIService } from '@/services/ai';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
-import { setGlobalInterruptHandler, setGlobalMuteHandoffHandler } from './VoiceModeOverlay';
+import { 
+  setGlobalInterruptHandler, 
+  setGlobalMuteHandoffHandler, 
+  setGlobalVideoRef,
+  setGlobalSwitchCameraHandler 
+} from './VoiceModeOverlay';
 
 const aiService = new AIService();
 
@@ -197,6 +203,17 @@ CRITICAL: Always say something BEFORE using any tool so the user isn't left in s
   - Past topics or discussions
   This searches ALL past chats dynamically.`;
 
+    // Add vision capabilities section
+    voicePrompt += `\n\n--- VISION CAPABILITIES ---
+When the user shares their camera or attaches an image:
+• You can see what they're showing you through images sent to this conversation
+• Describe what you see naturally and conversationally
+• Point out interesting details they might want to know about
+• Answer questions about the visual content
+• If camera is live, acknowledge motion or changes when relevant
+• For attached images, offer to analyze specific parts if needed
+• Be helpful but not overly verbose about what you see`;
+
     return voicePrompt;
   } catch (error) {
     console.error('Failed to fetch voice system prompt:', error);
@@ -363,7 +380,7 @@ export function VoiceModeController() {
   }, [setIsSearching]);
 
   // OpenAI Realtime connection
-  const { isConnected, connect, disconnect, sendAudio, updateVoice, cancelResponse, commitAudioAndRespond } = useOpenAIRealtime({
+  const { isConnected, connect, disconnect, sendAudio, sendImage, updateVoice, cancelResponse, commitAudioAndRespond } = useOpenAIRealtime({
     onAudioData: (audioData) => {
       queueAudio(audioData);
     },
@@ -385,6 +402,32 @@ export function VoiceModeController() {
     onImageDismiss: handleImageDismiss,
     onWebSearch: handleWebSearch,
     onSearchPastChats: handleSearchPastChats,
+  });
+
+  // Track when we last sent a camera frame to throttle
+  const lastFrameSentRef = useRef<number>(0);
+  const MIN_FRAME_INTERVAL_MS = 2000; // Send at most every 2 seconds
+
+  // Camera frame handler - sends frames to OpenAI for vision
+  const handleCameraFrame = useCallback((base64Image: string) => {
+    // Throttle frame sending
+    const now = Date.now();
+    if (now - lastFrameSentRef.current < MIN_FRAME_INTERVAL_MS) return;
+    lastFrameSentRef.current = now;
+    
+    // Only send if connected
+    if (isConnected) {
+      console.log('Sending camera frame to AI');
+      sendImage(base64Image, true); // isLiveCamera = true
+    }
+  }, [isConnected, sendImage]);
+
+  // Camera capture hook
+  const { videoRef, switchCamera, stopCapture: stopCameraCapture } = useCameraCapture({
+    onFrame: handleCameraFrame,
+    frameRate: 2, // 2 fps
+    maxSize: 512, // Max 512px on longest edge
+    quality: 0.7, // 70% JPEG quality
   });
 
   // Export commitAudioAndRespond for the overlay's mute button to use
@@ -420,6 +463,40 @@ export function VoiceModeController() {
       setGlobalMuteHandoffHandler(null);
     };
   }, [commitAudioAndRespond]);
+
+  // Register the video ref globally for the overlay to display
+  useLayoutEffect(() => {
+    setGlobalVideoRef(videoRef);
+    return () => {
+      setGlobalVideoRef(null);
+    };
+  }, [videoRef]);
+
+  // Register the switch camera handler globally
+  useLayoutEffect(() => {
+    setGlobalSwitchCameraHandler(switchCamera);
+    return () => {
+      setGlobalSwitchCameraHandler(null);
+    };
+  }, [switchCamera]);
+
+  // Handle attached image - send to AI when attached
+  const { attachedImage, clearAttachment } = useVoiceModeStore();
+  const sentAttachmentRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // When a new attachment is added, send it to the AI
+    if (attachedImage && attachedImage !== sentAttachmentRef.current && isConnected) {
+      console.log('Sending attached image to AI');
+      sendImage(attachedImage, false); // isLiveCamera = false (triggers response)
+      sentAttachmentRef.current = attachedImage;
+    }
+    
+    // Reset ref when attachment is cleared
+    if (!attachedImage) {
+      sentAttachmentRef.current = null;
+    }
+  }, [attachedImage, isConnected, sendImage]);
 
   // Audio capture from microphone
   const { startCapture, stopCapture } = useAudioCapture({
@@ -475,7 +552,9 @@ export function VoiceModeController() {
         abortControllerRef.current = null;
       }
       
+      // Stop all captures
       stopCapture();
+      stopCameraCapture();
       stopPlayback();
       disconnect();
       initRef.current = false;
@@ -537,7 +616,7 @@ export function VoiceModeController() {
         console.log('No voice conversation turns to save');
       }
     }
-  }, [isActive, connect, disconnect, startCapture, stopCapture, stopPlayback, addMessage, toast, deactivateVoiceMode, messages, profile]);
+  }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, addMessage, toast, deactivateVoiceMode, messages, profile]);
 
   // Update voice when selection changes (only when connected)
   useEffect(() => {
@@ -556,12 +635,13 @@ export function VoiceModeController() {
           abortControllerRef.current.abort();
         }
         stopCapture();
+        stopCameraCapture();
         stopPlayback();
         disconnect();
         initRef.current = false;
       }
     };
-  }, [stopCapture, stopPlayback, disconnect]);
+  }, [stopCapture, stopCameraCapture, stopPlayback, disconnect]);
 
   return null;
 }

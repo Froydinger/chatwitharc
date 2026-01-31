@@ -41,6 +41,14 @@ interface VoiceModeState {
   // Track if user has spoken since unmuting (for mute-to-handoff)
   hasPendingSpeech: boolean;
   
+  // Camera state (new)
+  isCameraActive: boolean;
+  cameraFacingMode: 'environment' | 'user'; // Back or front camera
+  
+  // Attachment state (new)
+  attachedImage: string | null; // Base64 image data
+  attachedImagePreview: string | null; // Preview URL for display
+  
   // Actions
   activateVoiceMode: () => void;
   deactivateVoiceMode: () => void;
@@ -61,6 +69,15 @@ interface VoiceModeState {
   setIsSearching: (searching: boolean) => void;
   setHasPendingSpeech: (pending: boolean) => void;
   interruptAI: () => void;
+  
+  // Camera actions (new)
+  activateCamera: () => void;
+  deactivateCamera: () => void;
+  toggleCameraFacing: () => void;
+  
+  // Attachment actions (new)
+  setAttachedImage: (base64: string, previewUrl: string) => void;
+  clearAttachment: () => void;
 }
 
 export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
@@ -80,6 +97,14 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   isSearching: false,
   hasPendingSpeech: false,
   
+  // Camera initial state
+  isCameraActive: false,
+  cameraFacingMode: 'environment',
+  
+  // Attachment initial state
+  attachedImage: null,
+  attachedImagePreview: null,
+  
   // Actions
   activateVoiceMode: () => {
     set({ 
@@ -92,7 +117,11 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       isGeneratingImage: false,
       lastGeneratedImageUrl: null,
       isSearching: false,
-      hasPendingSpeech: false
+      hasPendingSpeech: false,
+      // Reset camera/attachment on new session
+      isCameraActive: false,
+      attachedImage: null,
+      attachedImagePreview: null
     });
   },
   
@@ -109,7 +138,11 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       isGeneratingImage: false,
       lastGeneratedImageUrl: null,
       isSearching: false,
-      hasPendingSpeech: false
+      hasPendingSpeech: false,
+      // Clean up camera/attachment
+      isCameraActive: false,
+      attachedImage: null,
+      attachedImagePreview: null
     });
   },
   
@@ -176,5 +209,25 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   setHasPendingSpeech: (pending) => set({ hasPendingSpeech: pending }),
   
   // Interrupt action - will be connected to actual interrupt logic externally
-  interruptAI: () => set({ status: 'listening' })
+  interruptAI: () => set({ status: 'listening' }),
+  
+  // Camera actions
+  activateCamera: () => set({ isCameraActive: true }),
+  
+  deactivateCamera: () => set({ isCameraActive: false }),
+  
+  toggleCameraFacing: () => set((state) => ({ 
+    cameraFacingMode: state.cameraFacingMode === 'environment' ? 'user' : 'environment' 
+  })),
+  
+  // Attachment actions
+  setAttachedImage: (base64, previewUrl) => set({ 
+    attachedImage: base64, 
+    attachedImagePreview: previewUrl 
+  }),
+  
+  clearAttachment: () => set({ 
+    attachedImage: null, 
+    attachedImagePreview: null 
+  })
 }));
