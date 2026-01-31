@@ -5,9 +5,15 @@ import { useCallback } from "react";
 
 // Global ref to allow interrupt from overlay - set by VoiceModeController
 let globalInterruptHandler: (() => void) | null = null;
+// Global ref for mute-handoff (commit audio and get response when user mutes after speaking)
+let globalMuteHandoffHandler: (() => boolean) | null = null;
 
 export function setGlobalInterruptHandler(handler: (() => void) | null) {
   globalInterruptHandler = handler;
+}
+
+export function setGlobalMuteHandoffHandler(handler: (() => boolean) | null) {
+  globalMuteHandoffHandler = handler;
 }
 
 export function VoiceModeOverlay() {
@@ -38,6 +44,29 @@ export function VoiceModeOverlay() {
       globalInterruptHandler();
     }
   }, []);
+
+  // Handle mute toggle with handoff logic
+  const handleMuteToggle = useCallback(() => {
+    const wasUnmuted = !isMuted;
+    
+    // Toggle the mute state
+    toggleMute();
+    
+    // If user was unmuted (just muted now), check for pending speech handoff
+    if (wasUnmuted && globalMuteHandoffHandler) {
+      // Small delay to ensure mute state is updated
+      setTimeout(() => {
+        const didHandoff = globalMuteHandoffHandler?.();
+        if (didHandoff) {
+          console.log('Mute triggered handoff to AI');
+          // Trigger haptic feedback to confirm handoff
+          if (navigator.vibrate) {
+            navigator.vibrate([30, 50, 30]);
+          }
+        }
+      }, 50);
+    }
+  }, [isMuted, toggleMute]);
 
   if (!isActive) return null;
 
@@ -105,13 +134,13 @@ export function VoiceModeOverlay() {
               <X className="w-6 h-6 text-foreground" />
             </motion.button>
 
-            {/* Mute button */}
+            {/* Mute button - also triggers handoff when muting after speaking */}
             <motion.button
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ delay: 0.15 }}
-              onClick={toggleMute}
+              onClick={handleMuteToggle}
               className={`absolute top-6 left-6 z-10 p-3 rounded-full glass-shimmer transition-colors ${
                 isMuted 
                   ? 'bg-destructive/20 hover:bg-destructive/30' 
