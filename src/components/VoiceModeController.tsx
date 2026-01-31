@@ -186,18 +186,16 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
 
     // Add voice-specific tools
     voicePrompt += `\n\n--- VOICE TOOLS ---
-• IMAGE GENERATION: When user asks to create/draw/show an image, use generate_image. When done with image, use close_image.
-• WEB SEARCH: For current events, news, scores, or real-time info, use web_search. Summarize results conversationally.
-  CRITICAL: Listen VERY carefully to exact names, titles, and proper nouns. Common misheards:
-  - "Win the Night" (a wellness podcast at winthenight.org) NOT "Wind of Change"
-  - "Arc AI" or "Chat with Arc" (this app at chatwitharc.com)
-  Before searching, confirm the exact term you heard if it sounds like a proper noun or title.
-• SEARCH PAST CHATS: Use search_past_chats to search through ALL of the user's past conversations when they ask about:
-  - Something they mentioned before ("what did I say about...", "remember when I told you...")
-  - Their preferences, interests, or patterns ("what do I usually...", "what are my...")
-  - Past topics or discussions ("we talked about X before", "that thing we discussed...")
-  - Any context that would require knowing their history
-  This searches ALL past conversations dynamically, giving you evolving knowledge of the user.`;
+CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
+
+• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image. When done, use close_image if user is done with it.
+• WEB SEARCH: Say "Let me look that up" or "I'll search for that" FIRST, then use web_search. Summarize results conversationally after.
+  IMPORTANT: Listen carefully to exact names and titles. If unsure, confirm before searching.
+• SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats when they ask about:
+  - Something they mentioned before
+  - Their preferences, interests, or patterns
+  - Past topics or discussions
+  This searches ALL past chats dynamically.`;
 
     return voicePrompt;
   } catch (error) {
