@@ -45,8 +45,8 @@ serve(async (req) => {
   clientSocket.onopen = () => {
     console.log('Client connected to proxy');
     
-    // Connect to OpenAI Realtime API
-    const openaiUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17';
+    // Connect to OpenAI Realtime API - using gpt-realtime for vision support
+    const openaiUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
     
     openaiSocket = new WebSocket(openaiUrl, [
       'realtime',
