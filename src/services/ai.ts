@@ -364,7 +364,7 @@ export class AIService {
     }
   }
 
-  async generateImage(prompt: string, preferredModel?: string): Promise<string> {
+  async generateImage(prompt: string, preferredModel?: string, aspectRatio?: string): Promise<string> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Image generation service is not available. Please configure Supabase.');
     }
@@ -381,7 +381,8 @@ export class AIService {
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { 
           prompt,
-          preferredModel: modelToUse
+          preferredModel: modelToUse,
+          aspectRatio: aspectRatio || undefined
         }
       });
 
