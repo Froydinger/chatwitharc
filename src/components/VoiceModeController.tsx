@@ -212,7 +212,12 @@ When the user shares their camera or attaches an image:
 • Answer questions about the visual content
 • If camera is live, acknowledge motion or changes when relevant
 • For attached images, offer to analyze specific parts if needed
-• Be helpful but not overly verbose about what you see`;
+• Be helpful but not overly verbose about what you see
+
+If a user says something like "edit this" or asks to modify an image:
+• Ask what changes they'd like if not specified
+• Use generate_image with a prompt that describes the desired edit
+• The image editing system can handle style changes, modifications, additions, etc.`;
 
     return voicePrompt;
   } catch (error) {
