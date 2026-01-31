@@ -48,15 +48,13 @@ serve(async (req) => {
       throw new Error('Lovable API key not configured');
     }
 
-    // Default to Pro image model for best quality
-    // Only use Flash if explicitly requested (e.g., "fast" option in editor)
-    // google/gemini-2.5-flash-image = fast/quick option
-    // google/gemini-3-pro-image-preview = default high quality
-    const imageModel = preferredModel === 'google/gemini-2.5-flash-image' || preferredModel === 'google/gemini-3-flash-preview'
+    // ALWAYS use Gemini 3 Pro for image generation (best quality)
+    // Only fall back to Flash if explicitly requested with the flash model name
+    const imageModel = preferredModel === 'google/gemini-2.5-flash-image'
       ? 'google/gemini-2.5-flash-image'
       : 'google/gemini-3-pro-image-preview';
     
-    console.log('Using image model:', imageModel);
+    console.log('Using image model:', imageModel, '(requested:', preferredModel, ')');
 
     // Get Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

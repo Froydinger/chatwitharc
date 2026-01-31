@@ -370,19 +370,17 @@ export class AIService {
     }
 
     try {
-      // Generating image with Gemini (image gen always uses Gemini regardless of chat model)
-      // Use session model if no specific model provided - backend will map to Gemini image model
-      let modelToUse = preferredModel;
-      if (!modelToUse) {
-        // Get model from sessionStorage (backend maps to appropriate Gemini image model)
-        modelToUse = sessionStorage.getItem('arc_session_model') || 'openai/gpt-5-nano';
-      }
+      // ALWAYS use Gemini 3 Pro for image generation (highest quality)
+      // Voice mode and all image gen should use Pro, not session model
+      const modelToUse = preferredModel || 'google/gemini-3-pro-image-preview';
+      
+      console.log('generateImage called with:', { prompt, preferredModel, aspectRatio, modelToUse });
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { 
           prompt,
           preferredModel: modelToUse,
-          aspectRatio: aspectRatio || undefined
+          aspectRatio: aspectRatio || '1:1'
         }
       });
 
