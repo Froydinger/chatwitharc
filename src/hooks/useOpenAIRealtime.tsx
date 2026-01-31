@@ -125,7 +125,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // User's speech transcribed
         const userTranscript = event.transcript || '';
         
-        // Filter out garbled/stuttered transcriptions
+        // Filter out garbled/stuttered transcriptions, but be more lenient
         if (isGarbledTranscription(userTranscript)) {
           console.warn('Ignoring garbled transcription:', userTranscript);
           return;
@@ -133,11 +133,15 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         
         console.log('User said:', userTranscript);
         setCurrentTranscript(userTranscript);
-        addConversationTurn({
-          role: 'user',
-          transcript: userTranscript,
-          timestamp: new Date()
-        });
+        
+        // Always add user turns to conversation (these get saved to chat history)
+        if (userTranscript.trim()) {
+          addConversationTurn({
+            role: 'user',
+            transcript: userTranscript,
+            timestamp: new Date()
+          });
+        }
         optionsRef.current.onTranscriptUpdate?.(userTranscript, true);
         break;
 

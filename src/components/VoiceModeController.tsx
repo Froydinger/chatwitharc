@@ -490,34 +490,51 @@ export function VoiceModeController() {
       const { conversationTurns: finalTurns } = useVoiceModeStore.getState();
       
       // Save conversation to chat history (including images)
-      if (finalTurns.length > 0) {
-        console.log('Saving voice conversation:', finalTurns.length, 'turns');
+      // Filter out empty transcripts but keep turns with images
+      const turnsToSave = finalTurns.filter(turn => 
+        turn.transcript.trim() || turn.imageUrl
+      );
+      
+      if (turnsToSave.length > 0) {
+        console.log('Saving voice conversation:', turnsToSave.length, 'turns (filtered from', finalTurns.length, ')');
         
-        finalTurns.forEach((turn) => {
-          if (turn.imageUrl) {
-            // If this turn has an image, add the image first, then the text
-            addMessage({
-              content: turn.transcript,
-              role: turn.role,
-              type: 'image',
-              imageUrl: turn.imageUrl,
-            });
-          } else {
-            // Regular text message
-            addMessage({
-              content: turn.transcript,
-              role: turn.role,
-              type: 'text',
-            });
+        // Use Promise.all to ensure all messages are saved
+        const savePromises = turnsToSave.map(async (turn) => {
+          try {
+            if (turn.imageUrl) {
+              // If this turn has an image, add the image message
+              await addMessage({
+                content: turn.transcript || 'Generated image',
+                role: turn.role,
+                type: 'image',
+                imageUrl: turn.imageUrl,
+              });
+            } else if (turn.transcript.trim()) {
+              // Regular text message
+              await addMessage({
+                content: turn.transcript,
+                role: turn.role,
+                type: 'text',
+              });
+            }
+          } catch (error) {
+            console.error('Failed to save voice turn:', error);
           }
+        });
+        
+        // Wait for all saves to complete
+        Promise.all(savePromises).then(() => {
+          console.log('✅ All voice conversation turns saved');
         });
 
         toast({
           title: 'Conversation saved',
-          description: `${finalTurns.length} messages added to chat`,
+          description: `${turnsToSave.length} messages added to chat`,
         });
         
         clearConversation();
+      } else {
+        console.log('No voice conversation turns to save');
       }
     }
   }, [isActive, connect, disconnect, startCapture, stopCapture, stopPlayback, addMessage, toast, deactivateVoiceMode, messages, profile]);
