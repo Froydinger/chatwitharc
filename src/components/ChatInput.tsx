@@ -1331,64 +1331,96 @@ ${existingCode}
         </div>
         
         {/* Slash command picker - portaled to escape overflow */}
+        {/* Slash command picker - Unified glassy card design */}
         {portalRoot && showSlashPicker && createPortal(
           <AnimatePresence>
             <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              transition={{ type: "spring", damping: 20, stiffness: 400, mass: 0.5 }}
               className="fixed z-[9999] flex items-center justify-center px-4"
               style={{
-                bottom: "calc(110px + env(safe-area-inset-bottom, 0px))",
+                bottom: "calc(100px + env(safe-area-inset-bottom, 0px))",
                 left: 0,
                 right: 0,
               }}
             >
-              <div className="flex flex-col items-stretch gap-2 w-full max-w-lg">
-                {/* Top row - Research Mode card */}
-                <button
+              {/* Glassy container matching star menu aesthetic */}
+              <div className="relative flex items-center justify-center gap-2 sm:gap-3 py-4 px-4">
+                {/* Research Mode */}
+                <motion.button
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0 }}
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setInputValue("");
-                    // Open Research Mode (blank search canvas)
                     openSearchMode();
                     textareaRef.current?.focus();
                   }}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-orange-400/50 text-orange-400 hover:bg-orange-500/20 transition-colors shadow-xl"
+                  className="group rounded-2xl glass-shimmer ring-[0.5px] ring-orange-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(249,115,22,.2)]"
                 >
-                  <Sparkles className="h-4 w-4" />
-                  <span className="text-sm font-medium">Research Mode</span>
-                </button>
+                  <div className="flex flex-col items-center justify-center gap-1.5 h-full">
+                    <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-orange-500/15 glass-shimmer ring-[0.5px] ring-orange-500/40">
+                      <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
+                    </span>
+                    <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">Research</span>
+                  </div>
+                </motion.button>
 
-                {/* Bottom row - Slash commands */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setInputValue("image/");
-                      textareaRef.current?.focus();
-                    }}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-green-400/50 text-green-400 hover:bg-green-500/20 transition-colors shadow-xl"
-                  >
-                    <ImagePlus className="h-4 w-4" />
-                    <span className="text-sm font-medium">image/</span>
-                  </button>
-                <button
+                {/* Image Mode */}
+                <motion.button
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.03 }}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setInputValue("image/");
+                    textareaRef.current?.focus();
+                  }}
+                  className="group rounded-2xl glass-shimmer ring-[0.5px] ring-green-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(34,197,94,.2)]"
+                >
+                  <div className="flex flex-col items-center justify-center gap-1.5 h-full">
+                    <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-green-500/15 glass-shimmer ring-[0.5px] ring-green-500/40">
+                      <ImagePlus className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
+                    </span>
+                    <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">image/</span>
+                  </div>
+                </motion.button>
+
+                {/* Code Mode */}
+                <motion.button
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.06 }}
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setInputValue("code/");
                     textareaRef.current?.focus();
                   }}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-blue-400/50 text-blue-400 hover:bg-blue-500/20 transition-colors shadow-xl"
+                  className="group rounded-2xl glass-shimmer ring-[0.5px] ring-blue-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(59,130,246,.2)]"
                 >
-                  <Code2 className="h-4 w-4" />
-                  <span className="text-sm font-medium">code/</span>
-                </button>
-                <button
+                  <div className="flex flex-col items-center justify-center gap-1.5 h-full">
+                    <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-blue-500/15 glass-shimmer ring-[0.5px] ring-blue-500/40">
+                      <Code2 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+                    </span>
+                    <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">code/</span>
+                  </div>
+                </motion.button>
+
+                {/* Write Mode */}
+                <motion.button
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.09 }}
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -1396,37 +1428,54 @@ ${existingCode}
                     setInputValue("write/ ");
                     textareaRef.current?.focus();
                   }}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-purple-400/50 text-purple-400 hover:bg-purple-500/20 transition-colors shadow-xl"
+                  className="group rounded-2xl glass-shimmer ring-[0.5px] ring-purple-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(168,85,247,.2)]"
                 >
-                  <PenLine className="h-4 w-4" />
-                  <span className="text-sm font-medium">write/</span>
-                </button>
-                <button
+                  <div className="flex flex-col items-center justify-center gap-1.5 h-full">
+                    <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-purple-500/15 glass-shimmer ring-[0.5px] ring-purple-500/40">
+                      <PenLine className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
+                    </span>
+                    <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">write/</span>
+                  </div>
+                </motion.button>
+
+                {/* Search Mode */}
+                <motion.button
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.12 }}
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setInputValue("search/");
                     textareaRef.current?.focus();
                   }}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-cyan-400/50 text-cyan-400 hover:bg-cyan-500/20 transition-colors shadow-xl"
+                  className="group rounded-2xl glass-shimmer ring-[0.5px] ring-cyan-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(6,182,212,.2)]"
                 >
-                  <Globe className="h-4 w-4" />
-                  <span className="text-sm font-medium">search/</span>
-                </button>
-                  {/* Dismiss button */}
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setInputValue("");
-                      textareaRef.current?.focus();
-                    }}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 sm:w-10 sm:h-10 rounded-xl sm:rounded-full bg-black border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors shadow-xl"
-                  >
-                    <X className="h-4 w-4" />
-                    <span className="text-sm font-medium sm:hidden">Dismiss</span>
-                  </button>
-                </div>
+                  <div className="flex flex-col items-center justify-center gap-1.5 h-full">
+                    <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-cyan-500/15 glass-shimmer ring-[0.5px] ring-cyan-500/40">
+                      <Globe className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-400" />
+                    </span>
+                    <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">search/</span>
+                  </div>
+                </motion.button>
+
+                {/* Dismiss */}
+                <motion.button
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.15 }}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setInputValue("");
+                    textareaRef.current?.focus();
+                  }}
+                  className="rounded-full glass-shimmer ring-[0.5px] ring-border/60 h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform text-muted-foreground hover:text-foreground !shadow-[0_8px_32px_rgba(0,0,0,.25)]"
+                >
+                  <X className="h-4 w-4" />
+                </motion.button>
               </div>
             </motion.div>
           </AnimatePresence>,
@@ -1504,129 +1553,85 @@ ${existingCode}
                   )}
                 >
                   <div className="px-4">
-                    {/* Fanned playing cards */}
-                    <div className="relative flex items-center justify-center gap-0.5 sm:gap-1 h-36 sm:h-44 max-w-2xl mx-auto">
-                      {/* Quick Prompts - Far left */}
+                    {/* Glassy horizontal card layout - matching slash picker */}
+                    <div className="relative flex items-center justify-center gap-2 sm:gap-3 py-2">
+                      {/* Quick Prompts */}
                       <motion.button
-                        initial={{ opacity: 0, y: 40, rotate: -15, scale: 0.9 }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                          rotate: -15,
-                          scale: 1,
-                        }}
-                        exit={{ opacity: 0, y: 20, rotate: -15, scale: 0.95 }}
-                        transition={{
-                          type: "spring",
-                          damping: 15,
-                          stiffness: 550,
-                          mass: 0.4,
-                        }}
+                        initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                        transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0 }}
                         onClick={() => {
                           setShowMenu(false);
                           setShowPromptLibrary(true);
                         }}
-                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-violet-500/60 px-2 py-4 sm:px-3 sm:py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-20 h-32 sm:w-28 sm:h-40 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(139,92,246,.2)]"
-                        style={{ transformOrigin: "bottom center" }}
+                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-violet-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(139,92,246,.2)]"
                       >
-                        <div className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 h-full">
-                          <span className="inline-flex h-8 w-8 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-violet-500/15 shrink-0 glass-shimmer ring-[0.5px] ring-violet-500/40">
-                            <Sparkles className="h-4 w-4 sm:h-6 sm:w-6 text-violet-500" />
+                        <div className="flex flex-col items-center justify-center gap-1.5 h-full">
+                          <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-violet-500/15 glass-shimmer ring-[0.5px] ring-violet-500/40">
+                            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-violet-500" />
                           </span>
-                          <div className="text-[10px] sm:text-sm font-semibold">Prompts</div>
+                          <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">Prompts</span>
                         </div>
                       </motion.button>
 
-                      {/* Research Mode - Second left */}
+                      {/* Research Mode */}
                       <motion.button
-                        initial={{ opacity: 0, y: 40, rotate: -5, scale: 0.9 }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                          rotate: -5,
-                          scale: 1,
-                        }}
-                        exit={{ opacity: 0, y: 20, rotate: -5, scale: 0.95 }}
-                        transition={{
-                          type: "spring",
-                          damping: 15,
-                          stiffness: 550,
-                          mass: 0.4,
-                        }}
+                        initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                        transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.03 }}
                         onClick={() => {
                           setShowMenu(false);
                           openSearchMode();
                         }}
-                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-orange-500/60 px-2 py-4 sm:px-3 sm:py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-20 h-32 sm:w-28 sm:h-40 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(249,115,22,.2)]"
-                        style={{ transformOrigin: "bottom center" }}
+                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-orange-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(249,115,22,.2)]"
                       >
-                        <div className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 h-full">
-                          <span className="inline-flex h-8 w-8 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-orange-500/15 shrink-0 glass-shimmer ring-[0.5px] ring-orange-500/40">
-                            <Search className="h-4 w-4 sm:h-6 sm:w-6 text-orange-400" />
+                        <div className="flex flex-col items-center justify-center gap-1.5 h-full">
+                          <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-orange-500/15 glass-shimmer ring-[0.5px] ring-orange-500/40">
+                            <Search className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
                           </span>
-                          <div className="text-[10px] sm:text-sm font-semibold">Research</div>
+                          <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">Research</span>
                         </div>
                       </motion.button>
 
-                      {/* Generate Image - Second right */}
+                      {/* Generate Image */}
                       <motion.button
-                        initial={{ opacity: 0, y: 40, rotate: 5, scale: 0.9 }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                          rotate: 5,
-                          scale: 1,
-                        }}
-                        exit={{ opacity: 0, y: 20, rotate: 5, scale: 0.95 }}
-                        transition={{
-                          type: "spring",
-                          damping: 15,
-                          stiffness: 550,
-                          mass: 0.4,
-                        }}
+                        initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                        transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.06 }}
                         onClick={() => {
                           setForceImageMode(true);
                           setShowMenu(false);
                         }}
-                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-green-500/60 px-2 py-4 sm:px-3 sm:py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-20 h-32 sm:w-28 sm:h-40 z-10 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(34,197,94,.2)]"
-                        style={{ transformOrigin: "bottom center" }}
+                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-green-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(34,197,94,.2)]"
                       >
-                        <div className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 h-full">
-                          <span className="inline-flex h-8 w-8 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-green-500/15 shrink-0 glass-shimmer ring-[0.5px] ring-green-500/40">
-                            <ImagePlus className="h-4 w-4 sm:h-6 sm:w-6 text-green-400" />
+                        <div className="flex flex-col items-center justify-center gap-1.5 h-full">
+                          <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-green-500/15 glass-shimmer ring-[0.5px] ring-green-500/40">
+                            <ImagePlus className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
                           </span>
-                          <div className="text-[10px] sm:text-sm font-semibold">Image</div>
+                          <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">Image</span>
                         </div>
                       </motion.button>
 
-                      {/* Attach - Far right */}
+                      {/* Attach */}
                       <motion.button
-                        initial={{ opacity: 0, y: 40, rotate: 15, scale: 0.9 }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                          rotate: 15,
-                          scale: 1,
-                        }}
-                        exit={{ opacity: 0, y: 20, rotate: 15, scale: 0.95 }}
-                        transition={{
-                          type: "spring",
-                          damping: 15,
-                          stiffness: 550,
-                          mass: 0.4,
-                        }}
+                        initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                        transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.09 }}
                         onClick={() => {
                           setShowMenu(false);
                           fileInputRef.current?.click();
                         }}
-                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-blue-500/60 px-2 py-4 sm:px-3 sm:py-5 hover:scale-105 hover:rotate-0 hover:z-30 active:scale-95 w-20 h-32 sm:w-28 sm:h-40 !shadow-[0_8px_32px_rgba(0,0,0,.2),0_0_12px_rgba(59,130,246,.2)]"
-                        style={{ transformOrigin: "bottom center" }}
+                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-blue-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(59,130,246,.2)]"
                       >
-                        <div className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 h-full">
-                          <span className="inline-flex h-8 w-8 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-blue-500/15 shrink-0 glass-shimmer ring-[0.5px] ring-blue-500/40">
-                            <Paperclip className="h-4 w-4 sm:h-6 sm:w-6 text-blue-500" />
+                        <div className="flex flex-col items-center justify-center gap-1.5 h-full">
+                          <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-blue-500/15 glass-shimmer ring-[0.5px] ring-blue-500/40">
+                            <Paperclip className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
                           </span>
-                          <div className="text-[10px] sm:text-sm font-semibold">Attach</div>
+                          <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">Attach</span>
                         </div>
                       </motion.button>
                     </div>
