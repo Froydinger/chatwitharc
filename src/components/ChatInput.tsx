@@ -1347,7 +1347,7 @@ ${existingCode}
               }}
             >
               {/* Glassy container matching star menu aesthetic */}
-              <div className="relative flex items-center justify-center gap-2 sm:gap-3 py-4 px-4">
+              <div className="relative flex flex-wrap items-center justify-center gap-2 sm:gap-3 py-4 px-4 max-w-[280px] sm:max-w-none">
                 {/* Research Mode */}
                 <motion.button
                   initial={{ opacity: 0, y: 20, scale: 0.9 }}
