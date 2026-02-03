@@ -121,11 +121,11 @@ export const TypewriterMarkdown = ({
   }, [text, shouldAnimate]);
 
   return (
-    <div className={`relative z-10 text-foreground whitespace-pre-wrap break-words leading-relaxed ${className}`}>
+    <div className={`relative z-10 text-foreground break-words ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          p: ({ node, ...props }) => <p className="text-base leading-relaxed mb-2 last:mb-0 text-foreground/90" {...props} />,
+          p: ({ node, ...props }) => <p className="text-base leading-normal mb-1.5 last:mb-0 text-foreground/90" {...props} />,
           strong: ({ node, ...props }) => <strong className="font-semibold text-foreground" {...props} />,
           em: ({ node, ...props }) => <em className="italic text-foreground/85" {...props} />,
           a: ({ node, href, children, ...props }: any) => {
@@ -186,21 +186,21 @@ export const TypewriterMarkdown = ({
 
             return <a href={href} className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
           },
-          ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2 space-y-1 marker:text-primary/60" {...props} />,
-          ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-1 marker:text-primary/60" {...props} />,
+          ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-1.5 space-y-0.5 marker:text-primary/60" {...props} />,
+          ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-1.5 space-y-0.5 marker:text-primary/60" {...props} />,
           li: ({ node, ...props }) => (
-            <li className="text-base leading-relaxed text-foreground/90" {...props} />
+            <li className="text-base leading-normal text-foreground/90" {...props} />
           ),
-          h1: ({ node, ...props }) => <h1 className="text-xl font-bold mt-4 mb-2 text-foreground" {...props} />,
-          h2: ({ node, ...props }) => <h2 className="text-lg font-semibold mt-3 mb-1.5 text-foreground" {...props} />,
+          h1: ({ node, ...props }) => <h1 className="text-xl font-bold mt-3 mb-1.5 text-foreground" {...props} />,
+          h2: ({ node, ...props }) => <h2 className="text-lg font-semibold mt-2.5 mb-1 text-foreground" {...props} />,
           h3: ({ node, ...props }) => <h3 className="text-base font-semibold mt-2 mb-1 text-foreground" {...props} />,
           h4: ({ node, ...props }) => <h4 className="text-sm font-semibold mt-2 mb-1 text-foreground" {...props} />,
           blockquote: ({ node, ...props }) => (
-            <blockquote className="border-l-2 border-primary/40 pl-3 py-0.5 my-2 bg-primary/5 rounded-r italic text-muted-foreground" {...props} />
+            <blockquote className="border-l-2 border-primary/40 pl-3 py-0.5 my-2.5 bg-primary/5 rounded-r italic text-muted-foreground" {...props} />
           ),
-          hr: ({ node, ...props }) => <hr className="my-4 border-t border-border/50" {...props} />,
+          hr: ({ node, ...props }) => <hr className="my-3 border-t border-border/50" {...props} />,
           table: ({ node, ...props }) => (
-            <div className="my-3 overflow-x-auto rounded-lg border border-border/50">
+            <div className="my-2.5 overflow-x-auto rounded-lg border border-border/50">
               <table className="w-full text-sm" {...props} />
             </div>
           ),
