@@ -1335,10 +1335,10 @@ ${existingCode}
         {portalRoot && showSlashPicker && createPortal(
           <AnimatePresence>
             <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              initial={{ opacity: 0, y: 8, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              transition={{ type: "spring", damping: 20, stiffness: 400, mass: 0.5 }}
+              exit={{ opacity: 0, y: 6, scale: 0.97 }}
+              transition={{ type: "spring", damping: 30, stiffness: 700, mass: 0.25 }}
               className="fixed z-[9999] flex items-center justify-center px-4"
               style={{
                 bottom: "calc(100px + env(safe-area-inset-bottom, 0px))",
@@ -1350,10 +1350,10 @@ ${existingCode}
               <div className="relative flex flex-wrap items-center justify-center gap-2 sm:gap-3 py-4 px-4 max-w-[280px] sm:max-w-none">
                 {/* Research Mode */}
                 <motion.button
-                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0 }}
+                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                  transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0 }}
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -1373,10 +1373,10 @@ ${existingCode}
 
                 {/* Image Mode */}
                 <motion.button
-                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.03 }}
+                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                  transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.02 }}
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -1395,10 +1395,10 @@ ${existingCode}
 
                 {/* Code Mode */}
                 <motion.button
-                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.06 }}
+                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                  transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.04 }}
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -1417,10 +1417,10 @@ ${existingCode}
 
                 {/* Write Mode */}
                 <motion.button
-                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.09 }}
+                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                  transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.06 }}
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -1440,10 +1440,10 @@ ${existingCode}
 
                 {/* Search Mode */}
                 <motion.button
-                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.12 }}
+                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                  transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.08 }}
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -1462,10 +1462,10 @@ ${existingCode}
 
                 {/* Dismiss */}
                 <motion.button
-                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.15 }}
+                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                  transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.1 }}
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -1557,10 +1557,10 @@ ${existingCode}
                     <div className="relative flex items-center justify-center gap-2 sm:gap-3 py-2">
                       {/* Quick Prompts */}
                       <motion.button
-                        initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                        transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                        transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0 }}
                         onClick={() => {
                           setShowMenu(false);
                           setShowPromptLibrary(true);
@@ -1577,10 +1577,10 @@ ${existingCode}
 
                       {/* Research Mode */}
                       <motion.button
-                        initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                        transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.03 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                        transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.02 }}
                         onClick={() => {
                           setShowMenu(false);
                           openSearchMode();
@@ -1597,10 +1597,10 @@ ${existingCode}
 
                       {/* Generate Image */}
                       <motion.button
-                        initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                        transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.06 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                        transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.04 }}
                         onClick={() => {
                           setForceImageMode(true);
                           setShowMenu(false);
@@ -1617,10 +1617,10 @@ ${existingCode}
 
                       {/* Attach */}
                       <motion.button
-                        initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                        transition={{ type: "spring", damping: 18, stiffness: 500, mass: 0.4, delay: 0.09 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                        transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.06 }}
                         onClick={() => {
                           setShowMenu(false);
                           fileInputRef.current?.click();
