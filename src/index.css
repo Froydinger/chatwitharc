@@ -751,4 +751,69 @@ All colors MUST be HSL for perfect glass effects.
     color: hsl(0 0% 95%) !important;
     stroke: hsl(0 0% 95%) !important;
   }
+
+  /* Premium Chat Prose Styling */
+  .chat-prose p {
+    @apply text-base leading-relaxed mb-4;
+  }
+
+  .chat-prose ul,
+  .chat-prose ol {
+    @apply pl-6 mb-4 space-y-2.5;
+  }
+
+  .chat-prose li {
+    @apply text-base leading-relaxed pl-1;
+  }
+
+  .chat-prose li::marker {
+    color: hsl(var(--primary) / 0.6);
+  }
+
+  .chat-prose blockquote {
+    @apply border-l-[3px] pl-4 py-1 my-4 rounded-r-lg italic;
+    border-color: hsl(var(--primary) / 0.4);
+    background: hsl(var(--primary) / 0.05);
+    color: hsl(var(--muted-foreground));
+  }
+
+  .chat-prose hr {
+    @apply my-6 border-t;
+    border-color: hsl(var(--border) / 0.5);
+  }
+
+  .chat-prose h1 {
+    @apply text-2xl font-bold mt-6 mb-3;
+  }
+
+  .chat-prose h2 {
+    @apply text-xl font-semibold mt-5 mb-2.5;
+  }
+
+  .chat-prose h3 {
+    @apply text-lg font-semibold mt-4 mb-2;
+  }
+
+  .chat-prose table {
+    @apply w-full text-sm my-4;
+  }
+
+  .chat-prose th {
+    @apply px-4 py-2.5 text-left font-semibold;
+    background: hsl(var(--muted) / 0.5);
+  }
+
+  .chat-prose td {
+    @apply px-4 py-2.5;
+    border-bottom: 1px solid hsl(var(--border) / 0.3);
+  }
+
+  .chat-prose a {
+    @apply underline underline-offset-2 transition-colors;
+    color: hsl(var(--primary));
+  }
+
+  .chat-prose a:hover {
+    color: hsl(var(--primary) / 0.8);
+  }
 }
