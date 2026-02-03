@@ -366,9 +366,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                             <ReactMarkdown 
                               remarkPlugins={[remarkGfm]}
                               components={{
-                                p: ({node, ...props}) => <p className="mb-1.5 last:mb-0" {...props} />,
+                                p: ({node, ...props}) => <p className="text-base leading-relaxed mb-4 last:mb-0 text-foreground/90" {...props} />,
                                 strong: ({node, ...props}) => <strong className="font-semibold text-foreground" {...props} />,
-                                em: ({node, ...props}) => <em className="italic" {...props} />,
+                                em: ({node, ...props}) => <em className="italic text-foreground/85" {...props} />,
                                 a: ({node, href, children, ...props}: any) => {
                                   // Detect file URLs from Supabase storage
                                   if (href && href.includes('/storage/v1/object/public/generated-files/')) {
@@ -421,21 +421,31 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                                   }
 
                                   // Regular link
-                                  return <a href={href} className="text-primary underline hover:text-primary/80" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
+                                  return <a href={href} className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
                                 },
-                                ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-3 space-y-1.5" {...props} />,
-                                ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-3 space-y-1.5" {...props} />,
-                                li: ({node, children, ...props}) => (
-                                  <li className="leading-relaxed" {...props}>
-                                    <span className="ml-1">{children}</span>
-                                  </li>
+                                ul: ({node, ...props}) => <ul className="list-disc pl-6 mb-4 space-y-2.5 marker:text-primary/60" {...props} />,
+                                ol: ({node, ...props}) => <ol className="list-decimal pl-6 mb-4 space-y-2.5 marker:text-primary/60" {...props} />,
+                                li: ({node, ...props}) => (
+                                  <li className="text-base leading-relaxed text-foreground/90 pl-1" {...props} />
                                 ),
-                                h1: ({node, ...props}) => <h1 className="text-xl font-bold mt-4 mb-2 text-foreground" {...props} />,
-                                h2: ({node, ...props}) => <h2 className="text-lg font-semibold mt-3 mb-2 text-foreground" {...props} />,
-                                h3: ({node, ...props}) => <h3 className="text-base font-semibold mt-2 mb-1.5 text-foreground" {...props} />,
+                                h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-6 mb-3 text-foreground" {...props} />,
+                                h2: ({node, ...props}) => <h2 className="text-xl font-semibold mt-5 mb-2.5 text-foreground" {...props} />,
+                                h3: ({node, ...props}) => <h3 className="text-lg font-semibold mt-4 mb-2 text-foreground" {...props} />,
+                                h4: ({node, ...props}) => <h4 className="text-base font-semibold mt-3 mb-1.5 text-foreground" {...props} />,
                                 blockquote: ({node, ...props}) => (
-                                  <blockquote className="border-l-2 border-primary/50 pl-4 my-3 italic text-muted-foreground" {...props} />
+                                  <blockquote className="border-l-[3px] border-primary/40 pl-4 py-1 my-4 bg-primary/5 rounded-r-lg italic text-muted-foreground" {...props} />
                                 ),
+                                hr: ({node, ...props}) => <hr className="my-6 border-t border-border/50" {...props} />,
+                                table: ({node, ...props}) => (
+                                  <div className="my-4 overflow-x-auto rounded-lg border border-border/50">
+                                    <table className="w-full text-sm" {...props} />
+                                  </div>
+                                ),
+                                thead: ({node, ...props}) => <thead className="bg-muted/50 border-b border-border/50" {...props} />,
+                                tbody: ({node, ...props}) => <tbody className="divide-y divide-border/30" {...props} />,
+                                tr: ({node, ...props}) => <tr className="hover:bg-muted/30 transition-colors" {...props} />,
+                                th: ({node, ...props}) => <th className="px-4 py-2.5 text-left font-semibold text-foreground" {...props} />,
+                                td: ({node, ...props}) => <td className="px-4 py-2.5 text-foreground/90" {...props} />,
                                  code: ({node, className, children, ...props}: any) => {
                                   const match = /language-(\w+)/.exec(className || '');
                                   const codeContent = String(children).replace(/\n$/, '');
