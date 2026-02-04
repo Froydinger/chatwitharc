@@ -141,6 +141,7 @@ export function MobileChatApp() {
     setRightPanelTab,
     syncFromSupabase,
     updateSessionCanvasContent,
+    isHydratingSession,
   } = useArcStore();
   const { profile } = useProfile();
   const isMobile = useIsMobile();
@@ -799,20 +800,28 @@ export function MobileChatApp() {
             {/* Spacer for header */}
             <div style={{ paddingTop: "5rem" }} />
 
-            {/* Empty state */}
+            {/* Empty state or hydrating state */}
             {messages.length === 0 ? (
-              <div style={{ paddingTop: "1rem" }}>
-                <WelcomeSection
-                  greeting={greeting}
-                  heroAvatar={null}
-                  quickPrompts={quickPrompts}
-                  onTriggerPrompt={triggerPrompt}
-                  profile={profile}
-                  chatSessions={chatSessions}
-                  isLoading={isLoading}
-                  isGeneratingImage={isGeneratingImage}
-                />
-              </div>
+              isHydratingSession === currentSessionId ? (
+                // Show loading spinner while hydrating session messages
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <p className="text-sm text-muted-foreground">Loading messages...</p>
+                </div>
+              ) : (
+                <div style={{ paddingTop: "1rem" }}>
+                  <WelcomeSection
+                    greeting={greeting}
+                    heroAvatar={null}
+                    quickPrompts={quickPrompts}
+                    onTriggerPrompt={triggerPrompt}
+                    profile={profile}
+                    chatSessions={chatSessions}
+                    isLoading={isLoading}
+                    isGeneratingImage={isGeneratingImage}
+                  />
+                </div>
+              )
             ) : (
               <div className="w-full flex justify-center px-4">
                 <div

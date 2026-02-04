@@ -39,6 +39,8 @@ export interface ChatSession {
   messages: Message[];
   canvasContent?: string; // persisted per-session canvas document
   resources?: ChatResource[]; // Multiple resources (search results, links) for context
+  messageCount?: number; // Metadata-only count (used before hydration)
+  isHydrated?: boolean; // Whether full messages have been fetched
 }
 
 export type MemoryActionType = 'memory_saved' | 'memory_accessed' | 'chats_searched' | 'web_searched';
@@ -88,6 +90,8 @@ export interface ArcState {
   createNewSessionWithResources: (resources: ChatResource[], initialMessage?: string) => string;
   addResourcesToSession: (sessionId: string, resources: ChatResource[]) => void;
   loadSession: (sessionId: string) => void;
+  hydrateSession: (sessionId: string) => Promise<void>;
+  isHydratingSession: string | null; // Track which session is currently being hydrated
   deleteSession: (sessionId: string) => void;
   clearAllSessions: () => void;
 
@@ -150,6 +154,7 @@ export const useArcStore = create<ArcState>()(
       lastSyncAt: null,
       isSyncing: false,
       syncedUserId: null,
+      isHydratingSession: null,
 
       updateSessionCanvasContent: async (sessionId: string, canvasContent: string) => {
         const state = get();
@@ -186,81 +191,133 @@ export const useArcStore = create<ArcState>()(
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) {
             console.log('⚠️ No user found, skipping sync');
-            set({ isSyncing: false });
             return;
           }
 
-          console.log('🔄 Starting sync from Supabase for user:', user.id);
-          const { data: sessions, error } = await supabase
-            .from('chat_sessions')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('updated_at', { ascending: false });
+          console.log('🔄 Starting metadata-first sync from Supabase for user:', user.id);
+          
+          // Use the new RPC to fetch only metadata (no messages payload)
+          const { data: sessionsMeta, error } = await supabase.rpc('list_chat_sessions_meta', {
+            searching_user_id: user.id,
+            max_sessions: 500
+          });
 
           if (error) {
             console.error('❌ Sync error:', error);
-            set({ isOnline: false, isSyncing: false });
+            set({ isOnline: false });
             return;
           }
 
-          if (sessions) {
+          if (sessionsMeta && sessionsMeta.length > 0) {
             const state = get();
 
-            const loadedSessions: ChatSession[] = sessions.map(session => {
-              const remoteMessages: Message[] = Array.isArray(session.messages) ? (session.messages as any) : [];
-              const canvasContent = typeof (session as any).canvas_content === 'string' ? (session as any).canvas_content : '';
-              
-              // MERGE-SAFE: If this is the current session, merge local + remote messages by ID
-              let finalMessages = remoteMessages;
-              if (session.id === state.currentSessionId && state.messages.length > 0) {
-                const remoteIds = new Set(remoteMessages.map((m: any) => m.id));
-                const localOnly = state.messages.filter(m => !remoteIds.has(m.id));
-                if (localOnly.length > 0) {
-                  console.log(`🔀 Merging ${localOnly.length} local-only messages for current session`);
-                  // Append local-only messages (they haven't reached the server yet)
-                  finalMessages = [...remoteMessages, ...localOnly];
-                }
-              }
+            // Create lightweight sessions with empty messages arrays
+            const loadedSessions: ChatSession[] = sessionsMeta.map((meta: any) => ({
+              id: meta.id,
+              title: meta.title,
+              createdAt: new Date(meta.created_at),
+              lastMessageAt: new Date(meta.updated_at),
+              messages: [], // Empty - will be hydrated on demand
+              canvasContent: meta.canvas_content || '',
+              messageCount: meta.message_count || 0,
+              isHydrated: false
+            }));
 
-              // NOTE: We no longer backfill synthetic canvas messages.
-              // If a session has canvas_content but no canvas message, the content
-              // is still accessible via the Canvas panel (session.canvasContent).
-              // Creating synthetic messages caused confusion with old/errored canvases appearing.
+            console.log(`✅ Synced ${loadedSessions.length} session metadata (messages will load on demand)`);
 
-              const loadedSession: ChatSession = {
-                id: session.id,
-                title: session.title,
-                createdAt: new Date(session.created_at),
-                lastMessageAt: new Date(session.updated_at),
-                messages: finalMessages,
-                canvasContent: canvasContent
-              };
-
-              return loadedSession;
-            });
-
-            console.log(`✅ Synced ${loadedSessions.length} sessions (${loadedSessions.reduce((sum, s) => sum + s.messages.length, 0)} total messages)`);
-
-            const currentSession = state.currentSessionId
-              ? loadedSessions.find(s => s.id === state.currentSessionId)
+            // If we have a current session, hydrate it immediately
+            const currentSessionId = state.currentSessionId;
+            const currentSessionMeta = currentSessionId 
+              ? loadedSessions.find(s => s.id === currentSessionId)
               : null;
 
             set({
               chatSessions: loadedSessions,
               lastSyncAt: new Date(),
               isOnline: true,
-              isSyncing: false,
               syncedUserId: user.id,
-              // Restore messages for current session after sync (merged)
-              messages: currentSession ? JSON.parse(JSON.stringify(currentSession.messages)) : state.messages
+              // Keep existing messages if we have a current session (hydration will update them)
+              messages: currentSessionMeta ? state.messages : []
             });
+
+            // If there's a current session, hydrate it in background
+            if (currentSessionId && currentSessionMeta && !currentSessionMeta.isHydrated) {
+              get().hydrateSession(currentSessionId);
+            }
           } else {
             console.log('📭 No sessions found in Supabase');
-            set({ isSyncing: false, syncedUserId: user.id });
+            set({ syncedUserId: user.id });
           }
         } catch (error) {
           console.error('❌ Failed to sync from Supabase:', error);
-          set({ isOnline: false, isSyncing: false });
+          set({ isOnline: false });
+        } finally {
+          // CRITICAL: Always clear sync state to prevent stuck loading
+          set({ isSyncing: false });
+        }
+      },
+
+      hydrateSession: async (sessionId: string) => {
+        if (!supabase || !isSupabaseConfigured) return;
+
+        const state = get();
+        const session = state.chatSessions.find(s => s.id === sessionId);
+        
+        // Skip if already hydrated or currently hydrating
+        if (session?.isHydrated || state.isHydratingSession === sessionId) {
+          return;
+        }
+
+        set({ isHydratingSession: sessionId });
+
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          console.log('💧 Hydrating session:', sessionId);
+
+          const { data, error } = await supabase
+            .from('chat_sessions')
+            .select('messages, canvas_content')
+            .eq('id', sessionId)
+            .eq('user_id', user.id)
+            .single();
+
+          if (error) {
+            console.error('❌ Failed to hydrate session:', error);
+            return;
+          }
+
+          const remoteMessages: Message[] = Array.isArray(data?.messages) ? (data.messages as any) : [];
+          const canvasContent = typeof data?.canvas_content === 'string' ? data.canvas_content : '';
+
+          console.log(`✅ Hydrated session with ${remoteMessages.length} messages`);
+
+          set(s => {
+            const updatedSessions = s.chatSessions.map(cs => 
+              cs.id === sessionId 
+                ? { 
+                    ...cs, 
+                    messages: remoteMessages, 
+                    canvasContent,
+                    isHydrated: true,
+                    messageCount: remoteMessages.length
+                  } 
+                : cs
+            );
+
+            // If this is the current session, also update the messages array
+            const isCurrentSession = s.currentSessionId === sessionId;
+
+            return {
+              chatSessions: updatedSessions,
+              messages: isCurrentSession ? JSON.parse(JSON.stringify(remoteMessages)) : s.messages
+            };
+          });
+        } catch (error) {
+          console.error('❌ Failed to hydrate session:', error);
+        } finally {
+          set({ isHydratingSession: null });
         }
       },
 
@@ -429,14 +486,22 @@ export const useArcStore = create<ArcState>()(
       loadSession: (sessionId) => {
         const session = get().chatSessions.find(s => s.id === sessionId);
         if (session) {
-          console.log('Loading session:', sessionId, 'with', session.messages.length, 'messages');
+          console.log('Loading session:', sessionId, 'with', session.messages.length, 'messages', 'hydrated:', session.isHydrated);
 
           // Don't reset model selection when switching chats - preserve user's choice within session
 
           set({
             currentSessionId: sessionId,
-            messages: JSON.parse(JSON.stringify(session.messages)) // Deep clone to prevent reference issues
+            // Use existing messages if hydrated, otherwise empty (will hydrate)
+            messages: session.isHydrated 
+              ? JSON.parse(JSON.stringify(session.messages)) 
+              : []
           });
+
+          // If session isn't hydrated, fetch messages in background
+          if (!session.isHydrated) {
+            get().hydrateSession(sessionId);
+          }
         } else {
           console.warn('Session not found:', sessionId);
         }

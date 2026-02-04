@@ -272,6 +272,17 @@ export type Database = {
     }
     Functions: {
       is_admin_user: { Args: never; Returns: boolean }
+      list_chat_sessions_meta: {
+        Args: { max_sessions?: number; searching_user_id: string }
+        Returns: {
+          canvas_content: string
+          created_at: string
+          id: string
+          message_count: number
+          title: string
+          updated_at: string
+        }[]
+      }
       search_chat_sessions: {
         Args: {
           max_sessions?: number
