@@ -115,14 +115,15 @@ export function ChatHistoryPanel() {
 
   const sortedSessions = useMemo(() => {
     // Convert chat sessions to unified format
+    // Use messageCount for unhydrated sessions, fall back to messages.length for hydrated ones
     const chatItems: UnifiedSession[] = chatSessions
-      .filter(session => session.messages.length > 0)
+      .filter(session => (session.messageCount ?? session.messages.length) > 0)
       .map(session => ({
         id: session.id,
         title: session.title,
         timestamp: new Date(session.lastMessageAt).getTime(),
         type: 'chat' as const,
-        itemCount: session.messages.length,
+        itemCount: session.messageCount ?? session.messages.length,
       }));
 
     // Only show chat sessions in main history (search sessions are in Search Mode tab)
@@ -130,7 +131,7 @@ export function ChatHistoryPanel() {
   }, [chatSessions]);
 
   const totalMessages = useMemo(
-    () => chatSessions.reduce((total, s) => total + s.messages.length, 0),
+    () => chatSessions.reduce((total, s) => total + (s.messageCount ?? s.messages.length), 0),
     [chatSessions]
   );
 
