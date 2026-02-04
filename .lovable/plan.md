@@ -1,149 +1,121 @@
 
-# Plan: Elevate AI Response Formatting to Premium Quality
+## Goal
+Make chat history load fast again (especially on mobile) by stopping the app from downloading every chat’s full `messages` JSON on initial sync, while keeping the same “history list + click to open chat” behavior.
 
-## Problem Summary
-The AI chat responses look mediocre compared to the rest of the app. Key issues visible in the screenshots:
-- Empty bullet points appearing (formatting breaks during streaming)
-- Lists look cramped and poorly spaced
-- Text is too small and tight
-- Headings are undersized
-- No visual separators (horizontal rules)
-- Overall "just okay" appearance vs the premium glass aesthetic elsewhere
+## What’s happening (root cause)
+Right now `syncFromSupabase()` does:
 
-The Research Mode in `SearchCanvas.tsx` has beautiful, magazine-quality formatting that the main chat should match.
+- `select('*')` from `chat_sessions`
+- which includes `messages` (a JSONB array containing entire conversations)
+- for every session, every time you open the app on a new device
 
----
+As your history grows, this becomes a massive payload + slow JSON parsing on the client, so it “loads forever”. This is consistent with “all devices suddenly slow” because every device does the same full download.
 
-## The Fix
+The RLS migration you showed only touched `generated_files`, not `chat_sessions`. The slowness is much more likely the “download everything” pattern finally hitting a tipping point.
 
-Redesign the `TypewriterMarkdown.tsx` component to match the premium styling of Research Mode, creating a cohesive, polished experience throughout the app.
+## Approach (mobile-first + resilient)
+### Key idea: “metadata-first, messages-on-demand”
+1) Initial sync loads only lightweight session metadata (id/title/updated_at/etc + message count).
+2) The app fetches the full `messages` only for:
+   - the currently-open session (route `/chat/:sessionId`)
+   - or when the user taps a session in the history list
 
----
-
-## Technical Changes
-
-### Part 1: Upgrade TypewriterMarkdown Styling
-
-**File: `src/components/TypewriterMarkdown.tsx`**
-
-Update all markdown component renderers to match Research Mode's superior styling:
-
-**Paragraphs:**
-- Current: `mb-1.5 last:mb-0` (cramped)
-- New: `text-base leading-relaxed mb-4 last:mb-0 text-foreground/90` (spacious, readable)
-
-**Headings:**
-- Current: `text-xl/text-lg/text-base` (undersized)
-- New: Match Research Mode sizing
-  - H1: `text-2xl font-bold mt-6 mb-3`
-  - H2: `text-xl font-semibold mt-5 mb-2.5`
-  - H3: `text-lg font-semibold mt-4 mb-2`
-
-**Lists (ul/ol):**
-- Current: `list-disc pl-5 mb-3 space-y-1.5` (cramped)
-- New: `list-disc pl-6 mb-4 space-y-2.5` (proper breathing room)
-
-**List Items:**
-- Current: Wrapper span with `ml-1` (breaks alignment, creates empty bullets)
-- New: Clean rendering without span wrapper, proper `text-base leading-relaxed` styling
-
-**Links:**
-- Current: Basic `underline` styling
-- New: `text-primary hover:text-primary/80 underline-offset-2 transition-colors` (smoother)
-
-**Blockquotes:**
-- Current: `border-l-2 border-primary/50 pl-4`
-- New: `border-l-3 border-primary/40 pl-4 py-1 my-4 bg-primary/5 rounded-r-lg` (more premium glass feel)
-
-**Add Missing Elements:**
-- **Horizontal Rules (`hr`)**: Add `my-6 border-t border-border/50` for visual separation
-- **Tables**: Add styled table rendering for better data presentation
+This makes first paint fast and keeps bandwidth low.
 
 ---
 
-### Part 2: Fix the Empty Bullet Bug
+## Backend changes (Lovable Cloud database)
+### A) Add an RPC to list sessions without messages
+Create a database function, e.g. `list_chat_sessions_meta(searching_user_id uuid, max_sessions int default 500)` returning:
 
-The empty bullet issue (visible in screenshot 1) happens when:
-1. Markdown has a link as the only content in a list item
-2. The `li` component's `<span className="ml-1">` wrapper breaks when children are complex
+- `id`
+- `title`
+- `created_at`
+- `updated_at`
+- `canvas_content`
+- `message_count` = `jsonb_array_length(messages)`
+- optional: `last_message_preview` (first ~120 chars of last message content) for nicer tiles
 
-**Fix:** Remove the unnecessary span wrapper from `li` rendering and render children directly.
+Security:
+- `SECURITY DEFINER`
+- It must still enforce `WHERE user_id = searching_user_id`
+- Grant execute to authenticated users
 
-Current (broken):
-```tsx
-li: ({ node, children, ...props }) => (
-  <li className="leading-relaxed" {...props}>
-    <span className="ml-1">{children}</span>
-  </li>
-)
+### B) (Optional) Add a dedicated RPC to fetch one session’s messages
+Alternative is a normal select by `id`, but a tiny RPC can:
+- return `messages` only
+- be consistent and easy to log/optimize
+
+---
+
+## Frontend changes
+### 1) Update store data model to support “unhydrated sessions”
+In `useArcStore`:
+- Extend `ChatSession` to include:
+  - `messageCount: number`
+  - `isHydrated?: boolean` (or `hasFullMessages?: boolean`)
+- Allow `messages` to be empty for sessions not yet opened.
+
+### 2) Rewrite `syncFromSupabase()` to be fast and never hang UI
+Changes:
+- Replace `.select('*')` with:
+  - `supabase.rpc('list_chat_sessions_meta', ...)`
+- Immediately populate `chatSessions` with metadata and empty `messages` arrays.
+- If there is a `currentSessionId` (from route or state), fetch full messages just for that session next.
+- Ensure `isSyncing` is cleared and `syncedUserId` is set in a `finally` block so skeletons can’t get stuck forever.
+
+### 3) Add `hydrateSession(sessionId)` (lazy load messages when needed)
+When user opens a chat session:
+- If session is not hydrated:
+  - fetch messages for that single session
+  - update that session in `chatSessions`
+  - update `messages` (current chat thread)
+
+### 4) Fix ChatHistoryPanel so it doesn’t rely on `messages.length`
+Right now history does:
+```ts
+.filter(session => session.messages.length > 0)
 ```
+That will hide everything if we don’t prefetch messages.
 
-New (fixed):
-```tsx
-li: ({ node, ...props }) => (
-  <li className="text-base leading-relaxed text-foreground/90 marker:text-primary/60" {...props} />
-)
-```
+Update it to use:
+- `messageCount > 0` for filtering and badge
+- `session.messages.length` only as a fallback
 
----
+This keeps the history list accurate and instant.
 
-### Part 3: Update MessageBubble Static Rendering
-
-**File: `src/components/MessageBubble.tsx`**
-
-The static markdown rendering (for non-animating messages) also has the same cramped styles. Update these to match the new TypewriterMarkdown styling for consistency.
-
-This affects lines ~365-440 where `ReactMarkdown` is used for static rendering.
+### 5) UX polish for “loading forever”
+- Show “Loading chats…” state only for the metadata fetch (which should be quick).
+- Show a small inline spinner when opening a chat that’s still hydrating.
+- If hydration fails, show a toast with “Retry loading messages” action.
 
 ---
 
-### Part 4: Add CSS Polish
-
-**File: `src/index.css`**
-
-Add dedicated prose styling for chat messages:
-
-```css
-/* Premium Chat Prose Styling */
-.chat-prose p { /* paragraph styles */ }
-.chat-prose ul, .chat-prose ol { /* list styles */ }
-.chat-prose li::marker { color: hsl(var(--primary) / 0.6); }
-.chat-prose blockquote { /* blockquote styling */ }
-.chat-prose hr { /* horizontal rule */ }
-```
-
-This provides a CSS fallback and makes styles maintainable in one place.
+## Safety / data integrity considerations
+- Keep the existing “merge local-only messages into current session” logic, but only apply it after the current session is hydrated (so we merge into real remote messages, not an empty placeholder).
+- Do not change RLS for `chat_sessions` as part of this fix.
+- The earlier `generated_files` RLS change will be left as-is unless you explicitly want it reverted; it should not affect chat history.
 
 ---
 
-## Visual Comparison
-
-| Element | Current (Cramped) | New (Premium) |
-|---------|------------------|---------------|
-| Paragraphs | mb-1.5, no size | text-base, mb-4, relaxed |
-| H1 | text-xl | text-2xl, bold |
-| H2 | text-lg | text-xl, semibold |
-| Lists | pl-5, space-y-1.5 | pl-6, space-y-2.5 |
-| List items | Wrapped in span | Clean, styled markers |
-| Blockquotes | Basic border | Glass-tinted background |
-| HR | Missing | Subtle divider line |
-| Links | Basic underline | Smooth transitions |
+## Implementation steps (what I will do after you approve)
+1) Add a database migration that creates `list_chat_sessions_meta` (and optionally `get_chat_session_messages`) + grants execute permission.
+2) Update `src/store/useArcStore.ts`:
+   - new `hydrateSession()`
+   - metadata-first `syncFromSupabase()`
+   - robust `finally` cleanup
+3) Update `src/components/ChatHistoryPanel.tsx` to use `messageCount` instead of `messages.length`.
+4) Update session loading flow so `/chat/:sessionId` triggers hydration for that session if needed.
+5) Quick pass on mobile UI states (skeleton -> list -> per-chat hydration spinner) to ensure it feels snappy.
 
 ---
 
-## Files to Modify
+## How we’ll verify (end-to-end)
+- Fresh reload on mobile: history list appears quickly.
+- Open a recent chat: messages load within a moment; UI shows spinner while fetching.
+- Switch between chats: previously opened chats are instant (cached in store).
+- Manual “Sync from cloud” doesn’t freeze; it refreshes metadata quickly.
 
-| File | Changes |
-|------|---------|
-| `src/components/TypewriterMarkdown.tsx` | Upgrade all markdown component styles |
-| `src/components/MessageBubble.tsx` | Update static markdown rendering styles |
-| `src/index.css` | Add `.chat-prose` utility classes |
-
----
-
-## Implementation Notes
-
-1. **Consistency with Research Mode**: Styles are adapted from `SearchCanvas.tsx` to maintain visual cohesion
-2. **Typewriter Compatibility**: All changes preserve the existing typewriter animation logic
-3. **Theme Support**: Uses CSS variables (--primary, --foreground, etc.) for proper dark/light/accent theme support
-4. **Performance**: No additional dependencies, just CSS class updates
+## Out of scope (but good later if you want)
+- Fully normalize messages into a `chat_messages` table (best long-term scalability, bigger migration).
+- Infinite-scroll pagination for history list (nice if you have thousands of sessions).
