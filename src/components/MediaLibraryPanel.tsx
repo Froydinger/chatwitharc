@@ -41,12 +41,16 @@ function toDate(ts: unknown): Date | null {
 export function MediaLibraryPanel() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { chatSessions, loadSession, setRightPanelOpen, syncFromSupabase } = useArcStore();
+  const { chatSessions, loadSession, setRightPanelOpen, syncFromSupabase, hydrateAllSessions, isHydratingAll, allSessionsHydrated } = useArcStore();
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 8;
+
+  // Hydrate all sessions when tab is opened so images are available
+  useEffect(() => {
+    hydrateAllSessions();
+  }, [hydrateAllSessions]);
 
   // Scroll to top when panel opens
   useEffect(() => {
@@ -56,11 +60,7 @@ export function MediaLibraryPanel() {
     }
   }, []);
 
-  // Simulate loading state
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, [chatSessions]);
+  const isLoading = isHydratingAll && !allSessionsHydrated;
 
   const goToChat = (sessionId: string) => {
     loadSession(sessionId);

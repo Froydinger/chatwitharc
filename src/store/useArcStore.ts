@@ -91,7 +91,10 @@ export interface ArcState {
   addResourcesToSession: (sessionId: string, resources: ChatResource[]) => void;
   loadSession: (sessionId: string) => void;
   hydrateSession: (sessionId: string) => Promise<void>;
+  hydrateAllSessions: () => Promise<void>;
   isHydratingSession: string | null; // Track which session is currently being hydrated
+  isHydratingAll: boolean; // Track bulk hydration for sidebar tabs
+  allSessionsHydrated: boolean; // Whether all sessions have been bulk hydrated
   deleteSession: (sessionId: string) => void;
   clearAllSessions: () => void;
 
@@ -155,6 +158,8 @@ export const useArcStore = create<ArcState>()(
       isSyncing: false,
       syncedUserId: null,
       isHydratingSession: null,
+      isHydratingAll: false,
+      allSessionsHydrated: false,
 
       updateSessionCanvasContent: async (sessionId: string, canvasContent: string) => {
         const state = get();
@@ -236,6 +241,7 @@ export const useArcStore = create<ArcState>()(
               lastSyncAt: new Date(),
               isOnline: true,
               syncedUserId: user.id,
+              allSessionsHydrated: false, // Reset since we just loaded fresh metadata
               // Keep existing messages if we have a current session (hydration will update them)
               messages: currentSessionMeta ? state.messages : []
             });
@@ -318,6 +324,89 @@ export const useArcStore = create<ArcState>()(
           console.error('❌ Failed to hydrate session:', error);
         } finally {
           set({ isHydratingSession: null });
+        }
+      },
+
+      hydrateAllSessions: async () => {
+        if (!supabase || !isSupabaseConfigured) return;
+
+        const state = get();
+
+        // Skip if already hydrated or currently hydrating
+        if (state.allSessionsHydrated || state.isHydratingAll) return;
+
+        // Skip if there are no unhydrated sessions
+        const unhydratedSessions = state.chatSessions.filter(s => !s.isHydrated);
+        if (unhydratedSessions.length === 0) {
+          set({ allSessionsHydrated: true });
+          return;
+        }
+
+        set({ isHydratingAll: true });
+
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          console.log(`💧 Bulk hydrating ${unhydratedSessions.length} sessions for sidebar tabs`);
+
+          const { data, error } = await supabase
+            .from('chat_sessions')
+            .select('id, messages, canvas_content')
+            .eq('user_id', user.id);
+
+          if (error) {
+            console.error('❌ Failed to bulk hydrate sessions:', error);
+            return;
+          }
+
+          if (!data) return;
+
+          // Build a lookup map from the fetched data
+          const sessionDataMap = new Map<string, { messages: Message[]; canvasContent: string }>();
+          for (const row of data) {
+            sessionDataMap.set(row.id, {
+              messages: Array.isArray(row.messages) ? (row.messages as any) : [],
+              canvasContent: typeof row.canvas_content === 'string' ? row.canvas_content : ''
+            });
+          }
+
+          console.log(`✅ Bulk hydrated ${sessionDataMap.size} sessions`);
+
+          set(s => {
+            const updatedSessions = s.chatSessions.map(cs => {
+              if (cs.isHydrated) return cs; // Already hydrated, skip
+              const fetched = sessionDataMap.get(cs.id);
+              if (!fetched) return cs;
+              return {
+                ...cs,
+                messages: fetched.messages,
+                canvasContent: fetched.canvasContent,
+                isHydrated: true,
+                messageCount: fetched.messages.length
+              };
+            });
+
+            // If the current session was just hydrated, update active messages too
+            const currentSessionId = s.currentSessionId;
+            let updatedMessages = s.messages;
+            if (currentSessionId) {
+              const currentSession = updatedSessions.find(cs => cs.id === currentSessionId);
+              if (currentSession && currentSession.isHydrated && s.messages.length === 0 && currentSession.messages.length > 0) {
+                updatedMessages = JSON.parse(JSON.stringify(currentSession.messages));
+              }
+            }
+
+            return {
+              chatSessions: updatedSessions,
+              messages: updatedMessages,
+              allSessionsHydrated: true
+            };
+          });
+        } catch (error) {
+          console.error('❌ Failed to bulk hydrate sessions:', error);
+        } finally {
+          set({ isHydratingAll: false });
         }
       },
 
