@@ -60,15 +60,19 @@ function extractCodeBlocks(content: string): Array<{ code: string; language: str
 export function CanvasesPanel() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { chatSessions, loadSession, setRightPanelOpen } = useArcStore();
+  const { chatSessions, loadSession, setRightPanelOpen, hydrateAllSessions, isHydratingAll, allSessionsHydrated } = useArcStore();
   const { openWithContent } = useCanvasStore();
   const [selectedItem, setSelectedItem] = useState<CanvasItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+
+  // Hydrate all sessions when tab is opened so canvases are available
+  useEffect(() => {
+    hydrateAllSessions();
+  }, [hydrateAllSessions]);
 
   // Scroll to top when panel opens
   useEffect(() => {
@@ -78,11 +82,7 @@ export function CanvasesPanel() {
     }
   }, []);
 
-  // Simulate loading state
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, [chatSessions]);
+  const isLoading = isHydratingAll && !allSessionsHydrated;
 
   const goToChat = (sessionId: string) => {
     loadSession(sessionId);
