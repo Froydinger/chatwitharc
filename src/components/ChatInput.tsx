@@ -309,6 +309,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const { openSearchMode } = useSearchStore();
   const { streamWithContinuation } = useStreamingWithContinuation();
 
+  // Subscribe to canvas store reactively for auto-mode indicator when canvas is open
+  // Use individual selectors for reliable re-renders when canvas open state changes
+  const isWriteCanvasOpen = useCanvasStore(
+    (s) => s.isOpen && s.canvasType === 'writing'
+  );
+
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]); // Store object URLs
@@ -333,6 +339,15 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const shouldShowCodeMode = forceCodingMode || (!!inputValue && checkForCodingRequest(inputValue));
   const shouldShowCanvasMode = forceCanvasMode || (!!inputValue && checkForCanvasRequest(inputValue));
   const shouldShowSearchMode = forceSearchMode || (!!inputValue && checkForSearchRequest(inputValue));
+
+  // When a /write canvas is open, auto-show canvas mode indicator so user knows
+  // their messages will modify the canvas (not go to chat)
+  const showCanvasIndicator = shouldShowCanvasMode || isWriteCanvasOpen;
+  // Auto mode = indicator is shown because canvas is open, not from explicit /write prefix
+  const isCanvasAutoMode = isWriteCanvasOpen && !shouldShowCanvasMode;
+
+  // Debug: log canvas auto-mode state (remove after confirming fix)
+  console.log('🖊️ Canvas indicator:', { isWriteCanvasOpen, shouldShowCanvasMode, showCanvasIndicator, isCanvasAutoMode });
 
   // Show slash picker when user types just "/"
   const showSlashPicker = inputValue.trim() === "/";
@@ -894,9 +909,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         const isCodingRequest = wasCodingMode;
 
         const canvasState = useCanvasStore.getState();
+        // When writing canvas is open, default to routing there unless the message
+        // is clearly conversational (e.g. "nice!", "thanks", "how does this work?")
         const shouldRouteToCanvas =
           wasCanvasMode ||
-          (canvasState.isOpen && canvasState.canvasType === 'writing' && looksLikeCanvasEditRequest(userMessage));
+          (canvasState.isOpen && canvasState.canvasType === 'writing' && !isConversationalMessage(userMessage));
 
         // Check if code canvas is open and user is asking to edit it
         const isCodeCanvasOpen = canvasState.isOpen && canvasState.canvasType === 'code';
@@ -924,7 +941,19 @@ ${existingCode}
 USER'S REQUEST: ${cleanedMessage || userMessage}
 
 MANDATORY: Output the COMPLETE updated code. Never stop mid-sentence or mid-function. Include ALL code from start to finish.`;
+        } else if (shouldRouteToCanvas && canvasState.isOpen && canvasState.content) {
+          // Writing canvas is open with existing content - include it for modification
+          const existingContent = canvasState.content;
+          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: The user has existing writing in the canvas. Modify it based on their request using the update_canvas tool. You MUST output the COMPLETE, FULL modified markdown content - do NOT truncate, summarize, or cut off mid-way. Write EVERY paragraph.
+
+EXISTING CANVAS CONTENT TO MODIFY:
+${existingContent}
+
+USER'S REQUEST: ${cleanedMessage || userMessage}
+
+MANDATORY: Output the COMPLETE updated content. Never stop mid-sentence or mid-paragraph. Include ALL content from start to finish.`;
         } else if (shouldRouteToCanvas) {
+          // New canvas request (no existing content)
           messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: Use the update_canvas tool to write COMPLETE, FULL markdown content for this request. Do NOT truncate, summarize, or cut short. Write the ENTIRE piece from beginning to end - every paragraph, every section, complete thoughts. Never stop mid-sentence:\n\n${cleanedMessage || userMessage}`;
         } else if (wasSearchMode) {
           messageToSend = `Search the web for: ${cleanedMessage || userMessage}`;
@@ -1236,8 +1265,8 @@ ${existingCode}
               ? "Disable image mode"
               : shouldShowCodeMode
               ? "Disable code mode"
-              : shouldShowCanvasMode
-              ? "Disable canvas mode"
+              : showCanvasIndicator
+              ? (isCanvasAutoMode ? "Writing to canvas" : "Disable canvas mode")
               : shouldShowSearchMode
               ? "Disable search mode"
               : showMenu
@@ -1250,7 +1279,7 @@ ${existingCode}
               ? "!bg-green-500/20 ring-1 ring-green-400/50 !shadow-[0_0_24px_rgba(34,197,94,0.25)]"
               : shouldShowCodeMode
               ? "!bg-blue-500/20 ring-1 ring-blue-400/50 !shadow-[0_0_24px_rgba(59,130,246,0.25)]"
-              : shouldShowCanvasMode
+              : showCanvasIndicator
               ? "!bg-purple-500/20 ring-1 ring-purple-400/50 !shadow-[0_0_24px_rgba(168,85,247,0.25)]"
               : shouldShowSearchMode
               ? "!bg-cyan-500/20 ring-1 ring-cyan-400/50 !shadow-[0_0_24px_rgba(34,211,238,0.25)]"
@@ -1265,10 +1294,14 @@ ${existingCode}
               setForceCodingMode(false);
               // Clear input if it's just the prefix
               if (/^code\/\s*$/i.test(inputValue) || /^\/code\s*$/i.test(inputValue)) setInputValue("");
-            } else if (shouldShowCanvasMode) {
-              setForceCanvasMode(false);
-              // Clear input if it's just the prefix
-              if (/^write\/\s*$/i.test(inputValue) || /^\/(write|canvas)\s*$/i.test(inputValue)) setInputValue("");
+            } else if (showCanvasIndicator) {
+              if (!isCanvasAutoMode) {
+                // Explicit /write mode - allow dismissing
+                setForceCanvasMode(false);
+                // Clear input if it's just the prefix
+                if (/^write\/\s*$/i.test(inputValue) || /^\/(write|canvas)\s*$/i.test(inputValue)) setInputValue("");
+              }
+              // Auto mode (canvas open) - no-op; close the canvas panel to exit
             } else if (shouldShowSearchMode) {
               setForceSearchMode(false);
               // Clear input if it's just the prefix
@@ -1292,12 +1325,14 @@ ${existingCode}
                 ×
               </span>
             </>
-          ) : shouldShowCanvasMode ? (
+          ) : showCanvasIndicator ? (
             <>
               <PenLine className="h-5 w-5 text-purple-400" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
-                ×
-              </span>
+              {!isCanvasAutoMode && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
+                  ×
+                </span>
+              )}
             </>
           ) : shouldShowSearchMode ? (
             <>
@@ -1323,7 +1358,7 @@ ${existingCode}
               handleInputFocus();
             }}
             onBlur={() => setIsActive(false)}
-            placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe your image..." : shouldShowCodeMode ? "Describe what to build..." : shouldShowCanvasMode ? "What should I write..." : shouldShowSearchMode ? "Search the web..." : "Ask"}
+            placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe your image..." : shouldShowCodeMode ? "Describe what to build..." : showCanvasIndicator ? (isCanvasAutoMode ? "Describe changes to your writing..." : "What should I write...") : shouldShowSearchMode ? "Search the web..." : "Ask"}
             disabled={isLoading}
             className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 px-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
