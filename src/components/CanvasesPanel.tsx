@@ -115,16 +115,20 @@ export function CanvasesPanel() {
         if (!coerced) return;
 
         // Extract canvas-type messages (writing canvases)
-        if (message.type === 'canvas' && typeof message.content === 'string') {
-          items.push({
-            id: `canvas-${message.id}`,
-            type: 'writing',
-            content: message.content,
-            sessionId: session.id,
-            sessionTitle: session.title ?? "Untitled chat",
-            timestamp: coerced,
-            label: 'Writing Canvas',
-          });
+        // Use canvasContent (actual writing) not content (which is just the command/label)
+        if (message.type === 'canvas') {
+          const canvasContent = (message as any).canvasContent;
+          if (typeof canvasContent === 'string' && canvasContent.length > 0) {
+            items.push({
+              id: `canvas-${message.id}`,
+              type: 'writing',
+              content: canvasContent,
+              sessionId: session.id,
+              sessionTitle: session.title ?? "Untitled chat",
+              timestamp: coerced,
+              label: (message as any).canvasLabel || 'Writing Canvas',
+            });
+          }
         }
 
         // Extract code-type messages (code canvases)
