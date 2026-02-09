@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layers, Search, MessageCircle, Copy, Check, Eye, FileCode, Download, Code, PenLine } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useArcStore } from "@/store/useArcStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -94,8 +96,10 @@ export function CanvasesPanel() {
   };
 
   const openInCanvas = (item: CanvasItem) => {
-    // Use atomic openWithContent to set content AND open the canvas in one operation
-    // This prevents the race condition where hydrate sets content but reopenCanvas clears it
+    // Navigate to the source chat first so the canvas opens in context
+    loadSession(item.sessionId);
+    navigate(`/chat/${item.sessionId}`);
+    // Then open the canvas with the content
     openWithContent(item.content, item.type, item.language || 'text');
     if (isMobile || window.innerWidth < 1024) {
       setRightPanelOpen(false);
@@ -540,9 +544,9 @@ export function CanvasesPanel() {
                   <CodePreview code={selectedItem.content} language={selectedItem.language} />
                 ) : selectedItem.type === 'writing' ? (
                   <div className="p-4 sm:p-6 prose prose-sm dark:prose-invert max-w-none">
-                    <div className="whitespace-pre-wrap font-sans text-foreground leading-relaxed">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {selectedItem.content}
-                    </div>
+                    </ReactMarkdown>
                   </div>
                 ) : (
                   <pre className="p-4 sm:p-6 font-mono text-sm overflow-auto">
