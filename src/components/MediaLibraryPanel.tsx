@@ -274,7 +274,7 @@ export function MediaLibraryPanel() {
       {/* Image Grid */}
       <div className="space-y-6">
         {isLoading ? (
-          <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          <div className="grid gap-2 grid-cols-2">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <Skeleton key={i} className="aspect-square rounded-lg" />
             ))}
@@ -296,7 +296,7 @@ export function MediaLibraryPanel() {
         ) : (
           <>
             <PaginationButtons />
-            <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            <div className="grid gap-2 grid-cols-2">
               {paginatedImages.map((image, index) => (
               <div
                 key={`${image.messageId}-${index}`}
