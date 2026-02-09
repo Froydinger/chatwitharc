@@ -350,21 +350,41 @@ export const useArcStore = create<ArcState>()(
 
           console.log(`💧 Bulk hydrating ${unhydratedSessions.length} sessions for sidebar tabs`);
 
-          const { data, error } = await supabase
-            .from('chat_sessions')
-            .select('id, messages, canvas_content')
-            .eq('user_id', user.id);
+          // Paginate to avoid 1000-row default limit
+          const PAGE_SIZE = 500;
+          const allRows: Array<{ id: string; messages: any; canvas_content: string | null }> = [];
+          let offset = 0;
+          let hasMore = true;
 
-          if (error) {
-            console.error('❌ Failed to bulk hydrate sessions:', error);
+          while (hasMore) {
+            const { data, error } = await supabase
+              .from('chat_sessions')
+              .select('id, messages, canvas_content')
+              .eq('user_id', user.id)
+              .range(offset, offset + PAGE_SIZE - 1);
+
+            if (error) {
+              console.error('❌ Failed to bulk hydrate sessions:', error);
+              break;
+            }
+
+            if (data && data.length > 0) {
+              allRows.push(...data);
+              offset += PAGE_SIZE;
+              hasMore = data.length === PAGE_SIZE;
+            } else {
+              hasMore = false;
+            }
+          }
+
+          if (allRows.length === 0) {
+            set({ allSessionsHydrated: true, isHydratingAll: false });
             return;
           }
 
-          if (!data) return;
-
           // Build a lookup map from the fetched data
           const sessionDataMap = new Map<string, { messages: Message[]; canvasContent: string }>();
-          for (const row of data) {
+          for (const row of allRows) {
             sessionDataMap.set(row.id, {
               messages: Array.isArray(row.messages) ? (row.messages as any) : [],
               canvasContent: typeof row.canvas_content === 'string' ? row.canvas_content : ''
