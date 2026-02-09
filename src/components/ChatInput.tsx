@@ -310,8 +310,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const { streamWithContinuation } = useStreamingWithContinuation();
 
   // Subscribe to canvas store reactively for auto-mode indicator when canvas is open
-  const { isOpen: isCanvasOpen, canvasType, content: canvasStoreContent } = useCanvasStore();
-  const isWriteCanvasOpen = isCanvasOpen && canvasType === 'writing';
+  // Use individual selectors for reliable re-renders when canvas open state changes
+  const isWriteCanvasOpen = useCanvasStore(
+    (s) => s.isOpen && s.canvasType === 'writing'
+  );
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -343,6 +345,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const showCanvasIndicator = shouldShowCanvasMode || isWriteCanvasOpen;
   // Auto mode = indicator is shown because canvas is open, not from explicit /write prefix
   const isCanvasAutoMode = isWriteCanvasOpen && !shouldShowCanvasMode;
+
+  // Debug: log canvas auto-mode state (remove after confirming fix)
+  console.log('🖊️ Canvas indicator:', { isWriteCanvasOpen, shouldShowCanvasMode, showCanvasIndicator, isCanvasAutoMode });
 
   // Show slash picker when user types just "/"
   const showSlashPicker = inputValue.trim() === "/";
