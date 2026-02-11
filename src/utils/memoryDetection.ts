@@ -31,39 +31,37 @@ async function extractMemoryWithAI(
       ? `\n\nALREADY SAVED MEMORIES (do NOT duplicate these - if the user is repeating known info, return NONE):\n${existingMemories}`
       : '';
 
-    const systemPrompt = `You are a memory extraction assistant. Your ONLY job is to extract NEW personal facts about the user that should be remembered, and identify OLD memories that should be REPLACED.
+    const systemPrompt = `You are a memory extraction assistant. Your ONLY job is to extract NEW personal facts about the user that should be remembered.
 
 The user's name is: ${userName}
 ${existingMemoryContext}
 
 When the user shares NEW personal information or preferences that are NOT already saved, extract it as a clear, third-person factual statement about them.
 
-IMPORTANT UPDATES: If the user is CORRECTING or UPDATING previously saved information (e.g., "actually I moved to NYC" when an old memory says they live in LA), you MUST:
-1. Extract the NEW fact
-2. On a NEW LINE, write "REPLACE:" followed by the old memory text that should be removed (copy it exactly from the saved memories list above)
+IMPORTANT: If the user says something like "remember that", "remember this", "remember those things", "save that to memory", etc. - look at the RECENT CONVERSATION CONTEXT to find what personal facts they want you to remember. Extract those facts, not just the command itself.
 
 Examples:
 - User says: "I really like soda!" → Extract: "${userName} likes soda"
-- User says: "Actually I moved to New York" (old memory: "${userName} lives in Los Angeles") → Extract:
-${userName} lives in New York
-REPLACE: ${userName} lives in Los Angeles
-- User says: "I'm working on a music app now" (old memory: "${userName} is working on a fitness app") → Extract:
-${userName} is working on a music app
-REPLACE: ${userName} is working on a fitness app
-- User says: "remember that" → Look at RECENT CONVERSATION CONTEXT to find what they want remembered
+- User says: "For future reference, for UI stuff, I like Black glass, elasticy animations, and neon blue accent colors!" → Extract: "${userName} prefers black glass UI, elastic animations, and neon blue accent colors"
+- User says: "I'm non-binary, remember that!" → Extract: "${userName} is non-binary"
 - User says: "My favorite color is blue" → Extract: "${userName}'s favorite color is blue"
+- User says: "I work at Google as a software engineer" → Extract: "${userName} works at Google as a software engineer"
+- User says: "I'm allergic to peanuts!" → Extract: "${userName} is allergic to peanuts"
+- User says: "I prefer they/them pronouns" → Extract: "${userName} uses they/them pronouns"
+- User says: "I'm working on a music app" → Extract: "${userName} is working on a music app"
+- User previously said "I'm non-binary" and now says "remember that" → Extract: "${userName} is non-binary"
+- User shared multiple facts and says "remember those things" → Extract ALL the new personal facts from the conversation, separated by " | "
 
 CRITICAL RULES:
 1. ALWAYS use "${userName}" at the start of each extracted fact (not "User" or "The user")
 2. Extract the MEANINGFUL personal information from the USER's messages, not the AI's responses
 3. Make it clear, factual third-person statements about ${userName}
-4. If multiple NEW facts, separate them with " | "
-5. If the info is ALREADY in the saved memories above AND hasn't changed, return "NONE" - do NOT duplicate!
+4. If multiple facts, separate them with " | " (e.g., "${userName} is non-binary | ${userName} likes coding")
+5. If the info is ALREADY in the saved memories above, return "NONE" - do NOT duplicate!
 6. If there's no NEW personal fact to remember (just questions or general requests), return "NONE"
-7. ONLY return the extracted facts (and optional REPLACE lines) - no explanations, no quotes, no extra text
+7. ONLY return the extracted facts - no explanations, no quotes, no extra text
 8. Look at what the USER said in recent messages, not what the assistant said
-9. If the new info CONTRADICTS or UPDATES an old memory, ALWAYS include the REPLACE line
-10. If the user is using a prompt that includes their own info (like personalized prompts), that's NOT a new memory - return "NONE"
+9. If the user is using a prompt that includes their own info (like personalized prompts), that's NOT a new memory - return "NONE"
 
 What NEW personal facts should be remembered from this conversation?`;
 
@@ -252,48 +250,8 @@ export async function addToMemoryBank(memoryItem: MemoryItem): Promise<boolean> 
 
     if (fetchError) throw fetchError;
 
-    let existingMemory = profile?.memory_info || '';
-    
-    // Parse REPLACE directives from the memory content
-    const lines = memoryItem.content.split('\n');
-    const newFacts: string[] = [];
-    const replacements: string[] = [];
-    
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.toLowerCase().startsWith('replace:')) {
-        replacements.push(trimmed.slice(8).trim().toLowerCase());
-      } else if (trimmed && trimmed !== '|') {
-        // Split by " | " separator too
-        trimmed.split(' | ').forEach(fact => {
-          if (fact.trim()) newFacts.push(fact.trim());
-        });
-      }
-    }
-    
-    // Remove old memories that should be replaced
-    if (replacements.length > 0 && existingMemory) {
-      const existingLines = existingMemory.split('\n');
-      const filteredLines = existingLines.filter(existingLine => {
-        // Strip the date prefix to get the actual memory text
-        const memoryText = existingLine.replace(/^\[[^\]]+\]\s*/, '').trim().toLowerCase();
-        // Remove trailing period for comparison
-        const normalizedMemory = memoryText.replace(/\.$/, '').replace(/[^\w\s]/g, '').trim();
-        
-        return !replacements.some(replacement => {
-          const normalizedReplacement = replacement.replace(/\.$/, '').replace(/[^\w\s]/g, '').trim();
-          // Check for exact match or high word overlap
-          if (normalizedMemory === normalizedReplacement) return true;
-          const replWords = new Set(normalizedReplacement.split(/\s+/).filter(w => w.length > 2));
-          const memWords = new Set(normalizedMemory.split(/\s+/).filter(w => w.length > 2));
-          const intersection = new Set([...replWords].filter(x => memWords.has(x)));
-          const similarity = intersection.size / Math.max(replWords.size, memWords.size);
-          return similarity > 0.7;
-        });
-      });
-      existingMemory = filteredLines.join('\n');
-      console.log(`Replaced ${existingLines.length - filteredLines.length} old memory entries`);
-    }
+    const existingMemory = profile?.memory_info || '';
+    const sanitized = sanitizeMemoryText(memoryItem.content);
 
     // Build a normalized set of existing entries to avoid duplicates
     const existingLines = existingMemory
@@ -301,47 +259,49 @@ export async function addToMemoryBank(memoryItem: MemoryItem): Promise<boolean> 
       .map(l => l.replace(/^\[[^\]]+\]\s*/, '').trim().toLowerCase())
       .filter(Boolean);
 
-    // Add each new fact
-    let anyAdded = false;
-    for (const fact of newFacts) {
-      const sanitized = sanitizeMemoryText(fact);
-      const normalizedNew = sanitized.toLowerCase().replace(/[^\w\s]/g, '').trim();
+    // Robust duplicate detection - check for semantic similarity
+    const normalizedNew = sanitized.toLowerCase().replace(/[^\w\s]/g, '').trim();
+    const isDuplicate = existingLines.some(existing => {
+      const normalizedExisting = existing.replace(/[^\w\s]/g, '').trim();
+      // Check for exact match
+      if (normalizedExisting === normalizedNew) return true;
       
-      const isDuplicate = existingLines.some(existing => {
-        const normalizedExisting = existing.replace(/[^\w\s]/g, '').trim();
-        if (normalizedExisting === normalizedNew) return true;
-        const newWords = new Set(normalizedNew.split(/\s+/).filter(w => w.length > 2));
-        const existingWords = new Set(normalizedExisting.split(/\s+/).filter(w => w.length > 2));
-        const intersection = new Set([...newWords].filter(x => existingWords.has(x)));
-        const similarity = intersection.size / Math.max(newWords.size, existingWords.size);
-        return similarity > 0.7;
+      // Check for substantial word overlap (70% threshold for flexibility)
+      const newWords = new Set(normalizedNew.split(/\s+/).filter(w => w.length > 2));
+      const existingWords = new Set(normalizedExisting.split(/\s+/).filter(w => w.length > 2));
+      const intersection = new Set([...newWords].filter(x => existingWords.has(x)));
+      const similarity = intersection.size / Math.max(newWords.size, existingWords.size);
+      
+      return similarity > 0.7;
+    });
+
+    if (isDuplicate) {
+      console.log('Memory already exists, skipping duplicate');
+      return false;
+    }
+
+    const memoryEntry = `[${memoryItem.timestamp.toLocaleDateString()}] ${sanitized}`;
+
+    // Append new memory to existing memory
+    const updatedMemory = existingMemory
+      ? `${existingMemory}\n${memoryEntry}`
+      : memoryEntry;
+
+    // Use upsert to handle case where profile might not exist yet
+    // (can happen with OAuth users if trigger failed)
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .upsert({
+        user_id: user.id,
+        memory_info: updatedMemory
+      }, {
+        onConflict: 'user_id'
       });
 
-      if (!isDuplicate) {
-        const memoryEntry = `[${memoryItem.timestamp.toLocaleDateString()}] ${sanitized}`;
-        existingMemory = existingMemory ? `${existingMemory}\n${memoryEntry}` : memoryEntry;
-        existingLines.push(normalizedNew);
-        anyAdded = true;
-        console.log('Memory added:', sanitized);
-      } else {
-        console.log('Memory duplicate skipped:', sanitized);
-      }
-    }
+    if (updateError) throw updateError;
 
-    if (anyAdded || replacements.length > 0) {
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .upsert({
-          user_id: user.id,
-          memory_info: existingMemory.trim()
-        }, {
-          onConflict: 'user_id'
-        });
-
-      if (updateError) throw updateError;
-    }
-
-    return anyAdded || replacements.length > 0;
+    console.log('Memory added successfully:', sanitized);
+    return true;
   } catch (error) {
     console.error('Error adding to memory bank:', error);
     throw error;
