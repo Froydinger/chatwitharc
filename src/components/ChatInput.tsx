@@ -26,7 +26,7 @@ let currentAbortController: AbortController | null = null;
 
 export const cancelCurrentRequest = () => {
   cancelRequested = true;
-  // Abort any ongoing fetch request
+  // Abort any ongoing fetch request FIRST to prevent more data arriving
   if (currentAbortController) {
     currentAbortController.abort();
     currentAbortController = null;
@@ -36,6 +36,7 @@ export const cancelCurrentRequest = () => {
   store.setGeneratingImage(false);
   store.setSearchingChats(false);
   store.setAccessingMemory(false);
+  store.setSearchingWeb(false);
   
   // Also stop canvas AI writing state
   const canvasStore = useCanvasStore.getState();
@@ -1029,8 +1030,8 @@ ${existingCode}
 
             // onDelta - accumulate content but DON'T stream to canvas (user wants no streaming)
             onDelta: (delta) => {
+              if (cancelRequested || abortSignal.aborted) return; // Stop accumulating if cancelled
               streamedContent += delta;
-              // Don't call streamContent - we'll set all content at once when done
             },
             
             // onContinuing - show toast when auto-continuation kicks in
@@ -1044,6 +1045,8 @@ ${existingCode}
             
             // onDone - finalize (result includes wasContinued flag)
             onDone: async (result) => {
+              // CRITICAL: If cancelled, do NOT add any messages or open canvas
+              if (cancelRequested || abortSignal.aborted) return;
               const streamWebSources = result.webSources || [];
               
               // Determine memory action
@@ -1133,6 +1136,9 @@ ${existingCode}
               false, // forceCanvas
               false  // forceCode
             );
+            
+            // CRITICAL: If cancelled while waiting for response, discard everything
+            if (cancelRequested) return;
             
             // Determine memory action
             let memoryAction: any = undefined;
