@@ -432,7 +432,7 @@ serve(async (req) => {
       enhancedSystemPrompt += ` | Context: ${profile.context_info}`;
     }
     if (profile?.memory_info?.trim()) {
-      enhancedSystemPrompt += `\n\n📝 Memories: ${profile.memory_info}`;
+      enhancedSystemPrompt += `\n\n📝 Memories about ${profile.display_name || 'the user'} (entries have dates - when memories conflict, ALWAYS use the NEWEST/most recent entry and IGNORE older contradictory ones):\n${profile.memory_info}`;
     }
     if (globalContext) {
       enhancedSystemPrompt += `\n\nGlobal: ${globalContext}`;
