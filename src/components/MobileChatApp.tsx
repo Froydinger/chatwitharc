@@ -164,9 +164,14 @@ export function MobileChatApp() {
   const { isOpen: isSearchOpen, closeSearch } = useSearchStore();
 
   // Auto-close sidebar when canvas opens on desktop
+  // Reset inline styles when canvas closes (from drag-resize)
   useEffect(() => {
     if (isCanvasOpen && !isMobile && rightPanelOpen) {
       setRightPanelOpen(false);
+    }
+    // When canvas closes, clear any inline styles set by the resize drag handler
+    if (!isCanvasOpen && inputDockRef.current) {
+      inputDockRef.current.style.right = '';
     }
   }, [isCanvasOpen, isMobile]);
 
