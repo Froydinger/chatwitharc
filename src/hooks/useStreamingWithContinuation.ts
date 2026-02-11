@@ -88,6 +88,7 @@ export function useStreamingWithContinuation() {
           },
           // onDelta
           (delta) => {
+            if (abortSignal?.aborted) return;
             requestContent += delta;
             accumulatedContent += delta;
             if (accumulatedContent.length % 500 === 0 || accumulatedContent.length < 100) {
@@ -97,6 +98,11 @@ export function useStreamingWithContinuation() {
           },
           // onDone
           async (result) => {
+            // If aborted, do NOT call onDone - discard everything
+            if (abortSignal?.aborted) {
+              resolve(false);
+              return;
+            }
             requestComplete = true;
             finalLabel = result.label || finalLabel;
             finalLanguage = result.language || finalLanguage;
