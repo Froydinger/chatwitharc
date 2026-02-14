@@ -345,13 +345,22 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.done':
-        // Response complete - back to listening
-        setStatus('listening');
+        // Response complete - add cooldown before listening again
+        // This prevents residual mic noise / echo from triggering a repeat response
         setCurrentTranscript('');
-        // Clear pending speech flag since turn is complete
         useVoiceModeStore.getState().setHasPendingSpeech(false);
-        // Clear audio buffer to prevent leftover audio bleeding into next turn
+        // Clear audio buffer FIRST to discard any buffered noise
         clearAudioBuffer();
+        // Keep status as 'speaking' briefly so audio capture ignores mic input during cooldown
+        setTimeout(() => {
+          // Only transition to listening if still active and not already in another state
+          const { isActive, status: currentStatus } = useVoiceModeStore.getState();
+          if (isActive && (currentStatus === 'speaking' || currentStatus === 'thinking')) {
+            setStatus('listening');
+            // Clear buffer again after cooldown to be safe
+            clearAudioBuffer();
+          }
+        }, 1500);
         break;
 
       case 'error':
