@@ -20,6 +20,10 @@ let globalWs: WebSocket | null = null;
 let globalConnecting = false;
 let globalSessionId: string | null = null;
 
+// Track whether user has genuinely spoken since the last AI response
+// Used to cancel phantom responses triggered by ambient noise
+let userSpokeAfterLastResponse = false;
+
 // Tool calls in flight to prevent duplicate executions
 // Now uses Map with timestamps for automatic cleanup
 const toolCallsInFlight = new Map<string, number>();
@@ -113,6 +117,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'input_audio_buffer.speech_started':
         // User started speaking - mark that we have pending speech for mute-handoff
         console.log('VAD: User speech detected');
+        userSpokeAfterLastResponse = true;
         useVoiceModeStore.getState().setHasPendingSpeech(true);
         break;
 
@@ -344,23 +349,28 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         break;
 
-      case 'response.done':
-        // Response complete - add cooldown before listening again
-        // This prevents residual mic noise / echo from triggering a repeat response
-        setCurrentTranscript('');
-        useVoiceModeStore.getState().setHasPendingSpeech(false);
-        // Clear audio buffer FIRST to discard any buffered noise
-        clearAudioBuffer();
-        // Keep status as 'speaking' briefly so audio capture ignores mic input during cooldown
-        setTimeout(() => {
-          // Only transition to listening if still active and not already in another state
-          const { isActive, status: currentStatus } = useVoiceModeStore.getState();
-          if (isActive && (currentStatus === 'speaking' || currentStatus === 'thinking')) {
-            setStatus('listening');
-            // Clear buffer again after cooldown to be safe
-            clearAudioBuffer();
+      case 'response.created':
+        // Guard against phantom responses triggered by ambient noise
+        if (!userSpokeAfterLastResponse) {
+          console.log('Cancelling phantom response - user has not spoken since last response');
+          if (globalWs?.readyState === WebSocket.OPEN) {
+            globalWs.send(JSON.stringify({ type: 'response.cancel' }));
           }
-        }, 1500);
+        }
+        break;
+
+      case 'response.done':
+        // Response complete - reset speech flag and go back to listening immediately
+        setCurrentTranscript('');
+        userSpokeAfterLastResponse = false;
+        useVoiceModeStore.getState().setHasPendingSpeech(false);
+        clearAudioBuffer();
+        // Transition to listening immediately - no cooldown needed since
+        // phantom responses are now caught by the speech tracking guard
+        const { isActive: stillActive } = useVoiceModeStore.getState();
+        if (stillActive) {
+          setStatus('listening');
+        }
         break;
 
       case 'error':
@@ -444,7 +454,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             },
             turn_detection: {
               type: 'server_vad',
-              threshold: 0.75,           // Raised from 0.6 - requires louder/clearer speech (iOS fix)
+              threshold: 0.8,            // Raised from 0.75 - additional guard against ambient noise
               prefix_padding_ms: 500,    // Raised from 400 - more buffer before detecting speech
               silence_duration_ms: 1200, // Raised from 800 - wait longer before ending turn
               create_response: true
