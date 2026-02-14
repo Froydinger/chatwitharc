@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera, CameraOff, Paperclip, SwitchCamera } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
-import { useCallback, useRef } from "react";
+import { useMusicStore } from "@/store/useMusicStore";
+import { useCallback, useRef, useEffect } from "react";
 
 // Global ref to allow interrupt from overlay - set by VoiceModeController
 let globalInterruptHandler: (() => void) | null = null;
@@ -57,6 +58,65 @@ export function VoiceModeOverlay() {
 
   // File input ref for attachments
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Track whether we started elevator music so we only stop what we started
+  const startedElevatorMusicRef = useRef(false);
+  const previousTrackRef = useRef<string | null>(null);
+  const wasPlayingRef = useRef(false);
+
+  // Auto-play elevator music during search and image generation
+  useEffect(() => {
+    const isTasking = isSearching || isGeneratingImage;
+    
+    if (isTasking && !startedElevatorMusicRef.current) {
+      // Save current music state before switching
+      const { currentTrack, isPlaying, handleTrackChange, setIsPlaying, audioRef } = useMusicStore.getState();
+      previousTrackRef.current = currentTrack;
+      wasPlayingRef.current = isPlaying;
+      startedElevatorMusicRef.current = true;
+      
+      // Switch to elevator track and play
+      handleTrackChange('elevator');
+      // Start playing after track change settles
+      setTimeout(() => {
+        const { audioRef: audio } = useMusicStore.getState();
+        if (audio) {
+          audio.volume = 0.3; // Lower volume during tasks
+          audio.play().then(() => {
+            useMusicStore.getState().setIsPlaying(true);
+          }).catch(() => {});
+        }
+      }, 150);
+    } else if (!isTasking && startedElevatorMusicRef.current) {
+      // Stop elevator music and restore previous state
+      startedElevatorMusicRef.current = false;
+      const { audioRef, handleTrackChange, setIsPlaying, volume } = useMusicStore.getState();
+      
+      if (audioRef) {
+        audioRef.pause();
+        audioRef.volume = volume; // Restore original volume
+      }
+      setIsPlaying(false);
+      
+      // Restore previous track
+      if (previousTrackRef.current) {
+        handleTrackChange(previousTrackRef.current);
+        // If music was playing before, resume it
+        if (wasPlayingRef.current) {
+          setTimeout(() => {
+            const { audioRef: audio } = useMusicStore.getState();
+            if (audio) {
+              audio.play().then(() => {
+                useMusicStore.getState().setIsPlaying(true);
+              }).catch(() => {});
+            }
+          }, 150);
+        }
+      }
+      previousTrackRef.current = null;
+      wasPlayingRef.current = false;
+    }
+  }, [isSearching, isGeneratingImage]);
 
   // Handle interrupt button press
   const handleInterrupt = useCallback(() => {
