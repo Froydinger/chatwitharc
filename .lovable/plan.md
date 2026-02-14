@@ -1,59 +1,70 @@
 
 
-## Fix: Voice Mode Repeating Responses During Silence
+## Fix: Voice Mode Search Results + Elevator Music During Tasks
 
-### Problem
-After the AI finishes responding, OpenAI's server-side Voice Activity Detection (VAD) is falsely detecting ambient noise as speech and auto-triggering new responses -- even when the user is completely silent. The 1.5s cooldown only delays the issue; it doesn't prevent it.
+### Issue 1: Search results not being relayed to user
 
-### Root Cause
-The session is configured with `turn_detection.create_response: true`, which means OpenAI's server automatically generates a new response whenever its VAD thinks it heard speech followed by silence. Low-level ambient noise (or even digital silence with minor artifacts) can trigger this, causing an infinite loop of responses.
+**Root cause**: The phantom response guard (`response.created` handler) is too aggressive. When a tool like `web_search` or `generate_image` completes, `sendFunctionResult` sends `response.create` to make the AI speak about the results. But `response.created` fires and sees `userSpokeAfterLastResponse === false` (it was reset when the AI's *first* response finished), so it **cancels the response that would have told the user the search results**.
 
-### Solution: Track User Speech and Cancel Phantom Responses
+The user then has to ask a follow-up, which sets `userSpokeAfterLastResponse = true`, and *that* response finally relays the info.
 
-The fix uses a simple flag to track whether the user has **actually spoken** since the last AI response. If OpenAI tries to start a new response without real user speech, we immediately cancel it.
+**Fix**: Track when we explicitly request a response via `sendFunctionResult` so the phantom guard allows it through.
 
-### Changes
+- Add a flag `awaitingToolResponse` (module-level, like `userSpokeAfterLastResponse`)
+- Set it to `true` in `sendFunctionResult` right before sending `response.create`
+- In the `response.created` handler, allow the response if `awaitingToolResponse` is true (reset it after)
+- This way, tool-triggered responses always go through, but ambient-noise phantom responses are still blocked
 
-**File: `src/hooks/useOpenAIRealtime.tsx`**
+### Issue 2: Play elevator music during search and image generation in voice mode
 
-1. **Add a module-level flag** `userSpokeAfterLastResponse` (default `false`)
+**What**: When `isSearching` or `isGeneratingImage` becomes true in the voice mode overlay, auto-play the elevator music track. Stop it when those states go back to false.
 
-2. **On `input_audio_buffer.speech_started`**: Set flag to `true` -- the user genuinely spoke
-
-3. **On `response.done`**: Reset flag to `false` -- AI just finished, user hasn't spoken yet since
-
-4. **On `response.created`** (new case): Check the flag. If the user has NOT spoken since the last response, immediately send `response.cancel` to kill the phantom response before it generates any audio. Log it for debugging.
-
-5. **Remove the 1.5s cooldown setTimeout**: It's no longer needed and adds unnecessary latency. Transition to `listening` immediately after `response.done`.
-
-6. **Raise VAD threshold slightly** from `0.75` to `0.8` as an additional safety measure against ambient noise triggering false positives.
+**Implementation in `src/components/VoiceModeOverlay.tsx`**:
+- Import `useMusicStore` and `musicTracks`
+- Add a `useEffect` watching `isSearching` and `isGeneratingImage`
+- When either becomes true: save the current music state, switch to the elevator track, start playing
+- When both become false: stop playing, restore previous track if needed
+- Use a ref to track whether we started the music (so we only stop what we started)
 
 ### Technical Details
 
-```text
-Flow (normal):
-  AI finishes speaking (response.done)
-    -> userSpokeAfterLastResponse = false
-    -> status = 'listening'
-  User speaks
-    -> speech_started fires
-    -> userSpokeAfterLastResponse = true
-  VAD commits turn, OpenAI creates response
-    -> response.created fires
-    -> flag is true, so we allow it
+**`src/hooks/useOpenAIRealtime.tsx`**:
 
-Flow (phantom, now fixed):
-  AI finishes speaking (response.done)
-    -> userSpokeAfterLastResponse = false
-    -> status = 'listening'
-  Ambient noise triggers VAD
-    -> speech_started does NOT fire (it's noise, not speech)
-    -> OR speech_started fires but we can still guard
-  OpenAI creates response
-    -> response.created fires
-    -> flag is false, so we send response.cancel
-    -> Phantom response killed immediately
+```text
+// New module-level flag
+let awaitingToolResponse = false;
+
+// In sendFunctionResult, before response.create:
+awaitingToolResponse = true;
+
+// In response.created handler:
+if (awaitingToolResponse) {
+  awaitingToolResponse = false;
+  // Allow this response through - it's from a tool result
+  break;
+}
+if (!userSpokeAfterLastResponse) {
+  // Cancel phantom response
+  ...
+}
 ```
 
-This is a clean, server-protocol-level fix that doesn't rely on timing hacks. It directly prevents the AI from responding unless the user has genuinely spoken.
+**`src/components/VoiceModeOverlay.tsx`**:
+
+```text
+// Add useEffect for elevator music
+useEffect(() => {
+  if (!isSearching && !isGeneratingImage) {
+    // Stop elevator music if we started it
+    return;
+  }
+  // Start elevator music
+  const musicStore = useMusicStore.getState();
+  // Save previous state, switch to elevator, play
+}, [isSearching, isGeneratingImage]);
+```
+
+### Files to modify
+1. `src/hooks/useOpenAIRealtime.tsx` -- add `awaitingToolResponse` flag and update `sendFunctionResult` + `response.created` handler
+2. `src/components/VoiceModeOverlay.tsx` -- add elevator music auto-play effect during search/image generation
 
