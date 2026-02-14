@@ -24,6 +24,10 @@ let globalSessionId: string | null = null;
 // Used to cancel phantom responses triggered by ambient noise
 let userSpokeAfterLastResponse = false;
 
+// Track when we explicitly request a response via sendFunctionResult
+// so the phantom guard allows tool-triggered responses through
+let awaitingToolResponse = false;
+
 // Tool calls in flight to prevent duplicate executions
 // Now uses Map with timestamps for automatic cleanup
 const toolCallsInFlight = new Map<string, number>();
@@ -81,6 +85,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         output: result
       }
     }));
+    
+    // Mark that we're awaiting a tool response so the phantom guard lets it through
+    awaitingToolResponse = true;
     
     // Trigger a response so the AI reacts to the result
     globalWs.send(JSON.stringify({
@@ -350,6 +357,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.created':
+        // Allow tool-triggered responses through the phantom guard
+        if (awaitingToolResponse) {
+          console.log('Allowing tool-triggered response through phantom guard');
+          awaitingToolResponse = false;
+          break;
+        }
         // Guard against phantom responses triggered by ambient noise
         if (!userSpokeAfterLastResponse) {
           console.log('Cancelling phantom response - user has not spoken since last response');
