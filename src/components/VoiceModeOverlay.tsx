@@ -100,12 +100,13 @@ function WaveformBar({ index, total, amplitude, status, isMuted }: {
   }
   
   if (isSpeaking) {
-    // For speaking: use keyframe arrays so bars continuously bounce
-    // even when amplitude updates are sparse. Amplitude controls the max height.
-    const amp = Math.max(amplitude, 0.05); // minimum so bars always move when speaking
-    const variance = Math.sin(index * 1.8) * 0.4 + 0.6; // per-bar variation 0.2-1.0
-    const peakHeight = Math.min(minHeight + amp * 90 * variance + (1 - distFromCenter) * 16, maxHeight);
-    const midHeight = Math.min(minHeight + amp * 40 * variance + (1 - distFromCenter) * 8, maxHeight * 0.6);
+    // Decouple from real-time amplitude: use a high floor so bars never collapse
+    // between audio chunks. Amplitude adds extra intensity on top.
+    const baseEnergy = 0.35;
+    const amp = Math.max(amplitude, baseEnergy);
+    const variance = Math.sin(index * 1.8) * 0.4 + 0.6;
+    const peakHeight = Math.min(minHeight + amp * 70 * variance + (1 - distFromCenter) * 20, maxHeight);
+    const midHeight = Math.min(minHeight + amp * 30 * variance + (1 - distFromCenter) * 10, maxHeight * 0.6);
     
     return (
       <motion.div
