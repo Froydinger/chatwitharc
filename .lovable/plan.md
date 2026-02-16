@@ -1,41 +1,40 @@
 
 
-## Fix: Waveform Animation Stops During AI Speech
+## Fix: Waveform Flatlines While AI Audio Is Still Playing
 
 ### Root Cause
 
-The waveform bars during `speaking` state calculate their height from `outputAmplitude`, which comes from an `AnalyserNode` connected to audio buffer sources. The problem is:
+The problem is a **timing mismatch between status and audio playback**:
 
-1. Audio is played as discrete short chunks (buffer sources). Between chunks, there is no active source feeding the analyser, so amplitude reads as 0.
-2. When amplitude drops to 0, the keyframe animation heights collapse (e.g. `peakHeight` becomes ~4px, `midHeight` becomes ~4px), making bars appear frozen/flat.
-3. The animation technically runs, but it bounces between near-zero values -- invisible to the eye.
+1. OpenAI sends audio chunks and transcript deltas as the response is generated
+2. `status` is set to `'speaking'` when transcript deltas arrive (`response.audio_transcript.delta`)
+3. When OpenAI finishes generating, it sends `response.done` -- this immediately sets `status = 'listening'`
+4. **But the audio queue still has buffered chunks playing back** -- `isAudioPlaying` remains `true` for several more seconds
+5. The waveform uses `status === 'speaking'` to decide which animation to show
+6. Since status is now `'listening'`, it falls to the listening branch which uses `inputAmplitude` (user's mic = 0) -- bars flatline
+
+In short: OpenAI finishes *generating* before the audio finishes *playing*. The status jumps to `listening` while the user is still hearing the AI talk.
 
 ### Fix
 
-**Decouple the speaking animation from real-time amplitude.** When `status === 'speaking'`, the bars should animate with full energy regardless of the amplitude value. The amplitude can add extra punch but should never reduce bars below a strong baseline.
+**Don't transition to `listening` on `response.done` if audio is still playing.** Instead:
+
+1. In `useOpenAIRealtime.tsx` at the `response.done` handler: check `isAudioPlaying` before setting status. If audio is still playing, skip the status change.
+2. In `useAudioPlayback.tsx`: when the audio queue fully drains (last chunk finishes playing), transition status to `listening` at that point.
+
+This ensures the `speaking` status (and its energetic waveform animation) persists for the entire duration the user hears audio.
 
 ### Changes
 
-**`src/components/VoiceModeOverlay.tsx`** -- `WaveformBar` speaking branch (lines 102-129):
+**`src/hooks/useOpenAIRealtime.tsx`** (response.done handler, ~line 375-387):
+- Before setting `status = 'listening'`, check if `isAudioPlaying` is still true
+- If audio is still playing, leave status as `speaking` -- the audio playback hook will handle the transition
 
-- Use fixed, energetic keyframe heights that do NOT collapse when amplitude is 0
-- Set a generous floor: bars bounce between 30-70% of maxHeight even with zero amplitude
-- Amplitude adds bonus height on top (extra energy when audio data is present)
-- This means bars always look alive during the entire speaking state
+**`src/hooks/useAudioPlayback.tsx`** (source.onended callback, ~line 133-136):
+- When the queue is empty and the last chunk finishes, set `status = 'listening'` (only if current status is `speaking` and voice mode is still active)
+- This ensures the transition happens exactly when audio stops
 
-```text
-// Before (broken):
-const amp = Math.max(amplitude, 0.05);
-const peakHeight = minHeight + amp * 90 * variance ...  // collapses when amp ~0
-
-// After (fixed):
-const baseEnergy = 0.35; // minimum bounce even with no amplitude data
-const amp = Math.max(amplitude, baseEnergy);
-const peakHeight = minHeight + amp * 70 * variance + (1 - distFromCenter) * 20;
-const midHeight = minHeight + amp * 30 * variance + (1 - distFromCenter) * 10;
-// Bars always bounce visibly, amplitude just makes them more intense
-```
-
-### Files to modify
-1. `src/components/VoiceModeOverlay.tsx` -- Update the `isSpeaking` branch in `WaveformBar` to use a high floor amplitude so bars never collapse
+### Files to Modify
+1. `src/hooks/useOpenAIRealtime.tsx` -- Guard the `response.done` status transition against ongoing audio playback
+2. `src/hooks/useAudioPlayback.tsx` -- Trigger `listening` status when audio queue fully drains
 
