@@ -373,15 +373,16 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.done':
-        // Response complete - reset speech flag and go back to listening immediately
+        // Response complete - reset speech flag
         setCurrentTranscript('');
         userSpokeAfterLastResponse = false;
         useVoiceModeStore.getState().setHasPendingSpeech(false);
         clearAudioBuffer();
-        // Transition to listening immediately - no cooldown needed since
-        // phantom responses are now caught by the speech tracking guard
-        const { isActive: stillActive } = useVoiceModeStore.getState();
-        if (stillActive) {
+        // Only transition to listening if audio has finished playing.
+        // If audio is still playing, useAudioPlayback will handle the transition
+        // when the queue drains -- this prevents the waveform from flatlining.
+        const { isActive: stillActive, isAudioPlaying: audioStillPlaying } = useVoiceModeStore.getState();
+        if (stillActive && !audioStillPlaying) {
           setStatus('listening');
         }
         break;

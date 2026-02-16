@@ -135,6 +135,13 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
         setIsAudioPlaying(false);
         isPlayingRef.current = false;
         
+        // Audio queue fully drained -- if we're still in 'speaking' status,
+        // transition to 'listening' now (response.done may have already fired)
+        const { status: currentStatus, isActive } = useVoiceModeStore.getState();
+        if (isActive && currentStatus === 'speaking') {
+          useVoiceModeStore.getState().setStatus('listening');
+        }
+        
         // Update MediaSession playback state
         if ('mediaSession' in navigator) {
           navigator.mediaSession.playbackState = 'paused';
