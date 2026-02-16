@@ -458,7 +458,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           type: 'session.update',
           session: {
             modalities: ['text', 'audio'],
-            instructions: systemPrompt || `You're Arc - a calm, friendly voice assistant. Be warm, conversational, and genuine. Keep responses concise. When generating an image, say something casual and friendly first like "Hold on one sec while I whip that up for you" or "Let me create that for you real quick" before calling the generate_image function.`,
+            instructions: systemPrompt || `You're Arc - a calm, friendly voice assistant. Be warm, conversational, and genuine. Keep responses concise. CRITICAL RULE: NEVER speak unless the user has spoken first. Do NOT say things like "no rush", "take your time", "I'm here whenever you're ready", or any filler when there is silence. Simply wait quietly until the user speaks. When generating an image, say something casual and friendly first like "Hold on one sec while I whip that up for you" or "Let me create that for you real quick" before calling the generate_image function.`,
             voice: currentVoice,
             input_audio_format: 'pcm16',
             output_audio_format: 'pcm16',
@@ -467,9 +467,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             },
             turn_detection: {
               type: 'server_vad',
-              threshold: 0.8,            // Raised from 0.75 - additional guard against ambient noise
-              prefix_padding_ms: 500,    // Raised from 400 - more buffer before detecting speech
-              silence_duration_ms: 1200, // Raised from 800 - wait longer before ending turn
+              threshold: 0.85,            // High threshold to avoid ambient noise triggers
+              prefix_padding_ms: 600,     // More buffer before detecting speech
+              silence_duration_ms: 1500,  // Wait longer before ending turn
               create_response: true
             },
             // Register image generation tools

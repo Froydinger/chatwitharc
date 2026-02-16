@@ -38,46 +38,99 @@ function WaveformBar({ index, total, amplitude, status, isMuted }: {
   isMuted: boolean;
 }) {
   const minHeight = 4;
-  const maxHeight = 64;
+  const maxHeight = 80;
   
-  // Time-based animation using CSS custom properties won't work here,
-  // so we use framer-motion's animate with per-bar unique values
   const center = total / 2;
-  const distFromCenter = Math.abs(index - center) / center; // 0 at center, 1 at edges
+  const distFromCenter = Math.abs(index - center) / center;
   
-  const getBarHeight = () => {
-    if (isMuted) return minHeight;
-    
-    switch (status) {
-      case 'connecting': {
-        // Cascade: bars light up left-to-right in a loop
-        return minHeight;
-      }
-      case 'listening': {
-        // Gentle sine wave with amplitude influence
-        const wave = Math.sin((index / total) * Math.PI * 2) * 0.5 + 0.5;
-        const height = minHeight + (amplitude * 40 * wave) + (1 - distFromCenter) * 8;
-        return Math.min(height, maxHeight);
-      }
-      case 'speaking': {
-        // Sharp energetic peaks, more variation
-        const sharpWave = Math.pow(Math.abs(Math.sin((index / total) * Math.PI * 3)), 0.6);
-        const height = minHeight + (amplitude * 55 * sharpWave) + (1 - distFromCenter) * 12;
-        return Math.min(height, maxHeight);
-      }
-      case 'thinking': {
-        // Slow uniform pulse
-        return minHeight + 10;
-      }
-      default:
-        return minHeight;
-    }
-  };
-
-  const barHeight = getBarHeight();
-  
-  // Connecting state uses a cascade animation
+  // Use continuous keyframe animation for speaking to keep bars alive
+  // even when amplitude values don't change frequently
   const isConnecting = status === 'connecting';
+  const isSpeaking = status === 'speaking';
+  const isThinking = status === 'thinking';
+  const isListening = status === 'listening';
+  
+  if (isMuted) {
+    return (
+      <motion.div
+        className="rounded-full"
+        style={{ width: 3, background: 'hsl(var(--primary))' }}
+        animate={{ height: minHeight, opacity: 0.3 }}
+        transition={{ type: "spring", stiffness: 200, damping: 25 }}
+      />
+    );
+  }
+  
+  if (isConnecting) {
+    return (
+      <motion.div
+        className="rounded-full"
+        style={{ width: 3, background: 'hsl(var(--primary))' }}
+        animate={{
+          height: [minHeight, 32, minHeight],
+          opacity: [0.3, 1, 0.3],
+        }}
+        transition={{
+          duration: 1.2,
+          repeat: Infinity,
+          delay: (index / total) * 1.2,
+          ease: "easeInOut",
+        }}
+      />
+    );
+  }
+  
+  if (isThinking) {
+    return (
+      <motion.div
+        className="rounded-full"
+        style={{ width: 3, background: 'hsl(var(--primary))' }}
+        animate={{
+          height: [minHeight + 6, minHeight + 16, minHeight + 6],
+          opacity: [0.4, 0.8, 0.4],
+        }}
+        transition={{
+          duration: 1.8,
+          repeat: Infinity,
+          delay: (index / total) * 0.5,
+          ease: "easeInOut",
+        }}
+      />
+    );
+  }
+  
+  if (isSpeaking) {
+    // For speaking: use keyframe arrays so bars continuously bounce
+    // even when amplitude updates are sparse. Amplitude controls the max height.
+    const amp = Math.max(amplitude, 0.05); // minimum so bars always move when speaking
+    const variance = Math.sin(index * 1.8) * 0.4 + 0.6; // per-bar variation 0.2-1.0
+    const peakHeight = Math.min(minHeight + amp * 90 * variance + (1 - distFromCenter) * 16, maxHeight);
+    const midHeight = Math.min(minHeight + amp * 40 * variance + (1 - distFromCenter) * 8, maxHeight * 0.6);
+    
+    return (
+      <motion.div
+        className="rounded-full"
+        style={{
+          width: 3,
+          background: 'hsl(var(--primary))',
+          boxShadow: amp > 0.1 ? '0 0 8px hsl(var(--primary) / 0.5)' : 'none',
+        }}
+        animate={{
+          height: [midHeight, peakHeight, midHeight * 0.7, peakHeight * 0.8, midHeight],
+          opacity: [0.6, 1, 0.7, 0.9, 0.6],
+        }}
+        transition={{
+          duration: 0.4 + (index % 5) * 0.08,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+    );
+  }
+  
+  // Listening state
+  const wave = Math.sin((index / total) * Math.PI * 2) * 0.5 + 0.5;
+  const barHeight = Math.min(minHeight + (amplitude * 60 * wave) + (1 - distFromCenter) * 10, maxHeight);
   
   return (
     <motion.div
@@ -85,24 +138,16 @@ function WaveformBar({ index, total, amplitude, status, isMuted }: {
       style={{
         width: 3,
         background: 'hsl(var(--primary))',
-        boxShadow: amplitude > 0.1 ? '0 0 6px hsl(var(--primary) / 0.4)' : 'none',
+        boxShadow: amplitude > 0.15 ? '0 0 6px hsl(var(--primary) / 0.4)' : 'none',
       }}
-      animate={isConnecting ? {
-        height: [minHeight, 28, minHeight],
-        opacity: [0.3, 1, 0.3],
-      } : {
+      animate={{
         height: barHeight,
-        opacity: isMuted ? 0.3 : 0.5 + amplitude * 0.5,
+        opacity: 0.4 + amplitude * 0.6,
       }}
-      transition={isConnecting ? {
-        duration: 1.2,
-        repeat: Infinity,
-        delay: (index / total) * 1.2,
-        ease: "easeInOut",
-      } : {
+      transition={{
         type: "spring",
-        stiffness: status === 'speaking' ? 400 : 200,
-        damping: status === 'speaking' ? 15 : 25,
+        stiffness: 300,
+        damping: 18,
         mass: 0.3,
       }}
     />
