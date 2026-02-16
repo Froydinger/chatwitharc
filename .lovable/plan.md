@@ -1,45 +1,41 @@
 
 
-## Voice Mode UI Redesign: Waveform Visualizer + Interrupt Button Fix
+## Fix: Waveform Animation Stops During AI Speech
 
-### 1. Replace Orb with Horizontal Audio Waveform
+### Root Cause
 
-Remove the circular orb (lines 541-682) and replace it with a horizontal waveform bar -- a row of animated vertical bars that react to amplitude in real-time.
+The waveform bars during `speaking` state calculate their height from `outputAmplitude`, which comes from an `AnalyserNode` connected to audio buffer sources. The problem is:
 
-**Design:**
-- ~20-30 vertical bars arranged horizontally, centered on screen
-- Each bar's height driven by `inputAmplitude` (listening) or `outputAmplitude` (speaking), with per-bar randomization for organic feel
-- **Listening state**: Smooth, gentle sine-wave motion with subtle breathing -- bars undulate softly
-- **Speaking state**: Sharp, energetic peaks with faster transitions and more height variation
-- **Thinking state**: Slow uniform pulse across all bars
-- **Connecting state**: Sequential cascade animation (bars light up left-to-right in a loop)
-- **Muted state**: All bars flatten to minimum height
-- Bars use `hsl(var(--primary))` color with glow matching the current accent color
-- Glass-style container behind the waveform (subtle `bg-muted/10 backdrop-blur-sm rounded-2xl` wrapper)
-- Remove the outer glow rings, inner shimmer, listening pulse rings, and thinking dots that were part of the orb
+1. Audio is played as discrete short chunks (buffer sources). Between chunks, there is no active source feeding the analyser, so amplitude reads as 0.
+2. When amplitude drops to 0, the keyframe animation heights collapse (e.g. `peakHeight` becomes ~4px, `midHeight` becomes ~4px), making bars appear frozen/flat.
+3. The animation technically runs, but it bounces between near-zero values -- invisible to the eye.
 
-**Technical approach:**
-- Array of 24 `motion.div` bars, each with individual `animate` targeting `height` and `opacity`
-- Height calculated as: `baseHeight + (amplitude * multiplier * perBarVariance)`
-- Per-bar variance uses `Math.sin(index * frequency + time)` for wave shape
-- Speaking mode uses higher frequency and sharper amplitude mapping
-- The ear icon below the waveform stays as-is
+### Fix
 
-### 2. Shrink Interrupt Button + Add Label
+**Decouple the speaking animation from real-time amplitude.** When `status === 'speaking'`, the bars should animate with full energy regardless of the amplitude value. The amplitude can add extra punch but should never reduce bars below a strong baseline.
 
-Current interrupt button (lines 719-735) is a large `p-5` circle with `w-8 h-8` icon -- too prominent.
+### Changes
 
-**Changes:**
-- Move it to the bottom control area, same visual weight as the mute/camera buttons
-- Sizing: `p-3` padding with `w-5 h-5` icon (matches other action buttons)
-- Add "Interrupt" text label next to the Hand icon
-- Style: glass button (`glass-shimmer`) with primary accent border, not a solid primary background
-- Layout: Positioned at bottom center, below the waveform and status text area
+**`src/components/VoiceModeOverlay.tsx`** -- `WaveformBar` speaking branch (lines 102-129):
 
-### Files Modified
+- Use fixed, energetic keyframe heights that do NOT collapse when amplitude is 0
+- Set a generous floor: bars bounce between 30-70% of maxHeight even with zero amplitude
+- Amplitude adds bonus height on top (extra energy when audio data is present)
+- This means bars always look alive during the entire speaking state
 
-**`src/components/VoiceModeOverlay.tsx`**
-- Remove orb markup (lines 541-682): outer glow, main orb div, shimmer, connecting spinner, listening pulse rings, thinking dots
-- Add waveform component in its place: 24 animated bars in a horizontal flex container
-- Replace interrupt button (lines 719-735) with smaller bottom-positioned glass button including "Interrupt" text label
+```text
+// Before (broken):
+const amp = Math.max(amplitude, 0.05);
+const peakHeight = minHeight + amp * 90 * variance ...  // collapses when amp ~0
+
+// After (fixed):
+const baseEnergy = 0.35; // minimum bounce even with no amplitude data
+const amp = Math.max(amplitude, baseEnergy);
+const peakHeight = minHeight + amp * 70 * variance + (1 - distFromCenter) * 20;
+const midHeight = minHeight + amp * 30 * variance + (1 - distFromCenter) * 10;
+// Bars always bounce visibly, amplitude just makes them more intense
+```
+
+### Files to modify
+1. `src/components/VoiceModeOverlay.tsx` -- Update the `isSpeaking` branch in `WaveformBar` to use a high floor amplitude so bars never collapse
 
