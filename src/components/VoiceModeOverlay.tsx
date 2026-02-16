@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera, CameraOff, Paperclip, SwitchCamera } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useMusicStore } from "@/store/useMusicStore";
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect, useMemo } from "react";
 
 // Global ref to allow interrupt from overlay - set by VoiceModeController
 let globalInterruptHandler: (() => void) | null = null;
@@ -27,6 +27,86 @@ export function setGlobalVideoRef(ref: React.RefObject<HTMLVideoElement> | null)
 
 export function setGlobalSwitchCameraHandler(handler: (() => void) | null) {
   globalSwitchCameraHandler = handler;
+}
+
+// Waveform bar component for the audio visualizer
+function WaveformBar({ index, total, amplitude, status, isMuted }: {
+  index: number;
+  total: number;
+  amplitude: number;
+  status: string;
+  isMuted: boolean;
+}) {
+  const minHeight = 4;
+  const maxHeight = 64;
+  
+  // Time-based animation using CSS custom properties won't work here,
+  // so we use framer-motion's animate with per-bar unique values
+  const center = total / 2;
+  const distFromCenter = Math.abs(index - center) / center; // 0 at center, 1 at edges
+  
+  const getBarHeight = () => {
+    if (isMuted) return minHeight;
+    
+    switch (status) {
+      case 'connecting': {
+        // Cascade: bars light up left-to-right in a loop
+        return minHeight;
+      }
+      case 'listening': {
+        // Gentle sine wave with amplitude influence
+        const wave = Math.sin((index / total) * Math.PI * 2) * 0.5 + 0.5;
+        const height = minHeight + (amplitude * 40 * wave) + (1 - distFromCenter) * 8;
+        return Math.min(height, maxHeight);
+      }
+      case 'speaking': {
+        // Sharp energetic peaks, more variation
+        const sharpWave = Math.pow(Math.abs(Math.sin((index / total) * Math.PI * 3)), 0.6);
+        const height = minHeight + (amplitude * 55 * sharpWave) + (1 - distFromCenter) * 12;
+        return Math.min(height, maxHeight);
+      }
+      case 'thinking': {
+        // Slow uniform pulse
+        return minHeight + 10;
+      }
+      default:
+        return minHeight;
+    }
+  };
+
+  const barHeight = getBarHeight();
+  
+  // Connecting state uses a cascade animation
+  const isConnecting = status === 'connecting';
+  
+  return (
+    <motion.div
+      className="rounded-full"
+      style={{
+        width: 3,
+        background: 'hsl(var(--primary))',
+        boxShadow: amplitude > 0.1 ? '0 0 6px hsl(var(--primary) / 0.4)' : 'none',
+      }}
+      animate={isConnecting ? {
+        height: [minHeight, 28, minHeight],
+        opacity: [0.3, 1, 0.3],
+      } : {
+        height: barHeight,
+        opacity: isMuted ? 0.3 : 0.5 + amplitude * 0.5,
+      }}
+      transition={isConnecting ? {
+        duration: 1.2,
+        repeat: Infinity,
+        delay: (index / total) * 1.2,
+        ease: "easeInOut",
+      } : {
+        type: "spring",
+        stiffness: status === 'speaking' ? 400 : 200,
+        damping: status === 'speaking' ? 15 : 25,
+        mass: 0.3,
+      }}
+    />
+  );
 }
 
 export function VoiceModeOverlay() {
@@ -210,11 +290,8 @@ export function VoiceModeOverlay() {
 
   if (!isActive) return null;
 
-  // Determine orb animation based on status
-  // Reduced sensitivity to make animation more subtle and less "crazy"
+  // Determine amplitude based on status
   const amplitude = status === 'speaking' ? outputAmplitude : (isMuted ? 0 : inputAmplitude);
-  const orbScale = 1 + amplitude * 0.15; // Reduced from 0.4 for subtler scaling
-  const glowIntensity = 30 + amplitude * 30; // Reduced from 40 + 60 for calmer glow
 
   // Check if interrupt button should be visible
   const showInterruptButton = status === 'speaking' || isAudioPlaying;
@@ -538,7 +615,7 @@ export function VoiceModeOverlay() {
                 )}
               </AnimatePresence>
 
-              {/* Animated liquid orb - NO tap interrupt, just visual */}
+              {/* Horizontal Audio Waveform Visualizer */}
               <motion.div
                 className="relative"
                 initial={{ scale: 0, opacity: 0 }}
@@ -546,139 +623,18 @@ export function VoiceModeOverlay() {
                 exit={{ scale: 0, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
               >
-                {/* Outer glow rings */}
-                <motion.div
-                  className="absolute inset-0 rounded-full w-[200px] h-[200px] sm:w-[280px] sm:h-[280px] -ml-[12px] -mt-[12px] sm:-ml-[15px] sm:-mt-[15px]"
-                  animate={{
-                    scale: [1, 1.2, 1],
-                    opacity: [0.3, 0.1, 0.3],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  style={{
-                    background: `radial-gradient(circle, hsl(var(--primary) / 0.2), transparent 70%)`,
-                  }}
-                />
-
-                {/* Main orb */}
-                <motion.div
-                  className="w-[175px] h-[175px] sm:w-[250px] sm:h-[250px] rounded-full relative overflow-hidden"
-                  animate={{
-                    scale: orbScale,
-                    borderRadius: status === 'speaking' 
-                      ? ["50%", "47%", "52%", "48%", "50%"]
-                      : "50%",
-                  }}
-                  transition={{
-                    scale: { type: "spring", stiffness: 300, damping: 20 },
-                    borderRadius: { duration: 0.5, repeat: status === 'speaking' ? Infinity : 0 },
-                  }}
-                  style={{
-                    background: `
-                      radial-gradient(
-                        circle at 30% 30%,
-                        hsl(var(--primary) / 0.6),
-                        hsl(var(--primary) / 0.3) 50%,
-                        hsl(var(--primary) / 0.1) 100%
-                      )
-                    `,
-                    backdropFilter: "blur(40px)",
-                    boxShadow: `
-                      0 0 ${glowIntensity}px hsl(var(--primary) / 0.4),
-                      inset 0 0 60px hsl(var(--primary) / 0.1),
-                      0 8px 32px rgba(0, 0, 0, 0.2)
-                    `,
-                    border: "1px solid hsl(var(--primary) / 0.3)",
-                  }}
-                >
-                  {/* Inner shimmer effect */}
-                  <motion.div
-                    className="absolute inset-0 rounded-full"
-                    animate={{
-                      background: [
-                        "linear-gradient(135deg, transparent 0%, hsl(var(--primary) / 0.2) 50%, transparent 100%)",
-                        "linear-gradient(225deg, transparent 0%, hsl(var(--primary) / 0.2) 50%, transparent 100%)",
-                        "linear-gradient(315deg, transparent 0%, hsl(var(--primary) / 0.2) 50%, transparent 100%)",
-                        "linear-gradient(45deg, transparent 0%, hsl(var(--primary) / 0.2) 50%, transparent 100%)",
-                        "linear-gradient(135deg, transparent 0%, hsl(var(--primary) / 0.2) 50%, transparent 100%)",
-                      ],
-                    }}
-                    transition={{
-                      duration: 4,
-                      repeat: Infinity,
-                      ease: "linear",
-                    }}
-                  />
-
-                  {/* Connecting spinner */}
-                  {status === 'connecting' && (
-                    <motion.div
-                      className="absolute inset-0 flex items-center justify-center"
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                    >
-                      <div className="w-16 h-16 border-2 border-t-transparent border-primary/50 rounded-full" />
-                    </motion.div>
-                  )}
-
-                  {/* Listening pulse rings */}
-                  {status === 'listening' && (
-                    <>
-                      <motion.div
-                        className="absolute inset-0 rounded-full border-2 border-primary/30"
-                        animate={{
-                          scale: [1, 1.3],
-                          opacity: [0.5, 0],
-                        }}
-                        transition={{
-                          duration: 1.5,
-                          repeat: Infinity,
-                          ease: "easeOut",
-                        }}
-                      />
-                      <motion.div
-                        className="absolute inset-0 rounded-full border-2 border-primary/30"
-                        animate={{
-                          scale: [1, 1.3],
-                          opacity: [0.5, 0],
-                        }}
-                        transition={{
-                          duration: 1.5,
-                          repeat: Infinity,
-                          ease: "easeOut",
-                          delay: 0.5,
-                        }}
-                      />
-                    </>
-                  )}
-
-                  {/* Thinking animation */}
-                  {status === 'thinking' && (
-                    <motion.div
-                      className="absolute inset-0 flex items-center justify-center gap-2"
-                    >
-                      {[0, 1, 2].map((i) => (
-                        <motion.div
-                          key={i}
-                          className="w-3 h-3 rounded-full bg-primary/60"
-                          animate={{
-                            y: [-5, 5, -5],
-                            opacity: [0.5, 1, 0.5],
-                          }}
-                          transition={{
-                            duration: 0.8,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                            delay: i * 0.15,
-                          }}
-                        />
-                      ))}
-                    </motion.div>
-                  )}
-                </motion.div>
+                <div className="flex items-center justify-center gap-[3px] px-8 py-6 rounded-2xl bg-muted/10 backdrop-blur-sm">
+                  {Array.from({ length: 24 }).map((_, i) => (
+                    <WaveformBar
+                      key={i}
+                      index={i}
+                      total={24}
+                      amplitude={amplitude}
+                      status={status}
+                      isMuted={isMuted}
+                    />
+                  ))}
+                </div>
               </motion.div>
 
               {/* Ear icon when listening */}
@@ -716,20 +672,21 @@ export function VoiceModeOverlay() {
                 )}
               </AnimatePresence>
 
-              {/* BIG CENTERED INTERRUPT BUTTON - Only shows when AI is speaking */}
+              {/* Interrupt Button - compact, bottom-positioned */}
               <AnimatePresence>
                 {showInterruptButton && (
                   <motion.button
-                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                    initial={{ opacity: 0, scale: 0.8, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.8, y: 20 }}
+                    exit={{ opacity: 0, scale: 0.8, y: 10 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
                     onClick={handleInterrupt}
-                    className="mt-6 p-5 rounded-full bg-primary text-primary-foreground
-                               shadow-2xl hover:bg-primary/90 active:scale-95 transition-all"
-                    aria-label="Stop"
+                    className="mt-4 px-4 py-2.5 rounded-full glass-shimmer border border-primary/40
+                               flex items-center gap-2 hover:bg-primary/10 active:scale-95 transition-all"
+                    aria-label="Interrupt"
                   >
-                    <Hand className="w-8 h-8" />
+                    <Hand className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-primary">Interrupt</span>
                   </motion.button>
                 )}
               </AnimatePresence>
