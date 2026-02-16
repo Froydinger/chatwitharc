@@ -1,70 +1,45 @@
 
 
-## Fix: Voice Mode Search Results + Elevator Music During Tasks
+## Voice Mode UI Redesign: Waveform Visualizer + Interrupt Button Fix
 
-### Issue 1: Search results not being relayed to user
+### 1. Replace Orb with Horizontal Audio Waveform
 
-**Root cause**: The phantom response guard (`response.created` handler) is too aggressive. When a tool like `web_search` or `generate_image` completes, `sendFunctionResult` sends `response.create` to make the AI speak about the results. But `response.created` fires and sees `userSpokeAfterLastResponse === false` (it was reset when the AI's *first* response finished), so it **cancels the response that would have told the user the search results**.
+Remove the circular orb (lines 541-682) and replace it with a horizontal waveform bar -- a row of animated vertical bars that react to amplitude in real-time.
 
-The user then has to ask a follow-up, which sets `userSpokeAfterLastResponse = true`, and *that* response finally relays the info.
+**Design:**
+- ~20-30 vertical bars arranged horizontally, centered on screen
+- Each bar's height driven by `inputAmplitude` (listening) or `outputAmplitude` (speaking), with per-bar randomization for organic feel
+- **Listening state**: Smooth, gentle sine-wave motion with subtle breathing -- bars undulate softly
+- **Speaking state**: Sharp, energetic peaks with faster transitions and more height variation
+- **Thinking state**: Slow uniform pulse across all bars
+- **Connecting state**: Sequential cascade animation (bars light up left-to-right in a loop)
+- **Muted state**: All bars flatten to minimum height
+- Bars use `hsl(var(--primary))` color with glow matching the current accent color
+- Glass-style container behind the waveform (subtle `bg-muted/10 backdrop-blur-sm rounded-2xl` wrapper)
+- Remove the outer glow rings, inner shimmer, listening pulse rings, and thinking dots that were part of the orb
 
-**Fix**: Track when we explicitly request a response via `sendFunctionResult` so the phantom guard allows it through.
+**Technical approach:**
+- Array of 24 `motion.div` bars, each with individual `animate` targeting `height` and `opacity`
+- Height calculated as: `baseHeight + (amplitude * multiplier * perBarVariance)`
+- Per-bar variance uses `Math.sin(index * frequency + time)` for wave shape
+- Speaking mode uses higher frequency and sharper amplitude mapping
+- The ear icon below the waveform stays as-is
 
-- Add a flag `awaitingToolResponse` (module-level, like `userSpokeAfterLastResponse`)
-- Set it to `true` in `sendFunctionResult` right before sending `response.create`
-- In the `response.created` handler, allow the response if `awaitingToolResponse` is true (reset it after)
-- This way, tool-triggered responses always go through, but ambient-noise phantom responses are still blocked
+### 2. Shrink Interrupt Button + Add Label
 
-### Issue 2: Play elevator music during search and image generation in voice mode
+Current interrupt button (lines 719-735) is a large `p-5` circle with `w-8 h-8` icon -- too prominent.
 
-**What**: When `isSearching` or `isGeneratingImage` becomes true in the voice mode overlay, auto-play the elevator music track. Stop it when those states go back to false.
+**Changes:**
+- Move it to the bottom control area, same visual weight as the mute/camera buttons
+- Sizing: `p-3` padding with `w-5 h-5` icon (matches other action buttons)
+- Add "Interrupt" text label next to the Hand icon
+- Style: glass button (`glass-shimmer`) with primary accent border, not a solid primary background
+- Layout: Positioned at bottom center, below the waveform and status text area
 
-**Implementation in `src/components/VoiceModeOverlay.tsx`**:
-- Import `useMusicStore` and `musicTracks`
-- Add a `useEffect` watching `isSearching` and `isGeneratingImage`
-- When either becomes true: save the current music state, switch to the elevator track, start playing
-- When both become false: stop playing, restore previous track if needed
-- Use a ref to track whether we started the music (so we only stop what we started)
+### Files Modified
 
-### Technical Details
-
-**`src/hooks/useOpenAIRealtime.tsx`**:
-
-```text
-// New module-level flag
-let awaitingToolResponse = false;
-
-// In sendFunctionResult, before response.create:
-awaitingToolResponse = true;
-
-// In response.created handler:
-if (awaitingToolResponse) {
-  awaitingToolResponse = false;
-  // Allow this response through - it's from a tool result
-  break;
-}
-if (!userSpokeAfterLastResponse) {
-  // Cancel phantom response
-  ...
-}
-```
-
-**`src/components/VoiceModeOverlay.tsx`**:
-
-```text
-// Add useEffect for elevator music
-useEffect(() => {
-  if (!isSearching && !isGeneratingImage) {
-    // Stop elevator music if we started it
-    return;
-  }
-  // Start elevator music
-  const musicStore = useMusicStore.getState();
-  // Save previous state, switch to elevator, play
-}, [isSearching, isGeneratingImage]);
-```
-
-### Files to modify
-1. `src/hooks/useOpenAIRealtime.tsx` -- add `awaitingToolResponse` flag and update `sendFunctionResult` + `response.created` handler
-2. `src/components/VoiceModeOverlay.tsx` -- add elevator music auto-play effect during search/image generation
+**`src/components/VoiceModeOverlay.tsx`**
+- Remove orb markup (lines 541-682): outer glow, main orb div, shimmer, connecting spinner, listening pulse rings, thinking dots
+- Add waveform component in its place: 24 animated bars in a horizontal flex container
+- Replace interrupt button (lines 719-735) with smaller bottom-positioned glass button including "Interrupt" text label
 
