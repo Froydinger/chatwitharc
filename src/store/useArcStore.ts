@@ -43,7 +43,7 @@ export interface ChatSession {
   isHydrated?: boolean; // Whether full messages have been fetched
 }
 
-export type MemoryActionType = 'memory_saved' | 'memory_accessed' | 'chats_searched' | 'web_searched';
+export type MemoryActionType = 'memory_saved' | 'memory_accessed' | 'chats_searched' | 'web_searched' | 'context_saved';
 
 export interface WebSource {
   title: string;
