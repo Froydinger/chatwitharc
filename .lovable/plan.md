@@ -1,76 +1,67 @@
 
 
-## Fix Voice Switching Crashing Voice Mode + UI Polish
+## Fix Voice Mode Crashing -- Root Cause + Real Fix
 
-### Root Cause
+### Root Cause (from logs)
 
-Two likely causes for voice mode closing when switching voices:
+The crash happens because:
 
-1. **WebSocket `session.update` error**: When `updateVoice()` sends a `session.update` message, the server may respond with an `error` event. The error handler in `useOpenAIRealtime.tsx` calls `onError()`, which triggers `deactivateVoiceMode()` in VoiceModeController -- killing the entire session.
+1. The user's profile has `preferred_voice: 'fable'` saved in the database
+2. On load, `VoiceModeController` syncs this into the store -- it validates against ALL 13 voices (including TTS-only ones like fable), so it accepts it
+3. When voice mode connects, the `safeVoice` fallback works correctly at session init, BUT the OpenAI server still returns an `invalid_value` error for the initial session config
+4. The error handler checks for `code === 'session_update_error'` but OpenAI actually sends `code: 'invalid_value'` -- so the check misses it
+5. The error falls through to `onError()` which calls `deactivateVoiceMode()` -- session dies instantly
 
-2. **Popover Portal click bleed**: The Popover uses a Portal (renders outside the overlay DOM tree). When the popover closes via `setVoicePickerOpen(false)`, focus/click events may propagate to the backdrop div, where the `e.target === e.currentTarget` check triggers `deactivateVoiceMode()`.
+### Fix (3 changes, 2 files)
 
-### Fixes
+**File 1: `src/components/VoiceModeController.tsx`**
 
-**1. Make `updateVoice` error-resilient (`src/hooks/useOpenAIRealtime.tsx`)**
-- Add `session.update` error codes to the "transient/recoverable" error list so voice mode does not crash on voice switch errors
-- This prevents the `onError` -> `deactivateVoiceMode` chain
+- Line 269: Change the profile sync validation list to use `REALTIME_SUPPORTED_VOICES` instead of all 13 voices
+- This prevents `'fable'` from ever being set in the store, which is the real source of the bug
+- Import `REALTIME_SUPPORTED_VOICES` from the store
 
-**2. Prevent popover click bleed (`src/components/VoiceModeOverlay.tsx`)**
-- Add `e.stopPropagation()` on the Popover trigger button and inside PopoverContent to prevent click events from bubbling up to the backdrop's `onClick` handler
+**File 2: `src/hooks/useOpenAIRealtime.tsx`**
 
-**3. Keep picker open + add confirmation (`src/components/VoiceModeOverlay.tsx`)**
-- Remove `setVoicePickerOpen(false)` from the voice selection handler so the picker stays open
-- After selecting a voice, add a conversation turn: `{ role: 'assistant', transcript: 'Okay, my new voice is ready!', timestamp: new Date() }` so the bot speaks in the new voice as confirmation
-
-**4. Fix UI styling (`src/components/VoiceModeOverlay.tsx`)**
-- Change avatar circle backgrounds from default (white) to `bg-black` 
-- Increase popover width to `w-[320px]` and max-height to `max-h-[300px]`
-- Clean up border styling so nothing looks clipped or "nightlight cut off"
-- Improve glass-panel styling with proper padding and rounded corners
+- Lines 398-404: Add `event.error?.code === 'invalid_value'` to the transient error check -- this is the actual error code OpenAI sends for bad voice values, so it won't crash voice mode even if a bad voice somehow slips through
+- Lines 620-625: Add the same `REALTIME_SUPPORTED_VOICES` safe-guard to the `updateVoice` function so mid-session voice swaps also can't send unsupported voices
 
 ### Technical Details
 
-**Error resilience change in `useOpenAIRealtime.tsx`:**
+**VoiceModeController.tsx -- profile sync fix:**
 ```typescript
-// Add session_update errors to transient errors
+import { useVoiceModeStore, REALTIME_SUPPORTED_VOICES } from '@/store/useVoiceModeStore';
+
+// Line 269: filter to realtime voices only
+if (REALTIME_SUPPORTED_VOICES.includes(profile.preferred_voice as any)) {
+  setSelectedVoice(profile.preferred_voice as any);
+}
+```
+
+**useOpenAIRealtime.tsx -- error handler fix:**
+```typescript
 const isTransientError = 
   event.error?.message?.includes('Connection to AI service failed') ||
   event.error?.message?.includes('timeout') ||
   event.error?.message?.includes('rate limit') ||
   event.error?.code === 'function_call_error' ||
   event.error?.code === 'session_update_error' ||
+  event.error?.code === 'invalid_value' ||          // <-- NEW
   event.error?.message?.includes('session.update');
 ```
 
-**Click bleed prevention:**
+**useOpenAIRealtime.tsx -- updateVoice safe-guard:**
 ```typescript
-<PopoverContent onClick={(e) => e.stopPropagation()} ...>
-```
-
-**Voice selection handler:**
-```typescript
-onClick={async () => {
-  setSelectedVoice(voice.id);
-  // Don't close picker
-  addConversationTurn({
-    role: 'assistant',
-    transcript: 'Okay, my new voice is ready!',
-    timestamp: new Date()
-  });
-  try {
-    await updateProfile({ preferred_voice: voice.id });
-  } catch (err) {
-    console.error('Failed to persist voice:', err);
-  }
-}}
-```
-
-**Avatar styling:**
-```typescript
-<div className="w-10 h-10 rounded-full overflow-hidden bg-black border-2 ...">
+const updateVoice = useCallback((voice: VoiceName) => {
+  if (globalWs?.readyState !== WebSocket.OPEN) return;
+  const safeVoice = REALTIME_SUPPORTED_VOICES.includes(voice) ? voice : 'cedar';
+  globalWs.send(JSON.stringify({
+    type: 'session.update',
+    session: { voice: safeVoice }
+  }));
+}, []);
 ```
 
 ### Files to Modify
-- `src/hooks/useOpenAIRealtime.tsx` -- Make session.update errors non-fatal
-- `src/components/VoiceModeOverlay.tsx` -- Stop click propagation, keep picker open, add confirmation message, fix avatar/popover styling
+- `src/components/VoiceModeController.tsx` -- Import REALTIME_SUPPORTED_VOICES, filter profile sync
+- `src/hooks/useOpenAIRealtime.tsx` -- Add `invalid_value` to transient errors, safe-guard updateVoice
+
