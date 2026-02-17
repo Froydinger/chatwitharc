@@ -28,6 +28,11 @@ let userSpokeAfterLastResponse = false;
 // so the phantom guard allows tool-triggered responses through
 let awaitingToolResponse = false;
 
+// Auto-reconnect state
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 3;
+let lastSystemPrompt: string | null = null;
+
 // Tool calls in flight to prevent duplicate executions
 // Now uses Map with timestamps for automatic cleanup
 const toolCallsInFlight = new Map<string, number>();
@@ -419,6 +424,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   const connect = useCallback(async (systemPrompt?: string) => {
     const { setStatus, selectedVoice } = useVoiceModeStore.getState();
     
+    // Store system prompt for reconnection
+    if (systemPrompt) lastSystemPrompt = systemPrompt;
     // Strict duplicate prevention using global state
     if (globalWs?.readyState === WebSocket.OPEN) {
       console.log('Already connected to OpenAI Realtime (global check)');
@@ -452,6 +459,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       ws.onopen = () => {
         console.log('Connected to OpenAI Realtime proxy');
         globalConnecting = false;
+        reconnectAttempts = 0; // Reset on successful connection
         setIsConnected(true);
         setStatus('listening');
         
@@ -554,13 +562,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
+        // Don't immediately deactivate voice mode on WebSocket errors
+        // Let onclose handle reconnection logic instead
         globalConnecting = false;
-        globalWs = null;
-        globalSessionId = null;
-        toolCallsInFlight.clear(); // Clear stale tool calls on error
-        optionsRef.current.onError?.('Connection error');
-        setStatus('idle');
-        setIsConnected(false);
       };
 
       ws.onclose = () => {
@@ -568,9 +572,30 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         globalConnecting = false;
         globalWs = null;
         globalSessionId = null;
-        toolCallsInFlight.clear(); // Clear all tool calls on close
+        toolCallsInFlight.clear();
         setIsConnected(false);
-        setStatus('idle');
+        
+        // If voice mode is still active, attempt auto-reconnect
+        const { isActive } = useVoiceModeStore.getState();
+        if (isActive && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          reconnectAttempts++;
+          console.log(`Auto-reconnecting voice mode (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+          setStatus('connecting');
+          // Small delay before reconnecting to avoid rapid loops
+          setTimeout(() => {
+            const { isActive: stillActive } = useVoiceModeStore.getState();
+            if (stillActive) {
+              connect(lastSystemPrompt || undefined);
+            }
+          }, 1000);
+        } else if (isActive && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+          console.error('Max reconnect attempts reached, deactivating voice mode');
+          reconnectAttempts = 0;
+          optionsRef.current.onError?.('Voice connection lost. Please try again.');
+          setStatus('idle');
+        } else {
+          setStatus('idle');
+        }
       };
 
     } catch (error) {
@@ -587,15 +612,21 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   const disconnect = useCallback(() => {
     const { setStatus } = useVoiceModeStore.getState();
 
+    // Reset reconnect state — this is an intentional disconnect
+    reconnectAttempts = MAX_RECONNECT_ATTEMPTS; // Prevent auto-reconnect on close
+    
     if (globalWs) {
       globalWs.close();
       globalWs = null;
     }
     globalConnecting = false;
     globalSessionId = null;
-    toolCallsInFlight.clear(); // Clear all tool calls on disconnect
+    toolCallsInFlight.clear();
     setIsConnected(false);
     setStatus('idle');
+    
+    // Reset after close event has fired
+    setTimeout(() => { reconnectAttempts = 0; }, 100);
   }, []);
 
   const sendAudio = useCallback((audioData: Int16Array) => {
@@ -618,6 +649,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     if (globalWs?.readyState !== WebSocket.OPEN) return;
     const safeVoice = REALTIME_SUPPORTED_VOICES.includes(voice) ? voice : 'cedar';
     console.log('Updating voice to:', safeVoice);
+    
+    // Cancel any active response first to avoid conflicts during voice swap
+    try {
+      globalWs.send(JSON.stringify({ type: 'response.cancel' }));
+    } catch (e) {
+      // Ignore cancel errors
+    }
+    
     globalWs.send(JSON.stringify({
       type: 'session.update',
       session: { voice: safeVoice }
