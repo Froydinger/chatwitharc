@@ -399,7 +399,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           event.error?.message?.includes('Connection to AI service failed') ||
           event.error?.message?.includes('timeout') ||
           event.error?.message?.includes('rate limit') ||
-          event.error?.code === 'function_call_error';
+          event.error?.code === 'function_call_error' ||
+          event.error?.code === 'session_update_error' ||
+          event.error?.message?.includes('session.update');
         
         if (isTransientError) {
           console.warn('Transient server error (voice mode continues):', event.error);
