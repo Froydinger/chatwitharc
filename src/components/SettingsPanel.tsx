@@ -22,6 +22,7 @@ import {
   Monitor,
   Palette,
   Check,
+  Brain,
 } from "lucide-react";
 import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
@@ -106,9 +107,6 @@ export function SettingsPanel() {
   // Local draft states for profile fields
   const [displayNameDraft, setDisplayNameDraft] = useState("");
   const [displayNameDirty, setDisplayNameDirty] = useState(false);
-  const [contextDraft, setContextDraft] = useState("");
-  const [contextDirty, setContextDirty] = useState(false);
-  const [isContextDialogOpen, setIsContextDialogOpen] = useState(false);
 
 
   // Online/offline detection
@@ -128,9 +126,6 @@ export function SettingsPanel() {
     if (!displayNameDirty) setDisplayNameDraft(profile?.display_name || "");
   }, [profile?.display_name, displayNameDirty]);
 
-  useEffect(() => {
-    if (!contextDirty) setContextDraft(profile?.context_info || "");
-  }, [profile?.context_info, contextDirty]);
 
   const handleSaveDisplayName = async () => {
     try {
@@ -145,18 +140,6 @@ export function SettingsPanel() {
     }
   };
 
-  const handleSaveContext = async () => {
-    try {
-      await updateProfile({ context_info: contextDraft });
-      setContextDirty(false);
-    } catch (e) {
-      toast({
-        title: "Save failed",
-        description: "Could not save your context. Try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -448,69 +431,25 @@ export function SettingsPanel() {
             </div>
           </GlassCard>
 
-          {/* Context Button */}
+          {/* Context - Opens Brain/Memory Panel */}
           <GlassCard variant="bubble" className="p-6 space-y-3">
             <div className="flex items-center gap-3">
-              <FileText className="h-5 w-5 text-primary-glow" />
+              <Brain className="h-5 w-5 text-primary-glow" />
               <div>
-                <h3 className="text-lg font-semibold text-foreground">Context</h3>
-                <p className="text-sm text-muted-foreground">Give Arc extra context about yourself</p>
+                <h3 className="text-lg font-semibold text-foreground">Memory</h3>
+                <p className="text-sm text-muted-foreground">View & manage what Arc remembers about you</p>
               </div>
             </div>
-            <Dialog open={isContextDialogOpen} onOpenChange={setIsContextDialogOpen}>
-              <DialogTrigger asChild>
-                <GlassButton className="w-full h-12 rounded-full outline-shimmer inline-flex items-center justify-center text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Context
-                </GlassButton>
-              </DialogTrigger>
-              <DialogContent className="w-[95vw] max-w-lg max-h-[85vh] sm:max-h-[80vh] overflow-y-auto p-4 sm:p-6">
-                <DialogHeader>
-                  <DialogTitle className="text-base sm:text-lg">Context</DialogTitle>
-                  <DialogDescription className="text-xs sm:text-sm">Tell Arc about yourself and your preferences</DialogDescription>
-                </DialogHeader>
-
-                <div className="py-3 sm:py-4">
-                  <div className="space-y-2 sm:space-y-3">
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">This information helps Arc personalize responses to your needs</p>
-                    <div className="space-y-2">
-                      <Textarea
-                        value={contextDraft}
-                        onChange={(e) => {
-                          setContextDraft(e.target.value);
-                          setContextDirty(true);
-                        }}
-                        placeholder="I'm interested in... I prefer... I'm working on..."
-                        className="glass border-glass-border min-h-[120px] sm:min-h-[150px] resize-none text-sm"
-                        disabled={updating}
-                        autoFocus={false}
-                        data-autofocus="false"
-                      />
-                      {contextDirty && (
-                        <div className="flex items-center gap-2">
-                          <GlassButton variant="ghost" size="sm" onClick={handleSaveContext} disabled={updating}>
-                            <Save className="w-3 h-3 mr-1" />
-                            Save
-                          </GlassButton>
-                          <GlassButton
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setContextDraft(profile?.context_info || "");
-                              setContextDirty(false);
-                            }}
-                            disabled={updating}
-                          >
-                            <RotateCcw className="w-3 h-3 mr-1" />
-                            Reset
-                          </GlassButton>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <GlassButton 
+              className="w-full h-12 rounded-full outline-shimmer inline-flex items-center justify-center text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-context-blocks'));
+                setRightPanelTab('settings');
+              }}
+            >
+              <Brain className="h-4 w-4 mr-2" />
+              View Memory
+            </GlassButton>
           </GlassCard>
 
           {/* Appearance Section */}
