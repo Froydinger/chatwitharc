@@ -2,7 +2,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera, CameraOff, Paperclip, SwitchCamera } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useMusicStore } from "@/store/useMusicStore";
-import { useCallback, useRef, useEffect, useMemo } from "react";
+import { useCallback, useRef, useEffect, useMemo, useState } from "react";
+import { VOICES, VOICE_AVATARS } from "@/constants/voices";
+import { useProfile } from "@/hooks/useProfile";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Global ref to allow interrupt from overlay - set by VoiceModeController
 let globalInterruptHandler: (() => void) | null = null;
@@ -170,6 +173,8 @@ export function VoiceModeOverlay() {
     isGeneratingImage,
     setGeneratedImage,
     isSearching,
+    selectedVoice,
+    setSelectedVoice,
     // Camera state
     isCameraActive,
     activateCamera,
@@ -181,6 +186,9 @@ export function VoiceModeOverlay() {
     clearAttachment,
     setAttachedImage,
   } = useVoiceModeStore();
+
+  const { updateProfile } = useProfile();
+  const [voicePickerOpen, setVoicePickerOpen] = useState(false);
 
   // File input ref for attachments
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -468,6 +476,68 @@ export function VoiceModeOverlay() {
                 <Mic className="w-6 h-6 text-foreground" />
               )}
             </motion.button>
+
+            {/* Voice picker button - bottom-left */}
+            <Popover open={voicePickerOpen} onOpenChange={setVoicePickerOpen}>
+              <PopoverTrigger asChild>
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ delay: 0.18 }}
+                  className="absolute bottom-6 left-6 z-10 w-12 h-12 rounded-full overflow-hidden border-2 border-primary/40 shadow-lg hover:border-primary/70 transition-all"
+                  aria-label="Switch voice"
+                >
+                  <img
+                    src={VOICE_AVATARS[selectedVoice]}
+                    alt={VOICES.find(v => v.id === selectedVoice)?.name || 'Voice'}
+                    className="w-full h-full object-cover"
+                  />
+                </motion.button>
+              </PopoverTrigger>
+              <PopoverContent 
+                side="top" 
+                align="start" 
+                sideOffset={12}
+                className="w-[280px] p-3 glass-panel border border-border/40 z-[110]"
+              >
+                <p className="text-xs text-muted-foreground mb-2 font-medium">Switch voice</p>
+                <div className="grid grid-cols-4 gap-2 max-h-[240px] overflow-y-auto">
+                  {VOICES.map((voice) => {
+                    const isSelected = selectedVoice === voice.id;
+                    return (
+                      <button
+                        key={voice.id}
+                        onClick={async () => {
+                          setSelectedVoice(voice.id);
+                          setVoicePickerOpen(false);
+                          try {
+                            await updateProfile({ preferred_voice: voice.id });
+                          } catch (err) {
+                            console.error('Failed to persist voice:', err);
+                          }
+                        }}
+                        className={`flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all ${
+                          isSelected 
+                            ? 'bg-primary/20 ring-1 ring-primary/40' 
+                            : 'hover:bg-muted/50'
+                        }`}
+                      >
+                        <div className={`w-10 h-10 rounded-full overflow-hidden border-2 transition-colors ${
+                          isSelected ? 'border-primary' : 'border-transparent'
+                        }`}>
+                          <img src={VOICE_AVATARS[voice.id]} alt={voice.name} className="w-full h-full object-cover" />
+                        </div>
+                        <span className="text-[10px] font-medium leading-tight text-center">{voice.name}</span>
+                        {voice.recommended && (
+                          <span className="text-[8px] px-1 rounded bg-green-500/20 text-green-600 dark:text-green-400">Best</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
               {/* Camera Preview */}
