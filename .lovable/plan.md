@@ -1,56 +1,95 @@
 
 
-## Fix Voice Hot-Swap Crash (For Real This Time)
+## Voice Picker UX Overhaul: Full Plan
 
-### Root Cause
+### 1. Unified Duolingo-Style Avatars (13 PNG files)
 
-The `updateVoice` function deliberately sets `reconnectAttempts = MAX_RECONNECT_ATTEMPTS` to prevent the normal auto-reconnect from interfering. But the `onclose` handler treats that exact condition as a fatal error and calls `onError('Voice connection lost')`, which triggers `deactivateVoiceMode()` in VoiceModeController -- closing the UI.
+Regenerate all 13 avatars in `src/assets/voices/` with a consistent style:
+- **Full-circle face** -- the face fills the entire circle edge-to-edge, no head/hair outline visible beyond the circle
+- **Duolingo-inspired**: flat bold colors, big expressive eyes, minimal features, friendly and fun
+- Each character is distinct (skin tone, eye shape, accessories like glasses/freckles) but identical in scale and proportion
+- Fixes the current problem of mismatched head sizes and clipping at edges (visible in screenshot)
 
-The reconnect setTimeout fires 300ms later, but by then `isActive` is already `false` because `deactivateVoiceMode()` was called, so it never reconnects.
+**Files**: `src/assets/voices/alloy.png`, `ash.png`, `ballad.png`, `cedar.png`, `coral.png`, `echo.png`, `fable.png`, `marin.png`, `nova.png`, `onyx.png`, `sage.png`, `shimmer.png`, `verse.png`
 
-### Fix (1 file, 2 changes)
+---
 
-**File: `src/hooks/useOpenAIRealtime.tsx`**
+### 2. Voice Mode Overlay Picker: Single-Column List Layout
 
-**Change 1 -- onclose handler (lines 598-627):** Add a check for `voiceSwapInProgress || isVoiceSwapReconnect` at the top of the onclose handler. If a voice swap is in progress, skip ALL reconnect/error logic and just clean up the connection state silently. The voice swap's own setTimeout will handle the reconnect.
+Currently the picker in `VoiceModeOverlay.tsx` uses a `grid-cols-4` layout in a 320px popover, causing cramped tiles and clipped edges (see screenshot).
 
-```typescript
-ws.onclose = () => {
-  console.log('Disconnected from OpenAI Realtime');
-  globalConnecting = false;
-  globalWs = null;
-  globalSessionId = null;
-  toolCallsInFlight.clear();
-  setIsConnected(false);
-  
-  // If this close was triggered by a voice swap, do nothing --
-  // the voice swap setTimeout will handle reconnecting
-  if (voiceSwapInProgress || isVoiceSwapReconnect) {
-    console.log('WebSocket closed for voice swap, reconnect handled externally');
-    return;
-  }
-  
-  // Normal auto-reconnect logic (unchanged)
-  const { isActive } = useVoiceModeStore.getState();
-  if (isActive && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-    // ... existing reconnect logic
-  } else if (isActive && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-    // ... existing error logic
-  } else {
-    setStatus('idle');
-  }
-};
+**Changes to `src/components/VoiceModeOverlay.tsx`** (lines 503-547):
+- Change from `grid grid-cols-4` to a **single-column list** layout
+- Each row: avatar (left) + name and description (right), like a contact list
+- Wider popover width (360px) to give breathing room
+- Selected voice gets a **glow effect** (box-shadow) on the avatar instead of ring/border
+- Remove `bg-primary/20 ring-1 ring-primary/40` selection style, replace with `shadow-[0_0_12px_4px_rgba(var(--accent-rgb,139,92,246),0.4)]` on the avatar circle
+- Show a small loading spinner on the swapping voice when `isVoiceSwapping` is true
+- Disable all voice buttons (`opacity-50 pointer-events-none`) when `isVoiceSwapping` is true
+
+---
+
+### 3. Sidebar Voice Selector: Single-Column List
+
+The settings panel `VoiceSelector.tsx` currently uses `grid-cols-2` which is also cramped.
+
+**Changes to `src/components/VoiceSelector.tsx`** (lines 97-170):
+- Switch from `grid grid-cols-2` to a **single-column list** with horizontal rows (avatar + name + description inline)
+- Apply the same glow selection style for consistency
+- Keep the preview button inline on the right side of each row
+
+---
+
+### 4. Voice Swap State Management
+
+**Changes to `src/store/useVoiceModeStore.ts`**:
+- Add `isVoiceSwapping: boolean` (default `false`) to state interface
+- Add `setIsVoiceSwapping(swapping: boolean)` action
+- Reset `isVoiceSwapping` to `false` in `deactivateVoiceMode`
+
+---
+
+### 5. Mic Muting and Swap Locking Logic
+
+**Changes to `src/hooks/useOpenAIRealtime.tsx`**:
+- When `updateVoice` starts: call `setIsVoiceSwapping(true)`
+- Add a `waitingForVoiceIntro` module-level flag
+- After voice swap reconnect, when the session sends the "say my new voice is ready" prompt, set `waitingForVoiceIntro = true`
+- When `response.done` fires while `waitingForVoiceIntro` is true: call `setIsVoiceSwapping(false)`, reset `waitingForVoiceIntro = false`
+- While `isVoiceSwapping` is true: suppress sending audio input data to the WebSocket (skip the `ws.send()` for audio frames), keeping the mic technically open but not transmitting -- this avoids the user interrupting the intro
+- This is cleaner than toggling `isMuted` in the store which would flash a mute icon in the UI
+
+---
+
+### 6. Flow Summary
+
+```text
+User taps voice --> setSelectedVoice() --> updateVoice() fires
+  |
+  +--> setIsVoiceSwapping(true)
+  +--> All picker buttons disabled + dimmed
+  +--> Audio input suppressed (not sent to WS)
+  |
+  +--> WebSocket closes (onclose sees flags, skips error)
+  +--> Reconnects with new voice
+  +--> Session init --> sends "say my new voice is ready"
+  +--> AI speaks intro (mic suppressed, user can't interrupt)
+  |
+  +--> response.done fires for intro
+  +--> setIsVoiceSwapping(false)
+  +--> Picker buttons re-enabled
+  +--> Audio input resumes normally
 ```
 
-**Change 2 -- updateVoice (lines 696-742):** Remove the `reconnectAttempts = MAX_RECONNECT_ATTEMPTS` line since we no longer need it -- the onclose handler now checks the voice swap flags directly instead of relying on reconnect count hacking.
-
-### Why This Works
-
-- The onclose handler sees the voice swap flags and returns early -- no error, no deactivation
-- The voice swap's own 300ms setTimeout fires, resets reconnectAttempts to 0, and calls `connect()` with `isVoiceSwapReconnect = true`
-- The new session opens, sends the "Okay, my new voice is ready!" message
-- UI stays open the entire time (isActive never becomes false)
+---
 
 ### Files to Modify
-- `src/hooks/useOpenAIRealtime.tsx` -- Fix onclose to respect voice swap state, remove reconnect count hack from updateVoice
+
+| File | Changes |
+|------|---------|
+| `src/assets/voices/*.png` (13 files) | Regenerate in unified Duolingo full-circle-face style |
+| `src/store/useVoiceModeStore.ts` | Add `isVoiceSwapping` state + setter |
+| `src/hooks/useOpenAIRealtime.tsx` | Set swap flag, suppress mic during swap, unlock on response.done |
+| `src/components/VoiceModeOverlay.tsx` | Single-column list layout, glow selection, disable during swap |
+| `src/components/VoiceSelector.tsx` | Single-column list layout, glow selection for consistency |
 
