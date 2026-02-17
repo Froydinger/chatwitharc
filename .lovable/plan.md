@@ -1,72 +1,76 @@
 
 
-## Restore All 13 Voices + Hot Swap in Voice Mode UI + Cross-Device Sync
+## Fix Voice Switching Crashing Voice Mode + UI Polish
 
-### Overview
+### Root Cause
 
-1. Restore all 13 OpenAI voices with unique names, avatars, and descriptions
-2. Add a voice picker toggle directly on the voice mode overlay for hot-swapping mid-conversation
-3. Sync the selected voice to the user's profile so it persists across devices/browsers
+Two likely causes for voice mode closing when switching voices:
 
-### Voice Roster (alphabetical by display name)
+1. **WebSocket `session.update` error**: When `updateVoice()` sends a `session.update` message, the server may respond with an `error` event. The error handler in `useOpenAIRealtime.tsx` calls `onError()`, which triggers `deactivateVoiceMode()` in VoiceModeController -- killing the entire session.
 
-| Voice ID | Display Name | Description |
-|----------|-------------|-------------|
-| alloy | Alex | Neutral and balanced |
-| ash | Ashton | Warm and confident |
-| ballad | Belle | Melodic and soothing |
-| cedar | Cedric | Natural and smooth |
-| coral | Cora | Friendly and bright |
-| echo | Ethan | Clear and resonant |
-| fable | Fiona | Storytelling warmth |
-| marin | Marina | Expressive and natural |
-| nova | Nadia | Energetic and vivid |
-| onyx | Oliver | Deep and authoritative |
-| sage | Sofia | Calm and wise |
-| shimmer | Stella | Light and airy |
-| verse | Victor | Poetic and refined |
+2. **Popover Portal click bleed**: The Popover uses a Portal (renders outside the overlay DOM tree). When the popover closes via `setVoicePickerOpen(false)`, focus/click events may propagate to the backdrop div, where the `e.target === e.currentTarget` check triggers `deactivateVoiceMode()`.
 
-Marina and Cedric keep the "Best" badge.
+### Fixes
 
-### Hot Swap UI in Voice Mode
+**1. Make `updateVoice` error-resilient (`src/hooks/useOpenAIRealtime.tsx`)**
+- Add `session.update` error codes to the "transient/recoverable" error list so voice mode does not crash on voice switch errors
+- This prevents the `onError` -> `deactivateVoiceMode` chain
 
-A small circular avatar button in the bottom-left of the voice mode overlay showing the current voice's avatar. Tapping it opens a compact popover/drawer with all 13 voices as small avatar circles with names. Selecting one instantly swaps the voice mid-conversation (the existing `updateVoice` mechanism in VoiceModeController already handles this -- it watches `selectedVoice` changes and calls `updateVoice()` on the WebSocket).
+**2. Prevent popover click bleed (`src/components/VoiceModeOverlay.tsx`)**
+- Add `e.stopPropagation()` on the Popover trigger button and inside PopoverContent to prevent click events from bubbling up to the backdrop's `onClick` handler
 
-### Cross-Device Sync
+**3. Keep picker open + add confirmation (`src/components/VoiceModeOverlay.tsx`)**
+- Remove `setVoicePickerOpen(false)` from the voice selection handler so the picker stays open
+- After selecting a voice, add a conversation turn: `{ role: 'assistant', transcript: 'Okay, my new voice is ready!', timestamp: new Date() }` so the bot speaks in the new voice as confirmation
 
-- On voice selection (both in settings and the hot-swap picker), persist to the profile via `updateProfile({ preferred_voice: voiceId })`
-- On app load in VoiceModeController, read `profile.preferred_voice` and set it in the Zustand store if it differs from the current value
+**4. Fix UI styling (`src/components/VoiceModeOverlay.tsx`)**
+- Change avatar circle backgrounds from default (white) to `bg-black` 
+- Increase popover width to `w-[320px]` and max-height to `max-h-[300px]`
+- Clean up border styling so nothing looks clipped or "nightlight cut off"
+- Improve glass-panel styling with proper padding and rounded corners
 
-### Technical Changes
+### Technical Details
 
-**1. `src/store/useVoiceModeStore.ts`**
-- Expand `VoiceName` type from 4 to all 13 voice IDs
+**Error resilience change in `useOpenAIRealtime.tsx`:**
+```typescript
+// Add session_update errors to transient errors
+const isTransientError = 
+  event.error?.message?.includes('Connection to AI service failed') ||
+  event.error?.message?.includes('timeout') ||
+  event.error?.message?.includes('rate limit') ||
+  event.error?.code === 'function_call_error' ||
+  event.error?.code === 'session_update_error' ||
+  event.error?.message?.includes('session.update');
+```
 
-**2. `src/components/VoiceSelector.tsx`** (settings panel voice picker)
-- Import all 13 avatar images
-- Update `VOICES` array with all 13 entries sorted alphabetically by display name
-- Update `VOICE_AVATARS` record
-- Import `useProfile` and call `updateProfile({ preferred_voice: voice.id })` on selection to persist to cloud
+**Click bleed prevention:**
+```typescript
+<PopoverContent onClick={(e) => e.stopPropagation()} ...>
+```
 
-**3. `src/components/VoiceModeOverlay.tsx`**
-- Add a new voice picker button (bottom-left area, opposite side from mute) showing the current voice avatar
-- On tap, show a small popover/sheet with a horizontal scrollable row or compact grid of voice avatars
-- Selecting a voice calls `setSelectedVoice()` from the store (VoiceModeController already watches this and hot-swaps)
-- Also persist to profile via `useProfile().updateProfile`
-- Import voice avatars and the VOICES constant (share from a new `src/constants/voices.ts` file)
+**Voice selection handler:**
+```typescript
+onClick={async () => {
+  setSelectedVoice(voice.id);
+  // Don't close picker
+  addConversationTurn({
+    role: 'assistant',
+    transcript: 'Okay, my new voice is ready!',
+    timestamp: new Date()
+  });
+  try {
+    await updateProfile({ preferred_voice: voice.id });
+  } catch (err) {
+    console.error('Failed to persist voice:', err);
+  }
+}}
+```
 
-**4. `src/constants/voices.ts`** (new shared file)
-- Export `VOICES` array and `VOICE_AVATARS` record so both VoiceSelector and VoiceModeOverlay can use them without duplication
-
-**5. `src/components/VoiceModeController.tsx`**
-- Add a `useEffect` that reads `profile?.preferred_voice` on mount/change and syncs it to the Zustand store if different, ensuring the saved voice loads on any device
-
-### Files to Create
-- `src/constants/voices.ts`
+**Avatar styling:**
+```typescript
+<div className="w-10 h-10 rounded-full overflow-hidden bg-black border-2 ...">
+```
 
 ### Files to Modify
-- `src/store/useVoiceModeStore.ts`
-- `src/components/VoiceSelector.tsx`
-- `src/components/VoiceModeOverlay.tsx`
-- `src/components/VoiceModeController.tsx`
-
+- `src/hooks/useOpenAIRealtime.tsx` -- Make session.update errors non-fatal
+- `src/components/VoiceModeOverlay.tsx` -- Stop click propagation, keep picker open, add confirmation message, fix avatar/popover styling
