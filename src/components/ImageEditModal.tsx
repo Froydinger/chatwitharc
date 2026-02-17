@@ -170,7 +170,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[95vw] max-w-2xl p-0 gap-0 overflow-hidden border-border/50 mx-auto" hideCloseButton>
-        <div className="flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh]">
+        <div className="flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh] min-w-0 overflow-hidden">
           {/* Header */}
           <div className="relative px-6 pt-6 pb-4 border-b border-border/30">
             <button
@@ -197,7 +197,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 space-y-6 scrollbar-hide min-w-0">
             {/* Original Prompt - Subtle, above image */}
             {originalPrompt && (
               <div className="text-xs text-muted-foreground">
@@ -370,19 +370,19 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
                 Edit with Voice
               </Button>
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <Button 
                   variant="outline" 
                   onClick={onClose} 
                   disabled={isSubmitting}
-                  className="min-w-[100px]"
+                  className="shrink-0"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting || (!editInstruction.trim() && activeChips.length === 0)}
-                  className="min-w-[120px] bg-primary hover:bg-primary/90"
+                  className="bg-primary hover:bg-primary/90 shrink-0"
                 >
                   {isSubmitting ? (
                     <>
