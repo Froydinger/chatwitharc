@@ -6,7 +6,7 @@ import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { Link } from "react-router-dom";
 
-const DOWNLOAD_URL = "https://froydinger.blog/wp-content/uploads/2025/11/ArcAi-for-Mac-1.0.2.zip";
+const DOWNLOAD_URL = "https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/download-files/ArcAi-1.0.2.dmg";
 const VERSION = "1.0.2";
 
 export function DownloadPage() {
@@ -96,7 +96,7 @@ export function DownloadPage() {
               <div>
                 <h3 className="text-lg font-semibold mb-4">Installation Instructions</h3>
                 <ol className="space-y-3 text-muted-foreground list-decimal list-inside">
-                  <li>Unzip the downloaded file</li>
+                  <li>Open the downloaded .dmg file</li>
                   <li>Drag ArcAi to your Applications folder</li>
                   <li>Right-click ArcAi and select "Open" for first launch</li>
                   <li>Click "Open" when macOS asks for confirmation</li>
