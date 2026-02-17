@@ -21,16 +21,7 @@ export function ContextBlocksPanel({ isOpen, onClose }: ContextBlocksPanelProps)
   const isMobile = useIsMobile();
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Listen for external updates (from memory saves)
-  useEffect(() => {
-    const handler = () => {
-      // Refetch is handled by the hook's dependency on user
-      // Force a re-render by triggering a state update
-      window.location; // No-op, the event triggers refetch via the hook
-    };
-    window.addEventListener('context-blocks-updated', handler);
-    return () => window.removeEventListener('context-blocks-updated', handler);
-  }, []);
+  // External updates are now handled by useContextBlocks hook directly
 
   // Close on outside click
   useEffect(() => {

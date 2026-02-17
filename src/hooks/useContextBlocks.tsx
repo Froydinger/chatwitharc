@@ -42,6 +42,15 @@ export function useContextBlocks() {
     fetchBlocks();
   }, [fetchBlocks]);
 
+  // Listen for external updates (e.g. memory saved via edge function)
+  useEffect(() => {
+    const handler = () => {
+      fetchBlocks();
+    };
+    window.addEventListener('context-blocks-updated', handler);
+    return () => window.removeEventListener('context-blocks-updated', handler);
+  }, [fetchBlocks]);
+
   const addBlock = useCallback(async (content: string, source: 'manual' | 'memory' = 'manual') => {
     if (!user || !supabase || !isSupabaseConfigured) return null;
 
