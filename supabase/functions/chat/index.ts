@@ -442,6 +442,7 @@ serve(async (req) => {
     enhancedSystemPrompt += '\n\n--- TOOLS ---\n' +
       '• web_search: Get current info from the web - When you use this tool, ALWAYS synthesize and summarize the search results in your own words. NEVER just say "click on the sources" - actually answer the user\'s question using the information from the sources.\n' +
       '• search_past_chats: Analyze user\'s conversation history\n' +
+      '• save_memory: IMPORTANT - Use this tool whenever the user shares personal information, preferences, facts about themselves, or explicitly asks you to remember something. Examples: "I like X", "My favorite Y is Z", "Remember that...", "I work at...", "I\'m allergic to...". Save a clear, concise third-person fact. This is how you build long-term context about the user.\n' +
       '• generate_file: Create downloadable docs (PDFs, etc.) - NOT for code\n' +
       '• Image generation: Users click the image button\n\n' +
       '--- CODING (only when explicitly requested) ---\n' +
@@ -577,6 +578,24 @@ serve(async (req) => {
               }
             },
             required: ["fileType", "prompt"],
+            additionalProperties: false
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "save_memory",
+          description: "Save a personal fact or preference about the user to long-term memory. Use this when the user shares personal information (preferences, facts, interests, work details) or explicitly asks you to remember something. Save a clear third-person statement like 'Jake likes soda' or 'Jake works at Google'. Do NOT save trivial or temporary information.",
+          parameters: {
+            type: "object",
+            properties: {
+              memory: {
+                type: "string",
+                description: "A clear, concise third-person fact about the user to remember. Use the user's actual name if known."
+              }
+            },
+            required: ["memory"],
             additionalProperties: false
           }
         }
@@ -1049,6 +1068,8 @@ Output the complete, finished writing using the update_canvas tool.`;
     let codeUpdate: { code: string; language: string; label?: string } | null = null;
     
     // Check if the AI wants to use tools (web search or chat search)
+    let memorySaved: { content: string } | null = null;
+    
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
       assistantMessage.tool_calls.forEach((tc: any) => {
         if (tc.function?.name) {
@@ -1147,6 +1168,46 @@ Output the complete, finished writing using the update_canvas tool.`;
             tool_call_id: toolCall.id,
             content: fileResult
           });
+        } else if (toolCall.function.name === 'save_memory') {
+          const args = JSON.parse(toolCall.function.arguments);
+          const memoryContent = args.memory?.trim();
+          
+          if (memoryContent) {
+            try {
+              // Save to context_blocks table
+              const { error: insertError } = await supabase
+                .from('context_blocks')
+                .insert({
+                  user_id: user.id,
+                  content: memoryContent,
+                  source: 'memory'
+                });
+              
+              if (insertError) {
+                console.error('Error saving memory:', insertError);
+                conversationMessages.push({
+                  role: 'tool',
+                  tool_call_id: toolCall.id,
+                  content: 'Failed to save memory. Continue the conversation normally.'
+                });
+              } else {
+                console.log('💾 Memory saved:', memoryContent);
+                memorySaved = { content: memoryContent };
+                conversationMessages.push({
+                  role: 'tool',
+                  tool_call_id: toolCall.id,
+                  content: `Memory saved successfully: "${memoryContent}". Briefly acknowledge you'll remember this, then continue the conversation naturally.`
+                });
+              }
+            } catch (err) {
+              console.error('Error in save_memory:', err);
+              conversationMessages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: 'Error saving memory. Continue normally.'
+              });
+            }
+          }
         }
       }
       
@@ -1244,7 +1305,8 @@ Output the complete, finished writing using the update_canvas tool.`;
       tool_calls_used: toolsUsed,
       web_sources: webSources.length > 0 ? webSources : undefined,
       canvas_update: canvasUpdate,
-      code_update: codeUpdate
+      code_update: codeUpdate,
+      memory_saved: memorySaved
     };
     
     // NOTE: We no longer save from the backend - the frontend handles all persistence.
