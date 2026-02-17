@@ -4,24 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-
-const musicTracks = [
-  {
-    id: 'lofi',
-    name: 'Lo-Fi Beats',
-    url: 'https://froydinger.blog/wp-content/uploads/2025/03/lofi-beats-mix.mp3'
-  },
-  {
-    id: 'jazz',
-    name: 'Coffee House Jazz',
-    url: 'https://froydinger.blog/wp-content/uploads/2025/05/jazz-coffee-bar-music.mp3'
-  },
-  {
-    id: 'ambient',
-    name: 'Space Ambient',
-    url: 'https://froydinger.blog/wp-content/uploads/2025/05/pad-space-travel-hyperdrive-engine-humming-235901.mp3'
-  }
-];
+import { musicTracks } from "@/store/useMusicStore";
 
 export function MusicPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);

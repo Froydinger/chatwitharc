@@ -10,25 +10,27 @@ export interface MusicTrack {
   albumArt: string;
 }
 
+const STORAGE_BASE = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/music-files`;
+
 export const musicTracks: MusicTrack[] = [
   { 
     id: 'lofi', 
     name: 'Lo-Fi Beats', 
-    url: 'https://froydinger.blog/wp-content/uploads/2025/03/lofi-beats-mix.mp3',
+    url: `${STORAGE_BASE}/lofi-beats-mix (1).mp3`,
     artist: 'Chill Collective',
     albumArt: '/lovable-uploads/lofi-cartoon-album.jpg'
   },
   { 
     id: 'jazz', 
     name: 'Coffee House Jazz', 
-    url: 'https://froydinger.blog/wp-content/uploads/2025/05/jazz-coffee-bar-music.mp3',
+    url: `${STORAGE_BASE}/jazz-coffee-bar-music (1).mp3`,
     artist: 'Jazz Lounge',
     albumArt: '/lovable-uploads/jazz-cartoon-album.jpg'
   },
   { 
     id: 'ambient', 
     name: 'Space Ambient', 
-    url: '/audio/space-ambient.mp3',
+    url: `${STORAGE_BASE}/pad-space-travel-hyperdrive-engine-humming-235901 (1).mp3`,
     artist: 'Cosmic Sounds',
     albumArt: '/lovable-uploads/ambient-cartoon-album.jpg'
   },
@@ -36,7 +38,7 @@ export const musicTracks: MusicTrack[] = [
     id: 'taylor', 
     name: "The Best Day (Taylor's Version)", 
     previewName: 'The Best Day',
-    url: '/audio/taylor-swift-best-day.mp3',
+    url: `${STORAGE_BASE}/taylor-swift-the-best-day-taylors-version-official-music-video (1).mp3`,
     artist: 'Taylor Swift',
     albumArt: '/lovable-uploads/taylor-swift-album.jpg'
   },
@@ -50,7 +52,7 @@ export const musicTracks: MusicTrack[] = [
   { 
     id: 'lionel', 
     name: 'Hello (Live)', 
-    url: '/audio/lionel-richie-hello.mp3',
+    url: `${STORAGE_BASE}/lionel-richie-hello-live (1).mp3`,
     artist: 'Lionel Richie',
     albumArt: '/lovable-uploads/lionel-richie-album.jpg'
   }
