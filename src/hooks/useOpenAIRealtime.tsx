@@ -401,6 +401,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           event.error?.message?.includes('rate limit') ||
           event.error?.code === 'function_call_error' ||
           event.error?.code === 'session_update_error' ||
+          event.error?.code === 'invalid_value' ||
           event.error?.message?.includes('session.update');
         
         if (isTransientError) {
@@ -615,13 +616,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
   const updateVoice = useCallback((voice: VoiceName) => {
     if (globalWs?.readyState !== WebSocket.OPEN) return;
-    
-    console.log('Updating voice to:', voice);
+    const safeVoice = REALTIME_SUPPORTED_VOICES.includes(voice) ? voice : 'cedar';
+    console.log('Updating voice to:', safeVoice);
     globalWs.send(JSON.stringify({
       type: 'session.update',
-      session: {
-        voice: voice
-      }
+      session: { voice: safeVoice }
     }));
   }, []);
 
