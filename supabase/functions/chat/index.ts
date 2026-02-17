@@ -441,7 +441,7 @@ serve(async (req) => {
     // Brief technical capabilities (trimmed from 100+ lines to essentials)
     enhancedSystemPrompt += '\n\n--- TOOLS ---\n' +
       '• web_search: Get current info from the web - When you use this tool, ALWAYS synthesize and summarize the search results in your own words. NEVER just say "click on the sources" - actually answer the user\'s question using the information from the sources.\n' +
-      '• search_past_chats: Analyze user\'s conversation history\n' +
+      '• search_past_chats: Analyze user\'s conversation history. CRITICAL: You MUST use this tool IMMEDIATELY (without asking first) whenever the user references past conversations, e.g. "did we talk about...", "do you remember...", "you don\'t remember...", "we discussed...", "I mentioned...", "I told you about...", "what did I say about...", or any question that implies prior conversation context you don\'t have in the current chat window. NEVER say "I don\'t have a record" without searching first.\n' +
       '• save_memory: IMPORTANT - Use this tool whenever the user shares personal information, preferences, facts about themselves, or explicitly asks you to remember something. Examples: "I like X", "My favorite Y is Z", "Remember that...", "I work at...", "I\'m allergic to...". Save a clear, concise third-person fact. This is how you build long-term context about the user.\n' +
       '• generate_file: Create downloadable docs (PDFs, etc.) - NOT for code\n' +
       '• Image generation: Users click the image button\n\n' +
