@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
-import { useVoiceModeStore, VoiceName } from '@/store/useVoiceModeStore';
+import { useVoiceModeStore, VoiceName, REALTIME_SUPPORTED_VOICES } from '@/store/useVoiceModeStore';
 
 interface UseOpenAIRealtimeOptions {
   onTranscriptUpdate?: (transcript: string, isFinal: boolean) => void;
@@ -454,15 +454,16 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         setIsConnected(true);
         setStatus('listening');
         
-        // Get fresh voice selection
+        // Get fresh voice selection, fallback to cedar if not realtime-compatible
         const { selectedVoice: currentVoice } = useVoiceModeStore.getState();
+        const safeVoice = REALTIME_SUPPORTED_VOICES.includes(currentVoice) ? currentVoice : 'cedar';
         
         ws.send(JSON.stringify({
           type: 'session.update',
           session: {
             modalities: ['text', 'audio'],
             instructions: systemPrompt || `You're Arc - a calm, friendly voice assistant. Be warm, conversational, and genuine. Keep responses concise. CRITICAL RULE: NEVER speak unless the user has spoken first. Do NOT say things like "no rush", "take your time", "I'm here whenever you're ready", or any filler when there is silence. Simply wait quietly until the user speaks. When generating an image, say something casual and friendly first like "Hold on one sec while I whip that up for you" or "Let me create that for you real quick" before calling the generate_image function.`,
-            voice: currentVoice,
+            voice: safeVoice,
             input_audio_format: 'pcm16',
             output_audio_format: 'pcm16',
             input_audio_transcription: {
