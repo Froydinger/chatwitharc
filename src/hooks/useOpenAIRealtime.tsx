@@ -391,11 +391,25 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         useVoiceModeStore.getState().setHasPendingSpeech(false);
         clearAudioBuffer();
         
-        // If we were waiting for voice intro to finish, unlock the picker
+        // If we were waiting for voice intro to finish, defer unlock until audio drains
         if (waitingForVoiceIntro) {
           waitingForVoiceIntro = false;
-          useVoiceModeStore.getState().setIsVoiceSwapping(false);
-          console.log('Voice intro finished, swap complete — picker unlocked');
+          const { isAudioPlaying: introAudioPlaying } = useVoiceModeStore.getState();
+          if (!introAudioPlaying) {
+            // Audio already finished, unlock immediately
+            useVoiceModeStore.getState().setIsVoiceSwapping(false);
+            console.log('Voice intro finished (audio done), swap complete — picker unlocked');
+          } else {
+            // Audio still playing — wait for it to drain before unlocking
+            console.log('Voice intro response done, waiting for audio playback to finish...');
+            const unsub = useVoiceModeStore.subscribe((state) => {
+              if (!state.isAudioPlaying) {
+                useVoiceModeStore.getState().setIsVoiceSwapping(false);
+                console.log('Voice intro audio drained, swap complete — picker unlocked');
+                unsub();
+              }
+            });
+          }
         }
         
         // Only transition to listening if audio has finished playing.
