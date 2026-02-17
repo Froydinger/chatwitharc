@@ -114,15 +114,27 @@ export const useMusicStore = create<MusicState>()(
       
       // Playback controls
       togglePlay: () => {
-        const { audioRef, isPlaying, setIsPlaying } = get();
+        const { audioRef, isPlaying, setIsPlaying, setIsLoading } = get();
         if (!audioRef) return;
         
         if (isPlaying) {
           audioRef.pause();
           setIsPlaying(false);
         } else {
-          audioRef.play().catch(() => setIsPlaying(false));
-          setIsPlaying(true);
+          setIsLoading(true);
+          // Ensure source is loaded before playing
+          if (audioRef.readyState >= 2) {
+            audioRef.play()
+              .then(() => { setIsPlaying(true); setIsLoading(false); })
+              .catch(() => { setIsPlaying(false); setIsLoading(false); });
+          } else {
+            audioRef.load();
+            audioRef.addEventListener('canplay', () => {
+              audioRef.play()
+                .then(() => { setIsPlaying(true); setIsLoading(false); })
+                .catch(() => { setIsPlaying(false); setIsLoading(false); });
+            }, { once: true });
+          }
         }
       },
       
@@ -173,11 +185,17 @@ export const useMusicStore = create<MusicState>()(
         setCurrentTrack(trackId);
         setCurrentTime(0);
         
-        if (wasPlaying && audioRef) {
-          setTimeout(() => {
-            audioRef.currentTime = 0;
-            audioRef.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-          }, 100);
+        if (audioRef) {
+          // Wait for React to update the src, then load and play
+          requestAnimationFrame(() => {
+            audioRef.load(); // Force reload with new src
+            if (wasPlaying) {
+              const playWhenReady = () => {
+                audioRef.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+              };
+              audioRef.addEventListener('canplay', playWhenReady, { once: true });
+            }
+          });
         }
       },
     }),
