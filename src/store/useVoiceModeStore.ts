@@ -5,6 +5,9 @@ export type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'sp
 // All 13 OpenAI voices
 export type VoiceName = 'alloy' | 'ash' | 'ballad' | 'cedar' | 'coral' | 'echo' | 'fable' | 'marin' | 'nova' | 'onyx' | 'sage' | 'shimmer' | 'verse';
 
+// Voices supported by OpenAI Realtime API (subset of all VoiceName)
+export const REALTIME_SUPPORTED_VOICES: VoiceName[] = ['alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin'];
+
 interface VoiceTurn {
   role: 'user' | 'assistant';
   transcript: string;
