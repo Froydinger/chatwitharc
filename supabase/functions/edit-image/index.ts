@@ -55,15 +55,8 @@ serve(async (req) => {
       );
     }
 
-    // ALWAYS use Gemini 3 Pro for highest quality
-    // Only use Flash if user EXPLICITLY selects "fast" mode in editor UI
-    let selectedModel = 'google/gemini-3-pro-image-preview';
-    
-    // Only use flash if explicitly chosen by user in the editor
-    if (imageModel === 'google/gemini-2.5-flash-image') {
-      selectedModel = 'google/gemini-2.5-flash-image';
-    }
-    
+    // ALWAYS use Gemini 3 Pro for image editing - no exceptions
+    const selectedModel = 'google/gemini-3-pro-image-preview';
     console.log('Using image model:', selectedModel);
 
     // Support both single image and multiple images (up to 2 for combining)
@@ -139,12 +132,10 @@ serve(async (req) => {
 
     const editPrompt = buildEditPrompt(prompt, imageArray.length);
 
-    // If aspect ratio is specified, add it to the prompt
-    let aspectPrompt = editPrompt;
-    if (aspectRatio) {
-      aspectPrompt = `Output the image in ${aspectRatio} aspect ratio. ${editPrompt}`;
-      console.log('Aspect ratio requested:', aspectRatio);
-    }
+    // Default to 16:9 aspect ratio unless user specifies differently
+    const finalAspectRatio = aspectRatio || '16:9';
+    const aspectPrompt = `Output the image in ${finalAspectRatio} aspect ratio. ${editPrompt}`;
+    console.log('Using aspect ratio:', finalAspectRatio);
 
     // Append restrictions to prompt if they exist
     const finalEditPrompt = imageRestrictions
