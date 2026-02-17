@@ -197,11 +197,15 @@ export function MobileChatApp() {
     setIsElectronApp(checkElectron);
   }, []);
 
-  // Listen for open-context-panel events from MemoryIndicator
+  // Listen for open-context-panel events from MemoryIndicator and settings
   useEffect(() => {
     const handler = () => setIsContextPanelOpen(true);
     window.addEventListener('open-context-panel', handler);
-    return () => window.removeEventListener('open-context-panel', handler);
+    window.addEventListener('open-context-blocks', handler);
+    return () => {
+      window.removeEventListener('open-context-panel', handler);
+      window.removeEventListener('open-context-blocks', handler);
+    };
   }, []);
 
   // Initialize rightPanelOpen state based on device type and user's last preference
