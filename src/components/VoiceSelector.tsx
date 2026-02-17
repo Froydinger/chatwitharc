@@ -94,7 +94,7 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
         <span>Select a voice for voice mode</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-col gap-1.5">
         {VOICES.map((voice) => {
           const isSelected = selectedVoice === voice.id;
           const isPlaying = playingVoice === voice.id;
@@ -103,68 +103,67 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
             <motion.button
               key={voice.id}
               onClick={() => handleSelectVoice(voice)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
               className={cn(
-                "relative p-3 rounded-lg border text-left transition-all",
-                "hover:border-primary/50 hover:bg-primary/10",
+                "relative flex items-center gap-3 p-3 rounded-xl border text-left transition-all w-full",
+                "hover:border-primary/30 hover:bg-primary/5",
                 isSelected 
-                  ? "border-primary bg-primary/15 ring-1 ring-primary/30" 
+                  ? "border-primary/30 bg-primary/5" 
                   : "border-border bg-background",
                 isPlaying && "animate-pulse"
               )}
             >
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-muted">
-                  <img 
-                    src={VOICE_AVATARS[voice.id]} 
-                    alt={voice.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+              <div className={cn(
+                "flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-muted transition-shadow",
+                isSelected && "shadow-[0_0_12px_4px_hsl(var(--primary)/0.5)]"
+              )}>
+                <img 
+                  src={VOICE_AVATARS[voice.id]} 
+                  alt={voice.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-medium text-sm">{voice.name}</span>
-                    {voice.recommended && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-600 dark:text-green-400">
-                        Best
-                      </span>
-                    )}
-                    {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-primary" />
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {voice.description}
-                  </p>
-                  
-                  <div className="mt-1.5">
-                    {voice.noPreview ? (
-                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <MessageCircle className="w-3 h-3" />
-                        Chat to hear
-                      </span>
-                    ) : (
-                      <button
-                        onClick={(e) => handlePreviewClick(e, voice)}
-                        disabled={isPlaying}
-                        className={cn(
-                          "text-[10px] flex items-center gap-1 px-2 py-0.5 rounded",
-                          "bg-muted hover:bg-muted/80 transition-colors",
-                          isPlaying && "opacity-50"
-                        )}
-                      >
-                        {isPlaying ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Play className="w-3 h-3" />
-                        )}
-                        {isPlaying ? 'Playing...' : 'Preview'}
-                      </button>
-                    )}
-                  </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-medium text-sm">{voice.name}</span>
+                  {voice.recommended && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-600 dark:text-green-400">
+                      Best
+                    </span>
+                  )}
+                  {isSelected && (
+                    <Check className="w-3.5 h-3.5 text-primary" />
+                  )}
                 </div>
+                <p className="text-xs text-muted-foreground truncate">
+                  {voice.description}
+                </p>
+              </div>
+
+              <div className="flex-shrink-0">
+                {voice.noPreview ? (
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <MessageCircle className="w-3 h-3" />
+                  </span>
+                ) : (
+                  <button
+                    onClick={(e) => handlePreviewClick(e, voice)}
+                    disabled={isPlaying}
+                    className={cn(
+                      "text-[10px] flex items-center gap-1 px-2 py-1 rounded",
+                      "bg-muted hover:bg-muted/80 transition-colors",
+                      isPlaying && "opacity-50"
+                    )}
+                  >
+                    {isPlaying ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Play className="w-3 h-3" />
+                    )}
+                  </button>
+                )}
               </div>
 
               <AnimatePresence>
