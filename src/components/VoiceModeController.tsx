@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import { useVoiceModeStore } from '@/store/useVoiceModeStore';
+import { useVoiceModeStore, REALTIME_SUPPORTED_VOICES } from '@/store/useVoiceModeStore';
 import { useOpenAIRealtime } from '@/hooks/useOpenAIRealtime';
 import { useAudioCapture } from '@/hooks/useAudioCapture';
 import { useAudioPlayback } from '@/hooks/useAudioPlayback';
@@ -266,8 +266,7 @@ export function VoiceModeController() {
   useEffect(() => {
     if (profile?.preferred_voice && profile.preferred_voice !== selectedVoice) {
       // Validate it's a known voice
-      const validVoices = ['alloy','ash','ballad','cedar','coral','echo','fable','marin','nova','onyx','sage','shimmer','verse'];
-      if (validVoices.includes(profile.preferred_voice)) {
+      if (REALTIME_SUPPORTED_VOICES.includes(profile.preferred_voice as any)) {
         setSelectedVoice(profile.preferred_voice as any);
       }
     }
