@@ -1,4 +1,4 @@
-import { VoiceName } from '@/store/useVoiceModeStore';
+import type { VoiceName } from '@/store/useVoiceModeStore';
 
 import alloyAvatar from '@/assets/voices/alloy.png';
 import ashAvatar from '@/assets/voices/ash.png';
