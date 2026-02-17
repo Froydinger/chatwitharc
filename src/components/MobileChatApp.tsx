@@ -248,7 +248,7 @@ export function MobileChatApp() {
   const [showMobileCanvasInput, setShowMobileCanvasInput] = useState(false);
   const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Music store
   const {
@@ -267,10 +267,11 @@ export function MobileChatApp() {
   const getCurrentTrack = () => musicTracks.find(t => t.id === currentTrack) || musicTracks[0];
   const currentMusicTrack = getCurrentTrack();
 
-  // Set audio ref in store on mount
-  useEffect(() => {
-    if (audioRef.current) {
-      setAudioRef(audioRef.current);
+  // Set audio ref in store using callback ref
+  const audioCallbackRef = useCallback((node: HTMLAudioElement | null) => {
+    audioRef.current = node;
+    if (node) {
+      setAudioRef(node);
     }
   }, [setAudioRef]);
 
@@ -992,7 +993,7 @@ export function MobileChatApp() {
 
         {/* Global Audio Element for Music Player */}
         <audio
-          ref={audioRef}
+          ref={audioCallbackRef}
           src={currentMusicTrack.url}
           loop
           preload="metadata"

@@ -10,7 +10,7 @@ export interface MusicTrack {
   albumArt: string;
 }
 
-const STORAGE_BASE = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/music-files`;
+const STORAGE_BASE = `${import.meta.env.VITE_SUPABASE_URL || "https://jxywhodnndagbsmnbnnw.supabase.co"}/storage/v1/object/public/music-files`;
 
 export const musicTracks: MusicTrack[] = [
   { 
