@@ -407,7 +407,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           event.error?.code === 'function_call_error' ||
           event.error?.code === 'session_update_error' ||
           event.error?.code === 'invalid_value' ||
-          event.error?.message?.includes('session.update');
+          event.error?.code === 'cannot_update_voice' ||
+          event.error?.message?.includes('session.update') ||
+          event.error?.message?.includes('Cannot update a conversation');
         
         if (isTransientError) {
           console.warn('Transient server error (voice mode continues):', event.error);
@@ -650,17 +652,22 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     const safeVoice = REALTIME_SUPPORTED_VOICES.includes(voice) ? voice : 'cedar';
     console.log('Updating voice to:', safeVoice);
     
-    // Cancel any active response first to avoid conflicts during voice swap
+    // Cancel any active response first, then wait before updating voice
+    // OpenAI rejects voice updates if assistant audio is still present
     try {
       globalWs.send(JSON.stringify({ type: 'response.cancel' }));
     } catch (e) {
       // Ignore cancel errors
     }
     
-    globalWs.send(JSON.stringify({
-      type: 'session.update',
-      session: { voice: safeVoice }
-    }));
+    // Delay voice update to let the cancel complete and audio clear
+    setTimeout(() => {
+      if (globalWs?.readyState !== WebSocket.OPEN) return;
+      globalWs.send(JSON.stringify({
+        type: 'session.update',
+        session: { voice: safeVoice }
+      }));
+    }, 300);
   }, []);
 
   // Sync connection state
