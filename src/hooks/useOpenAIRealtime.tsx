@@ -33,6 +33,12 @@ let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 3;
 let lastSystemPrompt: string | null = null;
 
+// Voice swap state - debounce rapid voice changes
+let voiceSwapInProgress = false;
+let voiceSwapTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingVoiceSwap: VoiceName | null = null;
+let isVoiceSwapReconnect = false; // Flag to trigger "new voice is ready" after reconnect
+
 // Tool calls in flight to prevent duplicate executions
 // Now uses Map with timestamps for automatic cleanup
 const toolCallsInFlight = new Map<string, number>();
@@ -551,6 +557,26 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             ]
           }
         }));
+        
+        // If this is a voice swap reconnect, trigger "new voice is ready" confirmation
+        if (isVoiceSwapReconnect) {
+          isVoiceSwapReconnect = false;
+          voiceSwapInProgress = false;
+          // Small delay to let session init complete before triggering response
+          setTimeout(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                type: 'conversation.item.create',
+                item: {
+                  type: 'message',
+                  role: 'user',
+                  content: [{ type: 'input_text', text: '[System: Voice changed. Say exactly "Okay, my new voice is ready!" in a natural, friendly way. Keep it short.]' }]
+                }
+              }));
+              ws.send(JSON.stringify({ type: 'response.create' }));
+            }
+          }, 500);
+        }
       };
 
       ws.onmessage = (event) => {
@@ -617,6 +643,15 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     // Reset reconnect state — this is an intentional disconnect
     reconnectAttempts = MAX_RECONNECT_ATTEMPTS; // Prevent auto-reconnect on close
     
+    // Cancel any pending voice swap
+    voiceSwapInProgress = false;
+    isVoiceSwapReconnect = false;
+    pendingVoiceSwap = null;
+    if (voiceSwapTimer) {
+      clearTimeout(voiceSwapTimer);
+      voiceSwapTimer = null;
+    }
+    
     if (globalWs) {
       globalWs.close();
       globalWs = null;
@@ -648,27 +683,64 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   }, []);
 
   const updateVoice = useCallback((voice: VoiceName) => {
-    if (globalWs?.readyState !== WebSocket.OPEN) return;
     const safeVoice = REALTIME_SUPPORTED_VOICES.includes(voice) ? voice : 'cedar';
-    console.log('Updating voice to:', safeVoice);
+    console.log('Voice swap requested:', safeVoice);
     
-    // Cancel any active response first, then wait before updating voice
-    // OpenAI rejects voice updates if assistant audio is still present
-    try {
-      globalWs.send(JSON.stringify({ type: 'response.cancel' }));
-    } catch (e) {
-      // Ignore cancel errors
+    // Debounce rapid voice changes - only execute the last one
+    pendingVoiceSwap = safeVoice;
+    
+    if (voiceSwapTimer) {
+      clearTimeout(voiceSwapTimer);
     }
     
-    // Delay voice update to let the cancel complete and audio clear
-    setTimeout(() => {
-      if (globalWs?.readyState !== WebSocket.OPEN) return;
-      globalWs.send(JSON.stringify({
-        type: 'session.update',
-        session: { voice: safeVoice }
-      }));
-    }, 300);
-  }, []);
+    voiceSwapTimer = setTimeout(() => {
+      const voiceToSwap = pendingVoiceSwap;
+      pendingVoiceSwap = null;
+      voiceSwapTimer = null;
+      
+      if (!voiceToSwap || voiceSwapInProgress) {
+        console.log('Voice swap skipped (already in progress or no pending swap)');
+        return;
+      }
+      
+      // Set the voice in the store so connect() picks it up
+      useVoiceModeStore.getState().setSelectedVoice(voiceToSwap);
+      
+      // If not connected, nothing to reconnect
+      if (!globalWs || globalWs.readyState !== WebSocket.OPEN) {
+        console.log('Not connected, voice will apply on next connect');
+        return;
+      }
+      
+      voiceSwapInProgress = true;
+      isVoiceSwapReconnect = true;
+      console.log('Performing voice swap disconnect→reconnect for:', voiceToSwap);
+      
+      // Prevent auto-reconnect from the normal close handler
+      reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
+      
+      // Close existing connection
+      if (globalWs) {
+        globalWs.close();
+        globalWs = null;
+      }
+      globalConnecting = false;
+      globalSessionId = null;
+      toolCallsInFlight.clear();
+      
+      // Reset reconnect state and reconnect with voice swap flag
+      setTimeout(() => {
+        reconnectAttempts = 0;
+        const { isActive } = useVoiceModeStore.getState();
+        if (isActive) {
+          connect(lastSystemPrompt || undefined);
+        } else {
+          voiceSwapInProgress = false;
+          isVoiceSwapReconnect = false;
+        }
+      }, 300);
+    }, 400); // 400ms debounce for rapid clicks
+  }, [connect]);
 
   // Sync connection state
   useEffect(() => {

@@ -635,11 +635,16 @@ export function VoiceModeController() {
   }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, addMessage, toast, deactivateVoiceMode, messages, profile]);
 
   // Update voice when selection changes (only when connected)
+  // updateVoice handles debouncing and disconnect→reconnect internally
   useEffect(() => {
     if (isConnected && selectedVoice !== previousVoiceRef.current) {
-      console.log('Voice changed from', previousVoiceRef.current, 'to', selectedVoice);
+      const prevVoice = previousVoiceRef.current;
       previousVoiceRef.current = selectedVoice;
-      updateVoice(selectedVoice);
+      // Only trigger swap if we had a previous voice (not initial load)
+      if (prevVoice) {
+        console.log('Voice changed from', prevVoice, 'to', selectedVoice);
+        updateVoice(selectedVoice);
+      }
     }
   }, [selectedVoice, isConnected, updateVoice]);
 
