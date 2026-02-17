@@ -144,11 +144,22 @@ async function buildVoiceSystemPrompt(
   recentChatSummary: string
 ): Promise<string> {
   try {
-    // Fetch the same admin settings the regular chat uses
-    const { data: settingsData } = await supabase
-      .from('admin_settings')
-      .select('key, value')
-      .in('key', ['system_prompt', 'global_context']);
+    // Fetch admin settings and context blocks in parallel
+    const { data: { user } } = await supabase.auth.getUser();
+    const [settingsResult, contextBlocksResult] = await Promise.all([
+      supabase
+        .from('admin_settings')
+        .select('key, value')
+        .in('key', ['system_prompt', 'global_context']),
+      user ? supabase
+        .from('context_blocks')
+        .select('content')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50) : Promise.resolve({ data: null })
+    ]);
+
+    const settingsData = settingsResult.data;
 
     const settings = settingsData?.reduce((acc, setting) => {
       acc[setting.key] = setting.value;
@@ -177,6 +188,11 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
     }
     if (profile?.context_info?.trim()) {
       voicePrompt += ` | Context: ${profile.context_info}`;
+    }
+    // Add context blocks
+    if (contextBlocksResult.data && contextBlocksResult.data.length > 0) {
+      const blocksText = contextBlocksResult.data.map((b: any) => b.content).join('\n');
+      voicePrompt += `\n\n🧠 Remembered Context:\n${blocksText}`;
     }
     if (profile?.memory_info?.trim()) {
       voicePrompt += `\n\n📝 Memories: ${profile.memory_info}`;
