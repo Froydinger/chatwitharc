@@ -2,8 +2,8 @@ import { create } from 'zustand';
 
 export type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking';
 
-// Reduced to 4 voices: Marina, Cedric, Alex, Oliver
-export type VoiceName = 'marin' | 'cedar' | 'alloy' | 'onyx';
+// All 13 OpenAI voices
+export type VoiceName = 'alloy' | 'ash' | 'ballad' | 'cedar' | 'coral' | 'echo' | 'fable' | 'marin' | 'nova' | 'onyx' | 'sage' | 'shimmer' | 'verse';
 
 interface VoiceTurn {
   role: 'user' | 'assistant';

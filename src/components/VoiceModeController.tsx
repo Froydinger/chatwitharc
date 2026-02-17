@@ -254,12 +254,24 @@ export function VoiceModeController() {
   const {
     isActive,
     selectedVoice,
+    setSelectedVoice,
     deactivateVoiceMode,
     setGeneratedImage,
     setIsGeneratingImage,
     setLastGeneratedImageUrl,
     setIsSearching,
   } = useVoiceModeStore();
+
+  // Sync preferred_voice from profile to store on load
+  useEffect(() => {
+    if (profile?.preferred_voice && profile.preferred_voice !== selectedVoice) {
+      // Validate it's a known voice
+      const validVoices = ['alloy','ash','ballad','cedar','coral','echo','fable','marin','nova','onyx','sage','shimmer','verse'];
+      if (validVoices.includes(profile.preferred_voice)) {
+        setSelectedVoice(profile.preferred_voice as any);
+      }
+    }
+  }, [profile?.preferred_voice]);
 
   // Track initialization to prevent duplicate setup
   const initRef = useRef(false);
