@@ -485,7 +485,8 @@ export function VoiceModeOverlay() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ delay: 0.18 }}
-                  className="absolute bottom-6 left-6 z-10 w-12 h-12 rounded-full overflow-hidden border-2 border-primary/40 shadow-lg hover:border-primary/70 transition-all"
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute bottom-6 left-6 z-10 w-12 h-12 rounded-full overflow-hidden bg-black border-2 border-primary/40 shadow-lg hover:border-primary/70 transition-all"
                   aria-label="Switch voice"
                 >
                   <img
@@ -499,38 +500,46 @@ export function VoiceModeOverlay() {
                 side="top" 
                 align="start" 
                 sideOffset={12}
-                className="w-[280px] p-3 glass-panel border border-border/40 z-[110]"
+                className="w-[320px] p-4 glass-panel border border-border/30 z-[110] rounded-2xl"
+                onClick={(e) => e.stopPropagation()}
               >
-                <p className="text-xs text-muted-foreground mb-2 font-medium">Switch voice</p>
-                <div className="grid grid-cols-4 gap-2 max-h-[240px] overflow-y-auto">
+                <p className="text-xs text-muted-foreground mb-3 font-medium">Switch voice</p>
+                <div className="grid grid-cols-4 gap-2.5 max-h-[300px] overflow-y-auto pr-1">
                   {VOICES.map((voice) => {
                     const isSelected = selectedVoice === voice.id;
                     return (
                       <button
                         key={voice.id}
-                        onClick={async () => {
+                        onClick={async (e) => {
+                          e.stopPropagation();
                           setSelectedVoice(voice.id);
-                          setVoicePickerOpen(false);
+                          // Don't close picker - let user close manually
+                          // Add confirmation message so bot speaks in new voice
+                          useVoiceModeStore.getState().addConversationTurn({
+                            role: 'assistant',
+                            transcript: 'Okay, my new voice is ready!',
+                            timestamp: new Date()
+                          });
                           try {
                             await updateProfile({ preferred_voice: voice.id });
                           } catch (err) {
                             console.error('Failed to persist voice:', err);
                           }
                         }}
-                        className={`flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all ${
+                        className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${
                           isSelected 
                             ? 'bg-primary/20 ring-1 ring-primary/40' 
                             : 'hover:bg-muted/50'
                         }`}
                       >
-                        <div className={`w-10 h-10 rounded-full overflow-hidden border-2 transition-colors ${
-                          isSelected ? 'border-primary' : 'border-transparent'
+                        <div className={`w-10 h-10 rounded-full overflow-hidden bg-black border-2 transition-colors ${
+                          isSelected ? 'border-primary' : 'border-border/30'
                         }`}>
                           <img src={VOICE_AVATARS[voice.id]} alt={voice.name} className="w-full h-full object-cover" />
                         </div>
                         <span className="text-[10px] font-medium leading-tight text-center">{voice.name}</span>
                         {voice.recommended && (
-                          <span className="text-[8px] px-1 rounded bg-green-500/20 text-green-600 dark:text-green-400">Best</span>
+                          <span className="text-[8px] px-1 rounded bg-green-500/20 text-green-400">Best</span>
                         )}
                       </button>
                     );
