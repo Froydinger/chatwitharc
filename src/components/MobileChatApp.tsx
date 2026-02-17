@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Brain } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore } from "@/store/useArcStore";
@@ -29,6 +29,7 @@ import { useAdminBanner } from "@/components/AdminBanner";
 import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 import { VoiceModeController } from "@/components/VoiceModeController";
+import { ContextBlocksPanel } from "@/components/ContextBlocksPanel";
 
 /** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
@@ -196,6 +197,13 @@ export function MobileChatApp() {
     setIsElectronApp(checkElectron);
   }, []);
 
+  // Listen for open-context-panel events from MemoryIndicator
+  useEffect(() => {
+    const handler = () => setIsContextPanelOpen(true);
+    window.addEventListener('open-context-panel', handler);
+    return () => window.removeEventListener('open-context-panel', handler);
+  }, []);
+
   // Initialize rightPanelOpen state based on device type and user's last preference
   useEffect(() => {
     // Check window width for large screens (1024px+) - these should have persistent sidebar
@@ -232,6 +240,7 @@ export function MobileChatApp() {
   const [isLogoSpinning, setIsLogoSpinning] = useState(false);
   const [isSupportPopupOpen, setIsSupportPopupOpen] = useState(false);
   const [isMusicPopupOpen, setIsMusicPopupOpen] = useState(false);
+  const [isContextPanelOpen, setIsContextPanelOpen] = useState(false);
   const [showMobileCanvasInput, setShowMobileCanvasInput] = useState(false);
   const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
@@ -641,8 +650,24 @@ export function MobileChatApp() {
                 </motion.div>
               </div>
 
-              {/* Right side buttons - Canvas + Music + Logo */}
+              {/* Right side buttons - Context + Canvas + Music + Logo */}
               <div className="flex items-center gap-2 pointer-events-auto">
+                {/* Brain / Context Button */}
+                <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn(
+                      "rounded-full glass-shimmer transition-all",
+                      isContextPanelOpen && "ring-2 ring-primary/50"
+                    )}
+                    onClick={() => setIsContextPanelOpen(!isContextPanelOpen)}
+                    title="Context"
+                  >
+                    <Brain className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+
                 {/* Canvas Reopen Button - shows when canvas is closed but has content */}
                 <AnimatePresence>
                   {canReopenCanvas && (
@@ -953,6 +978,12 @@ export function MobileChatApp() {
         <MusicPopup
           isOpen={isMusicPopupOpen}
           onClose={() => setIsMusicPopupOpen(false)}
+        />
+
+        {/* Context Blocks Panel */}
+        <ContextBlocksPanel
+          isOpen={isContextPanelOpen}
+          onClose={() => setIsContextPanelOpen(false)}
         />
 
         {/* Global Audio Element for Music Player */}

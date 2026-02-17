@@ -81,13 +81,34 @@ export class AIService {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('display_name, context_info, memory_info, preferred_model')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          if (data) {
-            effectiveProfile = { ...effectiveProfile, ...data };
+          // Fetch profile and context blocks in parallel
+          const [profileResult, contextBlocksResult] = await Promise.all([
+            supabase
+              .from('profiles')
+              .select('display_name, context_info, memory_info, preferred_model')
+              .eq('user_id', user.id)
+              .maybeSingle(),
+            supabase
+              .from('context_blocks')
+              .select('content, source')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(50)
+          ]);
+
+          if (profileResult.data) {
+            effectiveProfile = { ...effectiveProfile, ...profileResult.data };
+          }
+
+          // Merge context blocks into context_info for the AI
+          if (contextBlocksResult.data && contextBlocksResult.data.length > 0) {
+            const blocksText = contextBlocksResult.data
+              .map((b: any) => b.content)
+              .join('\n');
+            const existing = (effectiveProfile as any).context_info || '';
+            (effectiveProfile as any).context_info = existing
+              ? `${existing}\n\n--- Remembered Context ---\n${blocksText}`
+              : blocksText;
           }
         }
       } catch (e) {
