@@ -48,13 +48,9 @@ serve(async (req) => {
       throw new Error('Lovable API key not configured');
     }
 
-    // ALWAYS use Gemini 3 Pro for image generation (best quality)
-    // Only fall back to Flash if explicitly requested with the flash model name
-    const imageModel = preferredModel === 'google/gemini-2.5-flash-image'
-      ? 'google/gemini-2.5-flash-image'
-      : 'google/gemini-3-pro-image-preview';
-    
-    console.log('Using image model:', imageModel, '(requested:', preferredModel, ')');
+    // ALWAYS use Gemini 3 Pro for image generation - no exceptions
+    const imageModel = 'google/gemini-3-pro-image-preview';
+    console.log('Using image model:', imageModel);
 
     // Get Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -70,12 +66,10 @@ serve(async (req) => {
 
     const imageRestrictions = settingsData?.value || '';
 
-    // Build prompt with aspect ratio instruction if provided
-    let enhancedPrompt = prompt;
-    if (aspectRatio) {
-      enhancedPrompt = `Generate this image in ${aspectRatio} aspect ratio: ${prompt}`;
-      console.log('Added aspect ratio to prompt:', aspectRatio);
-    }
+    // Default to 16:9 aspect ratio unless user specifies differently
+    const finalAspectRatio = aspectRatio || '16:9';
+    let enhancedPrompt = `Generate this image in ${finalAspectRatio} aspect ratio: ${prompt}`;
+    console.log('Using aspect ratio:', finalAspectRatio);
 
     // Append restrictions to prompt if they exist
     const finalPrompt = imageRestrictions

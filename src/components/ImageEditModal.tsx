@@ -40,23 +40,8 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { addMessage } = useArcStore();
   const { toast } = useToast();
   
-  // Model selection - defaults to last used model, or user's preferred model (image models stay on 2.5-flash-image)
-  const [selectedModel, setSelectedModel] = useState<string>(() => {
-    if (lastUsedModel) return lastUsedModel;
-    return profile?.preferred_model === 'google/gemini-3-pro-preview' 
-      ? 'google/gemini-3-pro-image-preview' 
-      : 'google/gemini-2.5-flash-image';
-  });
-
-  // Update selected model if profile changes and no last used model
-  useEffect(() => {
-    if (!lastUsedModel) {
-      const newModel = profile?.preferred_model === 'google/gemini-3-pro-preview' 
-        ? 'google/gemini-3-pro-image-preview' 
-        : 'google/gemini-2.5-flash-image';
-      setSelectedModel(newModel);
-    }
-  }, [profile?.preferred_model, lastUsedModel]);
+  // Always use Gemini 3 Pro for image editing - no exceptions
+  const selectedModel = 'google/gemini-3-pro-image-preview';
   
   // Normalize imageUrl to always be an array for easier handling
   const imageUrls = Array.isArray(imageUrl) ? imageUrl : [imageUrl];
@@ -95,13 +80,6 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
     setAdditionalImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const toggleModel = () => {
-    setSelectedModel((prev) =>
-      prev === 'google/gemini-2.5-flash-image'
-        ? 'google/gemini-3-pro-image-preview'
-        : 'google/gemini-2.5-flash-image'
-    );
-  };
 
   const applyChipsToText = (base: string) => {
     if (activeChips.length === 0) return base.trim();
@@ -320,42 +298,18 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
               </div>
             </div>
 
-            {/* Model Selection - Toggle Button */}
+            {/* Model Info - Always Gemini 3 Pro */}
             <div>
               <label className="text-sm font-medium mb-2 block">Image Model</label>
-              <button
-                type="button"
-                onClick={toggleModel}
-                className="w-full p-4 rounded-lg border border-border/50 bg-background hover:bg-muted/50 transition-colors text-left"
-              >
+              <div className="w-full p-4 rounded-lg border border-border/50 bg-background text-left">
                 <div className="flex items-center gap-3">
-                  {selectedModel === 'google/gemini-2.5-flash-image' ? (
-                    <Zap className="h-5 w-5 text-primary" />
-                  ) : (
-                    <Brain className="h-5 w-5 text-primary" />
-                  )}
+                  <Brain className="h-5 w-5 text-primary" />
                   <div className="flex-1">
-                    <div className="font-medium">
-                      {selectedModel === 'google/gemini-2.5-flash-image'
-                        ? 'Fast Generation'
-                        : 'High Quality'}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {selectedModel === 'google/gemini-2.5-flash-image'
-                        ? 'Gemini 2.5 Flash Image'
-                        : 'Gemini 3 Pro Image'}
-                    </div>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Tap to switch
+                    <div className="font-medium">High Quality</div>
+                    <div className="text-xs text-muted-foreground">Gemini 3 Pro Image</div>
                   </div>
                 </div>
-              </button>
-              <p className="text-xs text-muted-foreground mt-1.5">
-                {selectedModel === 'google/gemini-2.5-flash-image'
-                  ? 'Faster processing, good quality'
-                  : 'Slower processing, highest quality'}
-              </p>
+              </div>
             </div>
 
             {/* Main Edit Textarea */}
