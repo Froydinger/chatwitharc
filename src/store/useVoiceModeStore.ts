@@ -44,6 +44,9 @@ interface VoiceModeState {
   // Track if user has spoken since unmuting (for mute-to-handoff)
   hasPendingSpeech: boolean;
   
+  // Voice swap lifecycle
+  isVoiceSwapping: boolean;
+  
   // Camera state (new)
   isCameraActive: boolean;
   cameraFacingMode: 'environment' | 'user'; // Back or front camera
@@ -71,6 +74,7 @@ interface VoiceModeState {
   attachImageToLastAssistantTurn: () => void;
   setIsSearching: (searching: boolean) => void;
   setHasPendingSpeech: (pending: boolean) => void;
+  setIsVoiceSwapping: (swapping: boolean) => void;
   interruptAI: () => void;
   
   // Camera actions (new)
@@ -99,6 +103,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   lastGeneratedImageUrl: null,
   isSearching: false,
   hasPendingSpeech: false,
+  isVoiceSwapping: false,
   
   // Camera initial state
   isCameraActive: false,
@@ -121,6 +126,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       lastGeneratedImageUrl: null,
       isSearching: false,
       hasPendingSpeech: false,
+      isVoiceSwapping: false,
       // Reset camera/attachment on new session
       isCameraActive: false,
       attachedImage: null,
@@ -142,6 +148,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       lastGeneratedImageUrl: null,
       isSearching: false,
       hasPendingSpeech: false,
+      isVoiceSwapping: false,
       // Clean up camera/attachment
       isCameraActive: false,
       attachedImage: null,
@@ -211,6 +218,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   
   setHasPendingSpeech: (pending) => set({ hasPendingSpeech: pending }),
   
+  setIsVoiceSwapping: (swapping) => set({ isVoiceSwapping: swapping }),
+
   // Interrupt action - will be connected to actual interrupt logic externally
   interruptAI: () => set({ status: 'listening' }),
   

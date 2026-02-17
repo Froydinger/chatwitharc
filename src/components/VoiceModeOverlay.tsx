@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera, CameraOff, Paperclip, SwitchCamera } from "lucide-react";
+import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera, CameraOff, Paperclip, SwitchCamera, Check } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useMusicStore } from "@/store/useMusicStore";
 import { useCallback, useRef, useEffect, useMemo, useState } from "react";
@@ -500,21 +500,21 @@ export function VoiceModeOverlay() {
                 side="top" 
                 align="start" 
                 sideOffset={12}
-                className="w-[320px] p-4 glass-panel border border-border/30 z-[110] rounded-2xl"
+                className="w-[360px] p-4 glass-panel border border-border/30 z-[110] rounded-2xl"
                 onClick={(e) => e.stopPropagation()}
               >
                 <p className="text-xs text-muted-foreground mb-3 font-medium">Switch voice</p>
-                <div className="grid grid-cols-4 gap-2.5 max-h-[300px] overflow-y-auto pr-1">
+                <div className="flex flex-col gap-1.5 max-h-[340px] overflow-y-auto pr-1">
                   {REALTIME_VOICES.map((voice) => {
                     const isSelected = selectedVoice === voice.id;
+                    const { isVoiceSwapping } = useVoiceModeStore.getState();
                     return (
                       <button
                         key={voice.id}
+                        disabled={isVoiceSwapping}
                         onClick={async (e) => {
                           e.stopPropagation();
                           setSelectedVoice(voice.id);
-                          // Don't close picker - let user close manually
-                          // Add confirmation message so bot speaks in new voice
                           useVoiceModeStore.getState().addConversationTurn({
                             role: 'assistant',
                             transcript: 'Okay, my new voice is ready!',
@@ -526,21 +526,29 @@ export function VoiceModeOverlay() {
                             console.error('Failed to persist voice:', err);
                           }
                         }}
-                        className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${
+                        className={`flex items-center gap-3 p-2.5 rounded-xl transition-all w-full text-left ${
+                          isVoiceSwapping ? 'opacity-50 pointer-events-none' : ''
+                        } ${
                           isSelected 
-                            ? 'bg-primary/20 ring-1 ring-primary/40' 
+                            ? 'bg-primary/10' 
                             : 'hover:bg-muted/50'
                         }`}
                       >
-                        <div className={`w-10 h-10 rounded-full overflow-hidden bg-black border-2 transition-colors ${
-                          isSelected ? 'border-primary' : 'border-border/30'
+                        <div className={`w-10 h-10 flex-shrink-0 rounded-full overflow-hidden bg-black transition-shadow ${
+                          isSelected ? 'shadow-[0_0_12px_4px_hsl(var(--primary)/0.5)]' : ''
                         }`}>
                           <img src={VOICE_AVATARS[voice.id]} alt={voice.name} className="w-full h-full object-cover" />
                         </div>
-                        <span className="text-[10px] font-medium leading-tight text-center">{voice.name}</span>
-                        {voice.recommended && (
-                          <span className="text-[8px] px-1 rounded bg-green-500/20 text-green-400">Best</span>
-                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium">{voice.name}</span>
+                            {voice.recommended && (
+                              <span className="text-[8px] px-1 rounded bg-green-500/20 text-green-400">Best</span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground truncate">{voice.description}</p>
+                        </div>
+                        {isSelected && <Check className="w-4 h-4 text-primary flex-shrink-0" />}
                       </button>
                     );
                   })}

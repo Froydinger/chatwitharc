@@ -38,6 +38,7 @@ let voiceSwapInProgress = false;
 let voiceSwapTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingVoiceSwap: VoiceName | null = null;
 let isVoiceSwapReconnect = false; // Flag to trigger "new voice is ready" after reconnect
+let waitingForVoiceIntro = false; // Track when we're waiting for the intro response to finish
 
 // Tool calls in flight to prevent duplicate executions
 // Now uses Map with timestamps for automatic cleanup
@@ -389,6 +390,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         userSpokeAfterLastResponse = false;
         useVoiceModeStore.getState().setHasPendingSpeech(false);
         clearAudioBuffer();
+        
+        // If we were waiting for voice intro to finish, unlock the picker
+        if (waitingForVoiceIntro) {
+          waitingForVoiceIntro = false;
+          useVoiceModeStore.getState().setIsVoiceSwapping(false);
+          console.log('Voice intro finished, swap complete — picker unlocked');
+        }
+        
         // Only transition to listening if audio has finished playing.
         // If audio is still playing, useAudioPlayback will handle the transition
         // when the queue drains -- this prevents the waveform from flatlining.
@@ -562,6 +571,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (isVoiceSwapReconnect) {
           isVoiceSwapReconnect = false;
           voiceSwapInProgress = false;
+          waitingForVoiceIntro = true; // Mark that we're waiting for the intro to finish
           // Small delay to let session init complete before triggering response
           setTimeout(() => {
             if (ws.readyState === WebSocket.OPEN) {
@@ -652,7 +662,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     // Cancel any pending voice swap
     voiceSwapInProgress = false;
     isVoiceSwapReconnect = false;
+    waitingForVoiceIntro = false;
     pendingVoiceSwap = null;
+    useVoiceModeStore.getState().setIsVoiceSwapping(false);
     if (voiceSwapTimer) {
       clearTimeout(voiceSwapTimer);
       voiceSwapTimer = null;
@@ -674,6 +686,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
   const sendAudio = useCallback((audioData: Int16Array) => {
     if (globalWs?.readyState !== WebSocket.OPEN) return;
+    
+    // Suppress mic input during voice swap so user can't interrupt the intro
+    const { isVoiceSwapping } = useVoiceModeStore.getState();
+    if (isVoiceSwapping) return;
     
     const bytes = new Uint8Array(audioData.buffer);
     let binary = '';
@@ -720,6 +736,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       
       voiceSwapInProgress = true;
       isVoiceSwapReconnect = true;
+      useVoiceModeStore.getState().setIsVoiceSwapping(true);
       console.log('Performing voice swap disconnect→reconnect for:', voiceToSwap);
       
       // Close existing connection (onclose will see voiceSwapInProgress and skip error logic)
