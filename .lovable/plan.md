@@ -1,67 +1,56 @@
 
 
-## Fix Voice Mode Crashing -- Root Cause + Real Fix
+## Fix Voice Hot-Swap Crash (For Real This Time)
 
-### Root Cause (from logs)
+### Root Cause
 
-The crash happens because:
+The `updateVoice` function deliberately sets `reconnectAttempts = MAX_RECONNECT_ATTEMPTS` to prevent the normal auto-reconnect from interfering. But the `onclose` handler treats that exact condition as a fatal error and calls `onError('Voice connection lost')`, which triggers `deactivateVoiceMode()` in VoiceModeController -- closing the UI.
 
-1. The user's profile has `preferred_voice: 'fable'` saved in the database
-2. On load, `VoiceModeController` syncs this into the store -- it validates against ALL 13 voices (including TTS-only ones like fable), so it accepts it
-3. When voice mode connects, the `safeVoice` fallback works correctly at session init, BUT the OpenAI server still returns an `invalid_value` error for the initial session config
-4. The error handler checks for `code === 'session_update_error'` but OpenAI actually sends `code: 'invalid_value'` -- so the check misses it
-5. The error falls through to `onError()` which calls `deactivateVoiceMode()` -- session dies instantly
+The reconnect setTimeout fires 300ms later, but by then `isActive` is already `false` because `deactivateVoiceMode()` was called, so it never reconnects.
 
-### Fix (3 changes, 2 files)
+### Fix (1 file, 2 changes)
 
-**File 1: `src/components/VoiceModeController.tsx`**
+**File: `src/hooks/useOpenAIRealtime.tsx`**
 
-- Line 269: Change the profile sync validation list to use `REALTIME_SUPPORTED_VOICES` instead of all 13 voices
-- This prevents `'fable'` from ever being set in the store, which is the real source of the bug
-- Import `REALTIME_SUPPORTED_VOICES` from the store
+**Change 1 -- onclose handler (lines 598-627):** Add a check for `voiceSwapInProgress || isVoiceSwapReconnect` at the top of the onclose handler. If a voice swap is in progress, skip ALL reconnect/error logic and just clean up the connection state silently. The voice swap's own setTimeout will handle the reconnect.
 
-**File 2: `src/hooks/useOpenAIRealtime.tsx`**
-
-- Lines 398-404: Add `event.error?.code === 'invalid_value'` to the transient error check -- this is the actual error code OpenAI sends for bad voice values, so it won't crash voice mode even if a bad voice somehow slips through
-- Lines 620-625: Add the same `REALTIME_SUPPORTED_VOICES` safe-guard to the `updateVoice` function so mid-session voice swaps also can't send unsupported voices
-
-### Technical Details
-
-**VoiceModeController.tsx -- profile sync fix:**
 ```typescript
-import { useVoiceModeStore, REALTIME_SUPPORTED_VOICES } from '@/store/useVoiceModeStore';
-
-// Line 269: filter to realtime voices only
-if (REALTIME_SUPPORTED_VOICES.includes(profile.preferred_voice as any)) {
-  setSelectedVoice(profile.preferred_voice as any);
-}
+ws.onclose = () => {
+  console.log('Disconnected from OpenAI Realtime');
+  globalConnecting = false;
+  globalWs = null;
+  globalSessionId = null;
+  toolCallsInFlight.clear();
+  setIsConnected(false);
+  
+  // If this close was triggered by a voice swap, do nothing --
+  // the voice swap setTimeout will handle reconnecting
+  if (voiceSwapInProgress || isVoiceSwapReconnect) {
+    console.log('WebSocket closed for voice swap, reconnect handled externally');
+    return;
+  }
+  
+  // Normal auto-reconnect logic (unchanged)
+  const { isActive } = useVoiceModeStore.getState();
+  if (isActive && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+    // ... existing reconnect logic
+  } else if (isActive && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    // ... existing error logic
+  } else {
+    setStatus('idle');
+  }
+};
 ```
 
-**useOpenAIRealtime.tsx -- error handler fix:**
-```typescript
-const isTransientError = 
-  event.error?.message?.includes('Connection to AI service failed') ||
-  event.error?.message?.includes('timeout') ||
-  event.error?.message?.includes('rate limit') ||
-  event.error?.code === 'function_call_error' ||
-  event.error?.code === 'session_update_error' ||
-  event.error?.code === 'invalid_value' ||          // <-- NEW
-  event.error?.message?.includes('session.update');
-```
+**Change 2 -- updateVoice (lines 696-742):** Remove the `reconnectAttempts = MAX_RECONNECT_ATTEMPTS` line since we no longer need it -- the onclose handler now checks the voice swap flags directly instead of relying on reconnect count hacking.
 
-**useOpenAIRealtime.tsx -- updateVoice safe-guard:**
-```typescript
-const updateVoice = useCallback((voice: VoiceName) => {
-  if (globalWs?.readyState !== WebSocket.OPEN) return;
-  const safeVoice = REALTIME_SUPPORTED_VOICES.includes(voice) ? voice : 'cedar';
-  globalWs.send(JSON.stringify({
-    type: 'session.update',
-    session: { voice: safeVoice }
-  }));
-}, []);
-```
+### Why This Works
+
+- The onclose handler sees the voice swap flags and returns early -- no error, no deactivation
+- The voice swap's own 300ms setTimeout fires, resets reconnectAttempts to 0, and calls `connect()` with `isVoiceSwapReconnect = true`
+- The new session opens, sends the "Okay, my new voice is ready!" message
+- UI stays open the entire time (isActive never becomes false)
 
 ### Files to Modify
-- `src/components/VoiceModeController.tsx` -- Import REALTIME_SUPPORTED_VOICES, filter profile sync
-- `src/hooks/useOpenAIRealtime.tsx` -- Add `invalid_value` to transient errors, safe-guard updateVoice
+- `src/hooks/useOpenAIRealtime.tsx` -- Fix onclose to respect voice swap state, remove reconnect count hack from updateVoice
 
