@@ -298,19 +298,6 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
               </div>
             </div>
 
-            {/* Model Info - Always Gemini 3 Pro */}
-            <div>
-              <label className="text-sm font-medium mb-2 block">Image Model</label>
-              <div className="w-full p-4 rounded-lg border border-border/50 bg-background text-left">
-                <div className="flex items-center gap-3">
-                  <Brain className="h-5 w-5 text-primary" />
-                  <div className="flex-1">
-                    <div className="font-medium">High Quality</div>
-                    <div className="text-xs text-muted-foreground">Gemini 3 Pro Image</div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* Main Edit Textarea */}
             <div>
