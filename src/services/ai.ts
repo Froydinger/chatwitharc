@@ -248,6 +248,30 @@ export class AIService {
       ? 'google/gemini-3-pro-preview'  // Code/Canvas mode
       : 'openai/gpt-5-mini';           // Chat mode (default)
 
+    // Enrich profile with context blocks (same as sendMessage)
+    let enrichedProfile = profile || {};
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: contextBlocksData } = await supabase
+          .from('context_blocks')
+          .select('content')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (contextBlocksData && contextBlocksData.length > 0) {
+          const blocksText = contextBlocksData.map((b: any) => b.content).join('\n');
+          const existing = (enrichedProfile as any).context_info || '';
+          (enrichedProfile as any).context_info = existing
+            ? `${existing}\n\n--- Remembered Context ---\n${blocksText}`
+            : blocksText;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch context blocks for streaming:', e);
+    }
+
     // Use hardcoded fallbacks to ensure URL is never undefined
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://jxywhodnndagbsmnbnnw.supabase.co";
     const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4eXdob2RubmRhZ2JzbW5ibm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwOTkwNjUsImV4cCI6MjA4MTY3NTA2NX0.tmqRRB4jbOOR0FWVsS8zXer_2IZLjzsPb2D3Ozu2bKk";
@@ -264,7 +288,7 @@ export class AIService {
       },
       body: JSON.stringify({
         messages,
-        profile,
+        profile: enrichedProfile,
         model: selectedModel,
         forceCanvas,
         forceCode,
