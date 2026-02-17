@@ -603,13 +603,19 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         toolCallsInFlight.clear();
         setIsConnected(false);
         
+        // If this close was triggered by a voice swap, do nothing --
+        // the voice swap setTimeout will handle reconnecting
+        if (voiceSwapInProgress || isVoiceSwapReconnect) {
+          console.log('WebSocket closed for voice swap, reconnect handled externally');
+          return;
+        }
+        
         // If voice mode is still active, attempt auto-reconnect
         const { isActive } = useVoiceModeStore.getState();
         if (isActive && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttempts++;
           console.log(`Auto-reconnecting voice mode (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
           setStatus('connecting');
-          // Small delay before reconnecting to avoid rapid loops
           setTimeout(() => {
             const { isActive: stillActive } = useVoiceModeStore.getState();
             if (stillActive) {
@@ -716,10 +722,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       isVoiceSwapReconnect = true;
       console.log('Performing voice swap disconnect→reconnect for:', voiceToSwap);
       
-      // Prevent auto-reconnect from the normal close handler
-      reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
-      
-      // Close existing connection
+      // Close existing connection (onclose will see voiceSwapInProgress and skip error logic)
       if (globalWs) {
         globalWs.close();
         globalWs = null;
