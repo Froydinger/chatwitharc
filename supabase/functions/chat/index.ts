@@ -1170,10 +1170,27 @@ Output the complete, finished writing using the update_canvas tool.`;
         // For web_search and search_past_chats, we need the second call to synthesize results
         console.log('🤖 Making second AI call to synthesize results (no forced tool)');
         
-        // Use correct token parameter based on model
-        const isOpenAIModel = (model || '').toLowerCase().includes('openai') || 
-                              (model || '').toLowerCase().includes('gpt-');
-        const tokenParam = isOpenAIModel ? 'max_completion_tokens' : 'max_tokens';
+        // Flatten tool call/response into simple messages to avoid the model
+        // trying to re-invoke tools (Gemini returns finish_reason=tool_calls otherwise)
+        const synthesisMessages: any[] = [];
+        for (const msg of conversationMessages) {
+          if (msg.role === 'tool') {
+            // Convert tool response to a user message with context
+            synthesisMessages.push({
+              role: 'user',
+              content: `[Search Results]\n${msg.content}`
+            });
+          } else if (msg.role === 'assistant' && msg.tool_calls) {
+            // Skip the assistant's tool_call message - we've inlined the results
+            continue;
+          } else {
+            synthesisMessages.push(msg);
+          }
+        }
+        
+        // Log the conversation context size for debugging
+        const toolContextSize = synthesisMessages.reduce((acc: number, m: any) => acc + (typeof m.content === 'string' ? m.content.length : 0), 0);
+        console.log(`📊 Second call context size: ${toolContextSize} chars, ${synthesisMessages.length} messages`);
         
         response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
@@ -1183,9 +1200,8 @@ Output the complete, finished writing using the update_canvas tool.`;
           },
           body: JSON.stringify({
             model: model || 'google/gemini-3-flash-preview',
-            messages: conversationMessages,
-            // No tools on second call - just synthesize the results
-            [tokenParam]: 65536, // Maximum output - no truncation
+            messages: synthesisMessages,
+            [tokenParam]: 65536,
           }),
         });
 
@@ -1196,6 +1212,27 @@ Output the complete, finished writing using the update_canvas tool.`;
         }
 
         data = await response.json();
+        
+        // Log the response for debugging
+        const secondCallContent = data.choices?.[0]?.message?.content;
+        console.log(`📊 Second call response: content length=${secondCallContent?.length || 0}, finish_reason=${data.choices?.[0]?.finish_reason}`);
+        
+        // If content is empty, try to provide a meaningful fallback
+        if (!secondCallContent) {
+          console.warn('⚠️ Second AI call returned empty content, attempting fallback');
+          // Extract the tool results to use as a direct response
+          const toolResults = conversationMessages.filter((m: any) => m.role === 'tool');
+          if (toolResults.length > 0) {
+            const fallbackContent = toolResults.map((t: any) => t.content).join('\n\n');
+            data = {
+              ...data,
+              choices: [{
+                message: { content: `Here's what I found:\n\n${fallbackContent.slice(0, 4000)}` },
+                finish_reason: 'stop'
+              }]
+            };
+          }
+        }
       }
       // Canvas/code updates were already captured from the first call
     }
