@@ -1,4 +1,5 @@
 import type { VoiceName } from '@/store/useVoiceModeStore';
+import { REALTIME_SUPPORTED_VOICES } from '@/store/useVoiceModeStore';
 
 import alloyAvatar from '@/assets/voices/alloy.png';
 import ashAvatar from '@/assets/voices/ash.png';
@@ -54,3 +55,6 @@ export const VOICES: VoiceOption[] = [
   { id: 'shimmer', name: 'Stella', description: 'Light & airy', noPreview: true },
   { id: 'verse', name: 'Victor', description: 'Poetic & refined', noPreview: true },
 ];
+
+// Only voices supported by OpenAI Realtime API (for voice mode picker)
+export const REALTIME_VOICES = VOICES.filter(v => REALTIME_SUPPORTED_VOICES.includes(v.id));

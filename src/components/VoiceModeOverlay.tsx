@@ -3,7 +3,7 @@ import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera,
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useMusicStore } from "@/store/useMusicStore";
 import { useCallback, useRef, useEffect, useMemo, useState } from "react";
-import { VOICES, VOICE_AVATARS } from "@/constants/voices";
+import { VOICES, REALTIME_VOICES, VOICE_AVATARS } from "@/constants/voices";
 import { useProfile } from "@/hooks/useProfile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -505,7 +505,7 @@ export function VoiceModeOverlay() {
               >
                 <p className="text-xs text-muted-foreground mb-3 font-medium">Switch voice</p>
                 <div className="grid grid-cols-4 gap-2.5 max-h-[300px] overflow-y-auto pr-1">
-                  {VOICES.map((voice) => {
+                  {REALTIME_VOICES.map((voice) => {
                     const isSelected = selectedVoice === voice.id;
                     return (
                       <button
