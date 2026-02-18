@@ -718,9 +718,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }));
   }, []);
 
-  const updateVoice = useCallback((voice: VoiceName) => {
+  const updateVoice = useCallback((voice: VoiceName, announce: boolean = true) => {
     const safeVoice = REALTIME_SUPPORTED_VOICES.includes(voice) ? voice : 'cedar';
-    console.log('Voice swap requested:', safeVoice);
+    console.log('Voice swap requested:', safeVoice, 'announce:', announce);
     
     // Debounce rapid voice changes - only execute the last one
     pendingVoiceSwap = safeVoice;
@@ -749,9 +749,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       }
       
       voiceSwapInProgress = true;
-      isVoiceSwapReconnect = true;
-      useVoiceModeStore.getState().setIsVoiceSwapping(true);
-      console.log('Performing voice swap disconnect→reconnect for:', voiceToSwap);
+      // Only announce ("my new voice is ready") when explicitly requested (mid-convo swap)
+      isVoiceSwapReconnect = announce;
+      if (announce) {
+        useVoiceModeStore.getState().setIsVoiceSwapping(true);
+      }
+      console.log('Performing voice swap disconnect→reconnect for:', voiceToSwap, announce ? '(with announcement)' : '(silent)');
       
       // Close existing connection (onclose will see voiceSwapInProgress and skip error logic)
       if (globalWs) {

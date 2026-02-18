@@ -14,7 +14,7 @@ interface VoiceSelectorProps {
 
 export function VoiceSelector({ onSave }: VoiceSelectorProps) {
   const { toast } = useToast();
-  const { selectedVoice, setSelectedVoice, isActive, deactivateVoiceMode, activateVoiceMode } = useVoiceModeStore();
+  const { selectedVoice, setSelectedVoice, isActive } = useVoiceModeStore();
   const { updateProfile } = useProfile();
   
   const [playingVoice, setPlayingVoice] = useState<VoiceName | null>(null);
@@ -69,13 +69,14 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
       console.error('Failed to persist voice preference:', err);
     }
     
-    if (isActive) {
-      deactivateVoiceMode();
-      setTimeout(() => activateVoiceMode(), 500);
-      toast({ title: 'Voice updated', description: `Now using ${VOICES.find(v => v.id === voice.id)?.name} voice. Restarting...` });
-    } else {
-      toast({ title: 'Voice selected', description: `${VOICES.find(v => v.id === voice.id)?.name} will be used for voice mode` });
-    }
+    // If voice mode is active, the store change will trigger VoiceModeController's
+    // useEffect which calls updateVoice() — no need to restart the entire session
+    toast({ 
+      title: isActive ? 'Voice updated' : 'Voice selected', 
+      description: isActive 
+        ? `Switching to ${VOICES.find(v => v.id === voice.id)?.name} voice` 
+        : `${VOICES.find(v => v.id === voice.id)?.name} will be used for voice mode` 
+    });
 
     onSave?.();
   };
