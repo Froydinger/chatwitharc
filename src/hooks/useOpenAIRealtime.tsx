@@ -389,8 +389,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           break;
         }
         // Guard against phantom responses triggered by ambient noise
-        if (!hasRealTranscription) {
-          console.log('Cancelling phantom response - no real transcription received');
+        // Use BOTH flags: userSpokeAfterLastResponse (VAD detected speech) OR
+        // hasRealTranscription (Whisper confirmed real words). We need the VAD flag
+        // because transcription often arrives AFTER response.created.
+        if (!userSpokeAfterLastResponse && !hasRealTranscription) {
+          console.log('Cancelling phantom response - no speech detected and no transcription');
           if (globalWs?.readyState === WebSocket.OPEN) {
             globalWs.send(JSON.stringify({ type: 'response.cancel' }));
           }
