@@ -17,6 +17,8 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   const isInterruptedRef = useRef(false);
   const interruptTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const visibilityHandlerRef = useRef<(() => void) | null>(null);
+  const nextStartTimeRef = useRef<number>(0);
+  const lastSourceRef = useRef<AudioBufferSourceNode | null>(null);
   
   const [isPlaying, setIsPlaying] = useState(false);
   
@@ -76,11 +78,8 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     return audioContextRef.current;
   }, [sampleRate]);
 
-  const playAudioChunk = useCallback(async (audioData: Int16Array) => {
-    // Don't play if interrupted
-    if (isInterruptedRef.current) {
-      return;
-    }
+  const scheduleChunk = useCallback((audioData: Int16Array) => {
+    if (isInterruptedRef.current) return;
     
     const audioContext = initAudioContext();
     
@@ -94,7 +93,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     const audioBuffer = audioContext.createBuffer(1, float32Data.length, sampleRate);
     audioBuffer.getChannelData(0).set(float32Data);
     
-    // Create and play source
+    // Create source
     const source = audioContext.createBufferSource();
     source.buffer = audioBuffer;
     currentSourceRef.current = source;
@@ -105,20 +104,24 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
       source.connect(audioContext.destination);
     }
     
-    source.start();
-    setIsPlaying(true);
-    setIsAudioPlaying(true);
-    isPlayingRef.current = true;
+    // Schedule gapless playback
+    const now = audioContext.currentTime;
+    const startTime = Math.max(now, nextStartTimeRef.current);
+    source.start(startTime);
+    nextStartTimeRef.current = startTime + audioBuffer.duration;
     
-    // Update MediaSession playback state for background audio support
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.playbackState = 'playing';
+    if (!isPlayingRef.current) {
+      setIsPlaying(true);
+      setIsAudioPlaying(true);
+      isPlayingRef.current = true;
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'playing';
+      }
     }
     
+    // Track the last source to detect when all audio finishes
+    lastSourceRef.current = source;
     source.onended = () => {
-      currentSourceRef.current = null;
-      
-      // Don't continue if interrupted
       if (isInterruptedRef.current) {
         setIsPlaying(false);
         setIsAudioPlaying(false);
@@ -126,29 +129,24 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
         return;
       }
       
-      // Check if there's more audio in queue
-      if (audioQueueRef.current.length > 0) {
-        const nextChunk = audioQueueRef.current.shift()!;
-        playAudioChunk(nextChunk);
-      } else {
+      // Only mark playback done if this was the last scheduled source
+      if (lastSourceRef.current === source && audioQueueRef.current.length === 0) {
+        currentSourceRef.current = null;
         setIsPlaying(false);
         setIsAudioPlaying(false);
         isPlayingRef.current = false;
         
-        // Audio queue fully drained -- if we're still in 'speaking' status,
-        // transition to 'listening' now (response.done may have already fired)
         const { status: currentStatus, isActive } = useVoiceModeStore.getState();
         if (isActive && currentStatus === 'speaking') {
           useVoiceModeStore.getState().setStatus('listening');
         }
         
-        // Update MediaSession playback state
         if ('mediaSession' in navigator) {
           navigator.mediaSession.playbackState = 'paused';
         }
       }
     };
-  }, [initAudioContext, sampleRate]);
+  }, [initAudioContext, sampleRate, setIsAudioPlaying]);
 
   const queueAudio = useCallback((audioData: Int16Array) => {
     // Don't queue if interrupted
@@ -156,20 +154,17 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
       return;
     }
 
-    // Cap queue at 100 chunks to prevent memory accumulation (~2.5MB max)
+    // With scheduled playback, we can directly schedule every chunk
+    // The queue is only used as overflow protection
     const MAX_QUEUE_SIZE = 100;
-
-    if (isPlayingRef.current) {
-      // If queue is full, drop oldest chunks to make room
-      if (audioQueueRef.current.length >= MAX_QUEUE_SIZE) {
-        console.warn('Audio queue full, dropping oldest chunk');
-        audioQueueRef.current.shift();
-      }
-      audioQueueRef.current.push(audioData);
-    } else {
-      playAudioChunk(audioData);
+    if (audioQueueRef.current.length >= MAX_QUEUE_SIZE) {
+      console.warn('Audio queue full, dropping oldest chunk');
+      audioQueueRef.current.shift();
     }
-  }, [playAudioChunk]);
+
+    // Schedule immediately - gapless scheduling handles timing
+    scheduleChunk(audioData);
+  }, [scheduleChunk]);
 
   const clearQueue = useCallback(() => {
     // Clear any existing interrupt timeout to prevent race conditions
@@ -181,6 +176,8 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     // Set interrupted flag to prevent new audio from playing
     isInterruptedRef.current = true;
     audioQueueRef.current = [];
+    nextStartTimeRef.current = 0;
+    lastSourceRef.current = null;
 
     // Stop currently playing audio source immediately
     if (currentSourceRef.current) {
@@ -214,6 +211,8 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
 
     isInterruptedRef.current = true;
     audioQueueRef.current = [];
+    nextStartTimeRef.current = 0;
+    lastSourceRef.current = null;
 
     if (currentSourceRef.current) {
       try {

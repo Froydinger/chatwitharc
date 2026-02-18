@@ -375,6 +375,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           awaitingToolResponse = false;
           break;
         }
+        // Allow voice swap intro responses through the phantom guard
+        if (waitingForVoiceIntro) {
+          console.log('Allowing voice intro response through phantom guard');
+          break;
+        }
         // Guard against phantom responses triggered by ambient noise
         if (!userSpokeAfterLastResponse) {
           console.log('Cancelling phantom response - user has not spoken since last response');
