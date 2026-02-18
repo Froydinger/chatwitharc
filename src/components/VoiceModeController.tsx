@@ -292,6 +292,7 @@ export function VoiceModeController() {
   const initRef = useRef(false);
   const wasActiveRef = useRef(false);
   const previousVoiceRef = useRef(selectedVoice);
+  const isFirstVoiceChangeRef = useRef(true);
   
   // Abort controller for cancelling pending operations
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -590,6 +591,7 @@ export function VoiceModeController() {
       stopPlayback();
       disconnect();
       initRef.current = false;
+      isFirstVoiceChangeRef.current = true; // Reset for next session
 
       // Get fresh conversation turns from store
       const { conversationTurns, clearConversation, attachImageToLastAssistantTurn } = useVoiceModeStore.getState();
@@ -658,8 +660,11 @@ export function VoiceModeController() {
       previousVoiceRef.current = selectedVoice;
       // Only trigger swap if we had a previous voice (not initial load)
       if (prevVoice) {
-        console.log('Voice changed from', prevVoice, 'to', selectedVoice);
-        updateVoice(selectedVoice);
+        // First change after connect = profile sync (silent), subsequent = user action (announce)
+        const shouldAnnounce = !isFirstVoiceChangeRef.current;
+        isFirstVoiceChangeRef.current = false;
+        console.log('Voice changed from', prevVoice, 'to', selectedVoice, shouldAnnounce ? '(announcing)' : '(silent sync)');
+        updateVoice(selectedVoice, shouldAnnounce);
       }
     }
   }, [selectedVoice, isConnected, updateVoice]);
