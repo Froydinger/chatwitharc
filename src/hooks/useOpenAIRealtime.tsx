@@ -401,12 +401,20 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.done':
-        // Response complete - reset speech flag
         setCurrentTranscript('');
-        userSpokeAfterLastResponse = false;
-        hasRealTranscription = false;
-        useVoiceModeStore.getState().setHasPendingSpeech(false);
-        clearAudioBuffer();
+        
+        // Only reset speech flags on COMPLETED responses, not cancelled ones.
+        // Cancelled responses (from phantom guard) shouldn't clear the flags
+        // because the user may still be speaking / about to speak.
+        const responseStatus = event.response?.status;
+        if (responseStatus !== 'cancelled') {
+          userSpokeAfterLastResponse = false;
+          hasRealTranscription = false;
+          useVoiceModeStore.getState().setHasPendingSpeech(false);
+          clearAudioBuffer();
+        } else {
+          console.log('Response was cancelled — keeping speech flags intact');
+        }
         
         // If we were waiting for voice intro to finish, defer unlock until audio drains
         if (waitingForVoiceIntro) {
