@@ -185,6 +185,7 @@ export function VoiceModeOverlay() {
     attachedImagePreview,
     clearAttachment,
     setAttachedImage,
+    isVoiceSwapping,
   } = useVoiceModeStore();
 
   const { updateProfile } = useProfile();
@@ -505,9 +506,8 @@ export function VoiceModeOverlay() {
               >
                 <p className="text-xs text-muted-foreground mb-3 font-medium">Switch voice</p>
                 <div className="flex flex-col gap-1.5 max-h-[340px] overflow-y-auto pr-1">
-                  {REALTIME_VOICES.map((voice) => {
+                {REALTIME_VOICES.map((voice) => {
                     const isSelected = selectedVoice === voice.id;
-                    const { isVoiceSwapping } = useVoiceModeStore.getState();
                     return (
                       <button
                         key={voice.id}
