@@ -24,6 +24,10 @@ let globalSessionId: string | null = null;
 // Used to cancel phantom responses triggered by ambient noise
 let userSpokeAfterLastResponse = false;
 
+// Track whether we received a real (non-garbled, non-empty) transcription
+// This is the authoritative check for the phantom guard — VAD alone is unreliable
+let hasRealTranscription = false;
+
 // Track when we explicitly request a response via sendFunctionResult
 // so the phantom guard allows tool-triggered responses through
 let awaitingToolResponse = false;
@@ -39,6 +43,9 @@ let voiceSwapTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingVoiceSwap: VoiceName | null = null;
 let isVoiceSwapReconnect = false; // Flag to trigger "new voice is ready" after reconnect
 let waitingForVoiceIntro = false; // Track when we're waiting for the intro response to finish
+
+// Safety timeout for voice swap — prevents picker from being permanently locked
+let voiceSwapSafetyTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Tool calls in flight to prevent duplicate executions
 // Now uses Map with timestamps for automatic cleanup
@@ -160,6 +167,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         
         // Always add user turns to conversation (these get saved to chat history)
         if (userTranscript.trim()) {
+          hasRealTranscription = true;
           addConversationTurn({
             role: 'user',
             transcript: userTranscript,
@@ -381,8 +389,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           break;
         }
         // Guard against phantom responses triggered by ambient noise
-        if (!userSpokeAfterLastResponse) {
-          console.log('Cancelling phantom response - user has not spoken since last response');
+        if (!hasRealTranscription) {
+          console.log('Cancelling phantom response - no real transcription received');
           if (globalWs?.readyState === WebSocket.OPEN) {
             globalWs.send(JSON.stringify({ type: 'response.cancel' }));
           }
@@ -393,6 +401,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // Response complete - reset speech flag
         setCurrentTranscript('');
         userSpokeAfterLastResponse = false;
+        hasRealTranscription = false;
         useVoiceModeStore.getState().setHasPendingSpeech(false);
         clearAudioBuffer();
         
@@ -403,6 +412,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           if (!introAudioPlaying) {
             // Audio already finished, unlock immediately
             useVoiceModeStore.getState().setIsVoiceSwapping(false);
+            if (voiceSwapSafetyTimer) { clearTimeout(voiceSwapSafetyTimer); voiceSwapSafetyTimer = null; }
             console.log('Voice intro finished (audio done), swap complete — picker unlocked');
           } else {
             // Audio still playing — wait for it to drain before unlocking
@@ -410,6 +420,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             const unsub = useVoiceModeStore.subscribe((state) => {
               if (!state.isAudioPlaying) {
                 useVoiceModeStore.getState().setIsVoiceSwapping(false);
+                if (voiceSwapSafetyTimer) { clearTimeout(voiceSwapSafetyTimer); voiceSwapSafetyTimer = null; }
                 console.log('Voice intro audio drained, swap complete — picker unlocked');
                 unsub();
               }
@@ -684,6 +695,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     waitingForVoiceIntro = false;
     pendingVoiceSwap = null;
     useVoiceModeStore.getState().setIsVoiceSwapping(false);
+    if (voiceSwapSafetyTimer) { clearTimeout(voiceSwapSafetyTimer); voiceSwapSafetyTimer = null; }
     if (voiceSwapTimer) {
       clearTimeout(voiceSwapTimer);
       voiceSwapTimer = null;
@@ -758,6 +770,15 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       isVoiceSwapReconnect = announce;
       if (announce) {
         useVoiceModeStore.getState().setIsVoiceSwapping(true);
+        // Safety timeout: force-unlock picker if swap doesn't complete in 8s
+        if (voiceSwapSafetyTimer) clearTimeout(voiceSwapSafetyTimer);
+        voiceSwapSafetyTimer = setTimeout(() => {
+          console.warn('Voice swap safety timeout — force-unlocking picker');
+          useVoiceModeStore.getState().setIsVoiceSwapping(false);
+          waitingForVoiceIntro = false;
+          voiceSwapInProgress = false;
+          voiceSwapSafetyTimer = null;
+        }, 8000);
       }
       console.log('Performing voice swap disconnect→reconnect for:', voiceToSwap, announce ? '(with announcement)' : '(silent)');
       
