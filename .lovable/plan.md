@@ -1,47 +1,44 @@
 
 
-## Voice Mode Stability Fix
+## Voice Mode: Fix Silence Responses and Stuck Voice Picker
 
 ### Problem Diagnosis
 
-After tracing the code, I found **three bugs** working together to cause the "cutting in and out" behavior:
+There are **three distinct bugs** causing the current broken behavior:
 
 ---
 
-### Bug 1: Phantom Response Guard Kills Voice Swap Intros
+### Bug 1: Phantom Guard is Ineffective Against VAD False Positives (Responding to Silence)
 
-In `useOpenAIRealtime.tsx` (lines 371-384), when a `response.created` event fires, the code checks if the user has actually spoken (`userSpokeAfterLastResponse`). If not, it cancels the response as a "phantom" triggered by ambient noise.
+The phantom response guard at line 384 checks `userSpokeAfterLastResponse` to cancel AI responses triggered by ambient noise. But the guard is fundamentally bypassed because:
 
-**The problem:** After a voice swap reconnect, the system sends a programmatic text message ("say my new voice is ready") and triggers `response.create`. But since no actual speech was detected by VAD, `userSpokeAfterLastResponse` is `false`, so the phantom guard **immediately cancels the intro response**. This causes audio to cut off mid-word or never play at all.
+1. VAD fires `input_audio_buffer.speech_started` on ambient noise (even with 0.85 threshold)
+2. This sets `userSpokeAfterLastResponse = true` (line 139)
+3. When OpenAI then creates a response, the guard sees `userSpokeAfterLastResponse === true` and lets it through
+4. The AI responds to nothing
 
-**Fix:** Add `waitingForVoiceIntro` to the allow-list in the phantom guard, just like `awaitingToolResponse` is already handled.
+The guard only blocks responses where NO `speech_started` event preceded them, which is an extremely narrow case. For real ambient noise, the VAD triggers first, defeating the guard.
 
----
-
-### Bug 2: Unnecessary Disconnect-Reconnect on Every Activation
-
-In `VoiceModeController.tsx` (lines 655-665), a `useEffect` watches `selectedVoice` changes while connected. Here's the sequence:
-
-1. Voice mode activates with default voice `cedar`
-2. WebSocket connects successfully
-3. Profile sync effect (lines 282-289) fires, changing `selectedVoice` to user's saved preference (e.g., `ash`)
-4. The voice change effect detects the difference and calls `updateVoice(selectedVoice)` -- **with announce defaulting to `true`**
-5. This triggers a full disconnect, reconnect, and "my new voice is ready" announcement
-
-So every time voice mode starts, you get an unnecessary reconnect cycle. Combined with Bug 1 (phantom guard cancelling the intro), this creates a ~2 second gap where the connection drops and the intro gets killed.
-
-**Fix:** Track whether it's the first voice change after connecting. First change = profile sync = use `announce: false` (silent reconnect). Subsequent changes = user action = use `announce: true`.
+**Fix:** Instead of relying on the VAD `speech_started` event, validate using actual transcription. Add a `hasRealTranscription` flag that only becomes `true` when a non-garbled, non-empty transcription arrives (line 148-169). Use this flag in the phantom guard instead of `userSpokeAfterLastResponse`. This means:
+- VAD fires on noise -> `userSpokeAfterLastResponse = true` (still useful for other logic)
+- But `hasRealTranscription` stays `false` until Whisper actually transcribes real words
+- Phantom guard checks `hasRealTranscription` instead -> cancels the noise-triggered response
 
 ---
 
-### Bug 3: Audio Chunk Playback Gaps
+### Bug 2: Voice Picker Uses Non-Reactive State Read (Can't Change Voice)
 
-In `useAudioPlayback.tsx`, audio chunks are played one at a time using `AudioBufferSourceNode` with an `onended` callback to start the next chunk. This sequential approach introduces tiny gaps between chunks because:
-- There's processing time between one chunk ending and the next starting
-- JavaScript event loop delays can add milliseconds of silence
-- On mobile (especially iOS), these gaps are more noticeable
+In `VoiceModeOverlay.tsx` line 510, the voice picker reads `isVoiceSwapping` via `useVoiceModeStore.getState()` inside a `.map()` render callback. This is a **non-reactive snapshot** -- it reads the value once during render and never updates. If `isVoiceSwapping` gets stuck as `true` (see Bug 3 below), the buttons stay permanently disabled with `opacity-50 pointer-events-none`, and the component never re-renders to check the updated value.
 
-**Fix:** Use scheduled playback with `audioContext.currentTime`. Instead of waiting for `onended`, pre-schedule the next chunk to start at exactly the time the current one ends. This eliminates gaps entirely.
+**Fix:** Read `isVoiceSwapping` reactively from the store hook at the component level (using `useVoiceModeStore()`) instead of `getState()` inside the map loop.
+
+---
+
+### Bug 3: `isVoiceSwapping` Can Get Stuck Forever
+
+`isVoiceSwapping` is set to `true` when a voice swap starts (line 760) and should be set back to `false` when the intro response finishes (lines 400-417). But if anything interrupts this flow -- network hiccup, WebSocket close during swap, or the response being cancelled -- the unlock code in `response.done` never runs, and `isVoiceSwapping` stays `true` forever, permanently locking the picker.
+
+**Fix:** Add a safety timeout (e.g., 8 seconds) that automatically resets `isVoiceSwapping` to `false` if the swap hasn't completed. This ensures the picker is never permanently locked.
 
 ---
 
@@ -49,47 +46,62 @@ In `useAudioPlayback.tsx`, audio chunks are played one at a time using `AudioBuf
 
 | File | Change |
 |------|--------|
-| `src/hooks/useOpenAIRealtime.tsx` | Allow `waitingForVoiceIntro` responses through the phantom guard (lines 371-384) |
-| `src/components/VoiceModeController.tsx` | Track first voice change after connect; pass `announce=false` for profile-sync changes (lines 655-665) |
-| `src/hooks/useAudioPlayback.tsx` | Switch from sequential `onended` callbacks to scheduled `audioContext.currentTime` playback to eliminate gaps |
+| `src/hooks/useOpenAIRealtime.tsx` | Replace `userSpokeAfterLastResponse` with `hasRealTranscription` in phantom guard; add safety timeout for voice swap unlock |
+| `src/components/VoiceModeOverlay.tsx` | Read `isVoiceSwapping` reactively from store hook instead of `getState()` |
 
 ---
 
 ### Technical Details
 
-**Phantom guard fix** (`useOpenAIRealtime.tsx`, `response.created` handler):
+**Transcription-based phantom guard** (`useOpenAIRealtime.tsx`):
 
 ```text
-Before checking userSpokeAfterLastResponse, also check:
-- if waitingForVoiceIntro is true --> allow through (same as awaitingToolResponse)
+Add module-level flag:
+  let hasRealTranscription = false;
+
+In 'input_audio_buffer.speech_started' handler:
+  Keep setting userSpokeAfterLastResponse = true (used for mute-handoff)
+
+In 'conversation.item.input_audio_transcription.completed' handler:
+  After garbled check passes and transcript is non-empty:
+    hasRealTranscription = true;
+
+In 'response.created' handler:
+  Change guard check from:
+    if (!userSpokeAfterLastResponse)  -->  if (!hasRealTranscription)
+
+In 'response.done' handler:
+  Reset both:
+    userSpokeAfterLastResponse = false;
+    hasRealTranscription = false;
 ```
 
-**Profile sync fix** (`VoiceModeController.tsx`):
+**Reactive voice picker** (`VoiceModeOverlay.tsx`):
 
 ```text
-Add: const isFirstVoiceChangeRef = useRef(true);
+Move isVoiceSwapping read outside the .map():
+  const { isVoiceSwapping } = useVoiceModeStore();
+  // or destructure from existing store usage at top of component
 
-In voice change useEffect:
-  if (isFirstVoiceChangeRef.current) {
-    isFirstVoiceChangeRef.current = false;
-    updateVoice(selectedVoice, false);  // silent -- just profile sync
-  } else {
-    updateVoice(selectedVoice, true);   // user-initiated -- announce
-  }
-
-Reset isFirstVoiceChangeRef when voice mode deactivates.
+Remove the getState() call on line 510.
 ```
 
-**Audio scheduling fix** (`useAudioPlayback.tsx`):
+**Safety timeout for voice swap** (`useOpenAIRealtime.tsx`):
 
 ```text
-Track nextStartTime via ref (initialized to audioContext.currentTime).
-When playing a chunk:
-  - If nextStartTime < audioContext.currentTime, snap to currentTime
-  - Schedule source.start(nextStartTime)
-  - Set nextStartTime += chunk duration (buffer.length / sampleRate)
-  - No onended chain needed for queue processing; drain queue in a loop
+Add module-level:
+  let voiceSwapSafetyTimer: ReturnType<typeof setTimeout> | null = null;
 
-This pre-schedules chunks back-to-back with zero gap.
+When setting isVoiceSwapping(true):
+  Start safety timer:
+    voiceSwapSafetyTimer = setTimeout(() => {
+      useVoiceModeStore.getState().setIsVoiceSwapping(false);
+      waitingForVoiceIntro = false;
+      voiceSwapInProgress = false;
+    }, 8000);
+
+When setting isVoiceSwapping(false) (in response.done and disconnect):
+  Clear the safety timer:
+    if (voiceSwapSafetyTimer) { clearTimeout(voiceSwapSafetyTimer); voiceSwapSafetyTimer = null; }
 ```
 
