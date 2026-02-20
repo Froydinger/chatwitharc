@@ -263,6 +263,9 @@ function summarizeRecentChats(messages: Message[], maxMessages = 20): string {
   return `Here's what was discussed recently in our text chat (you can reference this naturally if relevant):\n${summary}`;
 }
 
+// How many turns we've already persisted (incremental save pointer)
+let savedTurnIndex = 0;
+
 export function VoiceModeController() {
   const { toast } = useToast();
   const { addMessage, messages } = useArcStore();
@@ -296,6 +299,9 @@ export function VoiceModeController() {
   
   // Abort controller for cancelling pending operations
   const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Auto-save interval ref
+  const autoSaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Audio playback for AI responses
   const { queueAudio, stopPlayback, clearQueue } = useAudioPlayback();
@@ -538,6 +544,47 @@ export function VoiceModeController() {
     },
   });
 
+  // Incremental save: persist new turns since last save
+  const saveNewTurns = useCallback(async (final: boolean = false) => {
+    const { conversationTurns, attachImageToLastAssistantTurn } = useVoiceModeStore.getState();
+    
+    if (final) attachImageToLastAssistantTurn();
+    
+    const { conversationTurns: currentTurns } = useVoiceModeStore.getState();
+    const turnsToSave = currentTurns
+      .slice(savedTurnIndex)
+      .filter(turn => turn.transcript.trim() || turn.imageUrl);
+    
+    if (turnsToSave.length === 0) return 0;
+    
+    console.log(`💾 Saving ${turnsToSave.length} new voice turns (index ${savedTurnIndex}→${savedTurnIndex + turnsToSave.length})`);
+    
+    const savePromises = turnsToSave.map(async (turn) => {
+      try {
+        if (turn.imageUrl) {
+          await addMessage({
+            content: turn.transcript || 'Generated image',
+            role: turn.role,
+            type: 'image',
+            imageUrl: turn.imageUrl,
+          });
+        } else if (turn.transcript.trim()) {
+          await addMessage({
+            content: turn.transcript,
+            role: turn.role,
+            type: 'text',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to save voice turn:', error);
+      }
+    });
+    
+    await Promise.all(savePromises);
+    savedTurnIndex = currentTurns.length;
+    return turnsToSave.length;
+  }, [addMessage]);
+
   // Single effect to handle activation/deactivation
   useEffect(() => {
     const justActivated = isActive && !wasActiveRef.current;
@@ -547,13 +594,12 @@ export function VoiceModeController() {
 
     if (justActivated && !initRef.current) {
       initRef.current = true;
+      savedTurnIndex = 0; // Reset save pointer for new session
       
       const initVoiceMode = async () => {
         try {
           console.log('Initializing voice mode...');
 
-          // Build the system prompt with same personality as regular chat
-          // Past chat history is now accessed dynamically via search_past_chats tool
           const recentChatSummary = summarizeRecentChats(messages);
           const voiceSystemPrompt = await buildVoiceSystemPrompt(profile, recentChatSummary);
           console.log('Voice mode using unified system prompt with dynamic chat search');
@@ -585,72 +631,88 @@ export function VoiceModeController() {
         abortControllerRef.current = null;
       }
       
+      // Stop auto-save interval
+      if (autoSaveIntervalRef.current) {
+        clearInterval(autoSaveIntervalRef.current);
+        autoSaveIntervalRef.current = null;
+      }
+      
       // Stop all captures
       stopCapture();
       stopCameraCapture();
       stopPlayback();
       disconnect();
       initRef.current = false;
-      isFirstVoiceChangeRef.current = true; // Reset for next session
+      isFirstVoiceChangeRef.current = true;
 
-      // Get fresh conversation turns from store
-      const { conversationTurns, clearConversation, attachImageToLastAssistantTurn } = useVoiceModeStore.getState();
-      
-      // Attach any pending image to the last assistant turn before saving
-      attachImageToLastAssistantTurn();
-      
-      // Get updated turns after attaching image
-      const { conversationTurns: finalTurns } = useVoiceModeStore.getState();
-      
-      // Save conversation to chat history (including images)
-      // Filter out empty transcripts but keep turns with images
-      const turnsToSave = finalTurns.filter(turn => 
-        turn.transcript.trim() || turn.imageUrl
-      );
-      
-      if (turnsToSave.length > 0) {
-        console.log('Saving voice conversation:', turnsToSave.length, 'turns (filtered from', finalTurns.length, ')');
+      // Final save of any remaining turns
+      saveNewTurns(true).then((count) => {
+        if (count > 0 || savedTurnIndex > 0) {
+          console.log(`✅ Voice conversation fully saved (${savedTurnIndex} total turns)`);
+          toast({
+            title: 'Conversation saved',
+            description: `${savedTurnIndex} messages added to chat`,
+          });
+        }
         
-        // Use Promise.all to ensure all messages are saved
-        const savePromises = turnsToSave.map(async (turn) => {
-          try {
-            if (turn.imageUrl) {
-              // If this turn has an image, add the image message
-              await addMessage({
-                content: turn.transcript || 'Generated image',
-                role: turn.role,
-                type: 'image',
-                imageUrl: turn.imageUrl,
-              });
-            } else if (turn.transcript.trim()) {
-              // Regular text message
-              await addMessage({
-                content: turn.transcript,
-                role: turn.role,
-                type: 'text',
-              });
-            }
-          } catch (error) {
-            console.error('Failed to save voice turn:', error);
-          }
-        });
-        
-        // Wait for all saves to complete
-        Promise.all(savePromises).then(() => {
-          console.log('✅ All voice conversation turns saved');
-        });
-
-        toast({
-          title: 'Conversation saved',
-          description: `${turnsToSave.length} messages added to chat`,
-        });
-        
-        clearConversation();
-      } else {
-        console.log('No voice conversation turns to save');
-      }
+        useVoiceModeStore.getState().clearConversation();
+        savedTurnIndex = 0;
+      });
     }
-  }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, addMessage, toast, deactivateVoiceMode, messages, profile]);
+  }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, addMessage, toast, deactivateVoiceMode, messages, profile, saveNewTurns]);
+
+  // Periodic auto-save every 60s during active voice mode
+  useEffect(() => {
+    if (isActive) {
+      autoSaveIntervalRef.current = setInterval(() => {
+        saveNewTurns(false).then((count) => {
+          if (count > 0) console.log(`⏱️ Auto-saved ${count} voice turns`);
+        });
+      }, 60000);
+      
+      return () => {
+        if (autoSaveIntervalRef.current) {
+          clearInterval(autoSaveIntervalRef.current);
+          autoSaveIntervalRef.current = null;
+        }
+      };
+    }
+  }, [isActive, saveNewTurns]);
+
+  // Emergency save on page hide (iOS kills backgrounded tabs)
+  useEffect(() => {
+    const handlePageHide = () => {
+      if (!useVoiceModeStore.getState().isActive) return;
+      console.log('🚨 Page hiding — emergency saving voice turns');
+      // Use sync-safe approach: save what we can
+      const { conversationTurns } = useVoiceModeStore.getState();
+      const unsaved = conversationTurns.slice(savedTurnIndex).filter(t => t.transcript.trim() || t.imageUrl);
+      if (unsaved.length > 0) {
+        // Fire-and-forget saves — browser may cut us off but we try
+        unsaved.forEach(turn => {
+          try {
+            addMessage({
+              content: turn.imageUrl ? (turn.transcript || 'Generated image') : turn.transcript,
+              role: turn.role,
+              type: turn.imageUrl ? 'image' : 'text',
+              imageUrl: turn.imageUrl,
+            });
+          } catch (_) {}
+        });
+        savedTurnIndex = conversationTurns.length;
+      }
+    };
+
+    // pagehide fires reliably on iOS Safari (beforeunload does not)
+    window.addEventListener('pagehide', handlePageHide);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') handlePageHide();
+    });
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, [addMessage]);
 
   // Update voice when selection changes (only when connected)
   // updateVoice handles debouncing and disconnect→reconnect internally

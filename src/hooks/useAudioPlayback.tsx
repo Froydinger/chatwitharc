@@ -19,6 +19,9 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   const visibilityHandlerRef = useRef<(() => void) | null>(null);
   const nextStartTimeRef = useRef<number>(0);
   const lastSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  // Track active sources for cleanup — prevents memory leaks during long sessions
+  const activeSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+  const MAX_ACTIVE_SOURCES = 30; // Cap concurrent audio sources
   
   const [isPlaying, setIsPlaying] = useState(false);
   
@@ -110,6 +113,19 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     source.start(startTime);
     nextStartTimeRef.current = startTime + audioBuffer.duration;
     
+    // Track active source for cleanup
+    activeSourcesRef.current.add(source);
+    
+    // Evict oldest sources if we exceed the cap (prevents memory buildup)
+    if (activeSourcesRef.current.size > MAX_ACTIVE_SOURCES) {
+      const iter = activeSourcesRef.current.values();
+      const oldest = iter.next().value;
+      if (oldest && oldest !== source) {
+        try { oldest.disconnect(); } catch (_) {}
+        activeSourcesRef.current.delete(oldest);
+      }
+    }
+    
     if (!isPlayingRef.current) {
       setIsPlaying(true);
       setIsAudioPlaying(true);
@@ -122,6 +138,10 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     // Track the last source to detect when all audio finishes
     lastSourceRef.current = source;
     source.onended = () => {
+      // Remove from active tracking
+      activeSourcesRef.current.delete(source);
+      try { source.disconnect(); } catch (_) {}
+      
       if (isInterruptedRef.current) {
         setIsPlaying(false);
         setIsAudioPlaying(false);
@@ -179,15 +199,12 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     nextStartTimeRef.current = 0;
     lastSourceRef.current = null;
 
-    // Stop currently playing audio source immediately
-    if (currentSourceRef.current) {
-      try {
-        currentSourceRef.current.stop();
-      } catch (e) {
-        // Source might already be stopped
-      }
-      currentSourceRef.current = null;
+    // Stop ALL active audio sources immediately (not just currentSource)
+    for (const src of activeSourcesRef.current) {
+      try { src.stop(); src.disconnect(); } catch (_) {}
     }
+    activeSourcesRef.current.clear();
+    currentSourceRef.current = null;
 
     isPlayingRef.current = false;
     setIsPlaying(false);
@@ -214,14 +231,12 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     nextStartTimeRef.current = 0;
     lastSourceRef.current = null;
 
-    if (currentSourceRef.current) {
-      try {
-        currentSourceRef.current.stop();
-      } catch (e) {
-        // Source might already be stopped
-      }
-      currentSourceRef.current = null;
+    // Stop ALL active sources
+    for (const src of activeSourcesRef.current) {
+      try { src.stop(); src.disconnect(); } catch (_) {}
     }
+    activeSourcesRef.current.clear();
+    currentSourceRef.current = null;
 
     if (audioContextRef.current) {
       audioContextRef.current.close();
