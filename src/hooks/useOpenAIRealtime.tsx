@@ -521,6 +521,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         setIsConnected(true);
         setStatus('listening');
         
+        // Periodic cleanup of stale tool calls during long sessions
+        const cleanupInterval = setInterval(() => cleanupStaleToolCalls(), 30000);
+        ws.addEventListener('close', () => clearInterval(cleanupInterval));
+        
         // Get fresh voice selection, fallback to cedar if not realtime-compatible
         const { selectedVoice: currentVoice } = useVoiceModeStore.getState();
         const safeVoice = REALTIME_SUPPORTED_VOICES.includes(currentVoice) ? currentVoice : 'cedar';
@@ -733,10 +737,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     const { isVoiceSwapping } = useVoiceModeStore.getState();
     if (isVoiceSwapping) return;
     
-    const bytes = new Uint8Array(audioData.buffer);
+    // Efficient base64 encoding — avoid per-byte string concatenation
+    const bytes = new Uint8Array(audioData.buffer, audioData.byteOffset, audioData.byteLength);
+    const CHUNK = 0x8000;
     let binary = '';
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK) as any);
     }
     const base64Audio = btoa(binary);
     
