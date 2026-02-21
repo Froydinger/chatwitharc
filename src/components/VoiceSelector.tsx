@@ -69,13 +69,9 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
       console.error('Failed to persist voice preference:', err);
     }
     
-    // If voice mode is active, the store change will trigger VoiceModeController's
-    // useEffect which calls updateVoice() — no need to restart the entire session
     toast({ 
-      title: isActive ? 'Voice updated' : 'Voice selected', 
-      description: isActive 
-        ? `Switching to ${VOICES.find(v => v.id === voice.id)?.name} voice` 
-        : `${VOICES.find(v => v.id === voice.id)?.name} will be used for voice mode` 
+      title: 'Voice selected', 
+      description: `${VOICES.find(v => v.id === voice.id)?.name} will be used for voice mode` 
     });
 
     onSave?.();

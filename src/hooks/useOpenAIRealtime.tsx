@@ -6,12 +6,9 @@ interface UseOpenAIRealtimeOptions {
   onAudioData?: (audioData: Int16Array) => void;
   onError?: (error: string) => void;
   onInterrupt?: () => void;
-  // Image generation callbacks - now with aspect ratio support
   onImageGenerate?: (prompt: string, aspectRatio?: string) => Promise<string>;
   onImageDismiss?: () => void;
-  // Web search callback
   onWebSearch?: (query: string) => Promise<string>;
-  // Past chat search callback
   onSearchPastChats?: (query: string) => Promise<string>;
 }
 
@@ -21,15 +18,12 @@ let globalConnecting = false;
 let globalSessionId: string | null = null;
 
 // Track whether user has genuinely spoken since the last AI response
-// Used to cancel phantom responses triggered by ambient noise
 let userSpokeAfterLastResponse = false;
 
 // Track whether we received a real (non-garbled, non-empty) transcription
-// This is the authoritative check for the phantom guard — VAD alone is unreliable
 let hasRealTranscription = false;
 
 // Track when we explicitly request a response via sendFunctionResult
-// so the phantom guard allows tool-triggered responses through
 let awaitingToolResponse = false;
 
 // Auto-reconnect state
@@ -37,20 +31,12 @@ let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 3;
 let lastSystemPrompt: string | null = null;
 
-// Voice swap state - debounce rapid voice changes
-let voiceSwapInProgress = false;
-let voiceSwapTimer: ReturnType<typeof setTimeout> | null = null;
-let pendingVoiceSwap: VoiceName | null = null;
-let isVoiceSwapReconnect = false; // Flag to trigger "new voice is ready" after reconnect
-let waitingForVoiceIntro = false; // Track when we're waiting for the intro response to finish
-
-// Safety timeout for voice swap — prevents picker from being permanently locked
-let voiceSwapSafetyTimer: ReturnType<typeof setTimeout> | null = null;
+// Delayed phantom guard timer — gives Whisper time to confirm real speech
+let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Tool calls in flight to prevent duplicate executions
-// Now uses Map with timestamps for automatic cleanup
 const toolCallsInFlight = new Map<string, number>();
-const TOOL_CALL_TIMEOUT_MS = 60000; // 60 seconds max for any tool call
+const TOOL_CALL_TIMEOUT_MS = 60000;
 
 // Cleanup stale tool calls periodically
 const cleanupStaleToolCalls = () => {
@@ -66,24 +52,16 @@ const cleanupStaleToolCalls = () => {
 // Helper to detect garbled/stuttered transcription
 const isGarbledTranscription = (text: string): boolean => {
   if (!text || text.length < 2) return true;
-  
-  // Check for repeated characters (e.g., "aaaaaaa")
   if (/(.)\1{4,}/.test(text)) return true;
-  
-  // Check for repeated words 3+ times (e.g., "said said said")
   if (/(\b\w+\b)\s+\1\s+\1/i.test(text)) return true;
-  
-  // Check for mostly non-alphabetic content
   const alphaRatio = (text.match(/[a-zA-Z]/g) || []).length / text.length;
   if (alphaRatio < 0.3 && text.length > 5) return true;
-  
   return false;
 };
 
 export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   const [isConnected, setIsConnected] = useState(false);
   
-  // Use refs for callbacks to avoid recreating handlers
   const optionsRef = useRef(options);
   useEffect(() => {
     optionsRef.current = options;
@@ -95,7 +73,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     
     console.log('Sending function result:', { callId, result });
     
-    // Send the function call output
     globalWs.send(JSON.stringify({
       type: 'conversation.item.create',
       item: {
@@ -105,10 +82,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       }
     }));
     
-    // Mark that we're awaiting a tool response so the phantom guard lets it through
     awaitingToolResponse = true;
     
-    // Trigger a response so the AI reacts to the result
     globalWs.send(JSON.stringify({
       type: 'response.create'
     }));
@@ -127,7 +102,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     
     switch (event.type) {
       case 'session.created':
-        // Prevent duplicate session handling
         if (globalSessionId === event.session?.id) {
           console.log('Duplicate session.created event, ignoring');
           return;
@@ -141,22 +115,18 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'input_audio_buffer.speech_started':
-        // User started speaking - mark that we have pending speech for mute-handoff
         console.log('VAD: User speech detected');
         userSpokeAfterLastResponse = true;
         useVoiceModeStore.getState().setHasPendingSpeech(true);
         break;
 
       case 'input_audio_buffer.speech_stopped':
-        // Just log - status will change when response starts/ends
         console.log('VAD: User speech stopped');
         break;
 
       case 'conversation.item.input_audio_transcription.completed':
-        // User's speech transcribed
         const userTranscript = event.transcript || '';
         
-        // Filter out garbled/stuttered transcriptions, but be more lenient
         if (isGarbledTranscription(userTranscript)) {
           console.warn('Ignoring garbled transcription:', userTranscript);
           return;
@@ -165,9 +135,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         console.log('User said:', userTranscript);
         setCurrentTranscript(userTranscript);
         
-        // Always add user turns to conversation (these get saved to chat history)
         if (userTranscript.trim()) {
           hasRealTranscription = true;
+          // Clear phantom timer — Whisper confirmed real speech
+          if (phantomCheckTimer) {
+            clearTimeout(phantomCheckTimer);
+            phantomCheckTimer = null;
+            console.log('Phantom timer cleared — real transcription confirmed');
+          }
           addConversationTurn({
             role: 'user',
             transcript: userTranscript,
@@ -178,7 +153,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.audio_transcript.delta':
-        // AI is speaking - partial transcript
         setStatus('speaking');
         const partialTranscript = event.delta || '';
         const { currentTranscript } = useVoiceModeStore.getState();
@@ -187,30 +161,25 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.audio_transcript.done':
-        // AI finished speaking transcript
         const aiTranscript = event.transcript || '';
         if (!aiTranscript.trim()) return;
         console.log('AI said:', aiTranscript);
         
-        // Check if there's a pending image to attach to this turn
-        const { lastGeneratedImageUrl, attachImageToLastAssistantTurn } = useVoiceModeStore.getState();
+        const { lastGeneratedImageUrl } = useVoiceModeStore.getState();
         
         addConversationTurn({
           role: 'assistant',
           transcript: aiTranscript,
           timestamp: new Date(),
-          imageUrl: lastGeneratedImageUrl || undefined // Attach image if one was just generated
+          imageUrl: lastGeneratedImageUrl || undefined
         });
         
-        // Clear the pending image after attaching
         if (lastGeneratedImageUrl) {
           useVoiceModeStore.getState().setLastGeneratedImageUrl(null);
         }
         break;
 
       case 'response.audio.delta':
-        // Audio data from AI - ALWAYS play it (no voice-based interruption)
-        // Only manual interrupt button can stop playback
         if (event.delta) {
           const binaryString = atob(event.delta);
           const bytes = new Uint8Array(binaryString.length);
@@ -227,10 +196,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (event.item?.type === 'function_call') {
           const { name, call_id, arguments: argsStr } = event.item;
           
-          // Clean up any stale tool calls before checking
           cleanupStaleToolCalls();
 
-          // Guard against duplicate tool calls
           if (toolCallsInFlight.has(call_id)) {
             console.log('Tool call already in flight, ignoring:', call_id);
             return;
@@ -249,7 +216,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               const aspectRatio = args.aspect_ratio || '1:1';
               console.log('Generating image with prompt:', prompt, 'aspect ratio:', aspectRatio);
               
-              // Call the image generation callback with aspect ratio
               if (optionsRef.current.onImageGenerate) {
                 optionsRef.current.onImageGenerate(prompt, aspectRatio)
                   .then(() => {
@@ -370,7 +336,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               cleanupToolCall();
             }
           } else {
-            // Unknown tool - clean up
             cleanupToolCall();
           }
         }
@@ -383,29 +348,47 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           awaitingToolResponse = false;
           break;
         }
-        // Allow voice swap intro responses through the phantom guard
-        if (waitingForVoiceIntro) {
-          console.log('Allowing voice intro response through phantom guard');
+        
+        // If we already have confirmed transcription, allow immediately
+        if (hasRealTranscription) {
+          console.log('Allowing response — real transcription confirmed');
           break;
         }
-        // Guard against phantom responses triggered by ambient noise
-        // Use BOTH flags: userSpokeAfterLastResponse (VAD detected speech) OR
-        // hasRealTranscription (Whisper confirmed real words). We need the VAD flag
-        // because transcription often arrives AFTER response.created.
-        if (!userSpokeAfterLastResponse && !hasRealTranscription) {
-          console.log('Cancelling phantom response - no speech detected and no transcription');
+        
+        // No speech detected at all — cancel immediately
+        if (!userSpokeAfterLastResponse) {
+          console.log('Cancelling phantom response — no speech detected and no transcription');
           if (globalWs?.readyState === WebSocket.OPEN) {
             globalWs.send(JSON.stringify({ type: 'response.cancel' }));
           }
+          break;
         }
+        
+        // VAD fired but no transcription yet — start delayed verification
+        // Give Whisper 2 seconds to confirm real speech before cancelling
+        console.log('VAD detected speech but no transcription yet — starting 2s phantom timer');
+        if (phantomCheckTimer) clearTimeout(phantomCheckTimer);
+        phantomCheckTimer = setTimeout(() => {
+          phantomCheckTimer = null;
+          if (!hasRealTranscription) {
+            console.log('Phantom timer expired — no transcription arrived, cancelling response');
+            if (globalWs?.readyState === WebSocket.OPEN) {
+              globalWs.send(JSON.stringify({ type: 'response.cancel' }));
+            }
+          }
+        }, 2000);
         break;
 
       case 'response.done':
         setCurrentTranscript('');
         
+        // Clear phantom timer
+        if (phantomCheckTimer) {
+          clearTimeout(phantomCheckTimer);
+          phantomCheckTimer = null;
+        }
+        
         // Only reset speech flags on COMPLETED responses, not cancelled ones.
-        // Cancelled responses (from phantom guard) shouldn't clear the flags
-        // because the user may still be speaking / about to speak.
         const responseStatus = event.response?.status;
         if (responseStatus !== 'cancelled') {
           userSpokeAfterLastResponse = false;
@@ -416,32 +399,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           console.log('Response was cancelled — keeping speech flags intact');
         }
         
-        // If we were waiting for voice intro to finish, defer unlock until audio drains
-        if (waitingForVoiceIntro) {
-          waitingForVoiceIntro = false;
-          const { isAudioPlaying: introAudioPlaying } = useVoiceModeStore.getState();
-          if (!introAudioPlaying) {
-            // Audio already finished, unlock immediately
-            useVoiceModeStore.getState().setIsVoiceSwapping(false);
-            if (voiceSwapSafetyTimer) { clearTimeout(voiceSwapSafetyTimer); voiceSwapSafetyTimer = null; }
-            console.log('Voice intro finished (audio done), swap complete — picker unlocked');
-          } else {
-            // Audio still playing — wait for it to drain before unlocking
-            console.log('Voice intro response done, waiting for audio playback to finish...');
-            const unsub = useVoiceModeStore.subscribe((state) => {
-              if (!state.isAudioPlaying) {
-                useVoiceModeStore.getState().setIsVoiceSwapping(false);
-                if (voiceSwapSafetyTimer) { clearTimeout(voiceSwapSafetyTimer); voiceSwapSafetyTimer = null; }
-                console.log('Voice intro audio drained, swap complete — picker unlocked');
-                unsub();
-              }
-            });
-          }
-        }
-        
         // Only transition to listening if audio has finished playing.
-        // If audio is still playing, useAudioPlayback will handle the transition
-        // when the queue drains -- this prevents the waveform from flatlining.
         const { isActive: stillActive, isAudioPlaying: audioStillPlaying } = useVoiceModeStore.getState();
         if (stillActive && !audioStillPlaying) {
           setStatus('listening');
@@ -449,13 +407,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'error':
-        // Ignore harmless errors like trying to cancel when nothing is playing
         if (event.error?.code === 'response_cancel_not_active') {
           console.log('No active response to cancel (harmless)');
           return;
         }
         
-        // Check if this is a transient/recoverable error (don't crash voice mode)
         const isTransientError = 
           event.error?.message?.includes('Connection to AI service failed') ||
           event.error?.message?.includes('timeout') ||
@@ -469,7 +425,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         
         if (isTransientError) {
           console.warn('Transient server error (voice mode continues):', event.error);
-          // Don't call onError for transient errors - voice mode stays active
           return;
         }
         
@@ -482,9 +437,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   const connect = useCallback(async (systemPrompt?: string) => {
     const { setStatus, selectedVoice } = useVoiceModeStore.getState();
     
-    // Store system prompt for reconnection
     if (systemPrompt) lastSystemPrompt = systemPrompt;
-    // Strict duplicate prevention using global state
     if (globalWs?.readyState === WebSocket.OPEN) {
       console.log('Already connected to OpenAI Realtime (global check)');
       setIsConnected(true);
@@ -497,7 +450,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       return;
     }
 
-    // Close any existing connection first
     if (globalWs) {
       globalWs.close();
       globalWs = null;
@@ -517,7 +469,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       ws.onopen = () => {
         console.log('Connected to OpenAI Realtime proxy');
         globalConnecting = false;
-        reconnectAttempts = 0; // Reset on successful connection
+        reconnectAttempts = 0;
         setIsConnected(true);
         setStatus('listening');
         
@@ -542,12 +494,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             },
             turn_detection: {
               type: 'server_vad',
-              threshold: 0.85,            // High threshold to avoid ambient noise triggers
-              prefix_padding_ms: 600,     // More buffer before detecting speech
-              silence_duration_ms: 1500,  // Wait longer before ending turn
+              threshold: 0.85,
+              prefix_padding_ms: 600,
+              silence_duration_ms: 1500,
               create_response: true
             },
-            // Register image generation tools
             tools: [
                 {
                 type: 'function',
@@ -611,27 +562,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             ]
           }
         }));
-        
-        // If this is a voice swap reconnect, trigger "new voice is ready" confirmation
-        if (isVoiceSwapReconnect) {
-          isVoiceSwapReconnect = false;
-          voiceSwapInProgress = false;
-          waitingForVoiceIntro = true; // Mark that we're waiting for the intro to finish
-          // Small delay to let session init complete before triggering response
-          setTimeout(() => {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({
-                type: 'conversation.item.create',
-                item: {
-                  type: 'message',
-                  role: 'user',
-                  content: [{ type: 'input_text', text: '[System: Voice changed. Say exactly "Okay, my new voice is ready!" in a natural, friendly way. Keep it short.]' }]
-                }
-              }));
-              ws.send(JSON.stringify({ type: 'response.create' }));
-            }
-          }, 500);
-        }
       };
 
       ws.onmessage = (event) => {
@@ -645,8 +575,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
-        // Don't immediately deactivate voice mode on WebSocket errors
-        // Let onclose handle reconnection logic instead
         globalConnecting = false;
       };
 
@@ -658,15 +586,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         toolCallsInFlight.clear();
         setIsConnected(false);
         
-        // If this close was triggered by a voice swap, do nothing --
-        // the voice swap setTimeout will handle reconnecting
-        if (voiceSwapInProgress || isVoiceSwapReconnect) {
-          console.log('WebSocket closed for voice swap, reconnect handled externally');
-          return;
-        }
-        
         // If voice mode is still active, attempt auto-reconnect
-        const { isActive } = useVoiceModeStore.getState();
+        const { isActive, setStatus } = useVoiceModeStore.getState();
         if (isActive && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttempts++;
           console.log(`Auto-reconnecting voice mode (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
@@ -692,7 +613,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       globalConnecting = false;
       globalWs = null;
       globalSessionId = null;
-      toolCallsInFlight.clear(); // Clear stale tool calls on connection failure
+      toolCallsInFlight.clear();
       optionsRef.current.onError?.('Failed to connect to voice service');
       setStatus('idle');
     }
@@ -702,18 +623,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     const { setStatus } = useVoiceModeStore.getState();
 
     // Reset reconnect state — this is an intentional disconnect
-    reconnectAttempts = MAX_RECONNECT_ATTEMPTS; // Prevent auto-reconnect on close
+    reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
     
-    // Cancel any pending voice swap
-    voiceSwapInProgress = false;
-    isVoiceSwapReconnect = false;
-    waitingForVoiceIntro = false;
-    pendingVoiceSwap = null;
-    useVoiceModeStore.getState().setIsVoiceSwapping(false);
-    if (voiceSwapSafetyTimer) { clearTimeout(voiceSwapSafetyTimer); voiceSwapSafetyTimer = null; }
-    if (voiceSwapTimer) {
-      clearTimeout(voiceSwapTimer);
-      voiceSwapTimer = null;
+    // Clear phantom timer
+    if (phantomCheckTimer) {
+      clearTimeout(phantomCheckTimer);
+      phantomCheckTimer = null;
     }
     
     if (globalWs) {
@@ -733,10 +648,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   const sendAudio = useCallback((audioData: Int16Array) => {
     if (globalWs?.readyState !== WebSocket.OPEN) return;
     
-    // Suppress mic input during voice swap so user can't interrupt the intro
-    const { isVoiceSwapping } = useVoiceModeStore.getState();
-    if (isVoiceSwapping) return;
-    
     // Efficient base64 encoding — avoid per-byte string concatenation
     const bytes = new Uint8Array(audioData.buffer, audioData.byteOffset, audioData.byteLength);
     const CHUNK = 0x8000;
@@ -751,76 +662,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       audio: base64Audio
     }));
   }, []);
-
-  const updateVoice = useCallback((voice: VoiceName, announce: boolean = true) => {
-    const safeVoice = REALTIME_SUPPORTED_VOICES.includes(voice) ? voice : 'cedar';
-    console.log('Voice swap requested:', safeVoice, 'announce:', announce);
-    
-    // Debounce rapid voice changes - only execute the last one
-    pendingVoiceSwap = safeVoice;
-    
-    if (voiceSwapTimer) {
-      clearTimeout(voiceSwapTimer);
-    }
-    
-    voiceSwapTimer = setTimeout(() => {
-      const voiceToSwap = pendingVoiceSwap;
-      pendingVoiceSwap = null;
-      voiceSwapTimer = null;
-      
-      if (!voiceToSwap || voiceSwapInProgress) {
-        console.log('Voice swap skipped (already in progress or no pending swap)');
-        return;
-      }
-      
-      // Set the voice in the store so connect() picks it up
-      useVoiceModeStore.getState().setSelectedVoice(voiceToSwap);
-      
-      // If not connected, nothing to reconnect
-      if (!globalWs || globalWs.readyState !== WebSocket.OPEN) {
-        console.log('Not connected, voice will apply on next connect');
-        return;
-      }
-      
-      voiceSwapInProgress = true;
-      // Only announce ("my new voice is ready") when explicitly requested (mid-convo swap)
-      isVoiceSwapReconnect = announce;
-      if (announce) {
-        useVoiceModeStore.getState().setIsVoiceSwapping(true);
-        // Safety timeout: force-unlock picker if swap doesn't complete in 8s
-        if (voiceSwapSafetyTimer) clearTimeout(voiceSwapSafetyTimer);
-        voiceSwapSafetyTimer = setTimeout(() => {
-          console.warn('Voice swap safety timeout — force-unlocking picker');
-          useVoiceModeStore.getState().setIsVoiceSwapping(false);
-          waitingForVoiceIntro = false;
-          voiceSwapInProgress = false;
-          voiceSwapSafetyTimer = null;
-        }, 8000);
-      }
-      console.log('Performing voice swap disconnect→reconnect for:', voiceToSwap, announce ? '(with announcement)' : '(silent)');
-      
-      // Close existing connection (onclose will see voiceSwapInProgress and skip error logic)
-      if (globalWs) {
-        globalWs.close();
-        globalWs = null;
-      }
-      globalConnecting = false;
-      globalSessionId = null;
-      toolCallsInFlight.clear();
-      
-      // Reset reconnect state and reconnect with voice swap flag
-      setTimeout(() => {
-        reconnectAttempts = 0;
-        const { isActive } = useVoiceModeStore.getState();
-        if (isActive) {
-          connect(lastSystemPrompt || undefined);
-        } else {
-          voiceSwapInProgress = false;
-          isVoiceSwapReconnect = false;
-        }
-      }, 300);
-    }, 400); // 400ms debounce for rapid clicks
-  }, [connect]);
 
   // Sync connection state
   useEffect(() => {
@@ -837,7 +678,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   }, []);
 
   // Commit the current audio buffer and trigger AI response
-  // Used for "mute to handoff" - user mutes mic to signal end of turn
   const commitAudioAndRespond = useCallback(() => {
     if (globalWs?.readyState !== WebSocket.OPEN) return;
     
@@ -850,13 +690,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     
     console.log('Committing audio buffer and triggering response (mute handoff)');
     
-    // Commit the audio buffer (tells OpenAI the user is done speaking)
     globalWs.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
-    
-    // Trigger a response
     globalWs.send(JSON.stringify({ type: 'response.create' }));
     
-    // Update status to thinking while we wait
     setStatus('thinking');
     setHasPendingSpeech(false);
     
@@ -869,7 +705,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     
     console.log(`Sending ${isLiveCamera ? 'camera frame' : 'attached image'} to conversation`);
     
-    // Create a user message with the image
     globalWs.send(JSON.stringify({
       type: 'conversation.item.create',
       item: {
@@ -882,7 +717,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       }
     }));
     
-    // If it's a single attachment (not live camera), trigger a response
     if (!isLiveCamera) {
       globalWs.send(JSON.stringify({
         type: 'response.create'
@@ -896,7 +730,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     disconnect,
     sendAudio,
     sendImage,
-    updateVoice,
     cancelResponse,
     commitAudioAndRespond
   };

@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera, CameraOff, Paperclip, SwitchCamera, Check } from "lucide-react";
-import { useVoiceModeStore } from "@/store/useVoiceModeStore";
+import { useVoiceModeStore, VoiceName } from "@/store/useVoiceModeStore";
 import { useMusicStore } from "@/store/useMusicStore";
 import { useCallback, useRef, useEffect, useMemo, useState } from "react";
 import { VOICES, REALTIME_VOICES, VOICE_AVATARS } from "@/constants/voices";
@@ -15,6 +15,8 @@ let globalMuteHandoffHandler: (() => boolean) | null = null;
 let globalVideoRef: React.RefObject<HTMLVideoElement> | null = null;
 // Global ref for camera switch handler
 let globalSwitchCameraHandler: (() => void) | null = null;
+// Global ref for voice switch handler (save, deactivate, switch, reactivate)
+let globalVoiceSwitchHandler: ((voiceId: VoiceName) => Promise<void>) | null = null;
 
 export function setGlobalInterruptHandler(handler: (() => void) | null) {
   globalInterruptHandler = handler;
@@ -32,6 +34,10 @@ export function setGlobalSwitchCameraHandler(handler: (() => void) | null) {
   globalSwitchCameraHandler = handler;
 }
 
+export function setGlobalVoiceSwitchHandler(handler: ((voiceId: VoiceName) => Promise<void>) | null) {
+  globalVoiceSwitchHandler = handler;
+}
+
 // Waveform bar component for the audio visualizer
 function WaveformBar({ index, total, amplitude, status, isMuted }: {
   index: number;
@@ -46,8 +52,6 @@ function WaveformBar({ index, total, amplitude, status, isMuted }: {
   const center = total / 2;
   const distFromCenter = Math.abs(index - center) / center;
   
-  // Use continuous keyframe animation for speaking to keep bars alive
-  // even when amplitude values don't change frequently
   const isConnecting = status === 'connecting';
   const isSpeaking = status === 'speaking';
   const isThinking = status === 'thinking';
@@ -103,8 +107,6 @@ function WaveformBar({ index, total, amplitude, status, isMuted }: {
   }
   
   if (isSpeaking) {
-    // Decouple from real-time amplitude: use a high floor so bars never collapse
-    // between audio chunks. Amplitude adds extra intensity on top.
     const baseEnergy = 0.35;
     const amp = Math.max(amplitude, baseEnergy);
     const variance = Math.sin(index * 1.8) * 0.4 + 0.6;
@@ -185,11 +187,12 @@ export function VoiceModeOverlay() {
     attachedImagePreview,
     clearAttachment,
     setAttachedImage,
-    isVoiceSwapping,
   } = useVoiceModeStore();
 
   const { updateProfile } = useProfile();
   const [voicePickerOpen, setVoicePickerOpen] = useState(false);
+  const [pendingVoiceSwitch, setPendingVoiceSwitch] = useState<VoiceName | null>(null);
+  const [isSwitching, setIsSwitching] = useState(false);
 
   // File input ref for attachments
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -204,39 +207,33 @@ export function VoiceModeOverlay() {
     const isTasking = isSearching || isGeneratingImage;
     
     if (isTasking && !startedElevatorMusicRef.current) {
-      // Save current music state before switching
       const { currentTrack, isPlaying, handleTrackChange, setIsPlaying, audioRef } = useMusicStore.getState();
       previousTrackRef.current = currentTrack;
       wasPlayingRef.current = isPlaying;
       startedElevatorMusicRef.current = true;
       
-      // Switch to elevator track and play
       handleTrackChange('elevator');
-      // Start playing after track change settles
       setTimeout(() => {
         const { audioRef: audio } = useMusicStore.getState();
         if (audio) {
-          audio.volume = 0.3; // Lower volume during tasks
+          audio.volume = 0.3;
           audio.play().then(() => {
             useMusicStore.getState().setIsPlaying(true);
           }).catch(() => {});
         }
       }, 150);
     } else if (!isTasking && startedElevatorMusicRef.current) {
-      // Stop elevator music and restore previous state
       startedElevatorMusicRef.current = false;
       const { audioRef, handleTrackChange, setIsPlaying, volume } = useMusicStore.getState();
       
       if (audioRef) {
         audioRef.pause();
-        audioRef.volume = volume; // Restore original volume
+        audioRef.volume = volume;
       }
       setIsPlaying(false);
       
-      // Restore previous track
       if (previousTrackRef.current) {
         handleTrackChange(previousTrackRef.current);
-        // If music was playing before, resume it
         if (wasPlayingRef.current) {
           setTimeout(() => {
             const { audioRef: audio } = useMusicStore.getState();
@@ -257,7 +254,6 @@ export function VoiceModeOverlay() {
   const handleInterrupt = useCallback(() => {
     if (globalInterruptHandler) {
       console.log('Interrupt button pressed');
-      // Trigger haptic feedback on supported devices
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
@@ -268,18 +264,13 @@ export function VoiceModeOverlay() {
   // Handle mute toggle with handoff logic
   const handleMuteToggle = useCallback(() => {
     const wasUnmuted = !isMuted;
-    
-    // Toggle the mute state
     toggleMute();
     
-    // If user was unmuted (just muted now), check for pending speech handoff
     if (wasUnmuted && globalMuteHandoffHandler) {
-      // Small delay to ensure mute state is updated
       setTimeout(() => {
         const didHandoff = globalMuteHandoffHandler?.();
         if (didHandoff) {
           console.log('Mute triggered handoff to AI');
-          // Trigger haptic feedback to confirm handoff
           if (navigator.vibrate) {
             navigator.vibrate([30, 50, 30]);
           }
@@ -295,7 +286,6 @@ export function VoiceModeOverlay() {
     } else {
       activateCamera();
     }
-    // Haptic feedback
     if (navigator.vibrate) {
       navigator.vibrate(30);
     }
@@ -320,17 +310,11 @@ export function VoiceModeOverlay() {
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       console.error('Invalid file type:', file.type);
       return;
     }
-
-    // Create preview URL
     const previewUrl = URL.createObjectURL(file);
-
-    // Convert to base64
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = (reader.result as string).split(',')[1];
@@ -338,17 +322,31 @@ export function VoiceModeOverlay() {
       console.log('Image attached:', file.name);
     };
     reader.readAsDataURL(file);
-
-    // Reset input
     e.target.value = '';
   }, [setAttachedImage]);
 
+  // Handle voice switch confirmation
+  const handleConfirmVoiceSwitch = useCallback(async () => {
+    if (!pendingVoiceSwitch || isSwitching) return;
+    
+    setIsSwitching(true);
+    setVoicePickerOpen(false);
+    
+    if (globalVoiceSwitchHandler) {
+      await globalVoiceSwitchHandler(pendingVoiceSwitch);
+    }
+    
+    setPendingVoiceSwitch(null);
+    setIsSwitching(false);
+  }, [pendingVoiceSwitch, isSwitching]);
+
+  const handleCancelVoiceSwitch = useCallback(() => {
+    setPendingVoiceSwitch(null);
+  }, []);
+
   if (!isActive) return null;
 
-  // Determine amplitude based on status
   const amplitude = status === 'speaking' ? outputAmplitude : (isMuted ? 0 : inputAmplitude);
-
-  // Check if interrupt button should be visible
   const showInterruptButton = status === 'speaking' || isAudioPlaying;
 
   const getStatusIcon = () => {
@@ -362,6 +360,7 @@ export function VoiceModeOverlay() {
   };
 
   const getStatusText = () => {
+    if (isSwitching) return 'Switching voice...';
     if (isSearching) return 'Searching the web...';
     if (isGeneratingImage) return 'Generating image...';
     if (isMuted) return 'Muted';
@@ -374,8 +373,11 @@ export function VoiceModeOverlay() {
     }
   };
   
-  // Check if any loading operation is in progress
   const isLoading = isGeneratingImage || isSearching;
+
+  const pendingVoiceInfo = pendingVoiceSwitch 
+    ? REALTIME_VOICES.find(v => v.id === pendingVoiceSwitch) 
+    : null;
 
   return (
     <AnimatePresence>
@@ -457,7 +459,7 @@ export function VoiceModeOverlay() {
               onChange={handleFileChange}
             />
 
-            {/* Mute button - also triggers handoff when muting after speaking */}
+            {/* Mute button */}
             <motion.button
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -479,7 +481,10 @@ export function VoiceModeOverlay() {
             </motion.button>
 
             {/* Voice picker button - bottom-left */}
-            <Popover open={voicePickerOpen} onOpenChange={setVoicePickerOpen}>
+            <Popover open={voicePickerOpen} onOpenChange={(open) => {
+              setVoicePickerOpen(open);
+              if (!open) setPendingVoiceSwitch(null);
+            }}>
               <PopoverTrigger asChild>
                 <motion.button
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -487,7 +492,10 @@ export function VoiceModeOverlay() {
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ delay: 0.18 }}
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute bottom-6 left-6 z-10 w-12 h-12 rounded-full overflow-hidden bg-black border-2 border-primary/40 shadow-lg hover:border-primary/70 transition-all"
+                  disabled={isSwitching}
+                  className={`absolute bottom-6 left-6 z-10 w-12 h-12 rounded-full overflow-hidden bg-black border-2 border-primary/40 shadow-lg hover:border-primary/70 transition-all ${
+                    isSwitching ? 'opacity-50 animate-pulse' : ''
+                  }`}
                   aria-label="Switch voice"
                 >
                   <img
@@ -504,55 +512,73 @@ export function VoiceModeOverlay() {
                 className="w-[360px] p-4 glass-panel border border-border/30 z-[110] rounded-2xl"
                 onClick={(e) => e.stopPropagation()}
               >
-                <p className="text-xs text-muted-foreground mb-3 font-medium">Switch voice</p>
-                <div className="flex flex-col gap-1.5 max-h-[340px] overflow-y-auto pr-1">
-                {REALTIME_VOICES.map((voice) => {
-                    const isSelected = selectedVoice === voice.id;
-                    return (
+                {/* Confirmation UI */}
+                {pendingVoiceSwitch && pendingVoiceInfo ? (
+                  <div className="flex flex-col items-center gap-4 py-2">
+                    <div className="w-16 h-16 rounded-full overflow-hidden bg-black shadow-[0_0_12px_4px_hsl(var(--primary)/0.5)]">
+                      <img src={VOICE_AVATARS[pendingVoiceSwitch]} alt={pendingVoiceInfo.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium">Switch to {pendingVoiceInfo.name}?</p>
+                      <p className="text-xs text-muted-foreground mt-1">This will save & start a new conversation.</p>
+                    </div>
+                    <div className="flex gap-3 w-full">
                       <button
-                        key={voice.id}
-                        disabled={isVoiceSwapping}
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          setSelectedVoice(voice.id);
-                          useVoiceModeStore.getState().addConversationTurn({
-                            role: 'assistant',
-                            transcript: 'Okay, my new voice is ready!',
-                            timestamp: new Date()
-                          });
-                          try {
-                            await updateProfile({ preferred_voice: voice.id });
-                          } catch (err) {
-                            console.error('Failed to persist voice:', err);
-                          }
-                        }}
-                        className={`flex items-center gap-3 p-2.5 rounded-xl transition-all w-full text-left ${
-                          isVoiceSwapping ? 'opacity-50 pointer-events-none' : ''
-                        } ${
-                          isSelected 
-                            ? 'bg-primary/10' 
-                            : 'hover:bg-muted/50'
-                        }`}
+                        onClick={handleCancelVoiceSwitch}
+                        className="flex-1 px-4 py-2 rounded-xl text-sm font-medium bg-muted/50 hover:bg-muted transition-colors"
                       >
-                        <div className={`w-10 h-10 flex-shrink-0 rounded-full overflow-hidden bg-black transition-shadow ${
-                          isSelected ? 'shadow-[0_0_12px_4px_hsl(var(--primary)/0.5)]' : ''
-                        }`}>
-                          <img src={VOICE_AVATARS[voice.id]} alt={voice.name} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-medium">{voice.name}</span>
-                            {voice.recommended && (
-                              <span className="text-[8px] px-1 rounded bg-green-500/20 text-green-400">Best</span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-muted-foreground truncate">{voice.description}</p>
-                        </div>
-                        {isSelected && <Check className="w-4 h-4 text-primary flex-shrink-0" />}
+                        Cancel
                       </button>
-                    );
-                  })}
-                </div>
+                      <button
+                        onClick={handleConfirmVoiceSwitch}
+                        className="flex-1 px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                      >
+                        Switch
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground mb-3 font-medium">Switch voice</p>
+                    <div className="flex flex-col gap-1.5 max-h-[340px] overflow-y-auto pr-1">
+                    {REALTIME_VOICES.map((voice) => {
+                        const isSelected = selectedVoice === voice.id;
+                        return (
+                          <button
+                            key={voice.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (voice.id !== selectedVoice) {
+                                setPendingVoiceSwitch(voice.id);
+                              }
+                            }}
+                            className={`flex items-center gap-3 p-2.5 rounded-xl transition-all w-full text-left ${
+                              isSelected 
+                                ? 'bg-primary/10' 
+                                : 'hover:bg-muted/50'
+                            }`}
+                          >
+                            <div className={`w-10 h-10 flex-shrink-0 rounded-full overflow-hidden bg-black transition-shadow ${
+                              isSelected ? 'shadow-[0_0_12px_4px_hsl(var(--primary)/0.5)]' : ''
+                            }`}>
+                              <img src={VOICE_AVATARS[voice.id]} alt={voice.name} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-medium">{voice.name}</span>
+                                {voice.recommended && (
+                                  <span className="text-[8px] px-1 rounded bg-green-500/20 text-green-400">Best</span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground truncate">{voice.description}</p>
+                            </div>
+                            {isSelected && <Check className="w-4 h-4 text-primary flex-shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </PopoverContent>
             </Popover>
 
@@ -569,7 +595,6 @@ export function VoiceModeOverlay() {
                   >
                     <div className="relative w-full max-w-[200px]">
                       <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-muted/30 border-2 border-primary/40 shadow-lg">
-                        {/* Video element for camera feed - populated by VoiceModeController */}
                         <video
                           ref={(el) => {
                             if (globalVideoRef && el) {
@@ -583,12 +608,10 @@ export function VoiceModeOverlay() {
                           className="w-full h-full object-cover"
                           style={{ transform: cameraFacingMode === 'user' ? 'scaleX(-1)' : 'none' }}
                         />
-                        {/* Camera indicator */}
                         <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-background/80 backdrop-blur-sm">
                           <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                           <span className="text-xs font-medium">LIVE</span>
                         </div>
-                        {/* Switch camera button */}
                         <motion.button
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
@@ -625,7 +648,6 @@ export function VoiceModeOverlay() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                       />
-                      {/* Dismiss button */}
                       <motion.button
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -666,7 +688,6 @@ export function VoiceModeOverlay() {
                             <Loader2 className="w-5 h-5 text-primary animate-spin" />
                           </div>
                         </div>
-                        {/* Shimmer effect */}
                         <motion.div
                           className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent"
                           animate={{ x: ['-100%', '100%'] }}
@@ -690,7 +711,6 @@ export function VoiceModeOverlay() {
                     className="mb-8 flex justify-center w-full"
                   >
                     {isGeneratingImage ? (
-                      // Loading skeleton
                       <div className="flex flex-col items-center w-full max-w-[200px]">
                         <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-muted/30 border border-primary/20">
                           <div className="absolute inset-0 flex items-center justify-center">
@@ -704,7 +724,6 @@ export function VoiceModeOverlay() {
                               <Loader2 className="w-5 h-5 text-primary animate-spin" />
                             </div>
                           </div>
-                          {/* Shimmer effect */}
                           <motion.div
                             className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent"
                             animate={{ x: ['-100%', '100%'] }}
@@ -714,7 +733,6 @@ export function VoiceModeOverlay() {
                         <p className="text-sm text-muted-foreground mt-3">Creating your image...</p>
                       </div>
                     ) : generatedImage ? (
-                      // Generated image
                       <div className="relative w-full max-w-[260px]">
                         <motion.img
                           src={generatedImage}
@@ -785,9 +803,9 @@ export function VoiceModeOverlay() {
                 )}
               </AnimatePresence>
 
-              {/* Status text - only show when generating image or searching */}
+              {/* Status text - only show when generating image, searching, or switching */}
               <AnimatePresence>
-                {(isGeneratingImage || isSearching) && (
+                {(isGeneratingImage || isSearching || isSwitching) && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -797,6 +815,8 @@ export function VoiceModeOverlay() {
                   >
                     {isGeneratingImage ? (
                       <ImageIcon className="w-4 h-4" />
+                    ) : isSwitching ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Search className="w-4 h-4" />
                     )}
@@ -805,7 +825,7 @@ export function VoiceModeOverlay() {
                 )}
               </AnimatePresence>
 
-              {/* Interrupt Button - compact, bottom-positioned */}
+              {/* Interrupt Button */}
               <AnimatePresence>
                 {showInterruptButton && (
                   <motion.button
