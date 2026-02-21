@@ -373,16 +373,31 @@ export function MobileChatApp() {
     }
   }, [currentSessionId]);
 
-  // Sync URL with current session - only update URL when explicitly creating/switching sessions
+  // Sync URL with current session - only when user explicitly creates/switches sessions
+  // Do NOT auto-navigate from `/` to `/chat/:id` on load — that causes the
+  // "Loading messages…" stuck state. Navigation only happens on user action
+  // (new chat, load session from history).
   useEffect(() => {
-    // Only navigate if we have a current session and we're on the home page
-    if (currentSessionId && window.location.pathname === "/") {
+    if (currentSessionId && messages.length > 0 && window.location.pathname === "/") {
       navigate(`/chat/${currentSessionId}`, { replace: true });
     }
-    // Note: navigate is a stable function reference from React Router and doesn't need to be in deps
-    // Adding it causes infinite loops (SecurityError: history.replaceState called >100 times)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSessionId]);
+  }, [currentSessionId, messages.length]);
+
+  // Hydration timeout: if loading messages takes >5s, give up and show welcome screen
+  const [hydrationTimedOut, setHydrationTimedOut] = useState(false);
+  useEffect(() => {
+    if (isHydratingSession && isHydratingSession === currentSessionId) {
+      setHydrationTimedOut(false);
+      const timer = setTimeout(() => {
+        setHydrationTimedOut(true);
+        console.warn('Hydration timed out for session:', currentSessionId);
+      }, 5000);
+      return () => clearTimeout(timer);
+    } else {
+      setHydrationTimedOut(false);
+    }
+  }, [isHydratingSession, currentSessionId]);
 
   // Track session loading state to skip animations when loading old chats
   const [isSessionLoading, setIsSessionLoading] = useState(false);
@@ -837,8 +852,8 @@ export function MobileChatApp() {
 
             {/* Empty state or hydrating state */}
             {messages.length === 0 ? (
-              isHydratingSession === currentSessionId ? (
-                // Show loading spinner while hydrating session messages
+              isHydratingSession === currentSessionId && !hydrationTimedOut ? (
+                // Show loading spinner while hydrating session messages (with 5s timeout)
                 <div className="flex flex-col items-center justify-center py-20 gap-4">
                   <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                   <p className="text-sm text-muted-foreground">Loading messages...</p>
