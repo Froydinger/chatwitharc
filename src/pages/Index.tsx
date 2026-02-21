@@ -19,6 +19,7 @@ export function Index() {
   const [onboardingComplete, setOnboardingComplete] = useState(false);
 
   // Load session from URL if present (priority: URL takes precedence)
+  // If on `/` with no sessionId param, clear currentSessionId so welcome screen shows
   useEffect(() => {
     if (!user || !isLoaded) return;
 
@@ -33,6 +34,10 @@ export function Index() {
         console.warn('Session from URL not found:', sessionId);
         navigate('/', { replace: true });
       }
+    } else if (currentSessionId) {
+      // Landing on `/` with no session in URL — clear persisted session
+      // so the welcome screen shows instead of "Loading messages..."
+      useArcStore.setState({ currentSessionId: null, messages: [] });
     }
     // Note: navigate and loadSession are stable and don't need to be in deps
   }, [sessionId, user, chatSessions, currentSessionId, isLoaded]);
