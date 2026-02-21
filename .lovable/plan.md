@@ -1,44 +1,42 @@
 
 
-## Voice Mode: Fix Silence Responses and Stuck Voice Picker
+## Fix Voice Mode: Silence Responses and Voice Switching
 
-### Problem Diagnosis
+### Overview
 
-There are **three distinct bugs** causing the current broken behavior:
-
----
-
-### Bug 1: Phantom Guard is Ineffective Against VAD False Positives (Responding to Silence)
-
-The phantom response guard at line 384 checks `userSpokeAfterLastResponse` to cancel AI responses triggered by ambient noise. But the guard is fundamentally bypassed because:
-
-1. VAD fires `input_audio_buffer.speech_started` on ambient noise (even with 0.85 threshold)
-2. This sets `userSpokeAfterLastResponse = true` (line 139)
-3. When OpenAI then creates a response, the guard sees `userSpokeAfterLastResponse === true` and lets it through
-4. The AI responds to nothing
-
-The guard only blocks responses where NO `speech_started` event preceded them, which is an extremely narrow case. For real ambient noise, the VAD triggers first, defeating the guard.
-
-**Fix:** Instead of relying on the VAD `speech_started` event, validate using actual transcription. Add a `hasRealTranscription` flag that only becomes `true` when a non-garbled, non-empty transcription arrives (line 148-169). Use this flag in the phantom guard instead of `userSpokeAfterLastResponse`. This means:
-- VAD fires on noise -> `userSpokeAfterLastResponse = true` (still useful for other logic)
-- But `hasRealTranscription` stays `false` until Whisper actually transcribes real words
-- Phantom guard checks `hasRealTranscription` instead -> cancels the noise-triggered response
+Two changes:
+1. **Smarter phantom guard** to stop responding to ambient noise without breaking real speech detection
+2. **Replace voice hot-swap with "new chat" approach** -- selecting a new voice saves the current conversation, ends the session, and starts a fresh one with the new voice (with a confirmation step)
 
 ---
 
-### Bug 2: Voice Picker Uses Non-Reactive State Read (Can't Change Voice)
+### Part 1: Fix Silence/Noise Responses
 
-In `VoiceModeOverlay.tsx` line 510, the voice picker reads `isVoiceSwapping` via `useVoiceModeStore.getState()` inside a `.map()` render callback. This is a **non-reactive snapshot** -- it reads the value once during render and never updates. If `isVoiceSwapping` gets stuck as `true` (see Bug 3 below), the buttons stay permanently disabled with `opacity-50 pointer-events-none`, and the component never re-renders to check the updated value.
+**Root cause:** The phantom guard at `response.created` uses `userSpokeAfterLastResponse || hasRealTranscription` to decide whether to allow a response. Since VAD fires on ambient noise and sets `userSpokeAfterLastResponse = true`, the guard always lets noise-triggered responses through.
 
-**Fix:** Read `isVoiceSwapping` reactively from the store hook at the component level (using `useVoiceModeStore()`) instead of `getState()` inside the map loop.
+**Fix:** Add a **delayed verification** instead of an immediate allow/cancel decision:
+- At `response.created`, if VAD flagged speech but no transcription has arrived yet, start a 2-second timer
+- If `hasRealTranscription` becomes true within that window (Whisper confirmed real words), do nothing -- response proceeds
+- If the timer fires and `hasRealTranscription` is still false, cancel the response
+- Responses from tools or voice intro bypass this check entirely (unchanged)
 
----
+This gives Whisper enough time to process real speech while still catching noise.
 
-### Bug 3: `isVoiceSwapping` Can Get Stuck Forever
+### Part 2: Voice Switching as "New Chat"
 
-`isVoiceSwapping` is set to `true` when a voice swap starts (line 760) and should be set back to `false` when the intro response finishes (lines 400-417). But if anything interrupts this flow -- network hiccup, WebSocket close during swap, or the response being cancelled -- the unlock code in `response.done` never runs, and `isVoiceSwapping` stays `true` forever, permanently locking the picker.
+**Current approach (broken):** Disconnect WebSocket, reconnect with new voice, inject "my new voice is ready" system message, wait for audio playback. Multiple failure points cause the intro to never play or the voice to not actually change.
 
-**Fix:** Add a safety timeout (e.g., 8 seconds) that automatically resets `isVoiceSwapping` to `false` if the swap hasn't completed. This ensures the picker is never permanently locked.
+**New approach:** Treat voice changes as starting a new conversation:
+1. User taps a voice in the picker
+2. A confirmation step appears: "Switch to [Voice Name]? This will start a new conversation." with Cancel/Switch buttons
+3. On confirm:
+   - Save current conversation turns to chat history (reuses existing `saveNewTurns`)
+   - Deactivate voice mode (triggers full cleanup)
+   - Set the new voice in the store and persist to profile
+   - After a brief delay, re-activate voice mode (starts fresh session with new voice)
+4. Toast notification confirms: "Switched to [Voice Name]"
+
+This eliminates the entire hot-swap lifecycle (disconnect-reconnect-intro-audio-drain-unlock), the `isVoiceSwapping` lock, and the safety timer. Much simpler and more reliable.
 
 ---
 
@@ -46,62 +44,43 @@ In `VoiceModeOverlay.tsx` line 510, the voice picker reads `isVoiceSwapping` via
 
 | File | Change |
 |------|--------|
-| `src/hooks/useOpenAIRealtime.tsx` | Replace `userSpokeAfterLastResponse` with `hasRealTranscription` in phantom guard; add safety timeout for voice swap unlock |
-| `src/components/VoiceModeOverlay.tsx` | Read `isVoiceSwapping` reactively from store hook instead of `getState()` |
+| `src/hooks/useOpenAIRealtime.tsx` | Add delayed phantom cancel timer; remove voice swap locking logic (no longer needed) |
+| `src/components/VoiceModeOverlay.tsx` | Replace voice picker direct-select with confirmation UI; handle deactivate-switch-reactivate flow |
+| `src/components/VoiceModeController.tsx` | Remove `updateVoice` effect and hot-swap wiring; simplify voice change to just work on next activation |
 
 ---
 
 ### Technical Details
 
-**Transcription-based phantom guard** (`useOpenAIRealtime.tsx`):
+**Delayed phantom guard** (`useOpenAIRealtime.tsx`):
+- Add module-level `let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;`
+- In `response.created` handler:
+  - If `waitingForVoiceIntro` or `awaitingToolResponse` -- allow immediately (unchanged)
+  - If `hasRealTranscription` -- allow immediately
+  - If `!userSpokeAfterLastResponse && !hasRealTranscription` -- cancel immediately (no speech at all)
+  - If `userSpokeAfterLastResponse && !hasRealTranscription` -- start 2s timer; on expiry if still no transcription, cancel response
+- In `conversation.item.input_audio_transcription.completed`: when `hasRealTranscription` is set to true, clear the phantom timer (speech confirmed)
+- In `response.done`: clear the phantom timer
 
-```text
-Add module-level flag:
-  let hasRealTranscription = false;
+**Voice picker confirmation** (`VoiceModeOverlay.tsx`):
+- Add `pendingVoiceSwitch` state to hold the voice the user tapped
+- When a voice is tapped, set `pendingVoiceSwitch` instead of immediately switching
+- Show inline confirmation UI (two buttons: Cancel / Switch) replacing the voice list momentarily
+- On "Switch": call a handler that saves turns, deactivates, sets new voice, waits 500ms, re-activates
+- On "Cancel": clear `pendingVoiceSwitch`, return to voice list
 
-In 'input_audio_buffer.speech_started' handler:
-  Keep setting userSpokeAfterLastResponse = true (used for mute-handoff)
+**Simplify controller** (`VoiceModeController.tsx`):
+- Remove the `useEffect` that watches `selectedVoice` changes and calls `updateVoice`
+- Remove `isFirstVoiceChangeRef` and `previousVoiceRef` tracking
+- The voice is simply read from the store at connection time (already works this way in `connect()`)
+- Remove `updateVoice` from the destructured hook return (or keep it but never call it)
 
-In 'conversation.item.input_audio_transcription.completed' handler:
-  After garbled check passes and transcript is non-empty:
-    hasRealTranscription = true;
-
-In 'response.created' handler:
-  Change guard check from:
-    if (!userSpokeAfterLastResponse)  -->  if (!hasRealTranscription)
-
-In 'response.done' handler:
-  Reset both:
-    userSpokeAfterLastResponse = false;
-    hasRealTranscription = false;
-```
-
-**Reactive voice picker** (`VoiceModeOverlay.tsx`):
-
-```text
-Move isVoiceSwapping read outside the .map():
-  const { isVoiceSwapping } = useVoiceModeStore();
-  // or destructure from existing store usage at top of component
-
-Remove the getState() call on line 510.
-```
-
-**Safety timeout for voice swap** (`useOpenAIRealtime.tsx`):
-
-```text
-Add module-level:
-  let voiceSwapSafetyTimer: ReturnType<typeof setTimeout> | null = null;
-
-When setting isVoiceSwapping(true):
-  Start safety timer:
-    voiceSwapSafetyTimer = setTimeout(() => {
-      useVoiceModeStore.getState().setIsVoiceSwapping(false);
-      waitingForVoiceIntro = false;
-      voiceSwapInProgress = false;
-    }, 8000);
-
-When setting isVoiceSwapping(false) (in response.done and disconnect):
-  Clear the safety timer:
-    if (voiceSwapSafetyTimer) { clearTimeout(voiceSwapSafetyTimer); voiceSwapSafetyTimer = null; }
-```
+**Cleanup in `useOpenAIRealtime.tsx`:**
+- Remove `voiceSwapInProgress`, `voiceSwapTimer`, `pendingVoiceSwap`, `isVoiceSwapReconnect`, `waitingForVoiceIntro`, `voiceSwapSafetyTimer` module-level variables
+- Remove `updateVoice` callback entirely (or simplify to a no-op)
+- Remove voice swap handling from `ws.onopen` (the `isVoiceSwapReconnect` block)
+- Remove voice swap check from `ws.onclose`
+- Remove `isVoiceSwapping` suppression from `sendAudio`
+- Remove `waitingForVoiceIntro` checks from phantom guard and `response.done`
+- This removes ~80 lines of complex state management
 
