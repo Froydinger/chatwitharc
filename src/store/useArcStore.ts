@@ -1156,9 +1156,9 @@ export const useArcStore = create<ArcState>()(
     }),
     {
       name: 'arc-ai-storage',
-      partialize: (state) => ({
-        currentSessionId: state.currentSessionId, // Persist current session for reload
-        // Cloud-only: no local storage backup for messages
+      partialize: () => ({
+        // Cloud-only: no local storage backup needed
+        // currentSessionId intentionally NOT persisted — always start fresh on reload
       })
     }
   )
