@@ -1,39 +1,27 @@
 
 
-## Fix: "Loading messages..." Stuck on App Load
-
-### Problem
-When you open the app, instead of seeing the new chat welcome screen, you see a "Loading messages..." spinner indefinitely. You have to manually click "New chat" to get past it.
+## Fix: "Loading messages..." Still Showing on Fresh Login
 
 ### Root Cause
-The app persists the last active chat session ID in local storage. On reload:
-1. The stored session ID is restored before any data is fetched
-2. The app auto-navigates from `/` to `/chat/{lastSessionId}` 
-3. It tries to fetch ("hydrate") that session's messages from the cloud
-4. While fetching, it shows "Loading messages..." with an empty message list
-5. If the fetch is slow or fails, you're stuck on that spinner
 
-### Fix (2 changes)
+The previous fix in `Index.tsx` clears `currentSessionId` when landing on `/`, but it runs **too late**. Here's the race condition:
 
-**1. Don't auto-resume the last session on fresh load**
-- In `MobileChatApp.tsx`, remove the effect that auto-navigates from `/` to `/chat/{currentSessionId}` when the user lands on the home page
-- Instead, clear `currentSessionId` when the user is on `/` with no explicit session in the URL -- this shows the welcome screen immediately
-- Sessions are still loaded when you click on them in chat history
+1. User logs in -- `currentSessionId` is restored from localStorage (it's persisted via zustand `partialize`)
+2. `syncFromSupabase()` runs and sees a `currentSessionId` in state
+3. It calls `hydrateSession(currentSessionId)` which sets `isHydratingSession` -- this triggers the "Loading messages..." spinner
+4. Sync finishes, `isLoaded` becomes true
+5. **Now** Index.tsx runs and clears `currentSessionId` -- but the hydration spinner is already showing
 
-**2. Add a hydration timeout fallback**
-- In `MobileChatApp.tsx`, if hydration takes longer than 5 seconds, stop showing "Loading messages..." and fall back to the welcome screen
-- This prevents the user from ever getting permanently stuck
+### Fix
 
-### Files to Change
+**Stop persisting `currentSessionId` to localStorage.** Since the design intent is to always show the welcome screen on fresh load (not auto-resume), there's no reason to persist it. Sessions are resumed explicitly via URL navigation or clicking in chat history.
 
-| File | What |
-|------|------|
-| `src/pages/Index.tsx` | Clear `currentSessionId` when landing on `/` with no session param, so the welcome screen shows |
-| `src/components/MobileChatApp.tsx` | Remove the auto-navigate effect (line ~377-385) that pushes to `/chat/:id` on load; add hydration timeout fallback |
+### Changes
 
-### How It Works After the Fix
-- Opening the app at `/` always shows the welcome screen with quick prompts
-- Clicking a chat in history navigates to `/chat/{id}` and loads it normally
-- If you bookmark or reload `/chat/{id}`, that specific session loads (with a 5s timeout safety net)
-- No more getting stuck on "Loading messages..."
+| File | Change |
+|------|--------|
+| `src/store/useArcStore.ts` | Remove `currentSessionId` from the `partialize` config (line 1160). This means on fresh load, `currentSessionId` is always `null`, the welcome screen shows immediately, and `syncFromSupabase` won't trigger hydration. |
+| `src/pages/Index.tsx` | Remove the `else if (currentSessionId)` cleanup block (lines 37-39) since it's no longer needed -- `currentSessionId` won't be stale on load anymore. |
+
+This is a one-line fix at the store level that eliminates the race condition entirely.
 
