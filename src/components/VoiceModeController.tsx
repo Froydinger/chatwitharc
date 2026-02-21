@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import { useVoiceModeStore, REALTIME_SUPPORTED_VOICES } from '@/store/useVoiceModeStore';
+import { useVoiceModeStore, REALTIME_SUPPORTED_VOICES, VoiceName } from '@/store/useVoiceModeStore';
 import { useOpenAIRealtime } from '@/hooks/useOpenAIRealtime';
 import { useAudioCapture } from '@/hooks/useAudioCapture';
 import { useAudioPlayback } from '@/hooks/useAudioPlayback';
@@ -13,7 +13,8 @@ import {
   setGlobalInterruptHandler, 
   setGlobalMuteHandoffHandler, 
   setGlobalVideoRef,
-  setGlobalSwitchCameraHandler 
+  setGlobalSwitchCameraHandler,
+  setGlobalVoiceSwitchHandler
 } from './VoiceModeOverlay';
 
 const aiService = new AIService();
@@ -27,17 +28,15 @@ async function searchAllPastChats(query: string): Promise<string> {
     console.log('⚡ Using fast database-level search for:', query);
     const startTime = Date.now();
 
-    // Use database function for fast full-text search (searches at DB level, not client)
     const { data: sessions, error } = await supabase
       .rpc('search_chat_sessions', {
         search_query: query,
         searching_user_id: user.id,
-        max_sessions: 100 // Get top 100 matching sessions
+        max_sessions: 100
       });
 
     if (error) {
       console.error('Fast search failed, falling back:', error);
-      // Fallback to basic search if RPC fails
       return await fallbackSearch(query, user.id);
     }
 
@@ -47,11 +46,10 @@ async function searchAllPastChats(query: string): Promise<string> {
       return `I searched through your conversations but didn't find anything specifically about "${query}".`;
     }
 
-    // Build context from pre-filtered sessions (already relevant!)
     const relevantSessions: string[] = [];
     let totalMessages = 0;
     let totalCharacters = 0;
-    const CHARACTER_BUDGET = 500000; // ~125k tokens - safe for all models
+    const CHARACTER_BUDGET = 500000;
 
     for (const session of sessions) {
       const messages = Array.isArray(session.messages) ? session.messages : [];
@@ -60,7 +58,6 @@ async function searchAllPastChats(query: string): Promise<string> {
       const sessionDate = new Date(session.updated_at).toLocaleDateString();
       const sessionTitle = session.title || 'Untitled Chat';
 
-      // Include full messages - no truncation
       const messagesSummary = messages
         .filter((m: any) => m.content && m.content.length > 5)
         .map((m: any) => {
@@ -92,7 +89,6 @@ async function searchAllPastChats(query: string): Promise<string> {
   }
 }
 
-// Fallback search if database function isn't available
 async function fallbackSearch(query: string, userId: string): Promise<string> {
   console.log('Using fallback client-side search');
   
@@ -101,7 +97,7 @@ async function fallbackSearch(query: string, userId: string): Promise<string> {
     .select('title, messages, updated_at')
     .eq('user_id', userId)
     .order('updated_at', { ascending: false })
-    .limit(50); // Smaller limit for fallback
+    .limit(50);
 
   if (error || !sessions || sessions.length === 0) {
     return 'No past conversations found to search through.';
@@ -138,13 +134,11 @@ async function fallbackSearch(query: string, userId: string): Promise<string> {
     : `No conversations found about "${query}".`;
 }
 
-// Build a voice-optimized system prompt from the same source as regular chat
 async function buildVoiceSystemPrompt(
   profile: { display_name?: string | null; context_info?: string | null; memory_info?: string | null } | null,
   recentChatSummary: string
 ): Promise<string> {
   try {
-    // Fetch admin settings and context blocks in parallel
     const { data: { user } } = await supabase.auth.getUser();
     const [settingsResult, contextBlocksResult] = await Promise.all([
       supabase
@@ -169,10 +163,8 @@ async function buildVoiceSystemPrompt(
     let basePrompt = settings.system_prompt || 'You are Arc AI, a helpful assistant.';
     const globalContext = settings.global_context || '';
 
-    // Add voice-specific adaptations while keeping the same personality
     let voicePrompt = basePrompt;
     
-    // Add voice mode context - relaxed, casual tone
     voicePrompt += `\n\n--- VOICE MODE ---
 This is a chill voice chat. Drop the formality, just talk like you're hanging with a friend:
 - Be casual and real - say "yeah" not "yes", "gonna" not "going to", etc.
@@ -182,14 +174,12 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
 - Don't over-explain or be preachy. Just chat.
 - Silence is fine. You don't need to fill every gap.`;
 
-    // Add user context (same as regular chat)
     if (profile?.display_name) {
       voicePrompt += `\n\nUser: ${profile.display_name}`;
     }
     if (profile?.context_info?.trim()) {
       voicePrompt += ` | Context: ${profile.context_info}`;
     }
-    // Add context blocks
     if (contextBlocksResult.data && contextBlocksResult.data.length > 0) {
       const blocksText = contextBlocksResult.data.map((b: any) => b.content).join('\n');
       voicePrompt += `\n\n🧠 Remembered Context:\n${blocksText}`;
@@ -201,12 +191,10 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
       voicePrompt += `\n\nGlobal: ${globalContext}`;
     }
 
-    // Add recent chat context if available (current session)
     if (recentChatSummary) {
       voicePrompt += `\n\n--- CURRENT SESSION CONTEXT ---\n${recentChatSummary}`;
     }
 
-    // Add voice-specific tools
     voicePrompt += `\n\n--- VOICE TOOLS ---
 CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
 
@@ -219,7 +207,6 @@ CRITICAL: Always say something BEFORE using any tool so the user isn't left in s
   - Past topics or discussions
   This searches ALL past chats dynamically.`;
 
-    // Add vision capabilities section
     voicePrompt += `\n\n--- VISION CAPABILITIES ---
 When the user shares their camera or attaches an image:
 • You can see what they're showing you through images sent to this conversation
@@ -238,22 +225,17 @@ If a user says something like "edit this" or asks to modify an image:
     return voicePrompt;
   } catch (error) {
     console.error('Failed to fetch voice system prompt:', error);
-    // Fallback to a sensible default
     return `You're Arc - a calm, friendly voice assistant. Be warm, conversational, and keep responses concise.`;
   }
 }
 
-// Summarize recent chat messages for context
 function summarizeRecentChats(messages: Message[], maxMessages = 20): string {
   if (!messages || messages.length === 0) return '';
   
-  // Get the last N messages
   const recent = messages.slice(-maxMessages);
   
-  // Create a brief summary
   const summary = recent.map(msg => {
     const role = msg.role === 'user' ? 'User' : 'You';
-    // Truncate long messages
     const content = msg.content.length > 200 
       ? msg.content.substring(0, 200) + '...'
       : msg.content;
@@ -269,12 +251,13 @@ let savedTurnIndex = 0;
 export function VoiceModeController() {
   const { toast } = useToast();
   const { addMessage, messages } = useArcStore();
-  const { profile } = useProfile();
+  const { profile, updateProfile } = useProfile();
   const {
     isActive,
     selectedVoice,
     setSelectedVoice,
     deactivateVoiceMode,
+    activateVoiceMode,
     setGeneratedImage,
     setIsGeneratingImage,
     setLastGeneratedImageUrl,
@@ -284,7 +267,6 @@ export function VoiceModeController() {
   // Sync preferred_voice from profile to store on load
   useEffect(() => {
     if (profile?.preferred_voice && profile.preferred_voice !== selectedVoice) {
-      // Validate it's a known voice
       if (REALTIME_SUPPORTED_VOICES.includes(profile.preferred_voice as any)) {
         setSelectedVoice(profile.preferred_voice as any);
       }
@@ -294,8 +276,6 @@ export function VoiceModeController() {
   // Track initialization to prevent duplicate setup
   const initRef = useRef(false);
   const wasActiveRef = useRef(false);
-  const previousVoiceRef = useRef(selectedVoice);
-  const isFirstVoiceChangeRef = useRef(true);
   
   // Abort controller for cancelling pending operations
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -306,17 +286,16 @@ export function VoiceModeController() {
   // Audio playback for AI responses
   const { queueAudio, stopPlayback, clearQueue } = useAudioPlayback();
 
-  // Image generation handler - with aspect ratio support, always uses Gemini 3 Pro
+  // Image generation handler
   const handleImageGenerate = useCallback(async (prompt: string, aspectRatio?: string): Promise<string> => {
     console.log('VoiceModeController: Generating image with prompt:', prompt, 'aspect ratio:', aspectRatio);
     setIsGeneratingImage(true);
     
     try {
-      // Force Gemini 3 Pro for voice mode image generation (pass undefined to use default Pro)
       const imageUrl = await aiService.generateImage(prompt, undefined, aspectRatio);
       console.log('VoiceModeController: Image generated:', imageUrl);
       setGeneratedImage(imageUrl);
-      setLastGeneratedImageUrl(imageUrl); // Track for attaching to conversation
+      setLastGeneratedImageUrl(imageUrl);
       setIsGeneratingImage(false);
       return imageUrl;
     } catch (error) {
@@ -332,11 +311,10 @@ export function VoiceModeController() {
     setGeneratedImage(null);
   }, [setGeneratedImage]);
 
-  // Web search handler with abort support - NO music
+  // Web search handler with abort support
   const handleWebSearch = useCallback(async (query: string): Promise<string> => {
     console.log('VoiceModeController: Web search for:', query);
     
-    // Check if voice mode is still active before starting
     if (!useVoiceModeStore.getState().isActive) {
       console.log('Voice mode inactive, aborting search');
       return 'Search cancelled.';
@@ -344,15 +322,12 @@ export function VoiceModeController() {
     
     setIsSearching(true);
     
-    // Create new abort controller for this search
     abortControllerRef.current = new AbortController();
     
     try {
-      // Call the chat function with forceWebSearch to get real-time results
-      // Use a timeout to prevent hanging
       const timeoutId = setTimeout(() => {
         abortControllerRef.current?.abort();
-      }, 30000); // 30 second timeout
+      }, 30000);
       
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
@@ -363,7 +338,6 @@ export function VoiceModeController() {
       
       clearTimeout(timeoutId);
       
-      // Check if voice mode is still active after search completes
       if (!useVoiceModeStore.getState().isActive) {
         console.log('Voice mode deactivated during search, discarding results');
         setIsSearching(false);
@@ -374,11 +348,9 @@ export function VoiceModeController() {
       
       if (error) {
         console.error('Web search error:', error);
-        // Return error message instead of throwing - keeps voice mode alive
         return `I couldn't complete the search right now. The error was: ${error.message}. Would you like me to try again?`;
       }
       
-      // Return the AI's response which includes web search results
       const response = data?.choices?.[0]?.message?.content || 'No results found for that search.';
       console.log('VoiceModeController: Web search complete');
       return response;
@@ -386,7 +358,6 @@ export function VoiceModeController() {
       console.error('VoiceModeController: Web search failed:', error);
       setIsSearching(false);
       
-      // Return error message instead of throwing - keeps voice mode alive
       if (error.name === 'AbortError') {
         return 'The search took too long and was cancelled. Would you like me to try a simpler search?';
       }
@@ -394,11 +365,10 @@ export function VoiceModeController() {
     }
   }, [setIsSearching]);
 
-  // Past chats search handler - dynamic search through all history
+  // Past chats search handler
   const handleSearchPastChats = useCallback(async (query: string): Promise<string> => {
     console.log('VoiceModeController: Searching past chats for:', query);
 
-    // Check if voice mode is still active before starting
     if (!useVoiceModeStore.getState().isActive) {
       console.log('Voice mode inactive, aborting past chat search');
       return 'Search cancelled.';
@@ -419,12 +389,11 @@ export function VoiceModeController() {
   }, [setIsSearching]);
 
   // OpenAI Realtime connection
-  const { isConnected, connect, disconnect, sendAudio, sendImage, updateVoice, cancelResponse, commitAudioAndRespond } = useOpenAIRealtime({
+  const { isConnected, connect, disconnect, sendAudio, sendImage, cancelResponse, commitAudioAndRespond } = useOpenAIRealtime({
     onAudioData: (audioData) => {
       queueAudio(audioData);
     },
     onInterrupt: () => {
-      // User interrupted - clear any queued audio immediately
       console.log('Clearing audio queue due to interruption');
       clearQueue();
     },
@@ -445,41 +414,38 @@ export function VoiceModeController() {
 
   // Track when we last sent a camera frame to throttle
   const lastFrameSentRef = useRef<number>(0);
-  const MIN_FRAME_INTERVAL_MS = 2000; // Send at most every 2 seconds
+  const MIN_FRAME_INTERVAL_MS = 2000;
 
-  // Camera frame handler - sends frames to OpenAI for vision
+  // Camera frame handler
   const handleCameraFrame = useCallback((base64Image: string) => {
-    // Throttle frame sending
     const now = Date.now();
     if (now - lastFrameSentRef.current < MIN_FRAME_INTERVAL_MS) return;
     lastFrameSentRef.current = now;
     
-    // Only send if connected
     if (isConnected) {
       console.log('Sending camera frame to AI');
-      sendImage(base64Image, true); // isLiveCamera = true
+      sendImage(base64Image, true);
     }
   }, [isConnected, sendImage]);
 
   // Camera capture hook
   const { videoRef, switchCamera, stopCapture: stopCameraCapture } = useCameraCapture({
     onFrame: handleCameraFrame,
-    frameRate: 2, // 2 fps
-    maxSize: 512, // Max 512px on longest edge
-    quality: 0.7, // 70% JPEG quality
+    frameRate: 2,
+    maxSize: 512,
+    quality: 0.7,
   });
 
   // Export commitAudioAndRespond for the overlay's mute button to use
   const commitAudioAndRespondRef = useRef(commitAudioAndRespond);
   commitAudioAndRespondRef.current = commitAudioAndRespond;
 
-  // Manual interrupt handler for the big centered button
+  // Manual interrupt handler
   const handleManualInterrupt = useCallback(() => {
     console.log('Manual interrupt triggered via button');
     cancelResponse();
     clearQueue();
     stopPlayback();
-    // Reset ALL relevant states to properly resume listening
     const store = useVoiceModeStore.getState();
     store.setStatus('listening');
     store.setIsAudioPlaying(false);
@@ -487,62 +453,29 @@ export function VoiceModeController() {
     store.setIsSearching(false);
   }, [cancelResponse, clearQueue, stopPlayback]);
 
-  // Register the interrupt handler globally so VoiceModeOverlay button can use it
+  // Register the interrupt handler globally
   useLayoutEffect(() => {
     setGlobalInterruptHandler(handleManualInterrupt);
-    return () => {
-      setGlobalInterruptHandler(null);
-    };
+    return () => { setGlobalInterruptHandler(null); };
   }, [handleManualInterrupt]);
 
   // Register the mute-handoff handler globally
   useLayoutEffect(() => {
     setGlobalMuteHandoffHandler(commitAudioAndRespond);
-    return () => {
-      setGlobalMuteHandoffHandler(null);
-    };
+    return () => { setGlobalMuteHandoffHandler(null); };
   }, [commitAudioAndRespond]);
 
   // Register the video ref globally for the overlay to display
   useLayoutEffect(() => {
     setGlobalVideoRef(videoRef);
-    return () => {
-      setGlobalVideoRef(null);
-    };
+    return () => { setGlobalVideoRef(null); };
   }, [videoRef]);
 
   // Register the switch camera handler globally
   useLayoutEffect(() => {
     setGlobalSwitchCameraHandler(switchCamera);
-    return () => {
-      setGlobalSwitchCameraHandler(null);
-    };
+    return () => { setGlobalSwitchCameraHandler(null); };
   }, [switchCamera]);
-
-  // Handle attached image - send to AI when attached
-  const { attachedImage, clearAttachment } = useVoiceModeStore();
-  const sentAttachmentRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    // When a new attachment is added, send it to the AI
-    if (attachedImage && attachedImage !== sentAttachmentRef.current && isConnected) {
-      console.log('Sending attached image to AI');
-      sendImage(attachedImage, false); // isLiveCamera = false (triggers response)
-      sentAttachmentRef.current = attachedImage;
-    }
-    
-    // Reset ref when attachment is cleared
-    if (!attachedImage) {
-      sentAttachmentRef.current = null;
-    }
-  }, [attachedImage, isConnected, sendImage]);
-
-  // Audio capture from microphone
-  const { startCapture, stopCapture } = useAudioCapture({
-    onAudioData: (audioData) => {
-      sendAudio(audioData);
-    },
-  });
 
   // Incremental save: persist new turns since last save
   const saveNewTurns = useCallback(async (final: boolean = false) => {
@@ -585,6 +518,71 @@ export function VoiceModeController() {
     return turnsToSave.length;
   }, [addMessage]);
 
+  // Voice switch handler: save turns, deactivate, switch voice, reactivate
+  const handleVoiceSwitch = useCallback(async (newVoice: VoiceName) => {
+    console.log('Voice switch requested:', newVoice);
+    
+    // 1. Save current conversation turns
+    await saveNewTurns(true);
+    const turnCount = savedTurnIndex;
+    
+    // 2. Deactivate voice mode (triggers full cleanup via the isActive effect)
+    deactivateVoiceMode();
+    
+    // 3. Set the new voice and persist
+    setSelectedVoice(newVoice);
+    try {
+      await updateProfile({ preferred_voice: newVoice });
+    } catch (err) {
+      console.error('Failed to persist voice:', err);
+    }
+    
+    // 4. Wait for cleanup to complete, then reactivate
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    activateVoiceMode();
+    
+    const voiceName = REALTIME_SUPPORTED_VOICES.includes(newVoice) 
+      ? newVoice.charAt(0).toUpperCase() + newVoice.slice(1)
+      : newVoice;
+    
+    toast({
+      title: `Switched to ${voiceName}`,
+      description: turnCount > 0 
+        ? `Previous conversation saved (${turnCount} messages)`
+        : 'Starting fresh conversation',
+    });
+  }, [saveNewTurns, deactivateVoiceMode, setSelectedVoice, activateVoiceMode, updateProfile, toast]);
+
+  // Register voice switch handler globally
+  useLayoutEffect(() => {
+    setGlobalVoiceSwitchHandler(handleVoiceSwitch);
+    return () => { setGlobalVoiceSwitchHandler(null); };
+  }, [handleVoiceSwitch]);
+
+  // Handle attached image
+  const { attachedImage, clearAttachment } = useVoiceModeStore();
+  const sentAttachmentRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (attachedImage && attachedImage !== sentAttachmentRef.current && isConnected) {
+      console.log('Sending attached image to AI');
+      sendImage(attachedImage, false);
+      sentAttachmentRef.current = attachedImage;
+    }
+    
+    if (!attachedImage) {
+      sentAttachmentRef.current = null;
+    }
+  }, [attachedImage, isConnected, sendImage]);
+
+  // Audio capture from microphone
+  const { startCapture, stopCapture } = useAudioCapture({
+    onAudioData: (audioData) => {
+      sendAudio(audioData);
+    },
+  });
+
   // Single effect to handle activation/deactivation
   useEffect(() => {
     const justActivated = isActive && !wasActiveRef.current;
@@ -594,7 +592,7 @@ export function VoiceModeController() {
 
     if (justActivated && !initRef.current) {
       initRef.current = true;
-      savedTurnIndex = 0; // Reset save pointer for new session
+      savedTurnIndex = 0;
       
       const initVoiceMode = async () => {
         try {
@@ -625,25 +623,21 @@ export function VoiceModeController() {
     if (justDeactivated && initRef.current) {
       console.log('Deactivating voice mode...');
       
-      // Abort any pending operations first
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
       
-      // Stop auto-save interval
       if (autoSaveIntervalRef.current) {
         clearInterval(autoSaveIntervalRef.current);
         autoSaveIntervalRef.current = null;
       }
       
-      // Stop all captures
       stopCapture();
       stopCameraCapture();
       stopPlayback();
       disconnect();
       initRef.current = false;
-      isFirstVoiceChangeRef.current = true;
 
       // Final save of any remaining turns
       saveNewTurns(true).then((count) => {
@@ -684,11 +678,9 @@ export function VoiceModeController() {
     const handlePageHide = () => {
       if (!useVoiceModeStore.getState().isActive) return;
       console.log('🚨 Page hiding — emergency saving voice turns');
-      // Use sync-safe approach: save what we can
       const { conversationTurns } = useVoiceModeStore.getState();
       const unsaved = conversationTurns.slice(savedTurnIndex).filter(t => t.transcript.trim() || t.imageUrl);
       if (unsaved.length > 0) {
-        // Fire-and-forget saves — browser may cut us off but we try
         unsaved.forEach(turn => {
           try {
             addMessage({
@@ -703,7 +695,6 @@ export function VoiceModeController() {
       }
     };
 
-    // pagehide fires reliably on iOS Safari (beforeunload does not)
     window.addEventListener('pagehide', handlePageHide);
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') handlePageHide();
@@ -713,23 +704,6 @@ export function VoiceModeController() {
       window.removeEventListener('pagehide', handlePageHide);
     };
   }, [addMessage]);
-
-  // Update voice when selection changes (only when connected)
-  // updateVoice handles debouncing and disconnect→reconnect internally
-  useEffect(() => {
-    if (isConnected && selectedVoice !== previousVoiceRef.current) {
-      const prevVoice = previousVoiceRef.current;
-      previousVoiceRef.current = selectedVoice;
-      // Only trigger swap if we had a previous voice (not initial load)
-      if (prevVoice) {
-        // First change after connect = profile sync (silent), subsequent = user action (announce)
-        const shouldAnnounce = !isFirstVoiceChangeRef.current;
-        isFirstVoiceChangeRef.current = false;
-        console.log('Voice changed from', prevVoice, 'to', selectedVoice, shouldAnnounce ? '(announcing)' : '(silent sync)');
-        updateVoice(selectedVoice, shouldAnnounce);
-      }
-    }
-  }, [selectedVoice, isConnected, updateVoice]);
 
   // Cleanup on unmount
   useEffect(() => {
