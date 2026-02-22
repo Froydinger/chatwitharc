@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
+  Loader2,
   Globe,
   ExternalLink,
   Bookmark,
@@ -704,7 +705,11 @@ export function SearchCanvas() {
               >
                 {/* Left search icon */}
                 <div className="shrink-0 flex items-center justify-center text-muted-foreground ml-2">
-                  <Search className="h-5 w-5" />
+                  {isSearching ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Search className="h-5 w-5" />
+                  )}
                 </div>
 
                 <input
