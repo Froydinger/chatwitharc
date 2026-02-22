@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { CanvasCodeEditor } from "@/components/CanvasCodeEditor";
 import { CodePreview } from "@/components/CodePreview";
@@ -65,6 +66,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     closeCanvas,
   } = useCanvasStore();
 
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const [showHistory, setShowHistory] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -359,7 +361,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           )}
 
           {/* Viewport toggle for code preview */}
-          {isCodeMode && supportsPreview && !showCodeEditor && (
+          {!isMobile && isCodeMode && supportsPreview && !showCodeEditor && (
             <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-xl p-1 backdrop-blur-sm">
               <Button
                 variant="ghost"
