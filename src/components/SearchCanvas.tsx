@@ -773,12 +773,7 @@ export function SearchCanvas() {
           <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10">
             {/* Active Session Content */}
             {activeSession ? (
-              <motion.div
-                key={activeSession.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
+              <div>
                 {/* Query Title - Blog Style */}
                 <div className="mb-6">
                   <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight mb-3">
@@ -1197,7 +1192,7 @@ export function SearchCanvas() {
                     </button>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ) : isSearching ? (
               /* Searching State - Replaces Empty State */
               <motion.div
