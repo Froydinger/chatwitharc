@@ -960,12 +960,19 @@ export function SearchCanvas() {
                             );
                           }
 
+                          // Detect superscript citation links (unicode superscript digits)
+                          const childText = typeof children === "string" ? children : Array.isArray(children) ? children.join("") : String(children);
+                          const isCitation = /^[⁰¹²³⁴⁵⁶⁷⁸⁹]+$/.test(childText);
+
                           return (
                             <a
                               href={href}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-primary hover:underline underline-offset-2"
+                              className={isCitation
+                                ? "text-primary hover:underline underline-offset-2 text-[0.8em] align-super font-medium"
+                                : "text-primary hover:underline underline-offset-2"
+                              }
                               {...props}
                             >
                               {children}
