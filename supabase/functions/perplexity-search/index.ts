@@ -179,16 +179,20 @@ serve(async (req) => {
         domain = url;
       }
       
-      // Replace [n] with markdown link - handle various formats
+      // Replace [n] with superscript-style markdown link
+      // Use a non-breaking format that won't merge into surrounding words
       const citationNum = index + 1;
       const patterns = [
+        new RegExp(`\\[\\[${citationNum}\\]\\]`, 'g'),  // [[1]] first (greedy)
         new RegExp(`\\[${citationNum}\\]`, 'g'),  // [1]
-        new RegExp(`\\[\\[${citationNum}\\]\\]`, 'g'),  // [[1]]
       ];
       
       patterns.forEach(pattern => {
-        content = content.replace(pattern, `[${domain}](${url})`);
+        content = content.replace(pattern, ` [${domain}](${url}) `);
       });
+      
+      // Clean up any double spaces introduced
+      content = content.replace(/  +/g, ' ').replace(/ \./g, '.').replace(/ ,/g, ',');
     });
 
     return new Response(
