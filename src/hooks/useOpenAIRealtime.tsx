@@ -1,5 +1,6 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { useVoiceModeStore, VoiceName, REALTIME_SUPPORTED_VOICES } from '@/store/useVoiceModeStore';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UseOpenAIRealtimeOptions {
   onTranscriptUpdate?: (transcript: string, isFinal: boolean) => void;
@@ -463,7 +464,19 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://jxywhodnndagbsmnbnnw.supabase.co";
       const wsUrl = supabaseUrl.replace('https://', 'wss://').replace('http://', 'ws://');
       
-      const ws = new WebSocket(`${wsUrl}/functions/v1/openai-realtime-proxy`);
+      // Get auth token for WebSocket authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.error('Not authenticated - cannot connect to voice mode');
+        setStatus('idle');
+        globalConnecting = false;
+        return;
+      }
+      
+      const ws = new WebSocket(
+        `${wsUrl}/functions/v1/openai-realtime-proxy`,
+        ['bearer.' + session.access_token]
+      );
       globalWs = ws;
 
       ws.onopen = () => {
