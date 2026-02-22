@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +12,48 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Authenticate user before WebSocket upgrade
+  const authHeader = req.headers.get('authorization');
+  const protocols = req.headers.get('sec-websocket-protocol') || '';
+  
+  // Extract token from Authorization header or WebSocket subprotocol
+  let token = '';
+  if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.replace('Bearer ', '');
+  } else {
+    // Check for token in WebSocket subprotocols (format: bearer.<token>)
+    const protoList = protocols.split(',').map(p => p.trim());
+    const bearerProto = protoList.find(p => p.startsWith('bearer.'));
+    if (bearerProto) {
+      token = bearerProto.replace('bearer.', '');
+    }
+  }
+
+  if (!token) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized - missing auth token' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Verify user with Supabase
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    { global: { headers: { Authorization: `Bearer ${token}` } } }
+  );
+
+  const { data, error: claimsError } = await supabase.auth.getClaims(token);
+  if (claimsError || !data?.claims) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized - invalid token' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const userId = data.claims.sub;
+  console.log('Authenticated WebSocket for user:', userId);
 
   // Check for WebSocket upgrade
   const upgradeHeader = req.headers.get('upgrade');
@@ -43,9 +86,9 @@ serve(async (req) => {
   const messageBuffer: string[] = [];
 
   clientSocket.onopen = () => {
-    console.log('Client connected to proxy');
+    console.log('Client connected to proxy, user:', userId);
     
-    // Connect to OpenAI Realtime API - using gpt-realtime for vision support
+    // Connect to OpenAI Realtime API
     const openaiUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
     
     openaiSocket = new WebSocket(openaiUrl, [
@@ -58,7 +101,6 @@ serve(async (req) => {
       console.log('Connected to OpenAI Realtime');
       openaiReady = true;
       
-      // Send any buffered messages
       while (messageBuffer.length > 0) {
         const msg = messageBuffer.shift();
         if (msg && openaiSocket?.readyState === WebSocket.OPEN) {
@@ -68,7 +110,6 @@ serve(async (req) => {
     };
 
     openaiSocket.onmessage = (event) => {
-      // Forward OpenAI messages to client
       if (clientSocket.readyState === WebSocket.OPEN) {
         clientSocket.send(event.data);
       }
@@ -96,11 +137,9 @@ serve(async (req) => {
   clientSocket.onmessage = (event) => {
     const data = typeof event.data === 'string' ? event.data : '';
     
-    // Forward client messages to OpenAI
     if (openaiReady && openaiSocket?.readyState === WebSocket.OPEN) {
       openaiSocket.send(data);
     } else {
-      // Buffer messages until OpenAI is ready
       messageBuffer.push(data);
     }
   };
