@@ -1047,7 +1047,7 @@ export function MobileChatApp() {
                 const onMouseMove = (moveEvent: MouseEvent) => {
                   const delta = startX - moveEvent.clientX;
                   const newWidth = Math.min(
-                    Math.max(startWidth + delta, containerWidth * 0.3), // min 30%
+                    Math.max(startWidth + delta, containerWidth * 0.45), // min 45%
                     containerWidth * 0.75 // max 75%
                   );
                   canvasEl.style.width = `${newWidth}px`;
