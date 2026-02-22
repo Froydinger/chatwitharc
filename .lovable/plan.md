@@ -2,27 +2,39 @@
 
 ## Two Fixes
 
-### 1. Research Mode: Add left spacing to search icon
-The search input bar's icon is too close to the left edge. The `glass-dock` container has `px-4` but the icon itself has no left margin. Adding `ml-2` to the icon wrapper will give it breathing room.
+### 1. Research Mode: Add searching spinner in input bar
 
-**File:** `src/components/SearchCanvas.tsx` (line 706)
-- Add `ml-2` to the search icon wrapper `<div>` so the icon has proper spacing from the left edge of the input bar.
+Currently, when `isSearching` is true, the send button hides and the input is disabled, but there's no visual feedback in the input bar itself. We'll replace the static search icon with an animated spinner when searching.
+
+**File:** `src/components/SearchCanvas.tsx`
+- Import `Loader2` from lucide-react (add to existing import)
+- At line 706-708, swap the `Search` icon for a spinning `Loader2` when `isSearching` is true:
+  ```
+  {isSearching ? (
+    <Loader2 className="h-5 w-5 animate-spin" />
+  ) : (
+    <Search className="h-5 w-5" />
+  )}
+  ```
 
 ---
 
-### 2. "Loading messages..." spinner on root path without new chat
+### 2. "Loading messages..." spinner still appearing
 
-**Root cause:** When you navigate to `/` (no `sessionId` in URL), `currentSessionId` is still set from the previous chat session. The earlier fix removed the code that cleared it. Since the session may not be hydrated, `messages` is empty and `isHydratingSession` matches `currentSessionId`, showing the spinner.
+**Root cause:** The previous fix at `Index.tsx` line 37-39 clears `currentSessionId` whenever `!sessionId && currentSessionId`. But this runs reactively -- when the user clicks a chat from history while on `/`, `loadSession()` sets `currentSessionId`, which re-triggers this effect and immediately clears it again (since the URL hasn't updated to `/chat/:id` yet). This creates a race condition that can leave the UI stuck.
 
-**Fix:** In `Index.tsx`, re-add logic to clear `currentSessionId` when the user is on `/` with no `sessionId` param. This ensures the welcome screen shows immediately.
+**Fix:** Only clear the stale session on initial mount, not reactively. Use a `useRef` flag to ensure the clearing only runs once per mount when the user first lands on `/`.
 
-**File:** `src/pages/Index.tsx` (inside the existing useEffect at lines 23-39)
-- When `!sessionId` (user is on `/`), set `currentSessionId` to `null` and `messages` to `[]` via `useArcStore.setState(...)`. This stops hydration from triggering and shows the welcome screen immediately.
+**File:** `src/pages/Index.tsx`
+- Add a `hasHandledInitialClear` ref
+- In the `else if` branch (line 37-39), only clear if the ref hasn't been set yet, then set it
+- This prevents re-clearing when the user clicks a session from history
 
 ### Technical Details
 
 | File | Change |
 |------|--------|
-| `src/components/SearchCanvas.tsx` ~line 706 | Add `ml-2` class to the search icon wrapper div |
-| `src/pages/Index.tsx` ~line 37 | Add an `else` branch: when no `sessionId` and `currentSessionId` is set, clear it with `useArcStore.setState({ currentSessionId: null, messages: [] })` |
+| `src/components/SearchCanvas.tsx` line 3-25 | Add `Loader2` to lucide-react imports |
+| `src/components/SearchCanvas.tsx` line 706-708 | Swap Search icon for Loader2 spinner when `isSearching` |
+| `src/pages/Index.tsx` lines 1, 37-39 | Add `useRef` import, add `hasHandledInitialClear` ref, gate the clearing logic to only run once |
 
