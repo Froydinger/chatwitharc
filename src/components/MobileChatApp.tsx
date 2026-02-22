@@ -247,6 +247,7 @@ export function MobileChatApp() {
   const [isContextPanelOpen, setIsContextPanelOpen] = useState(false);
   const [showMobileCanvasInput, setShowMobileCanvasInput] = useState(false);
   const [canvasWidthPercent, setCanvasWidthPercent] = useState(50);
+  const canvasResizingRef = useRef(false);
   const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -1023,7 +1024,7 @@ export function MobileChatApp() {
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: canvasWidthPercent + "%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            transition={canvasResizingRef.current ? { duration: 0 } : { duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
             className="flex-shrink-0 overflow-hidden bg-background flex relative"
             style={{ minWidth: 400, paddingLeft: 12 }}
           >
@@ -1032,6 +1033,7 @@ export function MobileChatApp() {
               className="absolute left-0 top-0 bottom-0 w-3 cursor-col-resize z-50 group"
               onMouseDown={(e) => {
                 e.preventDefault();
+                canvasResizingRef.current = true;
                 const canvasEl = e.currentTarget.parentElement;
                 const inputDock = inputDockRef.current;
                 if (!canvasEl) return;
@@ -1050,8 +1052,7 @@ export function MobileChatApp() {
                     Math.max(startWidth + delta, containerWidth * 0.45), // min 45%
                     containerWidth * 0.75 // max 75%
                   );
-                  canvasEl.style.width = `${newWidth}px`;
-                  // Persist the width as a percentage so framer-motion doesn't snap back
+                  // Update percentage directly — framer-motion transition is disabled during drag
                   setCanvasWidthPercent((newWidth / containerWidth) * 100);
                   // Update input bar to match canvas width
                   if (inputDock) {
@@ -1061,6 +1062,7 @@ export function MobileChatApp() {
                 };
                 
                 const onMouseUp = () => {
+                  canvasResizingRef.current = false;
                   document.removeEventListener('mousemove', onMouseMove);
                   document.removeEventListener('mouseup', onMouseUp);
                   overlay.remove();
