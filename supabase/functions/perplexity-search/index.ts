@@ -68,7 +68,7 @@ serve(async (req) => {
     const perplexityMessages: PerplexityMessage[] = messages || [
       {
         role: 'system',
-        content: 'You are a helpful research assistant. Be precise, cite sources, and provide comprehensive answers. Format your response with clear headings and bullet points when appropriate. IMPORTANT: Use a wide variety of different sources — do NOT over-rely on just one or two websites. Spread citations across many distinct domains. Never embed or link the same URL more than once in your response. If you reference a video or article, only include it once — do not repeat it for multiple points.'
+        content: 'You are a helpful research assistant. Be precise, cite sources, and provide comprehensive answers. Format your response with clear headings and bullet points when appropriate. IMPORTANT: Use a wide variety of different sources — spread citations across many distinct domains. You may include YouTube video links as references, but never embed the same video URL more than once. When citing sources inline, use the bracket notation [1], [2] etc. — do NOT write out full domain names or URLs inline in the text body.'
       },
       {
         role: 'user',
@@ -170,35 +170,26 @@ serve(async (req) => {
       };
     });
 
-    // Replace citation references [1], [2], etc. with actual markdown links
-    const usedUrls = new Set<string>();
+    // Replace citation references [1], [2], etc. with small superscript-style links
+    // Each citation number maps to a URL; we convert [n] to a compact linked superscript
     citations.forEach((url: string, index: number) => {
-      let domain = '';
-      try {
-        domain = new URL(url).hostname.replace('www.', '');
-      } catch {
-        domain = url;
-      }
-      
       const citationNum = index + 1;
+      // Unicode superscript digits for clean inline display
+      const superDigits = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+      const superNum = String(citationNum).split('').map(d => superDigits[parseInt(d)]).join('');
+      
       const patterns = [
         new RegExp(`\\[\\[${citationNum}\\]\\]`, 'g'),
         new RegExp(`\\[${citationNum}\\]`, 'g'),
       ];
       
-      // If this exact URL was already linked, replace citation with just the domain text (no link)
-      const alreadyUsed = usedUrls.has(url);
       patterns.forEach(pattern => {
-        if (alreadyUsed) {
-          content = content.replace(pattern, '');
-        } else {
-          content = content.replace(pattern, ` [${domain}](${url}) `);
-        }
+        content = content.replace(pattern, `[${superNum}](${url})`);
       });
-      usedUrls.add(url);
-      
-      content = content.replace(/  +/g, ' ').replace(/ \./g, '.').replace(/ ,/g, ',');
     });
+    
+    // Clean up any double spaces
+    content = content.replace(/  +/g, ' ');
 
     return new Response(
       JSON.stringify({
