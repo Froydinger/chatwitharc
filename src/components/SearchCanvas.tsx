@@ -703,7 +703,7 @@ export function SearchCanvas() {
                 )}
               >
                 {/* Left search icon */}
-                <div className="shrink-0 flex items-center justify-center text-muted-foreground">
+                <div className="shrink-0 flex items-center justify-center text-muted-foreground ml-2">
                   <Search className="h-5 w-5" />
                 </div>
 
