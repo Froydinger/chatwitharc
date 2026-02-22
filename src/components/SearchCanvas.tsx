@@ -624,8 +624,6 @@ export function SearchCanvas() {
                 </div>
                 <div className="space-y-2">
                   {sessions
-                    .slice()
-                    .reverse()
                     .slice(historyPage * HISTORY_PAGE_SIZE, (historyPage + 1) * HISTORY_PAGE_SIZE)
                     .map((session) => (
                       <motion.button
