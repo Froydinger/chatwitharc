@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
@@ -17,10 +17,8 @@ export function Index() {
   const { currentSessionId, loadSession, chatSessions } = useArcStore();
 
   const [onboardingComplete, setOnboardingComplete] = useState(false);
-  const hasHandledInitialClear = useRef(false);
 
   // Load session from URL if present (priority: URL takes precedence)
-  // If on `/` with no sessionId param, clear currentSessionId so welcome screen shows
   useEffect(() => {
     if (!user || !isLoaded) return;
 
@@ -28,20 +26,14 @@ export function Index() {
       // We have a sessionId in URL - this takes priority
       const sessionExists = chatSessions.find(s => s.id === sessionId);
       if (sessionExists && currentSessionId !== sessionId) {
-        // Load the session if it's not already loaded
         loadSession(sessionId);
       } else if (!sessionExists) {
-        // Session doesn't exist - redirect to home
         console.warn('Session from URL not found:', sessionId);
         navigate('/', { replace: true });
       }
-    } else if (!sessionId && currentSessionId && !hasHandledInitialClear.current) {
-      // On root path with no sessionId - clear any stale session so welcome screen shows
-      // Only run once on initial mount to avoid race condition with loadSession
-      hasHandledInitialClear.current = true;
-      useArcStore.setState({ currentSessionId: null, messages: [] });
     }
-    // Note: navigate and loadSession are stable and don't need to be in deps
+    // No clearing on `/` — persistence is disabled so currentSessionId starts null.
+    // If it's non-null on `/`, user explicitly clicked a chat from history.
   }, [sessionId, user, chatSessions, currentSessionId, isLoaded]);
 
   // Initialize theme on app load
