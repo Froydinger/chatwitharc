@@ -187,6 +187,9 @@ serve(async (req) => {
         content = content.replace(pattern, `[${superNum}](${url})`);
       });
     });
+
+    // Add commas between consecutive superscript citation links e.g. [¹](url)[²](url) → [¹](url), [²](url)
+    content = content.replace(/(\]\([^)]+\))(\[)/g, '$1, $2');
     
     // Clean up any double spaces
     content = content.replace(/  +/g, ' ');
