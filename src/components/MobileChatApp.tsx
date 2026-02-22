@@ -246,6 +246,7 @@ export function MobileChatApp() {
   const [isMusicPopupOpen, setIsMusicPopupOpen] = useState(false);
   const [isContextPanelOpen, setIsContextPanelOpen] = useState(false);
   const [showMobileCanvasInput, setShowMobileCanvasInput] = useState(false);
+  const [canvasWidthPercent, setCanvasWidthPercent] = useState(50);
   const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -1020,7 +1021,7 @@ export function MobileChatApp() {
         {isCanvasOpen && !isMobile && (
           <motion.div
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "50%", opacity: 1 }}
+            animate={{ width: canvasWidthPercent + "%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
             className="flex-shrink-0 overflow-hidden bg-background flex relative"
@@ -1046,10 +1047,12 @@ export function MobileChatApp() {
                 const onMouseMove = (moveEvent: MouseEvent) => {
                   const delta = startX - moveEvent.clientX;
                   const newWidth = Math.min(
-                    Math.max(startWidth + delta, containerWidth * 0.5), // min 50%
+                    Math.max(startWidth + delta, containerWidth * 0.3), // min 30%
                     containerWidth * 0.75 // max 75%
                   );
                   canvasEl.style.width = `${newWidth}px`;
+                  // Persist the width as a percentage so framer-motion doesn't snap back
+                  setCanvasWidthPercent((newWidth / containerWidth) * 100);
                   // Update input bar to match canvas width
                   if (inputDock) {
                     const rightPercent = (newWidth / containerWidth) * 100;
