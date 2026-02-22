@@ -852,7 +852,7 @@ export function MobileChatApp() {
 
             {/* Empty state or hydrating state */}
             {messages.length === 0 ? (
-              isHydratingSession === currentSessionId && !hydrationTimedOut ? (
+              currentSessionId && isHydratingSession === currentSessionId && !hydrationTimedOut ? (
                 // Show loading spinner while hydrating session messages (with 5s timeout)
                 <div className="flex flex-col items-center justify-center py-20 gap-4">
                   <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
