@@ -348,8 +348,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   // Auto mode = indicator is shown because canvas is open, not from explicit /write prefix
   const isCanvasAutoMode = isWriteCanvasOpen && !shouldShowCanvasMode;
 
-  // Debug: log canvas auto-mode state (remove after confirming fix)
-  console.log('🖊️ Canvas indicator:', { isWriteCanvasOpen, shouldShowCanvasMode, showCanvasIndicator, isCanvasAutoMode });
 
   // Show slash picker when user types just "/"
   const showSlashPicker = inputValue.trim() === "/";
