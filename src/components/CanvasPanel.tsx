@@ -15,7 +15,9 @@ import {
   Italic,
   List,
   Loader2,
+  Monitor,
   Redo2,
+  Smartphone,
   Sparkles,
   Undo2,
 } from "lucide-react";
@@ -68,6 +70,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const [copied, setCopied] = useState(false);
   // For code mode: show code editor by default during generation, toggle to show preview
   const [showCodeEditor, setShowCodeEditor] = useState(true);
+  const [previewViewport, setPreviewViewport] = useState<'desktop' | 'mobile'>('desktop');
   // Track elapsed time during AI generation
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -355,6 +358,40 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
             </div>
           )}
 
+          {/* Viewport toggle for code preview */}
+          {isCodeMode && supportsPreview && !showCodeEditor && (
+            <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-xl p-1 backdrop-blur-sm">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPreviewViewport('desktop')}
+                className={cn(
+                  "h-8 w-8 p-0 rounded-lg transition-all",
+                  previewViewport === 'desktop'
+                    ? "bg-primary/20 text-primary shadow-sm border border-primary/30"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/10"
+                )}
+                title="Desktop view"
+              >
+                <Monitor className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPreviewViewport('mobile')}
+                className={cn(
+                  "h-8 w-8 p-0 rounded-lg transition-all",
+                  previewViewport === 'mobile'
+                    ? "bg-primary/20 text-primary shadow-sm border border-primary/30"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/10"
+                )}
+                title="Mobile view"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          )}
+
           <div className="flex items-center gap-1 ml-1">
             <Button
               variant="ghost"
@@ -472,9 +509,18 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
         ) : isCodeMode ? (
           // Code mode: show either preview (full-width) or code editor (full-width)
           supportsPreview && !showCodeEditor ? (
-            // Preview mode (default for previewable languages)
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <CodePreview code={content} language={codeLanguage} />
+            // Preview mode
+            <div className="flex-1 flex flex-col overflow-hidden items-center bg-muted/20">
+              <div
+                className={cn(
+                  "h-full transition-all duration-300",
+                  previewViewport === 'mobile'
+                    ? "w-[375px] border-x border-border/30 shadow-lg bg-background"
+                    : "w-full"
+                )}
+              >
+                <CodePreview code={content} language={codeLanguage} />
+              </div>
             </div>
           ) : (
             // Code editor mode
