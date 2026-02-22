@@ -68,7 +68,7 @@ serve(async (req) => {
     const perplexityMessages: PerplexityMessage[] = messages || [
       {
         role: 'system',
-        content: 'You are a helpful research assistant. Be precise, cite sources, and provide comprehensive answers. Format your response with clear headings and bullet points when appropriate.'
+        content: 'You are a helpful research assistant. Be precise, cite sources, and provide comprehensive answers. Format your response with clear headings and bullet points when appropriate. IMPORTANT: Use a wide variety of different sources — do NOT over-rely on just one or two websites. Spread citations across many distinct domains. Never embed or link the same URL more than once in your response. If you reference a video or article, only include it once — do not repeat it for multiple points.'
       },
       {
         role: 'user',
@@ -171,6 +171,7 @@ serve(async (req) => {
     });
 
     // Replace citation references [1], [2], etc. with actual markdown links
+    const usedUrls = new Set<string>();
     citations.forEach((url: string, index: number) => {
       let domain = '';
       try {
@@ -179,19 +180,23 @@ serve(async (req) => {
         domain = url;
       }
       
-      // Replace [n] with superscript-style markdown link
-      // Use a non-breaking format that won't merge into surrounding words
       const citationNum = index + 1;
       const patterns = [
-        new RegExp(`\\[\\[${citationNum}\\]\\]`, 'g'),  // [[1]] first (greedy)
-        new RegExp(`\\[${citationNum}\\]`, 'g'),  // [1]
+        new RegExp(`\\[\\[${citationNum}\\]\\]`, 'g'),
+        new RegExp(`\\[${citationNum}\\]`, 'g'),
       ];
       
+      // If this exact URL was already linked, replace citation with just the domain text (no link)
+      const alreadyUsed = usedUrls.has(url);
       patterns.forEach(pattern => {
-        content = content.replace(pattern, ` [${domain}](${url}) `);
+        if (alreadyUsed) {
+          content = content.replace(pattern, '');
+        } else {
+          content = content.replace(pattern, ` [${domain}](${url}) `);
+        }
       });
+      usedUrls.add(url);
       
-      // Clean up any double spaces introduced
       content = content.replace(/  +/g, ' ').replace(/ \./g, '.').replace(/ ,/g, ',');
     });
 
