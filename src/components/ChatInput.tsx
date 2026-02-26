@@ -676,8 +676,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         imageUrl: finalUrl,
       });
     } catch (err: any) {
+      const errMsg = err?.message || 'Image editing failed. Please try again.';
       await replaceLastMessage({
-        content: `Sorry, I couldn't edit the image. ${err?.message || ""}`,
+        content: errMsg,
         role: "assistant",
         type: "text",
       });
@@ -786,8 +787,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               imageUrl: finalUrl,
             });
           } catch (err: any) {
+            const errMsg = err?.message || 'Image editing failed. Please try again.';
             await replaceLastMessage({
-              content: `Sorry, I couldn't edit the image. ${err?.message || ""}`,
+              content: errMsg,
               role: "assistant",
               type: "text",
             });
@@ -877,8 +879,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             imageUrl: finalUrl,
           });
         } catch (err: any) {
+          const errMsg = err?.message || 'Image generation failed. Please try again.';
           await replaceLastMessage({
-            content: `Sorry, I couldn't generate the image. ${err?.message || ""}`,
+            content: errMsg,
             role: "assistant",
             type: "text",
           });
@@ -886,6 +889,60 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           setGeneratingImage(false);
         }
         return;
+      }
+
+      // Auto-detect follow-up image edit: if last assistant message was an image
+      // and the user's message looks like an edit directive, route to image edit
+      if (!wasCanvasMode && !wasCodingMode && !wasSearchMode) {
+        const lastMsg = messages[messages.length - 1];
+        if (lastMsg?.role === 'assistant' && lastMsg.type === 'image' && lastMsg.imageUrl && isImageEditRequest(userMessage)) {
+          // Route as image edit against the last generated/edited image
+          await addMessage({ content: userMessage, role: "user", type: "text" });
+          await addMessage({
+            content: `Editing image: ${userMessage}`,
+            role: "assistant",
+            type: "image-generating",
+            imagePrompt: userMessage,
+          });
+          setGeneratingImage(true);
+
+          try {
+            const editedUrl = await ai.editImage(userMessage, [lastMsg.imageUrl]);
+            let finalUrl = editedUrl;
+            try {
+              const resp = await fetch(editedUrl);
+              const blob = await resp.blob();
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
+                const { error } = await supabase.storage.from("avatars").upload(name, blob, {
+                  contentType: "image/png",
+                  upsert: false,
+                });
+                if (!error) {
+                  const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
+                  finalUrl = pub.publicUrl;
+                }
+              }
+            } catch {}
+            await replaceLastMessage({
+              content: `Edited image: ${userMessage}`,
+              role: "assistant",
+              type: "image",
+              imageUrl: finalUrl,
+            });
+          } catch (err: any) {
+            const errMsg = err?.message || 'Image editing failed. Please try again.';
+            await replaceLastMessage({
+              content: errMsg,
+              role: "assistant",
+              type: "text",
+            });
+          } finally {
+            setGeneratingImage(false);
+          }
+          return;
+        }
       }
 
       // Plain text - Show message IMMEDIATELY, then do memory detection in background
