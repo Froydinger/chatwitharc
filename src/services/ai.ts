@@ -437,9 +437,12 @@ export class AIService {
       }
 
       if (data.error) {
-        // Create a more specific error with type information
         const errorObj: any = new Error(data.error);
         errorObj.errorType = data.errorType || 'unknown';
+        if (data.debugDetail) {
+          errorObj.debugDetail = data.debugDetail;
+          console.warn('🖼️ Image generation debug:', data.debugDetail);
+        }
         throw errorObj;
       }
 
@@ -447,7 +450,6 @@ export class AIService {
         throw new Error('Failed to generate image');
       }
 
-      // Return both imageUrl and model used
       return data.imageUrl;
     } catch (error) {
       console.error('Image generation error:', error);
@@ -485,9 +487,12 @@ export class AIService {
       }
 
       if (data.error) {
-        // Create a more specific error with type information
         const errorObj: any = new Error(data.error);
         errorObj.errorType = data.errorType || 'unknown';
+        if (data.debugDetail) {
+          errorObj.debugDetail = data.debugDetail;
+          console.warn('🖼️ Image edit debug:', data.debugDetail);
+        }
         throw errorObj;
       }
 
