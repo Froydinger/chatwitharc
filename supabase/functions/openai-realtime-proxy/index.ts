@@ -44,15 +44,15 @@ serve(async (req) => {
     { global: { headers: { Authorization: `Bearer ${token}` } } }
   );
 
-  const { data, error: claimsError } = await supabase.auth.getClaims(token);
-  if (claimsError || !data?.claims) {
+  const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+  if (userError || !user) {
     return new Response(
       JSON.stringify({ error: 'Unauthorized - invalid token' }),
       { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
-  const userId = data.claims.sub;
+  const userId = user.id;
   console.log('Authenticated WebSocket for user:', userId);
 
   // Check for WebSocket upgrade
