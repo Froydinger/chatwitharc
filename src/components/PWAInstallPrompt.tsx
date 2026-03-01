@@ -19,6 +19,11 @@ const isElectron = () => {
   return /electron/i.test(navigator.userAgent);
 };
 
+const isPWA = () => {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         (window.navigator as any).standalone === true;
+};
+
 const isMacOS = () => {
   return /Macintosh|MacIntel|MacPPC|Mac68K/i.test(navigator.platform) ||
          /Mac/i.test(navigator.userAgent);
@@ -40,8 +45,8 @@ export function PWAInstallPrompt() {
       return;
     }
 
-    // Don't show anything if running in Electron app
-    if (isElectron()) {
+    // Don't show anything if running in Electron app or already installed as PWA
+    if (isElectron() || isPWA()) {
       return;
     }
 
