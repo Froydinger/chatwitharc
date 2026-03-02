@@ -183,23 +183,8 @@ export function ChatHistoryPanel() {
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4 pt-4 px-4 pb-4 h-full overflow-y-auto scrollbar-hide">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-foreground">Chat History</h2>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleManualSync}
-          disabled={isSyncing}
-          title="Sync from cloud"
-          className="h-8 w-8"
-        >
-          <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
-        </Button>
-      </div>
-
-      {/* New Chat Button */}
-      <div className="mb-4 space-y-3">
+      {/* Action Buttons - top */}
+      <div className="space-y-3">
         <button
           onClick={handleNewChat}
           className="w-full h-12 rounded-full outline-shimmer inline-flex items-center justify-center text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -217,7 +202,24 @@ export function ChatHistoryPanel() {
           <Globe className="h-4 w-4 mr-2" />
           Research Mode
         </button>
-        <QuoteOfDayModal />
+      </div>
+
+      {/* Quote of the Day */}
+      <QuoteOfDayModal />
+
+      {/* Chat History Header */}
+      <div className="flex items-center justify-between pt-2">
+        <h2 className="text-2xl font-bold text-foreground">Chat History</h2>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleManualSync}
+          disabled={isSyncing}
+          title="Sync from cloud"
+          className="h-8 w-8"
+        >
+          <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
+        </Button>
       </div>
 
       {/* Chat Sessions */}
