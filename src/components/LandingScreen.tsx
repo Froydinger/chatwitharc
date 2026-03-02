@@ -492,32 +492,32 @@ export function LandingScreen({ onTryAsGuest }: { onTryAsGuest?: () => void } = 
               // Electron app: Only show sign in button
               <>
                 <button
-                  onClick={() => setShowAuthModal(true)}
+                  onClick={() => onTryAsGuest?.()}
                   className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]"
                 >
                   <Sparkles className="w-6 h-6" />
-                  <span>Sign In to Get Started</span>
+                  <span>Start Chatting</span>
                 </button>
-                <span className="text-xs text-gray-500">Sign in to start chatting with ArcAi</span>
+                <button onClick={() => setShowAuthModal(true)} className="text-sm text-gray-400 hover:text-white transition-colors underline underline-offset-4">Already have an account? Sign in</button>
               </>
             ) : isPWAMode ? (
               // PWA: Only show Get Started button
               <>
                 <button
-                  onClick={() => setShowAuthModal(true)}
+                  onClick={() => onTryAsGuest?.()}
                   className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]"
                 >
                   <Sparkles className="w-6 h-6" />
-                  <span>Get Started</span>
+                  <span>Start Chatting</span>
                 </button>
-                <span className="text-xs text-gray-500">Free on web</span>
+                <button onClick={() => setShowAuthModal(true)} className="text-sm text-gray-400 hover:text-white transition-colors underline underline-offset-4">Already have an account? Sign in</button>
               </>
             ) : (
               // Web: Show both web and download options
               <>
                 <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 w-full">
                   <button
-                    onClick={() => setShowAuthModal(true)}
+                    onClick={() => onTryAsGuest?.()}
                     className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]"
                   >
                     <Sparkles className="w-6 h-6" />
