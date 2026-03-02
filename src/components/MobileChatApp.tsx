@@ -735,10 +735,6 @@ export function MobileChatApp() {
                       isMusicPlaying && "ring-2 ring-primary/50"
                     )}
                     onClick={() => {
-                      if (!isSubscribed) {
-                        toast({ title: "Pro Feature", description: "Music player is available with ArcAi Pro. Upgrade to unlock!" });
-                        return;
-                      }
                       setIsMusicPopupOpen(!isMusicPopupOpen);
                     }}
                     title="Music Player"
