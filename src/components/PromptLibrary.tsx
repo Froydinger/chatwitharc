@@ -4,6 +4,7 @@ import { X, MessageCircle, Sparkles, PenTool, Code, Brain, RefreshCw } from "luc
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { getModelForTask } from "@/store/useModelStore";
 import { toast } from "sonner";
 import { generatePromptsByCategory } from "@/utils/promptGenerator";
 import { getCachedPrompts } from "@/hooks/usePromptPreload";
@@ -72,7 +73,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
     try {
       console.log(`🎲 Generating fresh AI prompts for ${category}...`);
       // Pass selected model for prompt generation
-      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
+      const selectedModel = getModelForTask('chat');
       const { data, error } = await supabase.functions.invoke('generate-category-prompts', {
         body: {
           category,
@@ -183,7 +184,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
       setIsLoadingSmartPrompts(true);
 
       // Pass selected model for smart prompt generation
-      const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
+      const selectedModel = getModelForTask('chat');
       supabase.functions
         .invoke('generate-smart-prompts', { body: { model: selectedModel } })
         .then(({ data, error }) => {

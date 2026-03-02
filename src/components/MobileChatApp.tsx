@@ -181,11 +181,7 @@ export function MobileChatApp() {
   // Pre-generate prompts in background for instant access
   usePromptPreload();
 
-  // Initialize session model to Gemini 3 Flash on mount (fast chat model)
-  useEffect(() => {
-    // Hardcode chat model - no user selection
-    sessionStorage.setItem('arc_session_model', 'google/gemini-3-flash-preview');
-  }, []);
+  // Model family is now managed by useModelStore - no sessionStorage needed
 
   // Track if running as PWA or Electron app
   const [isPWAMode, setIsPWAMode] = useState(false);

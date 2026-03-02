@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Check, Crown, MessageCircle, Mic, Image, Brain, Code, Globe, Sparkles, ArrowLeft, Zap } from "lucide-react";
+import { Check, Crown, MessageCircle, Mic, Image, Brain, Code, Globe, Sparkles, ArrowLeft } from "lucide-react";
 import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { AuthModal } from "@/components/AuthModal";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,15 +10,14 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 
 const features = [
-  { name: "AI Chat", free: "30 messages/day", pro: "Unlimited", icon: MessageCircle },
-  { name: "Voice Mode", free: "3 sessions/day", pro: "Unlimited", icon: Mic },
-  { name: "AI Model Selection", free: false, pro: true, icon: Sparkles },
-  { name: "Unlimited Image Generation", free: "5 images/day", pro: "Unlimited", icon: Image },
   { name: "Image Analysis", free: true, pro: true, icon: Sparkles },
   { name: "Memory & Context", free: true, pro: true, icon: Brain },
   { name: "Code Generation", free: true, pro: true, icon: Code },
   { name: "Web Search", free: true, pro: true, icon: Globe },
-  { name: "File Generation", free: true, pro: true, icon: Zap },
+  { name: "AI Chat", free: "30 messages/day", pro: "Unlimited", icon: MessageCircle },
+  { name: "Voice Mode", free: "3 sessions/day", pro: "Unlimited", icon: Mic },
+  { name: "Unlimited Image Generation", free: "5 images/day", pro: "Unlimited", icon: Image },
+  { name: "Choose Your Model (GPT or Gemini)", free: false, pro: true, icon: Sparkles },
 ];
 
 export function PricingPage() {
