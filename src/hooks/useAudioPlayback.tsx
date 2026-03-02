@@ -19,9 +19,10 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   const visibilityHandlerRef = useRef<(() => void) | null>(null);
   const nextStartTimeRef = useRef<number>(0);
   const lastSourceRef = useRef<AudioBufferSourceNode | null>(null);
-  // Track active sources for cleanup — prevents memory leaks during long sessions
+  // Track active sources for cleanup.
+  // IMPORTANT: Do NOT aggressively evict scheduled sources while they're still pending,
+  // or long responses can get audibly truncated mid-sentence.
   const activeSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-  const MAX_ACTIVE_SOURCES = 30; // Cap concurrent audio sources
   
   const [isPlaying, setIsPlaying] = useState(false);
   
@@ -116,15 +117,6 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     // Track active source for cleanup
     activeSourcesRef.current.add(source);
     
-    // Evict oldest sources if we exceed the cap (prevents memory buildup)
-    if (activeSourcesRef.current.size > MAX_ACTIVE_SOURCES) {
-      const iter = activeSourcesRef.current.values();
-      const oldest = iter.next().value;
-      if (oldest && oldest !== source) {
-        try { oldest.disconnect(); } catch (_) {}
-        activeSourcesRef.current.delete(oldest);
-      }
-    }
     
     if (!isPlayingRef.current) {
       setIsPlaying(true);
