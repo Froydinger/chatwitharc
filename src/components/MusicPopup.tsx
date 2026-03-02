@@ -137,13 +137,23 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
                 <TabsContent value="built-in" className="mt-3 space-y-0">
                   {/* Album Art Vinyl */}
                   <div className="relative mx-auto w-36 h-36 my-3">
-                    <div className={cn("absolute inset-0 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-900 shadow-inner", isPlaying && "animate-spin")} style={{ animationDuration: "8s", animationTimingFunction: "linear" }}>
+                    <div
+                      className="absolute inset-0 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-900 shadow-inner"
+                      style={{
+                        animation: isPlaying ? 'spin 8s linear infinite' : 'none',
+                      }}
+                    >
                       <div className="absolute inset-2 rounded-full border border-zinc-700/30" />
                       <div className="absolute inset-4 rounded-full border border-zinc-700/20" />
                     </div>
-                    <motion.div className="absolute inset-4 overflow-hidden rounded-full shadow-lg" animate={isPlaying ? { rotate: 360 } : { rotate: 0 }} transition={{ duration: 8, repeat: isPlaying ? Infinity : 0, ease: "linear" }}>
+                    <div
+                      className="absolute inset-4 overflow-hidden rounded-full shadow-lg"
+                      style={{
+                        animation: isPlaying ? 'spin 8s linear infinite' : 'none',
+                      }}
+                    >
                       <img src={track.albumArt} alt={track.name} className="h-full w-full object-cover" />
-                    </motion.div>
+                    </div>
                     <div className="absolute inset-0 m-auto h-4 w-4 rounded-full bg-zinc-300 shadow-inner" />
                   </div>
 
