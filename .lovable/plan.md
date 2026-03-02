@@ -1,103 +1,44 @@
 
 
-## Model Selector, Pricing Reorder, and Canvas Click Simplification
+## Auth Modal Tab Switcher + Upgrade-to-Subscribe Flow
 
-### Overview
-Three changes: (1) Add a GPT vs Gemini model selector for Pro users, (2) reorder the pricing comparison table, and (3) simplify canvas panel clicks to go straight to the source chat.
+### What's Changing
 
----
+**1. Auth Modal: Replace bottom text link with a tab switcher at the top**
 
-### 1. Model Selector (GPT vs Gemini)
+The current "Don't have an account? Sign up" text link at the bottom of the AuthModal will be replaced with a prominent pill-shaped tab switcher (Sign In / Sign Up) placed right below the logo/header area. This uses the existing glass styling to match the liquid glass aesthetic.
 
-**Concept**: Pro users can toggle between "Gemini" (default) and "GPT" model families. Free users stay on Gemini. The toggle is stored in the user's profile (`preferred_model` column -- already exists in the database).
+**2. UpgradeModal: Inline sign-up + checkout in one flow**
 
-**Model mapping by family and task:**
+Currently, when a non-authenticated user clicks "Upgrade to Pro," the embedded checkout fails because Stripe requires an authenticated user. The upgrade modal will be enhanced to detect if the user is not logged in and show a combined flow:
+- Step 1: Show a compact sign-up/sign-in form inline within the UpgradeModal
+- Step 2: After successful auth, automatically transition to the embedded Stripe checkout
 
-| Task | Gemini (default) | GPT |
-|------|-------------------|-----|
-| Chat | `google/gemini-3-flash-preview` | `openai/gpt-5-mini` |
-| Code/Canvas | `google/gemini-3-pro-preview` | `openai/gpt-5.2` |
-| Image Generation | `google/gemini-3-pro-image-preview` | `google/gemini-3-pro-image-preview` (same -- GPT has no image gen model in the gateway) |
-| Image Analysis | `google/gemini-2.5-flash` | `openai/gpt-5-mini` |
-| Image Editing | `google/gemini-3-pro-image-preview` | `google/gemini-3-pro-image-preview` (same) |
-
-Note: Image generation and editing will always use Gemini's image model regardless of selection since there's no equivalent GPT image generation model available through the gateway. This is transparent to the user.
-
-**Files changed:**
-
-**`src/store/useArcStore.ts`** (or a new lightweight store)
-- Add a `modelFamily: 'gemini' | 'gpt'` state (persisted)
-- Add `setModelFamily` action
-- Helper function `getModelForTask(task: 'chat' | 'code' | 'image-gen' | 'image-analysis' | 'image-edit'): string` that returns the right model string
-
-**`src/services/ai.ts`** -- Central model routing changes:
-- `sendMessage()`: Instead of hardcoded `google/gemini-3-flash-preview` / `google/gemini-3-pro-preview`, read the model family from `sessionStorage` or profile and use the mapping table above
-- `sendMessageStreaming()`: Same -- replace hardcoded models with family-aware selection
-- `sendMessageWithImage()`: Use `gpt-5-mini` or `gemini-2.5-flash` based on family
-- `generateImage()`: Always use `google/gemini-3-pro-image-preview` (no change)
-- `editImage()`: Always use `google/gemini-3-pro-image-preview` (update to remove `arc_session_model` sessionStorage reference)
-- `generateFile()`: Use code model from family mapping
-
-**`src/components/MobileChatApp.tsx`**:
-- Remove the hardcoded `sessionStorage.setItem('arc_session_model', ...)` calls
-- Read model family from the store instead
-
-**`src/components/SettingsPanel.tsx`** -- Add Model Selector UI:
-- New card in the Profile tab (below Voice Mode or above it), visible only to Pro subscribers
-- Two-option toggle: "Gemini" and "GPT" with icons/logos
-- Shows current selection with a check mark
-- Free users see this card grayed out with "Pro only" badge
-- On change, update profile `preferred_model` field and the local store
-
-**`src/components/ChatInput.tsx`** or wherever the mode buttons are:
-- Optionally show a small model family indicator (e.g., "Gemini" or "GPT" chip) so users know which family is active
-
-**`src/components/PromptLibrary.tsx`** and **`src/utils/smartPrompts.ts`**:
-- Replace `sessionStorage.getItem('arc_session_model')` with store-based model selection
+This lets users create an account and subscribe in one seamless flow without bouncing between modals.
 
 ---
 
-### 2. Pricing Comparison Reorder
+### Technical Details
 
-**File: `src/pages/PricingPage.tsx`**
+**File: `src/components/AuthModal.tsx`**
+- Remove the toggle button at the bottom (`"Don't have an account? Sign up"`)
+- Add a tab switcher component above the form fields, below the logo section
+- Two pill-shaped tabs: "Sign In" and "Sign Up" with glass styling
+- Tabs control the existing `isLogin` state
+- Styling: rounded-full container with `bg-white/5 border border-white/10`, active tab gets `bg-white/10` with subtle glow
 
-Replace the `features` array. Remove "AI Model Selection" and "File Generation" rows. Add "Choose Your Model (GPT or Gemini)" as Pro-only. Reorder so all checkmark-checkmark rows come first:
+**File: `src/components/UpgradeModal.tsx`**
+- Import `useAuth` hook to check authentication status
+- Import auth-related components (supabase client, form fields)
+- Add a `step` state: `'info' | 'auth' | 'checkout'`
+- When user clicks "Upgrade to Pro":
+  - If authenticated: go straight to checkout (current behavior)
+  - If not authenticated: show an inline sign-up form (step = 'auth')
+- After successful authentication, automatically advance to checkout (step = 'checkout')
+- Include Google OAuth option in the inline auth form
+- Back button navigates between steps
 
-```text
-1. Image Analysis          (check / check)
-2. Memory & Context        (check / check)
-3. Code Generation         (check / check)
-4. Web Search              (check / check)
-5. AI Chat                 (30/day / Unlimited)
-6. Voice Mode              (3/day / Unlimited)
-7. Unlimited Image Gen     (5/day / Unlimited)
-8. Choose Your Model       (-- / check)
-```
+**File: `src/components/EmbeddedCheckout.tsx`**
+- No changes needed -- it already works independently
 
-Also remove unused `Zap` import, add `Sparkles` if not already imported.
-
----
-
-### 3. Canvas Panel -- Click Goes to Chat
-
-**File: `src/components/CanvasesPanel.tsx`**
-
-Line 345: Change `onClick={() => setSelectedItem(item)}` to `onClick={() => goToChat(item.sessionId)}`.
-
-This makes clicking a canvas tile navigate directly to the chat session it came from, skipping the preview modal entirely.
-
----
-
-### Summary of all files
-
-| File | Change |
-|------|--------|
-| `src/store/useArcStore.ts` | Add `modelFamily` state + `setModelFamily` + `getModelForTask` helper |
-| `src/services/ai.ts` | Replace all hardcoded model strings with family-aware routing |
-| `src/components/SettingsPanel.tsx` | Add GPT/Gemini toggle card (Pro only) |
-| `src/components/MobileChatApp.tsx` | Remove hardcoded sessionStorage model sets, read from store |
-| `src/components/PromptLibrary.tsx` | Use store model instead of sessionStorage |
-| `src/utils/smartPrompts.ts` | Use store model instead of sessionStorage |
-| `src/pages/PricingPage.tsx` | Reorder features, replace File Gen with Model Selection |
-| `src/components/CanvasesPanel.tsx` | Canvas click goes straight to chat |
-
+**No backend changes required** -- existing auth and checkout edge functions handle everything.
