@@ -29,7 +29,7 @@ let awaitingToolResponse = false;
 
 // Auto-reconnect state
 let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 3;
+const MAX_RECONNECT_ATTEMPTS = 5;
 let lastSystemPrompt: string | null = null;
 
 // Delayed phantom guard timer — gives Whisper time to confirm real speech
