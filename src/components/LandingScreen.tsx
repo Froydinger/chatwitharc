@@ -620,7 +620,7 @@ export function LandingScreen() {
               <ul className="space-y-2 text-sm text-gray-300">
                 <li className="flex items-center gap-2">
                   <Music className="w-4 h-4 text-purple-400 shrink-0" />
-                  6 curated tracks — lo-fi, jazz, ambient & more
+                  A growing library of curated tracks
                 </li>
                 <li className="flex items-center gap-2">
                   <Music className="w-4 h-4 text-purple-400 shrink-0" />
@@ -636,29 +636,25 @@ export function LandingScreen() {
             {/* Right: Album art grid */}
             <div className="grid grid-cols-3 gap-3 w-full md:w-auto md:min-w-[240px]">
               {[
-                { art: '/lovable-uploads/lofi-cartoon-album.jpg', name: 'Lo-Fi Beats' },
-                { art: '/lovable-uploads/jazz-cartoon-album.jpg', name: 'Jazz' },
-                { art: '/lovable-uploads/ambient-cartoon-album.jpg', name: 'Ambient' },
-                { art: '/lovable-uploads/taylor-swift-album.jpg', name: 'Taylor Swift' },
-                { art: '/lovable-uploads/elevator-music-album.jpg', name: 'Elevator' },
-                { art: '/lovable-uploads/lionel-richie-album.jpg', name: 'Lionel Richie' },
-              ].map((track, i) => (
+                '/lovable-uploads/lofi-cartoon-album.jpg',
+                '/lovable-uploads/jazz-cartoon-album.jpg',
+                '/lovable-uploads/ambient-cartoon-album.jpg',
+                '/lovable-uploads/taylor-swift-album.jpg',
+                '/lovable-uploads/elevator-music-album.jpg',
+                '/lovable-uploads/lionel-richie-album.jpg',
+              ].map((art, i) => (
                 <motion.div
-                  key={track.name}
+                  key={i}
                   initial={{ opacity: 0, scale: 0.8 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.1 }}
                   viewport={{ once: true }}
-                  className="relative group"
                 >
                   <img
-                    src={track.art}
-                    alt={track.name}
-                    className="w-full aspect-square rounded-xl object-cover border border-white/10 group-hover:border-purple-500/40 transition-colors"
+                    src={art}
+                    alt="Album art"
+                    className="w-full aspect-square rounded-xl object-cover border border-white/10"
                   />
-                  <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <p className="text-[10px] text-white font-medium text-center px-1">{track.name}</p>
-                  </div>
                 </motion.div>
               ))}
             </div>
