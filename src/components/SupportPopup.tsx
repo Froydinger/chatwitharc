@@ -148,7 +148,10 @@ export function SupportPopup({ isOpen, onClose }: SupportPopupProps) {
                 <Button
                   size="sm"
                   className="h-7 text-xs noir-send-btn"
-                  onClick={handleCheckout}
+                  onClick={() => {
+                    onClose();
+                    window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
+                  }}
                   disabled={checkoutLoading}
                 >
                   {checkoutLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Upgrade to Pro"}
@@ -226,12 +229,6 @@ export function SupportPopup({ isOpen, onClose }: SupportPopupProps) {
 
           {/* Support Links */}
           <div className="space-y-2 pt-1">
-            <a href="https://winthenight.org/support" target="_blank" rel="noopener noreferrer" className="block">
-              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground justify-between group noir-send-btn text-sm h-9">
-                <span className="flex items-center gap-2"><Heart className="h-3.5 w-3.5 fill-current" /> Support ArcAI</span>
-                <ExternalLink className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
-              </Button>
-            </a>
             <a href="https://winthenight.org/about" target="_blank" rel="noopener noreferrer" className="block">
               <Button variant="outline" className="w-full justify-between group glass border-glass-border text-sm h-9">
                 <span>More about Win The Night</span>
