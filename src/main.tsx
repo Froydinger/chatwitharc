@@ -50,6 +50,8 @@ const ignoredErrorPatterns = [
   'Load failed',
   'cancelled',
   'AbortError',
+  'MutationRecord',
+  'attributeName',
 ];
 
 // Check if an error should be ignored
