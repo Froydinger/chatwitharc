@@ -780,7 +780,7 @@ export function MobileChatApp() {
                       // Open support popup
                       setIsSupportPopupOpen(true);
                     }}
-                    title="Support ArcAI"
+                    title="Account"
                   >
                     <ThemedLogo className="h-9 w-9" alt="Arc" />
                   </Button>

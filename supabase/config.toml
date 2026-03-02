@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.customer-portal]
 verify_jwt = false
+
+[functions.user-stats]
+verify_jwt = false
+
+[functions.generate-fun-fact]
+verify_jwt = false
