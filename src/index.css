@@ -682,6 +682,18 @@ All colors MUST be HSL for perfect glass effects.
     }
   }
 
+  /* Starfield twinkle animation */
+  @keyframes starTwinkle {
+    0%, 100% {
+      opacity: var(--tw-opacity, 0.2);
+      transform: scale(1);
+    }
+    50% {
+      opacity: calc(var(--tw-opacity, 0.2) * 2.5);
+      transform: scale(1.3);
+    }
+  }
+
   .logo-glow-breathe {
     animation: logo-breathe 6s ease-in-out infinite;
   }

@@ -80,7 +80,7 @@ export function InfoPanel() {
           and magical interactions.
         </p>
         <p className="text-sm text-muted-foreground/70">
-          Powered by Google Gemini 2.5 Flash for conversations • Advanced AI for image generation
+          Built by <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors underline">Win The Night</a> • Powered by Google Gemini &amp; OpenAI
         </p>
       </motion.div>
 

@@ -11,6 +11,7 @@ import { UpdateNotification } from "@/components/UpdateNotification";
 import { AdminBanner } from "@/components/AdminBanner";
 import { PageTransition } from "@/components/PageTransition";
 import { FingerPopupContainer } from "@/components/FingerPopup";
+import { Starfield } from "@/components/Starfield";
 import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { BugReportModal } from "@/components/BugReportModal";
 import { useBugReport } from "@/hooks/useBugReport";
@@ -52,6 +53,7 @@ const App = () => {
         <TooltipProvider>
           <div className="arcai-drag-bar hidden md:block" />
           <BackgroundGradients />
+          <Starfield />
             <Toaster />
             <Sonner />
             <FingerPopupContainer />
