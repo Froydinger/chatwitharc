@@ -70,10 +70,16 @@ export class AIService {
     forceWebSearch?: boolean,
     forceCanvas?: boolean,
     forceCode?: boolean,
-    forceResearch?: boolean
+    forceResearch?: boolean,
+    guestMode?: boolean
   ): Promise<SendMessageResult> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Chat service is not available. Please configure Supabase.');
+    }
+
+    // Guest mode: skip profile fetch, use simplified request
+    if (guestMode) {
+      return this.sendGuestMessage(messages);
     }
 
     try {
@@ -224,6 +230,31 @@ export class AIService {
       }
       throw error;
     }
+  }
+
+  // Guest mode: simplified request without auth
+  private async sendGuestMessage(messages: AIMessage[]): Promise<SendMessageResult> {
+    const { data, error } = await this.fetchWithTimeout(() =>
+      supabase!.functions.invoke('chat', {
+        body: {
+          messages,
+          guest_mode: true,
+        }
+      }),
+      this.defaultTimeoutMs
+    );
+
+    if (error) {
+      throw new Error(`Chat service error: ${error.message}`);
+    }
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+
+    return {
+      content: data.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.',
+      webSources: [],
+    };
   }
 
   // Generic streaming method for ALL messages (canvas, code, or regular text)

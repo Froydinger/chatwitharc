@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useProfile } from "@/hooks/useProfile";
 import { useAccentColor } from "@/hooks/useAccentColor";
+import { useAuth } from "@/hooks/useAuth";
 import { AIService } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useStreamingWithContinuation } from "@/hooks/useStreamingWithContinuation";
@@ -303,6 +304,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const portalRoot = useSafePortalRoot();
   const { toast } = useToast();
   const showPopup = useFingerPopup((state) => state.showPopup);
+  const { user } = useAuth();
+  const isGuestMode = !user;
 
   const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory, setSearchingWeb, updateMessageMemoryAction, upsertCanvasMessage, upsertCodeMessage } =
     useArcStore();
@@ -693,6 +696,16 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     const messageToSend = messageOverride ?? inputValue;
     if ((!messageToSend.trim() && selectedImages.length === 0) || isLoading) return;
 
+    // Guest mode: check if limit reached
+    if (isGuestMode) {
+      const guestCount = parseInt(localStorage.getItem('arcai-guest-messages') || '0', 10);
+      if (guestCount >= 5) {
+        // Dispatch event to show signup prompt
+        window.dispatchEvent(new CustomEvent('arcai:guestMessageSent'));
+        return;
+      }
+    }
+
     const userMessage = messageToSend.trim();
     const images = [...selectedImages];
 
@@ -719,8 +732,25 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     cancelRequested = false;
     setLoading(true);
 
+    // Dispatch guest message event for tracking
+    if (isGuestMode) {
+      window.dispatchEvent(new CustomEvent('arcai:guestMessageSent'));
+    }
+
     try {
       const ai = new AIService();
+
+      // Guest mode restrictions: only basic text chat
+      if (isGuestMode && (images.length > 0 || wasCanvasMode || wasCodingMode || wasImageMode)) {
+        await addMessage({ content: userMessage || "Sent message", role: "user", type: "text" });
+        await addMessage({
+          content: "✨ Image generation, canvas, and code features are available when you create a free account! Sign up to unlock all of Arc's capabilities.",
+          role: "assistant",
+          type: "text"
+        });
+        setLoading(false);
+        return;
+      }
 
       // With Images -> edit or analyze
       if (images.length > 0) {
@@ -1189,7 +1219,9 @@ ${existingCode}
               currentSessionId || undefined,
               wasSearchMode, // forceWebSearch
               false, // forceCanvas
-              false  // forceCode
+              false, // forceCode
+              false, // forceResearch
+              isGuestMode // guestMode
             );
             
             // CRITICAL: If cancelled while waiting for response, discard everything
