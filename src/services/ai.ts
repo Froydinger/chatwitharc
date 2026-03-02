@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { getModelForTask } from "@/store/useModelStore";
 
 interface AIMessage {
   role: 'user' | 'assistant' | 'system';
@@ -122,13 +123,11 @@ export class AIService {
         console.warn('Falling back to provided profile:', e);
       }
 
-      // Simplified model routing - hardcoded by mode
-      // Chat: Gemini 3 Flash (fast), Code/Write: Gemini 3 Pro
-      // Note: Research mode now uses Perplexity via separate edge function (perplexity-search)
+      // Model routing based on user's model family preference
       const isCanvasOrCode = forceCanvas || forceCode;
       const selectedModel = isCanvasOrCode
-        ? 'google/gemini-3-pro-preview'  // Code/Canvas mode
-        : 'google/gemini-3-flash-preview'; // Chat mode (default - fast)
+        ? getModelForTask('code')
+        : getModelForTask('chat');
 
       // Use longer timeout for canvas/code generation (especially with Gemini 3 Pro)
       const timeoutMs = isCanvasOrCode ? this.canvasTimeoutMs : this.defaultTimeoutMs;
@@ -276,10 +275,10 @@ export class AIService {
       throw new Error('Chat service is not available. Please configure Supabase.');
     }
 
-    // Simplified model routing - hardcoded by mode
+    // Model routing based on user's model family preference
     const selectedModel = (forceCanvas || forceCode) 
-      ? 'google/gemini-3-pro-preview'  // Code/Canvas mode
-      : 'openai/gpt-5-mini';           // Chat mode (default)
+      ? getModelForTask('code')
+      : getModelForTask('chat');
 
     // Enrich profile with context blocks (same as sendMessage)
     let enrichedProfile = profile || {};
@@ -416,8 +415,8 @@ export class AIService {
         throw new Error('Maximum 4 images allowed for analysis');
       }
 
-      // Use GPT 5 Mini for image analysis
-      const selectedModel = 'openai/gpt-5-mini';
+      // Use model family's image analysis model
+      const selectedModel = getModelForTask('image-analysis');
       const { data, error } = await supabase.functions.invoke('analyze-image', {
         body: { 
           messages,
@@ -501,8 +500,8 @@ export class AIService {
         throw new Error('Maximum 14 images allowed for combining');
       }
 
-      // Use session model if no specific model provided (backend maps to Gemini for images)
-      const modelToUse = imageModel || sessionStorage.getItem('arc_session_model') || 'openai/gpt-5-nano';
+      // Always use Gemini for image editing (no GPT equivalent)
+      const modelToUse = imageModel || getModelForTask('image-edit');
 
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: { 
@@ -548,8 +547,8 @@ export class AIService {
 
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Use Gemini 3 Pro for file generation (complex content)
-      const selectedModel = 'google/gemini-3-pro-preview';
+      // Use code model for file generation (complex content)
+      const selectedModel = getModelForTask('code');
       
       const { data, error } = await supabase.functions.invoke('generate-file', {
         body: { fileType, prompt, model: selectedModel },

@@ -44,6 +44,7 @@ import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { fadeInVariants, staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
 import { VoiceSelector } from "@/components/VoiceSelector";
+import { useModelStore, type ModelFamily } from "@/store/useModelStore";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,9 +65,65 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { FileText, Shield, Crown } from "lucide-react";
+import { FileText, Shield, Crown, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
+
+function ModelFamilySelector({ isSubscribed }: { isSubscribed: boolean }) {
+  const { modelFamily, setModelFamily } = useModelStore();
+  const { profile, updateProfile } = useProfile();
+  const { toast } = useToast();
+
+  const handleChange = async (family: ModelFamily) => {
+    if (!isSubscribed) return;
+    setModelFamily(family);
+    try {
+      await updateProfile({ preferred_model: family === 'gpt' ? 'openai/gpt-5-mini' : 'google/gemini-3-flash-preview' });
+    } catch {
+      toast({ title: "Failed to save preference", variant: "destructive" });
+    }
+  };
+
+  return (
+    <GlassCard variant="bubble" className={`p-6 space-y-4 ${!isSubscribed ? 'opacity-60' : ''}`}>
+      <div className="flex items-center gap-3">
+        <Sparkles className="h-5 w-5 text-primary-glow" />
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-foreground">AI Model</h3>
+            {!isSubscribed && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary">PRO</span>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">Choose between GPT and Gemini</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {([
+          { id: 'gemini' as ModelFamily, label: 'Gemini', desc: 'Google AI' },
+          { id: 'gpt' as ModelFamily, label: 'GPT', desc: 'OpenAI' },
+        ]).map((opt) => (
+          <button
+            key={opt.id}
+            onClick={() => handleChange(opt.id)}
+            disabled={!isSubscribed}
+            className={`relative p-4 rounded-xl border transition-all text-left ${
+              modelFamily === opt.id
+                ? 'border-primary bg-primary/10 shadow-[0_0_15px_hsl(var(--primary)/0.15)]'
+                : 'border-border/40 bg-muted/20 hover:border-border/60'
+            } ${!isSubscribed ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+          >
+            <div className="font-semibold text-foreground">{opt.label}</div>
+            <div className="text-xs text-muted-foreground">{opt.desc}</div>
+            {modelFamily === opt.id && (
+              <Check className="absolute top-3 right-3 w-4 h-4 text-primary" />
+            )}
+          </button>
+        ))}
+      </div>
+    </GlassCard>
+  );
+}
 
 export function SettingsPanel() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -512,6 +569,9 @@ export function SettingsPanel() {
             </div>
             <VoiceSelector />
           </GlassCard>
+
+          {/* Model Family Selector */}
+          <ModelFamilySelector isSubscribed={subscription.isSubscribed} />
 
         </TabsContent>
 

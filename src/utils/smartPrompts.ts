@@ -1,6 +1,7 @@
 import { Profile } from '@/hooks/useProfile';
 import { ChatSession } from '@/store/useArcStore';
 import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
+import { getModelForTask } from '@/store/useModelStore';
 
 export interface QuickPrompt {
   label: string;
@@ -41,7 +42,7 @@ export async function fetchPersonalizedPrompts(
 
   try {
     // Pass selected model for personalized prompt generation
-    const selectedModel = sessionStorage.getItem('arc_session_model') || 'google/gemini-3-flash-preview';
+    const selectedModel = getModelForTask('chat');
     const { data, error } = await supabase.functions.invoke('generate-personalized-prompts', {
       body: {
         profile: profile ? {

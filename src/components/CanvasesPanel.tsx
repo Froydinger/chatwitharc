@@ -342,7 +342,7 @@ export function CanvasesPanel() {
                 key={item.id}
                 variant="bubble"
                 className="p-0 cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all group overflow-hidden"
-                onClick={() => setSelectedItem(item)}
+                onClick={() => goToChat(item.sessionId)}
               >
                 {/* Visual Thumbnail */}
                 <div className="relative bg-gradient-to-br from-muted/40 to-muted/20 overflow-hidden aspect-[4/3]">
