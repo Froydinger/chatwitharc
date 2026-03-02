@@ -20,6 +20,13 @@ export function Index() {
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
+  // Listen for upgrade modal open events from anywhere in the app
+  useEffect(() => {
+    const handler = () => setShowUpgradeModal(true);
+    window.addEventListener('open-upgrade-modal', handler);
+    return () => window.removeEventListener('open-upgrade-modal', handler);
+  }, []);
+
   // Ensure theme-ready class is set
   useEffect(() => {
     if (!loading) {

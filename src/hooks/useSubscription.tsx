@@ -148,16 +148,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [hasUnlimitedAccess]);
 
   const openCheckout = useCallback(async () => {
-    if (!supabase) return;
-    try {
-      const { data, error } = await supabase.functions.invoke('create-checkout');
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (err) {
-      console.error('Failed to create checkout:', err);
-    }
+    // Dispatch event to open the UpgradeModal with embedded checkout
+    window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
   }, []);
 
   const openCustomerPortal = useCallback(async () => {
