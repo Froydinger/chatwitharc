@@ -31,6 +31,9 @@ let awaitingToolResponse = false;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 let lastSystemPrompt: string | null = null;
+let sessionReady = false; // Gate: true after session.created received
+// Deterministic errors that should NOT trigger reconnect
+const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key'];
 
 // Delayed phantom guard timer — gives Whisper time to confirm real speech
 let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;
@@ -108,6 +111,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           return;
         }
         globalSessionId = event.session?.id;
+        sessionReady = true;
         console.log('Session created:', globalSessionId);
         break;
 
@@ -412,6 +416,20 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           console.log('No active response to cancel (harmless)');
           return;
         }
+
+        // Fatal upstream errors — stop reconnecting
+        if (FATAL_ERROR_CODES.includes(event.error?.code)) {
+          console.error('Fatal voice error, stopping reconnect:', event.error);
+          reconnectAttempts = MAX_RECONNECT_ATTEMPTS; // prevent reconnect
+          optionsRef.current.onError?.(event.error?.message || 'Voice session failed');
+          return;
+        }
+
+        // Upstream closed relay — let onclose handle reconnect
+        if (event.error?.code === 'upstream_closed') {
+          console.warn('Upstream closed:', event.error?.message);
+          return;
+        }
         
         const isTransientError = 
           event.error?.message?.includes('Connection to AI service failed') ||
@@ -458,6 +476,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
     globalConnecting = true;
     globalSessionId = null;
+    sessionReady = false;
     setStatus('connecting');
 
     try {
@@ -616,18 +635,19 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         toolCallsInFlight.clear();
         setIsConnected(false);
         
-        // If voice mode is still active, attempt auto-reconnect
+        // If voice mode is still active, attempt auto-reconnect with exponential backoff
         const { isActive, setStatus } = useVoiceModeStore.getState();
         if (isActive && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttempts++;
-          console.log(`Auto-reconnecting voice mode (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 10000);
+          console.log(`Auto-reconnecting voice mode (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${delay}ms...`);
           setStatus('connecting');
           setTimeout(() => {
             const { isActive: stillActive } = useVoiceModeStore.getState();
             if (stillActive) {
               connect(lastSystemPrompt || undefined);
             }
-          }, 1000);
+          }, delay);
         } else if (isActive && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
           console.error('Max reconnect attempts reached, deactivating voice mode');
           reconnectAttempts = 0;
@@ -677,7 +697,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   }, []);
 
   const sendAudio = useCallback((audioData: Int16Array) => {
-    if (globalWs?.readyState !== WebSocket.OPEN) return;
+    if (globalWs?.readyState !== WebSocket.OPEN || !sessionReady) return;
     
     // Efficient base64 encoding — avoid per-byte string concatenation
     const bytes = new Uint8Array(audioData.buffer, audioData.byteOffset, audioData.byteLength);

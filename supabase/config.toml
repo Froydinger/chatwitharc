@@ -1,5 +1,8 @@
 project_id = "jxywhodnndagbsmnbnnw"
 
+[functions.openai-realtime-proxy]
+verify_jwt = false
+
 [functions.test-voice]
 verify_jwt = false
 
