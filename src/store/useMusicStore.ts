@@ -10,15 +10,17 @@ export interface MusicTrack {
   albumArt: string;
 }
 
-const STORAGE_BASE = `${import.meta.env.VITE_SUPABASE_URL || "https://jxywhodnndagbsmnbnnw.supabase.co"}/storage/v1/object/public/music-files`;
-
 export const musicTracks: MusicTrack[] = [
-  { id: 'lofi', name: 'Lo-Fi Beats', url: `${STORAGE_BASE}/lofi-beats-mix (1).mp3`, artist: 'Chill Collective', albumArt: '/lovable-uploads/lofi-cartoon-album.jpg' },
-  { id: 'jazz', name: 'Coffee House Jazz', url: `${STORAGE_BASE}/jazz-coffee-bar-music (1).mp3`, artist: 'Jazz Lounge', albumArt: '/lovable-uploads/jazz-cartoon-album.jpg' },
-  { id: 'ambient', name: 'Space Ambient', url: `${STORAGE_BASE}/pad-space-travel-hyperdrive-engine-humming-235901 (1).mp3`, artist: 'Cosmic Sounds', albumArt: '/lovable-uploads/ambient-cartoon-album.jpg' },
-  { id: 'taylor', name: "The Best Day (Taylor's Version)", previewName: 'The Best Day', url: `${STORAGE_BASE}/taylor-swift-the-best-day-taylors-version-official-music-video (1).mp3`, artist: 'Taylor Swift', albumArt: '/lovable-uploads/taylor-swift-album.jpg' },
-  { id: 'elevator', name: 'Elevator Music', url: '/audio/elevator-music.mp3', artist: 'Easy Listening', albumArt: '/lovable-uploads/elevator-music-album.jpg' },
-  { id: 'lionel', name: 'Hello (Live)', url: `${STORAGE_BASE}/lionel-richie-hello-live (1).mp3`, artist: 'Lionel Richie', albumArt: '/lovable-uploads/lionel-richie-album.jpg' }
+  { id: 'still-steam', name: 'Still Steam in My Mug', url: '/audio/still-steam-in-my-mug.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/lofi-cartoon-album.jpg' },
+  { id: 'soft-corners', name: 'Soft Corners of the Day', url: '/audio/soft-corners-of-the-day.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/jazz-cartoon-album.jpg' },
+  { id: 'velvet-evening', name: 'Velvet Evening Loop', url: '/audio/velvet-evening-loop.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/ambient-cartoon-album.jpg' },
+  { id: 'soft-circuit', name: 'Soft Circuit Focus', url: '/audio/soft-circuit-focus.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/lofi-cartoon-album.jpg' },
+  { id: 'drift-water', name: 'Drift Like Water', url: '/audio/drift-like-water.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/jazz-cartoon-album.jpg' },
+  { id: 'focus-drift', name: 'Focus Drift', url: '/audio/focus-drift.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/ambient-cartoon-album.jpg' },
+  { id: 'midnight-desk', name: 'Midnight Desk Lamp', url: '/audio/midnight-desk-lamp.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/lofi-cartoon-album.jpg' },
+  { id: 'pixel-focus', name: 'Pixel Focus', url: '/audio/pixel-focus.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/jazz-cartoon-album.jpg' },
+  { id: 'save-point', name: 'Save Point Heart', url: '/audio/save-point-heart.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/ambient-cartoon-album.jpg' },
+  { id: 'credits-roll', name: 'Let The Credits Roll', url: '/audio/let-the-credits-roll.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/lofi-cartoon-album.jpg' },
 ];
 
 export type PlaybackMode = 'loop-track' | 'loop-all' | 'shuffle' | 'sequential';
@@ -77,7 +79,7 @@ export const useMusicStore = create<MusicState>()(
     (set, get) => ({
       isPlaying: false,
       volume: 0.5,
-      currentTrack: 'lofi',
+      currentTrack: 'still-steam',
       isMuted: false,
       currentTime: 0,
       duration: 0,
