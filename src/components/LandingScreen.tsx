@@ -658,17 +658,8 @@ export function LandingScreen() {
         </div>
       </section>
 
-      {/* Support CTA */}
-      <section className="relative z-10 py-12 px-6 text-center">
-        <a
-          href="https://winthenight.productions/support"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-gray-400 hover:text-white transition-colors underline"
-        >
-          Support ArcAi
-        </a>
-      </section>
+
+
 
       {/* Footer */}
       <footer className="relative z-10 py-12 px-6 border-t border-white/5 text-center text-gray-600 text-sm">
