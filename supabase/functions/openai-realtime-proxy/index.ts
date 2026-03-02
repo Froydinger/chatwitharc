@@ -27,6 +27,11 @@ serve(async (req) => {
     const bearerProto = protoList.find(p => p.startsWith('bearer.'));
     if (bearerProto) {
       token = bearerProto.replace('bearer.', '');
+      try {
+        token = decodeURIComponent(token);
+      } catch {
+        // keep raw token if not URI encoded
+      }
     }
   }
 
@@ -37,22 +42,24 @@ serve(async (req) => {
     );
   }
 
-  // Verify user with Supabase
+  // Verify user claims with Supabase signing keys
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     { global: { headers: { Authorization: `Bearer ${token}` } } }
   );
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-  if (userError || !user) {
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+  const userId = claimsData?.claims?.sub;
+
+  if (claimsError || !userId) {
+    console.error('JWT verification failed:', claimsError?.message || 'missing sub claim');
     return new Response(
       JSON.stringify({ error: 'Unauthorized - invalid token' }),
       { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
-  const userId = user.id;
   console.log('Authenticated WebSocket for user:', userId);
 
   // Check for WebSocket upgrade
@@ -126,10 +133,17 @@ serve(async (req) => {
     };
 
     openaiSocket.onclose = (event) => {
-      console.log('OpenAI connection closed:', event.code, event.reason);
+      console.log('OpenAI connection closed:', event.code, event.reason || '(no reason)');
       openaiReady = false;
       if (clientSocket.readyState === WebSocket.OPEN) {
-        clientSocket.close(1000, 'OpenAI connection closed');
+        clientSocket.send(JSON.stringify({
+          type: 'error',
+          error: {
+            code: 'openai_socket_closed',
+            message: `Voice upstream closed (${event.code})${event.reason ? `: ${event.reason}` : ''}`
+          }
+        }));
+        clientSocket.close(1011, 'OpenAI connection closed');
       }
     };
   };
