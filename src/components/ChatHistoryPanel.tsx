@@ -197,8 +197,8 @@ export function ChatHistoryPanel() {
             openSearchMode();
             goToChat();
           }}
-          className="w-full h-12 rounded-full inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] text-white shadow-[0_4px_16px_rgba(0,0,0,.2),0_0_12px_rgba(249,115,22,.25)] overflow-hidden relative"
-          style={{ background: 'rgba(249, 115, 22, 0.5)' }}
+          className="w-full h-12 rounded-full inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] text-white overflow-hidden relative"
+          style={{ background: 'rgba(249, 115, 22, 0.5)', boxShadow: '0 0 8px rgba(249,115,22,0.5), 0 0 16px rgba(249,115,22,0.3), inset 0 0 4px rgba(249,115,22,0.2)' }}
         >
           <span className="absolute inset-0 -translate-x-full animate-[shimmer_2.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           <Search className="h-4 w-4 mr-2 relative z-10" fill="currentColor" strokeWidth={1.5} />
