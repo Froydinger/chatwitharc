@@ -678,6 +678,9 @@ export const useArcStore = create<ArcState>()(
       },
       
       clearAllSessions: async () => {
+        // Capture sessions before clearing local state (for cleanup)
+        const sessionsToClean = get().chatSessions;
+
         set({ 
           chatSessions: [], 
           currentSessionId: null, 
@@ -701,10 +704,38 @@ export const useArcStore = create<ArcState>()(
           try {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
+              // Delete all chat sessions
               await supabase
                 .from('chat_sessions')
                 .delete()
                 .eq('user_id', user.id);
+
+              // Clean up generated images from storage + database
+              const allImageUrls: string[] = [];
+              for (const session of sessionsToClean) {
+                const urls = session.messages
+                  .filter(m => m.type === 'image' && m.role === 'assistant' && m.imageUrl)
+                  .map(m => m.imageUrl!)
+                  .filter(url => url.includes('generated-files') || url.includes('avatars'));
+                allImageUrls.push(...urls);
+              }
+
+              for (const url of allImageUrls) {
+                try {
+                  const urlParts = url.split('/');
+                  const fileName = urlParts[urlParts.length - 1];
+                  const fullPath = `${user.id}/${fileName}`;
+                  await supabase.storage.from('generated-files').remove([fullPath]);
+                  await supabase.storage.from('avatars').remove([fullPath]);
+                  await supabase.from('generated_files').delete()
+                    .eq('user_id', user.id)
+                    .ilike('file_url', `%${fileName}%`);
+                } catch (imageError) {
+                  console.error('Error deleting generated image:', imageError);
+                }
+              }
+
+              console.log(`✅ Cleared all sessions + ${allImageUrls.length} generated images from database & storage`);
             }
           } catch (error) {
             console.error('Error clearing sessions from Supabase:', error);
