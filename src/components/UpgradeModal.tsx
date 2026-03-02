@@ -131,7 +131,7 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
             onClick={(e) => e.stopPropagation()}
             className={step === 'checkout' ? "w-full max-w-lg max-h-[90vh] overflow-y-auto" : "w-full max-w-md"}
           >
-            <GlassCard variant="bubble" glow className="p-8 relative overflow-hidden border border-cyan-500/30 animate-[neon-pulse_2s_ease-in-out_infinite]">
+            <GlassCard variant="bubble" glow className="p-8 relative overflow-hidden rounded-3xl border border-cyan-500/30 animate-[neon-pulse_2s_ease-in-out_infinite]">
               {/* Gradient accent */}
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500" />
               
