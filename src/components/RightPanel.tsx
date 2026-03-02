@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, History, Image, LayoutGrid, Crown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -80,40 +80,43 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         )}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border bg-background">
-          <div className="flex items-center gap-2 flex-1">
-            <Button
-              variant="ghost"
-              size="icon"
+          <div className="relative flex items-center gap-2 flex-1">
+            {/* Sliding bubble indicator */}
+            <motion.div
+              className="absolute h-10 w-10 rounded-full bg-primary/20 ring-1 ring-primary"
+              layoutId="panel-tab-bubble"
+              transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.6 }}
+              style={{
+                left: activeTab === "history" ? 0 : activeTab === "media" ? 48 : 96,
+              }}
+            />
+            <button
               onClick={() => onTabChange("history")}
               className={cn(
-                "h-10 w-10 rounded-full",
-                activeTab === "history" && "bg-primary/20 text-primary ring-1 ring-primary"
+                "relative z-10 h-10 w-10 rounded-full flex items-center justify-center transition-colors",
+                activeTab === "history" ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
               <History className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
+            </button>
+            <button
               onClick={() => onTabChange("media")}
               className={cn(
-                "h-10 w-10 rounded-full",
-                activeTab === "media" && "bg-primary/20 text-primary ring-1 ring-primary"
+                "relative z-10 h-10 w-10 rounded-full flex items-center justify-center transition-colors",
+                activeTab === "media" ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
               <Image className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
+            </button>
+            <button
               onClick={() => onTabChange("apps")}
               className={cn(
-                "h-10 w-10 rounded-full",
-                activeTab === "apps" && "bg-primary/20 text-primary ring-1 ring-primary"
+                "relative z-10 h-10 w-10 rounded-full flex items-center justify-center transition-colors",
+                activeTab === "apps" ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
               <LayoutGrid className="h-4 w-4" />
-            </Button>
+            </button>
           </div>
           
             <Button
