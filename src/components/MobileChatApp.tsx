@@ -261,6 +261,7 @@ export function MobileChatApp() {
     volume: musicVolume,
     isMuted: musicMuted,
     currentTrack,
+    playbackMode,
     setAudioRef,
     setCurrentTime: setMusicCurrentTime,
     setDuration: setMusicDuration,
@@ -284,7 +285,10 @@ export function MobileChatApp() {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const handleEnded = () => setMusicIsPlaying(false);
+    const handleEnded = () => {
+      const { handleTrackEnded } = useMusicStore.getState();
+      handleTrackEnded();
+    };
     const handleError = () => {
       setMusicIsPlaying(false);
       setMusicIsLoading(false);
@@ -1020,7 +1024,7 @@ export function MobileChatApp() {
         <audio
           ref={audioCallbackRef}
           src={currentMusicTrack.url}
-          loop
+          loop={playbackMode === 'loop-track'}
           preload="metadata"
         />
       </div>
