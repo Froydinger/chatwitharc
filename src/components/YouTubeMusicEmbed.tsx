@@ -16,6 +16,10 @@ function extractYoutubeId(url: string): string | null {
   return null;
 }
 
+function getYoutubeThumbnail(videoId: string) {
+  return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+}
+
 export function YouTubeMusicEmbed() {
   const { youtubeVideoId, setYoutubeVideoId } = useMusicStore();
   const [urlInput, setUrlInput] = useState("");
@@ -32,9 +36,40 @@ export function YouTubeMusicEmbed() {
     }
   };
 
+  const currentPreset = YOUTUBE_PRESETS.find(p => p.videoId === youtubeVideoId);
+  const displayName = currentPreset?.name || "YouTube Music";
+
   return (
     <div className="space-y-4">
-      {/* YouTube Player */}
+      {/* Vinyl Record with YouTube Thumbnail */}
+      <div className="relative mx-auto w-36 h-36 my-3">
+        <div
+          className="absolute inset-0 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-900 shadow-inner"
+          style={{ animation: 'spin 8s linear infinite' }}
+        >
+          <div className="absolute inset-2 rounded-full border border-zinc-700/30" />
+          <div className="absolute inset-4 rounded-full border border-zinc-700/20" />
+        </div>
+        <div
+          className="absolute inset-4 overflow-hidden rounded-full shadow-lg"
+          style={{ animation: 'spin 8s linear infinite' }}
+        >
+          <img
+            src={getYoutubeThumbnail(youtubeVideoId)}
+            alt={displayName}
+            className="h-full w-full object-cover scale-150"
+          />
+        </div>
+        <div className="absolute inset-0 m-auto h-4 w-4 rounded-full bg-zinc-300 shadow-inner" />
+      </div>
+
+      {/* Track name */}
+      <div className="text-center">
+        <h3 className="text-lg font-semibold text-foreground truncate">{displayName}</h3>
+        <p className="text-sm text-muted-foreground">YouTube</p>
+      </div>
+
+      {/* YouTube Player (small) */}
       <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/20">
         <iframe
           src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=0&rel=0`}
