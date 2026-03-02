@@ -166,15 +166,17 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     return () => clearInterval(interval);
   }, [user, checkSubscription]);
 
-  // Refresh daily counts on focus
+  // Refresh subscription + daily counts on focus (catches return from Stripe checkout)
   useEffect(() => {
     const handleFocus = () => {
       setDailyMessagesUsed(getDailyCount(DAILY_MSG_KEY));
       setDailyVoiceSessionsUsed(getDailyCount(DAILY_VOICE_KEY));
+      // Re-check subscription when user returns (e.g. from Stripe checkout redirect)
+      checkSubscription();
     };
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, []);
+  }, [checkSubscription]);
 
   return (
     <SubscriptionContext.Provider value={{
