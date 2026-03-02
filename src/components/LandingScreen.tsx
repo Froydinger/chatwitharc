@@ -560,7 +560,7 @@ export function LandingScreen() {
                   )}
                 </div>
                 <span className="text-xs text-gray-500">
-                  {isMobile ? 'Free on web • Email Mac app link' : isWindowsDevice ? 'Free on web • Windows app coming soon' : 'Free on web • Native Mac app available'}
+                  {isMobile ? 'Free & paid plans • Email Mac app link' : isWindowsDevice ? 'Free & paid plans • Windows app coming soon' : 'Free & paid plans • Native Mac app available'}
                 </span>
               </>
             )}
@@ -573,7 +573,7 @@ export function LandingScreen() {
 
       {/* Features Grid */}
       <section className="relative z-10 py-24 px-6 max-w-7xl mx-auto" id="features">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <FeatureCard
             icon={Zap}
             title="Lightning Fast"
@@ -592,6 +592,35 @@ export function LandingScreen() {
             description="Chat, generate images, analyze files, and code—all in one fluid, beautiful interface."
             color="from-blue-400 to-cyan-500"
           />
+          {/* Unlimited Chats - Pro Upsell CTA */}
+          <motion.div
+            className="cursor-pointer"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              const pricingEl = document.getElementById('pricing');
+              if (pricingEl) {
+                pricingEl.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+          >
+            <div className="relative group h-full rounded-2xl p-6 glass-card overflow-hidden border border-cyan-500/30 animate-[neon-pulse_2s_ease-in-out_infinite]">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-600/10 opacity-60" />
+              <div className="absolute inset-0 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.15),inset_0_0_20px_rgba(6,182,212,0.05)]" />
+              <div className="relative space-y-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                  <MessageCircle className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="font-bold text-white text-lg">Unlimited Chats</h3>
+                <p className="text-sm text-gray-400 leading-relaxed">Remove daily limits and chat without restrictions. Upgrade to Pro for unlimited everything.</p>
+                <div className="flex items-center gap-1.5 text-cyan-400 text-sm font-semibold pt-1">
+                  <Crown className="w-4 h-4" />
+                  <span>View Pro Plan</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
@@ -609,7 +638,7 @@ export function LandingScreen() {
                   <Headphones className="w-6 h-6 text-purple-400" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-2xl md:text-3xl font-bold text-white">Built-in Music</h2>
+                  <h2 className="text-2xl md:text-3xl font-bold text-white">Music</h2>
                   <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">Pro</span>
                 </div>
               </div>
