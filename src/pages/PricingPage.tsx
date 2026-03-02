@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 const features = [
   { name: "AI Chat", free: "30 messages/day", pro: "Unlimited", icon: MessageCircle },
   { name: "Voice Mode", free: "3 sessions/day", pro: "Unlimited", icon: Mic },
+  { name: "AI Model Selection", free: false, pro: true, icon: Sparkles },
   { name: "Image Generation", free: true, pro: true, icon: Image },
   { name: "Image Analysis", free: true, pro: true, icon: Sparkles },
   { name: "Memory & Context", free: true, pro: true, icon: Brain },
@@ -151,17 +152,17 @@ export function PricingPage() {
                     <Check className="w-4 h-4 text-primary shrink-0" />
                     <span>Unlimited voice sessions</span>
                   </li>
-                  <li className="flex items-center gap-3 text-sm text-muted-foreground">
+                   <li className="flex items-center gap-3 text-sm text-foreground font-medium">
+                     <Check className="w-4 h-4 text-primary shrink-0" />
+                     <span>Switch between AI models</span>
+                   </li>
+                   <li className="flex items-center gap-3 text-sm text-muted-foreground">
                     <Check className="w-4 h-4 text-primary shrink-0" />
                     <span>Everything in Free</span>
                   </li>
                   <li className="flex items-center gap-3 text-sm text-muted-foreground">
                     <Check className="w-4 h-4 text-primary shrink-0" />
                     <span>Priority support</span>
-                  </li>
-                  <li className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <Check className="w-4 h-4 text-primary shrink-0" />
-                    <span>Support ArcAi development</span>
                   </li>
                 </ul>
 
@@ -212,7 +213,7 @@ export function PricingPage() {
                       </td>
                       <td className="py-3 text-center text-sm">
                         {typeof free === 'boolean' ? (
-                          <Check className="w-4 h-4 text-primary mx-auto" />
+                          free ? <Check className="w-4 h-4 text-primary mx-auto" /> : <span className="text-muted-foreground">—</span>
                         ) : (
                           <span className="text-muted-foreground">{free}</span>
                         )}

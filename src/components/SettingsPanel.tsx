@@ -700,19 +700,6 @@ export function SettingsPanel() {
             </div>
           </GlassCard>
 
-          {/* Usage Disclaimer */}
-          <GlassCard variant="bubble" className="p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              <div>
-                <h3 className="text-sm font-medium text-foreground">Fair Use Policy</h3>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              If you abuse our free, unlimited service via ArcAi tools (it takes a LOT to do this, don't worry) you will be banned. 99.99% of people don't need to worry about this–you know who you are. 👀
-            </p>
-          </GlassCard>
-
           {/* Account Actions */}
           <GlassCard variant="bubble" className="p-6 space-y-4">
             <div className="flex items-center justify-between">
