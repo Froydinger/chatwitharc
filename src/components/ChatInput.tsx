@@ -1511,7 +1511,7 @@ ${existingCode}
                 >
                   <div className="flex flex-col items-center justify-center gap-1.5 h-full">
                     <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-orange-500/15 glass-shimmer ring-[0.5px] ring-orange-500/40">
-                      <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
+                      <Search className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" fill="currentColor" strokeWidth={1.5} />
                     </span>
                     <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">Research</span>
                   </div>
@@ -1746,7 +1746,7 @@ ${existingCode}
                       >
                         <div className="flex flex-col items-center justify-center gap-1.5 h-full">
                           <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-orange-500/15 glass-shimmer ring-[0.5px] ring-orange-500/40">
-                            <Search className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
+                            <Search className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" fill="currentColor" strokeWidth={1.5} />
                           </span>
                           <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">Research</span>
                         </div>
