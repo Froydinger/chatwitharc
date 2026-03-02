@@ -8,15 +8,17 @@ import { NamePrompt } from "@/components/NamePrompt";
 import { MobileChatApp } from "@/components/MobileChatApp";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { LandingScreen } from "@/components/LandingScreen";
+import { UpgradeModal } from "@/components/UpgradeModal";
 
 export function Index() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
-  const { user, loading, needsOnboarding } = useAuth();
+  const { user, profile, loading, needsOnboarding } = useAuth();
   const { isLoaded } = useChatSync();
   const { currentSessionId, loadSession, chatSessions } = useArcStore();
 
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Ensure theme-ready class is set
   useEffect(() => {
@@ -87,9 +89,30 @@ export function Index() {
 
   // Show onboarding if user needs it and hasn't completed it
   if (needsOnboarding && !onboardingComplete) {
-    return <OnboardingScreen onComplete={() => setOnboardingComplete(true)} />;
+    return (
+      <OnboardingScreen
+        onComplete={() => {
+          setOnboardingComplete(true);
+          // Show upgrade modal after onboarding
+          const hasSeenUpgrade = localStorage.getItem('arcai-seen-upgrade');
+          if (!hasSeenUpgrade) {
+            setTimeout(() => setShowUpgradeModal(true), 800);
+            localStorage.setItem('arcai-seen-upgrade', 'true');
+          }
+        }}
+      />
+    );
   }
 
   // Authenticated user - show chat
-  return <MobileChatApp />;
+  return (
+    <>
+      <MobileChatApp />
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        userName={profile?.display_name || undefined}
+      />
+    </>
+  );
 }
