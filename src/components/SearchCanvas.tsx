@@ -61,7 +61,7 @@ export function SearchCanvas() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [copied, setCopied] = useState(false);
-  const [showHistory, setShowHistory] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
   const [showSources, setShowSources] = useState(false);
   const [followUpInput, setFollowUpInput] = useState("");
   const [showSavedLinks, setShowSavedLinks] = useState(false);
@@ -597,7 +597,27 @@ export function SearchCanvas() {
         </div>
       </header>
 
-      {/* History Dropdown - Shows above active session when open */}
+      {/* Last Search Preview - click to open full history */}
+      {!showHistory && sessions.length > 0 && !activeSessionId && (
+        <div className="border-b border-border/30 bg-card/50">
+          <div className="max-w-3xl mx-auto px-4 py-3">
+            <motion.button
+              onClick={() => setShowHistory(true)}
+              className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-3"
+              whileHover={{ x: 4 }}
+            >
+              <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium line-clamp-1">{sessions[0].query}</p>
+                <p className="text-xs text-muted-foreground">{sessions[0].results.length} sources · {formatTimestamp(sessions[0].timestamp)}</p>
+              </div>
+              <span className="text-xs text-muted-foreground flex-shrink-0">{sessions.length} total</span>
+            </motion.button>
+          </div>
+        </div>
+      )}
+
+      {/* Full History Dropdown */}
       <AnimatePresence>
         {showHistory && sessions.length > 0 && (
           <motion.div
@@ -610,18 +630,28 @@ export function SearchCanvas() {
               <div className="rounded-xl border border-border/50 bg-background/50 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-medium text-muted-foreground">Recent Searches</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      clearAllSessions();
-                      setShowHistory(false);
-                      setHistoryPage(0);
-                    }}
-                    className="h-7 text-xs text-muted-foreground hover:text-destructive"
-                  >
-                    Clear all
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        clearAllSessions();
+                        setShowHistory(false);
+                        setHistoryPage(0);
+                      }}
+                      className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      Clear all
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowHistory(false)}
+                      className="h-7 w-7 p-0 text-muted-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   {sessions
