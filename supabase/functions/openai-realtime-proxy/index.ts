@@ -15,7 +15,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // --- Auth: extract token from header or WS subprotocol ---
+  // --- Check for WebSocket upgrade FIRST ---
+  const upgradeHeader = req.headers.get('upgrade');
+  if (upgradeHeader?.toLowerCase() !== 'websocket') {
+    return new Response(
+      JSON.stringify({ error: 'Expected WebSocket upgrade' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // --- Extract token from header or WS subprotocol (before upgrade) ---
   const authHeader = req.headers.get('authorization');
   const protocols = req.headers.get('sec-websocket-protocol') || '';
 
@@ -31,53 +40,9 @@ serve(async (req) => {
     }
   }
 
-  if (!token) {
-    console.error('[proxy] No auth token provided');
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized - missing auth token' }),
-      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  // Verify user via Supabase
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  );
-
-  const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-  if (userError || !user?.id) {
-    console.error('[proxy] JWT verification failed:', userError?.message || 'no user');
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized - invalid token' }),
-      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  const userId = user.id;
-  console.log('[proxy] Authenticated user:', userId);
-
-  // --- WebSocket upgrade check ---
-  const upgradeHeader = req.headers.get('upgrade');
-  if (upgradeHeader?.toLowerCase() !== 'websocket') {
-    return new Response(
-      JSON.stringify({ error: 'Expected WebSocket upgrade' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!openaiApiKey) {
-    console.error('[proxy] OPENAI_API_KEY not configured');
-    return new Response(
-      JSON.stringify({ error: 'OpenAI API key not configured' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  // --- Upgrade to WebSocket ---
+  // --- Upgrade to WebSocket IMMEDIATELY (before any async auth) ---
+  // This prevents the "Unexpected EOF" race where the client WS dies
+  // while we're doing async HTTP auth calls.
   const { socket: clientSocket, response } = Deno.upgradeWebSocket(req);
 
   let openaiSocket: WebSocket | null = null;
@@ -86,10 +51,65 @@ serve(async (req) => {
   const messageBuffer: string[] = [];
   const MAX_BUFFER_SIZE = 200;
 
-  clientSocket.onopen = () => {
-    console.log('[proxy] Client WS open, user:', userId);
+  // Helpers
+  function safeClientSend(obj: unknown) {
+    try {
+      if (clientSocket.readyState === WebSocket.OPEN) {
+        clientSocket.send(JSON.stringify(obj));
+      }
+    } catch (e) {
+      console.error('[proxy] safeClientSend error:', e);
+    }
+  }
 
-    // Connect to OpenAI Realtime API
+  function safeClientClose(code: number, reason: string) {
+    try {
+      if (clientSocket.readyState === WebSocket.OPEN || clientSocket.readyState === WebSocket.CONNECTING) {
+        clientSocket.close(code, reason);
+      }
+    } catch (e) {
+      console.error('[proxy] safeClientClose error:', e);
+    }
+  }
+
+  clientSocket.onopen = async () => {
+    console.log('[proxy] Client WS open, starting auth...');
+
+    // --- Auth: verify token AFTER WS is open ---
+    if (!token) {
+      console.error('[proxy] No auth token provided');
+      safeClientSend({ type: 'error', error: { code: 'auth_failed', message: 'Missing auth token' } });
+      safeClientClose(1008, 'Missing auth token');
+      return;
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user?.id) {
+      console.error('[proxy] JWT verification failed:', userError?.message || 'no user');
+      safeClientSend({ type: 'error', error: { code: 'auth_failed', message: 'Invalid auth token' } });
+      safeClientClose(1008, 'Auth failed');
+      return;
+    }
+
+    const userId = user.id;
+    console.log('[proxy] Authenticated user:', userId);
+
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiApiKey) {
+      console.error('[proxy] OPENAI_API_KEY not configured');
+      safeClientSend({ type: 'error', error: { code: 'upstream_init_failed', message: 'Voice service not configured' } });
+      safeClientClose(1011, 'No API key');
+      return;
+    }
+
+    // --- Connect to OpenAI Realtime API ---
     const model = 'gpt-4o-realtime-preview-2025-06-03';
     const openaiUrl = `wss://api.openai.com/v1/realtime?model=${model}`;
 
@@ -121,7 +141,6 @@ serve(async (req) => {
 
     openaiSocket.onmessage = (event) => {
       if (clientSocket.readyState === WebSocket.OPEN) {
-        // Log first event type for lifecycle debugging
         try {
           const parsed = JSON.parse(typeof event.data === 'string' ? event.data : '{}');
           if (parsed.type === 'session.created') {
@@ -140,9 +159,8 @@ serve(async (req) => {
       console.log('[proxy] Upstream closed:', event.code, event.reason || '(no reason)');
       openaiReady = false;
 
-      if (intentionalClose) return; // We initiated the close, don't relay
+      if (intentionalClose) return;
 
-      // Relay structured error to client, then close
       safeClientSend({
         type: 'error',
         error: {
@@ -202,27 +220,6 @@ serve(async (req) => {
       openaiSocket.close(1000, 'Client disconnected');
     }
   };
-
-  // Helpers
-  function safeClientSend(obj: unknown) {
-    try {
-      if (clientSocket.readyState === WebSocket.OPEN) {
-        clientSocket.send(JSON.stringify(obj));
-      }
-    } catch (e) {
-      console.error('[proxy] safeClientSend error:', e);
-    }
-  }
-
-  function safeClientClose(code: number, reason: string) {
-    try {
-      if (clientSocket.readyState === WebSocket.OPEN || clientSocket.readyState === WebSocket.CONNECTING) {
-        clientSocket.close(code, reason);
-      }
-    } catch (e) {
-      console.error('[proxy] safeClientClose error:', e);
-    }
-  }
 
   return response;
 });
