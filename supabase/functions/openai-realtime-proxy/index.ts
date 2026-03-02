@@ -95,14 +95,26 @@ serve(async (req) => {
   clientSocket.onopen = () => {
     console.log('Client connected to proxy, user:', userId);
     
-    // Connect to OpenAI Realtime API
-    const openaiUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
+    // Connect to OpenAI Realtime API with correct model
+    const openaiUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2025-06-03';
     
-    openaiSocket = new WebSocket(openaiUrl, [
-      'realtime',
-      `openai-insecure-api-key.${openaiApiKey}`,
-      'openai-beta.realtime-v1'
-    ]);
+    try {
+      openaiSocket = new WebSocket(openaiUrl, [
+        'realtime',
+        `openai-insecure-api-key.${openaiApiKey}`,
+        'openai-beta.realtime-v1'
+      ]);
+    } catch (err) {
+      console.error('Failed to create OpenAI WebSocket:', err);
+      if (clientSocket.readyState === WebSocket.OPEN) {
+        clientSocket.send(JSON.stringify({
+          type: 'error',
+          error: { message: 'Failed to initialize voice connection' }
+        }));
+        clientSocket.close(1011, 'Failed to connect to upstream');
+      }
+      return;
+    }
 
     openaiSocket.onopen = () => {
       console.log('Connected to OpenAI Realtime');

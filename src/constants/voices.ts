@@ -41,6 +41,12 @@ export interface VoiceOption {
 
 // Sorted alphabetically by display name
 export const VOICES: VoiceOption[] = [
+  { id: 'cedar', name: 'Cedric', description: 'Natural & smooth', recommended: true, noPreview: true },
+  { id: 'marin', name: 'Marina', description: 'Expressive & natural', recommended: true, noPreview: true },
+];
+
+// Full list for internal use (fallbacks, etc.)
+export const ALL_VOICES: VoiceOption[] = [
   { id: 'alloy', name: 'Alex', description: 'Neutral & balanced', noPreview: true },
   { id: 'ash', name: 'Ashton', description: 'Warm & confident', noPreview: true },
   { id: 'ballad', name: 'Belle', description: 'Melodic & soothing', noPreview: true },
