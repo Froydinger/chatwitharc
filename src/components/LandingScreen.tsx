@@ -330,10 +330,13 @@ export function LandingScreen() {
             <div className="flex items-center justify-between px-4 py-3 md:px-8 max-w-7xl mx-auto">
               <div className="flex items-center space-x-3">
                 <ThemedLogo keepOriginal className="w-6 h-6" />
-                <span className="text-lg tracking-tight text-white">
+                <span className="text-lg tracking-tight text-white flex items-center">
                   <span className="font-thin">Arc</span>
                   <span className="font-light">Ai</span>
-                  <span className="text-xs text-gray-500 ml-2 font-light hidden sm:inline">by Win The Night</span>
+                  <span className="hidden sm:flex items-center ml-2 gap-1 text-xs text-gray-500 font-light">
+                    by
+                    <img src="/wtn-logo.webp" alt="Win The Night" className="h-4 w-4 object-contain rounded-sm opacity-70" />
+                  </span>
                 </span>
               </div>
               <div className="flex items-center space-x-4">
@@ -435,10 +438,14 @@ export function LandingScreen() {
               )}
             </AnimatePresence>
           </div>
-          <span className="text-xl tracking-tight text-white">
+          <span className="text-xl tracking-tight text-white flex items-center">
             <span className="font-thin">Arc</span>
             <span className="font-light">Ai</span>
-            <span className="text-xs text-gray-500 ml-2 font-light">by Win The Night</span>
+            <span className="hidden sm:flex items-center ml-3 gap-1.5 text-xs text-gray-500 font-light">
+              by
+              <img src="/wtn-logo.webp" alt="Win The Night" className="h-5 w-5 object-contain rounded-sm opacity-70" />
+              Win The Night
+            </span>
           </span>
         </div>
         <div className="hidden md:flex items-center space-x-6">
@@ -663,8 +670,11 @@ export function LandingScreen() {
 
       {/* Footer */}
       <footer className="relative z-10 py-12 px-6 border-t border-white/5 text-center text-gray-600 text-sm">
-        <p>&copy; 2026 <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Win The Night Productions</a>. All rights reserved.</p>
-        <div className="mt-4 space-x-6">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <img src="/wtn-logo.webp" alt="Win The Night" className="h-8 w-8 object-contain rounded-md opacity-60" />
+          <p>&copy; 2026 <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Win The Night Productions</a>. All rights reserved.</p>
+        </div>
+        <div className="space-x-6">
           <PrivacyTermsModal />
         </div>
       </footer>
