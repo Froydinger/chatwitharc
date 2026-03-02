@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ArrowRight } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ArrowRight, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -8,6 +8,7 @@ import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 import { YouTubeMusicEmbed } from "@/components/YouTubeMusicEmbed";
 import { cn } from "@/lib/utils";
 import type { PlaybackMode } from "@/store/useMusicStore";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const PLAYBACK_MODE_ICONS: Record<PlaybackMode, typeof Repeat1> = {
   'loop-track': Repeat1,
@@ -35,6 +36,7 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
     togglePlay, toggleMute, nextTrack, prevTrack, seek, handleVolumeChange, handleTrackChange,
   } = useMusicStore();
 
+  const { isSubscribed } = useSubscription();
   const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -91,6 +93,26 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
                 : "0 20px 50px -10px rgba(0, 0, 0, 0.5)",
             }}
           >
+            {/* Pro overlay for free users */}
+            {!isSubscribed && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-3xl backdrop-blur-md bg-background/70">
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/20 mb-3">
+                  <Crown className="w-8 h-8 text-cyan-400" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground mb-1">Pro Feature</h3>
+                <p className="text-sm text-muted-foreground mb-4 text-center px-8">Upgrade to Pro to unlock the music player</p>
+                <button
+                  onClick={() => {
+                    onClose();
+                    window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
+                  }}
+                  className="px-6 py-2.5 rounded-full font-semibold text-sm bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.3)]"
+                >
+                  <Crown className="w-4 h-4" />
+                  Upgrade to Pro
+                </button>
+              </div>
+            )}
             {/* Header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-3">
               <div className="flex items-center gap-2">
