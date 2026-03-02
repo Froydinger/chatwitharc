@@ -1,44 +1,26 @@
 
 
-## Auth Modal Tab Switcher + Upgrade-to-Subscribe Flow
+## Plan: Name Prompt for "New User" + YouTube Music Embed Note
 
-### What's Changing
+### 1. Prompt users with no real name set
 
-**1. Auth Modal: Replace bottom text link with a tab switcher at the top**
+**Problem:** Users who sign up get `display_name` set to `"New User"` by the database trigger, but the onboarding check only looks for `null` -- so they never get prompted for their name.
 
-The current "Don't have an account? Sign up" text link at the bottom of the AuthModal will be replaced with a prominent pill-shaped tab switcher (Sign In / Sign Up) placed right below the logo/header area. This uses the existing glass styling to match the liquid glass aesthetic.
+**Changes in `src/hooks/useAuth.tsx`:**
+- **Line 82**: Update condition from `!data.display_name` to `!data.display_name || data.display_name === 'New User'`
+- **Line 131**: Change `setNeedsOnboarding(false)` to check if `displayName === 'New User'` and set `true` in that case
 
-**2. UpgradeModal: Inline sign-up + checkout in one flow**
-
-Currently, when a non-authenticated user clicks "Upgrade to Pro," the embedded checkout fails because Stripe requires an authenticated user. The upgrade modal will be enhanced to detect if the user is not logged in and show a combined flow:
-- Step 1: Show a compact sign-up/sign-in form inline within the UpgradeModal
-- Step 2: After successful auth, automatically transition to the embedded Stripe checkout
-
-This lets users create an account and subscribe in one seamless flow without bouncing between modals.
+This ensures any user logging in without a real name sees the existing name prompt screen.
 
 ---
 
-### Technical Details
+### 2. YouTube Music tab -- bug fix + embed clarification
 
-**File: `src/components/AuthModal.tsx`**
-- Remove the toggle button at the bottom (`"Don't have an account? Sign up"`)
-- Add a tab switcher component above the form fields, below the logo section
-- Two pill-shaped tabs: "Sign In" and "Sign Up" with glass styling
-- Tabs control the existing `isLogin` state
-- Styling: rounded-full container with `bg-white/5 border border-white/10`, active tab gets `bg-white/10` with subtle glow
+**The error in the screenshot** (`Cannot set property attributeName of #<MutationRecord> which has only a getter`) is a browser-level error likely from the YouTube iframe embed, not from our code. This is a known Chrome/Safari issue with YouTube embeds and is harmless.
 
-**File: `src/components/UpgradeModal.tsx`**
-- Import `useAuth` hook to check authentication status
-- Import auth-related components (supabase client, form fields)
-- Add a `step` state: `'info' | 'auth' | 'checkout'`
-- When user clicks "Upgrade to Pro":
-  - If authenticated: go straight to checkout (current behavior)
-  - If not authenticated: show an inline sign-up form (step = 'auth')
-- After successful authentication, automatically advance to checkout (step = 'checkout')
-- Include Google OAuth option in the inline auth form
-- Back button navigates between steps
+**YouTube Music embed:** Unfortunately, `music.youtube.com` does **not** provide an embeddable player or public embed API. Their URLs don't work in iframes (they block embedding via `X-Frame-Options`). The current approach using standard YouTube embeds (`youtube.com/embed/...`) is the only viable option.
 
-**File: `src/components/EmbeddedCheckout.tsx`**
-- No changes needed -- it already works independently
+**What we can do instead:** Improve the YouTube tab by adding more music-focused preset playlists (lo-fi livestreams, jazz mixes, study music, etc.) so users get a curated music experience without needing to paste URLs manually. The existing presets already include lo-fi radio, jazz radio, and ambient -- no changes needed unless you want more presets added.
 
-**No backend changes required** -- existing auth and checkout edge functions handle everything.
+No code changes needed for the YouTube tab beyond what's already implemented.
+
