@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Brain } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Brain, Bolt } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore } from "@/store/useArcStore";
@@ -786,7 +786,7 @@ export function MobileChatApp() {
                     }}
                     title="Account"
                   >
-                    <ThemedLogo className="h-9 w-9" alt="Arc" />
+                    <Bolt className="h-7 w-7 text-primary" />
                   </Button>
                 </motion.div>
               </div>
