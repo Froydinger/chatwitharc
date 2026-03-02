@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, MessageSquare, RefreshCw, Globe } from "lucide-react";
+import { Plus, Trash2, MessageSquare, RefreshCw, Search } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -197,9 +197,9 @@ export function ChatHistoryPanel() {
             openSearchMode();
             goToChat();
           }}
-          className="w-full h-12 rounded-full glass-shimmer ring-[0.5px] ring-orange-500/60 inline-flex items-center justify-center text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98] text-orange-400 !shadow-[0_4px_16px_rgba(0,0,0,.2),0_0_8px_rgba(249,115,22,.2)]"
+          className="w-full h-12 rounded-full bg-orange-500 inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] text-black shadow-[0_4px_16px_rgba(0,0,0,.2),0_0_12px_rgba(249,115,22,.35)]"
         >
-          <Globe className="h-4 w-4 mr-2" />
+          <Search className="h-4 w-4 mr-2" fill="currentColor" strokeWidth={1.5} />
           Research Mode
         </button>
       </div>
