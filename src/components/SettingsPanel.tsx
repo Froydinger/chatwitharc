@@ -64,8 +64,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { FileText, Shield } from "lucide-react";
+import { FileText, Shield, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSubscription } from "@/hooks/useSubscription";
 
 export function SettingsPanel() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -78,6 +79,7 @@ export function SettingsPanel() {
   } = useArcStore();
   const { user } = useAuth();
   const { profile, updateProfile, updating } = useProfile();
+  const subscription = useSubscription();
   const { toast } = useToast();
   const showPopup = useFingerPopup((state) => state.showPopup);
   // Use unified accent color system
@@ -525,6 +527,44 @@ export function SettingsPanel() {
               <div className="text-sm text-muted-foreground font-mono bg-glass/30 px-3 py-2 rounded-md">
                 {user?.email || "No email"}
               </div>
+            </div>
+          </GlassCard>
+
+          {/* Subscription */}
+          <GlassCard variant="bubble" className="p-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-primary" />
+                    {subscription.isSubscribed ? 'ArcAi Pro' : 'Free Plan'}
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    {subscription.isSubscribed
+                      ? `Active until ${new Date(subscription.subscriptionEnd!).toLocaleDateString()}`
+                      : `${subscription.remainingMessages} messages left today · ${subscription.remainingVoiceSessions} voice sessions left`}
+                  </p>
+                </div>
+              </div>
+              {subscription.isSubscribed ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => subscription.openCustomerPortal()}
+                  className="w-full"
+                >
+                  Manage Subscription
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => subscription.openCheckout()}
+                  className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
+                >
+                  <Crown className="w-4 h-4 mr-2" />
+                  Upgrade to Pro — $8/mo
+                </Button>
+              )}
             </div>
           </GlassCard>
 

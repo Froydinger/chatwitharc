@@ -10,6 +10,7 @@ import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useProfile } from "@/hooks/useProfile";
 import { useAccentColor } from "@/hooks/useAccentColor";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { AIService } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useStreamingWithContinuation } from "@/hooks/useStreamingWithContinuation";
@@ -305,6 +306,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const { toast } = useToast();
   const showPopup = useFingerPopup((state) => state.showPopup);
   const { user } = useAuth();
+  const subscription = useSubscription();
   const isGuestMode = !user;
 
   const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory, setSearchingWeb, updateMessageMemoryAction, upsertCanvasMessage, upsertCodeMessage } =
@@ -699,11 +701,21 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     // Guest mode: check if limit reached
     if (isGuestMode) {
       const guestCount = parseInt(localStorage.getItem('arcai-guest-messages') || '0', 10);
-      if (guestCount >= 5) {
+      if (guestCount >= 15) {
         // Dispatch event to show signup prompt
         window.dispatchEvent(new CustomEvent('arcai:guestMessageSent'));
         return;
-      }
+    }
+
+    // Authenticated user: check daily message limit
+    if (user && !subscription.canSendMessage) {
+      toast({
+        title: "Daily message limit reached",
+        description: "Upgrade to ArcAi Pro for unlimited messages.",
+        variant: "destructive",
+      });
+      return;
+    }
     }
 
     const userMessage = messageToSend.trim();
@@ -732,9 +744,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     cancelRequested = false;
     setLoading(true);
 
-    // Dispatch guest message event for tracking
+    // Track message usage
     if (isGuestMode) {
       window.dispatchEvent(new CustomEvent('arcai:guestMessageSent'));
+    } else if (user) {
+      subscription.recordMessage();
     }
 
     try {
@@ -1616,7 +1630,18 @@ ${existingCode}
 
         {/* Mic Icon - Voice Mode */}
         <button
-          onClick={() => activateVoiceMode()}
+          onClick={() => {
+            if (user && !subscription.canUseVoice) {
+              toast({
+                title: "Voice session limit reached",
+                description: "Upgrade to ArcAi Pro for unlimited voice sessions.",
+                variant: "destructive",
+              });
+              return;
+            }
+            if (user) subscription.recordVoiceSession();
+            activateVoiceMode();
+          }}
           className={[
             "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
             "text-muted-foreground hover:text-foreground hover:!bg-primary/10",
