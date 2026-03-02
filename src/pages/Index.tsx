@@ -4,12 +4,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useChatSync } from "@/hooks/useChatSync";
 import { useArcStore } from "@/store/useArcStore";
-import { useGuestMode } from "@/hooks/useGuestMode";
 import { NamePrompt } from "@/components/NamePrompt";
 import { MobileChatApp } from "@/components/MobileChatApp";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { LandingScreen } from "@/components/LandingScreen";
-import { GuestSignupPrompt } from "@/components/GuestSignupPrompt";
 
 export function Index() {
   const { sessionId } = useParams();
@@ -17,10 +15,8 @@ export function Index() {
   const { user, loading, needsOnboarding } = useAuth();
   const { isLoaded } = useChatSync();
   const { currentSessionId, loadSession, chatSessions } = useArcStore();
-  const { showSignupPrompt, dismissSignupPrompt, remainingMessages, canSendMessage, recordGuestMessage, GUEST_LIMIT } = useGuestMode();
 
   const [onboardingComplete, setOnboardingComplete] = useState(false);
-  const [guestMode, setGuestMode] = useState(false);
 
   // Ensure theme-ready class is set
   useEffect(() => {
@@ -31,22 +27,11 @@ export function Index() {
 
   // Force dark mode for landing page when not authenticated
   useEffect(() => {
-    if (!user && !loading && !guestMode) {
+    if (!user && !loading) {
       document.documentElement.classList.remove('light');
       document.documentElement.classList.add('dark');
     }
-  }, [user, loading, guestMode]);
-
-  // Listen for guest message events to track count
-  useEffect(() => {
-    const handleGuestMessage = () => {
-      if (!user && guestMode) {
-        recordGuestMessage();
-      }
-    };
-    window.addEventListener('arcai:guestMessageSent', handleGuestMessage);
-    return () => window.removeEventListener('arcai:guestMessageSent', handleGuestMessage);
-  }, [user, guestMode, recordGuestMessage]);
+  }, [user, loading]);
 
   // Load session from URL if present (priority: URL takes precedence)
   useEffect(() => {
@@ -69,8 +54,6 @@ export function Index() {
   // Handle pending prompt from landing screen after authentication
   useEffect(() => {
     if (user && !loading && !needsOnboarding) {
-      setGuestMode(false);
-      
       const pendingPrompt = sessionStorage.getItem('pending-prompt');
       if (pendingPrompt) {
         sessionStorage.removeItem('pending-prompt');
@@ -97,33 +80,16 @@ export function Index() {
     );
   }
 
-  // Show landing screen if user is not authenticated and not in guest mode
-  if (!user && !guestMode) {
-    return <LandingScreen onTryAsGuest={() => setGuestMode(true)} />;
+  // Show landing screen if user is not authenticated
+  if (!user) {
+    return <LandingScreen />;
   }
 
   // Show onboarding if user needs it and hasn't completed it
-  if (user && needsOnboarding && !onboardingComplete) {
+  if (needsOnboarding && !onboardingComplete) {
     return <OnboardingScreen onComplete={() => setOnboardingComplete(true)} />;
   }
 
-  // Guest mode or authenticated user - show chat
-  return (
-    <>
-      <MobileChatApp />
-      {!user && guestMode && (
-        <GuestSignupPrompt
-          isOpen={showSignupPrompt || !canSendMessage}
-          onDismiss={dismissSignupPrompt}
-          remainingMessages={remainingMessages}
-          isLimitReached={!canSendMessage}
-        />
-      )}
-      {!user && guestMode && canSendMessage && remainingMessages <= 2 && remainingMessages > 0 && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full glass-card text-xs text-muted-foreground border border-border/30 backdrop-blur-xl">
-          {remainingMessages} free chat{remainingMessages !== 1 ? 's' : ''} remaining · <button onClick={() => window.dispatchEvent(new CustomEvent('arcai:openAuth'))} className="text-primary hover:underline">Sign up free</button>
-        </div>
-      )}
-    </>
-  );
+  // Authenticated user - show chat
+  return <MobileChatApp />;
 }

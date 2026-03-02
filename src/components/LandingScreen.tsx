@@ -232,7 +232,7 @@ const AppMockup = () => {
   );
 };
 
-export function LandingScreen({ onTryAsGuest }: { onTryAsGuest?: () => void } = {}) {
+export function LandingScreen() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isElectronApp, setIsElectronApp] = useState(false);
@@ -492,39 +492,36 @@ export function LandingScreen({ onTryAsGuest }: { onTryAsGuest?: () => void } = 
 
           <div className="flex flex-col items-center justify-center space-y-4">
             {isElectronApp ? (
-              // Electron app: Only show sign in button
               <>
                 <button
-                  onClick={() => onTryAsGuest?.()}
+                  onClick={() => setShowAuthModal(true)}
                   className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]"
                 >
                   <Sparkles className="w-6 h-6" />
-                  <span>Start Chatting</span>
+                  <span>Get Started</span>
                 </button>
                 <button onClick={() => setShowAuthModal(true)} className="text-sm text-gray-400 hover:text-white transition-colors underline underline-offset-4">Already have an account? Sign in</button>
               </>
             ) : isPWAMode ? (
-              // PWA: Only show Get Started button
               <>
                 <button
-                  onClick={() => onTryAsGuest?.()}
+                  onClick={() => setShowAuthModal(true)}
                   className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]"
                 >
                   <Sparkles className="w-6 h-6" />
-                  <span>Start Chatting</span>
+                  <span>Get Started</span>
                 </button>
                 <button onClick={() => setShowAuthModal(true)} className="text-sm text-gray-400 hover:text-white transition-colors underline underline-offset-4">Already have an account? Sign in</button>
               </>
             ) : (
-              // Web: Show both web and download options
               <>
                 <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 w-full">
                   <button
-                    onClick={() => onTryAsGuest?.()}
+                    onClick={() => setShowAuthModal(true)}
                     className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full font-bold text-lg flex items-center justify-center space-x-2 hover:scale-105 transition-transform duration-200 shadow-[0_0_40px_-10px_rgba(59,130,246,0.3)]"
                   >
                     <Sparkles className="w-6 h-6" />
-                    <span>Start Chatting on Web</span>
+                    <span>Get Started Free</span>
                   </button>
                   {isMobile ? (
                     <a
@@ -557,14 +554,6 @@ export function LandingScreen({ onTryAsGuest }: { onTryAsGuest?: () => void } = 
                   {isMobile ? 'Free on web • Email Mac app link' : isWindowsDevice ? 'Free on web • Windows app coming soon' : 'Free on web • Native Mac app available'}
                 </span>
               </>
-            )}
-            {onTryAsGuest && (
-              <button
-                onClick={onTryAsGuest}
-                className="mt-2 text-sm text-gray-400 hover:text-white transition-colors underline underline-offset-4"
-              >
-                Try without signing up
-              </button>
             )}
           </div>
         </div>
@@ -622,10 +611,10 @@ export function LandingScreen({ onTryAsGuest }: { onTryAsGuest?: () => void } = 
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Memory & code generation</li>
               </ul>
               <button
-                onClick={() => onTryAsGuest?.()}
+                onClick={() => setShowAuthModal(true)}
                 className="w-full px-6 py-3 rounded-full font-semibold border border-white/10 text-white hover:bg-white/5 transition-colors"
               >
-                Start Free
+                Get Started Free
               </button>
             </div>
 
