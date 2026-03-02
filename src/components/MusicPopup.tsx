@@ -176,8 +176,8 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
                 <Button variant="ghost" size="icon" onClick={prevTrack} className="h-10 w-10 rounded-full hover:bg-muted/50">
                   <SkipBack className="h-5 w-5" />
                 </Button>
-                <Button variant="default" size="icon" onClick={togglePlay} className="h-14 w-14 rounded-full shadow-lg" style={{ boxShadow: isPlaying ? "0 0 20px hsl(var(--primary) / 0.4)" : undefined }}>
-                  {isLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" /> : isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />}
+                <Button variant="ghost" size="icon" onClick={togglePlay} className="h-14 w-14 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 text-foreground shadow-lg" style={{ boxShadow: isPlaying ? "0 0 20px hsl(var(--primary) / 0.4)" : undefined }}>
+                  {isLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground border-t-transparent" /> : isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />}
                 </Button>
                 <Button variant="ghost" size="icon" onClick={nextTrack} className="h-10 w-10 rounded-full hover:bg-muted/50">
                   <SkipForward className="h-5 w-5" />
