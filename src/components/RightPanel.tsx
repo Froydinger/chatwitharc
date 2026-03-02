@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { X, History, Image, LayoutGrid, Settings, Crown } from "lucide-react";
+import { X, History, Image, LayoutGrid, Crown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
-import { SettingsPanel } from "@/components/SettingsPanel";
 import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
 import { CanvasesPanel } from "@/components/CanvasesPanel";
 import { cn } from "@/lib/utils";
@@ -82,7 +81,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border bg-background">
           <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
-            <TabsList className="grid w-full grid-cols-4 bg-muted/50 rounded-full">
+            <TabsList className="grid w-full grid-cols-3 bg-muted/50 rounded-full">
               <TabsTrigger value="history" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
                 <History className="h-4 w-4" />
               </TabsTrigger>
@@ -91,9 +90,6 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
               </TabsTrigger>
               <TabsTrigger value="apps" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
                 <LayoutGrid className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
-                <Settings className="h-4 w-4" />
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -112,21 +108,6 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           <div className="flex-1 overflow-hidden">
           <Tabs value={activeTab} className="h-full">
             <AnimatePresence mode="wait">
-              {activeTab === "settings" && (
-                <TabsContent value="settings" className="h-full m-0" asChild>
-                  <motion.div
-                    key="settings"
-                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
-                    className="h-full"
-                  >
-                    <SettingsPanel />
-                  </motion.div>
-                </TabsContent>
-              )}
-
               {activeTab === "apps" && (
                 <TabsContent value="apps" className="h-full m-0" asChild>
                   <motion.div

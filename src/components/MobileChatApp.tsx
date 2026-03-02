@@ -12,7 +12,7 @@ import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ThemedLogo } from "@/components/ThemedLogo";
-import { SupportPopup } from "@/components/SupportPopup";
+import { AccountHub } from "@/components/AccountHub";
 import { MusicPopup } from "@/components/MusicPopup";
 import { CanvasPanel } from "@/components/CanvasPanel";
 import { SearchCanvas } from "@/components/SearchCanvas";
@@ -994,8 +994,8 @@ export function MobileChatApp() {
           onTabChange={setRightPanelTab}
         />
 
-        {/* Support Popup */}
-        <SupportPopup
+        {/* Account Hub */}
+        <AccountHub
           isOpen={isSupportPopupOpen}
           onClose={() => setIsSupportPopupOpen(false)}
         />
