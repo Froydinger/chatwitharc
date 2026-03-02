@@ -724,8 +724,9 @@ export function LandingScreen() {
             </div>
 
             {/* Pro Plan */}
-            <div className="glass-card rounded-2xl p-8 space-y-5 relative overflow-hidden border border-cyan-500/20">
+            <div className="glass-card rounded-2xl p-8 space-y-5 relative overflow-hidden border border-cyan-500/30 animate-[neon-pulse_2s_ease-in-out_infinite]">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+              <div className="absolute top-4 right-4 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">Most Popular</div>
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-xl font-bold">Pro</h3>
