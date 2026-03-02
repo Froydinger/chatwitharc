@@ -105,6 +105,18 @@ const generateWelcomeEmailHtml = (displayName: string, baseUrl: string) => `
       </table>
     </div>
     
+    <!-- Upgrade CTA Section -->
+    <div style="background-color: ${colors.surfaceLight}; margin: 16px 20px 0; padding: 28px 24px; border-radius: 20px; border: 1px solid ${colors.border}; text-align: center;">
+      <p style="font-size: 32px; text-align: center; margin: 0 0 12px;">⚡</p>
+      <h2 style="color: ${colors.text}; font-size: 20px; font-weight: 700; margin: 0 0 8px;">Unlock the full experience</h2>
+      <p style="color: ${colors.textSecondary}; font-size: 14px; line-height: 22px; margin: 0 0 20px;">
+        Upgrade to <strong style="color: ${colors.primaryGlow};">ArcAI Pro</strong> for unlimited messages, voice mode, image generation, music player, and more.
+      </p>
+      <a href="${baseUrl}/?upgrade=true" style="background: linear-gradient(135deg, ${colors.accent} 0%, ${colors.primaryGlow} 100%); border-radius: 10px; color: ${colors.text}; font-size: 15px; font-weight: 600; text-decoration: none; text-align: center; display: inline-block; padding: 12px 32px; border: none; box-shadow: 0 8px 20px ${colors.accent}30;">
+        ✨ Upgrade to Pro
+      </a>
+    </div>
+    
     <!-- Footer -->
     <div style="padding: 28px 20px; text-align: center;">
       <p style="color: ${colors.textSecondary}; font-size: 13px; margin: 0 0 12px;">
