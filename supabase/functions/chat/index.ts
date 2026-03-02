@@ -503,7 +503,7 @@ serve(async (req) => {
       };
 
       const guestResponse = await fetchWithRetry(
-        'https://api.lovable.dev/v2/chat/completions',
+        'https://ai.gateway.lovable.dev/v1/chat/completions',
         {
           method: 'POST',
           headers: {
