@@ -21,6 +21,9 @@ export const musicTracks: MusicTrack[] = [
   { id: 'pixel-focus', name: 'Pixel Focus', url: '/audio/pixel-focus.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/jazz-cartoon-album.jpg' },
   { id: 'save-point', name: 'Save Point Heart', url: '/audio/save-point-heart.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/ambient-cartoon-album.jpg' },
   { id: 'credits-roll', name: 'Let The Credits Roll', url: '/audio/let-the-credits-roll.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/lofi-cartoon-album.jpg' },
+  { id: 'journey-glow', name: 'Journey Glow', url: '/audio/journey-glow.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/ambient-cartoon-album.jpg' },
+  { id: 'waterfalls', name: 'Waterfalls', url: '/audio/waterfalls.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/jazz-cartoon-album.jpg' },
+  { id: 'pixel-hop', name: 'Pixel Hop', url: '/audio/pixel-hop.mp3', artist: 'Arc AI', albumArt: '/lovable-uploads/lofi-cartoon-album.jpg' },
 ];
 
 export type PlaybackMode = 'loop-track' | 'loop-all' | 'shuffle' | 'sequential';
