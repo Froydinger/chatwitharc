@@ -277,6 +277,18 @@ All colors MUST be HSL for perfect glass effects.
       inset 0 1px 0 hsl(var(--foreground) / 0.1);
   }
 
+  /* Neon pulse glow for Pro upsell tile */
+  @keyframes neon-pulse {
+    0%, 100% {
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.15), 0 0 30px rgba(6, 182, 212, 0.05);
+      border-color: rgba(6, 182, 212, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.3), 0 0 50px rgba(6, 182, 212, 0.1);
+      border-color: rgba(6, 182, 212, 0.5);
+    }
+  }
+
 
   input::-moz-selection,
   textarea::-moz-selection {
