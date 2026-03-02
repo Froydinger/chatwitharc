@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { X, History, Image, LayoutGrid, Crown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
 import { CanvasesPanel } from "@/components/CanvasesPanel";
@@ -80,19 +80,41 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         )}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border bg-background">
-          <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as any)} className="flex-1">
-            <TabsList className="grid w-full grid-cols-3 bg-muted/50 rounded-full">
-              <TabsTrigger value="history" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
-                <History className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger value="media" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
-                <Image className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger value="apps" className="flex items-center justify-center rounded-full data-[state=active]:!bg-primary/20 data-[state=active]:text-primary data-[state=active]:ring-1 data-[state=active]:ring-primary">
-                <LayoutGrid className="h-4 w-4" />
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-2 flex-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onTabChange("history")}
+              className={cn(
+                "h-10 w-10 rounded-full",
+                activeTab === "history" && "bg-primary/20 text-primary ring-1 ring-primary"
+              )}
+            >
+              <History className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onTabChange("media")}
+              className={cn(
+                "h-10 w-10 rounded-full",
+                activeTab === "media" && "bg-primary/20 text-primary ring-1 ring-primary"
+              )}
+            >
+              <Image className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onTabChange("apps")}
+              className={cn(
+                "h-10 w-10 rounded-full",
+                activeTab === "apps" && "bg-primary/20 text-primary ring-1 ring-primary"
+              )}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </div>
           
             <Button
               variant="ghost"
