@@ -71,7 +71,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
   const { toast } = useToast();
   const { accentColor, setAccentColor } = useAccentColor();
   const { isAdmin } = useAdminSettings();
-  const { clearAllSessions, createNewSession, lastSyncAt, chatSessions, hydrateAllSessions, allSessionsHydrated } = useArcStore();
+  const { clearAllSessions, createNewSession, lastSyncAt } = useArcStore();
   const { modelFamily, setModelFamily } = useModelStore();
   const subscription = useSubscription();
   const {
@@ -134,11 +134,6 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     } catch { /* ignore */ }
     setFunFactLoading(false);
   }, [user]);
-
-  // Hydrate all sessions so we can count images
-  useEffect(() => {
-    if (isOpen) hydrateAllSessions();
-  }, [isOpen, hydrateAllSessions]);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -251,12 +246,6 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     ? new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
     : null;
 
-  // Count images from chat sessions (same logic as MediaLibraryPanel)
-  const localImageCount = chatSessions.reduce((count, session) => {
-    return count + session.messages.filter(
-      (m: any) => m?.type === "image" && m?.imageUrl && m?.role === "assistant"
-    ).length;
-  }, 0);
 
   const msgPercent = isSubscribed ? 0 : Math.min(100, (dailyMessagesUsed / FREE_DAILY_MESSAGE_LIMIT) * 100);
   const voicePercent = isSubscribed ? 0 : Math.min(100, (dailyVoiceSessionsUsed / FREE_DAILY_VOICE_LIMIT) * 100);
@@ -399,7 +388,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                 {!statsLoading && stats && (
                   <div className="grid grid-cols-2 gap-2">
                     <StatTile icon={<Brain className="h-3.5 w-3.5" />} label="Memories" value={stats.memories} />
-                    <StatTile icon={<Image className="h-3.5 w-3.5" />} label="Images" value={localImageCount} />
+                    <StatTile icon={<Image className="h-3.5 w-3.5" />} label="Images" value={stats.images_generated} />
                   </div>
                 )}
 

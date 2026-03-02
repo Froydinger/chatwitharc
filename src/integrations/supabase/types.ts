@@ -298,6 +298,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_user_images: { Args: { target_user_id: string }; Returns: number }
       is_admin_user: { Args: never; Returns: boolean }
       list_chat_sessions_meta: {
         Args: { max_sessions?: number; searching_user_id: string }
