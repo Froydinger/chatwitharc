@@ -149,9 +149,11 @@ export const useMusicStore = create<MusicState>()(
       },
 
       seek: (time: number) => {
-        const { audioRef, duration } = get();
-        if (!audioRef || !duration) return;
-        audioRef.currentTime = time;
+        const { audioRef } = get();
+        if (!audioRef) return;
+        const dur = audioRef.duration;
+        if (!dur || !isFinite(dur)) return;
+        audioRef.currentTime = Math.min(Math.max(0, time), dur);
       },
 
       handleVolumeChange: (newVolume: number) => {
