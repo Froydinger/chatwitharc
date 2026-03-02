@@ -30,6 +30,7 @@ import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 import { VoiceModeController } from "@/components/VoiceModeController";
 import { ContextBlocksPanel } from "@/components/ContextBlocksPanel";
+import { useSubscription } from "@/hooks/useSubscription";
 
 /** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
@@ -163,6 +164,7 @@ export function MobileChatApp() {
 
   // Search mode state
   const { isOpen: isSearchOpen, closeSearch } = useSearchStore();
+  const { isSubscribed } = useSubscription();
 
   // Auto-close sidebar when canvas opens on desktop
   // Reset inline styles when canvas closes (from drag-resize)
@@ -732,7 +734,13 @@ export function MobileChatApp() {
                       "rounded-full glass-shimmer transition-all",
                       isMusicPlaying && "ring-2 ring-primary/50"
                     )}
-                    onClick={() => setIsMusicPopupOpen(!isMusicPopupOpen)}
+                    onClick={() => {
+                      if (!isSubscribed) {
+                        toast({ title: "Pro Feature", description: "Music player is available with ArcAi Pro. Upgrade to unlock!" });
+                        return;
+                      }
+                      setIsMusicPopupOpen(!isMusicPopupOpen);
+                    }}
                     title="Music Player"
                   >
                     {/* Show waveform when playing, music note when not */}
