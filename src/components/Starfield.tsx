@@ -36,8 +36,8 @@ const generateStars = (
       opacity: isBright
         ? Math.min(opacityRange[1] * 1.3, 0.8)
         : opacityRange[0] + seededRandom(baseId + i * 4.4) * (opacityRange[1] - opacityRange[0]),
-      delay: seededRandom(baseId + i * 5.5) * 8,
-      duration: 3 + seededRandom(baseId + i * 6.6) * 5,
+      delay: seededRandom(baseId + i * 5.5) * 15,
+      duration: 6 + seededRandom(baseId + i * 6.6) * 10,
       brightness: isBright ? 1.5 : 1,
     };
   });
