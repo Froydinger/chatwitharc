@@ -100,7 +100,7 @@ const AppMockup = () => {
             <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
             <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
           </div>
-          <div className="flex-1 text-center text-xs text-gray-500 font-medium">ArcAi</div>
+          <div className="flex-1 text-center text-xs text-gray-500 font-medium">ArcAi <span className="text-gray-600">by Win The Night</span></div>
           <div className="w-10"></div>
         </div>
 
@@ -333,6 +333,7 @@ export function LandingScreen() {
                 <span className="text-lg tracking-tight text-white">
                   <span className="font-thin">Arc</span>
                   <span className="font-light">Ai</span>
+                  <span className="text-xs text-gray-500 ml-2 font-light hidden sm:inline">by Win The Night</span>
                 </span>
               </div>
               <div className="flex items-center space-x-4">
@@ -437,6 +438,7 @@ export function LandingScreen() {
           <span className="text-xl tracking-tight text-white">
             <span className="font-thin">Arc</span>
             <span className="font-light">Ai</span>
+            <span className="text-xs text-gray-500 ml-2 font-light">by Win The Night</span>
           </span>
         </div>
         <div className="hidden md:flex items-center space-x-6">
