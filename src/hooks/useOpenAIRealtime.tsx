@@ -463,6 +463,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://jxywhodnndagbsmnbnnw.supabase.co";
       const wsUrl = supabaseUrl.replace('https://', 'wss://').replace('http://', 'ws://');
+      let didOpen = false;
       
       // Get auth token for WebSocket authentication
       const { data: { session } } = await supabase.auth.getSession();
@@ -470,16 +471,31 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         console.error('Not authenticated - cannot connect to voice mode');
         setStatus('idle');
         globalConnecting = false;
+        optionsRef.current.onError?.('Please sign in to use Voice Mode.');
         return;
       }
       
       const ws = new WebSocket(
         `${wsUrl}/functions/v1/openai-realtime-proxy`,
-        ['bearer.' + session.access_token]
+        ['bearer.' + encodeURIComponent(session.access_token)]
       );
       globalWs = ws;
 
+      const connectTimeout = setTimeout(() => {
+        if (!didOpen && ws.readyState !== WebSocket.OPEN) {
+          console.error('Voice WebSocket connection timeout');
+          ws.close();
+          globalConnecting = false;
+          const { isActive } = useVoiceModeStore.getState();
+          if (isActive) {
+            optionsRef.current.onError?.('Voice connection timed out. Please try again.');
+          }
+        }
+      }, 12000);
+
       ws.onopen = () => {
+        didOpen = true;
+        clearTimeout(connectTimeout);
         console.log('Connected to OpenAI Realtime proxy');
         globalConnecting = false;
         reconnectAttempts = 0;
@@ -591,8 +607,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         globalConnecting = false;
       };
 
-      ws.onclose = () => {
-        console.log('Disconnected from OpenAI Realtime');
+      ws.onclose = (event) => {
+        clearTimeout(connectTimeout);
+        console.log('Disconnected from OpenAI Realtime:', event.code, event.reason || '(no reason)');
         globalConnecting = false;
         globalWs = null;
         globalSessionId = null;
@@ -614,7 +631,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         } else if (isActive && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
           console.error('Max reconnect attempts reached, deactivating voice mode');
           reconnectAttempts = 0;
-          optionsRef.current.onError?.('Voice connection lost. Please try again.');
+          const detail = event.reason ? ` (${event.code}: ${event.reason})` : ` (${event.code})`;
+          optionsRef.current.onError?.(`Voice connection lost${detail}. Please try again.`);
           setStatus('idle');
         } else {
           setStatus('idle');
