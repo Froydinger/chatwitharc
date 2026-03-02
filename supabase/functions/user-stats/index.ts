@@ -35,21 +35,30 @@ serve(async (req) => {
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString();
 
+    // Use service role to run a raw SQL count for images in chat messages
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
     // Run all queries in parallel
     const [weekRes, monthRes, yearRes, memoriesRes, imagesRes] = await Promise.all([
       supabase.from("chat_sessions").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", weekAgo),
       supabase.from("chat_sessions").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", monthAgo),
       supabase.from("chat_sessions").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", yearAgo),
       supabase.from("context_blocks").select("id", { count: "exact", head: true }).eq("user_id", userId),
-      supabase.from("generated_files").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("file_type", "image"),
+      // Count images from chat session messages JSONB
+      serviceClient.rpc("count_user_images", { target_user_id: userId }),
     ]);
+
+    const imageCount = imagesRes.data ?? 0;
 
     return new Response(JSON.stringify({
       chats_week: weekRes.count ?? 0,
       chats_month: monthRes.count ?? 0,
       chats_year: yearRes.count ?? 0,
       memories: memoriesRes.count ?? 0,
-      images_generated: imagesRes.count ?? 0,
+      images_generated: imageCount,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
