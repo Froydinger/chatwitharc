@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(data);
 
       // Check if user needs onboarding (no display name set)
-      if (data && !data.display_name) {
+      if (data && (!data.display_name || data.display_name === 'New User')) {
         setNeedsOnboarding(true);
       } else {
         setNeedsOnboarding(false);
@@ -128,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setProfile(data);
-      setNeedsOnboarding(false);
+      setNeedsOnboarding(displayName === 'New User');
 
       // Send welcome email for new users
       setTimeout(() => {
