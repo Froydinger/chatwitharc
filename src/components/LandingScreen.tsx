@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Mail, Crown, Check, MessageCircle, Mic } from "lucide-react";
+import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Mail, Crown, Check, MessageCircle, Mic, Music, Headphones } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
@@ -595,6 +595,77 @@ export function LandingScreen() {
         </div>
       </section>
 
+      {/* Music Section - Pro Feature */}
+      <section className="relative z-10 py-20 px-6 max-w-5xl mx-auto">
+        <div className="glass-card rounded-3xl p-8 md:p-12 relative overflow-hidden">
+          {/* Gradient accent */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500" />
+          
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            {/* Left: Info */}
+            <div className="flex-1 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/20">
+                  <Headphones className="w-6 h-6 text-purple-400" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl md:text-3xl font-bold text-white">Built-in Music</h2>
+                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">Pro</span>
+                </div>
+              </div>
+              <p className="text-gray-400 leading-relaxed">
+                Focus better with curated ambient tracks while you work. Lo-fi beats, coffee house jazz, 
+                space ambient, and more — all built right into ArcAi. No tab switching, no ads.
+              </p>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li className="flex items-center gap-2">
+                  <Music className="w-4 h-4 text-purple-400 shrink-0" />
+                  6 curated tracks — lo-fi, jazz, ambient & more
+                </li>
+                <li className="flex items-center gap-2">
+                  <Music className="w-4 h-4 text-purple-400 shrink-0" />
+                  Floating glassmorphic player with vinyl animations
+                </li>
+                <li className="flex items-center gap-2">
+                  <Music className="w-4 h-4 text-purple-400 shrink-0" />
+                  Plays in the background while you chat
+                </li>
+              </ul>
+            </div>
+
+            {/* Right: Album art grid */}
+            <div className="grid grid-cols-3 gap-3 w-full md:w-auto md:min-w-[240px]">
+              {[
+                { art: '/lovable-uploads/lofi-cartoon-album.jpg', name: 'Lo-Fi Beats' },
+                { art: '/lovable-uploads/jazz-cartoon-album.jpg', name: 'Jazz' },
+                { art: '/lovable-uploads/ambient-cartoon-album.jpg', name: 'Ambient' },
+                { art: '/lovable-uploads/taylor-swift-album.jpg', name: 'Taylor Swift' },
+                { art: '/lovable-uploads/elevator-music-album.jpg', name: 'Elevator' },
+                { art: '/lovable-uploads/lionel-richie-album.jpg', name: 'Lionel Richie' },
+              ].map((track, i) => (
+                <motion.div
+                  key={track.name}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.1 }}
+                  viewport={{ once: true }}
+                  className="relative group"
+                >
+                  <img
+                    src={track.art}
+                    alt={track.name}
+                    className="w-full aspect-square rounded-xl object-cover border border-white/10 group-hover:border-purple-500/40 transition-colors"
+                  />
+                  <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <p className="text-[10px] text-white font-medium text-center px-1">{track.name}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
       <section className="relative z-10 py-20 px-6" id="pricing">
         <div className="max-w-5xl mx-auto">
@@ -616,7 +687,7 @@ export function LandingScreen() {
               <ul className="space-y-2 text-sm text-gray-300">
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> 30 messages per day</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> 3 voice sessions per day</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Image generation & analysis</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> 5 image generations per day</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Memory & code generation</li>
               </ul>
               <button
@@ -642,9 +713,9 @@ export function LandingScreen() {
               </div>
               <ul className="space-y-2 text-sm text-gray-300">
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <strong>Unlimited</strong> messages</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <strong>Unlimited</strong> voice sessions</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <strong>Unlimited</strong> voice & images</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <Headphones className="w-3 h-3 inline" /> Built-in music player</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Everything in Free</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Support ArcAi development</li>
               </ul>
               <button
                 onClick={() => setShowAuthModal(true)}
