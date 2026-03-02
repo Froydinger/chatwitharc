@@ -13,7 +13,7 @@ const features = [
   { name: "AI Chat", free: "30 messages/day", pro: "Unlimited", icon: MessageCircle },
   { name: "Voice Mode", free: "3 sessions/day", pro: "Unlimited", icon: Mic },
   { name: "AI Model Selection", free: false, pro: true, icon: Sparkles },
-  { name: "Image Generation", free: true, pro: true, icon: Image },
+  { name: "Unlimited Image Generation", free: "5 images/day", pro: "Unlimited", icon: Image },
   { name: "Image Analysis", free: true, pro: true, icon: Sparkles },
   { name: "Memory & Context", free: true, pro: true, icon: Brain },
   { name: "Code Generation", free: true, pro: true, icon: Code },
@@ -91,7 +91,7 @@ export function PricingPage() {
                   </li>
                   <li className="flex items-center gap-3 text-sm text-muted-foreground">
                     <Check className="w-4 h-4 text-primary shrink-0" />
-                    <span>Image generation & analysis</span>
+                    <span>5 free images per day</span>
                   </li>
                   <li className="flex items-center gap-3 text-sm text-muted-foreground">
                     <Check className="w-4 h-4 text-primary shrink-0" />
