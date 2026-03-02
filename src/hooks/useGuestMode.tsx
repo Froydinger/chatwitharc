@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 
 const GUEST_MESSAGE_KEY = 'arcai-guest-messages';
-const GUEST_LIMIT = 5;
+const GUEST_LIMIT = 15;
 
 function getGuestMessageCount(): number {
   try {
