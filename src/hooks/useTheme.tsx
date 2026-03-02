@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 
 export function useTheme() {
-  // Dark mode only - always set to dark
+  // Dark mode only - always enforce dark and remove light class
   useEffect(() => {
+    document.documentElement.classList.remove("light");
     document.documentElement.classList.add("dark");
   }, []);
 
