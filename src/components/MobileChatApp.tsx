@@ -1019,6 +1019,7 @@ export function MobileChatApp() {
           loop={playbackMode === 'loop-track'}
           preload="metadata"
         />
+
       </div>
 
       {/* Side-by-side Canvas Panel on RIGHT (Desktop only) with resize handle */}
