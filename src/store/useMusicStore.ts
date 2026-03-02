@@ -29,6 +29,10 @@ export const YOUTUBE_PRESETS = [
   { id: 'jazz-radio', name: 'Jazz Radio', videoId: 'Dx5qFachd3A' },
   { id: 'ambient-space', name: 'Ambient Space', videoId: 'S_MOd40zlYU' },
   { id: 'classical', name: 'Classical Piano', videoId: '4Tr0otuiQuU' },
+  { id: 'study-beats', name: 'Study Beats', videoId: '5qap5aO4i9A' },
+  { id: 'chill-synth', name: 'Synthwave', videoId: '4xDzrJKXOOY' },
+  { id: 'nature-sounds', name: 'Rain & Thunder', videoId: 'mPZkdNFkNps' },
+  { id: 'coffee-shop', name: 'Coffee Shop', videoId: 'h2zkV-l_TbY' },
 ];
 
 interface MusicState {
