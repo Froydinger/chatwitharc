@@ -197,7 +197,7 @@ export function ChatHistoryPanel() {
             openSearchMode();
             goToChat();
           }}
-          className="w-full h-12 rounded-full bg-orange-500/50 glass-shimmer inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] text-black shadow-[0_4px_16px_rgba(0,0,0,.2),0_0_12px_rgba(249,115,22,.25)]"
+          className="w-full h-12 rounded-full bg-orange-500/50 glass-shimmer inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] text-foreground shadow-[0_4px_16px_rgba(0,0,0,.2),0_0_12px_rgba(249,115,22,.25)]"
         >
           <Search className="h-4 w-4 mr-2" fill="currentColor" strokeWidth={1.5} />
           Research Mode
