@@ -34,24 +34,58 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : user.email,
-      line_items: [
-        {
-          price: "price_1T6L7QAB32948AKDfYOiwbCy",
-          quantity: 1,
-        },
-      ],
-      mode: "subscription",
-      success_url: `${req.headers.get("origin")}/`,
-      cancel_url: `${req.headers.get("origin")}/`,
-    });
+    const origin = req.headers.get("origin") || "https://chatwitharc.lovable.app";
 
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    // Parse request body to check for embedded mode
+    let useEmbedded = false;
+    try {
+      const body = await req.json();
+      useEmbedded = body?.embedded === true;
+    } catch {
+      // No body or invalid JSON — default to redirect mode
+    }
+
+    if (useEmbedded) {
+      // Embedded checkout mode — return client_secret
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : user.email,
+        line_items: [
+          {
+            price: "price_1T6L7QAB32948AKDfYOiwbCy",
+            quantity: 1,
+          },
+        ],
+        mode: "subscription",
+        ui_mode: "embedded",
+        return_url: `${origin}/?checkout=success`,
+      });
+
+      return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    } else {
+      // Redirect checkout mode (legacy)
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : user.email,
+        line_items: [
+          {
+            price: "price_1T6L7QAB32948AKDfYOiwbCy",
+            quantity: 1,
+          },
+        ],
+        mode: "subscription",
+        success_url: `${origin}/`,
+        cancel_url: `${origin}/`,
+      });
+
+      return new Response(JSON.stringify({ url: session.url }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Check, Crown, MessageCircle, Mic, Image, Brain, Code, Globe, Sparkles, ArrowLeft } from "lucide-react";
 import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { AuthModal } from "@/components/AuthModal";
+import { EmbeddedCheckoutForm } from "@/components/EmbeddedCheckout";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -24,13 +25,14 @@ export function PricingPage() {
   const { user } = useAuth();
   const subscription = useSubscription();
   const [showAuth, setShowAuth] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
 
   const handleUpgrade = () => {
     if (!user) {
       setShowAuth(true);
       return;
     }
-    subscription.openCheckout();
+    setShowCheckout(true);
   };
 
   return (
@@ -245,6 +247,37 @@ export function PricingPage() {
       </div>
 
       <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
+
+      {/* Embedded Checkout Modal */}
+      <AnimatePresence>
+        {showCheckout && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowCheckout(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            >
+              <GlassCard variant="bubble" glow className="p-8 relative">
+                <button
+                  onClick={() => setShowCheckout(false)}
+                  className="absolute top-4 right-4 p-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <EmbeddedCheckoutForm />
+              </GlassCard>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
