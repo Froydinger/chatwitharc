@@ -232,7 +232,7 @@ const AppMockup = () => {
   );
 };
 
-export function LandingScreen() {
+export function LandingScreen({ onTryAsGuest }: { onTryAsGuest?: () => void } = {}) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isElectronApp, setIsElectronApp] = useState(false);
@@ -554,6 +554,14 @@ export function LandingScreen() {
                   {isMobile ? 'Free on web • Email Mac app link' : isWindowsDevice ? 'Free on web • Windows app coming soon' : 'Free on web • Native Mac app available'}
                 </span>
               </>
+            )}
+            {onTryAsGuest && (
+              <button
+                onClick={onTryAsGuest}
+                className="mt-2 text-sm text-gray-400 hover:text-white transition-colors underline underline-offset-4"
+              >
+                Try without signing up
+              </button>
             )}
           </div>
         </div>

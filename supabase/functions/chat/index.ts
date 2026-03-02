@@ -285,36 +285,47 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
+    // Check for guest mode first
+    const body = await req.json();
+    const isGuestMode = body.guest_mode === true;
+
+    // Verify authentication (skip for guest mode)
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+    let user = null;
+
+    if (isGuestMode) {
+      console.log('👤 Guest mode request');
+    } else {
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: 'Missing authorization header' }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
+      // Verify user token
+      const token = authHeader.replace('Bearer ', '');
+      const { data: userData, error: authError } = await supabase.auth.getUser(token);
+      user = userData?.user;
+
+      if (authError || !user) {
+        console.error('Authentication failed:', authError);
+        return new Response(
+          JSON.stringify({ error: 'Invalid or expired token' }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
+      console.log('Authenticated user:', user.id);
     }
 
-    // Verify user token
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      console.error('Authentication failed:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    console.log('Authenticated user:', user.id);
-
-    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream } = await req.json();
+    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream } = body;
 
     console.log('📊 Request details:', {
       model: model || 'google/gemini-3-flash-preview (default)',
@@ -472,6 +483,58 @@ serve(async (req) => {
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!lovableApiKey) {
       throw new Error('Lovable API key not configured');
+    }
+
+    // === GUEST MODE: Simple chat without tools ===
+    if (isGuestMode) {
+      // Limit guest conversation to 10 messages max for safety
+      if (conversationMessages.length > 12) {
+        conversationMessages = [conversationMessages[0], ...conversationMessages.slice(-10)];
+      }
+
+      // Override system prompt for guest
+      conversationMessages[0] = {
+        role: 'system',
+        content: (enhancedSystemPrompt || 'You are Arc AI, a helpful assistant.') +
+          '\n\nThis user is a guest (not signed up). Be friendly and helpful. ' +
+          'If they ask about features like image generation, memory, file generation, web search, or voice mode, ' +
+          'let them know those features are available when they create a free account. ' +
+          'Keep responses concise.'
+      };
+
+      const guestResponse = await fetchWithRetry(
+        'https://api.lovable.dev/v2/chat/completions',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-3-flash-preview',
+            messages: conversationMessages,
+            max_tokens: 2000,
+          }),
+        }
+      );
+
+      if (!guestResponse.ok) {
+        const errorText = await guestResponse.text();
+        console.error('Guest AI error:', guestResponse.status, errorText);
+        throw new Error(`AI service error: ${guestResponse.status}`);
+      }
+
+      const guestData = await guestResponse.json();
+      const guestContent = guestData.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
+
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: guestContent } }],
+          tool_calls_used: [],
+          web_sources: [],
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Define tools including web search, chat search, canvas update, and file generation

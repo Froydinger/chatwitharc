@@ -4,10 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useChatSync } from "@/hooks/useChatSync";
 import { useArcStore } from "@/store/useArcStore";
+import { useGuestMode } from "@/hooks/useGuestMode";
 import { NamePrompt } from "@/components/NamePrompt";
 import { MobileChatApp } from "@/components/MobileChatApp";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { LandingScreen } from "@/components/LandingScreen";
+import { GuestSignupPrompt } from "@/components/GuestSignupPrompt";
 
 export function Index() {
   const { sessionId } = useParams();
@@ -15,47 +17,10 @@ export function Index() {
   const { user, loading, needsOnboarding } = useAuth();
   const { isLoaded } = useChatSync();
   const { currentSessionId, loadSession, chatSessions } = useArcStore();
+  const { showSignupPrompt, dismissSignupPrompt, remainingMessages, canSendMessage, recordGuestMessage, GUEST_LIMIT } = useGuestMode();
 
   const [onboardingComplete, setOnboardingComplete] = useState(false);
-
-  // Load session from URL if present (priority: URL takes precedence)
-  useEffect(() => {
-    if (!user || !isLoaded) return;
-
-    if (sessionId) {
-      // We have a sessionId in URL - this takes priority
-      const sessionExists = chatSessions.find(s => s.id === sessionId);
-      if (sessionExists && currentSessionId !== sessionId) {
-        loadSession(sessionId);
-      } else if (!sessionExists) {
-        console.warn('Session from URL not found:', sessionId);
-        navigate('/', { replace: true });
-      }
-    }
-    // No clearing on `/` — persistence is disabled so currentSessionId starts null.
-    // If it's non-null on `/`, user explicitly clicked a chat from history.
-  }, [sessionId, user, chatSessions, currentSessionId, isLoaded]);
-
-  // Initialize theme on app load
-  useEffect(() => {
-    // Theme is already handled by useTheme hook
-  }, []);
-
-  // Handle pending prompt from landing screen after authentication
-  useEffect(() => {
-    if (user && !loading && !needsOnboarding) {
-      const pendingPrompt = sessionStorage.getItem('pending-prompt');
-      if (pendingPrompt) {
-        sessionStorage.removeItem('pending-prompt');
-        useArcStore.getState().startChatWithMessage(pendingPrompt);
-      }
-    }
-  }, [user, loading, needsOnboarding]);
-
-  // Show name prompt for users without display name
-  if (user && needsOnboarding) {
-    return <NamePrompt />;
-  }
+  const [guestMode, setGuestMode] = useState(false);
 
   // Ensure theme-ready class is set
   useEffect(() => {
@@ -66,11 +31,53 @@ export function Index() {
 
   // Force dark mode for landing page when not authenticated
   useEffect(() => {
-    if (!user && !loading) {
+    if (!user && !loading && !guestMode) {
       document.documentElement.classList.remove('light');
       document.documentElement.classList.add('dark');
     }
-  }, [user, loading]);
+  }, [user, loading, guestMode]);
+
+  // Listen for guest message events to track count
+  useEffect(() => {
+    const handleGuestMessage = () => {
+      if (!user && guestMode) {
+        recordGuestMessage();
+      }
+    };
+    window.addEventListener('arcai:guestMessageSent', handleGuestMessage);
+    return () => window.removeEventListener('arcai:guestMessageSent', handleGuestMessage);
+  }, [user, guestMode, recordGuestMessage]);
+
+  // Load session from URL if present (priority: URL takes precedence)
+  useEffect(() => {
+    if (!user || !isLoaded) return;
+
+    if (sessionId) {
+      const sessionExists = chatSessions.find(s => s.id === sessionId);
+      if (sessionExists && currentSessionId !== sessionId) {
+        loadSession(sessionId);
+      } else if (!sessionExists) {
+        console.warn('Session from URL not found:', sessionId);
+        navigate('/', { replace: true });
+      }
+    }
+  }, [sessionId, user, chatSessions, currentSessionId, isLoaded]);
+
+  // Initialize theme on app load
+  useEffect(() => {}, []);
+
+  // Handle pending prompt from landing screen after authentication
+  useEffect(() => {
+    if (user && !loading && !needsOnboarding) {
+      setGuestMode(false);
+      
+      const pendingPrompt = sessionStorage.getItem('pending-prompt');
+      if (pendingPrompt) {
+        sessionStorage.removeItem('pending-prompt');
+        useArcStore.getState().startChatWithMessage(pendingPrompt);
+      }
+    }
+  }, [user, loading, needsOnboarding]);
 
   // Only show loading screen during auth, never during chat switches
   if (loading) {
@@ -90,15 +97,33 @@ export function Index() {
     );
   }
 
-  // Show landing screen if user is not authenticated
-  if (!user) {
-    return <LandingScreen />;
+  // Show landing screen if user is not authenticated and not in guest mode
+  if (!user && !guestMode) {
+    return <LandingScreen onTryAsGuest={() => setGuestMode(true)} />;
   }
 
   // Show onboarding if user needs it and hasn't completed it
-  if (needsOnboarding && !onboardingComplete) {
+  if (user && needsOnboarding && !onboardingComplete) {
     return <OnboardingScreen onComplete={() => setOnboardingComplete(true)} />;
   }
 
-  return <MobileChatApp />;
+  // Guest mode or authenticated user - show chat
+  return (
+    <>
+      <MobileChatApp />
+      {!user && guestMode && (
+        <GuestSignupPrompt
+          isOpen={showSignupPrompt || !canSendMessage}
+          onDismiss={dismissSignupPrompt}
+          remainingMessages={remainingMessages}
+          isLimitReached={!canSendMessage}
+        />
+      )}
+      {!user && guestMode && canSendMessage && remainingMessages <= 2 && remainingMessages > 0 && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full glass-card text-xs text-muted-foreground border border-border/30 backdrop-blur-xl">
+          {remainingMessages} free chat{remainingMessages !== 1 ? 's' : ''} remaining · <button onClick={() => window.dispatchEvent(new CustomEvent('arcai:openAuth'))} className="text-primary hover:underline">Sign up free</button>
+        </div>
+      )}
+    </>
+  );
 }
