@@ -8,10 +8,12 @@ const ARCAI_PRO_PRICE_ID = 'price_1T6L7QAB32948AKDfYOiwbCy';
 // Daily limits for free users
 const FREE_DAILY_MESSAGE_LIMIT = 30;
 const FREE_DAILY_VOICE_LIMIT = 3;
+const FREE_DAILY_IMAGE_LIMIT = 5;
 
 // localStorage keys for daily tracking
 const DAILY_MSG_KEY = 'arcai-daily-messages';
 const DAILY_VOICE_KEY = 'arcai-daily-voice';
+const DAILY_IMAGE_KEY = 'arcai-daily-images';
 const DAILY_DATE_KEY = 'arcai-daily-date';
 
 function getTodayKey(): string {
@@ -26,6 +28,7 @@ function getDailyCount(key: string): number {
     localStorage.setItem(DAILY_DATE_KEY, today);
     localStorage.setItem(DAILY_MSG_KEY, '0');
     localStorage.setItem(DAILY_VOICE_KEY, '0');
+    localStorage.setItem(DAILY_IMAGE_KEY, '0');
     return 0;
   }
   return parseInt(localStorage.getItem(key) || '0', 10);
@@ -38,6 +41,7 @@ function incrementDailyCount(key: string): number {
     localStorage.setItem(DAILY_DATE_KEY, today);
     localStorage.setItem(DAILY_MSG_KEY, '0');
     localStorage.setItem(DAILY_VOICE_KEY, '0');
+    localStorage.setItem(DAILY_IMAGE_KEY, '0');
   }
   const count = getDailyCount(key) + 1;
   localStorage.setItem(key, String(count));
@@ -52,19 +56,24 @@ interface SubscriptionState {
   // Limits
   dailyMessagesUsed: number;
   dailyVoiceSessionsUsed: number;
+  dailyImagesUsed: number;
   canSendMessage: boolean;
   canUseVoice: boolean;
+  canGenerateImage: boolean;
   remainingMessages: number;
   remainingVoiceSessions: number;
+  remainingImages: number;
   // Actions
   checkSubscription: () => Promise<void>;
   recordMessage: () => void;
   recordVoiceSession: () => void;
+  recordImageGeneration: () => void;
   openCheckout: () => Promise<void>;
   openCustomerPortal: () => Promise<void>;
   // Constants
   FREE_DAILY_MESSAGE_LIMIT: number;
   FREE_DAILY_VOICE_LIMIT: number;
+  FREE_DAILY_IMAGE_LIMIT: number;
 }
 
 const SubscriptionContext = createContext<SubscriptionState | null>(null);
@@ -78,13 +87,16 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
   const [dailyMessagesUsed, setDailyMessagesUsed] = useState(() => getDailyCount(DAILY_MSG_KEY));
   const [dailyVoiceSessionsUsed, setDailyVoiceSessionsUsed] = useState(() => getDailyCount(DAILY_VOICE_KEY));
+  const [dailyImagesUsed, setDailyImagesUsed] = useState(() => getDailyCount(DAILY_IMAGE_KEY));
 
   // Admins and subscribers get unlimited access
   const hasUnlimitedAccess = isSubscribed || isAdmin;
   const canSendMessage = hasUnlimitedAccess || dailyMessagesUsed < FREE_DAILY_MESSAGE_LIMIT;
   const canUseVoice = hasUnlimitedAccess || dailyVoiceSessionsUsed < FREE_DAILY_VOICE_LIMIT;
+  const canGenerateImage = hasUnlimitedAccess || dailyImagesUsed < FREE_DAILY_IMAGE_LIMIT;
   const remainingMessages = hasUnlimitedAccess ? Infinity : Math.max(0, FREE_DAILY_MESSAGE_LIMIT - dailyMessagesUsed);
   const remainingVoiceSessions = hasUnlimitedAccess ? Infinity : Math.max(0, FREE_DAILY_VOICE_LIMIT - dailyVoiceSessionsUsed);
+  const remainingImages = hasUnlimitedAccess ? Infinity : Math.max(0, FREE_DAILY_IMAGE_LIMIT - dailyImagesUsed);
 
   const checkSubscription = useCallback(async () => {
     if (!user || !supabase) {
@@ -125,6 +137,13 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     if (!hasUnlimitedAccess) {
       const count = incrementDailyCount(DAILY_VOICE_KEY);
       setDailyVoiceSessionsUsed(count);
+    }
+  }, [hasUnlimitedAccess]);
+
+  const recordImageGeneration = useCallback(() => {
+    if (!hasUnlimitedAccess) {
+      const count = incrementDailyCount(DAILY_IMAGE_KEY);
+      setDailyImagesUsed(count);
     }
   }, [hasUnlimitedAccess]);
 
@@ -171,6 +190,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     const handleFocus = () => {
       setDailyMessagesUsed(getDailyCount(DAILY_MSG_KEY));
       setDailyVoiceSessionsUsed(getDailyCount(DAILY_VOICE_KEY));
+      setDailyImagesUsed(getDailyCount(DAILY_IMAGE_KEY));
       // Re-check subscription when user returns (e.g. from Stripe checkout redirect)
       checkSubscription();
     };
@@ -180,23 +200,28 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   return (
     <SubscriptionContext.Provider value={{
-      isSubscribed,
+      isSubscribed: isSubscribed || isAdmin,
       productId,
       subscriptionEnd,
       loading,
       dailyMessagesUsed,
       dailyVoiceSessionsUsed,
+      dailyImagesUsed,
       canSendMessage,
       canUseVoice,
+      canGenerateImage,
       remainingMessages,
       remainingVoiceSessions,
+      remainingImages,
       checkSubscription,
       recordMessage,
       recordVoiceSession,
+      recordImageGeneration,
       openCheckout,
       openCustomerPortal,
       FREE_DAILY_MESSAGE_LIMIT,
       FREE_DAILY_VOICE_LIMIT,
+      FREE_DAILY_IMAGE_LIMIT,
     }}>
       {children}
     </SubscriptionContext.Provider>
