@@ -469,8 +469,8 @@ export function LandingScreen() {
       {/* Mobile Menu */}
       {showMobileMenu && (
         <div className="md:hidden fixed top-20 right-6 z-50 glass-panel rounded-2xl p-4 space-y-3 min-w-[200px]">
-          <a href="#features" className="block text-gray-400 hover:text-white transition-colors">Features</a>
-          <a href="#pricing" className="block text-gray-400 hover:text-white transition-colors">Pricing</a>
+          <a href="#features" onClick={() => setShowMobileMenu(false)} className="block text-gray-400 hover:text-white transition-colors">Features</a>
+          <a href="#pricing" onClick={() => setShowMobileMenu(false)} className="block text-gray-400 hover:text-white transition-colors">Pricing</a>
           <button
             onClick={() => { setShowAuthModal(true); setShowMobileMenu(false); }}
             className="w-full px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-center"
