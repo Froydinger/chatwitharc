@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, History, Image, LayoutGrid, Settings } from "lucide-react";
+import { X, History, Image, LayoutGrid, Settings, Crown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +9,7 @@ import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
 import { CanvasesPanel } from "@/components/CanvasesPanel";
 import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface RightPanelProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
   // Detect PWA/Electron mode for conditional spacing
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const isAdminBannerActive = useAdminBanner();
+  const { isSubscribed } = useSubscription();
 
   useEffect(() => {
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
@@ -172,6 +174,25 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
             </AnimatePresence>
             </Tabs>
           </div>
+
+          {/* Upgrade Banner for free users */}
+          {!isSubscribed && (
+            <div className="p-3 border-t border-border">
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('open-upgrade-modal'))}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600/10 to-cyan-600/10 border border-cyan-500/20 hover:border-cyan-500/40 transition-all group"
+              >
+                <div className="p-1.5 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-600/20">
+                  <Crown className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-semibold text-foreground">Upgrade to Pro</p>
+                  <p className="text-xs text-muted-foreground">Unlimited messages & more</p>
+                </div>
+                <span className="text-xs font-bold text-cyan-400 group-hover:text-cyan-300 transition-colors">$8/mo</span>
+              </button>
+            </div>
+          )}
         </div>
       </motion.div>
     </>
