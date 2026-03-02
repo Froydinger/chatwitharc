@@ -71,7 +71,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
   const { toast } = useToast();
   const { accentColor, setAccentColor } = useAccentColor();
   const { isAdmin } = useAdminSettings();
-  const { clearAllSessions, createNewSession, lastSyncAt, chatSessions } = useArcStore();
+  const { clearAllSessions, createNewSession, lastSyncAt, chatSessions, hydrateAllSessions, allSessionsHydrated } = useArcStore();
   const { modelFamily, setModelFamily } = useModelStore();
   const subscription = useSubscription();
   const {
@@ -134,6 +134,11 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     } catch { /* ignore */ }
     setFunFactLoading(false);
   }, [user]);
+
+  // Hydrate all sessions so we can count images
+  useEffect(() => {
+    if (isOpen) hydrateAllSessions();
+  }, [isOpen, hydrateAllSessions]);
 
   useEffect(() => {
     if (isOpen && user) {
