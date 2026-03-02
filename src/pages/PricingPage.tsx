@@ -233,13 +233,15 @@ export function PricingPage() {
         </motion.div>
 
         {/* Footer note */}
-        <p className="text-center text-xs text-muted-foreground mt-8">
-          All plans include access to all AI features. Limits reset daily at midnight.
-          <br />
-          <a href="https://winthenight.productions/support" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors underline">
-            Support ArcAi
-          </a>
-        </p>
+        <div className="flex flex-col items-center gap-3 mt-8">
+          <div className="flex items-center gap-2">
+            <img src="/wtn-logo.webp" alt="Win The Night" className="h-6 w-6 object-contain rounded-sm opacity-50" />
+            <p className="text-xs text-muted-foreground">
+              ArcAi by <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors underline">Win The Night</a>
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground">All plans include access to all AI features. Limits reset daily at midnight.</p>
+        </div>
       </div>
 
       <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
