@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Mail, Crown, Check, MessageCircle, Mic, Music, Headphones } from "lucide-react";
+import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Mail, Crown, Check, MessageCircle, Mic, Music, Headphones, Heart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
@@ -573,7 +573,7 @@ export function LandingScreen() {
 
       {/* Features Grid */}
       <section className="relative z-10 py-24 px-6 max-w-7xl mx-auto" id="features">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           <FeatureCard
             icon={Zap}
             title="Lightning Fast"
@@ -591,6 +591,12 @@ export function LandingScreen() {
             title="Multimodal Magic"
             description="Chat, generate images, analyze files, and code—all in one fluid, beautiful interface."
             color="from-blue-400 to-cyan-500"
+          />
+          <FeatureCard
+            icon={Heart}
+            title="Real Life, Real Talk"
+            description="More than just tasks. ArcAi helps you think through life's big moments—and knows when to suggest a real professional."
+            color="from-rose-400 to-pink-500"
           />
           {/* Unlimited Chats - Pro Upsell CTA */}
           <motion.div
