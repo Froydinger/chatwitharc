@@ -48,6 +48,9 @@ serve(async (req) => {
   let openaiSocket: WebSocket | null = null;
   let openaiReady = false;
   let intentionalClose = false;
+  let isAuthenticated = false;
+  let authInProgress = false;
+  let authTimeoutId: number | null = null;
   const messageBuffer: string[] = [];
   const MAX_BUFFER_SIZE = 200;
 
@@ -72,31 +75,35 @@ serve(async (req) => {
     }
   }
 
-  clientSocket.onopen = async () => {
-    console.log('[proxy] Client WS open, starting auth...');
-
-    // --- Auth: verify token AFTER WS is open ---
-    if (!token) {
-      console.error('[proxy] No auth token provided');
-      safeClientSend({ type: 'error', error: { code: 'auth_failed', message: 'Missing auth token' } });
-      safeClientClose(1008, 'Missing auth token');
-      return;
+  function clearAuthTimeout() {
+    if (authTimeoutId !== null) {
+      clearTimeout(authTimeoutId);
+      authTimeoutId = null;
     }
+  }
+
+  const authenticateAndConnectUpstream = async (authToken: string) => {
+    if (isAuthenticated || authInProgress) return;
+    authInProgress = true;
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: `Bearer ${token}` } } }
+      { global: { headers: { Authorization: `Bearer ${authToken}` } } }
     );
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: userError } = await supabase.auth.getUser(authToken);
 
     if (userError || !user?.id) {
       console.error('[proxy] JWT verification failed:', userError?.message || 'no user');
       safeClientSend({ type: 'error', error: { code: 'auth_failed', message: 'Invalid auth token' } });
       safeClientClose(1008, 'Auth failed');
+      authInProgress = false;
       return;
     }
+
+    isAuthenticated = true;
+    clearAuthTimeout();
 
     const userId = user.id;
     console.log('[proxy] Authenticated user:', userId);
@@ -106,6 +113,7 @@ serve(async (req) => {
       console.error('[proxy] OPENAI_API_KEY not configured');
       safeClientSend({ type: 'error', error: { code: 'upstream_init_failed', message: 'Voice service not configured' } });
       safeClientClose(1011, 'No API key');
+      authInProgress = false;
       return;
     }
 
@@ -123,12 +131,14 @@ serve(async (req) => {
       console.error('[proxy] Failed to create upstream WS:', err);
       safeClientSend({ type: 'error', error: { code: 'upstream_init_failed', message: 'Failed to initialize voice connection' } });
       safeClientClose(1011, 'Upstream init failed');
+      authInProgress = false;
       return;
     }
 
     openaiSocket.onopen = () => {
       console.log('[proxy] Upstream (OpenAI) connected');
       openaiReady = true;
+      authInProgress = false;
 
       // Flush buffered messages
       while (messageBuffer.length > 0) {
@@ -172,6 +182,24 @@ serve(async (req) => {
     };
   };
 
+  clientSocket.onopen = () => {
+    console.log('[proxy] Client WS open, awaiting auth...');
+
+    if (token) {
+      void authenticateAndConnectUpstream(token);
+      return;
+    }
+
+    // Fallback path for clients that send token as first message
+    authTimeoutId = setTimeout(() => {
+      if (!isAuthenticated && !intentionalClose) {
+        console.error('[proxy] Auth timeout waiting for client token');
+        safeClientSend({ type: 'error', error: { code: 'auth_failed', message: 'Missing auth token' } });
+        safeClientClose(1008, 'Missing auth token');
+      }
+    }, 8000) as unknown as number;
+  };
+
   clientSocket.onmessage = (event) => {
     const data = typeof event.data === 'string' ? event.data : '';
 
@@ -181,9 +209,32 @@ serve(async (req) => {
       return;
     }
 
-    // Sanitize voice in session.update messages
+    // Handle auth sent as first message (preferred path for browser clients)
     try {
       const parsed = JSON.parse(data);
+
+      if (!isAuthenticated) {
+        if (parsed.type === 'auth' && typeof parsed.token === 'string' && parsed.token) {
+          token = parsed.token;
+          void authenticateAndConnectUpstream(token);
+          return;
+        }
+
+        // Not authenticated yet: buffer non-auth messages until auth/upstream ready
+        if (messageBuffer.length < MAX_BUFFER_SIZE) {
+          messageBuffer.push(data);
+        } else {
+          console.warn('[proxy] Message buffer full before auth, dropping message');
+        }
+        return;
+      }
+
+      // Ignore auth messages after authenticated
+      if (parsed.type === 'auth') {
+        return;
+      }
+
+      // Sanitize voice in session.update messages
       if (parsed.type === 'session.update' && parsed.session?.voice) {
         if (!ALLOWED_VOICES.has(parsed.session.voice)) {
           console.warn('[proxy] Sanitizing invalid voice:', parsed.session.voice, '→ cedar');
@@ -197,7 +248,17 @@ serve(async (req) => {
           return;
         }
       }
-    } catch { /* not JSON or parse failed, relay as-is */ }
+    } catch {
+      // Not JSON or parse failed; continue and relay/buffer below.
+      if (!isAuthenticated) {
+        if (messageBuffer.length < MAX_BUFFER_SIZE) {
+          messageBuffer.push(data);
+        } else {
+          console.warn('[proxy] Message buffer full before auth, dropping message');
+        }
+        return;
+      }
+    }
 
     if (openaiReady && openaiSocket?.readyState === WebSocket.OPEN) {
       openaiSocket.send(data);
@@ -216,6 +277,7 @@ serve(async (req) => {
     console.log('[proxy] Client disconnected:', event.code, event.reason || '');
     intentionalClose = true;
     openaiReady = false;
+    clearAuthTimeout();
     if (openaiSocket?.readyState === WebSocket.OPEN) {
       openaiSocket.close(1000, 'Client disconnected');
     }

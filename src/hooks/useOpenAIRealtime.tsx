@@ -486,7 +486,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       
       // Get auth token for WebSocket authentication
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const accessToken = session?.access_token;
+      if (!accessToken) {
         console.error('Not authenticated - cannot connect to voice mode');
         setStatus('idle');
         globalConnecting = false;
@@ -494,10 +495,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         return;
       }
       
-      const ws = new WebSocket(
-        `${wsUrl}/functions/v1/openai-realtime-proxy`,
-        ['bearer.' + encodeURIComponent(session.access_token)]
-      );
+      // Use plain WebSocket handshake (no subprotocol auth) to avoid handshake failures.
+      // Token is sent immediately after open via an auth message.
+      const ws = new WebSocket(`${wsUrl}/functions/v1/openai-realtime-proxy`);
       globalWs = ws;
 
       const connectTimeout = setTimeout(() => {
@@ -520,6 +520,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         reconnectAttempts = 0;
         setIsConnected(true);
         setStatus('listening');
+
+        // Authenticate immediately after socket open
+        ws.send(JSON.stringify({
+          type: 'auth',
+          token: accessToken,
+        }));
         
         // Periodic cleanup of stale tool calls during long sessions
         const cleanupInterval = setInterval(() => cleanupStaleToolCalls(), 30000);
