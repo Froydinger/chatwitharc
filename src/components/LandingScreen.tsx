@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Mail } from "lucide-react";
+import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Mail, Crown, Check, MessageCircle, Mic } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
@@ -337,6 +337,7 @@ export function LandingScreen({ onTryAsGuest }: { onTryAsGuest?: () => void } = 
               </div>
               <div className="flex items-center space-x-4">
                 <a href="#features" className="hidden md:block text-sm font-medium text-gray-400 hover:text-white transition-colors">Features</a>
+                <a href="#pricing" className="hidden md:block text-sm font-medium text-gray-400 hover:text-white transition-colors">Pricing</a>
                 <button
                   onClick={() => setShowAuthModal(true)}
                   className="px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity"
@@ -440,6 +441,7 @@ export function LandingScreen({ onTryAsGuest }: { onTryAsGuest?: () => void } = 
         </div>
         <div className="hidden md:flex items-center space-x-6">
           <a href="#features" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Features</a>
+          <a href="#pricing" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Pricing</a>
           <button
             onClick={() => setShowAuthModal(true)}
             className="px-5 py-2.5 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity"
@@ -459,6 +461,7 @@ export function LandingScreen({ onTryAsGuest }: { onTryAsGuest?: () => void } = 
       {showMobileMenu && (
         <div className="md:hidden fixed top-20 right-6 z-50 glass-panel rounded-2xl p-4 space-y-3 min-w-[200px]">
           <a href="#features" className="block text-gray-400 hover:text-white transition-colors">Features</a>
+          <a href="#pricing" className="block text-gray-400 hover:text-white transition-colors">Pricing</a>
           <button
             onClick={() => { setShowAuthModal(true); setShowMobileMenu(false); }}
             className="w-full px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-center"
@@ -594,90 +597,86 @@ export function LandingScreen({ onTryAsGuest }: { onTryAsGuest?: () => void } = 
         </div>
       </section>
 
-      {/* Bottom CTA */}
-      <section className="relative z-10 py-20 px-6 text-center">
-        <div className="glass-panel max-w-4xl mx-auto rounded-3xl p-12 md:p-20 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-700"></div>
-
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Always Free, Forever.</h2>
-          <p className="text-gray-400 mb-6 max-w-lg mx-auto">
-            Experience AI conversations that adapt to you—whether you're coding, creating, or need to think out loud. Always free, no subscriptions. Ever. We mean it.
-          </p>
-          <p className="text-gray-500 text-sm mb-10 max-w-md mx-auto italic">
-            Some premium features may be added in the future, but chat and core features will always remain free. We promise.
+      {/* Pricing Section */}
+      <section className="relative z-10 py-20 px-6" id="pricing">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">Choose your plan</h2>
+          <p className="text-gray-400 text-center mb-12 max-w-lg mx-auto">
+            Start free with generous daily limits. Upgrade anytime for unlimited access.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            {isElectronApp ? (
-              // Electron app: Only sign in button
+          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            {/* Free Plan */}
+            <div className="glass-card rounded-2xl p-8 space-y-5">
+              <div>
+                <h3 className="text-xl font-bold">Free</h3>
+                <div className="mt-1">
+                  <span className="text-3xl font-bold">$0</span>
+                  <span className="text-gray-400 text-sm"> /forever</span>
+                </div>
+              </div>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> 30 messages per day</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> 3 voice sessions per day</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Image generation & analysis</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Memory & code generation</li>
+              </ul>
+              <button
+                onClick={() => onTryAsGuest?.()}
+                className="w-full px-6 py-3 rounded-full font-semibold border border-white/10 text-white hover:bg-white/5 transition-colors"
+              >
+                Start Free
+              </button>
+            </div>
+
+            {/* Pro Plan */}
+            <div className="glass-card rounded-2xl p-8 space-y-5 relative overflow-hidden border border-cyan-500/20">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-bold">Pro</h3>
+                  <Crown className="w-5 h-5 text-cyan-400" />
+                </div>
+                <div className="mt-1">
+                  <span className="text-3xl font-bold">$8</span>
+                  <span className="text-gray-400 text-sm"> /month</span>
+                </div>
+              </div>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <strong>Unlimited</strong> messages</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <strong>Unlimited</strong> voice sessions</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Everything in Free</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Support ArcAi development</li>
+              </ul>
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300"
+                className="w-full px-6 py-3 rounded-full font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity"
               >
-                <span>Sign In to Continue</span>
-                <ArrowRight className="w-5 h-5" />
+                <span className="flex items-center justify-center gap-2">
+                  <Crown className="w-4 h-4" />
+                  Upgrade to Pro
+                </span>
               </button>
-            ) : isPWAMode ? (
-              // PWA: Only show Get Started button
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300"
-              >
-                <span>Get Started</span>
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            ) : (
-              // Web: Both buttons
-              <>
-                <button
-                  onClick={() => setShowAuthModal(true)}
-                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300"
-                >
-                  <span>Start on Web</span>
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-                {isMobile ? (
-                  <a
-                    href={mailtoLink}
-                    className="inline-flex items-center space-x-2 bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg transition-all duration-300"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                    <AppleLogo className="w-5 h-5" />
-                    <span>Send to Mac</span>
-                  </a>
-                ) : isWindowsDevice ? (
-                  <button
-                    onClick={handleWindowsClick}
-                    className="inline-flex items-center space-x-2 bg-white text-black px-8 py-4 rounded-full font-bold text-lg cursor-default"
-                  >
-                    <WindowsLogo className="w-5 h-5" />
-                    <span>Windows App Coming Soon!</span>
-                  </button>
-                ) : (
-                  <Link
-                    to="/downloads"
-                    className="inline-flex items-center space-x-2 bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:shadow-lg transition-all duration-300"
-                  >
-                    <AppleLogo className="w-5 h-5" />
-                    <span>Get Mac App</span>
-                  </Link>
-                )}
-              </>
-            )}
+            </div>
           </div>
 
-          {/* Support Link */}
-          <div className="mt-8">
-            <a
-              href="https://winthenight.productions/support"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-gray-400 hover:text-white transition-colors underline"
-            >
-              Support ArcAi
-            </a>
-          </div>
+          <p className="text-center text-xs text-gray-500 mt-6">
+            All plans include all AI features. Limits reset daily.{' '}
+            <Link to="/pricing" className="underline hover:text-white transition-colors">Full comparison →</Link>
+          </p>
         </div>
+      </section>
+
+      {/* Support CTA */}
+      <section className="relative z-10 py-12 px-6 text-center">
+        <a
+          href="https://winthenight.productions/support"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-gray-400 hover:text-white transition-colors underline"
+        >
+          Support ArcAi
+        </a>
       </section>
 
       {/* Footer */}

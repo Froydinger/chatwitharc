@@ -72,25 +72,34 @@ const SubscriptionContext = createContext<SubscriptionState | null>(null);
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [productId, setProductId] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [dailyMessagesUsed, setDailyMessagesUsed] = useState(() => getDailyCount(DAILY_MSG_KEY));
   const [dailyVoiceSessionsUsed, setDailyVoiceSessionsUsed] = useState(() => getDailyCount(DAILY_VOICE_KEY));
 
-  const canSendMessage = isSubscribed || dailyMessagesUsed < FREE_DAILY_MESSAGE_LIMIT;
-  const canUseVoice = isSubscribed || dailyVoiceSessionsUsed < FREE_DAILY_VOICE_LIMIT;
-  const remainingMessages = isSubscribed ? Infinity : Math.max(0, FREE_DAILY_MESSAGE_LIMIT - dailyMessagesUsed);
-  const remainingVoiceSessions = isSubscribed ? Infinity : Math.max(0, FREE_DAILY_VOICE_LIMIT - dailyVoiceSessionsUsed);
+  // Admins and subscribers get unlimited access
+  const hasUnlimitedAccess = isSubscribed || isAdmin;
+  const canSendMessage = hasUnlimitedAccess || dailyMessagesUsed < FREE_DAILY_MESSAGE_LIMIT;
+  const canUseVoice = hasUnlimitedAccess || dailyVoiceSessionsUsed < FREE_DAILY_VOICE_LIMIT;
+  const remainingMessages = hasUnlimitedAccess ? Infinity : Math.max(0, FREE_DAILY_MESSAGE_LIMIT - dailyMessagesUsed);
+  const remainingVoiceSessions = hasUnlimitedAccess ? Infinity : Math.max(0, FREE_DAILY_VOICE_LIMIT - dailyVoiceSessionsUsed);
 
   const checkSubscription = useCallback(async () => {
     if (!user || !supabase) {
       setIsSubscribed(false);
+      setIsAdmin(false);
       setLoading(false);
       return;
     }
 
     try {
+      // Check admin status
+      const { data: adminData } = await supabase.rpc('is_admin_user');
+      setIsAdmin(!!adminData);
+
+      // Check Stripe subscription
       const { data, error } = await supabase.functions.invoke('check-subscription');
       if (error) throw error;
 
@@ -106,18 +115,18 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [user]);
 
   const recordMessage = useCallback(() => {
-    if (!isSubscribed) {
+    if (!hasUnlimitedAccess) {
       const count = incrementDailyCount(DAILY_MSG_KEY);
       setDailyMessagesUsed(count);
     }
-  }, [isSubscribed]);
+  }, [hasUnlimitedAccess]);
 
   const recordVoiceSession = useCallback(() => {
-    if (!isSubscribed) {
+    if (!hasUnlimitedAccess) {
       const count = incrementDailyCount(DAILY_VOICE_KEY);
       setDailyVoiceSessionsUsed(count);
     }
-  }, [isSubscribed]);
+  }, [hasUnlimitedAccess]);
 
   const openCheckout = useCallback(async () => {
     if (!supabase) return;
