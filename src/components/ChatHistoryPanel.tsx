@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useChatSync } from "@/hooks/useChatSync";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { QuoteOfDayModal } from "@/components/QuoteOfDayModal";
+
 
 export function ChatHistoryPanel() {
   const navigate = useNavigate();
@@ -184,9 +184,6 @@ export function ChatHistoryPanel() {
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4 pt-4 px-4 pb-4 h-full overflow-y-auto scrollbar-hide">
       {/* Action Buttons - top */}
-      {/* Quote of the Day */}
-      <QuoteOfDayModal />
-
       {/* New Chat */}
       <div className="space-y-3">
         <button
