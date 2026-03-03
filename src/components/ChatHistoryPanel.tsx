@@ -184,6 +184,10 @@ export function ChatHistoryPanel() {
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4 pt-4 px-4 pb-4 h-full overflow-y-auto scrollbar-hide">
       {/* Action Buttons - top */}
+      {/* Quote of the Day */}
+      <QuoteOfDayModal />
+
+      {/* New Chat */}
       <div className="space-y-3">
         <button
           onClick={handleNewChat}
@@ -195,17 +199,14 @@ export function ChatHistoryPanel() {
         </button>
       </div>
 
-      {/* Quote of the Day */}
-      <QuoteOfDayModal />
-
-      {/* Research Mode - below quote */}
+      {/* Research Mode */}
       <div>
         <button
           onClick={() => {
             openSearchMode();
             goToChat();
           }}
-          className="w-full h-12 rounded-full inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] text-white overflow-hidden relative bg-transparent"
+          className="w-full h-12 rounded-full inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] text-white overflow-hidden relative bg-transparent border border-primary/40 shadow-[0_0_8px_hsl(var(--primary)/0.4),0_0_16px_hsl(var(--primary)/0.2)]"
         >
           <span className="absolute inset-0 -translate-x-full animate-[shimmer_2.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           <Search className="h-4 w-4 mr-2 relative z-10" fill="currentColor" strokeWidth={1.5} />
