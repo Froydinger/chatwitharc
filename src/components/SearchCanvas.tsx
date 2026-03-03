@@ -14,7 +14,7 @@ import {
   Clock,
   Send,
   ArrowLeft,
-  Sparkles,
+  
   RotateCcw,
   MessageCircle,
   CheckSquare,
@@ -546,7 +546,7 @@ export function SearchCanvas() {
           </Button>
 
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
+            <Search className="w-5 h-5 text-primary" fill="currentColor" strokeWidth={1.5} />
             <span className="font-semibold text-foreground">Research</span>
           </div>
         </div>
@@ -1263,11 +1263,11 @@ export function SearchCanvas() {
                 <div className="relative w-20 h-20 mx-auto mb-6">
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Sparkles className="w-10 h-10 text-primary" />
+                    <Search className="w-10 h-10 text-primary" fill="currentColor" strokeWidth={1.5} />
                   </div>
                 </div>
 
-                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Ask anything</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Research anything</h2>
                 <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Get instant answers with real-time web search powered by Perplexity AI
                 </p>
