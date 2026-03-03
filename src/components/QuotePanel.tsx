@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Sparkles, RefreshCw } from "lucide-react";
+import { MessageCircle, Quote, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useArcStore } from "@/store/useArcStore";
@@ -110,7 +110,7 @@ export function QuotePanel() {
         {/* Icon */}
         <div className="mb-8">
           <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
-            <Sparkles className="w-8 h-8 text-primary" />
+            <Quote className="w-8 h-8 text-primary" />
           </div>
         </div>
 

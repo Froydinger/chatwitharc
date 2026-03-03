@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, History, Image, LayoutGrid, Crown, Sparkles } from "lucide-react";
+import { X, History, Image, LayoutGrid, Crown, Quote } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -125,7 +125,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                 activeTab === "quote" ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Sparkles className="h-4 w-4" />
+              <Quote className="h-4 w-4" />
             </button>
           </div>
           
