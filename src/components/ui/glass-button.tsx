@@ -12,7 +12,7 @@ const glassButtonVariants = cva(
         default: "text-foreground hover:opacity-80 rounded-full",
         bubble: "bubble-nav-item text-foreground hover:ring-1 hover:ring-primary/50 rounded-full",
         ghost: "!bg-transparent hover:!bg-primary/10 hover:text-foreground rounded-full",
-        glow: "animate-glow-pulse text-primary-foreground rounded-full"
+        glow: "animate-glow-pulse text-white rounded-full"
       },
       size: {
         default: "h-10 px-4 py-2",
