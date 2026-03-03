@@ -187,10 +187,11 @@ export function ChatHistoryPanel() {
       <div className="space-y-3">
         <button
           onClick={handleNewChat}
-          className="w-full h-12 rounded-full outline-shimmer inline-flex items-center justify-center text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
+          className="w-full h-12 rounded-full inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] bg-primary text-primary-foreground shadow-[0_0_8px_hsl(var(--primary)/0.5),0_0_16px_hsl(var(--primary)/0.3),inset_0_0_4px_hsl(var(--primary)/0.2)] overflow-hidden relative"
         >
-          <Plus className="h-4 w-4 mr-2" />
-          New chat
+          <span className="absolute inset-0 -translate-x-full animate-[shimmer_2.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          <Plus className="h-4 w-4 mr-2 relative z-10" />
+          <span className="relative z-10">New chat</span>
         </button>
         <button
           onClick={() => {
@@ -252,10 +253,11 @@ export function ChatHistoryPanel() {
             <div className="space-y-2">
               <button
                 onClick={handleNewChat}
-                className="w-full h-12 rounded-full outline-shimmer inline-flex items-center justify-center text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full h-12 rounded-full inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] bg-primary text-primary-foreground shadow-[0_0_8px_hsl(var(--primary)/0.5),0_0_16px_hsl(var(--primary)/0.3)] overflow-hidden relative"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Create first chat
+                <span className="absolute inset-0 -translate-x-full animate-[shimmer_2.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                <Plus className="h-4 w-4 mr-2 relative z-10" />
+                <span className="relative z-10">Create first chat</span>
               </button>
               <Button 
                 onClick={handleManualSync} 
