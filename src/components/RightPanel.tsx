@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { X, History, Image, LayoutGrid, Crown } from "lucide-react";
+import { X, History, Image, LayoutGrid, Crown, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
 import { CanvasesPanel } from "@/components/CanvasesPanel";
+import { QuotePanel } from "@/components/QuotePanel";
 import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -13,8 +14,8 @@ import { useSubscription } from "@/hooks/useSubscription";
 interface RightPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  activeTab: "history" | "media" | "apps" | "settings";
-  onTabChange: (tab: "history" | "media" | "apps" | "settings") => void;
+  activeTab: "history" | "media" | "apps" | "quote" | "settings";
+  onTabChange: (tab: "history" | "media" | "apps" | "quote" | "settings") => void;
 }
 
 export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
@@ -87,7 +88,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
               layoutId="panel-tab-bubble"
               transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.6 }}
               style={{
-                left: activeTab === "history" ? 0 : activeTab === "media" ? 48 : 96,
+                left: activeTab === "history" ? 0 : activeTab === "media" ? 48 : activeTab === "apps" ? 96 : 144,
               }}
             />
             <button
@@ -116,6 +117,15 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
               )}
             >
               <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => onTabChange("quote")}
+              className={cn(
+                "relative z-10 h-10 w-10 rounded-full flex items-center justify-center transition-colors",
+                activeTab === "quote" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Sparkles className="h-4 w-4" />
             </button>
           </div>
           
@@ -174,6 +184,20 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                     className="h-full"
                   >
                     <ChatHistoryPanel />
+                  </motion.div>
+                </TabsContent>
+              )}
+              {activeTab === "quote" && (
+                <TabsContent value="quote" className="h-full m-0" asChild>
+                  <motion.div
+                    key="quote"
+                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
+                    className="h-full"
+                  >
+                    <QuotePanel />
                   </motion.div>
                 </TabsContent>
               )}
