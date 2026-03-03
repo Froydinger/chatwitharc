@@ -544,7 +544,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setIsPasswordResetOpen(true)}>
+                        <Button variant="outline" size="sm" className="h-8 text-xs border-border bg-muted/40 hover:bg-muted/60" onClick={() => setIsPasswordResetOpen(true)}>
                           <Key className="w-3 h-3 mr-1" /> Reset
                         </Button>
                         <div className="w-2 h-2 bg-green-500 rounded-full" />
@@ -563,10 +563,10 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
 
                 {/* Data Management */}
                 <Section icon={<Download className="h-4 w-4" />} title="Data Management" desc="Export or clear your data">
-                  <div className="space-y-3">
+                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-foreground">Export Chats</span>
-                      <Button variant="outline" size="sm" className="glass border-glass-border" onClick={() => {
+                      <Button variant="outline" size="sm" className="h-8 border-border bg-muted/40 hover:bg-muted/60" onClick={() => {
                         onClose();
                         const { setRightPanelOpen, setRightPanelTab } = useArcStore.getState();
                         setRightPanelTab("export" as any);
@@ -578,7 +578,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                     <div className="h-px bg-border/30" />
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-foreground">Clear Chat History</span>
-                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={handleClearMessages}>
+                      <Button variant="outline" size="sm" className="h-8 border-destructive/40 text-destructive bg-destructive/10 hover:bg-destructive/20" onClick={handleClearMessages}>
                         <Trash2 className="h-3 w-3 mr-1" /> Clear All
                       </Button>
                     </div>
@@ -588,13 +588,13 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                 {/* Sign Out & Delete */}
                 <Section icon={<LogOut className="h-4 w-4" />} title="Account Actions" desc="Sign out or delete your account">
                   <div className="space-y-3">
-                    <Button variant="outline" className="w-full glass border-glass-border" onClick={handleSignOut}>
-                      <LogOut className="h-4 w-4 mr-2" /> Sign Out
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" className="w-full border-destructive/30 text-destructive hover:bg-destructive/10" disabled={isDeleting}>
-                          <Trash2 className="h-4 w-4 mr-2" /> {isDeleting ? "Deleting..." : "Delete Account"}
+                     <Button variant="outline" className="w-full border-border bg-muted/40 hover:bg-muted/60" onClick={handleSignOut}>
+                       <LogOut className="h-4 w-4 mr-2" /> Sign Out
+                     </Button>
+                     <AlertDialog>
+                       <AlertDialogTrigger asChild>
+                         <Button variant="outline" className="w-full border-destructive/40 text-destructive bg-destructive/10 hover:bg-destructive/20" disabled={isDeleting}>
+                           <Trash2 className="h-4 w-4 mr-2" /> {isDeleting ? "Deleting..." : "Delete Account"}
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent className="glass border-destructive/20">
