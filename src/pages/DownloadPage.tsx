@@ -6,7 +6,7 @@ import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { Link } from "react-router-dom";
 
-const DOWNLOAD_URL = "https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/download-files/ArcAi-3.0.1-arm64.dmg";
+const DOWNLOAD_URL = "https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/download-files/ArcAi-3.0.1.dmg";
 const VERSION = "3.0.1";
 
 export function DownloadPage() {
