@@ -55,6 +55,9 @@ export function PWAInstallPrompt() {
       setIsMacDesktop(true);
 
       // Check if we should show the Mac download prompt
+      const hiddenForever = localStorage.getItem('pwa-prompt-hidden-forever');
+      if (hiddenForever === 'true') return;
+
       const dismissed = localStorage.getItem('pwa-prompt-dismissed');
       if (dismissed) {
         const dismissedTime = parseInt(dismissed);
@@ -113,6 +116,11 @@ export function PWAInstallPrompt() {
     localStorage.setItem('pwa-prompt-dismissed', Date.now().toString());
   };
 
+  const handleHideForever = () => {
+    setShowPrompt(false);
+    localStorage.setItem('pwa-prompt-hidden-forever', 'true');
+  };
+
   const handleMacDownload = () => {
     // Direct download of the Mac app
     window.location.href = 'https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/download-files/ArcAi-1.0.2.dmg';
@@ -152,25 +160,35 @@ export function PWAInstallPrompt() {
                 }
               </p>
 
-              <div className="flex gap-2">
-                <GlassButton
-                  variant="glow"
-                  size="sm"
-                  onClick={isMacDesktop ? handleMacDownload : handleInstall}
-                  className="flex-1"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  {isMacDesktop ? 'Download' : 'Install'}
-                </GlassButton>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <GlassButton
+                    variant="glow"
+                    size="sm"
+                    onClick={isMacDesktop ? handleMacDownload : handleInstall}
+                    className="flex-1"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {isMacDesktop ? 'Download' : 'Install'}
+                  </GlassButton>
 
-                <GlassButton
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDismiss}
-                  className="border border-border"
-                >
-                  <X className="h-4 w-4" />
-                </GlassButton>
+                  <GlassButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDismiss}
+                    className="border border-border"
+                  >
+                    <X className="h-4 w-4" />
+                  </GlassButton>
+                </div>
+                {isMacDesktop && (
+                  <button
+                    onClick={handleHideForever}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Don't show again
+                  </button>
+                )}
               </div>
             </div>
           </div>
