@@ -77,7 +77,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         {/* Internal wrapper with conditional padding */}
         <div className={cn(
           "flex flex-col h-full",
-          isStandaloneApp && "md:pt-[30px]"
+          isStandaloneApp && "pt-[30px]"
         )}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border bg-background">

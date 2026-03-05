@@ -620,7 +620,7 @@ export function MobileChatApp() {
     <div
       className={cn(
         "h-screen flex relative overflow-hidden",
-        (isPWAMode || isElectronApp) && "md:pt-[30px]"
+        (isPWAMode || isElectronApp) && "pt-[30px]"
       )}
       style={{
         paddingTop: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : undefined

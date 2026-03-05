@@ -305,7 +305,7 @@ export function LandingScreen() {
     <div
       className={cn(
         "dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white",
-        (isPWAMode || isElectronApp) && "md:pt-[30px]"
+        (isPWAMode || isElectronApp) && "pt-[30px]"
       )}
       style={{
         paddingTop: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : undefined
