@@ -51,7 +51,7 @@ const App = () => {
       <AuthProvider>
         <SubscriptionProvider>
         <TooltipProvider>
-          <div className="arcai-drag-bar hidden md:block" />
+          <div className="arcai-drag-bar" />
           <BackgroundGradients />
           <Starfield />
             <Toaster />
