@@ -186,13 +186,18 @@ export function MobileChatApp() {
   // Track if running as PWA or Electron app
   const [isPWAMode, setIsPWAMode] = useState(false);
   const [isElectronApp, setIsElectronApp] = useState(false);
+  const [isDesktopStandalone, setIsDesktopStandalone] = useState(false);
 
   useEffect(() => {
     const checkPWA = window.matchMedia('(display-mode: standalone)').matches || 
                      (window.navigator as any).standalone === true;
     const checkElectron = /electron/i.test(navigator.userAgent);
+    // Detect if this is a mobile device (iOS/Android) - these don't need the traffic light gap
+    const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
+                           (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
     setIsPWAMode(checkPWA);
     setIsElectronApp(checkElectron);
+    setIsDesktopStandalone((checkPWA || checkElectron) && !isMobileDevice);
   }, []);
 
   // Listen for open-context-panel events from MemoryIndicator and settings
@@ -620,7 +625,7 @@ export function MobileChatApp() {
     <div
       className={cn(
         "h-screen flex relative overflow-hidden",
-        (isPWAMode || isElectronApp) && "pt-[30px]"
+        isDesktopStandalone && "pt-[30px]"
       )}
       style={{
         paddingTop: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : undefined
@@ -642,9 +647,9 @@ export function MobileChatApp() {
               isMobile && !headerVisible && "-translate-y-full",
             )}
             style={{
-              top: isAdminBannerActive
-                ? `calc(var(--admin-banner-height, 0px) + ${(isPWAMode || isElectronApp) ? '30px' : '0px'})`
-                : (isPWAMode || isElectronApp) ? '30px' : '0px'
+               top: isAdminBannerActive
+                ? `calc(var(--admin-banner-height, 0px) + ${isDesktopStandalone ? '30px' : '0px'})`
+                : isDesktopStandalone ? '30px' : '0px'
             }}
           >
             <div className="flex h-16 items-center justify-between px-4 pt-2 pointer-events-none">
