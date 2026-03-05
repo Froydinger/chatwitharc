@@ -28,7 +28,9 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
                   (window.navigator as any).standalone === true;
     const isElectron = /electron/i.test(navigator.userAgent);
-    setIsStandaloneApp(isPWA || isElectron);
+    const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
+                           (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
+    setIsStandaloneApp((isPWA || isElectron) && !isMobileDevice);
   }, []);
 
   // Close on escape key
