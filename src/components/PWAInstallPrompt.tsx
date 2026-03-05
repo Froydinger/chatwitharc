@@ -123,7 +123,7 @@ export function PWAInstallPrompt() {
 
   const handleMacDownload = () => {
     // Direct download of the Mac app
-    window.location.href = 'https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/download-files/ArcAi-1.0.2.dmg';
+    window.location.href = 'https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/download-files/ArcAi-3.0.1-arm64.dmg';
     handleDismiss();
   };
 
