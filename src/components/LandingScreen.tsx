@@ -245,7 +245,7 @@ export function LandingScreen() {
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const downloadUrl = "https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/download-files/ArcAi-3.0.2.dmg";
+  const downloadUrl = "https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/download-files/ArcAi-3.0.3.dmg";
 
   // Create mailto link for mobile users
   const mailtoLink = `mailto:?subject=ArcAi for Mac&body=Download ArcAi for Mac:%0D%0A%0D%0A${encodeURIComponent(downloadUrl)}`;
