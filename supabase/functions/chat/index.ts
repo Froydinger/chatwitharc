@@ -14,6 +14,29 @@ const supabase = createClient(
 // NOTE: saveResponseToDatabase was removed - frontend now handles all persistence
 // to avoid race conditions and duplicate messages from double-saves.
 
+// Sanitize any leaked tool call JSON from AI response text
+function sanitizeLeakedToolCalls(text: string): string {
+  if (!text) return text;
+  
+  // Match JSON objects that look like tool calls: {"name": "tool_name", "arguments": ...}
+  // or {"type": "function", "function": ...}
+  const toolCallPatterns = [
+    /\{[\s\n]*"name"\s*:\s*"(?:web_search|search_past_chats|save_memory|generate_file|update_canvas|update_code)"[\s\S]*?"arguments"\s*:\s*\{[\s\S]*?\}\s*\}/g,
+    /\{[\s\n]*"type"\s*:\s*"function"[\s\S]*?"function"\s*:\s*\{[\s\S]*?\}\s*\}/g,
+    /```(?:json)?\s*\{[\s\n]*"(?:name|type)"\s*:\s*"(?:web_search|search_past_chats|save_memory|generate_file|update_canvas|update_code|function)"[\s\S]*?\}\s*```/g,
+  ];
+  
+  let cleaned = text;
+  for (const pattern of toolCallPatterns) {
+    cleaned = cleaned.replace(pattern, '').trim();
+  }
+  
+  // Clean up leftover empty lines from removal
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  
+  return cleaned;
+}
+
 // Retry wrapper for AI calls
 async function fetchWithRetry(
   url: string,
