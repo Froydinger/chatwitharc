@@ -68,6 +68,16 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const [isStandaloneApp, setIsStandaloneApp] = useState(false);
+
+  useEffect(() => {
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                  (window.navigator as any).standalone === true;
+    const isElectron = /electron/i.test(navigator.userAgent);
+    const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
+                           (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
+    setIsStandaloneApp((isPWA || isElectron) && !isMobileDevice);
+  }, []);
   const [showHistory, setShowHistory] = useState(false);
   const [copied, setCopied] = useState(false);
   // For code mode: show code editor by default during generation, toggle to show preview
@@ -285,7 +295,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
       {/* Header - Glassy style */}
-      <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/20 bg-gradient-to-r from-background/80 via-background/60 to-background/80 backdrop-blur-xl">
+      <div className={cn("flex items-center justify-between px-4 py-3.5 border-b border-border/20 bg-gradient-to-r from-background/80 via-background/60 to-background/80 backdrop-blur-xl", isStandaloneApp && "pt-[38px]")}>
         <div className="flex items-center gap-2 sm:gap-3">
           <Button
             variant="ghost"
