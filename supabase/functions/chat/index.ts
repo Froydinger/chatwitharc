@@ -1357,9 +1357,16 @@ Output the complete, finished writing using the update_canvas tool.`;
       }
       // Canvas/code updates were already captured from the first call
     }
+    // Sanitize leaked tool call text from AI response
+    const rawContent = data.choices[0]?.message?.content || '';
+    const sanitizedContent = sanitizeLeakedToolCalls(rawContent);
+    if (sanitizedContent !== rawContent) {
+      console.warn('⚠️ Stripped leaked tool call text from AI response');
+      data.choices[0].message.content = sanitizedContent;
+    }
     
     // Add tool usage metadata, sources, canvas and code update to the response
-    const responseContent = data.choices[0]?.message?.content || '';
+    const responseContent = sanitizedContent;
     const finalResponse = {
       ...data,
       tool_calls_used: toolsUsed,
