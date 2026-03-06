@@ -301,7 +301,7 @@ export function WelcomeSection({
       <div className="flex flex-col items-center justify-start min-h-full py-12 px-4 space-y-6">
         {/* Hero Section */}
         <motion.div
-          className="flex flex-col items-center gap-6 text-center mt-16"
+          className="flex flex-col items-center gap-6 text-center mt-6 sm:mt-16"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1], delay: 0.1 }}
