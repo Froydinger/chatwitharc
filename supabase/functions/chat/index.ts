@@ -449,17 +449,14 @@ serve(async (req) => {
       enhancedSystemPrompt += `\n\nGlobal: ${globalContext}`;
     }
 
-    // Brief technical capabilities (trimmed from 100+ lines to essentials)
-    enhancedSystemPrompt += '\n\n--- TOOLS ---\n' +
-      '• web_search: Get current info from the web - When you use this tool, ALWAYS synthesize and summarize the search results in your own words. NEVER just say "click on the sources" - actually answer the user\'s question using the information from the sources.\n' +
-      '• search_past_chats: Analyze user\'s conversation history. CRITICAL: You MUST use this tool IMMEDIATELY (without asking first) whenever the user references past conversations, e.g. "did we talk about...", "do you remember...", "you don\'t remember...", "we discussed...", "I mentioned...", "I told you about...", "what did I say about...", or any question that implies prior conversation context you don\'t have in the current chat window. NEVER say "I don\'t have a record" without searching first.\n' +
-      '• save_memory: IMPORTANT - Use this tool whenever the user shares personal information, preferences, facts about themselves, or explicitly asks you to remember something. Examples: "I like X", "My favorite Y is Z", "Remember that...", "I work at...", "I\'m allergic to...". Save a clear, concise third-person fact. This is how you build long-term context about the user.\n' +
-      '• generate_file: Create downloadable docs (PDFs, etc.) - NOT for code\n' +
-      '• Image generation: Users click the image button\n\n' +
-      '--- CODING (only when explicitly requested) ---\n' +
-      '• Trigger words: "build", "create", "code", "make", "write"\n' +
-      '• Use markdown code blocks (```html, ```css, ```js)\n' +
-      '• Default to conversation, not coding\n';
+    // Tool usage behavioral instructions (tools are defined via the API tools parameter - do NOT describe their schemas here)
+    enhancedSystemPrompt += '\n\n--- BEHAVIORAL GUIDELINES ---\n' +
+      'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
+      '• When web_search returns results, ALWAYS synthesize and summarize them in your own words. NEVER just say "click on the sources".\n' +
+      '• You MUST use search_past_chats IMMEDIATELY (without asking) whenever the user references past conversations, e.g. "did we talk about...", "do you remember...", "we discussed...", "I mentioned...". NEVER say "I don\'t have a record" without searching first.\n' +
+      '• Use save_memory whenever the user shares personal info, preferences, or asks you to remember something. Save a clear, concise third-person fact.\n' +
+      '• Default to conversation, not coding. Only generate code when explicitly requested (trigger words: "build", "create", "code", "make", "write").\n' +
+      '• When coding, use markdown code blocks (```html, ```css, ```js).\n';
 
     // CRITICAL: Brevity for conversation, but COMPLETE for tools
     enhancedSystemPrompt += '\n\n=== RESPONSE STYLE (CRITICAL) ===\n' +
@@ -1325,7 +1322,7 @@ Output the complete, finished writing using the update_canvas tool.`;
           body: JSON.stringify({
             model: model || 'google/gemini-3-flash-preview',
             messages: synthesisMessages,
-            [tokenParam]: 65536,
+            ...tokenParam,
           }),
         });
 
