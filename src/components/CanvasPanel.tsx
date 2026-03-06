@@ -68,6 +68,16 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const [isStandaloneApp, setIsStandaloneApp] = useState(false);
+
+  useEffect(() => {
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                  (window.navigator as any).standalone === true;
+    const isElectron = /electron/i.test(navigator.userAgent);
+    const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
+                           (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
+    setIsStandaloneApp((isPWA || isElectron) && !isMobileDevice);
+  }, []);
   const [showHistory, setShowHistory] = useState(false);
   const [copied, setCopied] = useState(false);
   // For code mode: show code editor by default during generation, toggle to show preview
