@@ -295,7 +295,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
       {/* Header - Glassy style */}
-      <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/20 bg-gradient-to-r from-background/80 via-background/60 to-background/80 backdrop-blur-xl">
+      <div className={cn("flex items-center justify-between px-4 py-3.5 border-b border-border/20 bg-gradient-to-r from-background/80 via-background/60 to-background/80 backdrop-blur-xl", isStandaloneApp && "pt-[38px]")}>
         <div className="flex items-center gap-2 sm:gap-3">
           <Button
             variant="ghost"
