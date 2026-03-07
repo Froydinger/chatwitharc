@@ -660,9 +660,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         } else if (isActive && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
           console.error('Max reconnect attempts reached, deactivating voice mode');
           reconnectAttempts = 0;
-          const detail = event.reason ? ` (${event.code}: ${event.reason})` : ` (${event.code})`;
-          optionsRef.current.onError?.(`Voice connection lost${detail}. Please try again.`);
-          setStatus('idle');
+          // Gracefully deactivate voice mode so overlay closes cleanly
+          useVoiceModeStore.getState().deactivateVoiceMode();
+          optionsRef.current.onError?.('Voice session ended — but don\'t worry, Arc remembers your conversation. Feel free to start a new call and pick up where you left off!');
         } else {
           setStatus('idle');
         }
