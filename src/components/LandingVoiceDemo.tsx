@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Mic, Volume2 } from "lucide-react";
 
@@ -40,29 +40,36 @@ function useWaveform(active: boolean) {
 }
 
 const CONVERSATION = [
-  { role: "user" as const, text: "Hey Arc, what's the best way to stay productive?" },
-  { role: "ai" as const, text: "Honestly? Start with the task you're avoiding most. Once that's done, everything else feels easy." },
-  { role: "user" as const, text: "That's… annoyingly good advice." },
-  { role: "ai" as const, text: "I know. I'm like a fortune cookie that actually helps." },
+  { role: "user" as const, text: "What's the best way to stay productive?" },
+  { role: "ai" as const, text: "Start with the task you're avoiding. Everything else gets easier after that." },
+  { role: "user" as const, text: "That's annoyingly good advice." },
+  { role: "ai" as const, text: "I know. You're welcome." },
 ];
 
 export function LandingVoiceDemo() {
   const [activeStep, setActiveStep] = useState(-1);
   const [isListening, setIsListening] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const loopTimeout = useRef<NodeJS.Timeout>();
 
-  const userHeights = useWaveform(isListening && activeStep % 2 === 0);
+  const userHeights = useWaveform(isListening && activeStep >= 0 && activeStep % 2 === 0);
   const aiHeights = useWaveform(!isListening && activeStep >= 0 && activeStep % 2 === 1);
 
-  // Auto-play conversation
-  useEffect(() => {
-    if (!hasStarted) return;
+  const resetAndReplay = useCallback(() => {
+    setActiveStep(-1);
+    setIsListening(false);
+    // Small pause before restarting
+    loopTimeout.current = setTimeout(() => {
+      setActiveStep(-1);
+      runConversation();
+    }, 2000);
+  }, []);
 
+  const runConversation = useCallback(() => {
     const timers: NodeJS.Timeout[] = [];
     let elapsed = 600;
 
     CONVERSATION.forEach((msg, i) => {
-      // Start speaking
       timers.push(
         setTimeout(() => {
           setActiveStep(i);
@@ -72,7 +79,7 @@ export function LandingVoiceDemo() {
       elapsed += msg.text.length * 40 + 800;
     });
 
-    // End
+    // End, then loop
     timers.push(
       setTimeout(() => {
         setIsListening(false);
@@ -80,8 +87,24 @@ export function LandingVoiceDemo() {
       }, elapsed)
     );
 
+    timers.push(
+      setTimeout(() => {
+        resetAndReplay();
+      }, elapsed + 3000)
+    );
+
     return () => timers.forEach(clearTimeout);
-  }, [hasStarted]);
+  }, [resetAndReplay]);
+
+  // Initial start
+  useEffect(() => {
+    if (!hasStarted) return;
+    const cleanup = runConversation();
+    return () => {
+      cleanup?.();
+      if (loopTimeout.current) clearTimeout(loopTimeout.current);
+    };
+  }, [hasStarted, runConversation]);
 
   return (
     <section className="relative z-10 py-20 px-6">
@@ -154,7 +177,7 @@ export function LandingVoiceDemo() {
             <div className="px-5 pb-4 space-y-3 min-h-[160px]">
               {CONVERSATION.slice(0, Math.max(0, activeStep + 1)).map((msg, i) => (
                 <motion.div
-                  key={i}
+                  key={`${i}-${activeStep}`}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: i === activeStep ? 1 : 0.5, y: 0 }}
                   transition={{ duration: 0.3 }}

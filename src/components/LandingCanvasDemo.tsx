@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PenLine, Sparkles, Code, Eye, Check } from "lucide-react";
+import { PenLine, Sparkles, Code, Eye, Check, FileText } from "lucide-react";
 
 const CODE_LINES = [
   `import React from "react";`,
@@ -22,12 +22,32 @@ const CODE_LINES = [
   `}`,
 ];
 
+const POEM_LINES = [
+  `the screen glows soft at 2am`,
+  `cursor blinking, patient, calm`,
+  ``,
+  `you type a thought — half-formed,`,
+  `uncertain — and something listens`,
+  ``,
+  `not a search engine`,
+  `not a database`,
+  `just a quiet space`,
+  `that meets you where you are`,
+  ``,
+  `and sometimes that's enough`,
+];
+
+type CanvasMode = "coding" | "preview" | "writing";
+
 export function LandingCanvasDemo() {
   const [visibleLines, setVisibleLines] = useState(0);
-  const [phase, setPhase] = useState<"coding" | "preview">("coding");
+  const [phase, setPhase] = useState<CanvasMode>("coding");
   const [showCursor, setShowCursor] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
   const [fakeCount, setFakeCount] = useState(0);
+  const [poemLines, setPoemLines] = useState(0);
+  const loopTimeout = useRef<NodeJS.Timeout>();
+  const isManualOverride = useRef(false);
 
   // Blink cursor
   useEffect(() => {
@@ -37,7 +57,7 @@ export function LandingCanvasDemo() {
 
   // Auto-type code lines
   useEffect(() => {
-    if (!hasStarted || phase !== "coding") return;
+    if (!hasStarted || phase !== "coding" || isManualOverride.current) return;
     if (visibleLines >= CODE_LINES.length) {
       const timeout = setTimeout(() => setPhase("preview"), 1200);
       return () => clearTimeout(timeout);
@@ -50,9 +70,9 @@ export function LandingCanvasDemo() {
     return () => clearTimeout(timeout);
   }, [visibleLines, hasStarted, phase]);
 
-  // Fake auto-clicking in preview
+  // Fake auto-clicking in preview, then transition to writing
   useEffect(() => {
-    if (phase !== "preview") return;
+    if (phase !== "preview" || isManualOverride.current) return;
     const interval = setInterval(() => {
       setFakeCount((c) => {
         if (c >= 5) {
@@ -62,10 +82,61 @@ export function LandingCanvasDemo() {
         return c + 1;
       });
     }, 800);
-    return () => clearInterval(interval);
+
+    // After preview runs, switch to writing mode
+    const writeTimeout = setTimeout(() => {
+      setPhase("writing");
+      setPoemLines(0);
+    }, 6000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(writeTimeout);
+    };
   }, [phase]);
 
-  const isTyping = phase === "coding" && visibleLines < CODE_LINES.length;
+  // Auto-type poem lines
+  useEffect(() => {
+    if (phase !== "writing" || isManualOverride.current) return;
+    if (poemLines >= POEM_LINES.length) {
+      // Pause, then loop back to coding
+      loopTimeout.current = setTimeout(() => {
+        resetAndLoop();
+      }, 4000);
+      return () => { if (loopTimeout.current) clearTimeout(loopTimeout.current); };
+    }
+
+    const timeout = setTimeout(() => {
+      setPoemLines((v) => v + 1);
+    }, 200 + Math.random() * 180);
+
+    return () => clearTimeout(timeout);
+  }, [poemLines, phase]);
+
+  const resetAndLoop = useCallback(() => {
+    isManualOverride.current = false;
+    setPhase("coding");
+    setVisibleLines(0);
+    setFakeCount(0);
+    setPoemLines(0);
+  }, []);
+
+  // Cleanup
+  useEffect(() => {
+    return () => { if (loopTimeout.current) clearTimeout(loopTimeout.current); };
+  }, []);
+
+  const isTypingCode = phase === "coding" && visibleLines < CODE_LINES.length;
+  const isTypingPoem = phase === "writing" && poemLines < POEM_LINES.length;
+
+  const handleTabClick = (mode: CanvasMode) => {
+    if (mode === "preview" && visibleLines < CODE_LINES.length) return;
+    isManualOverride.current = true;
+    setPhase(mode);
+  };
+
+  const currentFileName = phase === "writing" ? "untitled.md" : "app.tsx";
+  const currentFileType = phase === "writing" ? "md" : "tsx";
 
   return (
     <section className="relative z-10 py-20 px-6">
@@ -91,7 +162,7 @@ export function LandingCanvasDemo() {
             </span>
           </h2>
           <p className="text-gray-400 max-w-lg mx-auto text-lg">
-            Canvas is your built-in workspace — where AI writes prose, drafts code, and shows you the result. All without leaving the chat.
+            Canvas is your built-in workspace — code, prose, whatever. AI writes it, you watch it happen.
           </p>
         </motion.div>
 
@@ -118,15 +189,15 @@ export function LandingCanvasDemo() {
                   <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
                 </div>
                 <span className="text-[11px] text-gray-500 ml-2 font-medium">
-                  Canvas — app.tsx
+                  Canvas — {currentFileName}
                 </span>
               </div>
             </div>
 
-            {/* Mode tabs - NOW CLICKABLE */}
+            {/* Mode tabs */}
             <div className="flex items-center gap-0.5 px-3 py-1.5 border-b border-white/5 bg-white/[0.02]">
               <button
-                onClick={() => setPhase("coding")}
+                onClick={() => handleTabClick("coding")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                   phase === "coding"
                     ? "bg-white/10 text-white"
@@ -137,11 +208,7 @@ export function LandingCanvasDemo() {
                 Code
               </button>
               <button
-                onClick={() => {
-                  if (visibleLines >= CODE_LINES.length) {
-                    setPhase("preview");
-                  }
-                }}
+                onClick={() => handleTabClick("preview")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                   phase === "preview"
                     ? "bg-white/10 text-white"
@@ -152,6 +219,17 @@ export function LandingCanvasDemo() {
               >
                 <Eye className="w-3 h-3" />
                 Preview
+              </button>
+              <button
+                onClick={() => handleTabClick("writing")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  phase === "writing"
+                    ? "bg-white/10 text-white"
+                    : "text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                <FileText className="w-3 h-3" />
+                Write
               </button>
               <div className="flex-1" />
               <div className="flex items-center gap-1 px-2 py-1 rounded text-xs text-emerald-400/70">
@@ -187,7 +265,7 @@ export function LandingCanvasDemo() {
                       </motion.div>
                     ))}
 
-                    {isTyping && (
+                    {isTypingCode && (
                       <span
                         className={`inline-block w-[2px] h-[16px] bg-emerald-400 ml-[44px] align-text-bottom transition-opacity duration-100 ${
                           showCursor ? "opacity-100" : "opacity-0"
@@ -195,15 +273,15 @@ export function LandingCanvasDemo() {
                       />
                     )}
                   </motion.div>
-                ) : (
+                ) : phase === "preview" ? (
                   <motion.div
                     key="preview"
                     initial={{ opacity: 0, scale: 1.02 }}
                     animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
                     transition={{ duration: 0.4, ease: "easeOut" }}
                     className="px-6 py-8 flex flex-col items-center justify-center text-center min-h-[280px]"
                   >
-                    {/* Mini app preview */}
                     <motion.div
                       initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -247,26 +325,65 @@ export function LandingCanvasDemo() {
                         Tap Me
                       </motion.button>
                     </motion.div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="writing"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.3 }}
+                    className="px-8 py-6 min-h-[280px]"
+                  >
+                    <div className="space-y-0">
+                      {POEM_LINES.slice(0, poemLines).map((line, i) => (
+                        <motion.p
+                          key={`poem-${i}`}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          className={`text-[15px] leading-[2] ${
+                            line.trim() === "" ? "h-4" : "text-gray-300 italic"
+                          }`}
+                        >
+                          {line || "\u00A0"}
+                        </motion.p>
+                      ))}
 
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.7 }}
-                      className="text-xs text-gray-500 mt-4 italic"
-                    >
-                      Yeah — AI wrote that. No devs were harmed.
-                    </motion.p>
+                      {isTypingPoem && (
+                        <span
+                          className={`inline-block w-[2px] h-[16px] bg-amber-400 align-text-bottom transition-opacity duration-100 ${
+                            showCursor ? "opacity-100" : "opacity-0"
+                          }`}
+                        />
+                      )}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
               {/* Status indicator */}
               <div className="absolute bottom-3 right-4">
-                {isTyping && (
+                {isTypingCode && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="flex items-center gap-1.5 text-[11px] text-emerald-400/60"
+                  >
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                    >
+                      <Sparkles className="w-3 h-3" />
+                    </motion.div>
+                    AI is coding…
+                  </motion.div>
+                )}
+                {isTypingPoem && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center gap-1.5 text-[11px] text-amber-400/60"
                   >
                     <motion.div
                       animate={{ rotate: 360 }}
@@ -288,15 +405,30 @@ export function LandingCanvasDemo() {
                     Live preview
                   </motion.div>
                 )}
+                {phase === "writing" && !isTypingPoem && poemLines >= POEM_LINES.length && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="flex items-center gap-1.5 text-[11px] text-amber-400/50"
+                  >
+                    <Check className="w-3 h-3" />
+                    Done
+                  </motion.div>
+                )}
               </div>
             </div>
 
             {/* Bottom bar */}
             <div className="flex items-center justify-between px-4 py-2 border-t border-white/5 bg-white/[0.02]">
               <span className="text-[10px] text-gray-600">
-                {phase === "coding" ? `${visibleLines} / ${CODE_LINES.length} lines` : "Preview mode"}
+                {phase === "coding"
+                  ? `${visibleLines} / ${CODE_LINES.length} lines`
+                  : phase === "writing"
+                  ? `${poemLines} / ${POEM_LINES.length} lines`
+                  : "Preview mode"}
               </span>
-              <span className="text-[10px] text-gray-600">tsx</span>
+              <span className="text-[10px] text-gray-600">{currentFileType}</span>
             </div>
           </div>
         </motion.div>
