@@ -12,6 +12,7 @@ import { ThemedLogo } from "./ThemedLogo";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
+import { LandingCanvasDemo } from "./LandingCanvasDemo";
 
 // Helper to detect Electron app
 const isElectron = () => {
