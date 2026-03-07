@@ -775,7 +775,7 @@ export function VoiceModeOverlay() {
                     const fadeLevel = isLatest ? 1 : i === arr.length - 2 ? 0.6 : i === arr.length - 3 ? 0.35 : 0.15;
                     return (
                       <motion.div
-                        key={`${turn.timestamp.getTime()}-${turn.role}`}
+                        key={`${turn.timestamp.getTime()}-${turn.role}-${turn.transcript.slice(0, 32)}-${i}`}
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: fadeLevel, y: 0 }}
                         exit={{ opacity: 0, y: -12 }}
