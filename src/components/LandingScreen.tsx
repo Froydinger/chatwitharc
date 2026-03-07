@@ -697,6 +697,9 @@ export function LandingScreen() {
         </div>
       </section>
 
+      {/* Canvas Demo Section */}
+      <LandingCanvasDemo />
+
       {/* Pricing Section */}
       <section className="relative z-10 py-20 px-6" id="pricing">
         <div className="max-w-5xl mx-auto">
