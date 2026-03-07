@@ -572,55 +572,112 @@ export function LandingScreen() {
         <AppMockup />
       </main>
 
-      {/* Features Grid */}
-      <section className="relative z-10 py-24 px-6 max-w-7xl mx-auto" id="features">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-          <FeatureCard
-            icon={Zap}
-            title="Lightning Fast"
-            description="Instant responses with cutting-edge AI models. Choose between speed and depth—switch models anytime."
-            color="from-yellow-400 to-orange-500"
-          />
-          <FeatureCard
-            icon={Brain}
-            title="Personal Memory"
-            description="ArcAi remembers your preferences and context. Your conversations adapt to your unique workflow and style."
-            color="from-purple-400 to-pink-500"
-          />
-          <FeatureCard
-            icon={Sparkles}
-            title="Multimodal Magic"
-            description="Chat, generate images, analyze files, and code—all in one fluid, beautiful interface."
-            color="from-blue-400 to-cyan-500"
-          />
-          <FeatureCard
-            icon={Heart}
-            title="Real Life, Real Talk"
-            description="More than just tasks. ArcAi helps you think through life's big moments—and knows when to suggest a real professional."
-            color="from-rose-400 to-pink-500"
-          />
-          {/* Unlimited Chats - Pro Upsell CTA */}
+      {/* Section 1: Speed & Intelligence */}
+      <section className="relative z-10 py-24 px-6 max-w-6xl mx-auto" id="features">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          {/* Left - Big statement */}
+          <motion.div
+            className="space-y-6"
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-card text-xs text-yellow-400 font-medium">
+              <Zap className="w-3.5 h-3.5" />
+              Built for speed
+            </div>
+            <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+              Think fast.<br />
+              <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">Type faster.</span>
+            </h2>
+            <p className="text-gray-400 text-lg leading-relaxed max-w-md">
+              Instant responses powered by cutting-edge models. Switch between speed and depth on the fly — your AI, your rules.
+            </p>
+          </motion.div>
+
+          {/* Right - Memory + Multimodal stacked cards */}
+          <motion.div
+            className="space-y-4"
+            initial={{ opacity: 0, x: 30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            <div className="glass-card p-6 rounded-2xl space-y-3 group hover:border-purple-500/30 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                  <Brain className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-white">Personal Memory</h3>
+              </div>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                ArcAi remembers your preferences, context, and style. Every conversation picks up right where you left off.
+              </p>
+            </div>
+
+            <div className="glass-card p-6 rounded-2xl space-y-3 group hover:border-blue-500/30 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-white">Multimodal Magic</h3>
+              </div>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Chat, generate images, analyze files, and write code — all in one fluid, beautiful interface.
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Section 2: Real Life + Pro CTA side by side */}
+      <section className="relative z-10 py-16 px-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Real Life, Real Talk */}
+          <motion.div
+            className="glass-card rounded-3xl p-8 space-y-4 relative overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-pink-500" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-500/20">
+              <Heart className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-white">Real Life, Real Talk</h3>
+            <p className="text-gray-400 leading-relaxed">
+              More than just tasks. ArcAi helps you think through life's big moments — career pivots, tough conversations, personal goals — and knows when to suggest a real professional.
+            </p>
+          </motion.div>
+
+          {/* Unlimited Chats - Pro CTA */}
           <motion.div
             className="cursor-pointer"
-            whileHover={{ scale: 1.03 }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => {
               const pricingEl = document.getElementById('pricing');
-              if (pricingEl) {
-                pricingEl.scrollIntoView({ behavior: 'smooth' });
-              }
+              if (pricingEl) pricingEl.scrollIntoView({ behavior: 'smooth' });
             }}
           >
-            <div className="relative group h-full rounded-2xl p-6 glass-card overflow-hidden border border-cyan-500/30 animate-[neon-pulse_2s_ease-in-out_infinite]">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-600/10 opacity-60" />
-              <div className="absolute inset-0 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.15),inset_0_0_20px_rgba(6,182,212,0.05)]" />
-              <div className="relative space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-                  <MessageCircle className="w-5 h-5 text-white" />
+            <div className="relative h-full rounded-3xl p-8 glass-card overflow-hidden border border-cyan-500/30 space-y-4">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-500" />
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-600/5" />
+              <div className="relative space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                  <MessageCircle className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="font-bold text-white text-lg">Unlimited Chats</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">Remove daily limits and chat without restrictions. Upgrade to Pro for unlimited everything.</p>
-                <div className="flex items-center gap-1.5 text-cyan-400 text-sm font-semibold pt-1">
+                <h3 className="text-2xl font-bold text-white">Unlimited Everything</h3>
+                <p className="text-gray-400 leading-relaxed">
+                  Remove daily limits and chat without restrictions. Images, voice, canvas, code — all unlimited with Pro.
+                </p>
+                <div className="flex items-center gap-1.5 text-cyan-400 text-sm font-semibold pt-2">
                   <Crown className="w-4 h-4" />
                   <span>View Pro Plan</span>
                   <ArrowRight className="w-3.5 h-3.5" />
