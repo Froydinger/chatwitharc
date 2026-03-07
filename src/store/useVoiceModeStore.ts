@@ -64,6 +64,7 @@ interface VoiceModeState {
   setIsAudioPlaying: (playing: boolean) => void;
   setCurrentTranscript: (transcript: string) => void;
   addConversationTurn: (turn: VoiceTurn) => void;
+  addUserTurnOrdered: (turn: VoiceTurn) => void;
   clearConversation: () => void;
   setSelectedVoice: (voice: VoiceName) => void;
   setMuted: (muted: boolean) => void;
@@ -167,13 +168,31 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   setCurrentTranscript: (transcript) => set({ currentTranscript: transcript }),
   
   addConversationTurn: (turn) => set((state) => {
-    // Cap at 50 turns to prevent memory leak in long conversations
     const MAX_TURNS = 50;
     const newTurns = [...state.conversationTurns, turn];
-    // If over limit, remove oldest turns (keep most recent)
     const trimmedTurns = newTurns.length > MAX_TURNS
       ? newTurns.slice(-MAX_TURNS)
       : newTurns;
+    return { conversationTurns: trimmedTurns };
+  }),
+  
+  // Insert a user turn in correct chronological order (before any trailing assistant turns)
+  addUserTurnOrdered: (turn) => set((state) => {
+    const MAX_TURNS = 50;
+    const turns = [...state.conversationTurns];
+    
+    // Find the insertion point: before consecutive trailing assistant turns
+    let insertAt = turns.length;
+    for (let i = turns.length - 1; i >= 0; i--) {
+      if (turns[i].role === 'assistant') {
+        insertAt = i;
+      } else {
+        break;
+      }
+    }
+    
+    turns.splice(insertAt, 0, turn);
+    const trimmedTurns = turns.length > MAX_TURNS ? turns.slice(-MAX_TURNS) : turns;
     return { conversationTurns: trimmedTurns };
   }),
   
