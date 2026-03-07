@@ -684,10 +684,10 @@ export function LandingScreen() {
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-pink-500" />
               
               {[
-                { role: "user" as const, text: "I'm thinking about leaving my job to start something new. Am I crazy?", delay: 0 },
-                { role: "ai" as const, text: "Not crazy — brave. Let's map out what 'new' looks like. What lights you up that your current role doesn't?", delay: 0.2 },
-                { role: "user" as const, text: "I love building things. I just hate the politics.", delay: 0.4 },
-                { role: "ai" as const, text: "That's a signal, not a complaint. Let's figure out the smallest version of your dream you could start this week.", delay: 0.6 },
+                { role: "user" as const, text: "I'm thinking about quitting my job. Am I crazy?", delay: 0 },
+                { role: "ai" as const, text: "Maybe. What's the job and what's the exit plan?", delay: 0.2 },
+                { role: "user" as const, text: "No exit plan. I just hate the politics.", delay: 0.4 },
+                { role: "ai" as const, text: "Politics won't disappear. But you can pick which kind. What would you build if you had six months?", delay: 0.6 },
               ].map((msg, i) => (
                 <motion.div
                   key={i}
