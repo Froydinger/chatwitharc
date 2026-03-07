@@ -347,6 +347,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.created':
+        // Clear accumulated transcript so AI deltas start fresh
+        setCurrentTranscript('');
+        
         // Allow tool-triggered responses through the phantom guard
         if (awaitingToolResponse) {
           console.log('Allowing tool-triggered response through phantom guard');
