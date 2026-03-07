@@ -632,58 +632,80 @@ export function LandingScreen() {
         </div>
       </section>
 
-      {/* Section 2: Real Life + Pro CTA side by side */}
-      <section className="relative z-10 py-16 px-6 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Real Life, Real Talk */}
+      {/* Section 2: Real Life, Real Talk — Full-width narrative */}
+      <section className="relative z-10 py-20 px-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          {/* Left: Statement */}
           <motion.div
-            className="glass-card rounded-3xl p-8 space-y-4 relative overflow-hidden"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.6, type: "spring", stiffness: 300, damping: 30 }}
           >
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-pink-500" />
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-500/20">
               <Heart className="w-6 h-6 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-white">Real Life, Real Talk</h3>
-            <p className="text-gray-400 leading-relaxed">
-              More than just tasks. ArcAi helps you think through life's big moments — career pivots, tough conversations, personal goals — and knows when to suggest a real professional.
+            <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+              Real Life,
+              <br />
+              <span className="bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">
+                Real Talk.
+              </span>
+            </h2>
+            <p className="text-gray-400 text-lg leading-relaxed max-w-md">
+              More than a chatbot. ArcAi helps you think through life's real moments — and knows when to point you to a real professional.
             </p>
+            <ul className="space-y-3 text-sm text-gray-300">
+              <li className="flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
+                Navigate career pivots with structured thinking
+              </li>
+              <li className="flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-pink-400 shrink-0" />
+                Prep for tough conversations with role-play
+              </li>
+              <li className="flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-fuchsia-400 shrink-0" />
+                Set personal goals and track your progress
+              </li>
+            </ul>
           </motion.div>
 
-          {/* Unlimited Chats - Pro CTA */}
+          {/* Right: Animated chat bubbles */}
           <motion.div
-            className="cursor-pointer"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+            initial={{ opacity: 0, x: 30 }}
+            whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              const pricingEl = document.getElementById('pricing');
-              if (pricingEl) pricingEl.scrollIntoView({ behavior: 'smooth' });
-            }}
+            transition={{ duration: 0.6, delay: 0.15, type: "spring", stiffness: 300, damping: 30 }}
           >
-            <div className="relative h-full rounded-3xl p-8 glass-card overflow-hidden border border-cyan-500/30 space-y-4">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-500" />
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-600/5" />
-              <div className="relative space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-                  <MessageCircle className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-white">Unlimited Everything</h3>
-                <p className="text-gray-400 leading-relaxed">
-                  Remove daily limits and chat without restrictions. Images, voice, canvas, code — all unlimited with Pro.
-                </p>
-                <div className="flex items-center gap-1.5 text-cyan-400 text-sm font-semibold pt-2">
-                  <Crown className="w-4 h-4" />
-                  <span>View Pro Plan</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </div>
-              </div>
+            <div className="glass-card rounded-3xl p-6 space-y-4 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-pink-500" />
+              
+              {[
+                { role: "user" as const, text: "I'm thinking about leaving my job to start something new. Am I crazy?", delay: 0 },
+                { role: "ai" as const, text: "Not crazy — brave. Let's map out what 'new' looks like. What lights you up that your current role doesn't?", delay: 0.2 },
+                { role: "user" as const, text: "I love building things. I just hate the politics.", delay: 0.4 },
+                { role: "ai" as const, text: "That's a signal, not a complaint. Let's figure out the smallest version of your dream you could start this week.", delay: 0.6 },
+              ].map((msg, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.3 + msg.delay, duration: 0.4 }}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div className={`rounded-2xl px-4 py-2.5 text-sm max-w-[85%] ${
+                    msg.role === "user"
+                      ? "bg-rose-500/15 text-gray-200 rounded-tr-md"
+                      : "bg-white/[0.06] text-gray-300 rounded-tl-md"
+                  }`}>
+                    {msg.text}
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </motion.div>
         </div>
@@ -765,10 +787,26 @@ export function LandingScreen() {
       {/* Pricing Section */}
       <section className="relative z-10 py-20 px-6" id="pricing">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">Choose your plan</h2>
-          <p className="text-gray-400 text-center mb-12 max-w-lg mx-auto">
-            Start free with generous daily limits. Upgrade anytime for unlimited access.
-          </p>
+          <motion.div
+            className="text-center mb-14 space-y-4"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <Crown className="w-7 h-7 text-cyan-400" />
+            </div>
+            <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+              Unlimited{' '}
+              <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                Everything.
+              </span>
+            </h2>
+            <p className="text-gray-400 max-w-lg mx-auto text-lg">
+              Remove all limits. Messages, voice, images, canvas, code — all unlimited. Start free, upgrade when you're ready.
+            </p>
+          </motion.div>
 
           <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {/* Free Plan */}
