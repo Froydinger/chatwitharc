@@ -13,6 +13,7 @@ import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { LandingCanvasDemo } from "./LandingCanvasDemo";
+import { LandingVoiceDemo } from "./LandingVoiceDemo";
 
 // Helper to detect Electron app
 const isElectron = () => {
@@ -754,6 +755,9 @@ export function LandingScreen() {
           </div>
         </div>
       </section>
+
+      {/* Voice Mode Demo Section */}
+      <LandingVoiceDemo />
 
       {/* Canvas Demo Section */}
       <LandingCanvasDemo />
