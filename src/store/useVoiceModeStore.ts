@@ -176,22 +176,19 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
     return { conversationTurns: trimmedTurns };
   }),
   
-  // Insert a user turn in correct chronological order (before any trailing assistant turns)
+  // Insert a late-arriving user turn in conversational order.
+  // If the latest turn is assistant, place user right before that latest assistant only.
   addUserTurnOrdered: (turn) => set((state) => {
     const MAX_TURNS = 50;
     const turns = [...state.conversationTurns];
-    
-    // Find the insertion point: before consecutive trailing assistant turns
-    let insertAt = turns.length;
-    for (let i = turns.length - 1; i >= 0; i--) {
-      if (turns[i].role === 'assistant') {
-        insertAt = i;
-      } else {
-        break;
-      }
+
+    if (turns.length > 0 && turns[turns.length - 1].role === 'assistant') {
+      // Insert before only the most recent assistant turn
+      turns.splice(turns.length - 1, 0, turn);
+    } else {
+      turns.push(turn);
     }
-    
-    turns.splice(insertAt, 0, turn);
+
     const trimmedTurns = turns.length > MAX_TURNS ? turns.slice(-MAX_TURNS) : turns;
     return { conversationTurns: trimmedTurns };
   }),
