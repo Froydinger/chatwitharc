@@ -168,6 +168,7 @@ export function VoiceModeOverlay() {
     outputAmplitude,
     isAudioPlaying,
     currentTranscript,
+    conversationTurns,
     isMuted,
     deactivateVoiceMode,
     toggleMute,
