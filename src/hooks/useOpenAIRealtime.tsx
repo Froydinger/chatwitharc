@@ -102,7 +102,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   }, []);
 
   const handleServerEvent = useCallback((event: any) => {
-    const { setStatus, setCurrentTranscript, addConversationTurn } = useVoiceModeStore.getState();
+    const { setStatus, setCurrentTranscript, addConversationTurn, addUserTurnOrdered } = useVoiceModeStore.getState();
     
     switch (event.type) {
       case 'session.created':
@@ -138,17 +138,16 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         
         console.log('User said:', userTranscript);
-        setCurrentTranscript(userTranscript);
         
         if (userTranscript.trim()) {
           hasRealTranscription = true;
-          // Clear phantom timer — Whisper confirmed real speech
           if (phantomCheckTimer) {
             clearTimeout(phantomCheckTimer);
             phantomCheckTimer = null;
             console.log('Phantom timer cleared — real transcription confirmed');
           }
-          addConversationTurn({
+          // Use ordered insert so user turn appears before any AI response that already arrived
+          addUserTurnOrdered({
             role: 'user',
             transcript: userTranscript,
             timestamp: new Date()
@@ -160,8 +159,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'response.audio_transcript.delta':
         setStatus('speaking');
         const partialTranscript = event.delta || '';
-        const { currentTranscript } = useVoiceModeStore.getState();
-        setCurrentTranscript(currentTranscript + partialTranscript);
+        // Accumulate AI transcript separately — reset on each new response
+        const { currentTranscript: existingTranscript } = useVoiceModeStore.getState();
+        setCurrentTranscript(existingTranscript + partialTranscript);
         optionsRef.current.onTranscriptUpdate?.(partialTranscript, false);
         break;
 
