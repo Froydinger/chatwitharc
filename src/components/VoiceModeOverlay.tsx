@@ -168,6 +168,7 @@ export function VoiceModeOverlay() {
     outputAmplitude,
     isAudioPlaying,
     currentTranscript,
+    conversationTurns,
     isMuted,
     deactivateVoiceMode,
     toggleMute,
@@ -766,6 +767,34 @@ export function VoiceModeOverlay() {
                 )}
               </AnimatePresence>
 
+              {/* Conversation Transcript - last 4 messages */}
+              <div className="w-full max-w-sm mb-4 min-h-[100px] flex flex-col justify-end">
+                <AnimatePresence initial={false}>
+                  {conversationTurns.slice(-4).map((turn, i, arr) => {
+                    const isLatest = i === arr.length - 1;
+                    const fadeLevel = isLatest ? 1 : i === arr.length - 2 ? 0.6 : i === arr.length - 3 ? 0.35 : 0.15;
+                    return (
+                      <motion.div
+                        key={`${turn.timestamp.getTime()}-${turn.role}`}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: fadeLevel, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ duration: 0.35, ease: "easeOut" }}
+                        className={`flex gap-2 items-start mb-2 ${turn.role === 'user' ? 'flex-row-reverse' : ''}`}
+                      >
+                        <div className={`rounded-2xl px-3.5 py-2 text-sm max-w-[85%] ${
+                          turn.role === 'user'
+                            ? 'bg-primary/15 text-foreground/90 rounded-tr-md'
+                            : 'bg-muted/20 text-foreground/80 rounded-tl-md'
+                        }`}>
+                          {turn.transcript}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+
               {/* Horizontal Audio Waveform Visualizer */}
               <motion.div
                 className="relative"
@@ -788,42 +817,16 @@ export function VoiceModeOverlay() {
                 </div>
               </motion.div>
 
-              {/* Ear icon when listening */}
-              <AnimatePresence>
-                {status === 'listening' && !isMuted && !isGeneratingImage && !isSearching && !showInterruptButton && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.3 }}
-                    className="mt-4"
-                  >
-                    <Ear className="w-6 h-6 text-muted-foreground/60" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Status text - only show when generating image, searching, or switching */}
-              <AnimatePresence>
-                {(isGeneratingImage || isSearching || isSwitching) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    transition={{ delay: 0.2 }}
-                    className="mt-6 flex items-center gap-2 text-muted-foreground"
-                  >
-                    {isGeneratingImage ? (
-                      <ImageIcon className="w-4 h-4" />
-                    ) : isSwitching ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Search className="w-4 h-4" />
-                    )}
-                    <span className="text-sm font-medium">{getStatusText()}</span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Status text */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="mt-3 flex items-center gap-2 text-muted-foreground"
+              >
+                {getStatusIcon()}
+                <span className="text-sm font-medium">{getStatusText()}</span>
+              </motion.div>
 
               {/* Interrupt Button */}
               <AnimatePresence>

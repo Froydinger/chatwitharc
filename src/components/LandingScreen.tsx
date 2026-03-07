@@ -794,17 +794,14 @@ export function LandingScreen() {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <Crown className="w-7 h-7 text-cyan-400" />
-            </div>
             <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-              Unlimited{' '}
+              Stay free.{' '}
               <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                Everything.
+                Or don't.
               </span>
             </h2>
-            <p className="text-gray-400 max-w-lg mx-auto text-lg">
-              Remove all limits. Messages, voice, images, canvas, code — all unlimited. Start free, upgrade when you're ready.
+            <p className="text-gray-400 max-w-xl mx-auto text-lg">
+              Arc is free. If you like what you see, $8/month unlocks unlimited everything — voice, images, music, the works. The most affordable multi-modal AI for creativity and personal growth. No catch.
             </p>
           </motion.div>
 
@@ -865,8 +862,8 @@ export function LandingScreen() {
           </div>
 
           <p className="text-center text-xs text-gray-500 mt-6">
-            All plans include all AI features. Limits reset daily.{' '}
-            <Link to="/pricing" className="underline hover:text-white transition-colors">Full comparison →</Link>
+            Free limits reset daily. Pro = no limits, ever.{' '}
+            <Link to="/pricing" className="underline hover:text-white transition-colors">See full comparison →</Link>
           </p>
         </div>
       </section>
