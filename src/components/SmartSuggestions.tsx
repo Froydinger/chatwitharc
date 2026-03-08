@@ -36,7 +36,7 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
     >
       {/* Suggestion Chips */}
       <motion.div
-        className="flex flex-wrap items-center justify-center gap-2 max-w-xl"
+        className="flex flex-wrap items-center justify-center gap-2 max-w-sm sm:max-w-xl lg:max-w-2xl"
         variants={staggerContainerVariants}
         initial="initial"
         animate="animate"
