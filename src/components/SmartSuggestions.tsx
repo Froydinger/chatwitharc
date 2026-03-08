@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { slideUpVariants, staggerContainerVariants, staggerItemVariants, ANIMATION_DURATION, STAGGER, createHoverVariants, createTapVariants } from "@/utils/animations";
 
@@ -8,6 +8,8 @@ interface SmartSuggestionsProps {
   suggestions: Array<{ label: string; prompt: string; fullPrompt?: string }>;
   onSelectPrompt: (prompt: string) => void;
   onShowMore: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: SmartSuggestionsProps) {
