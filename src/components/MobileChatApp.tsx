@@ -144,6 +144,7 @@ export function MobileChatApp() {
     syncFromSupabase,
     updateSessionCanvasContent,
     isHydratingSession,
+    loadSession,
   } = useArcStore();
   const { profile } = useProfile();
   const isMobile = useIsMobile();
@@ -880,6 +881,11 @@ export function MobileChatApp() {
                     chatSessions={chatSessions}
                     isLoading={isLoading}
                     isGeneratingImage={isGeneratingImage}
+                    onOpenHistory={() => {
+                      setRightPanelTab('history');
+                      setRightPanelOpen(true);
+                    }}
+                    onSelectSession={(sessionId) => loadSession(sessionId)}
                   />
                 </div>
               )
