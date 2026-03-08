@@ -298,10 +298,10 @@ export function WelcomeSection({
 
   return (
     <>
-      <div className="flex flex-col items-center justify-start min-h-full py-12 px-4 space-y-6">
+      <div className="flex flex-col items-center justify-center flex-1 min-h-full py-4 sm:py-6 lg:py-8 px-4 space-y-3 sm:space-y-4">
         {/* Hero Section */}
         <motion.div
-          className="flex flex-col items-center gap-6 text-center mt-6 sm:mt-16"
+          className="flex flex-col items-center gap-3 sm:gap-4 text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1], delay: 0.1 }}
@@ -342,7 +342,7 @@ export function WelcomeSection({
           )}
 
           {/* Cycling greeting with type/untype animation - time-based snarky greetings */}
-          <h2 className="text-4xl font-semibold relative">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold relative">
             <span className="relative inline-block">
               <CyclingGreeting />
             </span>
@@ -355,7 +355,7 @@ export function WelcomeSection({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex flex-col items-center gap-3 mt-4"
+            className="flex flex-col items-center gap-3 mt-2"
           >
             <motion.div
               initial={{ opacity: 0 }}
