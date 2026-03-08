@@ -1,11 +1,10 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { RefreshCw } from "lucide-react";
+import { History, ChevronRight } from "lucide-react";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { SmartSuggestions } from "@/components/SmartSuggestions";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { ThemedLogo } from "@/components/ThemedLogo";
-import { selectSmartPrompts, QuickPrompt } from "@/utils/smartPrompts";
 import { Profile } from "@/hooks/useProfile";
 import { ChatSession } from "@/store/useArcStore";
 import { Button } from "@/components/ui/button";
@@ -18,13 +17,10 @@ function TypewriterText({ text, delay = 0, onComplete }: { text: string; delay?:
   const textRef = useRef(text);
 
   useEffect(() => {
-    // Only type once - never repeat
     if (hasTypedRef.current) {
       setDisplayedText(text);
       return;
     }
-
-    // Store the text we're typing
     textRef.current = text;
     setDisplayedText("");
     indexRef.current = 0;
@@ -39,15 +35,13 @@ function TypewriterText({ text, delay = 0, onComplete }: { text: string; delay?:
           hasTypedRef.current = true;
           if (onComplete) onComplete();
         }
-      }, 40); // 40ms per character for smooth typing
-
+      }, 40);
       return () => clearInterval(interval);
     }, delay);
 
     return () => clearTimeout(startDelay);
-  }, []); // Only run once on mount
+  }, []);
 
-  // If text changes after typing started, just update displayed text
   useEffect(() => {
     if (hasTypedRef.current && text !== textRef.current) {
       setDisplayedText(text);
@@ -60,96 +54,49 @@ function TypewriterText({ text, delay = 0, onComplete }: { text: string; delay?:
 
 // Time-based snarky greetings
 const MORNING_GREETINGS = [
-  "Good morning.",
-  "Rise and shine.",
-  "Arc and shine.",
-  "Wakey wakey.",
-  "Morning, sunshine.",
-  "You're up early.",
-  "Bright and early, huh?",
-  "Coffee time?",
-  "Let's make today count.",
-  "Fresh start incoming.",
-  "New day, new arc.",
-  "Ready to crush it?",
-  "Time to be productive.",
-  "The early bird gets the arc.",
-  "Let's arc this day.",
-  "Morning magic awaits.",
-  "What are we building today?",
-  "Another day, another arc.",
-  "The world is your canvas.",
-  "Let's get after it.",
-  "Time to make things happen.",
+  "Good morning.", "Rise and shine.", "Arc and shine.", "Wakey wakey.",
+  "Morning, sunshine.", "You're up early.", "Bright and early, huh?",
+  "Coffee time?", "Let's make today count.", "Fresh start incoming.",
+  "New day, new arc.", "Ready to crush it?", "Time to be productive.",
+  "The early bird gets the arc.", "Let's arc this day.", "Morning magic awaits.",
+  "What are we building today?", "Another day, another arc.",
+  "The world is your canvas.", "Let's get after it.", "Time to make things happen.",
 ];
 
 const AFTERNOON_GREETINGS = [
-  "Good afternoon.",
-  "Hey there.",
-  "Still going strong?",
-  "Arc o'clock.",
-  "Midday vibes.",
-  "Hope you're crushing it.",
-  "Afternoon energy.",
-  "Peak productivity hours.",
-  "Let's keep the momentum.",
-  "Halfway through the day.",
-  "What are we working on?",
-  "Time flies when you're arcing.",
-  "Staying focused?",
-  "Power through mode activated.",
-  "Coffee break or hustle?",
-  "The grind continues.",
-  "Making progress?",
-  "Keep that flow going.",
-  "Afternoon excellence.",
-  "Let's finish strong.",
-  "Ideas flowing?",
+  "Good afternoon.", "Hey there.", "Still going strong?", "Arc o'clock.",
+  "Midday vibes.", "Hope you're crushing it.", "Afternoon energy.",
+  "Peak productivity hours.", "Let's keep the momentum.", "Halfway through the day.",
+  "What are we working on?", "Time flies when you're arcing.", "Staying focused?",
+  "Power through mode activated.", "Coffee break or hustle?", "The grind continues.",
+  "Making progress?", "Keep that flow going.", "Afternoon excellence.",
+  "Let's finish strong.", "Ideas flowing?",
 ];
 
 const EVENING_GREETINGS = [
-  "Good evening.",
-  "Hey night owl.",
-  "Arc after dark.",
-  "Burning the midnight oil?",
-  "Late night energy.",
-  "The night is young.",
-  "Still at it?",
-  "Evening grind.",
-  "Moon's out, arc's out.",
-  "Peak creative hours.",
-  "Night mode activated.",
-  "When everyone sleeps, you arc.",
-  "Quiet hours, best hours.",
-  "The evening shift.",
-  "Late night brilliance.",
-  "After hours excellence.",
-  "Productivity knows no bedtime.",
-  "Working late or starting early?",
-  "Night time, right time.",
-  "Dark mode detected.",
-  "Let's make tonight count.",
+  "Good evening.", "Hey night owl.", "Arc after dark.",
+  "Burning the midnight oil?", "Late night energy.", "The night is young.",
+  "Still at it?", "Evening grind.", "Moon's out, arc's out.",
+  "Peak creative hours.", "Night mode activated.", "When everyone sleeps, you arc.",
+  "Quiet hours, best hours.", "The evening shift.", "Late night brilliance.",
+  "After hours excellence.", "Productivity knows no bedtime.",
+  "Working late or starting early?", "Night time, right time.",
+  "Dark mode detected.", "Let's make tonight count.",
 ];
 
-// Get greetings for current time of day
 function getDaypartGreetings(): string[] {
   const h = new Date().getHours();
-  if (h >= 5 && h < 12) {
-    return MORNING_GREETINGS;
-  } else if (h >= 12 && h < 18) {
-    return AFTERNOON_GREETINGS;
-  } else {
-    return EVENING_GREETINGS;
-  }
+  if (h >= 5 && h < 12) return MORNING_GREETINGS;
+  else if (h >= 12 && h < 18) return AFTERNOON_GREETINGS;
+  else return EVENING_GREETINGS;
 }
 
-// Cycling greeting component - types, pauses, un-types, then cycles to next
+// Cycling greeting component
 function CyclingGreeting() {
   const [displayedText, setDisplayedText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
   const greetings = useMemo(() => getDaypartGreetings(), []);
 
-  // Main animation effect - type, pause, untype, cycle
   useEffect(() => {
     const currentGreeting = greetings[currentIndex];
     const timeouts: NodeJS.Timeout[] = [];
@@ -163,7 +110,6 @@ function CyclingGreeting() {
 
     let currentCharIndex = 0;
 
-    // Phase 1: Type the greeting character by character
     const typeNextChar = () => {
       if (cancelled) return;
       if (currentCharIndex < currentGreeting.length) {
@@ -171,12 +117,10 @@ function CyclingGreeting() {
         setDisplayedText(currentGreeting.slice(0, currentCharIndex));
         scheduleTimeout(typeNextChar, 40);
       } else {
-        // Done typing, move to pause phase
         scheduleTimeout(startUntype, 8000);
       }
     };
 
-    // Phase 2: Un-type the greeting character by character
     const startUntype = () => {
       if (cancelled) return;
       let unTypeIndex = currentGreeting.length;
@@ -188,7 +132,6 @@ function CyclingGreeting() {
           setDisplayedText(currentGreeting.slice(0, unTypeIndex));
           scheduleTimeout(unTypeNextChar, 30);
         } else {
-          // Done un-typing, move to next greeting after brief pause
           scheduleTimeout(() => {
             if (!cancelled) {
               setCurrentIndex((prev) => (prev + 1) % greetings.length);
@@ -200,10 +143,8 @@ function CyclingGreeting() {
       unTypeNextChar();
     };
 
-    // Start the animation
     typeNextChar();
 
-    // Cleanup function
     return () => {
       cancelled = true;
       timeouts.forEach(clearTimeout);
@@ -211,6 +152,22 @@ function CyclingGreeting() {
   }, [currentIndex, greetings]);
 
   return <>{displayedText}</>;
+}
+
+// Static general quick prompts - no AI, instant load
+const GENERAL_QUICK_PROMPTS = [
+  { label: "💬 Let's chat", prompt: "Let's have a conversation. What's on your mind?" },
+  { label: "💡 Help me brainstorm", prompt: "I need help brainstorming ideas. Can you help me think through something?" },
+  { label: "✍️ Help me write", prompt: "I need help writing something. Can you assist me?" },
+  { label: "🧠 Explain something", prompt: "Can you explain a concept to me in a simple way?" },
+  { label: "🎯 Plan my day", prompt: "Help me plan out my day and prioritize my tasks." },
+  { label: "📝 Summarize this", prompt: "I need help summarizing something. Can you help?" },
+];
+
+// Pick 3 random prompts, different each session
+function pickRandomPrompts(count: number = 3) {
+  const shuffled = [...GENERAL_QUICK_PROMPTS].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
 }
 
 interface WelcomeSectionProps {
@@ -222,6 +179,8 @@ interface WelcomeSectionProps {
   chatSessions: ChatSession[];
   isLoading?: boolean;
   isGeneratingImage?: boolean;
+  onOpenHistory?: () => void;
+  onSelectSession?: (sessionId: string) => void;
 }
 
 export function WelcomeSection({
@@ -233,68 +192,20 @@ export function WelcomeSection({
   chatSessions,
   isLoading = false,
   isGeneratingImage = false,
+  onOpenHistory,
+  onSelectSession,
 }: WelcomeSectionProps) {
   const [showLibrary, setShowLibrary] = useState(false);
-  const [smartSuggestions, setSmartSuggestions] = useState<QuickPrompt[] | null>(null);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Convert prompts to categorized format
-  const categorizedPrompts: QuickPrompt[] = useMemo(() => {
-    return quickPrompts.map((p, index) => ({
-      ...p,
-      category: index < 6 ? "chat" : index < 12 ? "create" : index < 18 ? "write" : "code",
-    }));
-  }, [quickPrompts]);
+  // Static random prompts - picked once on mount, no AI call
+  const staticSuggestions = useMemo(() => pickRandomPrompts(3), []);
 
-  // Smart prompt selection with AI personalization
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadSmartSuggestions = async (skipCache = false) => {
-      setIsLoadingSuggestions(true);
-      try {
-        const suggestions = await selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3, skipCache);
-
-        // Filter out the specific prompts that cause blips
-        const excludedLabels = ["💭 Reflect", "🙏 Gratitude", "🎨 Dream Poster"];
-        const filtered = suggestions.filter(s => !excludedLabels.includes(s.label));
-
-        if (isMounted) {
-          setSmartSuggestions(filtered);
-          setIsLoadingSuggestions(false);
-        }
-      } catch (error) {
-        console.error("Failed to load smart suggestions:", error);
-        // On error, keep showing loading state - don't show temporary prompts
-        // This prevents the "blip" of non-AI prompts appearing
-      }
-    };
-
-    loadSmartSuggestions();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [categorizedPrompts, profile, chatSessions]);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      const suggestions = await selectSmartPrompts(categorizedPrompts, profile, chatSessions, 3, true);
-
-      // Filter out the specific prompts that cause blips
-      const excludedLabels = ["💭 Reflect", "🙏 Gratitude", "🎨 Dream Poster"];
-      const filtered = suggestions.filter(s => !excludedLabels.includes(s.label));
-
-      setSmartSuggestions(filtered);
-      setIsRefreshing(false);
-    } catch (error) {
-      console.error("Failed to refresh suggestions:", error);
-      // On error, keep showing loading state - don't show temporary prompts
-      // This prevents the "blip" of non-AI prompts appearing
-    }
-  };
+  // Get recent sessions for "Pick up where you left off"
+  const recentSessions = useMemo(() => {
+    return chatSessions
+      .filter(s => s.messages && s.messages.length > 0 && s.title)
+      .slice(0, 6); // Keep 6 for horizontal scroll
+  }, [chatSessions]);
 
   return (
     <>
@@ -306,42 +217,25 @@ export function WelcomeSection({
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1], delay: 0.1 }}
         >
-          {/* Avatar - only render if heroAvatar is provided */}
           {heroAvatar && (
             <motion.div
               className="relative"
               initial={{ opacity: 0 }}
-              animate={{
-                opacity: 1,
-                y: [0, -8, 0]
-              }}
+              animate={{ opacity: 1, y: [0, -8, 0] }}
               transition={{
                 opacity: { duration: 0.6, ease: "easeOut" },
-                y: {
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 0.8
-                }
+                y: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.8 }
               }}
             >
               <img src={heroAvatar} alt="Arc" className="h-24 w-24 rounded-full" />
               <motion.div
                 className="absolute -inset-1 bg-primary/30 rounded-full blur-xl"
-                animate={{
-                  scale: [1, 1.1, 1],
-                  opacity: [0.3, 0.5, 0.3],
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
+                animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
               />
             </motion.div>
           )}
 
-          {/* Cycling greeting with type/untype animation - time-based snarky greetings */}
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold relative">
             <span className="relative inline-block">
               <CyclingGreeting />
@@ -349,75 +243,62 @@ export function WelcomeSection({
           </h2>
         </motion.div>
 
-        {/* Smart Suggestions or Loading State */}
-        {isLoadingSuggestions || isRefreshing || !smartSuggestions || smartSuggestions.length === 0 ? (
+        {/* Static Quick Prompts - instant, no loading */}
+        <div className="w-full space-y-2">
+          <SmartSuggestions
+            suggestions={staticSuggestions}
+            onSelectPrompt={onTriggerPrompt}
+            onShowMore={() => setShowLibrary(true)}
+          />
+        </div>
+
+        {/* Recent Conversations - "Pick up where you left off" */}
+        {recentSessions.length > 0 && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex flex-col items-center gap-3 mt-2"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+            className="w-full max-w-sm sm:max-w-xl lg:max-w-2xl"
           >
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{
-                opacity: 1,
-                scale: [1, 1.15, 1]
-              }}
-              transition={{
-                opacity: { duration: 0.4, ease: "easeOut" },
-                scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
-              }}
-              className="relative"
-            >
-              <ThemedLogo className="h-10 w-10" alt="Loading" />
-              <motion.div
-                className="absolute inset-0 rounded-full bg-primary/30 blur-xl"
-                initial={{ opacity: 0 }}
-                animate={{
-                  opacity: [0.3, 0.6, 0.3],
-                  scale: [0.8, 1.2, 0.8]
-                }}
-                transition={{
-                  opacity: { duration: 0.4, ease: "easeOut" },
-                  scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
-                }}
-              />
-            </motion.div>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-              className="text-sm text-muted-foreground"
-            >
-              {isRefreshing ? "Refreshing suggestions..." : "Personalizing prompts for you..."}
-            </motion.p>
-          </motion.div>
-        ) : (
-          smartSuggestions.length > 0 && (
-            <div className="w-full space-y-2">
-              <SmartSuggestions
-                suggestions={smartSuggestions}
-                onSelectPrompt={onTriggerPrompt}
-                onShowMore={() => setShowLibrary(true)}
-                onRefresh={handleRefresh}
-                isRefreshing={isRefreshing}
-              />
+            <p className="text-xs text-muted-foreground font-medium mb-2 px-1">
+              Pick up where you left off:
+            </p>
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1" style={{ touchAction: 'pan-x' }}>
+              {recentSessions.map((session) => (
+                <motion.button
+                  key={session.id}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => onSelectSession?.(session.id)}
+                  className="flex-shrink-0 px-4 py-2.5 rounded-xl bg-background/40 backdrop-blur-sm border border-border/50 hover:border-primary/40 hover:bg-background/60 transition-all duration-200 text-left max-w-[200px]"
+                >
+                  <span className="text-sm font-medium truncate block">{session.title}</span>
+                </motion.button>
+              ))}
+              {recentSessions.length > 2 && onOpenHistory && (
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={onOpenHistory}
+                  className="flex-shrink-0 px-4 py-2.5 rounded-xl bg-primary/10 border border-primary/20 hover:border-primary/40 hover:bg-primary/15 transition-all duration-200 flex items-center gap-1.5"
+                >
+                  <span className="text-sm font-medium text-primary whitespace-nowrap">View all</span>
+                  <ChevronRight className="h-3.5 w-3.5 text-primary" />
+                </motion.button>
+              )}
             </div>
-          )
+          </motion.div>
         )}
 
         {(isLoading || isGeneratingImage) && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }} 
-            animate={{ opacity: 1, scale: 1 }} 
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.3 }}
             className="mt-8"
           >
-            <ThinkingIndicator 
-              isLoading={isLoading} 
-              isGeneratingImage={isGeneratingImage}
-            />
+            <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
           </motion.div>
         )}
       </div>

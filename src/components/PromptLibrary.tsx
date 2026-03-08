@@ -24,7 +24,7 @@ interface PromptLibraryProps {
 type TabType = 'chat' | 'create' | 'write' | 'code' | 'smart';
 
 export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: PromptLibraryProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('chat');
+  const [activeTab, setActiveTab] = useState<TabType>('smart');
   const [smartPrompts, setSmartPrompts] = useState<QuickPrompt[]>([]);
   const [isLoadingSmartPrompts, setIsLoadingSmartPrompts] = useState(false);
 
@@ -162,11 +162,11 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
   };
 
   const tabs = [
+    { id: 'smart' as TabType, label: 'Smart', icon: Brain },
     { id: 'chat' as TabType, label: 'Chat', icon: MessageCircle },
     { id: 'create' as TabType, label: 'Create', icon: Sparkles },
     { id: 'write' as TabType, label: 'Write', icon: PenTool },
     { id: 'code' as TabType, label: 'Code', icon: Code },
-    { id: 'smart' as TabType, label: 'Smart', icon: Brain },
   ];
 
   // Fetch smart prompts when Smart tab is clicked
