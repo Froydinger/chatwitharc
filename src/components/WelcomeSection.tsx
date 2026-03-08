@@ -155,13 +155,28 @@ function CyclingGreeting() {
 }
 
 // Static general quick prompts - no AI, instant load
+// Uses /write, /code, /image prefix commands where appropriate
 const GENERAL_QUICK_PROMPTS = [
-  { label: "💬 Let's chat", prompt: "Let's have a conversation. What's on your mind?" },
-  { label: "💡 Help me brainstorm", prompt: "I need help brainstorming ideas. Can you help me think through something?" },
-  { label: "✍️ Help me write", prompt: "I need help writing something. Can you assist me?" },
-  { label: "🧠 Explain something", prompt: "Can you explain a concept to me in a simple way?" },
-  { label: "🎯 Plan my day", prompt: "Help me plan out my day and prioritize my tasks." },
-  { label: "📝 Summarize this", prompt: "I need help summarizing something. Can you help?" },
+  { label: "💬 Let's chat", prompt: "Let's have a chat — what's going on in the world right now?" },
+  { label: "💡 Brainstorm", prompt: "I need help brainstorming ideas. Let's think through something creative together." },
+  { label: "✍️ Write together", prompt: "/write Open a blank canvas so we can work on writing something together!" },
+  { label: "🎯 Plan my day", prompt: "Help me plan out my day and prioritize what matters most." },
+  { label: "🧠 Explain a topic", prompt: "Pick a fascinating topic and explain it to me like I'm hearing it for the first time." },
+  { label: "🎨 Create art", prompt: "/image Generate something beautiful — surprise me with a stunning visual." },
+  { label: "📝 Draft an email", prompt: "/write Help me draft a professional email — open the canvas and let's work on it." },
+  { label: "🎮 Build something", prompt: "/code Build me a fun interactive demo — surprise me with something cool!" },
+  { label: "📖 Tell a story", prompt: "/write Open the canvas and let's write a short story together from scratch." },
+  { label: "🔍 Research this", prompt: "I need you to research something for me. Let's dive deep into a topic." },
+  { label: "🌟 Motivate me", prompt: "Give me a motivational boost — I need some energy and inspiration right now." },
+  { label: "🎭 Role play", prompt: "Let's do a role play exercise — you pick the scenario and I'll jump in." },
+  { label: "📊 Analyze data", prompt: "/code Help me build a quick data visualization or chart for some numbers I have." },
+  { label: "🌍 World news", prompt: "What's happening in the world today? Give me a quick rundown of current events." },
+  { label: "🎵 Recommend music", prompt: "Recommend me some music based on a vibe — I'm open to anything." },
+  { label: "✨ Random fact", prompt: "Hit me with a random interesting fact I probably don't know." },
+  { label: "🗺️ Travel ideas", prompt: "Help me brainstorm travel destinations — I need a vacation." },
+  { label: "📚 Book recs", prompt: "Recommend me a book based on what I'm in the mood for right now." },
+  { label: "🧩 Solve a puzzle", prompt: "/code Build me a fun puzzle or brain teaser I can play right now!" },
+  { label: "🎬 Movie night", prompt: "Help me pick a movie to watch tonight — ask me what I'm in the mood for." },
 ];
 
 // Pick 3 random prompts, different each session
@@ -203,7 +218,11 @@ export function WelcomeSection({
   // Get recent sessions for "Pick up where you left off"
   const recentSessions = useMemo(() => {
     return chatSessions
-      .filter(s => s.messages && s.messages.length > 0 && s.title)
+      .filter(s => {
+        const count = s.messageCount ?? s.messages?.length ?? 0;
+        return count > 0 && s.title;
+      })
+      .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime())
       .slice(0, 6); // Keep 6 for horizontal scroll
   }, [chatSessions]);
 
