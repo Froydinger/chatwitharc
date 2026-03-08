@@ -758,6 +758,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       globalConnecting = false;
       globalWs = null;
       globalSessionId = null;
+      resetTurnOrderingBuffer();
       toolCallsInFlight.clear();
       optionsRef.current.onError?.('Failed to connect to voice service');
       setStatus('idle');
@@ -782,6 +783,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
     globalConnecting = false;
     globalSessionId = null;
+    resetTurnOrderingBuffer();
     toolCallsInFlight.clear();
     setIsConnected(false);
     setStatus('idle');
