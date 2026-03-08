@@ -12,7 +12,7 @@ interface SmartSuggestionsProps {
   isRefreshing?: boolean;
 }
 
-export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: SmartSuggestionsProps) {
+export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore, onRefresh, isRefreshing = false }: SmartSuggestionsProps) {
   const hasAnimated = useRef(false);
   const [showChips, setShowChips] = useState(true);
 
