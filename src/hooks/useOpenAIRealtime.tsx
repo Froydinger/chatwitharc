@@ -122,6 +122,8 @@ const scheduleTurnFlush = () => {
 };
 
 // Tool calls in flight to prevent duplicate executions
+const toolCallsInFlight = new Map<string, number>();
+const TOOL_CALL_TIMEOUT_MS = 60000;
 
 // Cleanup stale tool calls periodically
 const cleanupStaleToolCalls = () => {
@@ -250,6 +252,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (!aiTranscript.trim()) return;
         console.log('AI said:', aiTranscript);
         
+        const { lastGeneratedImageUrl } = useVoiceModeStore.getState();
+
         pendingAssistantTurns.push({
           transcript: aiTranscript,
           queuedAt: Date.now(),
@@ -559,6 +563,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     globalConnecting = true;
     globalSessionId = null;
     sessionReady = false;
+    resetTurnOrderingBuffer();
     setStatus('connecting');
 
     try {
@@ -720,6 +725,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         globalConnecting = false;
         globalWs = null;
         globalSessionId = null;
+        resetTurnOrderingBuffer();
         toolCallsInFlight.clear();
         setIsConnected(false);
         
