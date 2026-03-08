@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { motion, useAnimation } from "framer-motion";
+import { motion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { SmartSuggestions } from "@/components/SmartSuggestions";
@@ -395,23 +395,12 @@ export function WelcomeSection({
         ) : (
           smartSuggestions.length > 0 && (
             <div className="w-full space-y-2">
-              {/* Refresh Button */}
-              <div className="flex justify-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <RefreshCw className={`h-3 w-3 transition-transform ${isRefreshing ? "animate-spin" : ""}`} />
-                </Button>
-              </div>
-
               <SmartSuggestions
                 suggestions={smartSuggestions}
                 onSelectPrompt={onTriggerPrompt}
                 onShowMore={() => setShowLibrary(true)}
+                onRefresh={handleRefresh}
+                isRefreshing={isRefreshing}
               />
             </div>
           )
