@@ -870,7 +870,7 @@ export function MobileChatApp() {
                   <p className="text-sm text-muted-foreground">Loading messages...</p>
                 </div>
               ) : (
-                <div style={{ paddingTop: "1rem" }}>
+                <div className="flex flex-col flex-1 min-h-0 pt-4">
                   <WelcomeSection
                     greeting={greeting}
                     heroAvatar={null}
