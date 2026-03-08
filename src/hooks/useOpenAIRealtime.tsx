@@ -38,9 +38,90 @@ const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_k
 // Delayed phantom guard timer — gives Whisper time to confirm real speech
 let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;
 
+// Transcript ordering buffer: smooth late events so turns stay strictly user→assistant
+type QueuedTurn = {
+  transcript: string;
+  queuedAt: number;
+  imageUrl?: string;
+};
+
+const TURN_ORDER_GRACE_MS = 220;
+const TURN_FORCE_FLUSH_MS = 900;
+let pendingUserTurns: QueuedTurn[] = [];
+let pendingAssistantTurns: QueuedTurn[] = [];
+let turnFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+const resetTurnOrderingBuffer = () => {
+  pendingUserTurns = [];
+  pendingAssistantTurns = [];
+  if (turnFlushTimer) {
+    clearTimeout(turnFlushTimer);
+    turnFlushTimer = null;
+  }
+};
+
+const flushTurnOrderingBuffer = () => {
+  if (turnFlushTimer) {
+    clearTimeout(turnFlushTimer);
+    turnFlushTimer = null;
+  }
+
+  const { addConversationTurn } = useVoiceModeStore.getState();
+  const now = Date.now();
+
+  // Preferred path: pair turns in sequence
+  while (pendingUserTurns.length > 0 && pendingAssistantTurns.length > 0) {
+    const userTurn = pendingUserTurns.shift();
+    const assistantTurn = pendingAssistantTurns.shift();
+
+    if (userTurn) {
+      addConversationTurn({ role: 'user', transcript: userTurn.transcript, timestamp: new Date() });
+    }
+
+    if (assistantTurn) {
+      addConversationTurn({
+        role: 'assistant',
+        transcript: assistantTurn.transcript,
+        timestamp: new Date(),
+        imageUrl: assistantTurn.imageUrl,
+      });
+    }
+  }
+
+  // Fallback path: flush stale unmatched turns
+  while (pendingUserTurns.length > 0 && now - pendingUserTurns[0].queuedAt >= TURN_FORCE_FLUSH_MS) {
+    const staleUserTurn = pendingUserTurns.shift();
+    if (staleUserTurn) {
+      addConversationTurn({ role: 'user', transcript: staleUserTurn.transcript, timestamp: new Date() });
+    }
+  }
+
+  while (pendingAssistantTurns.length > 0 && now - pendingAssistantTurns[0].queuedAt >= TURN_FORCE_FLUSH_MS) {
+    const staleAssistantTurn = pendingAssistantTurns.shift();
+    if (staleAssistantTurn) {
+      addConversationTurn({
+        role: 'assistant',
+        transcript: staleAssistantTurn.transcript,
+        timestamp: new Date(),
+        imageUrl: staleAssistantTurn.imageUrl,
+      });
+    }
+  }
+
+  // Keep draining if anything remains buffered
+  if (pendingUserTurns.length > 0 || pendingAssistantTurns.length > 0) {
+    turnFlushTimer = setTimeout(flushTurnOrderingBuffer, TURN_ORDER_GRACE_MS);
+  }
+};
+
+const scheduleTurnFlush = () => {
+  if (turnFlushTimer) {
+    clearTimeout(turnFlushTimer);
+  }
+  turnFlushTimer = setTimeout(flushTurnOrderingBuffer, TURN_ORDER_GRACE_MS);
+};
+
 // Tool calls in flight to prevent duplicate executions
-const toolCallsInFlight = new Map<string, number>();
-const TOOL_CALL_TIMEOUT_MS = 60000;
 
 // Cleanup stale tool calls periodically
 const cleanupStaleToolCalls = () => {
@@ -102,7 +183,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   }, []);
 
   const handleServerEvent = useCallback((event: any) => {
-    const { setStatus, setCurrentTranscript, addConversationTurn, addUserTurnOrdered } = useVoiceModeStore.getState();
+    const { setStatus, setCurrentTranscript } = useVoiceModeStore.getState();
     
     switch (event.type) {
       case 'session.created':
@@ -146,12 +227,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             phantomCheckTimer = null;
             console.log('Phantom timer cleared — real transcription confirmed');
           }
-          // Use ordered insert so user turn appears before any AI response that already arrived
-          addUserTurnOrdered({
-            role: 'user',
+          pendingUserTurns.push({
             transcript: userTranscript,
-            timestamp: new Date()
+            queuedAt: Date.now(),
           });
+          scheduleTurnFlush();
         }
         optionsRef.current.onTranscriptUpdate?.(userTranscript, true);
         break;
@@ -170,18 +250,17 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (!aiTranscript.trim()) return;
         console.log('AI said:', aiTranscript);
         
-        const { lastGeneratedImageUrl } = useVoiceModeStore.getState();
-        
-        addConversationTurn({
-          role: 'assistant',
+        pendingAssistantTurns.push({
           transcript: aiTranscript,
-          timestamp: new Date(),
-          imageUrl: lastGeneratedImageUrl || undefined
+          queuedAt: Date.now(),
+          imageUrl: lastGeneratedImageUrl || undefined,
         });
-        
+
         if (lastGeneratedImageUrl) {
           useVoiceModeStore.getState().setLastGeneratedImageUrl(null);
         }
+
+        scheduleTurnFlush();
         break;
 
       case 'response.audio.delta':
