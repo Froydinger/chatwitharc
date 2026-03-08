@@ -34,9 +34,10 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
       animate="animate"
       className="flex flex-col items-center gap-4 px-4"
     >
-      {/* Suggestion Chips */}
+      {/* Suggestion Chips - hidden on very short viewports */}
       <motion.div
-        className="flex flex-wrap items-center justify-center gap-2 max-w-sm sm:max-w-xl lg:max-w-2xl"
+        className="flex-wrap items-center justify-center gap-2 max-w-sm sm:max-w-xl lg:max-w-2xl hidden min-[400px]:flex max-h-[30vh]:hidden"
+        style={{ display: undefined }}
         variants={staggerContainerVariants}
         initial="initial"
         animate="animate"
@@ -48,7 +49,7 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
             whileHover={createHoverVariants(1.05, 0)}
             whileTap={createTapVariants(0.98)}
             onClick={() => onSelectPrompt(suggestion.fullPrompt || suggestion.prompt)}
-            className="group relative px-4 py-2.5 rounded-full bg-background/40 backdrop-blur-sm border border-border/50 hover:border-primary/40 hover:bg-background/60 transition-all duration-200"
+            className="group relative px-4 py-2.5 rounded-full bg-background/40 backdrop-blur-sm border border-border/50 hover:border-primary/40 hover:bg-background/60 transition-all duration-200 suggestion-chip"
           >
             <span className="text-sm font-medium">{suggestion.label}</span>
 
@@ -61,7 +62,7 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
         ))}
       </motion.div>
 
-      {/* Expand Button */}
+      {/* Expand Button - always visible */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
