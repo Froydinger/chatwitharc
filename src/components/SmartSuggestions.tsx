@@ -79,8 +79,8 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
           onClick={onShowMore}
           className="text-muted-foreground hover:text-foreground gap-2"
         >
-          <Sparkles className="h-4 w-4" />
-          More prompts
+        <Sparkles className="h-4 w-4" />
+          Quick Ideas
         </Button>
       </motion.div>
     </motion.div>
