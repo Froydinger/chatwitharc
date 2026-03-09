@@ -12,6 +12,7 @@ import { AdminBanner } from "@/components/AdminBanner";
 import { PageTransition } from "@/components/PageTransition";
 import { FingerPopupContainer } from "@/components/FingerPopup";
 import { Starfield } from "@/components/Starfield";
+import { useStarfieldStore } from "@/store/useStarfieldStore";
 import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { BugReportModal } from "@/components/BugReportModal";
 import { useBugReport } from "@/hooks/useBugReport";
@@ -39,6 +40,7 @@ const detectStandaloneMode = () => {
 
 const App = () => {
   const { isOpen, errorMessage, errorStack, closeBugReport } = useBugReport();
+  const showStarfield = useStarfieldStore((s) => s.showStarfield);
   useVisibilityHandler();
 
   // Detect standalone mode on mount
@@ -53,7 +55,7 @@ const App = () => {
         <TooltipProvider>
           <div className="arcai-drag-bar" />
           <BackgroundGradients />
-          <Starfield />
+          {showStarfield && <Starfield />}
             <Toaster />
             <Sonner />
             <FingerPopupContainer />

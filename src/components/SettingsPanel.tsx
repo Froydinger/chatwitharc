@@ -23,6 +23,7 @@ import {
   Palette,
   Check,
   Brain,
+  Stars,
 } from "lucide-react";
 import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
@@ -41,6 +42,7 @@ import { Button } from "@/components/ui/button";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
+import { useStarfieldStore } from "@/store/useStarfieldStore";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { fadeInVariants, staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
 import { VoiceSelector } from "@/components/VoiceSelector";
@@ -141,6 +143,8 @@ export function SettingsPanel() {
   const showPopup = useFingerPopup((state) => state.showPopup);
   // Use unified accent color system
   const { accentColor, setAccentColor } = useAccentColor();
+  const showStarfield = useStarfieldStore((s) => s.showStarfield);
+  const setShowStarfield = useStarfieldStore((s) => s.setShowStarfield);
 
   const handleDataDeleted = () => {
     // Create new session and refresh
@@ -380,38 +384,38 @@ export function SettingsPanel() {
     {
       id: "red",
       label: "Red",
-      value: "0 85.0% 60.0%",
-      gradient: "linear-gradient(135deg, hsl(0,85%,60%), hsl(0,85%,70%))",
+      value: "0 90% 48%",
+      gradient: "linear-gradient(135deg, hsl(0,90%,48%), hsl(0,90%,58%))",
     },
     {
       id: "blue",
       label: "Blue",
-      value: "200 95% 55%",
-      gradient: "linear-gradient(135deg, hsl(200,95%,55%), hsl(200,90%,65%))",
+      value: "205 100% 48%",
+      gradient: "linear-gradient(135deg, hsl(205,100%,48%), hsl(205,95%,58%))",
     },
     {
       id: "green",
       label: "Green",
-      value: "142 76.0% 36.3%",
-      gradient: "linear-gradient(135deg, hsl(142,76%,42%), hsl(142,76%,52%))",
+      value: "145 82% 35%",
+      gradient: "linear-gradient(135deg, hsl(145,82%,35%), hsl(145,80%,45%))",
     },
     {
       id: "yellow",
       label: "Yellow",
-      value: "48 100.0% 50.0%",
-      gradient: "linear-gradient(135deg, hsl(48,85%,55%), hsl(48,85%,65%))",
+      value: "45 100% 48%",
+      gradient: "linear-gradient(135deg, hsl(45,100%,48%), hsl(45,100%,58%))",
     },
     {
       id: "purple",
       label: "Purple",
-      value: "270 80.0% 60.0%",
-      gradient: "linear-gradient(135deg, hsl(270,75%,60%), hsl(270,75%,70%))",
+      value: "268 85% 52%",
+      gradient: "linear-gradient(135deg, hsl(268,85%,52%), hsl(268,82%,62%))",
     },
     {
       id: "orange",
       label: "Orange",
-      value: "25 90.0% 58.0%",
-      gradient: "linear-gradient(135deg, hsl(25,90%,58%), hsl(25,90%,68%))",
+      value: "22 100% 50%",
+      gradient: "linear-gradient(135deg, hsl(22,100%,50%), hsl(22,98%,60%))",
     },
     {
       id: "noir",
@@ -554,6 +558,21 @@ export function SettingsPanel() {
                   );
                 })}
               </div>
+            </div>
+
+            {/* Starfield Toggle */}
+            <div className="flex items-center justify-between pt-2 border-t border-border/30">
+              <div className="flex items-center gap-3">
+                <Stars className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <Label className="text-foreground font-medium text-sm">Background Stars</Label>
+                  <p className="text-xs text-muted-foreground">Animated starfield effect</p>
+                </div>
+              </div>
+              <Switch
+                checked={showStarfield}
+                onCheckedChange={setShowStarfield}
+              />
             </div>
 
           </GlassCard>
