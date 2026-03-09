@@ -711,70 +711,118 @@ export function LandingScreen() {
         </div>
       </section>
 
-      {/* Music Section - Pro Feature */}
-      <section className="relative z-10 py-20 px-6 max-w-5xl mx-auto">
-        <div className="glass-card rounded-3xl p-8 md:p-12 relative overflow-hidden">
-          {/* Gradient accent */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500" />
-          
-          <div className="flex flex-col md:flex-row items-center gap-8">
-            {/* Left: Info */}
-            <div className="flex-1 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/20">
-                  <Headphones className="w-6 h-6 text-purple-400" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-2xl md:text-3xl font-bold text-white">Music</h2>
-                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">Pro</span>
-                </div>
-              </div>
-              <p className="text-gray-400 leading-relaxed">
-                Focus better with curated ambient tracks while you work. Lo-fi beats, coffee house jazz, 
-                space ambient, and more — all built right into ArcAi. No tab switching, no ads.
-              </p>
-              <ul className="space-y-2 text-sm text-gray-300">
-                <li className="flex items-center gap-2">
-                  <Music className="w-4 h-4 text-purple-400 shrink-0" />
-                  A growing library of curated tracks
-                </li>
-                <li className="flex items-center gap-2">
-                  <Music className="w-4 h-4 text-purple-400 shrink-0" />
-                  Floating glassmorphic player with vinyl animations
-                </li>
-                <li className="flex items-center gap-2">
-                  <Music className="w-4 h-4 text-purple-400 shrink-0" />
-                  Plays in the background while you chat
-                </li>
-              </ul>
+      {/* Music Section - "Set the Mood." */}
+      <section className="relative z-10 py-20 px-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          {/* Left: Statement */}
+          <motion.div
+            className="space-y-6"
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, type: "spring", stiffness: 300, damping: 30 }}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+              <Headphones className="w-6 h-6 text-white" />
             </div>
+            <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+              Set the mood.
+              <br />
+              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Skip the ads.
+              </span>
+            </h2>
+            <p className="text-gray-400 text-lg leading-relaxed max-w-md">
+              Lo-fi beats, jazz, ambient — curated focus music built right into ArcAi. No tab switching, no interruptions. Just vibes.
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">Pro</span>
+              <span className="text-xs text-gray-500">Included with Pro plan</span>
+            </div>
+          </motion.div>
 
-            {/* Right: Album art grid */}
-            <div className="grid grid-cols-3 gap-3 w-full md:w-auto md:min-w-[240px]">
-              {[
-                '/lovable-uploads/lofi-cartoon-album.jpg',
-                '/lovable-uploads/jazz-cartoon-album.jpg',
-                '/lovable-uploads/ambient-cartoon-album.jpg',
-                '/lovable-uploads/taylor-swift-album.jpg',
-                '/lovable-uploads/elevator-music-album.jpg',
-                '/lovable-uploads/lionel-richie-album.jpg',
-              ].map((art, i) => (
+          {/* Right: Mini music player visual */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.15, type: "spring", stiffness: 300, damping: 30 }}
+          >
+            <div className="glass-card rounded-3xl p-6 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500" />
+              
+              {/* Now Playing header */}
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">Now Playing</span>
+              </div>
+
+              {/* Album + Track info */}
+              <div className="flex items-center gap-5 mb-6">
                 <motion.div
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.1 }}
-                  viewport={{ once: true }}
+                  className="relative shrink-0"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
                 >
                   <img
-                    src={art}
+                    src="/lovable-uploads/lofi-cartoon-album.jpg"
                     alt="Album art"
-                    className="w-full aspect-square rounded-xl object-cover border border-white/10"
+                    className="w-20 h-20 rounded-full object-cover border-2 border-white/10 shadow-xl shadow-purple-500/20"
                   />
+                  <div className="absolute inset-0 rounded-full border-4 border-transparent" style={{ background: 'radial-gradient(circle at center, rgba(0,0,0,0.4) 30%, transparent 31%)' }} />
                 </motion.div>
-              ))}
+                <div className="min-w-0 flex-1">
+                  <p className="text-white font-semibold text-lg truncate">Still Steam in My Mug</p>
+                  <p className="text-gray-400 text-sm">Arc AI</p>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="space-y-2 mb-5">
+                <div className="w-full h-1 rounded-full bg-white/10 overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-purple-400 to-pink-400"
+                    initial={{ width: "0%" }}
+                    whileInView={{ width: "62%" }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 2, delay: 0.5, ease: "easeOut" }}
+                  />
+                </div>
+                <div className="flex justify-between text-[10px] text-gray-500">
+                  <span>1:47</span>
+                  <span>2:52</span>
+                </div>
+              </div>
+
+              {/* Controls */}
+              <div className="flex items-center justify-center gap-6">
+                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z"/></svg>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-black shadow-lg shadow-white/20">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4l10 8-10 8V4zm12-1v18h2V3h-2z"/></svg>
+                </div>
+              </div>
+
+              {/* Track list peek */}
+              <div className="mt-5 pt-4 border-t border-white/5 space-y-2">
+                {[
+                  { name: 'Soft Corners of the Day', art: '/lovable-uploads/jazz-cartoon-album.jpg' },
+                  { name: 'Velvet Evening Loop', art: '/lovable-uploads/ambient-cartoon-album.jpg' },
+                  { name: 'Midnight Desk Lamp', art: '/lovable-uploads/lofi-cartoon-album.jpg' },
+                ].map((track, i) => (
+                  <div key={i} className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                    <img src={track.art} alt="" className="w-8 h-8 rounded-md object-cover border border-white/5" />
+                    <span className="text-sm text-gray-300 truncate">{track.name}</span>
+                    <span className="ml-auto text-[10px] text-gray-500">Arc AI</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
