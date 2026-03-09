@@ -1346,7 +1346,7 @@ Output the complete, finished writing using the update_canvas tool.`;
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: model || 'google/gemini-3-flash-preview',
+            model: model || 'google/gemini-3.1-pro-preview',
             messages: synthesisMessages,
             ...tokenParam,
           }),
