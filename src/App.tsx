@@ -40,6 +40,7 @@ const detectStandaloneMode = () => {
 
 const App = () => {
   const { isOpen, errorMessage, errorStack, closeBugReport } = useBugReport();
+  const showStarfield = useStarfieldStore((s) => s.showStarfield);
   useVisibilityHandler();
 
   // Detect standalone mode on mount
