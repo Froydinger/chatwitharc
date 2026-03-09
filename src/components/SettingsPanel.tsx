@@ -558,6 +558,21 @@ export function SettingsPanel() {
               </div>
             </div>
 
+            {/* Starfield Toggle */}
+            <div className="flex items-center justify-between pt-2 border-t border-border/30">
+              <div className="flex items-center gap-3">
+                <Stars className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <Label className="text-foreground font-medium text-sm">Background Stars</Label>
+                  <p className="text-xs text-muted-foreground">Animated starfield effect</p>
+                </div>
+              </div>
+              <Switch
+                checked={useStarfieldStore.getState().showStarfield}
+                onCheckedChange={(checked) => useStarfieldStore.getState().setShowStarfield(checked)}
+              />
+            </div>
+
           </GlassCard>
 
           {/* Voice Mode Section */}
