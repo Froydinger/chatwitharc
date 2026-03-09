@@ -23,6 +23,9 @@ import {
   X,
   Library,
   Plus,
+  Lock,
+  Crown,
+  Sparkles,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -33,6 +36,60 @@ import { useSearchStore, SearchResult, SavedLink } from "@/store/useSearchStore"
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
+import { useSubscription } from "@/hooks/useSubscription";
+
+// Upgrade paywall for Research Mode
+function ResearchUpgradeWall({ onClose }: { onClose: () => void }) {
+  const { openCheckout } = useSubscription();
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background/95 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="max-w-md w-full mx-6 glass-card rounded-3xl p-8 relative overflow-hidden text-center space-y-6"
+      >
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+
+        {/* Close */}
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* Icon */}
+        <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+          <Lock className="w-8 h-8 text-white" />
+        </div>
+
+        <h2 className="text-2xl font-bold text-white">Unlock Research Mode</h2>
+        <p className="text-gray-400 text-sm leading-relaxed">
+          Search the web, get cited summaries, and save sources — all powered by AI. Research Mode is available with Arc Pro.
+        </p>
+
+        {/* Feature pills */}
+        <div className="flex flex-wrap justify-center gap-2">
+          {["Web Search", "AI Summaries", "Source Citations", "Save Links"].map((f) => (
+            <span key={f} className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              {f}
+            </span>
+          ))}
+        </div>
+
+        <button
+          onClick={() => {
+            window.dispatchEvent(new Event('open-upgrade-modal'));
+          }}
+          className="w-full px-6 py-3.5 rounded-full font-semibold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all flex items-center justify-center gap-2"
+        >
+          <Crown className="w-4 h-4" />
+          Upgrade to Pro
+        </button>
+
+        <p className="text-[11px] text-gray-500">$8/month · Cancel anytime</p>
+      </motion.div>
+    </div>
+  );
+}
 
 export function SearchCanvas() {
   const {
