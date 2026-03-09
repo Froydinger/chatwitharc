@@ -574,62 +574,58 @@ export function LandingScreen() {
       </main>
 
       {/* Section 1: Speed & Intelligence */}
-      <section className="relative z-10 py-24 px-6 max-w-6xl mx-auto" id="features">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-          {/* Left - Big statement */}
-          <motion.div
-            className="space-y-6"
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-card text-xs text-yellow-400 font-medium">
-              <Zap className="w-3.5 h-3.5" />
-              Built for speed
+      <section className="relative z-10 py-24 px-6 max-w-4xl mx-auto text-center" id="features">
+        <motion.div
+          className="space-y-6 flex flex-col items-center"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-card text-xs text-yellow-400 font-medium">
+            <Zap className="w-3.5 h-3.5" />
+            Built for speed
+          </div>
+          <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+            Think fast.<br />
+            <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">Type faster.</span>
+          </h2>
+          <p className="text-gray-400 text-lg leading-relaxed max-w-lg">
+            Instant responses powered by cutting-edge models. Switch between speed and depth on the fly — your AI, your rules.
+          </p>
+        </motion.div>
+
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10 max-w-2xl mx-auto"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+        >
+          <div className="glass-card p-6 rounded-2xl space-y-3 group hover:border-purple-500/30 transition-colors text-left">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                <Brain className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Personal Memory</h3>
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-              Think fast.<br />
-              <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">Type faster.</span>
-            </h2>
-            <p className="text-gray-400 text-lg leading-relaxed max-w-md">
-              Instant responses powered by cutting-edge models. Switch between speed and depth on the fly — your AI, your rules.
+            <p className="text-gray-400 text-sm leading-relaxed">
+              ArcAi remembers your preferences, context, and style. Every conversation picks up right where you left off.
             </p>
-          </motion.div>
+          </div>
 
-          {/* Right - Memory + Multimodal stacked cards */}
-          <motion.div
-            className="space-y-4"
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-          >
-            <div className="glass-card p-6 rounded-2xl space-y-3 group hover:border-purple-500/30 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                  <Brain className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Personal Memory</h3>
+          <div className="glass-card p-6 rounded-2xl space-y-3 group hover:border-blue-500/30 transition-colors text-left">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                ArcAi remembers your preferences, context, and style. Every conversation picks up right where you left off.
-              </p>
+              <h3 className="text-lg font-bold text-white">Multimodal Magic</h3>
             </div>
-
-            <div className="glass-card p-6 rounded-2xl space-y-3 group hover:border-blue-500/30 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Multimodal Magic</h3>
-              </div>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                Chat, generate images, analyze files, and write code — all in one fluid, beautiful interface.
-              </p>
-            </div>
-          </motion.div>
-        </div>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Chat, generate images, analyze files, and write code — all in one fluid, beautiful interface.
+            </p>
+          </div>
+        </motion.div>
       </section>
 
       {/* Section 2: Real Life, Real Talk — Full-width narrative */}
