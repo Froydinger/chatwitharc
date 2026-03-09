@@ -119,6 +119,7 @@ export function SearchCanvas() {
 
   const hasAccess = isSubscribed || isAdmin;
 
+  const { toast } = useToast();
   const isMobile = useIsMobile();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const followUpInputRef = useRef<HTMLInputElement>(null);
