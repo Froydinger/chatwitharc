@@ -110,7 +110,15 @@ export function SearchCanvas() {
     sendSummaryMessage,
   } = useSearchStore();
 
-  const { toast } = useToast();
+  const { isSubscribed, loading: subLoading } = useSubscription();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    supabase.rpc('is_admin_user').then(({ data }) => setIsAdmin(!!data));
+  }, []);
+
+  const hasAccess = isSubscribed || isAdmin;
+
   const isMobile = useIsMobile();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const followUpInputRef = useRef<HTMLInputElement>(null);
