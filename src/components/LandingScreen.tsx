@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Mail, Crown, Check, MessageCircle, Mic, Music, Headphones, Heart } from "lucide-react";
+import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Mail, Crown, Check, MessageCircle, Mic, Headphones, Heart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
