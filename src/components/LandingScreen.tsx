@@ -47,13 +47,13 @@ function ModelToggleDemo() {
 
   return (
     <div
-      className="relative inline-flex items-center rounded-full p-1 cursor-pointer glass-card w-[220px] h-[44px]"
+      className="relative inline-flex items-center rounded-full p-1 cursor-pointer glass-card w-[220px] h-[46px]"
       onClick={() => setIsGPT(prev => !prev)}
     >
       {/* Sliding background pill */}
       <motion.div
-        className="absolute top-1 h-[36px] w-[106px] rounded-full"
-        animate={{ x: isGPT ? 2 : 108 }}
+        className="absolute inset-y-1 h-[calc(100%-8px)] w-[106px] rounded-full"
+        animate={{ x: isGPT ? 3 : 107 }}
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
         style={{
           background: isGPT
