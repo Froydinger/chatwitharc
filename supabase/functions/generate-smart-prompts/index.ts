@@ -21,8 +21,8 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const context = body?.context || 'general';
 
-    // Use Gemini 3.1 Pro for prompt generation
-    const PROMPT_MODEL = 'google/gemini-3.1-pro-preview';
+    // Always use Gemini 2.5 Flash for prompt generation - fast, efficient, reliable
+    const PROMPT_MODEL = 'google/gemini-2.5-flash';
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

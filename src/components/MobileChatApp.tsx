@@ -554,7 +554,7 @@ export function MobileChatApp() {
     navigate(`/chat/${newSessionId}`);
 
     // Reset model to Quick for new chat (session only)
-    sessionStorage.setItem("arc_session_model", "google/gemini-3.1-pro-preview");
+    sessionStorage.setItem("arc_session_model", "google/gemini-3-flash-preview");
   };
 
   const handleDrop = (e: React.DragEvent) => {
