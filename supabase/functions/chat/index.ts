@@ -413,9 +413,9 @@ serve(async (req) => {
 
     // Validate model if provided
     const allowedModels = [
-      // Gemini models (2 tiers)
-      'google/gemini-3-flash-preview',  // Quick
-      'google/gemini-3-flash-preview',  // Wise & Thoughtful (migrated from deprecated 3-pro)
+      // Gemini models
+      'google/gemini-3.1-pro-preview',   // Primary Gemini model
+      'google/gemini-3-flash-preview',   // Legacy support
       // GPT models (3 tiers)
       'openai/gpt-5-nano',              // Quick
       'openai/gpt-5.2',                 // Smarter & Quick
@@ -423,7 +423,6 @@ serve(async (req) => {
       // Legacy support
       'google/gemini-2.5-flash',
       'google/gemini-2.5-flash-lite',
-      'google/gemini-3-flash-preview',  // New default
       'openai/gpt-5-mini'
     ];
     if (model && !allowedModels.includes(model)) {
