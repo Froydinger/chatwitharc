@@ -23,6 +23,7 @@ import {
   Palette,
   Check,
   Brain,
+  Stars,
 } from "lucide-react";
 import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
