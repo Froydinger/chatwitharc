@@ -593,6 +593,9 @@ export function LandingScreen() {
           <p className="text-gray-400 text-lg leading-relaxed max-w-lg">
             Instant responses powered by cutting-edge models. Switch between speed and depth on the fly — your AI, your rules.
           </p>
+
+          {/* GPT / Gemini animated toggle */}
+          <ModelToggleDemo />
         </motion.div>
 
         <motion.div
