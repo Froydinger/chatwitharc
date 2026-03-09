@@ -574,256 +574,229 @@ export function LandingScreen() {
       </main>
 
       {/* Section 1: Speed & Intelligence */}
-      <section className="relative z-10 py-24 px-6 max-w-6xl mx-auto" id="features">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-          {/* Left - Big statement */}
-          <motion.div
-            className="space-y-6"
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-card text-xs text-yellow-400 font-medium">
-              <Zap className="w-3.5 h-3.5" />
-              Built for speed
+      <section className="relative z-10 py-24 px-6 max-w-4xl mx-auto text-center" id="features">
+        <motion.div
+          className="space-y-6 flex flex-col items-center"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-card text-xs text-yellow-400 font-medium">
+            <Zap className="w-3.5 h-3.5" />
+            Built for speed
+          </div>
+          <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+            Think fast.<br />
+            <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">Type faster.</span>
+          </h2>
+          <p className="text-gray-400 text-lg leading-relaxed max-w-lg">
+            Instant responses powered by cutting-edge models. Switch between speed and depth on the fly — your AI, your rules.
+          </p>
+        </motion.div>
+
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10 max-w-2xl mx-auto"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+        >
+          <div className="glass-card p-6 rounded-2xl space-y-3 group hover:border-purple-500/30 transition-colors text-left">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                <Brain className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Personal Memory</h3>
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-              Think fast.<br />
-              <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">Type faster.</span>
-            </h2>
-            <p className="text-gray-400 text-lg leading-relaxed max-w-md">
-              Instant responses powered by cutting-edge models. Switch between speed and depth on the fly — your AI, your rules.
+            <p className="text-gray-400 text-sm leading-relaxed">
+              ArcAi remembers your preferences, context, and style. Every conversation picks up right where you left off.
             </p>
-          </motion.div>
+          </div>
 
-          {/* Right - Memory + Multimodal stacked cards */}
-          <motion.div
-            className="space-y-4"
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-          >
-            <div className="glass-card p-6 rounded-2xl space-y-3 group hover:border-purple-500/30 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                  <Brain className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Personal Memory</h3>
+          <div className="glass-card p-6 rounded-2xl space-y-3 group hover:border-blue-500/30 transition-colors text-left">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                ArcAi remembers your preferences, context, and style. Every conversation picks up right where you left off.
-              </p>
+              <h3 className="text-lg font-bold text-white">Multimodal Magic</h3>
             </div>
-
-            <div className="glass-card p-6 rounded-2xl space-y-3 group hover:border-blue-500/30 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Multimodal Magic</h3>
-              </div>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                Chat, generate images, analyze files, and write code — all in one fluid, beautiful interface.
-              </p>
-            </div>
-          </motion.div>
-        </div>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Chat, generate images, analyze files, and write code — all in one fluid, beautiful interface.
+            </p>
+          </div>
+        </motion.div>
       </section>
 
-      {/* Section 2: Real Life, Real Talk — Full-width narrative */}
-      <section className="relative z-10 py-20 px-6 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          {/* Left: Statement */}
-          <motion.div
-            className="space-y-6"
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, type: "spring", stiffness: 300, damping: 30 }}
-          >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-500/20">
-              <Heart className="w-6 h-6 text-white" />
-            </div>
-            <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-              Real Life,
-              <br />
-              <span className="bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">
-                Real Talk.
-              </span>
-            </h2>
-            <p className="text-gray-400 text-lg leading-relaxed max-w-md">
-              More than a chatbot. ArcAi helps you think through life's real moments — and knows when to point you to a real professional.
-            </p>
-            <ul className="space-y-3 text-sm text-gray-300">
-              <li className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
-                Navigate career pivots with structured thinking
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-pink-400 shrink-0" />
-                Prep for tough conversations with role-play
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-fuchsia-400 shrink-0" />
-                Set personal goals and track your progress
-              </li>
-            </ul>
-          </motion.div>
+      {/* Section 2: Real Life, Real Talk — Centered */}
+      <section className="relative z-10 py-20 px-6 max-w-4xl mx-auto text-center">
+        <motion.div
+          className="space-y-6 flex flex-col items-center"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-500/20">
+            <Heart className="w-6 h-6 text-white" />
+          </div>
+          <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+            Real Life,<br />
+            <span className="bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">
+              Real Talk.
+            </span>
+          </h2>
+          <p className="text-gray-400 text-lg leading-relaxed max-w-lg">
+            More than a chatbot. ArcAi helps you think through life's real moments — and knows when to point you to a real professional.
+          </p>
+        </motion.div>
 
-          {/* Right: Animated chat bubbles */}
-          <motion.div
-            className="space-y-4"
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.15, type: "spring", stiffness: 300, damping: 30 }}
-          >
-            <div className="glass-card rounded-3xl p-6 space-y-4 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-pink-500" />
-              
-              {[
-                { role: "user" as const, text: "I'm thinking about quitting my job. Am I crazy?", delay: 0 },
-                { role: "ai" as const, text: "Maybe. What's the job and what's the exit plan?", delay: 0.2 },
-                { role: "user" as const, text: "No exit plan. I just hate the politics.", delay: 0.4 },
-                { role: "ai" as const, text: "Politics won't disappear. But you can pick which kind. What would you build if you had six months?", delay: 0.6 },
-              ].map((msg, i) => (
+        <motion.div
+          className="mt-10 max-w-lg mx-auto"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+        >
+          <div className="glass-card rounded-3xl p-6 space-y-4 relative overflow-hidden text-left">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-pink-500" />
+            
+            {[
+              { role: "user" as const, text: "I'm thinking about quitting my job. Am I crazy?", delay: 0 },
+              { role: "ai" as const, text: "Maybe. What's the job and what's the exit plan?", delay: 0.2 },
+              { role: "user" as const, text: "No exit plan. I just hate the politics.", delay: 0.4 },
+              { role: "ai" as const, text: "Politics won't disappear. But you can pick which kind. What would you build if you had six months?", delay: 0.6 },
+            ].map((msg, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 + msg.delay, duration: 0.4 }}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div className={`rounded-2xl px-4 py-2.5 text-sm max-w-[85%] ${
+                  msg.role === "user"
+                    ? "bg-rose-500/15 text-gray-200 rounded-tr-md"
+                    : "bg-white/[0.06] text-gray-300 rounded-tl-md"
+                }`}>
+                  {msg.text}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Music Section - "Set the Mood." — Centered */}
+      <section className="relative z-10 py-20 px-6 max-w-4xl mx-auto text-center">
+        <motion.div
+          className="space-y-6 flex flex-col items-center"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+            <Headphones className="w-6 h-6 text-white" />
+          </div>
+          <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+            Set the mood.<br />
+            <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Skip the ads.
+            </span>
+          </h2>
+          <p className="text-gray-400 text-lg leading-relaxed max-w-lg">
+            Lo-fi beats, jazz, ambient — curated focus music built right into ArcAi. No tab switching, no interruptions. Just vibes.
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">Pro</span>
+            <span className="text-xs text-gray-500">Included with Pro plan</span>
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="mt-10 max-w-sm mx-auto"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+        >
+          <div className="glass-card rounded-3xl p-6 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500" />
+            
+            {/* Now Playing header */}
+            <div className="flex items-center gap-2 mb-5">
+              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">Now Playing</span>
+            </div>
+
+            {/* Album + Track info */}
+            <div className="flex items-center gap-5 mb-6">
+              <motion.div
+                className="relative shrink-0"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              >
+                <img
+                  src="/lovable-uploads/lofi-cartoon-album.jpg"
+                  alt="Album art"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-white/10 shadow-xl shadow-purple-500/20"
+                />
+                <div className="absolute inset-0 rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(0,0,0,0.4) 30%, transparent 31%)' }} />
+              </motion.div>
+              <div className="min-w-0 flex-1 text-left">
+                <p className="text-white font-semibold truncate">Still Steam in My Mug</p>
+                <p className="text-gray-400 text-sm">Arc AI</p>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="space-y-2 mb-5">
+              <div className="w-full h-1 rounded-full bg-white/10 overflow-hidden">
                 <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 12 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  className="h-full rounded-full bg-gradient-to-r from-purple-400 to-pink-400"
+                  initial={{ width: "0%" }}
+                  whileInView={{ width: "62%" }}
                   viewport={{ once: true }}
-                  transition={{ delay: 0.3 + msg.delay, duration: 0.4 }}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div className={`rounded-2xl px-4 py-2.5 text-sm max-w-[85%] ${
-                    msg.role === "user"
-                      ? "bg-rose-500/15 text-gray-200 rounded-tr-md"
-                      : "bg-white/[0.06] text-gray-300 rounded-tl-md"
-                  }`}>
-                    {msg.text}
-                  </div>
-                </motion.div>
+                  transition={{ duration: 2, delay: 0.5, ease: "easeOut" }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-gray-500">
+                <span>1:47</span>
+                <span>2:52</span>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="flex items-center justify-center gap-6">
+              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z"/></svg>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-black shadow-lg shadow-white/20">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4l10 8-10 8V4zm12-1v18h2V3h-2z"/></svg>
+              </div>
+            </div>
+
+            {/* Track list peek */}
+            <div className="mt-5 pt-4 border-t border-white/5 space-y-2 text-left">
+              {[
+                { name: 'Soft Corners of the Day', art: '/lovable-uploads/jazz-cartoon-album.jpg' },
+                { name: 'Velvet Evening Loop', art: '/lovable-uploads/ambient-cartoon-album.jpg' },
+                { name: 'Midnight Desk Lamp', art: '/lovable-uploads/lofi-cartoon-album.jpg' },
+              ].map((track, i) => (
+                <div key={i} className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                  <img src={track.art} alt="" className="w-8 h-8 rounded-md object-cover border border-white/5" />
+                  <span className="text-sm text-gray-300 truncate">{track.name}</span>
+                  <span className="ml-auto text-[10px] text-gray-500">Arc AI</span>
+                </div>
               ))}
             </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Music Section - "Set the Mood." */}
-      <section className="relative z-10 py-20 px-6 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          {/* Left: Statement */}
-          <motion.div
-            className="space-y-6"
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, type: "spring", stiffness: 300, damping: 30 }}
-          >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-              <Headphones className="w-6 h-6 text-white" />
-            </div>
-            <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-              Set the mood.
-              <br />
-              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Skip the ads.
-              </span>
-            </h2>
-            <p className="text-gray-400 text-lg leading-relaxed max-w-md">
-              Lo-fi beats, jazz, ambient — curated focus music built right into ArcAi. No tab switching, no interruptions. Just vibes.
-            </p>
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">Pro</span>
-              <span className="text-xs text-gray-500">Included with Pro plan</span>
-            </div>
-          </motion.div>
-
-          {/* Right: Mini music player visual */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.15, type: "spring", stiffness: 300, damping: 30 }}
-          >
-            <div className="glass-card rounded-3xl p-6 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500" />
-              
-              {/* Now Playing header */}
-              <div className="flex items-center gap-2 mb-5">
-                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">Now Playing</span>
-              </div>
-
-              {/* Album + Track info */}
-              <div className="flex items-center gap-5 mb-6">
-                <motion.div
-                  className="relative shrink-0"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                >
-                  <img
-                    src="/lovable-uploads/lofi-cartoon-album.jpg"
-                    alt="Album art"
-                    className="w-20 h-20 rounded-full object-cover border-2 border-white/10 shadow-xl shadow-purple-500/20"
-                  />
-                  <div className="absolute inset-0 rounded-full border-4 border-transparent" style={{ background: 'radial-gradient(circle at center, rgba(0,0,0,0.4) 30%, transparent 31%)' }} />
-                </motion.div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-white font-semibold text-lg truncate">Still Steam in My Mug</p>
-                  <p className="text-gray-400 text-sm">Arc AI</p>
-                </div>
-              </div>
-
-              {/* Progress bar */}
-              <div className="space-y-2 mb-5">
-                <div className="w-full h-1 rounded-full bg-white/10 overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-purple-400 to-pink-400"
-                    initial={{ width: "0%" }}
-                    whileInView={{ width: "62%" }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 2, delay: 0.5, ease: "easeOut" }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] text-gray-500">
-                  <span>1:47</span>
-                  <span>2:52</span>
-                </div>
-              </div>
-
-              {/* Controls */}
-              <div className="flex items-center justify-center gap-6">
-                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z"/></svg>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-black shadow-lg shadow-white/20">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4l10 8-10 8V4zm12-1v18h2V3h-2z"/></svg>
-                </div>
-              </div>
-
-              {/* Track list peek */}
-              <div className="mt-5 pt-4 border-t border-white/5 space-y-2">
-                {[
-                  { name: 'Soft Corners of the Day', art: '/lovable-uploads/jazz-cartoon-album.jpg' },
-                  { name: 'Velvet Evening Loop', art: '/lovable-uploads/ambient-cartoon-album.jpg' },
-                  { name: 'Midnight Desk Lamp', art: '/lovable-uploads/lofi-cartoon-album.jpg' },
-                ].map((track, i) => (
-                  <div key={i} className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
-                    <img src={track.art} alt="" className="w-8 h-8 rounded-md object-cover border border-white/5" />
-                    <span className="text-sm text-gray-300 truncate">{track.name}</span>
-                    <span className="ml-auto text-[10px] text-gray-500">Arc AI</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
       </section>
 
       {/* Voice Mode Demo Section */}
