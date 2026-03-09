@@ -36,7 +36,130 @@ const isWindows = () => {
   return /Win/i.test(navigator.platform) || /Windows/i.test(navigator.userAgent);
 };
 
-// Prompt Pill Component
+// Animated GPT/Gemini Toggle for landing page
+function ModelToggleDemo() {
+  const [isGPT, setIsGPT] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => setIsGPT(prev => !prev), 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div
+      className="relative inline-flex items-center rounded-full p-1 cursor-pointer glass-card w-[220px] h-[44px]"
+      onClick={() => setIsGPT(prev => !prev)}
+    >
+      {/* Sliding background pill */}
+      <motion.div
+        className="absolute top-1 h-[36px] w-[106px] rounded-full"
+        animate={{ x: isGPT ? 2 : 108 }}
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        style={{
+          background: isGPT
+            ? "linear-gradient(135deg, #10a37f, #1a7f5a)"
+            : "linear-gradient(135deg, #4285f4, #34a8eb)",
+        }}
+      />
+      <span className={`relative z-10 flex-1 text-center text-sm font-semibold transition-colors duration-200 ${isGPT ? "text-white" : "text-gray-400"}`}>
+        GPT
+      </span>
+      <span className={`relative z-10 flex-1 text-center text-sm font-semibold transition-colors duration-200 ${!isGPT ? "text-white" : "text-gray-400"}`}>
+        Gemini
+      </span>
+    </div>
+  );
+}
+
+// Fake Research Animation for landing page
+function ResearchDemo() {
+  const [step, setStep] = useState(0);
+  const queries = [
+    "How does quantum computing work?",
+    "Latest breakthroughs in fusion energy",
+    "Best productivity frameworks for 2026",
+  ];
+  const results = [
+    [
+      { title: "Quantum Computing Explained", source: "nature.com" },
+      { title: "IBM's 1000-Qubit Processor", source: "arxiv.org" },
+      { title: "Quantum vs Classical Computing", source: "mit.edu" },
+    ],
+    [
+      { title: "NIF Achieves Net Energy Gain", source: "science.org" },
+      { title: "Compact Fusion Reactors", source: "reuters.com" },
+      { title: "The Future of Clean Energy", source: "energy.gov" },
+    ],
+    [
+      { title: "Deep Work by Cal Newport", source: "goodreads.com" },
+      { title: "GTD Methodology Guide", source: "todoist.com" },
+      { title: "Atomic Habits for Teams", source: "hbr.org" },
+    ],
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => setStep(prev => (prev + 1) % 3), 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="glass-card rounded-3xl p-5 relative overflow-hidden max-w-md mx-auto">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+
+      {/* Search bar */}
+      <div className="flex items-center gap-3 mb-4 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10">
+        <Search className="w-4 h-4 text-emerald-400 shrink-0" />
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={step}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="text-sm text-gray-300 truncate"
+          >
+            {queries[step]}
+          </motion.span>
+        </AnimatePresence>
+      </div>
+
+      {/* Animated scanning bar */}
+      <motion.div
+        className="h-0.5 rounded-full bg-gradient-to-r from-transparent via-emerald-400 to-transparent mb-4"
+        animate={{ opacity: [0.3, 1, 0.3], scaleX: [0.5, 1, 0.5] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* Results */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={step}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="space-y-2"
+        >
+          {results[step].map((r, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.15 }}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.03] text-left"
+            >
+              <Globe className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-gray-200 truncate">{r.title}</p>
+                <p className="text-[10px] text-gray-500">{r.source}</p>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+
 const PromptPill = ({ icon, text }: { icon: string; text: string }) => (
   <div className="flex items-center space-x-2 px-4 py-2 rounded-full glass-card cursor-pointer hover:bg-white/10 text-sm text-gray-300">
     <span className="opacity-70">{icon}</span>
