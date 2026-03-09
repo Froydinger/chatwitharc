@@ -85,7 +85,11 @@ function checkForImageRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
   // Support both prefix/ and /prefix syntax
-  return /^(image|draw|create)\//.test(m) || /^\/(image|draw|create)\b/.test(m);
+  if (/^(image|draw|create)\//.test(m) || /^\/(image|draw|create)\b/.test(m)) return true;
+  // Natural language detection for image generation requests
+  if (/^(generate|create|make|draw|paint|design|render|produce|visualize|show\s+me|give\s+me)\s+(an?\s+)?(image|picture|photo|illustration|artwork|graphic|icon|logo|wallpaper|poster|banner|thumbnail)/i.test(m)) return true;
+  if (/\b(generate|create|make|draw|paint)\s+(an?\s+)?(image|picture|photo|illustration)\b/i.test(m) && m.length < 200) return true;
+  return false;
 }
 
 // Prefix-based detection: code/ OR /code
