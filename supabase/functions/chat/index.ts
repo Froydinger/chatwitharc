@@ -426,13 +426,8 @@ serve(async (req) => {
       'openai/gpt-5-mini'
     ];
     if (model && !allowedModels.includes(model)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid model specified' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      console.warn(`⚠️ Model "${model}" not in allowed list, falling back to default`);
+      // Don't reject - fall back to default model instead of breaking the user experience
     }
     
     // Fetch admin settings for system prompt and global context
