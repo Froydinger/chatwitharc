@@ -42,6 +42,7 @@ import { Button } from "@/components/ui/button";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
+import { useStarfieldStore } from "@/store/useStarfieldStore";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { fadeInVariants, staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
 import { VoiceSelector } from "@/components/VoiceSelector";
