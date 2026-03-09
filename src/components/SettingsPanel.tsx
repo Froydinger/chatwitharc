@@ -143,6 +143,8 @@ export function SettingsPanel() {
   const showPopup = useFingerPopup((state) => state.showPopup);
   // Use unified accent color system
   const { accentColor, setAccentColor } = useAccentColor();
+  const showStarfield = useStarfieldStore((s) => s.showStarfield);
+  const setShowStarfield = useStarfieldStore((s) => s.setShowStarfield);
 
   const handleDataDeleted = () => {
     // Create new session and refresh
