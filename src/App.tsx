@@ -12,6 +12,7 @@ import { AdminBanner } from "@/components/AdminBanner";
 import { PageTransition } from "@/components/PageTransition";
 import { FingerPopupContainer } from "@/components/FingerPopup";
 import { Starfield } from "@/components/Starfield";
+import { useStarfieldStore } from "@/store/useStarfieldStore";
 import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { BugReportModal } from "@/components/BugReportModal";
 import { useBugReport } from "@/hooks/useBugReport";
