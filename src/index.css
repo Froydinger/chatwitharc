@@ -19,9 +19,9 @@ All colors MUST be HSL for perfect glass effects.
     --surface-foreground: 240 4% 92%;
 
     /* Primary Brand Color */
-    --primary: 200 95% 55%;
+    --primary: 205 100% 48%;
     --primary-foreground: 240 10% 98%;
-    --primary-glow: 200 90% 65%;
+    --primary-glow: 205 95% 58%;
 
     /* Secondary Colors - Much lighter for clear distinction */
     --secondary: 240 6% 28%;
