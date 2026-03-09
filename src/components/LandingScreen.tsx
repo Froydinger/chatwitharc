@@ -814,6 +814,44 @@ export function LandingScreen() {
         </motion.div>
       </section>
 
+      {/* Research Mode Section — Centered */}
+      <section className="relative z-10 py-20 px-6 max-w-4xl mx-auto text-center">
+        <motion.div
+          className="space-y-6 flex flex-col items-center"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <Search className="w-6 h-6 text-white" />
+          </div>
+          <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+            Know more.<br />
+            <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+              Guess less.
+            </span>
+          </h2>
+          <p className="text-gray-400 text-lg leading-relaxed max-w-lg">
+            Research Mode searches the web, summarizes sources, and gives you answers with citations — not hallucinations.
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">Pro</span>
+            <span className="text-xs text-gray-500">Included with Pro plan</span>
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="mt-10"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+        >
+          <ResearchDemo />
+        </motion.div>
+      </section>
+
       {/* Music Section - "Set the Mood." — Centered */}
       <section className="relative z-10 py-20 px-6 max-w-4xl mx-auto text-center">
         <motion.div
