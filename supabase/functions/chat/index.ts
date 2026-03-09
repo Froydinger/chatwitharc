@@ -355,7 +355,7 @@ serve(async (req) => {
     const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream } = body;
 
     console.log('📊 Request details:', {
-      model: model || 'google/gemini-3-flash-preview (default)',
+      model: model || 'google/gemini-3.1-pro-preview (default)',
       messageCount: messages?.length || 0,
       hasProfile: !!profile,
       sessionId: sessionId || 'none (will not save in background)',
@@ -414,16 +414,15 @@ serve(async (req) => {
     // Validate model if provided
     const allowedModels = [
       // Gemini models (2 tiers)
-      'google/gemini-3-flash-preview',  // Quick
-      'google/gemini-3-flash-preview',  // Wise & Thoughtful (migrated from deprecated 3-pro)
+      'google/gemini-3-flash-preview',   // Quick
+      'google/gemini-3.1-pro-preview',   // Wise & Thoughtful
       // GPT models (3 tiers)
-      'openai/gpt-5-nano',              // Quick
-      'openai/gpt-5.2',                 // Smarter & Quick
-      'openai/gpt-5',                   // Wise & Thoughtful
+      'openai/gpt-5-nano',               // Quick
+      'openai/gpt-5.2',                  // Smarter & Quick
+      'openai/gpt-5',                    // Wise & Thoughtful
       // Legacy support
       'google/gemini-2.5-flash',
       'google/gemini-2.5-flash-lite',
-      'google/gemini-3-flash-preview',  // New default
       'openai/gpt-5-mini'
     ];
     if (model && !allowedModels.includes(model)) {
@@ -769,15 +768,15 @@ Output the complete, finished writing using the update_canvas tool.`;
 
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
-    let selectedModel = model || 'google/gemini-3-flash-preview';
+    let selectedModel = model || 'google/gemini-3.1-pro-preview';
     const fallbackModel = 'google/gemini-3-flash-preview'; // Fallback for canvas/code if Pro times out
-    
+
     // For code mode, upgrade to the best model for each provider
-    // Gemini: use gemini-3-flash-preview, GPT: use gpt-5.2
+    // Gemini: use gemini-3.1-pro-preview, GPT: use gpt-5.2
     if (wantsCode) {
       if (selectedModel.startsWith('google/')) {
-        selectedModel = 'google/gemini-3-flash-preview';
-        console.log('🔧 Code mode: using gemini-3-flash-preview');
+        selectedModel = 'google/gemini-3.1-pro-preview';
+        console.log('🔧 Code mode: using gemini-3.1-pro-preview');
       } else if (selectedModel.startsWith('openai/')) {
         selectedModel = 'openai/gpt-5.2';
         console.log('🔧 Code mode: upgraded GPT model to gpt-5.2');
@@ -1092,7 +1091,7 @@ Output the complete, finished writing using the update_canvas tool.`;
       });
     } catch (primaryError) {
       // If canvas/code mode with upgraded model fails, try fallback
-      const isUpgradedModel = selectedModel === 'google/gemini-3-flash-preview' || selectedModel === 'openai/gpt-5.2';
+      const isUpgradedModel = selectedModel === 'google/gemini-3.1-pro-preview' || selectedModel === 'openai/gpt-5.2';
       if (isCanvasOrCodeMode && isUpgradedModel) {
         // For GPT fallback, use gpt-5-nano; for Gemini fallback, use gemini-3-flash-preview
         const actualFallback = selectedModel.startsWith('openai/') ? 'openai/gpt-5-nano' : fallbackModel;

@@ -230,7 +230,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     if (!isSubscribed) return;
     setModelFamily(family);
     try {
-      await updateProfile({ preferred_model: family === 'gpt' ? 'openai/gpt-5-mini' : 'google/gemini-3-flash-preview' });
+      await updateProfile({ preferred_model: family === 'gpt' ? 'openai/gpt-5-mini' : 'google/gemini-3.1-pro-preview' });
     } catch {
       toast({ title: "Failed to save preference", variant: "destructive" });
     }
