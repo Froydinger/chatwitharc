@@ -425,14 +425,9 @@ serve(async (req) => {
       'google/gemini-2.5-flash-lite',
       'openai/gpt-5-mini'
     ];
-    if (model && !allowedModels.includes(model)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid model specified' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+    const validatedModel = (model && allowedModels.includes(model)) ? model : null;
+    if (model && !validatedModel) {
+      console.warn(`⚠️ Model "${model}" not in allowed list, will use default`);
     }
     
     // Fetch admin settings for system prompt and global context
@@ -768,7 +763,7 @@ Output the complete, finished writing using the update_canvas tool.`;
 
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
-    let selectedModel = model || 'google/gemini-3.1-pro-preview';
+    let selectedModel = validatedModel || 'google/gemini-3.1-pro-preview';
     const fallbackModel = 'google/gemini-3-flash-preview'; // Fallback for canvas/code if Pro times out
 
     // For code mode, upgrade to the best model for each provider
