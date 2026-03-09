@@ -570,8 +570,8 @@ export function SettingsPanel() {
                 </div>
               </div>
               <Switch
-                checked={useStarfieldStore.getState().showStarfield}
-                onCheckedChange={(checked) => useStarfieldStore.getState().setShowStarfield(checked)}
+                checked={showStarfield}
+                onCheckedChange={setShowStarfield}
               />
             </div>
 
