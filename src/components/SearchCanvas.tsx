@@ -602,6 +602,11 @@ export function SearchCanvas() {
     </div>
   );
 
+  // Show upgrade wall for non-Pro users
+  if (!subLoading && !hasAccess) {
+    return <ResearchUpgradeWall onClose={closeSearch} />;
+  }
+
   return (
     <div className={cn("flex flex-col h-full w-full bg-background", (isPWAMode || isElectronApp) && "pt-[34px]")}>
       {/* Header */}
