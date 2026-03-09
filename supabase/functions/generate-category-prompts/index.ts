@@ -98,8 +98,8 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Always use Gemini 2.5 Flash for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'google/gemini-2.5-flash';
+    // Use Gemini 3.1 Pro for category prompts
+    const PROMPT_MODEL = 'google/gemini-3.1-pro-preview';
     console.log('Using model for category prompts:', PROMPT_MODEL);
 
     const requestBody = {

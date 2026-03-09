@@ -119,8 +119,8 @@ For ZIP files:
 
 IMPORTANT: Output ONLY the file content (or JSON for ZIP), no explanations or markdown code blocks.`;
 
-    // Use passed model for file generation (defaults to Gemini 3 Flash)
-    const selectedModel = model || 'google/gemini-3-flash-preview';
+    // Use passed model for file generation (defaults to Gemini 3.1 Pro)
+    const selectedModel = model || 'google/gemini-3.1-pro-preview';
     console.log('Using model for file generation:', selectedModel);
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
