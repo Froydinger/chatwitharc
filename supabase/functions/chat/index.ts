@@ -763,7 +763,7 @@ Output the complete, finished writing using the update_canvas tool.`;
 
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
-    let selectedModel = model || 'google/gemini-3.1-pro-preview';
+    let selectedModel = validatedModel || 'google/gemini-3.1-pro-preview';
     const fallbackModel = 'google/gemini-3-flash-preview'; // Fallback for canvas/code if Pro times out
 
     // For code mode, upgrade to the best model for each provider
