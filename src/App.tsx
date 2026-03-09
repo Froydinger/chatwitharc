@@ -55,7 +55,7 @@ const App = () => {
         <TooltipProvider>
           <div className="arcai-drag-bar" />
           <BackgroundGradients />
-          <Starfield />
+          {showStarfield && <Starfield />}
             <Toaster />
             <Sonner />
             <FingerPopupContainer />
