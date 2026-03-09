@@ -425,9 +425,9 @@ serve(async (req) => {
       'google/gemini-2.5-flash-lite',
       'openai/gpt-5-mini'
     ];
-    if (model && !allowedModels.includes(model)) {
-      console.warn(`⚠️ Model "${model}" not in allowed list, falling back to default`);
-      // Don't reject - fall back to default model instead of breaking the user experience
+    const validatedModel = (model && allowedModels.includes(model)) ? model : null;
+    if (model && !validatedModel) {
+      console.warn(`⚠️ Model "${model}" not in allowed list, will use default`);
     }
     
     // Fetch admin settings for system prompt and global context
