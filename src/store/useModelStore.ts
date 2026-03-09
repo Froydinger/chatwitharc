@@ -6,10 +6,10 @@ export type ModelTask = 'chat' | 'code' | 'image-gen' | 'image-analysis' | 'imag
 
 const MODEL_MAP: Record<ModelFamily, Record<ModelTask, string>> = {
   gemini: {
-    'chat': 'google/gemini-3-flash-preview',
-    'code': 'google/gemini-3-flash-preview',
+    'chat': 'google/gemini-3.1-pro-preview',
+    'code': 'google/gemini-3.1-pro-preview',
     'image-gen': 'google/gemini-3-pro-image-preview',
-    'image-analysis': 'google/gemini-2.5-flash',
+    'image-analysis': 'google/gemini-3-flash-preview',
     'image-edit': 'google/gemini-3-pro-image-preview',
   },
   gpt: {
