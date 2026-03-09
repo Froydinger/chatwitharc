@@ -355,7 +355,7 @@ serve(async (req) => {
     const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream } = body;
 
     console.log('📊 Request details:', {
-      model: model || 'google/gemini-3-flash-preview (default)',
+      model: model || 'google/gemini-3.1-pro-preview (default)',
       messageCount: messages?.length || 0,
       hasProfile: !!profile,
       sessionId: sessionId || 'none (will not save in background)',
