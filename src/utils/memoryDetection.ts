@@ -81,7 +81,7 @@ What NEW personal facts should be remembered from this conversation?`;
     const { data, error } = await supabase.functions.invoke('chat', {
       body: {
         messages,
-        model: 'google/gemini-3-flash-preview'
+        model: 'google/gemini-3.1-pro-preview'
       }
     });
 
