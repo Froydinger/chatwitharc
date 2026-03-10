@@ -145,9 +145,9 @@ export function LandingVoiceDemo() {
             if (!hasStarted) setTimeout(() => setHasStarted(true), 500);
           }}
         >
-          <div className="rounded-3xl overflow-hidden border border-white/10 bg-black/50 backdrop-blur-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)]">
+          <div className="rounded-3xl overflow-hidden border border-white/10 bg-black/50 backdrop-blur-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)] h-[400px] flex flex-col">
             {/* Waveform area */}
-            <div className="px-6 pt-8 pb-4">
+            <div className="px-6 pt-8 pb-4 shrink-0">
               <div className="flex items-end justify-center gap-[3px] h-16 mb-2">
                 {(isListening ? userHeights : aiHeights).map((h, i) => (
                   <motion.div
@@ -174,7 +174,7 @@ export function LandingVoiceDemo() {
             </div>
 
             {/* Conversation transcript */}
-            <div className="px-5 pb-4 space-y-3 h-[180px] overflow-hidden">
+            <div className="px-5 pb-4 space-y-3 flex-1 overflow-hidden">
               {CONVERSATION.slice(0, Math.max(0, activeStep + 1)).map((msg, i) => (
                 <motion.div
                   key={`${i}-${activeStep}`}
@@ -206,7 +206,7 @@ export function LandingVoiceDemo() {
             </div>
 
             {/* Bottom mic button */}
-            <div className="flex justify-center pb-6 pt-2">
+            <div className="flex justify-center pb-6 pt-2 shrink-0 mt-auto">
               <motion.div
                 animate={
                   isListening

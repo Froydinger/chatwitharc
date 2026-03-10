@@ -132,7 +132,7 @@ function ResearchDemo() {
   }, [phase, typedChars, current.query.length]);
 
   return (
-    <div className="glass-card rounded-2xl relative overflow-hidden max-w-md mx-auto" style={{ minHeight: 340 }}>
+    <div className="glass-card rounded-2xl relative overflow-hidden max-w-md mx-auto h-[340px] flex flex-col">
       <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
 
       {/* Mini header bar — mimics real Research UI */}
@@ -161,6 +161,7 @@ function ResearchDemo() {
       </div>
 
       {/* Searching state */}
+      <div className="flex-1 overflow-hidden">
       <AnimatePresence mode="wait">
         {phase === 'searching' && (
           <motion.div
@@ -221,6 +222,7 @@ function ResearchDemo() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }
