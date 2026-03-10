@@ -1657,9 +1657,9 @@ ${existingCode}
                   >
                     {[
                       { label: "Attach", icon: <Paperclip className="h-3.5 w-3.5" />, color: "text-blue-400", hideLabel: true, action: () => { setShowMenu(false); fileInputRef.current?.click(); } },
-                      { label: "Prompts", icon: <Sparkles className="h-3.5 w-3.5" />, color: "text-violet-400", action: () => { setShowMenu(false); setShowPromptLibrary(true); } },
-                      { label: "Research", icon: <Search className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setShowMenu(false); openSearchMode(); } },
                       { label: "Image", icon: <ImagePlus className="h-3.5 w-3.5" />, color: "text-green-400", action: () => { setForceImageMode(true); setShowMenu(false); } },
+                      { label: "Research", icon: <Search className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setShowMenu(false); openSearchMode(); } },
+                      { label: "Ideas", icon: <Sparkles className="h-3.5 w-3.5" />, color: "text-violet-400", action: () => { setShowMenu(false); setShowPromptLibrary(true); } },
                     ].map((item, i) => (
                       <motion.button
                         key={item.label}
