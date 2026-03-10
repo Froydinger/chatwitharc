@@ -263,7 +263,7 @@ function CodeCanvasCard({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
-              className="px-6 py-8 flex flex-col items-center justify-center text-center min-h-[280px]"
+              className="px-6 py-8 flex flex-col items-center justify-center text-center h-[320px]"
             >
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
