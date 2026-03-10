@@ -767,7 +767,7 @@ Output the complete, finished writing using the update_canvas tool.`;
     const fallbackModel = 'google/gemini-3-flash-preview'; // Fallback for canvas/code if Pro times out
 
     // For code mode, upgrade to the best model for each provider
-    // Gemini: use gemini-3.1-pro-preview, GPT: use gpt-5.2
+    // Gemini: use gemini-3-flash-preview, GPT: use gpt-5.2
     if (wantsCode) {
       if (selectedModel.startsWith('google/')) {
         selectedModel = 'google/gemini-3-flash-preview';
