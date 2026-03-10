@@ -161,6 +161,7 @@ function ResearchDemo() {
       </div>
 
       {/* Searching state */}
+      <div className="flex-1 overflow-hidden">
       <AnimatePresence mode="wait">
         {phase === 'searching' && (
           <motion.div
