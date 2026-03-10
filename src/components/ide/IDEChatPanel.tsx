@@ -70,7 +70,7 @@ export function IDEChatPanel({ messages, liveActions, isLoading, generatingId, o
         <div className="space-y-3 w-full overflow-hidden">
           {messages.length === 0 && (
             <div className="text-center py-10 space-y-4 animate-fade-in">
-              <ThemedLogo size={56} className="mx-auto rounded-2xl" />
+              <ThemedLogo className="mx-auto rounded-2xl w-14 h-14" />
               <div>
                 <h3 className="font-semibold">What are we building?</h3>
                 <p className="text-xs text-muted-foreground mt-1 max-w-[240px] mx-auto leading-relaxed">
