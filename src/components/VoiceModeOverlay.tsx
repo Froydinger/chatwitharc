@@ -767,10 +767,15 @@ export function VoiceModeOverlay() {
                 )}
               </AnimatePresence>
 
-              {/* Conversation Transcript - last 4 messages */}
-              <div className="w-full max-w-sm mb-4 min-h-[100px] flex flex-col justify-end">
+              {/* Conversation Transcript - adaptive count based on message length */}
+              <div className="w-full max-w-sm mb-4 max-h-[35vh] overflow-hidden flex flex-col justify-end">
                 <AnimatePresence initial={false}>
-                  {conversationTurns.slice(-4).map((turn, i, arr) => {
+                  {(() => {
+                    // Show fewer messages when they're long to avoid clipping
+                    const recent = conversationTurns.slice(-4);
+                    const avgLen = recent.length > 0 ? recent.reduce((sum, t) => sum + t.transcript.length, 0) / recent.length : 0;
+                    const showCount = avgLen > 200 ? 1 : avgLen > 100 ? 2 : avgLen > 50 ? 3 : 4;
+                    return recent.slice(-showCount).map((turn, i, arr) => {
                     const isLatest = i === arr.length - 1;
                     const fadeLevel = isLatest ? 1 : i === arr.length - 2 ? 0.6 : i === arr.length - 3 ? 0.35 : 0.15;
                     return (
