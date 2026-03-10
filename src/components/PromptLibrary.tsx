@@ -164,7 +164,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
   const tabs = [
     { id: 'smart' as TabType, label: 'Smart', icon: Brain },
     { id: 'chat' as TabType, label: 'Chat', icon: MessageCircle },
-    { id: 'create' as TabType, label: 'Create', icon: Sparkles },
+    { id: 'create' as TabType, label: 'Create', icon: Lightbulb },
     { id: 'write' as TabType, label: 'Write', icon: PenTool },
     { id: 'code' as TabType, label: 'Code', icon: Code },
   ];
