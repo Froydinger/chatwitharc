@@ -405,7 +405,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                             scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
                           }}
                         >
-                          <Sparkles className="h-10 w-10 text-primary" />
+                          <Lightbulb className="h-10 w-10 text-primary" />
                         </motion.div>
                         <p className="text-sm text-muted-foreground font-medium">
                           {activeTab === 'smart'
