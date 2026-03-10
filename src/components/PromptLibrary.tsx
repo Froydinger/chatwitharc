@@ -252,7 +252,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                     }}
                     className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center"
                   >
-                    <Sparkles className="h-5 w-5 text-primary" />
+                    <Lightbulb className="h-5 w-5 text-primary" />
                   </motion.div>
                   <div>
                     <motion.h3
