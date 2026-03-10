@@ -143,6 +143,24 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
       setProjectVersions(prev => [...prev.slice(-19), newVersion]);
       lastSavedFilesRef.current = filesJson;
       setSyncStatus('saved');
+
+      // Update the IDE message in chat with projectId and file count
+      const fileCount = Object.keys(files).length;
+      const pid = projectIdRef.current;
+      if (pid) {
+        const arcState = useArcStore.getState();
+        const ideMsg = arcState.messages.find(m => m.type === 'ide');
+        if (ideMsg) {
+          // Directly update the message in the store
+          useArcStore.setState(state => ({
+            messages: state.messages.map(m =>
+              m.type === 'ide' && m.id === ideMsg.id
+                ? { ...m, ideProjectId: pid, ideFileCount: fileCount }
+                : m
+            ),
+          }));
+        }
+      }
     } catch (err) {
       console.error('Failed to save project:', err);
       setSyncStatus('error');
