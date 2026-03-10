@@ -53,7 +53,7 @@ export function IDEChatPanel({ messages, liveActions, isLoading, generatingId, o
       {/* Header */}
       <div className="px-4 py-3 border-b border-border/30 flex items-center gap-3 shrink-0">
         <div className="relative">
-          <ThemedLogo size={28} className="rounded-lg" />
+          <ThemedLogo className="rounded-lg w-7 h-7" />
         </div>
         <div className="flex-1">
           <h2 className="font-semibold text-sm leading-none">Arc Builder</h2>
