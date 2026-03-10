@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useArcStore } from '@/store/useArcStore';
-import { ArrowLeft, Code2, Eye, Download, Copy, Check, MessageSquare, Sparkles, Save, Cloud, CloudOff, History, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Code2, Eye, Download, Copy, Check, MessageSquare, Sparkles } from 'lucide-react';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -17,12 +16,6 @@ import { getModelForTask } from '@/store/useModelStore';
 import { supabase } from '@/integrations/supabase/client';
 import type { VirtualFileSystem, AgentAction } from '@/types/ide';
 import { DEFAULT_FILES } from '@/types/ide';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 interface ChatMessage {
   id: string;
@@ -32,19 +25,12 @@ interface ChatMessage {
   agentActions?: AgentAction[];
 }
 
-interface ProjectVersion {
-  id: string;
-  files: VirtualFileSystem;
-  timestamp: number;
-  label: string;
-}
-
 interface IDECanvasPanelProps {
   className?: string;
 }
 
 export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
-  const { ideFiles, idePrompt, ideProjectId, setIdeFiles, closeCanvas, setIdeIsRunning, setIdeActions, clearIdePrompt, setIdeProjectId } = useCanvasStore();
+  const { ideFiles, idePrompt, setIdeFiles, closeCanvas, setIdeIsRunning, setIdeActions, clearIdePrompt } = useCanvasStore();
   const [files, setFiles] = useState<VirtualFileSystem>(ideFiles || DEFAULT_FILES);
   const [selectedFile, setSelectedFile] = useState<string | null>('src/App.tsx');
   const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
@@ -54,14 +40,8 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
   const [liveActions, setLiveActions] = useState<AgentAction[]>([]);
   const [isAgentRunning, setIsAgentRunning] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
-  const [syncStatus, setSyncStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
-  const [projectVersions, setProjectVersions] = useState<ProjectVersion[]>([]);
-  const [showVersions, setShowVersions] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
-  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSavedFilesRef = useRef<string>('');
-  const projectIdRef = useRef<string | null>(ideProjectId);
 
   // Sync files to store
   useEffect(() => { setIdeFiles(files); }, [files, setIdeFiles]);
@@ -72,149 +52,6 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
       setFiles(ideFiles);
     }
   }, []);
-
-  // Track file changes for auto-save
-  useEffect(() => {
-    const currentHash = JSON.stringify(files);
-    if (currentHash !== lastSavedFilesRef.current && lastSavedFilesRef.current !== '') {
-      setSyncStatus('unsaved');
-      // Auto-save after 3 seconds of no changes
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-      autoSaveTimerRef.current = setTimeout(() => {
-        saveProject();
-      }, 3000);
-    }
-    return () => {
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    };
-  }, [files]);
-
-  // Save project to database
-  const saveProject = useCallback(async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
-
-      setSyncStatus('saving');
-      const filesJson = JSON.stringify(files);
-
-      // Create version snapshot
-      const newVersion: ProjectVersion = {
-        id: crypto.randomUUID(),
-        files: { ...files },
-        timestamp: Date.now(),
-        label: `v${projectVersions.length + 1}`,
-      };
-
-      if (projectIdRef.current) {
-        // Update existing project
-        const { error } = await supabase
-          .from('ide_projects')
-          .update({
-            files: files as any,
-            versions: [...projectVersions.slice(-19), newVersion] as any, // Keep last 20 versions
-            version: (projectVersions.length || 0) + 1,
-          })
-          .eq('id', projectIdRef.current);
-
-        if (error) throw error;
-      } else {
-        // Create new project
-        const firstPrompt = messages.find(m => m.role === 'user')?.content || 'Untitled Project';
-        const { data, error } = await supabase
-          .from('ide_projects')
-          .insert({
-            user_id: session.user.id,
-            title: firstPrompt.slice(0, 100),
-            prompt: firstPrompt,
-            files: files as any,
-            versions: [newVersion] as any,
-          })
-          .select('id')
-          .single();
-
-        if (error) throw error;
-        if (data) {
-          projectIdRef.current = data.id;
-          setIdeProjectId(data.id);
-        }
-      }
-
-      setProjectVersions(prev => [...prev.slice(-19), newVersion]);
-      lastSavedFilesRef.current = filesJson;
-      setSyncStatus('saved');
-
-      // Update the IDE message in chat with projectId and file count
-      const fileCount = Object.keys(files).length;
-      const pid = projectIdRef.current;
-      if (pid) {
-        const arcState = useArcStore.getState();
-        const ideMsg = arcState.messages.find(m => m.type === 'ide');
-        if (ideMsg) {
-          // Directly update the message in the store
-          useArcStore.setState(state => ({
-            messages: state.messages.map(m =>
-              m.type === 'ide' && m.id === ideMsg.id
-                ? { ...m, ideProjectId: pid, ideFileCount: fileCount }
-                : m
-            ),
-          }));
-        }
-      }
-    } catch (err) {
-      console.error('Failed to save project:', err);
-      setSyncStatus('error');
-    }
-  }, [files, messages, projectVersions, setIdeProjectId]);
-
-  // Load project from database on mount if we have a projectId
-  useEffect(() => {
-    if (ideProjectId) {
-      loadProject(ideProjectId);
-    } else {
-      lastSavedFilesRef.current = JSON.stringify(files);
-    }
-  }, []);
-
-  const loadProject = async (pid: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('ide_projects')
-        .select('*')
-        .eq('id', pid)
-        .single();
-
-      if (error) throw error;
-      if (data) {
-        const loadedFiles = data.files as unknown as VirtualFileSystem;
-        setFiles(loadedFiles);
-        lastSavedFilesRef.current = JSON.stringify(loadedFiles);
-        const loadedVersions = (data.versions as unknown as ProjectVersion[]) || [];
-        setProjectVersions(loadedVersions);
-        projectIdRef.current = pid;
-        setSyncStatus('saved');
-      }
-    } catch (err) {
-      console.error('Failed to load project:', err);
-    }
-  };
-
-  // Restore a version
-  const restoreVersion = useCallback((version: ProjectVersion) => {
-    setFiles(version.files);
-    setShowVersions(false);
-    toast({ title: `Restored ${version.label}` });
-  }, [toast]);
-
-  // Save on close
-  useEffect(() => {
-    return () => {
-      // Save when unmounting (closing IDE)
-      if (syncStatus === 'unsaved' && projectIdRef.current) {
-        saveProject();
-      }
-    };
-  }, [syncStatus, saveProject]);
 
   const runAgent = useCallback(async (prompt: string, chatHistory: ChatMessage[] = [], assistantId?: string) => {
     setIsAgentRunning(true);
@@ -258,10 +95,6 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
       setMessages(prev => prev.map(msg =>
         msg.id === aId ? { ...msg, content: result.summary || 'Done!', agentActions: result.actions || finalActions } : msg
       ));
-
-      // Auto-save after successful generation
-      setTimeout(() => saveProject(), 500);
-
       toast({ title: 'Files updated!' });
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Something went wrong';
@@ -273,13 +106,14 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
       setGeneratingId(null);
       setLiveActions([]);
     }
-  }, [files, toast, setIdeIsRunning, setIdeActions, saveProject]);
+  }, [files, toast, setIdeIsRunning, setIdeActions]);
 
-  // Auto-process initial prompt ONLY for new projects (idePrompt is set)
+  // Auto-process initial prompt
   useEffect(() => {
     const prompt = useCanvasStore.getState().idePrompt;
     if (prompt && !useCanvasStore.getState().ideIsRunning) {
       clearIdePrompt();
+      // Add user message
       const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: prompt, timestamp: Date.now() };
       const assistantId = crypto.randomUUID();
       setMessages([userMsg, { id: assistantId, role: 'assistant', content: '', timestamp: Date.now() }]);
@@ -325,30 +159,7 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     toast({ title: 'Project exported' });
   };
 
-  const handleClose = () => {
-    // Save before closing
-    if (syncStatus === 'unsaved') {
-      saveProject();
-    }
-    closeCanvas();
-  };
-
   const fileCount = Object.keys(files).length;
-
-  const SyncIndicator = () => (
-    <div className={cn(
-      "flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium transition-all",
-      syncStatus === 'saved' && "text-emerald-400 bg-emerald-500/10",
-      syncStatus === 'saving' && "text-primary bg-primary/10",
-      syncStatus === 'unsaved' && "text-amber-400 bg-amber-500/10",
-      syncStatus === 'error' && "text-destructive bg-destructive/10",
-    )}>
-      {syncStatus === 'saved' && <><Cloud className="w-3 h-3" /> Saved</>}
-      {syncStatus === 'saving' && <><Cloud className="w-3 h-3 animate-pulse" /> Saving...</>}
-      {syncStatus === 'unsaved' && <><CloudOff className="w-3 h-3" /> Unsaved</>}
-      {syncStatus === 'error' && <><CloudOff className="w-3 h-3" /> Error</>}
-    </div>
-  );
 
   const EditorArea = (
     <div className="flex h-full">
@@ -366,7 +177,7 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
       {/* Header */}
       <header className="h-auto min-h-[44px] px-2 sm:px-3 py-1.5 border-b border-border/30 flex flex-wrap items-center justify-between gap-1.5 shrink-0 bg-background/80 backdrop-blur-xl">
         <div className="flex items-center gap-1.5 min-w-0">
-          <Button variant="ghost" size="icon" onClick={handleClose} className="h-7 w-7 shrink-0">
+          <Button variant="ghost" size="icon" onClick={closeCanvas} className="h-7 w-7 shrink-0">
             <ArrowLeft className="h-3.5 w-3.5" />
           </Button>
           <div className="p-1.5 rounded-lg bg-primary/15">
@@ -382,52 +193,6 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <SyncIndicator />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => saveProject()}
-            disabled={syncStatus === 'saving' || syncStatus === 'saved'}
-            className="h-7 w-7 p-0 text-muted-foreground"
-            title="Save project"
-          >
-            <Save className="w-3.5 h-3.5" />
-          </Button>
-          {/* Version History */}
-          <DropdownMenu open={showVersions} onOpenChange={setShowVersions}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 text-muted-foreground"
-                title="Version history"
-                disabled={projectVersions.length === 0}
-              >
-                <History className="w-3.5 h-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 max-h-64 overflow-y-auto">
-              {projectVersions.length === 0 ? (
-                <div className="px-3 py-2 text-xs text-muted-foreground">No versions yet</div>
-              ) : (
-                [...projectVersions].reverse().map((v) => (
-                  <DropdownMenuItem
-                    key={v.id}
-                    onClick={() => restoreVersion(v)}
-                    className="flex items-center gap-2"
-                  >
-                    <RotateCcw className="w-3 h-3 text-muted-foreground" />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs font-medium">{v.label}</span>
-                      <span className="text-[10px] text-muted-foreground ml-2">
-                        {new Date(v.timestamp).toLocaleTimeString()}
-                      </span>
-                    </div>
-                  </DropdownMenuItem>
-                ))
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
           <Button variant="ghost" size="sm" onClick={handleCopyAll} className="h-7 w-7 p-0 text-muted-foreground">
             {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
           </Button>

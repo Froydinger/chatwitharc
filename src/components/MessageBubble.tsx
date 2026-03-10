@@ -308,7 +308,6 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   <IDEArtifactCard
                     prompt={message.idePrompt}
                     fileCount={message.ideFileCount}
-                    projectId={message.ideProjectId}
                     className="max-w-md"
                   />
                 </motion.div>
