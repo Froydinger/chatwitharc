@@ -1675,7 +1675,7 @@ ${existingCode}
                         )}
                       >
                         {item.icon}
-                        <span className="text-foreground/80">{item.label}</span>
+                        {item.hideLabel ? null : <span className="text-foreground/80">{item.label}</span>}
                       </motion.button>
                     ))}
                   </motion.div>
