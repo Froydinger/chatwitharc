@@ -118,7 +118,7 @@ serve(async (req) => {
     }
 
     // --- Connect to OpenAI Realtime API ---
-    const model = 'gpt-4o-realtime-preview-2025-06-03';
+    const model = 'gpt-realtime-1.5';
     const openaiUrl = `wss://api.openai.com/v1/realtime?model=${model}`;
 
     try {
