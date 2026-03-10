@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ChevronLeft, Code2, Eye, Download, Loader2, Sparkles, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,8 +28,6 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
   const [copied, setCopied] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
-  const initialPromptProcessed = useRef(false);
-
   // Sync files to store when they change
   useEffect(() => { setIdeFiles(files); }, [files, setIdeFiles]);
 
@@ -40,14 +38,16 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     }
   }, []);
 
-  // Auto-process initial prompt
+  // Auto-process initial prompt — grab and clear atomically to prevent
+  // double-fires from React strict-mode remounts
   useEffect(() => {
-    if (idePrompt && !initialPromptProcessed.current && !ideIsRunning) {
-      initialPromptProcessed.current = true;
-      runAgent(idePrompt);
-      clearIdePrompt();
+    const prompt = useCanvasStore.getState().idePrompt;
+    if (prompt && !useCanvasStore.getState().ideIsRunning) {
+      clearIdePrompt(); // clear first so remount won't re-trigger
+      runAgent(prompt);
     }
-  }, [idePrompt]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const runAgent = useCallback(async (prompt: string) => {
     setIdeIsRunning(true);
