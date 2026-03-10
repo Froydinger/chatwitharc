@@ -375,7 +375,8 @@ export class AIService {
         forceCode,
         forceWebSearch,
         sessionId,
-        stream: true
+        stream: true,
+        useProModel: isComplex || false
       }),
       signal: abortSignal, // Allow cancellation
     });
