@@ -1517,142 +1517,51 @@ ${existingCode}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 6, scale: 0.97 }}
               transition={{ type: "spring", damping: 30, stiffness: 700, mass: 0.25 }}
-              className="fixed z-[9999] flex items-center justify-center px-4"
+              className={cn(
+                "fixed z-[9999] flex items-center justify-center px-4",
+                rightPanelOpen && "lg:mr-80 xl:mr-96"
+              )}
               style={{
                 bottom: "calc(100px + env(safe-area-inset-bottom, 0px))",
                 left: 0,
                 right: 0,
               }}
             >
-              {/* Glassy container matching star menu aesthetic */}
-              <div className="relative flex flex-wrap items-center justify-center gap-2 sm:gap-3 py-4 px-4 max-w-[280px] sm:max-w-none">
-                {/* Research Mode */}
+              {/* Compact inline pill bar */}
+              <div className="relative flex items-center gap-1.5 py-2 px-3 rounded-full glass-shimmer ring-[0.5px] ring-border/40 !shadow-[0_8px_32px_rgba(0,0,0,.3)] backdrop-blur-xl">
+                {[
+                  { label: "Research", icon: <Search className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setInputValue(""); openSearchMode(); textareaRef.current?.focus(); } },
+                  { label: "Image", icon: <ImagePlus className="h-3.5 w-3.5" />, color: "text-green-400", action: () => { setInputValue("image/"); textareaRef.current?.focus(); } },
+                  { label: "Code", icon: <Code2 className="h-3.5 w-3.5" />, color: "text-blue-400", action: () => { setInputValue("code/"); textareaRef.current?.focus(); } },
+                  { label: "Write", icon: <PenLine className="h-3.5 w-3.5" />, color: "text-purple-400", action: () => { setForceCanvasMode(true); setInputValue("write/ "); textareaRef.current?.focus(); } },
+                  { label: "Search", icon: <Globe className="h-3.5 w-3.5" />, color: "text-cyan-400", action: () => { setInputValue("search/"); textareaRef.current?.focus(); } },
+                ].map((item, i) => (
+                  <motion.button
+                    key={item.label}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.02, type: "spring", damping: 25, stiffness: 500 }}
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); item.action(); }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium",
+                      "hover:bg-white/10 active:scale-95 transition-all",
+                      item.color
+                    )}
+                  >
+                    {item.icon}
+                    <span className="text-foreground/80">{item.label}</span>
+                  </motion.button>
+                ))}
                 <motion.button
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                  transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.1, type: "spring", damping: 25, stiffness: 500 }}
                   type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setInputValue("");
-                    openSearchMode();
-                    textareaRef.current?.focus();
-                  }}
-                  className="group rounded-2xl glass-shimmer ring-[0.5px] ring-orange-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(249,115,22,.2)]"
+                  onMouseDown={(e) => { e.preventDefault(); setInputValue(""); textareaRef.current?.focus(); }}
+                  className="flex items-center justify-center h-7 w-7 rounded-full hover:bg-white/10 active:scale-95 transition-all text-muted-foreground"
                 >
-                  <div className="flex flex-col items-center justify-center gap-1.5 h-full">
-                    <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-orange-500/15 glass-shimmer ring-[0.5px] ring-orange-500/40">
-                      <Search className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" fill="currentColor" strokeWidth={1.5} />
-                    </span>
-                    <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">Research</span>
-                  </div>
-                </motion.button>
-
-                {/* Image Mode */}
-                <motion.button
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                  transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.02 }}
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setInputValue("image/");
-                    textareaRef.current?.focus();
-                  }}
-                  className="group rounded-2xl glass-shimmer ring-[0.5px] ring-green-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(34,197,94,.2)]"
-                >
-                  <div className="flex flex-col items-center justify-center gap-1.5 h-full">
-                    <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-green-500/15 glass-shimmer ring-[0.5px] ring-green-500/40">
-                      <ImagePlus className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
-                    </span>
-                    <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">image/</span>
-                  </div>
-                </motion.button>
-
-                {/* Code Mode */}
-                <motion.button
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                  transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.04 }}
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setInputValue("code/");
-                    textareaRef.current?.focus();
-                  }}
-                  className="group rounded-2xl glass-shimmer ring-[0.5px] ring-blue-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(59,130,246,.2)]"
-                >
-                  <div className="flex flex-col items-center justify-center gap-1.5 h-full">
-                    <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-blue-500/15 glass-shimmer ring-[0.5px] ring-blue-500/40">
-                      <Code2 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
-                    </span>
-                    <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">code/</span>
-                  </div>
-                </motion.button>
-
-                {/* Write Mode */}
-                <motion.button
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                  transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.06 }}
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setForceCanvasMode(true);
-                    setInputValue("write/ ");
-                    textareaRef.current?.focus();
-                  }}
-                  className="group rounded-2xl glass-shimmer ring-[0.5px] ring-purple-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(168,85,247,.2)]"
-                >
-                  <div className="flex flex-col items-center justify-center gap-1.5 h-full">
-                    <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-purple-500/15 glass-shimmer ring-[0.5px] ring-purple-500/40">
-                      <PenLine className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
-                    </span>
-                    <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">write/</span>
-                  </div>
-                </motion.button>
-
-                {/* Search Mode */}
-                <motion.button
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                  transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.08 }}
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setInputValue("search/");
-                    textareaRef.current?.focus();
-                  }}
-                  className="group rounded-2xl glass-shimmer ring-[0.5px] ring-cyan-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(6,182,212,.2)]"
-                >
-                  <div className="flex flex-col items-center justify-center gap-1.5 h-full">
-                    <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-cyan-500/15 glass-shimmer ring-[0.5px] ring-cyan-500/40">
-                      <Globe className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-400" />
-                    </span>
-                    <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">search/</span>
-                  </div>
-                </motion.button>
-
-                {/* Dismiss */}
-                <motion.button
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                  transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.1 }}
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setInputValue("");
-                    textareaRef.current?.focus();
-                  }}
-                  className="rounded-full glass-shimmer ring-[0.5px] ring-border/60 h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform text-muted-foreground hover:text-foreground !shadow-[0_8px_32px_rgba(0,0,0,.25)]"
-                >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                 </motion.button>
               </div>
             </motion.div>
