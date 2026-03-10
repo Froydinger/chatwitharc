@@ -67,6 +67,11 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     closeCanvas,
   } = useCanvasStore();
 
+  // If IDE mode, render the full IDE panel instead
+  if (canvasType === 'ide') {
+    return <IDECanvasPanel className={className} />;
+  }
+
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
