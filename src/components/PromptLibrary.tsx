@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MessageCircle, Sparkles, PenTool, Code, Brain, RefreshCw } from "lucide-react";
+import { X, MessageCircle, Lightbulb, PenTool, Code, Brain, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
@@ -164,7 +164,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
   const tabs = [
     { id: 'smart' as TabType, label: 'Smart', icon: Brain },
     { id: 'chat' as TabType, label: 'Chat', icon: MessageCircle },
-    { id: 'create' as TabType, label: 'Create', icon: Sparkles },
+    { id: 'create' as TabType, label: 'Create', icon: Lightbulb },
     { id: 'write' as TabType, label: 'Write', icon: PenTool },
     { id: 'code' as TabType, label: 'Code', icon: Code },
   ];
@@ -252,7 +252,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                     }}
                     className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center"
                   >
-                    <Sparkles className="h-5 w-5 text-primary" />
+                    <Lightbulb className="h-5 w-5 text-primary" />
                   </motion.div>
                   <div>
                     <motion.h3
@@ -261,7 +261,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                       transition={{ delay: 0.08, duration: 0.2 }}
                       className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent"
                     >
-                      Prompt Library
+                      Ideas
                     </motion.h3>
                     <motion.p
                       initial={{ opacity: 0, x: -10 }}
@@ -405,7 +405,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                             scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
                           }}
                         >
-                          <Sparkles className="h-10 w-10 text-primary" />
+                          <Lightbulb className="h-10 w-10 text-primary" />
                         </motion.div>
                         <p className="text-sm text-muted-foreground font-medium">
                           {activeTab === 'smart'
