@@ -796,7 +796,8 @@ export function VoiceModeOverlay() {
                         </div>
                       </motion.div>
                     );
-                  })}
+                  });
+                  })()}
                 </AnimatePresence>
               </div>
 
