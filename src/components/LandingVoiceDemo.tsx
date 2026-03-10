@@ -174,7 +174,7 @@ export function LandingVoiceDemo() {
             </div>
 
             {/* Conversation transcript */}
-            <div className="px-5 pb-4 space-y-3 h-[180px] overflow-hidden">
+            <div className="px-5 pb-4 space-y-3 flex-1 overflow-hidden">
               {CONVERSATION.slice(0, Math.max(0, activeStep + 1)).map((msg, i) => (
                 <motion.div
                   key={`${i}-${activeStep}`}
