@@ -1645,94 +1645,36 @@ ${existingCode}
               >
                 <div
                   className={cn(
-                    "max-w-4xl mx-auto pointer-events-auto",
+                    "flex items-center justify-center pointer-events-auto",
                     "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
                     rightPanelOpen && "lg:mr-80 xl:mr-96"
                   )}
                 >
-                  <div className="px-4">
-                    {/* Glassy horizontal card layout - matching slash picker */}
-                    <div className="relative flex items-center justify-center gap-2 sm:gap-3 py-2">
-                      {/* Quick Prompts */}
+                  {/* Compact inline pill bar - matching slash picker */}
+                  <div className="relative flex items-center gap-1.5 py-2 px-3 rounded-full glass-shimmer ring-[0.5px] ring-border/40 !shadow-[0_8px_32px_rgba(0,0,0,.3)] backdrop-blur-xl">
+                    {[
+                      { label: "Prompts", icon: <Sparkles className="h-3.5 w-3.5" />, color: "text-violet-400", action: () => { setShowMenu(false); setShowPromptLibrary(true); } },
+                      { label: "Research", icon: <Search className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setShowMenu(false); openSearchMode(); } },
+                      { label: "Image", icon: <ImagePlus className="h-3.5 w-3.5" />, color: "text-green-400", action: () => { setForceImageMode(true); setShowMenu(false); } },
+                      { label: "Attach", icon: <Paperclip className="h-3.5 w-3.5" />, color: "text-blue-400", action: () => { setShowMenu(false); fileInputRef.current?.click(); } },
+                    ].map((item, i) => (
                       <motion.button
-                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                        transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0 }}
-                        onClick={() => {
-                          setShowMenu(false);
-                          setShowPromptLibrary(true);
-                        }}
-                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-violet-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(139,92,246,.2)]"
+                        key={item.label}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ delay: i * 0.02, type: "spring", damping: 25, stiffness: 500 }}
+                        onClick={item.action}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium",
+                          "hover:bg-white/10 active:scale-95 transition-all",
+                          item.color
+                        )}
                       >
-                        <div className="flex flex-col items-center justify-center gap-1.5 h-full">
-                          <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-violet-500/15 glass-shimmer ring-[0.5px] ring-violet-500/40">
-                            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-violet-500" />
-                          </span>
-                          <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">Prompts</span>
-                        </div>
+                        {item.icon}
+                        <span className="text-foreground/80">{item.label}</span>
                       </motion.button>
-
-                      {/* Research Mode */}
-                      <motion.button
-                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                        transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.02 }}
-                        onClick={() => {
-                          setShowMenu(false);
-                          openSearchMode();
-                        }}
-                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-orange-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(249,115,22,.2)]"
-                      >
-                        <div className="flex flex-col items-center justify-center gap-1.5 h-full">
-                          <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-orange-500/15 glass-shimmer ring-[0.5px] ring-orange-500/40">
-                            <Search className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" fill="currentColor" strokeWidth={1.5} />
-                          </span>
-                          <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">Research</span>
-                        </div>
-                      </motion.button>
-
-                      {/* Generate Image */}
-                      <motion.button
-                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                        transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.04 }}
-                        onClick={() => {
-                          setForceImageMode(true);
-                          setShowMenu(false);
-                        }}
-                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-green-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(34,197,94,.2)]"
-                      >
-                        <div className="flex flex-col items-center justify-center gap-1.5 h-full">
-                          <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-green-500/15 glass-shimmer ring-[0.5px] ring-green-500/40">
-                            <ImagePlus className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
-                          </span>
-                          <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">Image</span>
-                        </div>
-                      </motion.button>
-
-                      {/* Attach */}
-                      <motion.button
-                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                        transition={{ type: "spring", damping: 28, stiffness: 700, mass: 0.25, delay: 0.06 }}
-                        onClick={() => {
-                          setShowMenu(false);
-                          fileInputRef.current?.click();
-                        }}
-                        className="group rounded-2xl glass-shimmer ring-[0.5px] ring-blue-500/60 p-3 sm:p-4 hover:scale-105 active:scale-95 transition-transform w-16 h-20 sm:w-20 sm:h-24 !shadow-[0_8px_32px_rgba(0,0,0,.25),0_0_16px_rgba(59,130,246,.2)]"
-                      >
-                        <div className="flex flex-col items-center justify-center gap-1.5 h-full">
-                          <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-blue-500/15 glass-shimmer ring-[0.5px] ring-blue-500/40">
-                            <Paperclip className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
-                          </span>
-                          <span className="text-[9px] sm:text-xs font-semibold text-foreground/90">Attach</span>
-                        </div>
-                      </motion.button>
-                    </div>
+                    ))}
                   </div>
                 </div>
               </div>
