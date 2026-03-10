@@ -87,8 +87,12 @@ function checkForImageRequest(message: string): boolean {
   // Support both prefix/ and /prefix syntax
   if (/^(image|draw|create)\//.test(m) || /^\/(image|draw|create)\b/.test(m)) return true;
   // Natural language detection for image generation requests
-  if (/^(generate|create|make|draw|paint|design|render|produce|visualize|show\s+me|give\s+me)\s+(an?\s+)?(image|picture|photo|illustration|artwork|graphic|icon|logo|wallpaper|poster|banner|thumbnail)/i.test(m)) return true;
-  if (/\b(generate|create|make|draw|paint)\s+(an?\s+)?(image|picture|photo|illustration)\b/i.test(m) && m.length < 200) return true;
+  // Supports: "generate an image of...", "draw me a cat", "make me a picture of...", "can you create an image of..."
+  if (/^(can\s+you\s+)?(please\s+)?(generate|create|make|draw|paint|design|render|produce|visualize|show\s+me|give\s+me)\s+(me\s+)?(an?\s+)?(image|picture|photo|illustration|artwork|graphic|icon|logo|wallpaper|poster|banner|thumbnail)/i.test(m)) return true;
+  // "draw me a [subject]" or "paint me a [subject]" - drawing/painting implies visual
+  if (/^(can\s+you\s+)?(please\s+)?(draw|paint|sketch)\s+(me\s+)?(a|an|the|some)\s+/i.test(m)) return true;
+  // Broader match: verb + optional "me" + image word anywhere in short messages
+  if (/\b(generate|create|make|draw|paint)\s+(me\s+)?(an?\s+)?(image|picture|photo|illustration)\b/i.test(m) && m.length < 200) return true;
   return false;
 }
 

@@ -770,8 +770,8 @@ Output the complete, finished writing using the update_canvas tool.`;
     // Gemini: use gemini-3.1-pro-preview, GPT: use gpt-5.2
     if (wantsCode) {
       if (selectedModel.startsWith('google/')) {
-        selectedModel = 'google/gemini-3.1-pro-preview';
-        console.log('🔧 Code mode: using gemini-3.1-pro-preview');
+        selectedModel = 'google/gemini-3-flash-preview';
+        console.log('🔧 Code mode: using gemini-3-flash-preview');
       } else if (selectedModel.startsWith('openai/')) {
         selectedModel = 'openai/gpt-5.2';
         console.log('🔧 Code mode: upgraded GPT model to gpt-5.2');
