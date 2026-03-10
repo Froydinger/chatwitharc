@@ -352,7 +352,7 @@ serve(async (req) => {
       console.log('Authenticated user:', user.id);
     }
 
-    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream } = body;
+    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel } = body;
 
     console.log('📊 Request details:', {
       model: model || 'google/gemini-3-flash-preview (default)',

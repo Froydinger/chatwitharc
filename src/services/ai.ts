@@ -1,6 +1,40 @@
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask } from "@/store/useModelStore";
 
+// Detect if a user message warrants upgrading to a more powerful model
+export function detectComplexQuery(message: string): boolean {
+  if (!message) return false;
+  const lower = message.toLowerCase().trim();
+
+  // Long messages suggest complex requests
+  if (lower.length > 400) return true;
+
+  // Multi-part questions (numbered lists or multiple question marks)
+  const questionMarks = (lower.match(/\?/g) || []).length;
+  if (questionMarks >= 3) return true;
+  if (/(?:^|\n)\s*\d+[\.\)]\s/m.test(lower) && lower.length > 150) return true;
+
+  // Analysis / reasoning keywords
+  const analysisKeywords = [
+    'explain in detail', 'analyze', 'analyse', 'compare and contrast',
+    'step by step', 'in depth', 'in-depth', 'write me an essay',
+    'break down', 'pros and cons', 'comprehensive', 'thorough',
+    'detailed explanation', 'deep dive', 'elaborate on',
+    'critically evaluate', 'summarize the research', 'long-form',
+  ];
+  if (analysisKeywords.some(k => lower.includes(k))) return true;
+
+  // Code-related terms (without explicit /code prefix)
+  const codeKeywords = [
+    'debug this', 'refactor', 'implement a', 'algorithm for',
+    'function that', 'write a script', 'code review', 'optimize this code',
+    'build a component', 'create a class', 'data structure',
+  ];
+  if (codeKeywords.some(k => lower.includes(k))) return true;
+
+  return false;
+}
+
 interface AIMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
