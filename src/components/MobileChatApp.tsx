@@ -158,6 +158,7 @@ export function MobileChatApp() {
     openCanvas,
     hydrateFromSession,
     content: canvasContent,
+    canvasType,
   } = useCanvasStore();
 
   // If canvas is open on mobile, it fully takes over the UI
