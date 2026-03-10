@@ -229,7 +229,7 @@ function CodeCanvasCard({
       </div>
 
       {/* Content */}
-      <div className="min-h-[280px] relative">
+      <div className="h-[320px] relative overflow-hidden">
         <AnimatePresence mode="wait">
           {phase === "coding" ? (
             <motion.div
@@ -263,7 +263,7 @@ function CodeCanvasCard({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
-              className="px-6 py-8 flex flex-col items-center justify-center text-center min-h-[280px]"
+              className="px-6 py-8 flex flex-col items-center justify-center text-center h-[320px]"
             >
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
@@ -352,7 +352,7 @@ function WritingCanvasCard({
       </div>
 
       {/* Content */}
-      <div className="min-h-[280px] relative px-8 py-6">
+      <div className="h-[320px] relative overflow-hidden px-8 py-6">
         <div className="space-y-0">
           {POEM_LINES.slice(0, poemLines).map((line, i) => (
             <motion.p
