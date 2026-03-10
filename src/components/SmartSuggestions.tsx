@@ -79,7 +79,7 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
           onClick={onShowMore}
           className="text-muted-foreground hover:text-foreground gap-2"
         >
-        <Sparkles className="h-4 w-4" />
+        <Lightbulb className="h-4 w-4" />
           Quick Ideas
         </Button>
       </motion.div>
