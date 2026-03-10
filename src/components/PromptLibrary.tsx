@@ -261,7 +261,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                       transition={{ delay: 0.08, duration: 0.2 }}
                       className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent"
                     >
-                      Prompt Library
+                      Ideas
                     </motion.h3>
                     <motion.p
                       initial={{ opacity: 0, x: -10 }}
