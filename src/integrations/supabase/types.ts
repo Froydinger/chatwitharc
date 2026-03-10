@@ -167,6 +167,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ide_projects: {
+        Row: {
+          created_at: string
+          files: Json
+          id: string
+          prompt: string
+          title: string
+          updated_at: string
+          user_id: string
+          version: number
+          versions: Json
+        }
+        Insert: {
+          created_at?: string
+          files?: Json
+          id?: string
+          prompt?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+          version?: number
+          versions?: Json
+        }
+        Update: {
+          created_at?: string
+          files?: Json
+          id?: string
+          prompt?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+          versions?: Json
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           accent_color: string | null
