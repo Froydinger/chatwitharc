@@ -1113,10 +1113,9 @@ ${existingCode}
         if (shouldForceCode && isCodingRequest) {
           // IDE MODE - open the full IDE canvas for /code prefix requests
           const { openIDECanvas } = useCanvasStore.getState();
-          const cleanedPrompt = rawMessage.replace(/^(code\/|\/code)\s*/i, '').trim();
-          openIDECanvas(cleanedPrompt || rawMessage);
+          const idePrompt = (cleanedMessage || userMessage).replace(/^(code\/|\/code)\s*/i, '').trim();
+          openIDECanvas(idePrompt || userMessage);
           
-          // Add assistant message acknowledging IDE mode
           const ideMsg = {
             id: crypto.randomUUID(),
             role: 'assistant' as const,
@@ -1125,7 +1124,7 @@ ${existingCode}
             type: 'text' as const,
           };
           addMessage(ideMsg);
-          setIsGenerating(false);
+          setGenerating(false);
           return;
         }
         
