@@ -1124,7 +1124,7 @@ ${existingCode}
             type: 'text' as const,
           };
           addMessage(ideMsg);
-          setGenerating(false);
+          setLoading(false);
           return;
         }
         
