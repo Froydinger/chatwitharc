@@ -79,6 +79,7 @@ export interface Message {
   codeLabel?: string; // AI-generated label for code
   idePrompt?: string; // For IDE app builder artifacts
   ideFileCount?: number; // Number of files generated
+  ideProjectId?: string; // Database project ID for cloud persistence
   memoryAction?: MemoryAction; // Track memory/search actions
 }
 
