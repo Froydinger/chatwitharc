@@ -344,7 +344,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
   // Tiles menu
   const [showMenu, setShowMenu] = useState(false);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
+   const menuButtonRef = useRef<HTMLButtonElement>(null);
+   const inputBarRef = useRef<HTMLDivElement>(null);
   const modelLabelTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Prompt library
@@ -1400,7 +1401,7 @@ ${existingCode}
         )}
 
       {/* Input Row */}
-      <div className="chat-input-halo flex items-center gap-3 rounded-full">
+      <div ref={inputBarRef} className="chat-input-halo flex items-center gap-3 rounded-full">
         {/* LEFT BUTTON — Image/Code/Canvas mode indicator or + menu */}
         <button
           ref={menuButtonRef}
@@ -1637,15 +1638,16 @@ ${existingCode}
       {portalRoot &&
         createPortal(
           <AnimatePresence>
-            {showMenu && (() => {
-              const rect = menuButtonRef.current?.getBoundingClientRect();
-              const left = rect ? rect.left + rect.width / 2 : 0;
-              const bottom = rect ? window.innerHeight - rect.top + 8 : 90;
-              return (
-                <div
-                  className="fixed z-[35] pointer-events-auto ci-tiles"
-                  style={{ left, bottom, transform: "translateX(-50%)" }}
-                >
+             {showMenu && (() => {
+               const barRect = inputBarRef.current?.getBoundingClientRect();
+               const btnRect = menuButtonRef.current?.getBoundingClientRect();
+               const left = barRect ? barRect.left : 0;
+               const bottom = btnRect ? window.innerHeight - btnRect.top + 8 : 90;
+               return (
+                 <div
+                   className="fixed z-[35] pointer-events-auto ci-tiles"
+                   style={{ left, bottom }}
+                 >
                   <motion.div
                     initial={{ opacity: 0, y: 8, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
