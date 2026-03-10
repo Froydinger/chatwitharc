@@ -1127,7 +1127,9 @@ ${existingCode}
             role: 'assistant' as const,
             content: `🛠️ Opening App Builder to create your project...`,
             timestamp: Date.now(),
-            type: 'text' as const,
+            type: 'ide' as const,
+            idePrompt: idePrompt || userMessage,
+            ideFileCount: 0,
           };
           addMessage(ideMsg);
           setLoading(false);
