@@ -64,7 +64,7 @@ export interface Message {
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
-  type: 'text' | 'image' | 'image-generating' | 'file' | 'canvas' | 'code';
+  type: 'text' | 'image' | 'image-generating' | 'file' | 'canvas' | 'code' | 'ide';
   imageUrl?: string;
   imageUrls?: string[]; // Support for multiple images
   imagePrompt?: string; // For image generation placeholders
@@ -77,6 +77,8 @@ export interface Message {
   codeContent?: string; // For code artifacts
   codeLanguage?: string; // Programming language
   codeLabel?: string; // AI-generated label for code
+  idePrompt?: string; // For IDE app builder artifacts
+  ideFileCount?: number; // Number of files generated
   memoryAction?: MemoryAction; // Track memory/search actions
 }
 
