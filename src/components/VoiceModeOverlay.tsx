@@ -768,7 +768,7 @@ export function VoiceModeOverlay() {
               </AnimatePresence>
 
               {/* Conversation Transcript - adaptive count based on message length */}
-              <div className="w-full max-w-sm mb-4 max-h-[35vh] overflow-hidden flex flex-col justify-end">
+              <div className="w-full max-w-sm mb-4 h-[35vh] overflow-hidden flex flex-col justify-end">
                 <AnimatePresence initial={false}>
                   {(() => {
                     // Show fewer messages when they're long to avoid clipping
