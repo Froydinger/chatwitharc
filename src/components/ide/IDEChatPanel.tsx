@@ -101,7 +101,7 @@ export function IDEChatPanel({ messages, liveActions, isLoading, generatingId, o
                     <User className="h-3 w-3 text-muted-foreground" />
                   </div>
                 ) : (
-                  <ThemedLogo size={24} className="rounded-md shrink-0 mt-0.5" />
+                  <ThemedLogo className="rounded-md shrink-0 mt-0.5 w-6 h-6" />
                 )}
                 <div className="flex flex-col gap-1 min-w-0 flex-1 overflow-hidden">
                   <div className={cn(
