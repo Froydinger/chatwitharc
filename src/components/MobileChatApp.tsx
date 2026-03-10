@@ -1116,6 +1116,21 @@ export function MobileChatApp() {
         )}
       </AnimatePresence>
 
+      {/* IDE Mode - Full Screen Takeover (all devices, like Maestro) */}
+      <AnimatePresence>
+        {isIDEOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="fixed inset-0 z-[100] bg-background"
+          >
+            <IDECanvasPanel />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Scoped styles */}
       <style>{`
         /* Avatar progressive reveal */
