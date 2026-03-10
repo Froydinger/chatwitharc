@@ -1633,27 +1633,26 @@ ${existingCode}
         )}
       </div>
 
-      {/* Tiles menu - bouncy popup above input */}
+      {/* Tiles menu - anchored above star button */}
       {portalRoot &&
         createPortal(
           <AnimatePresence>
-            {showMenu && (
-              <div
-                className={cn(
-                  "fixed bottom-0 left-0 right-0 z-[35] pointer-events-none",
-                  "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-                )}
-                style={{ paddingBottom: "calc(90px + env(safe-area-inset-bottom, 0px))" }}
-              >
+            {showMenu && (() => {
+              const rect = menuButtonRef.current?.getBoundingClientRect();
+              const left = rect ? rect.left + rect.width / 2 : 0;
+              const bottom = rect ? window.innerHeight - rect.top + 8 : 90;
+              return (
                 <div
-                  className={cn(
-                    "flex items-center justify-center pointer-events-auto",
-                    "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                    rightPanelOpen && "lg:mr-80 xl:mr-96"
-                  )}
+                  className="fixed z-[35] pointer-events-auto ci-tiles"
+                  style={{ left, bottom, transform: "translateX(-50%)" }}
                 >
-                  {/* Compact inline pill bar - matching slash picker */}
-                  <div className="relative flex items-center gap-1.5 py-2 px-3 rounded-full glass-shimmer ring-[0.5px] ring-border/40 !shadow-[0_8px_32px_rgba(0,0,0,.3)] backdrop-blur-xl">
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 500 }}
+                    className="relative flex items-center gap-1.5 py-2 px-3 rounded-full glass-shimmer ring-[0.5px] ring-border/40 !shadow-[0_8px_32px_rgba(0,0,0,.3)] backdrop-blur-xl"
+                  >
                     {[
                       { label: "Prompts", icon: <Sparkles className="h-3.5 w-3.5" />, color: "text-violet-400", action: () => { setShowMenu(false); setShowPromptLibrary(true); } },
                       { label: "Research", icon: <Search className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setShowMenu(false); openSearchMode(); } },
@@ -1677,10 +1676,10 @@ ${existingCode}
                         <span className="text-foreground/80">{item.label}</span>
                       </motion.button>
                     ))}
-                  </div>
+                  </motion.div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </AnimatePresence>,
           portalRoot,
         )}
