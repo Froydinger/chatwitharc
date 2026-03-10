@@ -196,7 +196,8 @@ export class AIService {
                 sessionId: sessionId,
                 forceWebSearch: forceWebSearch || false,
                 forceCanvas: forceCanvas || false,
-                forceCode: forceCode || false
+                forceCode: forceCode || false,
+                useProModel: isComplex || false
               }
             }),
             timeoutMs
