@@ -161,8 +161,10 @@ export function MobileChatApp() {
     canvasType,
   } = useCanvasStore();
 
-  // If canvas is open on mobile, it fully takes over the UI
-  const isCanvasOverlayActive = isMobile && isCanvasOpen;
+  // IDE mode is full-screen, not a side panel
+  const isIDEOpen = isCanvasOpen && canvasType === 'ide';
+  // If canvas is open on mobile, it fully takes over the UI (but not IDE - that's its own overlay)
+  const isCanvasOverlayActive = isMobile && isCanvasOpen && !isIDEOpen;
 
   // Search mode state
   const { isOpen: isSearchOpen, closeSearch } = useSearchStore();
