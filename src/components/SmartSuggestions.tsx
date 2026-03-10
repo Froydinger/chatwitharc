@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { slideUpVariants, staggerContainerVariants, staggerItemVariants, ANIMATION_DURATION, STAGGER, createHoverVariants, createTapVariants } from "@/utils/animations";
 
@@ -79,7 +79,7 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
           onClick={onShowMore}
           className="text-muted-foreground hover:text-foreground gap-2"
         >
-        <Sparkles className="h-4 w-4" />
+        <Lightbulb className="h-4 w-4" />
           Quick Ideas
         </Button>
       </motion.div>
