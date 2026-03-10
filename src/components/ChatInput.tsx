@@ -1653,7 +1653,7 @@ ${existingCode}
                      animate={{ opacity: 1, y: 0, scale: 1 }}
                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
                      transition={{ type: "spring", damping: 25, stiffness: 500 }}
-                     className="relative flex flex-wrap items-center gap-1.5 py-2 px-3 rounded-2xl glass-shimmer ring-[0.5px] ring-border/40 !shadow-[0_8px_32px_rgba(0,0,0,.3)] backdrop-blur-xl max-w-[calc(100vw-32px)]"
+                     className="relative flex flex-wrap items-center justify-center gap-1.5 py-2 px-3 rounded-2xl glass-shimmer ring-[0.5px] ring-border/40 !shadow-[0_8px_32px_rgba(0,0,0,.3)] backdrop-blur-xl max-w-[calc(100vw-32px)]"
                   >
                     {[
                       { label: "Prompts", icon: <Sparkles className="h-3.5 w-3.5" />, color: "text-violet-400", action: () => { setShowMenu(false); setShowPromptLibrary(true); } },
