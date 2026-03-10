@@ -229,7 +229,7 @@ function CodeCanvasCard({
       </div>
 
       {/* Content */}
-      <div className="min-h-[280px] relative">
+      <div className="h-[320px] relative overflow-hidden">
         <AnimatePresence mode="wait">
           {phase === "coding" ? (
             <motion.div
