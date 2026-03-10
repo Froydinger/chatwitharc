@@ -320,9 +320,14 @@ export class AIService {
     }
 
     // Model routing based on user's model family preference
+    const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
+    const isComplex = !(forceCanvas || forceCode) && detectComplexQuery(lastUserMsg);
+    
     const selectedModel = (forceCanvas || forceCode) 
       ? getModelForTask('code')
-      : getModelForTask('chat');
+      : isComplex
+        ? getModelForTask('deep-chat')
+        : getModelForTask('chat');
 
     // Enrich profile with context blocks (same as sendMessage)
     let enrichedProfile = profile || {};
