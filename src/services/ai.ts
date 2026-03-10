@@ -159,16 +159,25 @@ export class AIService {
 
       // Model routing based on user's model family preference
       const isCanvasOrCode = forceCanvas || forceCode;
+      
+      // Check if the last user message warrants a model upgrade
+      const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
+      const isComplex = !isCanvasOrCode && detectComplexQuery(lastUserMsg);
+      
       const selectedModel = isCanvasOrCode
         ? getModelForTask('code')
-        : getModelForTask('chat');
+        : isComplex
+          ? getModelForTask('deep-chat')
+          : getModelForTask('chat');
 
-      // Use longer timeout for canvas/code generation (especially with Gemini 3 Pro)
-      const timeoutMs = isCanvasOrCode ? this.canvasTimeoutMs : this.defaultTimeoutMs;
+      // Use longer timeout for canvas/code generation or complex queries (especially with 3.1 Pro)
+      const timeoutMs = (isCanvasOrCode || isComplex) ? this.canvasTimeoutMs : this.defaultTimeoutMs;
 
       console.log('🤖 AI Model Selection:', {
-        selectedModel: selectedModel,
+        selectedModel,
         isCanvasOrCode,
+        isComplex,
+        reason: isCanvasOrCode ? 'canvas/code mode' : isComplex ? 'complex query detected' : 'regular chat',
         timeoutMs
       });
 
