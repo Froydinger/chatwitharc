@@ -166,9 +166,11 @@ export class AIService {
       
       const selectedModel = isCanvasOrCode
         ? getModelForTask('code')
-        : isComplex
-          ? getModelForTask('deep-chat')
-          : getModelForTask('chat');
+        : forceWebSearch
+          ? getModelForTask('chat')
+          : isComplex
+            ? getModelForTask('deep-chat')
+            : getModelForTask('chat');
 
       // Use longer timeout for canvas/code generation or complex queries (especially with 3.1 Pro)
       const timeoutMs = (isCanvasOrCode || isComplex) ? this.canvasTimeoutMs : this.defaultTimeoutMs;
@@ -325,9 +327,11 @@ export class AIService {
     
     const selectedModel = (forceCanvas || forceCode) 
       ? getModelForTask('code')
-      : isComplex
-        ? getModelForTask('deep-chat')
-        : getModelForTask('chat');
+      : forceWebSearch
+        ? getModelForTask('chat')
+        : isComplex
+          ? getModelForTask('deep-chat')
+          : getModelForTask('chat');
 
     // Enrich profile with context blocks (same as sendMessage)
     let enrichedProfile = profile || {};
