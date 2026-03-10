@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { VirtualFileSystem, AgentAction } from '@/types/ide';
 
 export interface CanvasVersion {
   id: string;
@@ -7,7 +8,7 @@ export interface CanvasVersion {
   label?: string;
 }
 
-export type CanvasType = 'writing' | 'code';
+export type CanvasType = 'writing' | 'code' | 'ide';
 
 interface CanvasState {
   isOpen: boolean;
@@ -18,7 +19,7 @@ interface CanvasState {
   redoStack: string[];
   isSaving: boolean;
   isAIWriting: boolean;
-  isLoading: boolean; // Loading state for non-streaming generation
+  isLoading: boolean;
   mode: 'standalone' | 'sideBySide';
   pendingPrompt: string | null;
   
@@ -27,6 +28,12 @@ interface CanvasState {
   codeLanguage: string;
   showCodePreview: boolean;
 
+  // IDE mode state
+  ideFiles: VirtualFileSystem | null;
+  ideActions: AgentAction[];
+  ideIsRunning: boolean;
+  idePrompt: string | null;
+
   // Actions
   openCanvas: (initialContent?: string) => void;
   reopenCanvas: () => void;
@@ -34,12 +41,13 @@ interface CanvasState {
   openSideBySide: (prompt: string) => void;
   openCodeCanvas: (code: string, language: string, label?: string) => void;
   openWithContent: (content: string, type?: CanvasType, language?: string) => void;
-  openWithLoading: (type: CanvasType, language?: string) => void; // Open with loading state
+  openWithLoading: (type: CanvasType, language?: string) => void;
+  openIDECanvas: (prompt: string, files?: VirtualFileSystem) => void;
   closeCanvas: () => void;
   setContent: (content: string, saveToHistory?: boolean) => void;
   setAIContent: (content: string, label?: string) => void;
   setAIWriting: (isWriting: boolean) => void;
-  setLoading: (loading: boolean) => void; // Control loading state
+  setLoading: (loading: boolean) => void;
   streamContent: (delta: string) => void;
   startStreaming: (mode: CanvasType, language?: string) => void;
   setCodeLanguage: (language: string) => void;
@@ -50,6 +58,12 @@ interface CanvasState {
   redo: () => void;
   clearCanvas: () => void;
   clearPendingPrompt: () => void;
+
+  // IDE actions
+  setIdeFiles: (files: VirtualFileSystem) => void;
+  setIdeActions: (actions: AgentAction[] | ((prev: AgentAction[]) => AgentAction[])) => void;
+  setIdeIsRunning: (running: boolean) => void;
+  clearIdePrompt: () => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
@@ -65,10 +79,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   mode: 'sideBySide',
   pendingPrompt: null,
   
-  // Code mode defaults
   canvasType: 'writing',
   codeLanguage: 'typescript',
-  showCodePreview: false, // Default to showing code editor so users see generation
+  showCodePreview: false,
+
+  // IDE defaults
+  ideFiles: null,
+  ideActions: [],
+  ideIsRunning: false,
+  idePrompt: null,
 
   openCanvas: (initialContent = '') => {
     const initialVersion: CanvasVersion = {
@@ -133,12 +152,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       pendingPrompt: null,
       canvasType: 'code',
       codeLanguage: language,
-      showCodePreview: true, // Show preview first
+      showCodePreview: true,
       isAIWriting: false,
     });
   },
 
-  // Atomic action to set content AND open the canvas in one operation
   openWithContent: (content: string, type: CanvasType = 'writing', language = 'typescript') => {
     const initialVersion: CanvasVersion = {
       id: crypto.randomUUID(),
@@ -146,8 +164,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       timestamp: Date.now(),
       label: 'Restored',
     };
-
-    // Direct set - no close/reopen, just set everything at once
     set({
       isOpen: true,
       content,
@@ -159,7 +175,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       pendingPrompt: null,
       canvasType: type,
       codeLanguage: language,
-      showCodePreview: true, // Show preview first for code
+      showCodePreview: true,
       isAIWriting: false,
       isLoading: false,
     });
@@ -180,7 +196,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     });
   },
 
-  // Open canvas with loading state (for non-streaming generation)
   openWithLoading: (type: CanvasType, language = 'typescript') => {
     set({
       isOpen: true,
@@ -192,17 +207,30 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       mode: 'sideBySide',
       pendingPrompt: null,
       isAIWriting: true,
-      isLoading: true, // Show loading spinner
+      isLoading: true,
       canvasType: type,
       codeLanguage: language,
       showCodePreview: false,
     });
   },
 
+  openIDECanvas: (prompt: string, files?: VirtualFileSystem) => {
+    set({
+      isOpen: true,
+      canvasType: 'ide',
+      mode: 'sideBySide',
+      idePrompt: prompt,
+      ideFiles: files || null,
+      ideActions: [],
+      ideIsRunning: false,
+      isAIWriting: false,
+      isLoading: false,
+    });
+  },
+
   closeCanvas: () => set({
     isOpen: false,
     isLoading: false,
-    // Keep content and versions so user can reopen
     isAIWriting: false,
     mode: 'sideBySide',
     pendingPrompt: null,
@@ -234,16 +262,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       versions: [...state.versions, newVersion],
       activeVersionIndex: state.versions.length,
       isAIWriting: false,
-      // Explicitly set to writing mode when using setAIContent
       canvasType: 'writing',
     });
   },
 
   setAIWriting: (isWriting: boolean) => set({ isAIWriting: isWriting }),
-  
   setLoading: (loading: boolean) => set({ isLoading: loading }),
 
-  // Start streaming mode - opens canvas and clears content
   startStreaming: (mode: CanvasType, language = 'typescript') => {
     set({
       isOpen: true,
@@ -251,22 +276,19 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       isAIWriting: true,
       canvasType: mode,
       codeLanguage: language,
-      showCodePreview: false, // Always show code editor during generation so users see streaming
+      showCodePreview: false,
       mode: 'sideBySide',
       pendingPrompt: null,
     });
   },
 
-  // Append streamed content
   streamContent: (delta: string) => {
     const state = get();
     set({ content: state.content + delta });
   },
 
   setCodeLanguage: (language: string) => set({ codeLanguage: language }),
-  
   setShowCodePreview: (show: boolean) => set({ showCodePreview: show }),
-
   clearPendingPrompt: () => set({ pendingPrompt: null }),
 
   saveVersion: (label) => {
@@ -299,7 +321,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   undo: () => {
     const state = get();
     if (state.undoStack.length === 0) return;
-    
     const previousContent = state.undoStack[state.undoStack.length - 1];
     set({
       content: previousContent,
@@ -311,7 +332,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   redo: () => {
     const state = get();
     if (state.redoStack.length === 0) return;
-    
     const nextContent = state.redoStack[state.redoStack.length - 1];
     set({
       content: nextContent,
@@ -320,9 +340,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     });
   },
 
-  clearCanvas: () => set({
-    content: '',
-    undoStack: [],
-    redoStack: [],
-  }),
+  clearCanvas: () => set({ content: '', undoStack: [], redoStack: [] }),
+
+  // IDE actions
+  setIdeFiles: (files) => set({ ideFiles: files }),
+  setIdeActions: (actions) => set(state => ({
+    ideActions: typeof actions === 'function' ? actions(state.ideActions) : actions,
+  })),
+  setIdeIsRunning: (running) => set({ ideIsRunning: running }),
+  clearIdePrompt: () => set({ idePrompt: null }),
 }));
