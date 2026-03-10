@@ -172,7 +172,7 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
                 <IDECodeEditor files={files} selectedFile={selectedFile} onFileChange={handleFileChange} />
               </div>
             </TabsContent>
-            <TabsContent value="preview" className="flex-1 m-0">
+            <TabsContent value="preview" className="flex-1 m-0 min-h-0 h-0">
               <IDEPreviewPanel files={files} />
             </TabsContent>
           </Tabs>
