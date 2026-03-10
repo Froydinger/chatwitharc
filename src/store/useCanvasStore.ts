@@ -33,6 +33,7 @@ interface CanvasState {
   ideActions: AgentAction[];
   ideIsRunning: boolean;
   idePrompt: string | null;
+  ideProjectId: string | null;
 
   // Actions
   openCanvas: (initialContent?: string) => void;
@@ -43,6 +44,7 @@ interface CanvasState {
   openWithContent: (content: string, type?: CanvasType, language?: string) => void;
   openWithLoading: (type: CanvasType, language?: string) => void;
   openIDECanvas: (prompt: string, files?: VirtualFileSystem) => void;
+  reopenIDECanvas: (projectId: string, files: VirtualFileSystem) => void;
   closeCanvas: () => void;
   setContent: (content: string, saveToHistory?: boolean) => void;
   setAIContent: (content: string, label?: string) => void;
@@ -64,6 +66,7 @@ interface CanvasState {
   setIdeActions: (actions: AgentAction[] | ((prev: AgentAction[]) => AgentAction[])) => void;
   setIdeIsRunning: (running: boolean) => void;
   clearIdePrompt: () => void;
+  setIdeProjectId: (id: string | null) => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
@@ -88,6 +91,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   ideActions: [],
   ideIsRunning: false,
   idePrompt: null,
+  ideProjectId: null,
 
   openCanvas: (initialContent = '') => {
     const initialVersion: CanvasVersion = {
@@ -223,6 +227,22 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       ideFiles: files || null,
       ideActions: [],
       ideIsRunning: false,
+      ideProjectId: null,
+      isAIWriting: false,
+      isLoading: false,
+    });
+  },
+
+  reopenIDECanvas: (projectId: string, files: VirtualFileSystem) => {
+    set({
+      isOpen: true,
+      canvasType: 'ide',
+      mode: 'sideBySide',
+      idePrompt: null,
+      ideFiles: files,
+      ideActions: [],
+      ideIsRunning: false,
+      ideProjectId: projectId,
       isAIWriting: false,
       isLoading: false,
     });
@@ -349,4 +369,5 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   })),
   setIdeIsRunning: (running) => set({ ideIsRunning: running }),
   clearIdePrompt: () => set({ idePrompt: null }),
+  setIdeProjectId: (id) => set({ ideProjectId: id }),
 }));
