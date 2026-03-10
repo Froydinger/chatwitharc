@@ -11,20 +11,21 @@ const MAX_ITERATIONS = 12;
 
 const AGENT_SYSTEM_PROMPT = `You are **Arc Code**, a world-class Product Architect and elite software engineer. You build apps that feel premium and polished.
 
-You have access to tools to create, modify, and delete files in a React + TypeScript + Tailwind project.
+━━━ YOUR MISSION ━━━
+The user is giving you a BUILD request. You MUST write code to fulfill it. You have tools to create and modify files. You MUST use them.
 
-━━━ HOW YOU WORK ━━━
-1. Analyze the user's request and plan what files need to change
-2. Use the provided tools to make changes ONE FILE AT A TIME
-3. ONLY touch files that need to change — never regenerate unchanged files
-4. When modifying an existing file, return the COMPLETE new content
-5. When done, call the done tool with a brief summary
+━━━ MANDATORY WORKFLOW ━━━
+1. ALWAYS call create_file or modify_file for EVERY file that needs to exist or change
+2. Write COMPLETE, working code — no placeholders, no "// TODO", no truncated content
+3. Only AFTER you have written ALL files, call the done tool with a brief summary
+4. NEVER call done without first calling at least one create_file or modify_file
 
 ━━━ CRITICAL RULES ━━━
-• ONLY modify files that actually need changes
-• When modifying a file, you receive current content in <current-files>. Apply changes and return COMPLETE updated content
-• For new projects with no existing files, create src/main.tsx and src/App.tsx at minimum
-• All code must be complete — NO truncated code, NO "// rest of code here" placeholders
+• You MUST use tools to respond. Plain text responses are NOT allowed.
+• Every file you want in the project MUST be explicitly created or modified via tools
+• When you see <current-files>, those files already exist — modify them if needed, or create new ones
+• For new projects, always create at minimum: src/main.tsx and src/App.tsx
+• Return COMPLETE file content — no truncation, no "rest of code here" comments
 
 ━━━ DESIGN PHILOSOPHY ━━━
 • Premium-by-default: depth via layered shadows, subtle gradients, generous whitespace
@@ -54,12 +55,12 @@ const tools = [
     type: "function",
     function: {
       name: "create_file",
-      description: "Create a new file in the project.",
+      description: "Create a new file in the project with complete content. Use this for every file you want to add.",
       parameters: {
         type: "object",
         properties: {
           path: { type: "string", description: "File path like src/components/Header.tsx" },
-          content: { type: "string", description: "Complete file content" },
+          content: { type: "string", description: "Complete file content — no truncation allowed" },
         },
         required: ["path", "content"],
         additionalProperties: false,
@@ -70,12 +71,12 @@ const tools = [
     type: "function",
     function: {
       name: "modify_file",
-      description: "Modify an existing file. Return the COMPLETE new file content.",
+      description: "Modify an existing file. Return the COMPLETE new file content with all changes applied.",
       parameters: {
         type: "object",
         properties: {
           path: { type: "string", description: "Path of the existing file to modify" },
-          content: { type: "string", description: "Complete new file content with modifications applied" },
+          content: { type: "string", description: "Complete new file content — no truncation allowed" },
         },
         required: ["path", "content"],
         additionalProperties: false,
@@ -101,11 +102,11 @@ const tools = [
     type: "function",
     function: {
       name: "done",
-      description: "Call when finished. Provide a brief summary.",
+      description: "Call ONLY after you have used create_file or modify_file for every file. Provide a brief summary of what was built.",
       parameters: {
         type: "object",
         properties: {
-          summary: { type: "string", description: "Brief summary of changes made" },
+          summary: { type: "string", description: "Brief summary of all changes made" },
         },
         required: ["summary"],
         additionalProperties: false,
@@ -148,10 +149,14 @@ serve(async (req) => {
           const deletions: string[] = [];
           let finalSummary = "";
           let iterations = 0;
+          let filesWritten = 0;
 
           while (iterations < MAX_ITERATIONS) {
             iterations++;
-            send({ type: "status", message: iterations === 1 ? "Planning changes…" : `Continuing… (step ${iterations})` });
+            send({ type: "status", message: iterations === 1 ? "Planning and writing code…" : `Continuing… (step ${iterations})` });
+
+            // Force tool use on first call; allow any on subsequent
+            const toolChoice = iterations === 1 ? "required" : "auto";
 
             const aiResp = await fetch(AI_GATEWAY, {
               method: "POST",
@@ -160,6 +165,7 @@ serve(async (req) => {
                 model: model || "google/gemini-3.1-pro-preview",
                 messages: conversationMessages,
                 tools,
+                tool_choice: toolChoice,
                 temperature: 0.7,
                 max_tokens: 32000,
               }),
@@ -182,11 +188,23 @@ serve(async (req) => {
             const msg = choice.message;
             conversationMessages.push(msg);
 
+            // If model returned text with no tool calls, check if we have files already
             if (!msg.tool_calls || msg.tool_calls.length === 0) {
-              if (msg.content) finalSummary = msg.content;
+              if (filesWritten > 0) {
+                // Files were written, treat text as summary
+                if (msg.content) finalSummary = msg.content;
+              } else {
+                // No files written and no tool calls — model is confused, retry with stronger instruction
+                conversationMessages.push({
+                  role: "user",
+                  content: "You must call create_file or modify_file tools to write the actual code. Do not respond with text — use the tools to create the files now."
+                });
+                continue;
+              }
               break;
             }
 
+            let calledDone = false;
             for (const tc of msg.tool_calls) {
               let args: any;
               try { args = typeof tc.function.arguments === "string" ? JSON.parse(tc.function.arguments) : tc.function.arguments; }
@@ -199,12 +217,14 @@ serve(async (req) => {
                 case "create_file":
                   send({ type: "action", action: "creating", path: args.path });
                   accumulatedFiles[args.path] = args.content;
+                  filesWritten++;
                   result = `Created ${args.path}`;
                   send({ type: "action_complete", action: "created", path: args.path, success: true });
                   break;
                 case "modify_file":
                   send({ type: "action", action: "modifying", path: args.path });
                   accumulatedFiles[args.path] = args.content;
+                  filesWritten++;
                   result = `Modified ${args.path}`;
                   send({ type: "action_complete", action: "modified", path: args.path, success: true });
                   break;
@@ -215,12 +235,27 @@ serve(async (req) => {
                   send({ type: "action_complete", action: "deleted", path: args.path, success: true });
                   break;
                 case "done":
+                  if (filesWritten === 0) {
+                    // Called done with no files — inject a correction and retry
+                    result = "Error: You must create or modify files before calling done.";
+                    conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: result });
+                    conversationMessages.push({
+                      role: "user",
+                      content: "You called done without writing any files. Please call create_file or modify_file to actually write the code first."
+                    });
+                    calledDone = false; // Don't break — let the loop retry
+                    continue;
+                  }
                   finalSummary = args.summary || "Done!";
+                  calledDone = true;
+                  result = "Done";
                   break;
               }
 
-              conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: result });
-              if (toolName === "done") break;
+              if (toolName !== "done" || calledDone) {
+                conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: result });
+              }
+              if (calledDone) break;
             }
 
             if (finalSummary) break;
