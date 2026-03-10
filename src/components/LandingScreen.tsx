@@ -222,6 +222,7 @@ function ResearchDemo() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }

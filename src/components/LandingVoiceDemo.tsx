@@ -206,7 +206,7 @@ export function LandingVoiceDemo() {
             </div>
 
             {/* Bottom mic button */}
-            <div className="flex justify-center pb-6 pt-2">
+            <div className="flex justify-center pb-6 pt-2 shrink-0 mt-auto">
               <motion.div
                 animate={
                   isListening
