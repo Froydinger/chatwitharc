@@ -297,6 +297,22 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 </motion.div>
               )}
 
+              {/* IDE App Builder Artifact */}
+              {message.type === "ide" && message.idePrompt && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.12 }}
+                  className="mb-2 relative z-10"
+                >
+                  <IDEArtifactCard
+                    prompt={message.idePrompt}
+                    fileCount={message.ideFileCount}
+                    className="max-w-md"
+                  />
+                </motion.div>
+              )}
+
               {/* Text */}
               {message.type !== "image-generating" &&
                 (isEditing ? (
