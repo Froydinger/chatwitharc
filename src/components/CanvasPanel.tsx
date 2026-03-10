@@ -293,6 +293,11 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     [editor]
   );
 
+  // If IDE mode, render the full IDE panel instead
+  if (canvasType === 'ide') {
+    return <IDECanvasPanel className={className} />;
+  }
+
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
       {/* Header - Glassy style */}
