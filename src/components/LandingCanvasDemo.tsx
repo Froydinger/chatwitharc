@@ -352,7 +352,7 @@ function WritingCanvasCard({
       </div>
 
       {/* Content */}
-      <div className="min-h-[280px] relative px-8 py-6">
+      <div className="h-[320px] relative overflow-hidden px-8 py-6">
         <div className="space-y-0">
           {POEM_LINES.slice(0, poemLines).map((line, i) => (
             <motion.p
