@@ -1,6 +1,40 @@
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask } from "@/store/useModelStore";
 
+// Detect if a user message warrants upgrading to a more powerful model
+export function detectComplexQuery(message: string): boolean {
+  if (!message) return false;
+  const lower = message.toLowerCase().trim();
+
+  // Long messages suggest complex requests
+  if (lower.length > 400) return true;
+
+  // Multi-part questions (numbered lists or multiple question marks)
+  const questionMarks = (lower.match(/\?/g) || []).length;
+  if (questionMarks >= 3) return true;
+  if (/(?:^|\n)\s*\d+[\.\)]\s/m.test(lower) && lower.length > 150) return true;
+
+  // Analysis / reasoning keywords
+  const analysisKeywords = [
+    'explain in detail', 'analyze', 'analyse', 'compare and contrast',
+    'step by step', 'in depth', 'in-depth', 'write me an essay',
+    'break down', 'pros and cons', 'comprehensive', 'thorough',
+    'detailed explanation', 'deep dive', 'elaborate on',
+    'critically evaluate', 'summarize the research', 'long-form',
+  ];
+  if (analysisKeywords.some(k => lower.includes(k))) return true;
+
+  // Code-related terms (without explicit /code prefix)
+  const codeKeywords = [
+    'debug this', 'refactor', 'implement a', 'algorithm for',
+    'function that', 'write a script', 'code review', 'optimize this code',
+    'build a component', 'create a class', 'data structure',
+  ];
+  if (codeKeywords.some(k => lower.includes(k))) return true;
+
+  return false;
+}
+
 interface AIMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -125,16 +159,25 @@ export class AIService {
 
       // Model routing based on user's model family preference
       const isCanvasOrCode = forceCanvas || forceCode;
+      
+      // Check if the last user message warrants a model upgrade
+      const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
+      const isComplex = !isCanvasOrCode && detectComplexQuery(lastUserMsg);
+      
       const selectedModel = isCanvasOrCode
         ? getModelForTask('code')
-        : getModelForTask('chat');
+        : isComplex
+          ? getModelForTask('deep-chat')
+          : getModelForTask('chat');
 
-      // Use longer timeout for canvas/code generation (especially with Gemini 3 Pro)
-      const timeoutMs = isCanvasOrCode ? this.canvasTimeoutMs : this.defaultTimeoutMs;
+      // Use longer timeout for canvas/code generation or complex queries (especially with 3.1 Pro)
+      const timeoutMs = (isCanvasOrCode || isComplex) ? this.canvasTimeoutMs : this.defaultTimeoutMs;
 
       console.log('🤖 AI Model Selection:', {
-        selectedModel: selectedModel,
+        selectedModel,
         isCanvasOrCode,
+        isComplex,
+        reason: isCanvasOrCode ? 'canvas/code mode' : isComplex ? 'complex query detected' : 'regular chat',
         timeoutMs
       });
 
@@ -153,7 +196,8 @@ export class AIService {
                 sessionId: sessionId,
                 forceWebSearch: forceWebSearch || false,
                 forceCanvas: forceCanvas || false,
-                forceCode: forceCode || false
+                forceCode: forceCode || false,
+                useProModel: isComplex || false
               }
             }),
             timeoutMs
@@ -276,9 +320,14 @@ export class AIService {
     }
 
     // Model routing based on user's model family preference
+    const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
+    const isComplex = !(forceCanvas || forceCode) && detectComplexQuery(lastUserMsg);
+    
     const selectedModel = (forceCanvas || forceCode) 
       ? getModelForTask('code')
-      : getModelForTask('chat');
+      : isComplex
+        ? getModelForTask('deep-chat')
+        : getModelForTask('chat');
 
     // Enrich profile with context blocks (same as sendMessage)
     let enrichedProfile = profile || {};
@@ -326,7 +375,8 @@ export class AIService {
         forceCode,
         forceWebSearch,
         sessionId,
-        stream: true
+        stream: true,
+        useProModel: isComplex || false
       }),
       signal: abortSignal, // Allow cancellation
     });
