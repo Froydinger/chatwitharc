@@ -1,7 +1,7 @@
 // src/components/ChatInput.tsx
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
-import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Mic, Code2, PenLine, Search, Globe, Square } from "lucide-react";
+import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Mic, Code2, PenLine, Search, Globe, Square, Lightbulb } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
