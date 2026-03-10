@@ -1110,6 +1110,24 @@ ${existingCode}
 
         // For canvas/code: use streaming with auto-continuation
         // For regular text chat: use non-streaming (handles web search properly)
+        if (shouldForceCode && isCodingRequest) {
+          // IDE MODE - open the full IDE canvas for /code prefix requests
+          const { openIDECanvas } = useCanvasStore.getState();
+          const idePrompt = (cleanedMessage || userMessage).replace(/^(code\/|\/code)\s*/i, '').trim();
+          openIDECanvas(idePrompt || userMessage);
+          
+          const ideMsg = {
+            id: crypto.randomUUID(),
+            role: 'assistant' as const,
+            content: `🛠️ Opening App Builder to create your project...`,
+            timestamp: Date.now(),
+            type: 'text' as const,
+          };
+          addMessage(ideMsg);
+          setLoading(false);
+          return;
+        }
+        
         if (shouldForceCode || shouldForceCanvas) {
           // STREAMING MODE - for canvas/code generation
           let streamedContent = '';

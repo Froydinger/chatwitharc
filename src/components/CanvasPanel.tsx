@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from "react";
+import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Bold,
@@ -291,6 +292,11 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     ],
     [editor]
   );
+
+  // If IDE mode, render the full IDE panel instead
+  if (canvasType === 'ide') {
+    return <IDECanvasPanel className={className} />;
+  }
 
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
