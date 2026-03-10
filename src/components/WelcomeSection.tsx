@@ -271,43 +271,6 @@ export function WelcomeSection({
           />
         </div>
 
-        {/* Recent Conversations - "Pick up where you left off" */}
-        {recentSessions.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-            className="w-full max-w-sm sm:max-w-xl lg:max-w-2xl"
-          >
-            <p className="text-xs text-muted-foreground font-medium mb-2 px-1">
-              Pick up where you left off:
-            </p>
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1" style={{ touchAction: 'pan-x' }}>
-              {recentSessions.map((session) => (
-                <motion.button
-                  key={session.id}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => onSelectSession?.(session.id)}
-                  className="flex-shrink-0 px-4 py-2.5 rounded-xl bg-background/40 backdrop-blur-sm border border-border/50 hover:border-primary/40 hover:bg-background/60 transition-all duration-200 text-left max-w-[200px]"
-                >
-                  <span className="text-sm font-medium truncate block">{session.title}</span>
-                </motion.button>
-              ))}
-              {recentSessions.length > 2 && onOpenHistory && (
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={onOpenHistory}
-                  className="flex-shrink-0 px-4 py-2.5 rounded-xl bg-primary/10 border border-primary/20 hover:border-primary/40 hover:bg-primary/15 transition-all duration-200 flex items-center gap-1.5"
-                >
-                  <span className="text-sm font-medium text-primary whitespace-nowrap">View all</span>
-                  <ChevronRight className="h-3.5 w-3.5 text-primary" />
-                </motion.button>
-              )}
-            </div>
-          </motion.div>
-        )}
 
         {(isLoading || isGeneratingImage) && (
           <motion.div
