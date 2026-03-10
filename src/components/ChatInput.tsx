@@ -101,7 +101,10 @@ function checkForCodingRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
   // Support both code/ and /code syntax
-  return /^code\//.test(m) || /^\/code\b/.test(m);
+  if (/^code\//.test(m) || /^\/code\b/.test(m)) return true;
+  // Natural language detection: "build me a todo app", "create an app that...", "make a website"
+  if (/^(can\s+you\s+)?(please\s+)?(build|create|make|develop|code|program)\s+(me\s+)?(a|an|the)\s+/i.test(m)) return true;
+  return false;
 }
 
 // Prefix-based detection: write/, /write, /canvas
@@ -109,7 +112,10 @@ function checkForCanvasRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
   // Support write/, /write, and /canvas
-  return /^write\//.test(m) || /^\/(write|canvas)\b/.test(m);
+  if (/^write\//.test(m) || /^\/(write|canvas)\b/.test(m)) return true;
+  // Natural language detection: "write me an essay", "draft a letter", "compose a poem"
+  if (/^(can\s+you\s+)?(please\s+)?(write|draft|compose|author)\s+(me\s+)?(a|an|the)\s+/i.test(m)) return true;
+  return false;
 }
 
 // Prefix-based detection: search/, /search
