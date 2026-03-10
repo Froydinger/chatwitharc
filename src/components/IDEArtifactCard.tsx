@@ -114,7 +114,7 @@ export function IDEArtifactCard({
             IDE
           </span>
           {projectId && (
-            <Cloud className="w-3 h-3 text-emerald-400 flex-shrink-0" title="Synced to cloud" />
+            <Cloud className="w-3 h-3 flex-shrink-0 text-emerald-400" />
           )}
         </div>
         <Button
