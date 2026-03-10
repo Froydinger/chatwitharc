@@ -1401,7 +1401,7 @@ ${existingCode}
         )}
 
       {/* Input Row */}
-      <div className="chat-input-halo flex items-center gap-3 rounded-full">
+      <div ref={inputBarRef} className="chat-input-halo flex items-center gap-3 rounded-full">
         {/* LEFT BUTTON — Image/Code/Canvas mode indicator or + menu */}
         <button
           ref={menuButtonRef}
