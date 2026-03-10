@@ -1653,13 +1653,13 @@ ${existingCode}
                      animate={{ opacity: 1, y: 0, scale: 1 }}
                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
                      transition={{ type: "spring", damping: 25, stiffness: 500 }}
-                     className="relative flex flex-wrap items-center justify-center gap-1.5 py-2 px-3 rounded-2xl glass-shimmer ring-[0.5px] ring-border/40 !shadow-[0_8px_32px_rgba(0,0,0,.3)] backdrop-blur-xl max-w-[calc(100vw-32px)]"
+                     className="relative flex items-center gap-1.5 py-2 px-3 rounded-full glass-shimmer ring-[0.5px] ring-border/40 !shadow-[0_8px_32px_rgba(0,0,0,.3)] backdrop-blur-xl"
                   >
                     {[
                       { label: "Prompts", icon: <Sparkles className="h-3.5 w-3.5" />, color: "text-violet-400", action: () => { setShowMenu(false); setShowPromptLibrary(true); } },
                       { label: "Research", icon: <Search className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setShowMenu(false); openSearchMode(); } },
                       { label: "Image", icon: <ImagePlus className="h-3.5 w-3.5" />, color: "text-green-400", action: () => { setForceImageMode(true); setShowMenu(false); } },
-                      { label: "Attach", icon: <Paperclip className="h-3.5 w-3.5" />, color: "text-blue-400", action: () => { setShowMenu(false); fileInputRef.current?.click(); } },
+                      { label: "Attach", icon: <Paperclip className="h-3.5 w-3.5" />, color: "text-blue-400", hideLabel: true, action: () => { setShowMenu(false); fileInputRef.current?.click(); } },
                     ].map((item, i) => (
                       <motion.button
                         key={item.label}
@@ -1675,7 +1675,7 @@ ${existingCode}
                         )}
                       >
                         {item.icon}
-                        <span className="text-foreground/80">{item.label}</span>
+                        {item.hideLabel ? null : <span className="text-foreground/80">{item.label}</span>}
                       </motion.button>
                     ))}
                   </motion.div>
