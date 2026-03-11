@@ -346,7 +346,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const [showMenu, setShowMenu] = useState(false);
    const menuButtonRef = useRef<HTMLButtonElement>(null);
    const inputBarRef = useRef<HTMLDivElement>(null);
-  const modelLabelTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const modelLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Prompt library
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);

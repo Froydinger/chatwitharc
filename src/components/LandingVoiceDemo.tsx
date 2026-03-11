@@ -66,7 +66,7 @@ export function LandingVoiceDemo() {
   }, []);
 
   const runConversation = useCallback(() => {
-    const timers: NodeJS.Timeout[] = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
     let elapsed = 600;
 
     CONVERSATION.forEach((msg, i) => {

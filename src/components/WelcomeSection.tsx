@@ -99,7 +99,7 @@ function CyclingGreeting() {
 
   useEffect(() => {
     const currentGreeting = greetings[currentIndex];
-    const timeouts: NodeJS.Timeout[] = [];
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
     let cancelled = false;
 
     const scheduleTimeout = (callback: () => void, delay: number) => {
