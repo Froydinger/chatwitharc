@@ -150,20 +150,22 @@ serve(async (req) => {
           const deletions: string[] = [];
           let finalSummary = "";
           let iterations = 0;
-          let filesWritten = 0;
+          let fileOpsCount = 0;
 
           while (iterations < MAX_ITERATIONS) {
             iterations++;
-            send({ type: "status", message: iterations === 1 ? "Planning and writing code…" : `Continuing… (step ${iterations})` });
+            send({
+              type: "status",
+              message: iterations === 1 ? "Planning and writing code with Gemini 3.1 Pro…" : `Continuing… (step ${iterations})`,
+            });
 
-            // Force tool use on first call; allow any on subsequent
-            const toolChoice = iterations === 1 ? "required" : "auto";
+            const toolChoice = fileOpsCount === 0 ? "required" : "auto";
 
             const aiResp = await fetch(AI_GATEWAY, {
               method: "POST",
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
-                model: model || "google/gemini-3.1-pro-preview",
+                model: resolvedModel,
                 messages: conversationMessages,
                 tools,
                 tool_choice: toolChoice,
@@ -174,8 +176,14 @@ serve(async (req) => {
 
             if (!aiResp.ok) {
               const status = aiResp.status;
-              if (status === 429) { send({ type: "error", message: "Rate limited — please wait and try again." }); break; }
-              if (status === 402) { send({ type: "error", message: "AI credits exhausted. Please add funds." }); break; }
+              if (status === 429) {
+                send({ type: "error", message: "Rate limited — please wait and try again." });
+                break;
+              }
+              if (status === 402) {
+                send({ type: "error", message: "AI credits exhausted. Please add funds." });
+                break;
+              }
               const t = await aiResp.text();
               console.error("AI gateway error:", status, t);
               send({ type: "error", message: `AI error (${status})` });
@@ -184,73 +192,103 @@ serve(async (req) => {
 
             const data = await aiResp.json();
             const choice = data.choices?.[0];
-            if (!choice) { send({ type: "error", message: "No response from AI" }); break; }
+            if (!choice) {
+              send({ type: "error", message: "No response from AI" });
+              break;
+            }
 
             const msg = choice.message;
             conversationMessages.push(msg);
 
-            // If model returned text with no tool calls, check if we have files already
             if (!msg.tool_calls || msg.tool_calls.length === 0) {
-              if (filesWritten > 0) {
-                // Files were written, treat text as summary
+              if (fileOpsCount > 0) {
                 if (msg.content) finalSummary = msg.content;
-              } else {
-                // No files written and no tool calls — model is confused, retry with stronger instruction
-                conversationMessages.push({
-                  role: "user",
-                  content: "You must call create_file or modify_file tools to write the actual code. Do not respond with text — use the tools to create the files now."
-                });
-                continue;
+                break;
               }
-              break;
+
+              conversationMessages.push({
+                role: "user",
+                content:
+                  "You must call create_file, modify_file, or delete_file and apply at least one concrete file change before finishing.",
+              });
+              continue;
             }
 
             let calledDone = false;
+
             for (const tc of msg.tool_calls) {
               let args: any;
-              try { args = typeof tc.function.arguments === "string" ? JSON.parse(tc.function.arguments) : tc.function.arguments; }
-              catch { args = {}; }
+              try {
+                args = typeof tc.function.arguments === "string" ? JSON.parse(tc.function.arguments) : tc.function.arguments;
+              } catch {
+                args = {};
+              }
 
               const toolName = tc.function.name;
               let result = "";
 
               switch (toolName) {
-                case "create_file":
-                  send({ type: "action", action: "creating", path: args.path });
-                  accumulatedFiles[args.path] = args.content;
-                  filesWritten++;
-                  result = `Created ${args.path}`;
-                  send({ type: "action_complete", action: "created", path: args.path, success: true });
+                case "create_file": {
+                  const path = typeof args.path === "string" ? args.path.trim() : "";
+                  const content = args.content;
+                  if (!path || typeof content !== "string") {
+                    result = "Error: create_file requires a valid path and string content.";
+                    send({ type: "action_complete", action: "created", path, success: false });
+                    break;
+                  }
+                  send({ type: "action", action: "creating", path });
+                  accumulatedFiles[path] = content;
+                  fileOpsCount++;
+                  result = `Created ${path}`;
+                  send({ type: "action_complete", action: "created", path, success: true });
                   break;
-                case "modify_file":
-                  send({ type: "action", action: "modifying", path: args.path });
-                  accumulatedFiles[args.path] = args.content;
-                  filesWritten++;
-                  result = `Modified ${args.path}`;
-                  send({ type: "action_complete", action: "modified", path: args.path, success: true });
+                }
+                case "modify_file": {
+                  const path = typeof args.path === "string" ? args.path.trim() : "";
+                  const content = args.content;
+                  if (!path || typeof content !== "string") {
+                    result = "Error: modify_file requires a valid path and string content.";
+                    send({ type: "action_complete", action: "modified", path, success: false });
+                    break;
+                  }
+                  send({ type: "action", action: "modifying", path });
+                  accumulatedFiles[path] = content;
+                  fileOpsCount++;
+                  result = `Modified ${path}`;
+                  send({ type: "action_complete", action: "modified", path, success: true });
                   break;
-                case "delete_file":
-                  send({ type: "action", action: "deleting", path: args.path });
-                  deletions.push(args.path);
-                  result = `Deleted ${args.path}`;
-                  send({ type: "action_complete", action: "deleted", path: args.path, success: true });
+                }
+                case "delete_file": {
+                  const path = typeof args.path === "string" ? args.path.trim() : "";
+                  if (!path) {
+                    result = "Error: delete_file requires a valid path.";
+                    send({ type: "action_complete", action: "deleted", path, success: false });
+                    break;
+                  }
+                  send({ type: "action", action: "deleting", path });
+                  deletions.push(path);
+                  fileOpsCount++;
+                  result = `Deleted ${path}`;
+                  send({ type: "action_complete", action: "deleted", path, success: true });
                   break;
-                case "done":
-                  if (filesWritten === 0) {
-                    // Called done with no files — inject a correction and retry
-                    result = "Error: You must create or modify files before calling done.";
+                }
+                case "done": {
+                  if (fileOpsCount === 0) {
+                    result = "Error: You must create, modify, or delete at least one file before calling done.";
                     conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: result });
                     conversationMessages.push({
                       role: "user",
-                      content: "You called done without writing any files. Please call create_file or modify_file to actually write the code first."
+                      content:
+                        "You called done before applying file changes. Apply at least one file operation first, then call done.",
                     });
-                    calledDone = false; // Don't break — let the loop retry
+                    calledDone = false;
                     continue;
                   }
                   finalSummary = args.summary || "Done!";
                   calledDone = true;
                   result = "Done";
                   break;
+                }
               }
 
               if (toolName !== "done" || calledDone) {
@@ -260,6 +298,11 @@ serve(async (req) => {
             }
 
             if (finalSummary) break;
+          }
+
+          if (fileOpsCount === 0) {
+            send({ type: "error", message: "No file changes were produced. Please give a more specific coding instruction." });
+            finalSummary = finalSummary || "I couldn’t apply file changes yet. Try a more specific request.";
           }
 
           if (Object.keys(accumulatedFiles).length > 0 || deletions.length > 0) {
