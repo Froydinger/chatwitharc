@@ -145,9 +145,24 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       updateAmplitude();
       setIsCapturing(true);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to start audio capture:', error);
       setHasPermission(false);
+
+      // Re-throw with a human-readable message so callers can surface it clearly
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        const enriched = new Error(
+          'Microphone access was denied. Please allow microphone access in your browser settings. ' +
+          'On Mac, also check System Settings > Privacy & Security > Microphone.'
+        );
+        enriched.name = 'NotAllowedError';
+        throw enriched;
+      } else if (error.name === 'NotFoundError') {
+        const enriched = new Error('No microphone found. Please connect a microphone and try again.');
+        enriched.name = 'NotFoundError';
+        throw enriched;
+      }
+
       throw error;
     }
   }, [sampleRate, options, setInputAmplitude]);

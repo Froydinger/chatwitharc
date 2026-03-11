@@ -605,11 +605,17 @@ export function VoiceModeController() {
           await connect(voiceSystemPrompt);
           await startCapture();
           console.log('Voice mode initialized');
-        } catch (error) {
+        } catch (error: any) {
           console.error('Failed to initialize voice mode:', error);
+          const description =
+            error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError'
+              ? 'Microphone access was denied. Please allow it in your browser and system settings, then try again.'
+              : error.name === 'NotFoundError'
+              ? 'No microphone found. Please connect a microphone and try again.'
+              : error.message || 'Could not access microphone. Please check your settings.';
           toast({
             title: 'Microphone Error',
-            description: 'Could not access microphone. Please grant permission.',
+            description,
             variant: 'destructive',
           });
           deactivateVoiceMode();
