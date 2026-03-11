@@ -24,6 +24,77 @@ import { ThemedLogo } from "@/components/ThemedLogo";
 import { MemoryIndicator } from "@/components/MemoryIndicator";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
 
+// Stable module-level constant — never recreated on re-render, so iframes never remount
+const markdownComponents = {
+  p: ({node, ...props}: any) => <p className="text-base leading-relaxed mb-3 last:mb-0 text-foreground/90" {...props} />,
+  strong: ({node, ...props}: any) => <strong className="font-semibold text-foreground" {...props} />,
+  em: ({node, ...props}: any) => <em className="italic text-foreground/85" {...props} />,
+  a: ({node, href, children, ...props}: any) => {
+    if (href && href.includes('/storage/v1/object/public/generated-files/')) {
+      const urlParts = href.split('/');
+      const fullFileName = urlParts[urlParts.length - 1];
+      const fileName = fullFileName.replace(/^generated-\d+-/, '');
+      const fileExt = fileName.split('.').pop()?.toLowerCase() || 'file';
+      return (
+        <div className="my-4">
+          <FileAttachment fileName={fileName} fileUrl={href} fileType={fileExt} className="max-w-md" />
+        </div>
+      );
+    }
+    if (href && getYouTubeVideoId(href)) {
+      const linkText = typeof children === 'string' ? children : (Array.isArray(children) ? children.join('') : String(children));
+      return (
+        <div className="my-4">
+          <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} />
+        </div>
+      );
+    }
+    if (href && isImageUrl(href)) {
+      const linkText = typeof children === 'string' ? children : (Array.isArray(children) ? children.join('') : String(children));
+      return (
+        <div className="my-4">
+          <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} />
+        </div>
+      );
+    }
+    return <a href={href} className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
+  },
+  ul: ({node, ...props}: any) => <ul className="list-disc pl-5 mb-3 space-y-1 marker:text-primary/60" {...props} />,
+  ol: ({node, ...props}: any) => <ol className="list-decimal pl-5 mb-3 space-y-1 marker:text-primary/60" {...props} />,
+  li: ({node, ...props}: any) => <li className="text-base leading-relaxed text-foreground/90" {...props} />,
+  h1: ({node, ...props}: any) => <h1 className="text-2xl font-bold mt-5 mb-2.5 text-foreground" {...props} />,
+  h2: ({node, ...props}: any) => <h2 className="text-xl font-semibold mt-4 mb-2 text-foreground" {...props} />,
+  h3: ({node, ...props}: any) => <h3 className="text-lg font-semibold mt-3 mb-1.5 text-foreground" {...props} />,
+  h4: ({node, ...props}: any) => <h4 className="text-base font-semibold mt-3 mb-1.5 text-foreground" {...props} />,
+  blockquote: ({node, ...props}: any) => (
+    <blockquote className="border-l-[3px] border-primary/40 pl-4 py-1 my-3.5 bg-primary/5 rounded-r-lg italic text-muted-foreground" {...props} />
+  ),
+  hr: ({node, ...props}: any) => <hr className="my-4 border-t border-border/50" {...props} />,
+  table: ({node, ...props}: any) => (
+    <div className="my-2.5 overflow-x-auto rounded-lg border border-border/50">
+      <table className="w-full text-sm" {...props} />
+    </div>
+  ),
+  thead: ({node, ...props}: any) => <thead className="bg-muted/50 border-b border-border/50" {...props} />,
+  tbody: ({node, ...props}: any) => <tbody className="divide-y divide-border/30" {...props} />,
+  tr: ({node, ...props}: any) => <tr className="hover:bg-muted/30 transition-colors" {...props} />,
+  th: ({node, ...props}: any) => <th className="px-4 py-2 text-left font-semibold text-foreground" {...props} />,
+  td: ({node, ...props}: any) => <td className="px-4 py-2 text-foreground/90" {...props} />,
+  code: ({node, className, children, ...props}: any) => {
+    const match = /language-(\w+)/.exec(className || '');
+    const codeContent = String(children).replace(/\n$/, '');
+    const isInline = !className && !match;
+    if (!isInline && match) {
+      return <CodeBlock code={codeContent} language={match[1]} />;
+    }
+    return (
+      <code className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-sm" {...props}>
+        {children}
+      </code>
+    );
+  },
+};
+
 interface MessageBubbleProps {
   message: Message;
   onEdit?: (messageId: string, newContent: string) => void;
@@ -381,112 +452,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                         // Static markdown rendering for non-animating messages
                         return (
                           <div key={idx} className="text-foreground break-words">
-                            <ReactMarkdown 
+                            <ReactMarkdown
                               remarkPlugins={[remarkGfm]}
-                              components={{
-                                p: ({node, ...props}) => <p className="text-base leading-relaxed mb-3 last:mb-0 text-foreground/90" {...props} />,
-                                strong: ({node, ...props}) => <strong className="font-semibold text-foreground" {...props} />,
-                                em: ({node, ...props}) => <em className="italic text-foreground/85" {...props} />,
-                                a: ({node, href, children, ...props}: any) => {
-                                  // Detect file URLs from Supabase storage
-                                  if (href && href.includes('/storage/v1/object/public/generated-files/')) {
-                                    // Extract filename from URL
-                                    const urlParts = href.split('/');
-                                    const fullFileName = urlParts[urlParts.length - 1];
-                                    const fileName = fullFileName.replace(/^generated-\d+-/, ''); // Remove timestamp prefix
-
-                                    // Determine file type from extension
-                                    const fileExt = fileName.split('.').pop()?.toLowerCase() || 'file';
-
-                                    return (
-                                      <div className="my-4">
-                                        <FileAttachment
-                                          fileName={fileName}
-                                          fileUrl={href}
-                                          fileType={fileExt}
-                                          className="max-w-md"
-                                        />
-                                      </div>
-                                    );
-                                  }
-
-                                  // Detect YouTube links and embed them
-                                  if (href && getYouTubeVideoId(href)) {
-                                    const linkText = typeof children === 'string' ? children :
-                                      (Array.isArray(children) ? children.join('') : String(children));
-                                    return (
-                                      <div className="my-4">
-                                        <MediaEmbed
-                                          url={href}
-                                          title={linkText !== href ? linkText : undefined}
-                                        />
-                                      </div>
-                                    );
-                                  }
-
-                                  // Detect direct image URLs and embed them
-                                  if (href && isImageUrl(href)) {
-                                    const linkText = typeof children === 'string' ? children :
-                                      (Array.isArray(children) ? children.join('') : String(children));
-                                    return (
-                                      <div className="my-4">
-                                        <MediaEmbed
-                                          url={href}
-                                          title={linkText !== href ? linkText : undefined}
-                                        />
-                                      </div>
-                                    );
-                                  }
-
-                                  // Regular link
-                                  return <a href={href} className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
-                                },
-                                ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-3 space-y-1 marker:text-primary/60" {...props} />,
-                                ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-3 space-y-1 marker:text-primary/60" {...props} />,
-                                li: ({node, ...props}) => (
-                                  <li className="text-base leading-relaxed text-foreground/90" {...props} />
-                                ),
-                                h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-5 mb-2.5 text-foreground" {...props} />,
-                                h2: ({node, ...props}) => <h2 className="text-xl font-semibold mt-4 mb-2 text-foreground" {...props} />,
-                                h3: ({node, ...props}) => <h3 className="text-lg font-semibold mt-3 mb-1.5 text-foreground" {...props} />,
-                                h4: ({node, ...props}) => <h4 className="text-base font-semibold mt-3 mb-1.5 text-foreground" {...props} />,
-                                blockquote: ({node, ...props}) => (
-                                  <blockquote className="border-l-[3px] border-primary/40 pl-4 py-1 my-3.5 bg-primary/5 rounded-r-lg italic text-muted-foreground" {...props} />
-                                ),
-                                hr: ({node, ...props}) => <hr className="my-4 border-t border-border/50" {...props} />,
-                                table: ({node, ...props}) => (
-                                  <div className="my-2.5 overflow-x-auto rounded-lg border border-border/50">
-                                    <table className="w-full text-sm" {...props} />
-                                  </div>
-                                ),
-                                thead: ({node, ...props}) => <thead className="bg-muted/50 border-b border-border/50" {...props} />,
-                                tbody: ({node, ...props}) => <tbody className="divide-y divide-border/30" {...props} />,
-                                tr: ({node, ...props}) => <tr className="hover:bg-muted/30 transition-colors" {...props} />,
-                                th: ({node, ...props}) => <th className="px-4 py-2 text-left font-semibold text-foreground" {...props} />,
-                                td: ({node, ...props}) => <td className="px-4 py-2 text-foreground/90" {...props} />,
-                                 code: ({node, className, children, ...props}: any) => {
-                                  const match = /language-(\w+)/.exec(className || '');
-                                  const codeContent = String(children).replace(/\n$/, '');
-                                  const isInline = !className && !match;
-                                  
-                                  // Block code - use CodeBlock component
-                                  if (!isInline && match) {
-                                    return (
-                                      <CodeBlock
-                                        code={codeContent}
-                                        language={match[1]}
-                                      />
-                                    );
-                                  }
-                                  
-                                  // Inline code - use styled span
-                                  return (
-                                    <code className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-sm" {...props}>
-                                      {children}
-                                    </code>
-                                  );
-                                },
-                              }}
+                              components={markdownComponents}
                             >
                               {part.content}
                             </ReactMarkdown>
