@@ -8,6 +8,7 @@ export interface QuickPrompt {
 }
 
 const CACHE_KEY_PREFIX = 'arc_prompts_cache_';
+export { CACHE_KEY_PREFIX };
 
 // Store prompts in sessionStorage for instant access
 function cachePrompts(category: string, prompts: QuickPrompt[]) {
@@ -63,6 +64,37 @@ async function generateAIPrompts(category: 'chat' | 'create' | 'write' | 'code')
   }
 }
 
+// Generate and cache smart prompts in the background
+async function generateSmartPromptsBackground(): Promise<void> {
+  if (!supabase || !isSupabaseConfigured) return;
+
+  // Skip if already cached
+  const cached = getCachedPrompts('smart');
+  if (cached) {
+    console.log('⚡ Smart prompts already cached, skipping preload');
+    return;
+  }
+
+  try {
+    console.log('🧠 Pre-generating smart prompts in background...');
+    const { data, error } = await supabase.functions.invoke('generate-smart-prompts', {
+      body: {}
+    });
+
+    if (error) {
+      console.error('Failed to preload smart prompts:', error);
+      return;
+    }
+
+    if (data?.prompts && data.prompts.length > 0) {
+      cachePrompts('smart', data.prompts);
+      console.log('💾 Smart prompts cached in background!');
+    }
+  } catch (error) {
+    console.error('Error preloading smart prompts:', error);
+  }
+}
+
 /**
  * Hook to pre-generate prompts in the background after app loads
  * This ensures prompts are ready instantly when user opens the library
@@ -82,12 +114,13 @@ export function usePromptPreload() {
       console.log('🔮 Pre-generating prompts in background...');
 
       try {
-        // Generate all categories in parallel for maximum speed
+        // Generate all categories + smart prompts in parallel
         await Promise.all([
           generateAIPrompts('chat'),
           generateAIPrompts('create'),
           generateAIPrompts('write'),
           generateAIPrompts('code'),
+          generateSmartPromptsBackground(),
         ]);
 
         console.log('✨ Prompts pre-generated and cached in sessionStorage!');
