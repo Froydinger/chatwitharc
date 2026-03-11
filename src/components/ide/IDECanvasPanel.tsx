@@ -13,7 +13,7 @@ import { IDECodeEditor } from './IDECodeEditor';
 import { IDEPreviewPanel } from './IDEPreviewPanel';
 import { IDEChatPanel } from './IDEChatPanel';
 import { sendAgentMessage, type AgentResult } from '@/services/agent';
-
+import { getModelForTask } from '@/store/useModelStore';
 import { supabase } from '@/integrations/supabase/client';
 import type { VirtualFileSystem, AgentAction } from '@/types/ide';
 import { DEFAULT_FILES } from '@/types/ide';
@@ -196,14 +196,10 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const model = 'google/gemini-3.1-pro-preview';
-      const historyForAgent = chatHistory
-        .filter((message) => message.content.trim().length > 0)
-        .map((message) => ({ role: message.role, content: message.content }));
+      const model = getModelForTask('code');
 
       const result: AgentResult = await sendAgentMessage(
         prompt,
-        historyForAgent,
         files,
         (action: AgentAction) => {
           setLiveActions(prev => [...prev, action]);
@@ -213,40 +209,26 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
         session?.access_token
       );
 
-      const hasFileUpdates = Boolean(result.files && Object.keys(result.files).length > 0);
-      const hasDeletions = Boolean(result.deletions && result.deletions.length > 0);
-
-      if (hasFileUpdates || hasDeletions) {
-        setFiles((prev) => {
-          const merged = { ...prev };
-          if (result.files) Object.assign(merged, result.files);
-          if (result.deletions) {
-            for (const path of result.deletions) delete merged[path];
-          }
-          return merged;
-        });
-
-        if (result.files) {
-          const firstNew = Object.keys(result.files)[0];
-          if (firstNew) setSelectedFile(firstNew);
+      if (result.files) {
+        const merged = { ...files, ...result.files };
+        if (result.deletions) {
+          for (const path of result.deletions) delete merged[path];
         }
-
+        setFiles(merged);
+        const firstNew = Object.keys(result.files)[0];
+        if (firstNew) setSelectedFile(firstNew);
         setActiveTab('preview');
-        setTimeout(() => saveProject(), 500);
-        toast({ title: 'Files updated!' });
-      } else {
-        toast({ title: 'No file changes were applied', variant: 'destructive' });
       }
 
+      const finalActions = [...liveActions];
       setMessages(prev => prev.map(msg =>
-        msg.id === aId
-          ? {
-              ...msg,
-              content: result.summary || (hasFileUpdates || hasDeletions ? 'Done!' : 'No file changes were applied. Try a more specific request.'),
-              agentActions: result.actions || [],
-            }
-          : msg
+        msg.id === aId ? { ...msg, content: result.summary || 'Done!', agentActions: result.actions || finalActions } : msg
       ));
+
+      // Auto-save after successful generation
+      setTimeout(() => saveProject(), 500);
+
+      toast({ title: 'Files updated!' });
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Something went wrong';
       setMessages(prev => prev.map(m => m.id === aId ? { ...m, content: `Error: ${msg}` } : m));

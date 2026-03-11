@@ -57,7 +57,7 @@ export function IDEChatPanel({ messages, liveActions, isLoading, generatingId, o
         </div>
         <div className="flex-1">
           <h2 className="font-semibold text-sm leading-none">Arc Builder</h2>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Gemini 3.1 Pro · Agentic Code Generation</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Agentic Code Generation</p>
         </div>
         <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">
           <Sparkles className="h-3 w-3" />
