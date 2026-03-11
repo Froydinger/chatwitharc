@@ -259,7 +259,7 @@ const FeatureCard = ({
 // App Mockup Component
 const AppMockup = () => {
   const [activeCardPopup, setActiveCardPopup] = useState<string | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleCardClick = (cardType: string) => {
     // Clear any existing timeout
