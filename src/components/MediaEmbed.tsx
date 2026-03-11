@@ -74,11 +74,7 @@ export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => 
     }
 
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-xl overflow-hidden border border-border/40 bg-muted/30"
-      >
+      <div className="rounded-xl overflow-hidden border border-border/40 bg-muted/30">
         <div className="aspect-video">
           <iframe
             src={`https://www.youtube.com/embed/${youtubeId}?rel=0`}
@@ -102,7 +98,7 @@ export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => 
             Watch on YouTube
           </a>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
