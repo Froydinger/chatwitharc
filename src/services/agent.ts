@@ -10,14 +10,22 @@ export interface AgentResult {
   actions: AgentAction[];
 }
 
+export interface AgentChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export async function sendAgentMessage(
   userMessage: string,
+  chatHistory: AgentChatMessage[],
   currentFiles: VirtualFileSystem,
   onAction: (action: AgentAction) => void,
   model?: string,
   authToken?: string
 ): Promise<AgentResult> {
   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+  const filteredHistory = chatHistory.filter((message) => message.content.trim().length > 0);
 
   const resp = await fetch(AGENT_URL, {
     method: 'POST',
@@ -26,7 +34,7 @@ export async function sendAgentMessage(
       'Authorization': `Bearer ${authToken || supabaseKey}`,
     },
     body: JSON.stringify({
-      messages: [{ role: 'user', content: userMessage }],
+      messages: [...filteredHistory, { role: 'user', content: userMessage }],
       currentFiles,
       model,
     }),
