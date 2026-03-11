@@ -50,7 +50,7 @@ export function LandingVoiceDemo() {
   const [activeStep, setActiveStep] = useState(-1);
   const [isListening, setIsListening] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
-  const loopTimeout = useRef<NodeJS.Timeout>();
+  const loopTimeout = useRef<ReturnType<typeof setTimeout>>();
 
   const userHeights = useWaveform(isListening && activeStep >= 0 && activeStep % 2 === 0);
   const aiHeights = useWaveform(!isListening && activeStep >= 0 && activeStep % 2 === 1);
@@ -66,7 +66,7 @@ export function LandingVoiceDemo() {
   }, []);
 
   const runConversation = useCallback(() => {
-    const timers: NodeJS.Timeout[] = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
     let elapsed = 600;
 
     CONVERSATION.forEach((msg, i) => {

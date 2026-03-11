@@ -46,7 +46,7 @@ export function LandingCanvasDemo() {
   const [hasStarted, setHasStarted] = useState(false);
   const [fakeCount, setFakeCount] = useState(0);
   const [poemLines, setPoemLines] = useState(0);
-  const loopTimeout = useRef<NodeJS.Timeout>();
+  const loopTimeout = useRef<ReturnType<typeof setTimeout>>();
 
   // Blink cursor
   useEffect(() => {

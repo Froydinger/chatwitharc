@@ -86,7 +86,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const [previewViewport, setPreviewViewport] = useState<'desktop' | 'mobile'>('desktop');
   // Track elapsed time during AI generation
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isCodeMode = canvasType === 'code';
   const supportsPreview = isCodeMode && canPreview(codeLanguage);

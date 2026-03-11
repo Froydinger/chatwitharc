@@ -16,7 +16,7 @@ export const TypewriterText = ({
   onTyping
 }: TypewriterTextProps) => {
   const [displayedText, setDisplayedText] = useState(shouldAnimate ? "" : text);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!shouldAnimate) {

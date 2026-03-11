@@ -256,7 +256,7 @@ export function MobileChatApp() {
   const [showMobileCanvasInput, setShowMobileCanvasInput] = useState(false);
   const [canvasWidthPercent, setCanvasWidthPercent] = useState(50);
   const canvasResizingRef = useRef(false);
-  const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const snarkyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 

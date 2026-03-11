@@ -110,7 +110,7 @@ function ResearchDemo() {
   const current = data[step];
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: ReturnType<typeof setTimeout>;
 
     if (phase === 'typing') {
       if (typedChars < current.query.length) {
@@ -259,7 +259,7 @@ const FeatureCard = ({
 // App Mockup Component
 const AppMockup = () => {
   const [activeCardPopup, setActiveCardPopup] = useState<string | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleCardClick = (cardType: string) => {
     // Clear any existing timeout
@@ -436,7 +436,7 @@ export function LandingScreen() {
   const [snarkyMessage, setSnarkyMessage] = useState<string | null>(null);
   const [isLogoSpinning, setIsLogoSpinning] = useState(false);
   const [showStickyHeader, setShowStickyHeader] = useState(false);
-  const snarkyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const snarkyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const downloadUrl = "https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/download-files/ArcAi-4.0.5.dmg";
 
