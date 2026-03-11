@@ -1554,7 +1554,7 @@ ${existingCode}
 
         {/* Mic Icon - Voice Mode */}
         <button
-          onClick={() => {
+          onClick={async () => {
             if (user && !subscription.canUseVoice) {
               toast({
                 title: "Voice session limit reached",
@@ -1563,6 +1563,62 @@ ${existingCode}
               });
               return;
             }
+
+            // Check and request microphone permission before activating voice mode.
+            // This ensures the browser permission dialog appears on all platforms
+            // (Mac, Arc browser, PWA) instead of silently failing.
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+              try {
+                // Check current permission state if the Permissions API is available
+                if (navigator.permissions) {
+                  const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+                  if (permissionStatus.state === 'denied') {
+                    toast({
+                      title: "Microphone access blocked",
+                      description: "Please allow microphone access in your browser settings (and macOS System Settings > Privacy & Security > Microphone), then try again.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                }
+
+                // If permission is 'prompt' or unknown, explicitly call getUserMedia
+                // so the browser shows the native permission dialog right now,
+                // in this user-gesture context (required by Safari/Arc/PWA).
+                const permissionStatus = navigator.permissions
+                  ? await navigator.permissions.query({ name: 'microphone' as PermissionName })
+                  : null;
+
+                if (!permissionStatus || permissionStatus.state === 'prompt') {
+                  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                  // Immediately stop the stream — it will be reopened by useAudioCapture
+                  stream.getTracks().forEach(track => track.stop());
+                }
+              } catch (err: any) {
+                // NotAllowedError = user denied or system blocked
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                  toast({
+                    title: "Microphone access denied",
+                    description: "To use voice mode, allow microphone access in your browser settings. On Mac, also check System Settings > Privacy & Security > Microphone.",
+                    variant: "destructive",
+                  });
+                } else if (err.name === 'NotFoundError') {
+                  toast({
+                    title: "No microphone found",
+                    description: "Please connect a microphone and try again.",
+                    variant: "destructive",
+                  });
+                } else {
+                  toast({
+                    title: "Microphone error",
+                    description: "Could not access microphone. Please check your settings and try again.",
+                    variant: "destructive",
+                  });
+                }
+                return;
+              }
+            }
+
             if (user) subscription.recordVoiceSession();
             activateVoiceMode();
           }}
