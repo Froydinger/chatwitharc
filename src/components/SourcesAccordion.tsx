@@ -2,22 +2,41 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Globe, ChevronDown, ExternalLink, Play, Image as ImageIcon } from "lucide-react";
 import { WebSource } from "@/store/useArcStore";
-import { MediaEmbeds, getMediaType } from "@/components/MediaEmbed";
+import { MediaEmbeds, getMediaType, getYouTubeVideoId } from "@/components/MediaEmbed";
 
 interface SourcesAccordionProps {
   sources: WebSource[];
   showMediaEmbeds?: boolean;
+  messageContent?: string;
 }
 
-export const SourcesAccordion = ({ sources, showMediaEmbeds = true }: SourcesAccordionProps) => {
+export const SourcesAccordion = ({ sources, showMediaEmbeds = true, messageContent }: SourcesAccordionProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   if (!sources || sources.length === 0) return null;
 
+  // Extract YouTube IDs already embedded in the message text so we don't show them twice
+  const embeddedYouTubeIds = new Set<string>();
+  if (messageContent) {
+    const urlPattern = /https?:\/\/[^\s)>\]"]+/g;
+    const matches = messageContent.match(urlPattern) || [];
+    for (const url of matches) {
+      const id = getYouTubeVideoId(url);
+      if (id) embeddedYouTubeIds.add(id);
+    }
+  }
+
+  // Sources to show in media embeds — exclude YouTube videos already in the message
+  const sourcesForEmbeds = sources.filter(s => {
+    const youtubeId = getYouTubeVideoId(s.url);
+    if (youtubeId && embeddedYouTubeIds.has(youtubeId)) return false;
+    return true;
+  });
+
   // Count media items
-  const mediaItems = sources.filter(s => getMediaType(s.url) !== 'none');
-  const videoCount = sources.filter(s => getMediaType(s.url) === 'youtube').length;
-  const imageCount = sources.filter(s => getMediaType(s.url) === 'image').length;
+  const mediaItems = sourcesForEmbeds.filter(s => getMediaType(s.url) !== 'none');
+  const videoCount = sourcesForEmbeds.filter(s => getMediaType(s.url) === 'youtube').length;
+  const imageCount = sourcesForEmbeds.filter(s => getMediaType(s.url) === 'image').length;
 
   // Extract domain from URL for display
   const getDomain = (url: string) => {
@@ -49,7 +68,7 @@ export const SourcesAccordion = ({ sources, showMediaEmbeds = true }: SourcesAcc
       {/* Media Embeds (shown above accordion when enabled) */}
       {showMediaEmbeds && mediaItems.length > 0 && (
         <MediaEmbeds
-          sources={sources.map(s => ({ url: s.url, title: s.title }))}
+          sources={sourcesForEmbeds.map(s => ({ url: s.url, title: s.title }))}
           maxItems={3}
         />
       )}
