@@ -13,7 +13,7 @@ import { IDECodeEditor } from './IDECodeEditor';
 import { IDEPreviewPanel } from './IDEPreviewPanel';
 import { IDEChatPanel } from './IDEChatPanel';
 import { sendAgentMessage, type AgentResult } from '@/services/agent';
-import { getModelForTask } from '@/store/useModelStore';
+
 import { supabase } from '@/integrations/supabase/client';
 import type { VirtualFileSystem, AgentAction } from '@/types/ide';
 import { DEFAULT_FILES } from '@/types/ide';

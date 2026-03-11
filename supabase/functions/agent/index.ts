@@ -119,9 +119,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, currentFiles, model } = await req.json();
+    const { messages = [], currentFiles } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const resolvedModel = "google/gemini-3.1-pro-preview";
 
     let systemPrompt = AGENT_SYSTEM_PROMPT;
     if (currentFiles && typeof currentFiles === "object" && Object.keys(currentFiles).length > 0) {
