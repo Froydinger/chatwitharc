@@ -173,13 +173,56 @@ Example format:
     const data = await response.json();
     const content = data.choices[0].message.content;
     
-    // Parse JSON from response
+    // Parse JSON from response with robust error handling
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      throw new Error('Failed to parse AI response');
+      console.error('No JSON array found in AI response:', content);
+      throw new Error('Failed to parse AI response - no JSON array found');
     }
 
-    const prompts = JSON.parse(jsonMatch[0]);
+    let prompts;
+    try {
+      // Clean common problematic characters before parsing
+      let jsonString = jsonMatch[0];
+      jsonString = jsonString
+        .replace(/[\u201C\u201D]/g, '"')  // Replace smart quotes with regular quotes
+        .replace(/[\u2018\u2019]/g, "'")  // Replace smart single quotes
+        .replace(/[\u2013\u2014]/g, '-')  // Replace em/en dashes
+        .replace(/\u2026/g, '...')        // Replace ellipsis character
+        .replace(/\r\n/g, ' ')
+        .replace(/\n/g, ' ')
+        .replace(/\t/g, ' ')
+        .replace(/\s+/g, ' ');
+
+      prompts = JSON.parse(jsonString);
+    } catch (parseError: unknown) {
+      // Try to recover truncated JSON by extracting complete objects
+      console.warn('Initial JSON parse failed, attempting recovery...');
+
+      let jsonString = jsonMatch[0]
+        .replace(/[\u201C\u201D]/g, '"')
+        .replace(/[\u2018\u2019]/g, "'")
+        .replace(/[\u2013\u2014]/g, '-')
+        .replace(/\u2026/g, '...')
+        .replace(/\r\n/g, ' ')
+        .replace(/\n/g, ' ')
+        .replace(/\t/g, ' ')
+        .replace(/\s+/g, ' ');
+
+      const objectMatches = jsonString.matchAll(/\{"label":\s*"[^"]+",\s*"prompt":\s*"[^"]+"\}/g);
+      const recoveredPrompts = Array.from(objectMatches).map((m) => {
+        try { return JSON.parse(m[0] as string); } catch { return null; }
+      }).filter(Boolean);
+
+      if (recoveredPrompts.length >= 3) {
+        console.log(`Recovered ${recoveredPrompts.length} prompts from truncated response`);
+        prompts = recoveredPrompts;
+      } else {
+        const parseMessage = parseError instanceof Error ? parseError.message : 'Unknown parse error';
+        console.error('JSON parse error:', parseMessage);
+        throw new Error(`Failed to parse AI response JSON: ${parseMessage}`);
+      }
+    }
 
     return new Response(
       JSON.stringify({ prompts }),

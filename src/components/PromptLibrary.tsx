@@ -7,7 +7,7 @@ import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask } from "@/store/useModelStore";
 import { toast } from "sonner";
 import { generatePromptsByCategory } from "@/utils/promptGenerator";
-import { getCachedPrompts } from "@/hooks/usePromptPreload";
+import { getCachedPrompts, CACHE_KEY_PREFIX } from "@/hooks/usePromptPreload";
 
 interface QuickPrompt {
   label: string;
@@ -40,10 +40,17 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
   const [isLoadingWrite, setIsLoadingWrite] = useState(false);
   const [isLoadingCode, setIsLoadingCode] = useState(false);
 
-  // Generate initial prompts on mount
+  // Generate initial prompts on mount; also pre-fill smart prompts from cache if available
   useEffect(() => {
     if (isOpen) {
       refreshPrompts('all');
+      // Pre-fill smart prompts from cache so they appear instantly without waiting for tab click
+      if (smartPrompts.length === 0) {
+        const cached = getCachedPrompts('smart');
+        if (cached && cached.length > 0) {
+          setSmartPrompts(cached);
+        }
+      }
     }
   }, [isOpen]);
 
@@ -181,6 +188,14 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
         return;
       }
 
+      // Check cache first - may already be generated in background
+      const cached = getCachedPrompts('smart');
+      if (cached && cached.length > 0) {
+        console.log('⚡ Using cached smart prompts (instant load)');
+        setSmartPrompts(cached);
+        return;
+      }
+
       setIsLoadingSmartPrompts(true);
 
       // Pass selected model for smart prompt generation
@@ -198,6 +213,12 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
             ]);
           } else if (data?.prompts) {
             setSmartPrompts(data.prompts);
+            // Cache so they're ready if panel is closed and reopened
+            try {
+              sessionStorage.setItem(CACHE_KEY_PREFIX + 'smart', JSON.stringify(data.prompts));
+            } catch (e) {
+              console.error('Failed to cache smart prompts:', e);
+            }
           }
         })
         .finally(() => {
