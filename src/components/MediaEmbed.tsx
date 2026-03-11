@@ -48,7 +48,6 @@ export const getMediaType = (url: string): 'youtube' | 'image' | 'none' => {
 };
 
 export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => {
-  const [showVideo, setShowVideo] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
 
@@ -57,8 +56,6 @@ export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => 
 
   // YouTube embed
   if (youtubeId) {
-    const thumbnailUrl = `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`;
-
     if (compact) {
       return (
         <a
@@ -80,46 +77,31 @@ export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-xl overflow-hidden border border-border/40 bg-muted/30"
+        className="rounded-xl overflow-hidden border border-border/40 bg-muted/30"
       >
-        {!showVideo ? (
-          <div
-            className="relative cursor-pointer group"
-            onClick={() => setShowVideo(true)}
+        <div className="aspect-video">
+          <iframe
+            src={`https://www.youtube.com/embed/${youtubeId}?rel=0`}
+            title={title || 'YouTube Video'}
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+        <div className="flex items-center justify-between px-3 py-2 bg-muted/20">
+          {title && (
+            <p className="text-xs text-muted-foreground truncate">{title}</p>
+          )}
+          <a
+            href={`https://www.youtube.com/watch?v=${youtubeId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-400 transition-colors ml-auto shrink-0"
           >
-            <img
-              src={thumbnailUrl}
-              alt={title || 'YouTube Video'}
-              className="w-full aspect-video object-cover"
-            />
-            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-              <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <Play className="h-8 w-8 text-white ml-1" fill="white" />
-              </div>
-            </div>
-            {title && (
-              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                <p className="text-sm text-white font-medium line-clamp-2">{title}</p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="relative aspect-video">
-            <button
-              onClick={() => setShowVideo(false)}
-              className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <iframe
-              src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0`}
-              title={title || 'YouTube Video'}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        )}
+            <ExternalLink className="h-3 w-3" />
+            Watch on YouTube
+          </a>
+        </div>
       </motion.div>
     );
   }
