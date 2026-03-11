@@ -154,8 +154,24 @@ export function useCameraCapture(options: UseCameraCaptureOptions = {}) {
     } catch (err: any) {
       console.error('Failed to start camera capture:', err);
       setHasPermission(false);
-      setError(err.message || 'Failed to access camera');
       deactivateCamera();
+
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        const enriched = new Error(
+          'Camera access was denied. Please allow camera access in your browser settings. ' +
+          'On Mac, also check System Settings > Privacy & Security > Camera.'
+        );
+        enriched.name = 'NotAllowedError';
+        setError(enriched.message);
+        throw enriched;
+      } else if (err.name === 'NotFoundError') {
+        const enriched = new Error('No camera found. Please connect a camera and try again.');
+        enriched.name = 'NotFoundError';
+        setError(enriched.message);
+        throw enriched;
+      }
+
+      setError(err.message || 'Failed to access camera');
       throw err;
     }
   }, [cameraFacingMode, frameRate, resizeAndCapture, hasFrameChanged, onFrame, deactivateCamera]);

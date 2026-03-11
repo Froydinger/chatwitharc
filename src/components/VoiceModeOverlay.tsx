@@ -6,6 +6,7 @@ import { useCallback, useRef, useEffect, useMemo, useState } from "react";
 import { VOICES, REALTIME_VOICES, VOICE_AVATARS } from "@/constants/voices";
 import { useProfile } from "@/hooks/useProfile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useToast } from "@/hooks/use-toast";
 
 // Global ref to allow interrupt from overlay - set by VoiceModeController
 let globalInterruptHandler: (() => void) | null = null;
@@ -191,6 +192,7 @@ export function VoiceModeOverlay() {
   } = useVoiceModeStore();
 
   const { updateProfile } = useProfile();
+  const { toast } = useToast();
   const [voicePickerOpen, setVoicePickerOpen] = useState(false);
   const [pendingVoiceSwitch, setPendingVoiceSwitch] = useState<VoiceName | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
@@ -280,17 +282,62 @@ export function VoiceModeOverlay() {
     }
   }, [isMuted, toggleMute]);
 
-  // Handle camera toggle
-  const handleCameraToggle = useCallback(() => {
+  // Handle camera toggle — pre-check permissions on all platforms (Mac, Arc, PWA)
+  const handleCameraToggle = useCallback(async () => {
     if (isCameraActive) {
       deactivateCamera();
-    } else {
-      activateCamera();
+      if (navigator.vibrate) navigator.vibrate(30);
+      return;
     }
-    if (navigator.vibrate) {
-      navigator.vibrate(30);
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        if (navigator.permissions) {
+          const permissionStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+          if (permissionStatus.state === 'denied') {
+            toast({
+              title: "Camera access blocked",
+              description: "Please allow camera access in your browser settings (and macOS System Settings > Privacy & Security > Camera), then try again.",
+              variant: "destructive",
+            });
+            return;
+          }
+          if (permissionStatus.state === 'prompt') {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            stream.getTracks().forEach(track => track.stop());
+          }
+        } else {
+          // Permissions API not available — trigger dialog directly
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          stream.getTracks().forEach(track => track.stop());
+        }
+      } catch (err: any) {
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          toast({
+            title: "Camera access denied",
+            description: "To use the camera, allow camera access in your browser settings. On Mac, also check System Settings > Privacy & Security > Camera.",
+            variant: "destructive",
+          });
+        } else if (err.name === 'NotFoundError') {
+          toast({
+            title: "No camera found",
+            description: "Please connect a camera and try again.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Camera error",
+            description: "Could not access camera. Please check your settings and try again.",
+            variant: "destructive",
+          });
+        }
+        return;
+      }
     }
-  }, [isCameraActive, activateCamera, deactivateCamera]);
+
+    activateCamera();
+    if (navigator.vibrate) navigator.vibrate(30);
+  }, [isCameraActive, activateCamera, deactivateCamera, toast]);
 
   // Handle camera switch (front/back)
   const handleCameraSwitch = useCallback(() => {
