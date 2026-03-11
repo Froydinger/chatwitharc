@@ -71,42 +71,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ide_projects: {
-        Row: {
-          created_at: string
-          files: Json
-          id: string
-          prompt: string
-          title: string
-          updated_at: string
-          user_id: string
-          version: number
-          versions: Json
-        }
-        Insert: {
-          created_at?: string
-          files?: Json
-          id?: string
-          prompt?: string
-          title?: string
-          updated_at?: string
-          user_id: string
-          version?: number
-          versions?: Json
-        }
-        Update: {
-          created_at?: string
-          files?: Json
-          id?: string
-          prompt?: string
-          title?: string
-          updated_at?: string
-          user_id?: string
-          version?: number
-          versions?: Json
-        }
-        Relationships: []
-      }
       chat_sessions: {
         Row: {
           canvas_content: string | null
@@ -200,6 +164,42 @@ export type Database = {
           mime_type?: string | null
           prompt?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      ide_projects: {
+        Row: {
+          created_at: string
+          files: Json
+          id: string
+          prompt: string
+          title: string
+          updated_at: string
+          user_id: string
+          version: number
+          versions: Json
+        }
+        Insert: {
+          created_at?: string
+          files?: Json
+          id?: string
+          prompt?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+          version?: number
+          versions?: Json
+        }
+        Update: {
+          created_at?: string
+          files?: Json
+          id?: string
+          prompt?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+          versions?: Json
         }
         Relationships: []
       }
