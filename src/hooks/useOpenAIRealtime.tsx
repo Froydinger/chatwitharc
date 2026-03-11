@@ -494,6 +494,17 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         const { isActive: stillActive, isAudioPlaying: audioStillPlaying } = useVoiceModeStore.getState();
         if (stillActive && !audioStillPlaying) {
           setStatus('listening');
+        } else if (stillActive) {
+          // Safety fallback: if onended never fires (AudioContext error, tab background, etc.)
+          // force the state back to listening so the user can speak again
+          setTimeout(() => {
+            const { isActive: active, status: currentStatus } = useVoiceModeStore.getState();
+            if (active && (currentStatus === 'speaking' || currentStatus === 'thinking')) {
+              console.warn('Voice mode stuck — forcing reset to listening');
+              useVoiceModeStore.getState().setIsAudioPlaying(false);
+              useVoiceModeStore.getState().setStatus('listening');
+            }
+          }, 8000);
         }
         break;
 
@@ -517,7 +528,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           return;
         }
         
-        const isTransientError = 
+        const isTransientError =
           event.error?.message?.includes('Connection to AI service failed') ||
           event.error?.message?.includes('timeout') ||
           event.error?.message?.includes('rate limit') ||
@@ -525,6 +536,13 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           event.error?.code === 'session_update_error' ||
           event.error?.code === 'invalid_value' ||
           event.error?.code === 'cannot_update_voice' ||
+          // Race-condition errors that can occur around mute/unmute and double response.create
+          event.error?.code === 'response_already_active' ||
+          event.error?.code === 'input_audio_buffer_empty' ||
+          event.error?.code === 'response_not_created' ||
+          event.error?.message?.includes('Cannot create a new response') ||
+          event.error?.message?.includes('input audio buffer is empty') ||
+          event.error?.message?.includes('response is already') ||
           event.error?.message?.includes('session.update') ||
           event.error?.message?.includes('Cannot update a conversation');
         
@@ -826,23 +844,30 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
   // Commit the current audio buffer and trigger AI response
   const commitAudioAndRespond = useCallback(() => {
-    if (globalWs?.readyState !== WebSocket.OPEN) return;
-    
-    const { hasPendingSpeech, setHasPendingSpeech, setStatus } = useVoiceModeStore.getState();
-    
+    if (globalWs?.readyState !== WebSocket.OPEN) return false;
+
+    const { hasPendingSpeech, setHasPendingSpeech, setStatus, status } = useVoiceModeStore.getState();
+
     if (!hasPendingSpeech) {
       console.log('No pending speech to commit');
       return false;
     }
-    
+
+    // Don't send response.create if one is already active — causes a server error
+    // that propagates as a fatal error and closes the UI
+    if (status === 'thinking' || status === 'speaking') {
+      console.log('Response already active, skipping mute handoff to avoid double response.create');
+      return false;
+    }
+
     console.log('Committing audio buffer and triggering response (mute handoff)');
-    
+
     globalWs.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
     globalWs.send(JSON.stringify({ type: 'response.create' }));
-    
+
     setStatus('thinking');
     setHasPendingSpeech(false);
-    
+
     return true;
   }, []);
 
