@@ -110,7 +110,7 @@ export const MemoryIndicator = ({ action, messageContent }: MemoryIndicatorProps
             </Button>
           )}
         </motion.div>
-        <SourcesAccordion sources={action.sources} />
+        <SourcesAccordion sources={action.sources} messageContent={messageContent} />
       </div>
     );
   }
