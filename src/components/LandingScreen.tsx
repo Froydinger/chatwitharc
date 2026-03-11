@@ -110,7 +110,7 @@ function ResearchDemo() {
   const current = data[step];
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: ReturnType<typeof setTimeout>;
 
     if (phase === 'typing') {
       if (typedChars < current.query.length) {
