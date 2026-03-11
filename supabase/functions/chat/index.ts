@@ -352,7 +352,7 @@ serve(async (req) => {
       console.log('Authenticated user:', user.id);
     }
 
-    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel } = body;
+    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel, clientDateTime } = body;
 
     console.log('📊 Request details:', {
       model: model || 'google/gemini-3-flash-preview (default)',
@@ -455,6 +455,10 @@ serve(async (req) => {
 
     // Build enhanced system prompt - Admin prompt is PRIMARY and defines personality/behavior
     let enhancedSystemPrompt = systemPrompt;
+
+    // Inject current date/time so the AI always knows when "now" is
+    const nowString = clientDateTime || new Date().toUTCString();
+    enhancedSystemPrompt += `\n\nCurrent date and time: ${nowString}`;
 
     // Add user context (keep this minimal)
     if (profile?.display_name) {

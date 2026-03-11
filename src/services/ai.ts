@@ -199,7 +199,8 @@ export class AIService {
                 forceWebSearch: forceWebSearch || false,
                 forceCanvas: forceCanvas || false,
                 forceCode: forceCode || false,
-                useProModel: isComplex || false
+                useProModel: isComplex || false,
+                clientDateTime: new Date().toString()
               }
             }),
             timeoutMs
@@ -380,7 +381,8 @@ export class AIService {
         forceWebSearch,
         sessionId,
         stream: true,
-        useProModel: isComplex || false
+        useProModel: isComplex || false,
+        clientDateTime: new Date().toString()
       }),
       signal: abortSignal, // Allow cancellation
     });
