@@ -59,7 +59,7 @@ export function AppsPanel() {
   };
 
   const handleOpen = (project: IDEProject) => {
-    reopenIDECanvas(project.id, project.files);
+    reopenIDECanvas(project.id, project.files, project.messages || []);
     if (isMobile || window.innerWidth < 1024) {
       setRightPanelOpen(false);
     }
