@@ -17,22 +17,27 @@ async function blobToBase64(blob: Blob): Promise<string> {
 
 const DEFAULT_FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="#6366f1"/><text x="50" y="68" text-anchor="middle" font-size="52" font-family="sans-serif" fill="white">🚀</text></svg>`;
 
-function generateDeployHtml(bundledCode: string, appName: string, faviconSvg?: string): string {
+function generateDeployHtml(bundledCode: string, appName: string, hasFavicon: boolean): string {
   const base = generatePreviewHtml(bundledCode);
-  const favicon = faviconSvg || DEFAULT_FAVICON_SVG;
+  const faviconTag = hasFavicon
+    ? `<link rel="icon" href="/favicon.svg" type="image/svg+xml">`
+    : `<link rel="icon" href="data:image/svg+xml,${encodeURIComponent(DEFAULT_FAVICON_SVG)}" type="image/svg+xml">`;
   return base
-    .replace('<title>Preview</title>', `<title>${appName}</title>\n  <link rel="icon" href="data:image/svg+xml,${encodeURIComponent(favicon)}" type="image/svg+xml">`)
+    .replace('<title>Preview</title>', `<title>${appName}</title>\n  ${faviconTag}`)
     .replace(`"development"`, `"production"`);
 }
 
 async function buildStaticZip(projectName: string, files: VirtualFileSystem, siteTitle?: string, faviconSvg?: string): Promise<Blob> {
   await initializeEsbuild();
   const bundledCode = await bundleProject(files);
-  const html = generateDeployHtml(bundledCode, siteTitle || projectName, faviconSvg);
+  const html = generateDeployHtml(bundledCode, siteTitle || projectName, !!faviconSvg);
 
   const zip = new JSZip();
   zip.file('index.html', html);
   zip.file('_redirects', '/*    /index.html   200');
+  if (faviconSvg) {
+    zip.file('favicon.svg', faviconSvg);
+  }
   return zip.generateAsync({ type: 'blob' });
 }
 
