@@ -75,6 +75,7 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedFilesRef = useRef<string>('');
   const projectIdRef = useRef<string | null>(ideProjectId);
+  const didAutoRunInitialPromptRef = useRef(false);
 
   // Sync files to store
   useEffect(() => { setIdeFiles(files); }, [files, setIdeFiles]);
