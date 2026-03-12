@@ -345,13 +345,4 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   clearCanvas: () => set({ content: '', undoStack: [], redoStack: [] }),
 
-  // IDE actions
-  setIdeFiles: (files) => set({ ideFiles: files }),
-  setIdeActions: (actions) => set(state => ({
-    ideActions: typeof actions === 'function' ? actions(state.ideActions) : actions,
-  })),
-  setIdeIsRunning: (running) => set({ ideIsRunning: running }),
-  clearIdePrompt: () => set({ idePrompt: null, ideAutoRunPrompt: false }),
-  setIdeProjectId: (id) => set({ ideProjectId: id }),
-  setIdeMessages: (messages) => set({ ideMessages: messages }),
 }));
