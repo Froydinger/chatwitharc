@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Code2, Search, Rocket, ExternalLink, Layers, Trash2, Plus, ArrowLeft } from "lucide-react";
+import { Code2, Search, Rocket, ExternalLink, Layers, Trash2, Plus, LayoutDashboard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
