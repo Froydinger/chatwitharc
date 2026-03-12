@@ -268,7 +268,7 @@ export function DashboardPage() {
 
   return (
     <div
-      className="min-h-screen overflow-y-auto scrollbar-hide relative z-10"
+      className="min-h-screen overflow-y-auto scrollbar-hide relative z-10 pb-20"
       style={{ paddingTop: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px' }}
     >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
@@ -296,15 +296,15 @@ export function DashboardPage() {
           <ChatInput />
         </motion.div>
 
-        {/* Tab Navigation */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
+        {/* Tab Navigation — wrapping pills on desktop, hidden on mobile (bottom bar instead) */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="hidden sm:block">
+          <div className="flex flex-wrap items-center gap-1.5">
             {tabs.map(({ key, label, icon: Icon, count }) => (
               <button
                 key={key}
                 onClick={() => switchTab(key)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap shrink-0",
+                  "flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap",
                   activeTab === key
                     ? "bg-primary/20 text-primary ring-1 ring-primary/40"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -690,7 +690,28 @@ export function DashboardPage() {
           )}
         </AnimatePresence>
 
-        <div className="h-8" />
+        <div className="h-4" />
+      </div>
+
+      {/* Bottom Tab Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border/40 backdrop-blur-2xl safe-area-bottom">
+        <div className="flex items-center justify-around max-w-lg mx-auto py-2 px-1">
+          {tabs.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => switchTab(key)}
+              className={cn(
+                "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all min-w-0 flex-1",
+                activeTab === key
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Icon className={cn("h-5 w-5", activeTab === key && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.5)]")} />
+              <span className="text-[10px] font-medium truncate">{label}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

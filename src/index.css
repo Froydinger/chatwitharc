@@ -857,3 +857,7 @@ All colors MUST be HSL for perfect glass effects.
     color: hsl(var(--primary) / 0.8);
   }
 }
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
