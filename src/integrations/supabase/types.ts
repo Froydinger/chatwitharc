@@ -170,6 +170,7 @@ export type Database = {
       ide_projects: {
         Row: {
           created_at: string
+          favicon_label: string | null
           files: Json
           id: string
           messages: Json
@@ -185,6 +186,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          favicon_label?: string | null
           files?: Json
           id?: string
           messages?: Json
@@ -200,6 +202,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          favicon_label?: string | null
           files?: Json
           id?: string
           messages?: Json

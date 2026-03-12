@@ -1,0 +1,1 @@
+ALTER TABLE public.ide_projects ADD COLUMN IF NOT EXISTS favicon_label text DEFAULT NULL;
