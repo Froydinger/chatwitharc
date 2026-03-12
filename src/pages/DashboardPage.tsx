@@ -322,13 +322,15 @@ useEffect(() => {
           
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => navigate("/")}
-                className="relative h-10 w-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center hover:bg-primary/20 hover:border-primary/30 hover:shadow-[0_0_15px_hsl(var(--primary)/0.15)] transition-all active:scale-95"
+                className="rounded-full glass-shimmer"
                 title="Back to chat"
               >
                 <MessageSquare className="h-4.5 w-4.5 text-primary" />
-              </button>
+              </Button>
               <ThemedLogo className="h-9 w-9" />
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
