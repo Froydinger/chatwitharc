@@ -35,17 +35,17 @@ export function DashboardSettingsPage() {
         paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'})`,
       }}
     >
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <div className="w-full px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-10">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-3 mb-6"
         >
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full h-9 w-9">
+          <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="rounded-full glass-shimmer">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <ThemedLogo className="h-8 w-8" />
-          <h1 className="text-xl font-bold text-foreground">Settings</h1>
+          <h1 className="text-base sm:text-xl font-light text-foreground">Settings</h1>
         </motion.div>
 
         <motion.div
