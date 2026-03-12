@@ -770,8 +770,32 @@ useEffect(() => {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input value={memorySearch} onChange={e => setMemorySearch(e.target.value)} placeholder="Search memories..." className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
                 </div>
+                <Button variant="outline" size="sm" className="rounded-xl shrink-0" onClick={() => { setIsAddingMemory(true); setNewMemoryContent(""); }}>
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add
+                </Button>
                 <span className="text-[11px] text-muted-foreground shrink-0 font-medium">{filteredMemories.length} memor{filteredMemories.length !== 1 ? 'ies' : 'y'}</span>
               </div>
+
+              {/* Add new memory form */}
+              {isAddingMemory && (
+                <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
+                  <Textarea
+                    value={newMemoryContent}
+                    onChange={e => setNewMemoryContent(e.target.value)}
+                    placeholder="Add something Arc should remember..."
+                    className="bg-muted/30 border-border/40 rounded-xl min-h-[70px] resize-none text-sm"
+                    autoFocus
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" className="rounded-xl" onClick={async () => { if (newMemoryContent.trim()) { await addBlock(newMemoryContent.trim(), 'manual'); setNewMemoryContent(""); setIsAddingMemory(false); } }} disabled={!newMemoryContent.trim()}>
+                      <Check className="h-3 w-3 mr-1" /> Save
+                    </Button>
+                    <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => { setIsAddingMemory(false); setNewMemoryContent(""); }}>
+                      <X className="h-3 w-3 mr-1" /> Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {blocksLoading ? (
                 <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="p-4 rounded-xl border border-border/30 bg-muted/20"><Skeleton className="h-4 w-full" /></div>)}</div>
