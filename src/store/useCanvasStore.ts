@@ -27,14 +27,6 @@ interface CanvasState {
   codeLanguage: string;
   showCodePreview: boolean;
 
-  // IDE mode state
-  ideFiles: VirtualFileSystem | null;
-  ideActions: AgentAction[];
-  ideIsRunning: boolean;
-  idePrompt: string | null;
-  ideAutoRunPrompt: boolean;
-  ideProjectId: string | null;
-  ideMessages: any[];
 
   // Actions
   openCanvas: (initialContent?: string) => void;
