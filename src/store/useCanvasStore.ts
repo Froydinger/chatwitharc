@@ -34,6 +34,7 @@ interface CanvasState {
   ideIsRunning: boolean;
   idePrompt: string | null;
   ideProjectId: string | null;
+  ideMessages: any[];
 
   // Actions
   openCanvas: (initialContent?: string) => void;
