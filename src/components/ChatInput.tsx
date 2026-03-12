@@ -1020,10 +1020,32 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       try {
         const aiMessages = messages.filter((m) => m.type === "text").map((m) => ({ role: m.role, content: m.content }));
 
-        // Strip the code/ prefix if present, and prepend "Code the following:" for the AI
+        // Strip the code/ prefix if present
         const isCodingRequest = wasCodingMode;
 
         const canvasState = useCanvasStore.getState();
+
+        // IDE MODE: Route /code requests to the multi-file App Builder IDE
+        if (isCodingRequest) {
+          const cleanedPrompt = extractPrefixPrompt(userMessage);
+          const idePrompt = cleanedPrompt || userMessage;
+
+          // Add IDE artifact message to chat history
+          await addMessage({
+            content: `Building: ${idePrompt}`,
+            role: 'assistant',
+            type: 'ide',
+            idePrompt: idePrompt,
+          });
+
+          // Open the IDE canvas
+          const { openIDECanvas } = useCanvasStore.getState();
+          openIDECanvas(idePrompt);
+
+          setLoading(false);
+          return;
+        }
+
         // When writing canvas is open, default to routing there unless the message
         // is clearly conversational (e.g. "nice!", "thanks", "how does this work?")
         const shouldRouteToCanvas =
@@ -1039,9 +1061,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         // Build the message to send to AI
         let messageToSend: string;
 
-        if (isCodingRequest) {
-          // Explicit code/ prefix - new code request
-          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CODE: Use the update_code tool to write COMPLETE, FULL code for this request. Do NOT truncate, summarize, or cut short. Write the ENTIRE implementation: ${cleanedMessage}`;
+        if (shouldRouteToCodeCanvas && canvasState.content) {
         } else if (shouldRouteToCodeCanvas && canvasState.content) {
           // Code canvas is open and user wants to modify existing code
           const existingCode = canvasState.content;
