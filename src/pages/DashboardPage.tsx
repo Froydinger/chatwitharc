@@ -368,7 +368,7 @@ useEffect(() => {
 
               {/* Stat cards with gradient fills */}
               <div className="grid grid-cols-4 gap-2">
-                {stats.map(({ label, value, icon: Icon }, i) => (
+                {stats.map(({ label, value, icon: Icon, color, tw }, i) => (
                   <motion.div
                     key={label}
                     initial={{ opacity: 0, y: 14, scale: 0.9 }}
@@ -376,20 +376,30 @@ useEffect(() => {
                     transition={{ delay: 0.12 + i * 0.06, type: "spring", stiffness: 300, damping: 20 }}
                     className="relative overflow-hidden rounded-2xl p-3 text-center group cursor-pointer transition-all hover:scale-[1.04] active:scale-[0.97]"
                     style={{
-                      background: `linear-gradient(145deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--muted) / 0.3) 100%)`,
-                      border: '1px solid hsl(var(--primary) / 0.15)',
-                      boxShadow: '0 2px 12px hsl(var(--primary) / 0.06), inset 0 1px 0 hsl(var(--foreground) / 0.04)',
+                      background: `linear-gradient(145deg, hsl(${color} / 0.12) 0%, hsl(var(--muted) / 0.3) 100%)`,
+                      border: `1px solid hsl(${color} / 0.18)`,
+                      boxShadow: `0 2px 12px hsl(${color} / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.04)`,
                     }}
                     onClick={() => switchTab(tabs[i + 1]?.key || "overview")}
                   >
-                    {/* Subtle inner glow */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-8 bg-primary/10 blur-xl rounded-full pointer-events-none" />
-                    <Icon className="h-4 w-4 text-primary mx-auto mb-1 relative z-10 drop-shadow-[0_0_4px_hsl(var(--primary)/0.3)]" />
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-8 blur-xl rounded-full pointer-events-none" style={{ background: `hsl(${color} / 0.15)` }} />
+                    <Icon className={cn("h-4 w-4 mx-auto mb-1 relative z-10", tw)} style={{ filter: `drop-shadow(0 0 4px hsl(${color} / 0.4))` }} />
                     <p className="text-lg font-bold text-foreground leading-none relative z-10">{value}</p>
                     <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider relative z-10">{label}</p>
                   </motion.div>
                 ))}
               </div>
+
+              {/* Insight tip */}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.35 }}
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-primary/15 bg-primary/5"
+              >
+                <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-sm text-foreground/80">{insightTip}</p>
+              </motion.div>
 
               {/* Recent Chats */}
               <Section title="Recent Chats" icon={MessageSquare} action={() => switchTab("chats")} actionLabel="See all">
