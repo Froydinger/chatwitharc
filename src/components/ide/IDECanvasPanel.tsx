@@ -357,8 +357,10 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     toast({ title: 'Site unpublished' });
   };
 
-  const handleClose = () => {
-    if (syncStatus === 'unsaved') saveProject();
+  const handleClose = async () => {
+    if (syncStatus === 'unsaved' || syncStatus === 'saving') {
+      await saveProject();
+    }
     closeCanvas();
   };
 
