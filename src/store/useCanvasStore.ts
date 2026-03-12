@@ -230,6 +230,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       ideActions: [],
       ideIsRunning: false,
       ideProjectId: null,
+      ideMessages: [],
       isAIWriting: false,
       isLoading: false,
     });
