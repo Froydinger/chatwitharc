@@ -999,11 +999,6 @@ export function MobileChatApp() {
           onTabChange={setRightPanelTab}
         />
 
-        {/* Account Hub */}
-        <AccountHub
-          isOpen={isSupportPopupOpen}
-          onClose={() => setIsSupportPopupOpen(false)}
-        />
 
         {/* Music Popup */}
         <MusicPopup
