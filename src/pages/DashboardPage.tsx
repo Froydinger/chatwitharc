@@ -336,13 +336,27 @@ useEffect(() => {
                 </h1>
               </div>
             </div>
-            <button
-              onClick={() => navigate("/dashboard/settings")}
-              className="h-10 w-10 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-center hover:bg-muted hover:border-border transition-all active:scale-95"
-              title="Settings"
-            >
-              <Settings className="h-4.5 w-4.5 text-muted-foreground" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsMusicPopupOpen(!isMusicPopupOpen)}
+                className={cn(
+                  "h-10 w-10 rounded-2xl border flex items-center justify-center transition-all active:scale-95",
+                  isMusicPlaying
+                    ? "bg-primary/15 border-primary/30 text-primary shadow-[0_0_12px_hsl(var(--primary)/0.15)]"
+                    : "bg-muted/50 border-border/50 text-muted-foreground hover:bg-muted hover:border-border"
+                )}
+                title="Music Player"
+              >
+                <Music className="h-4.5 w-4.5" />
+              </button>
+              <button
+                onClick={() => navigate("/dashboard/settings")}
+                className="h-10 w-10 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-center hover:bg-muted hover:border-border transition-all active:scale-95"
+                title="Settings"
+              >
+                <Settings className="h-4.5 w-4.5 text-muted-foreground" />
+              </button>
+            </div>
           </div>
         </div>
 
