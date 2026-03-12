@@ -41,7 +41,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { toast } = useToast();
   
   // Always use Gemini 3 Pro for image editing - no exceptions
-  const selectedModel = 'google/gemini-3-pro-image-preview';
+  const selectedModel = 'google/gemini-3.1-flash-image-preview';
   
   // Normalize imageUrl to always be an array for easier handling
   const imageUrls = Array.isArray(imageUrl) ? imageUrl : [imageUrl];

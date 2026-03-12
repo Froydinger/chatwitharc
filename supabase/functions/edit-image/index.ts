@@ -128,7 +128,7 @@ serve(async (req) => {
       );
     }
 
-    const selectedModel = 'google/gemini-3-pro-image-preview';
+    const selectedModel = 'google/gemini-3.1-flash-image-preview';
     console.log('Using image model:', selectedModel);
 
     const imageArray = baseImageUrls || (baseImageUrl ? [baseImageUrl] : []);

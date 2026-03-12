@@ -505,7 +505,7 @@ export class AIService {
     try {
       // ALWAYS use Gemini 3 Pro for image generation (highest quality)
       // Voice mode and all image gen should use Pro, not session model
-      const modelToUse = preferredModel || 'google/gemini-3-pro-image-preview';
+      const modelToUse = preferredModel || 'google/gemini-3.1-flash-image-preview';
       
       console.log('generateImage called with:', { prompt, preferredModel, aspectRatio, modelToUse });
 
