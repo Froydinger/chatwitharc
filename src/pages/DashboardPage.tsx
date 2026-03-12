@@ -112,11 +112,18 @@ useEffect(() => {
     prevMessageCountRef.current = messages.length;
   }, [messages.length, currentSessionId, navigate]);
 
+  // Reset pages on search changes
+  useEffect(() => { setChatPage(1); }, [chatSearch]);
+  useEffect(() => { setImagePage(1); }, [imageSearch]);
+  useEffect(() => { setAppPage(1); }, [appSearch]);
+  useEffect(() => { setMemoryPage(1); }, [memorySearch]);
+
   const switchTab = (tab: DashboardTab) => {
     setActiveTab(tab);
     setSearchParams(tab === "overview" ? {} : { tab });
     setViewingImageIndex(null);
     setSelectedAppId(null);
+    setChatPage(1); setImagePage(1); setAppPage(1); setMemoryPage(1);
     window.scrollTo({ top: 0 });
   };
 
