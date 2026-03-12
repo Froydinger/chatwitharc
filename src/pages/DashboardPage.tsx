@@ -333,7 +333,7 @@ useEffect(() => {
               </Button>
               <ThemedLogo className="h-9 w-9" />
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+                <h1 className="text-base sm:text-2xl font-light text-foreground tracking-tight">
                   {greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}.
                 </h1>
               </div>
