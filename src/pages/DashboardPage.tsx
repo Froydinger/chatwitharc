@@ -4,7 +4,7 @@ import {
   MessageSquare, Image, Rocket, Brain,
   Plus, Clock, Settings, Search,
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
-  Globe, Code2, Eye, Sparkles, Zap, ArrowRight, Music
+  Globe, Code2, Eye, Sparkles, Zap, ArrowRight, Music, Edit2, Check, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { cn } from "@/lib/utils";
 import { getFaviconByLabel } from "@/constants/faviconOptions";
@@ -74,7 +75,7 @@ export function DashboardPage() {
     hydrateAllSessions, allSessionsHydrated, isHydratingAll,
     syncFromSupabase, currentSessionId, messages
   } = useArcStore();
-  const { blocks: contextBlocks, loading: blocksLoading, deleteBlock } = useContextBlocks();
+  const { blocks: contextBlocks, loading: blocksLoading, deleteBlock, updateBlock, addBlock } = useContextBlocks();
   const isAdminBannerActive = useAdminBanner();
 
 // Detect desktop standalone (PWA/Electron) for traffic light safe area
@@ -100,6 +101,10 @@ useEffect(() => {
   const [imageSearch, setImageSearch] = useState("");
   const [appSearch, setAppSearch] = useState("");
   const [memorySearch, setMemorySearch] = useState("");
+  const [editingMemoryId, setEditingMemoryId] = useState<string | null>(null);
+  const [editMemoryContent, setEditMemoryContent] = useState("");
+  const [isAddingMemory, setIsAddingMemory] = useState(false);
+  const [newMemoryContent, setNewMemoryContent] = useState("");
   const [viewingImageIndex, setViewingImageIndex] = useState<number | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [chatPage, setChatPage] = useState(1);
@@ -766,8 +771,32 @@ useEffect(() => {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input value={memorySearch} onChange={e => setMemorySearch(e.target.value)} placeholder="Search memories..." className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
                 </div>
+                <Button variant="outline" size="sm" className="rounded-xl shrink-0" onClick={() => { setIsAddingMemory(true); setNewMemoryContent(""); }}>
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add
+                </Button>
                 <span className="text-[11px] text-muted-foreground shrink-0 font-medium">{filteredMemories.length} memor{filteredMemories.length !== 1 ? 'ies' : 'y'}</span>
               </div>
+
+              {/* Add new memory form */}
+              {isAddingMemory && (
+                <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
+                  <Textarea
+                    value={newMemoryContent}
+                    onChange={e => setNewMemoryContent(e.target.value)}
+                    placeholder="Add something Arc should remember..."
+                    className="bg-muted/30 border-border/40 rounded-xl min-h-[70px] resize-none text-sm"
+                    autoFocus
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" className="rounded-xl" onClick={async () => { if (newMemoryContent.trim()) { await addBlock(newMemoryContent.trim(), 'manual'); setNewMemoryContent(""); setIsAddingMemory(false); } }} disabled={!newMemoryContent.trim()}>
+                      <Check className="h-3 w-3 mr-1" /> Save
+                    </Button>
+                    <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => { setIsAddingMemory(false); setNewMemoryContent(""); }}>
+                      <X className="h-3 w-3 mr-1" /> Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {blocksLoading ? (
                 <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="p-4 rounded-xl border border-border/30 bg-muted/20"><Skeleton className="h-4 w-full" /></div>)}</div>
@@ -781,24 +810,48 @@ useEffect(() => {
                       key={block.id}
                       className="p-4 rounded-xl group border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                            <Brain className="h-3.5 w-3.5 text-primary/60" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-foreground/90 leading-relaxed">{block.content}</p>
-                            <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground uppercase tracking-wider">
-                              <span>{block.source}</span>
-                              <span className="text-muted-foreground/30">·</span>
-                              <span>{timeAgo(block.created_at)}</span>
-                            </div>
+                      {editingMemoryId === block.id ? (
+                        <div className="space-y-3">
+                          <Textarea
+                            value={editMemoryContent}
+                            onChange={e => setEditMemoryContent(e.target.value)}
+                            className="bg-muted/30 border-border/40 rounded-xl min-h-[60px] resize-none text-sm"
+                            autoFocus
+                          />
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" className="rounded-xl" onClick={async () => { if (editMemoryContent.trim()) { await updateBlock(editingMemoryId, editMemoryContent.trim()); setEditingMemoryId(null); setEditMemoryContent(""); } }} disabled={!editMemoryContent.trim()}>
+                              <Check className="h-3 w-3 mr-1" /> Save
+                            </Button>
+                            <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => { setEditingMemoryId(null); setEditMemoryContent(""); }}>
+                              <X className="h-3 w-3 mr-1" /> Cancel
+                            </Button>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all shrink-0" onClick={() => deleteBlock(block.id)}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      ) : (
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
+                            <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                              <Brain className="h-3.5 w-3.5 text-primary/60" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-foreground/90 leading-relaxed">{block.content}</p>
+                              <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground uppercase tracking-wider">
+                                <span>{block.source}</span>
+                                <span className="text-muted-foreground/30">·</span>
+                                <span>{timeAgo(block.created_at)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-xl hover:bg-primary/10 hover:text-primary" onClick={() => { setEditingMemoryId(block.id); setEditMemoryContent(block.content); }}>
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-xl hover:bg-destructive/10 hover:text-destructive" onClick={() => deleteBlock(block.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
