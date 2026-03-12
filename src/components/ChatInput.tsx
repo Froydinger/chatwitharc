@@ -368,6 +368,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const shouldShowCodeMode = forceCodingMode || (!!inputValue && checkForCodingRequest(inputValue));
   const shouldShowCanvasMode = forceCanvasMode || (!!inputValue && checkForCanvasRequest(inputValue));
   const shouldShowSearchMode = forceSearchMode || (!!inputValue && checkForSearchRequest(inputValue));
+  const shouldShowBuildMode = !!inputValue && checkForBuildRequest(inputValue);
 
   // When a /write canvas is open, auto-show canvas mode indicator so user knows
   // their messages will modify the canvas (not go to chat)
@@ -1414,6 +1415,8 @@ ${existingCode}
               ? "Disable image mode"
               : shouldShowCodeMode
               ? "Disable code mode"
+              : shouldShowBuildMode
+              ? "Disable build mode"
               : showCanvasIndicator
               ? (isCanvasAutoMode ? "Writing to canvas" : "Disable canvas mode")
               : shouldShowSearchMode
@@ -1428,6 +1431,8 @@ ${existingCode}
               ? "!bg-green-500/20 ring-1 ring-green-400/50 !shadow-[0_0_24px_rgba(34,197,94,0.25)]"
               : shouldShowCodeMode
               ? "!bg-blue-500/20 ring-1 ring-blue-400/50 !shadow-[0_0_24px_rgba(59,130,246,0.25)]"
+              : shouldShowBuildMode
+              ? "!bg-amber-500/20 ring-1 ring-amber-400/50 !shadow-[0_0_24px_rgba(245,158,11,0.25)]"
               : showCanvasIndicator
               ? "!bg-purple-500/20 ring-1 ring-purple-400/50 !shadow-[0_0_24px_rgba(168,85,247,0.25)]"
               : shouldShowSearchMode
@@ -1441,8 +1446,9 @@ ${existingCode}
               if (/^(image|draw|create)\/\s*$/i.test(inputValue) || /^\/(image|draw|create)\s*$/i.test(inputValue)) setInputValue("");
             } else if (shouldShowCodeMode) {
               setForceCodingMode(false);
-              // Clear input if it's just the prefix
               if (/^code\/\s*$/i.test(inputValue) || /^\/code\s*$/i.test(inputValue)) setInputValue("");
+            } else if (shouldShowBuildMode) {
+              if (/^build\/\s*$/i.test(inputValue) || /^\/build\s*$/i.test(inputValue)) setInputValue("");
             } else if (showCanvasIndicator) {
               if (!isCanvasAutoMode) {
                 // Explicit /write mode - allow dismissing
@@ -1470,6 +1476,13 @@ ${existingCode}
           ) : shouldShowCodeMode ? (
             <>
               <Code2 className="h-5 w-5 text-blue-400" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
+                ×
+              </span>
+            </>
+          ) : shouldShowBuildMode ? (
+            <>
+              <Rocket className="h-5 w-5 text-amber-400" />
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
                 ×
               </span>
@@ -1507,7 +1520,7 @@ ${existingCode}
               handleInputFocus();
             }}
             onBlur={() => setIsActive(false)}
-            placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe your image..." : shouldShowCodeMode ? "Describe what to build..." : showCanvasIndicator ? (isCanvasAutoMode ? "Describe changes to your writing..." : "What should I write...") : shouldShowSearchMode ? "Search the web..." : "Ask"}
+            placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe your image..." : shouldShowCodeMode ? "Describe what to code..." : shouldShowBuildMode ? "Describe your app..." : showCanvasIndicator ? (isCanvasAutoMode ? "Describe changes to your writing..." : "What should I write...") : shouldShowSearchMode ? "Search the web..." : "Ask"}
             disabled={isLoading}
             className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 px-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
