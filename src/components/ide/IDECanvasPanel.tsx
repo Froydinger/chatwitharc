@@ -77,11 +77,23 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     if (ideFiles && Object.keys(ideFiles).length > 0) {
       setFiles(ideFiles);
     }
-    // If we already have a projectId (reopened), mark as saved
     if (ideProjectId) {
       projectIdRef.current = ideProjectId;
       lastSavedFilesRef.current = JSON.stringify(ideFiles || {});
       setSyncStatus('saved');
+      // Load netlify state from database
+      supabase
+        .from('ide_projects')
+        .select('netlify_url, netlify_site_id, netlify_subdomain')
+        .eq('id', ideProjectId)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setDeployedUrl((data as any).netlify_url || null);
+            setNetlifySiteId((data as any).netlify_site_id || null);
+            setNetlifySubdomain((data as any).netlify_subdomain || null);
+          }
+        });
     } else {
       lastSavedFilesRef.current = JSON.stringify(ideFiles || DEFAULT_FILES);
     }
