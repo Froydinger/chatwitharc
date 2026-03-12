@@ -395,6 +395,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   // Navigation (for activating voice from non-chat pages like Dashboard)
   const navigate = useNavigate();
   const location = useLocation();
+  const isDashboard = location.pathname === "/dashboard";
 
   // Textarea auto-resize with cursor position preservation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
