@@ -220,10 +220,9 @@ export function MobileChatApp() {
     const isLargeScreen = window.innerWidth >= 1024;
 
     if (isLargeScreen) {
-      // On large screens, always keep sidebar open by default
+      // On large screens, respect user's explicit preference only — default to closed
       const userPreference = localStorage.getItem("arc_rightPanelOpen");
-      // Default to open on large screens, unless user explicitly closed it
-      if (userPreference === null || userPreference === "true") {
+      if (userPreference === "true") {
         if (!rightPanelOpen) {
           setRightPanelOpen(true);
         }
