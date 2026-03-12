@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { LandingCanvasDemo } from "./LandingCanvasDemo";
 import { LandingVoiceDemo } from "./LandingVoiceDemo";
+import { useDownloadInfo } from "@/hooks/useDownloadInfo";
 
 // Helper to detect Electron app
 const isElectron = () => {
