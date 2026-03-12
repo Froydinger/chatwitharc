@@ -23,6 +23,7 @@ import { AdminPage } from "./pages/AdminPage";
 import { DownloadPage } from "./pages/DownloadPage";
 import { PricingPage } from "./pages/PricingPage";
 import { AppsPage } from "./pages/AppsPage";
+import { DashboardPage } from "./pages/DashboardPage";
 
 const queryClient = new QueryClient();
 
