@@ -252,11 +252,11 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     }
   }, [setIdeProjectId]);
 
-  // Save on close if unsaved
+  // Save on unmount if there are unsaved changes
   useEffect(() => {
     return () => {
-      if (syncStatus === 'unsaved' && projectIdRef.current) {
-        saveProject();
+      if (syncStatus === 'unsaved' || syncStatus === 'saving') {
+        void saveProject();
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
