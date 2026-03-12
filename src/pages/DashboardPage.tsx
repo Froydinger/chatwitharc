@@ -809,24 +809,48 @@ useEffect(() => {
                       key={block.id}
                       className="p-4 rounded-xl group border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                            <Brain className="h-3.5 w-3.5 text-primary/60" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-foreground/90 leading-relaxed">{block.content}</p>
-                            <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground uppercase tracking-wider">
-                              <span>{block.source}</span>
-                              <span className="text-muted-foreground/30">·</span>
-                              <span>{timeAgo(block.created_at)}</span>
-                            </div>
+                      {editingMemoryId === block.id ? (
+                        <div className="space-y-3">
+                          <Textarea
+                            value={editMemoryContent}
+                            onChange={e => setEditMemoryContent(e.target.value)}
+                            className="bg-muted/30 border-border/40 rounded-xl min-h-[60px] resize-none text-sm"
+                            autoFocus
+                          />
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" className="rounded-xl" onClick={async () => { if (editMemoryContent.trim()) { await updateBlock(editingMemoryId, editMemoryContent.trim()); setEditingMemoryId(null); setEditMemoryContent(""); } }} disabled={!editMemoryContent.trim()}>
+                              <Check className="h-3 w-3 mr-1" /> Save
+                            </Button>
+                            <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => { setEditingMemoryId(null); setEditMemoryContent(""); }}>
+                              <X className="h-3 w-3 mr-1" /> Cancel
+                            </Button>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all shrink-0" onClick={() => deleteBlock(block.id)}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      ) : (
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
+                            <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                              <Brain className="h-3.5 w-3.5 text-primary/60" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-foreground/90 leading-relaxed">{block.content}</p>
+                              <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground uppercase tracking-wider">
+                                <span>{block.source}</span>
+                                <span className="text-muted-foreground/30">·</span>
+                                <span>{timeAgo(block.created_at)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-xl hover:bg-primary/10 hover:text-primary" onClick={() => { setEditingMemoryId(block.id); setEditMemoryContent(block.content); }}>
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-xl hover:bg-destructive/10 hover:text-destructive" onClick={() => deleteBlock(block.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
