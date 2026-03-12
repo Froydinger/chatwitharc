@@ -83,18 +83,45 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
   const projectIdRef = useRef<string | null>(ideProjectId);
   const didAutoRunInitialPromptRef = useRef(false);
 
-  // Sync files to store
-  useEffect(() => { setIdeFiles(files); }, [files, setIdeFiles]);
-
-  // On mount: load from store if files exist
+  // Keep refs in sync so save operations always persist the freshest state
   useEffect(() => {
+    filesRef.current = files;
+  }, [files]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    projectVersionsRef.current = projectVersions;
+  }, [projectVersions]);
+
+  // Sync files to store
+  useEffect(() => {
+    setIdeFiles(files);
+  }, [files, setIdeFiles]);
+
+  // On mount: hydrate from store/db and initialize saved snapshot baseline
+  useEffect(() => {
+    const initialFiles = ideFiles && Object.keys(ideFiles).length > 0 ? ideFiles : DEFAULT_FILES;
+    const initialMessages = storedMessages?.length ? (storedMessages as ChatMessage[]) : [];
+
     if (ideFiles && Object.keys(ideFiles).length > 0) {
       setFiles(ideFiles);
+      filesRef.current = ideFiles;
     }
+
+    if (storedMessages?.length) {
+      setMessagesRaw(storedMessages as ChatMessage[]);
+      messagesRef.current = storedMessages as ChatMessage[];
+    }
+
+    lastSavedSnapshotRef.current = buildPersistenceSnapshot(initialFiles, initialMessages);
+
     if (ideProjectId) {
       projectIdRef.current = ideProjectId;
-      lastSavedFilesRef.current = JSON.stringify(ideFiles || {});
       setSyncStatus('saved');
+
       // Load netlify state and messages from database
       supabase
         .from('ide_projects')
@@ -102,20 +129,20 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
         .eq('id', ideProjectId)
         .single()
         .then(({ data }) => {
-          if (data) {
-            setDeployedUrl((data as any).netlify_url || null);
-            setNetlifySiteId((data as any).netlify_site_id || null);
-            setNetlifySubdomain((data as any).netlify_subdomain || null);
-            // Load persisted messages if we don't already have them from the store
-            const dbMessages = (data as any).messages;
-            if (dbMessages && Array.isArray(dbMessages) && dbMessages.length > 0 && messages.length === 0) {
-              setMessagesRaw(dbMessages);
-              setIdeMessages(dbMessages);
-            }
+          if (!data) return;
+
+          setDeployedUrl((data as any).netlify_url || null);
+          setNetlifySiteId((data as any).netlify_site_id || null);
+          setNetlifySubdomain((data as any).netlify_subdomain || null);
+
+          const dbMessages = (data as any).messages;
+          if (Array.isArray(dbMessages) && dbMessages.length > 0 && messagesRef.current.length === 0) {
+            setMessagesRaw(dbMessages as ChatMessage[]);
+            setIdeMessages(dbMessages as ChatMessage[]);
+            messagesRef.current = dbMessages as ChatMessage[];
+            lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesRef.current, dbMessages as ChatMessage[]);
           }
         });
-    } else {
-      lastSavedFilesRef.current = JSON.stringify(ideFiles || DEFAULT_FILES);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
