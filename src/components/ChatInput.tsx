@@ -1446,8 +1446,9 @@ ${existingCode}
               if (/^(image|draw|create)\/\s*$/i.test(inputValue) || /^\/(image|draw|create)\s*$/i.test(inputValue)) setInputValue("");
             } else if (shouldShowCodeMode) {
               setForceCodingMode(false);
-              // Clear input if it's just the prefix
               if (/^code\/\s*$/i.test(inputValue) || /^\/code\s*$/i.test(inputValue)) setInputValue("");
+            } else if (shouldShowBuildMode) {
+              if (/^build\/\s*$/i.test(inputValue) || /^\/build\s*$/i.test(inputValue)) setInputValue("");
             } else if (showCanvasIndicator) {
               if (!isCanvasAutoMode) {
                 // Explicit /write mode - allow dismissing
