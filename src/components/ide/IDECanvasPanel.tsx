@@ -88,10 +88,10 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
       projectIdRef.current = ideProjectId;
       lastSavedFilesRef.current = JSON.stringify(ideFiles || {});
       setSyncStatus('saved');
-      // Load netlify state from database
+      // Load netlify state and messages from database
       supabase
         .from('ide_projects')
-        .select('netlify_url, netlify_site_id, netlify_subdomain')
+        .select('netlify_url, netlify_site_id, netlify_subdomain, messages')
         .eq('id', ideProjectId)
         .single()
         .then(({ data }) => {
@@ -99,6 +99,12 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
             setDeployedUrl((data as any).netlify_url || null);
             setNetlifySiteId((data as any).netlify_site_id || null);
             setNetlifySubdomain((data as any).netlify_subdomain || null);
+            // Load persisted messages if we don't already have them from the store
+            const dbMessages = (data as any).messages;
+            if (dbMessages && Array.isArray(dbMessages) && dbMessages.length > 0 && messages.length === 0) {
+              setMessagesRaw(dbMessages);
+              setIdeMessages(dbMessages);
+            }
           }
         });
     } else {
