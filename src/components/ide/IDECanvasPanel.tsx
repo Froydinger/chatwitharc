@@ -59,6 +59,10 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
   const [syncStatus, setSyncStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
   const [projectVersions, setProjectVersions] = useState<ProjectVersion[]>([]);
   const [showVersions, setShowVersions] = useState(false);
+  const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [deployedUrl, setDeployedUrl] = useState<string | null>(null);
+  const [netlifySiteId, setNetlifySiteId] = useState<string | null>(null);
+  const [netlifySubdomain, setNetlifySubdomain] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
