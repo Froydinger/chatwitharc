@@ -71,14 +71,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   codeLanguage: 'typescript',
   showCodePreview: false,
 
-  // IDE defaults
-  ideFiles: null,
-  ideActions: [],
-  ideIsRunning: false,
-  idePrompt: null,
-  ideAutoRunPrompt: false,
-  ideProjectId: null,
-  ideMessages: [],
 
   openCanvas: (initialContent = '') => {
     const initialVersion: CanvasVersion = {
