@@ -166,7 +166,7 @@ function AppsDashboard() {
   const getFileCount = (files: VirtualFileSystem) => Object.keys(files || {}).length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       {/* Top bar */}
       <div className="sticky top-0 z-10 border-b border-border/30 bg-background/80 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-6 py-4">
