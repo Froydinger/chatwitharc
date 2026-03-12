@@ -52,7 +52,14 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
   const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
   const [mobileCodeTab, setMobileCodeTab] = useState<'chat' | 'editor'>('chat');
   const [copied, setCopied] = useState(false);
-  const [messages, setMessagesLocal] = useState<ChatMessage[]>(storedMessages?.length ? storedMessages : []);
+  const [messages, setMessagesRaw] = useState<ChatMessage[]>(storedMessages?.length ? storedMessages : []);
+  const setMessages: typeof setMessagesRaw = useCallback((update) => {
+    setMessagesRaw(prev => {
+      const next = typeof update === 'function' ? update(prev) : update;
+      setIdeMessages(next);
+      return next;
+    });
+  }, [setIdeMessages]);
   const [liveActions, setLiveActions] = useState<AgentAction[]>([]);
   const [isAgentRunning, setIsAgentRunning] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
