@@ -1836,9 +1836,6 @@ ${existingCode}
         const inlineTarget = document.getElementById('dashboard-image-preview-target');
         return inlineTarget ? createPortal(content, inlineTarget) : content;
       })()}
-          </div>
-        </div>
-      )}
     </div>
   );
 });
