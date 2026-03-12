@@ -164,7 +164,7 @@ const GENERAL_QUICK_PROMPTS = [
   { label: "🧠 Explain a topic", prompt: "Pick a fascinating topic and explain it to me like I'm hearing it for the first time." },
   { label: "🎨 Create art", prompt: "/image Generate something beautiful — surprise me with a stunning visual." },
   { label: "📝 Draft an email", prompt: "/write Help me draft a professional email — open the canvas and let's work on it." },
-  { label: "🎮 Build something", prompt: "/code Build me a fun interactive demo — surprise me with something cool!" },
+  { label: "🎮 Build something", prompt: "/build Build me a fun interactive demo — surprise me with something cool!" },
   { label: "📖 Tell a story", prompt: "/write Open the canvas and let's write a short story together from scratch." },
   { label: "🔍 Research this", prompt: "I need you to research something for me. Let's dive deep into a topic." },
   { label: "🌟 Motivate me", prompt: "Give me a motivational boost — I need some energy and inspiration right now." },
