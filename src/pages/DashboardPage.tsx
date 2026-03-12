@@ -112,6 +112,7 @@ useEffect(() => {
     setSearchParams(tab === "overview" ? {} : { tab });
     setViewingImageIndex(null);
     setSelectedAppId(null);
+    window.scrollTo({ top: 0 });
   };
 
   useEffect(() => {
