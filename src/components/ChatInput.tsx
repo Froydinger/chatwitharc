@@ -390,6 +390,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
   // Voice mode store
   const { activateVoiceMode } = useVoiceModeStore();
+  
+  // Navigation (for activating voice from non-chat pages like Dashboard)
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Textarea auto-resize with cursor position preservation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
