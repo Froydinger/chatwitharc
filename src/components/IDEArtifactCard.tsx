@@ -33,17 +33,20 @@ export function IDEArtifactCard({
       setResolvedFileCount(Object.keys(ideFiles).length);
       return;
     }
-    // If we have a projectId, load count from database
+    // If we have a projectId, load count and title from database
     if (projectId) {
       supabase
         .from('ide_projects')
-        .select('files')
+        .select('files, title')
         .eq('id', projectId)
         .single()
         .then(({ data }) => {
           if (data?.files) {
             const files = data.files as Record<string, unknown>;
             setResolvedFileCount(Object.keys(files).length);
+          }
+          if (data?.title && data.title !== 'Untitled Project') {
+            setResolvedTitle(data.title);
           }
         });
     } else if (ideFiles && Object.keys(ideFiles).length > 0) {
