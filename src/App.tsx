@@ -23,6 +23,7 @@ import { AdminPage } from "./pages/AdminPage";
 import { DownloadPage } from "./pages/DownloadPage";
 import { PricingPage } from "./pages/PricingPage";
 import { AppsPage } from "./pages/AppsPage";
+import { DashboardPage } from "./pages/DashboardPage";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,7 @@ const App = () => {
                   <Route path="/chat/:sessionId" element={<Index />} />
                   <Route path="/downloads" element={<DownloadPage />} />
                   <Route path="/pricing" element={<PricingPage />} />
+                  <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/apps" element={<AppsPage />} />
                   <Route path="/apps/:projectId" element={<AppsPage />} />
                   <Route path="/admin" element={<AdminPage />} />

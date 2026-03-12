@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, MessageSquare, RefreshCw, Search } from "lucide-react";
+import { Plus, Trash2, MessageSquare, RefreshCw, Search, Layers } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -186,13 +186,23 @@ export function ChatHistoryPanel() {
       {/* Action Buttons - top */}
       {/* New Chat */}
       <div className="space-y-3">
+        {/* Dashboard */}
         <button
-          onClick={handleNewChat}
+          onClick={() => navigate('/dashboard')}
           className="w-full h-12 rounded-full inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] bg-primary/50 text-white shadow-[0_0_8px_hsl(var(--primary)/0.5),0_0_16px_hsl(var(--primary)/0.3),inset_0_0_4px_hsl(var(--primary)/0.2)] overflow-hidden relative"
         >
           <span className="absolute inset-0 -translate-x-full animate-[shimmer_2.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          <Plus className="h-4 w-4 mr-2 relative z-10" />
-          <span className="relative z-10">New chat</span>
+          <Layers className="h-4 w-4 mr-2 relative z-10" />
+          <span className="relative z-10">Dashboard</span>
+        </button>
+
+        {/* New Chat */}
+        <button
+          onClick={handleNewChat}
+          className="w-full h-12 rounded-full inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] text-foreground overflow-hidden relative bg-transparent border border-primary/40 shadow-[0_0_6px_hsl(var(--primary)/0.3)]"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          <span>New chat</span>
         </button>
       </div>
 
@@ -203,11 +213,10 @@ export function ChatHistoryPanel() {
             openSearchMode();
             goToChat();
           }}
-          className="w-full h-12 rounded-full inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] text-white overflow-hidden relative bg-transparent border border-primary/40 shadow-[0_0_8px_hsl(var(--primary)/0.4),0_0_16px_hsl(var(--primary)/0.2)]"
+          className="w-full h-12 rounded-full inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] text-foreground overflow-hidden relative bg-transparent border border-primary/40 shadow-[0_0_6px_hsl(var(--primary)/0.3)]"
         >
-          <span className="absolute inset-0 -translate-x-full animate-[shimmer_2.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          <Search className="h-4 w-4 mr-2 relative z-10" fill="currentColor" strokeWidth={1.5} />
-          <span className="relative z-10">Research Mode</span>
+          <Search className="h-4 w-4 mr-2" fill="currentColor" strokeWidth={1.5} />
+          <span>Research Mode</span>
         </button>
       </div>
 
