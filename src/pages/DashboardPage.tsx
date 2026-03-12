@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  MessageSquare, Image, Rocket, Brain, ArrowLeft, ArrowRight,
-  Plus, Clock, Sparkles, ExternalLink, Settings, Search,
+  MessageSquare, Image, Rocket, Brain, ArrowLeft,
+  Plus, Clock, Settings, Search,
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
-  X, Globe, Code2, Eye
+  Globe, Code2, Eye
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,8 +24,8 @@ import { cn } from "@/lib/utils";
 import { getFaviconByLabel } from "@/constants/faviconOptions";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useAccentColor } from "@/hooks/useAccentColor";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { ChatInput } from "@/components/ChatInput";
 
 type DashboardTab = "overview" | "chats" | "images" | "apps" | "memories";
 
@@ -68,7 +68,7 @@ export function DashboardPage() {
   const {
     chatSessions, createNewSession, loadSession, deleteSession,
     hydrateAllSessions, allSessionsHydrated, isHydratingAll,
-    syncFromSupabase, currentSessionId
+    syncFromSupabase, currentSessionId, messages
   } = useArcStore();
   const { blocks: contextBlocks, loading: blocksLoading, deleteBlock } = useContextBlocks();
   const isAdminBannerActive = useAdminBanner();
@@ -79,7 +79,6 @@ export function DashboardPage() {
   const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
   const [recentApps, setRecentApps] = useState<RecentApp[]>([]);
   const [loadingApps, setLoadingApps] = useState(true);
-  const [inputValue, setInputValue] = useState("");
   const [chatSearch, setChatSearch] = useState("");
   const [imageSearch, setImageSearch] = useState("");
   const [appSearch, setAppSearch] = useState("");
@@ -91,7 +90,18 @@ export function DashboardPage() {
   // App detail state
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Track message count to detect when ChatInput sends a message and navigate to chat
+  const prevMessageCountRef = useRef(messages.length);
+  useEffect(() => {
+    if (messages.length > prevMessageCountRef.current) {
+      // A message was added — navigate to the current chat
+      const sessionId = currentSessionId;
+      if (sessionId) {
+        navigate(`/chat/${sessionId}`);
+      }
+    }
+    prevMessageCountRef.current = messages.length;
+  }, [messages.length, currentSessionId, navigate]);
 
   const switchTab = (tab: DashboardTab) => {
     setActiveTab(tab);
@@ -125,13 +135,6 @@ export function DashboardPage() {
       } catch { /* ignore */ } finally { setLoadingApps(false); }
     })();
   }, [user]);
-
-  const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-    const el = e.target;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 144) + 'px';
-  }, []);
 
   const allChats = useMemo(() => {
     return chatSessions
@@ -187,19 +190,6 @@ export function DashboardPage() {
   const isImagesLoading = isHydratingAll && !allSessionsHydrated;
   const selectedApp = selectedAppId ? recentApps.find(a => a.id === selectedAppId) : null;
 
-  const handleSendMessage = () => {
-    const msg = inputValue.trim();
-    if (!msg) return;
-    sessionStorage.setItem('pending-prompt', msg);
-    navigate('/');
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
 
   const handleDeleteChat = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -301,39 +291,9 @@ export function DashboardPage() {
           </Button>
         </motion.div>
 
-        {/* Chat Input */}
+        {/* Chat Input — real ChatInput with full functionality */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-          <div className="chat-input-halo flex items-center gap-3 rounded-full glass-shimmer">
-            <button type="button" className="ci-menu-btn h-10 w-10 rounded-full flex items-center justify-center glass-shimmer text-muted-foreground hover:text-foreground shrink-0" onClick={() => textareaRef.current?.focus()}>
-              <Sparkles className="h-5 w-5" />
-            </button>
-            <div className="flex-1">
-              <Textarea
-                ref={textareaRef}
-                value={inputValue}
-                onChange={handleInput}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask Arc anything..."
-                className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 px-4 focus:outline-none focus:ring-0 text-[16px]"
-                rows={1}
-              />
-            </div>
-            <button
-              onClick={handleSendMessage}
-              disabled={!inputValue.trim()}
-              className={cn(
-                "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-                inputValue.trim()
-                  ? accentColor === "noir"
-                    ? "!bg-white/90 text-black ring-2 ring-white/60 hover:!bg-white !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
-                    : "!bg-primary/80 text-primary-foreground ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
-                  : "text-muted-foreground cursor-not-allowed"
-              )}
-              aria-label="Send"
-            >
-              <ArrowRight className="h-5 w-5" />
-            </button>
-          </div>
+          <ChatInput />
         </motion.div>
 
         {/* Tab Navigation */}
