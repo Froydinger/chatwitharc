@@ -170,7 +170,7 @@ export function DashboardPage() {
   };
   const fadeUp = {
     hidden: { opacity: 0, y: 12 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", damping: 20, stiffness: 300 } },
+    show: { opacity: 1, y: 0, transition: { type: "spring" as const, damping: 20, stiffness: 300 } },
   };
 
   return (
