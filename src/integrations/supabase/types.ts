@@ -172,6 +172,9 @@ export type Database = {
           created_at: string
           files: Json
           id: string
+          netlify_site_id: string | null
+          netlify_subdomain: string | null
+          netlify_url: string | null
           prompt: string
           title: string
           updated_at: string
@@ -183,6 +186,9 @@ export type Database = {
           created_at?: string
           files?: Json
           id?: string
+          netlify_site_id?: string | null
+          netlify_subdomain?: string | null
+          netlify_url?: string | null
           prompt?: string
           title?: string
           updated_at?: string
@@ -194,6 +200,9 @@ export type Database = {
           created_at?: string
           files?: Json
           id?: string
+          netlify_site_id?: string | null
+          netlify_subdomain?: string | null
+          netlify_url?: string | null
           prompt?: string
           title?: string
           updated_at?: string
