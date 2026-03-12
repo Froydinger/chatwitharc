@@ -292,7 +292,8 @@ All colors MUST be HSL for perfect glass effects.
 
   /* Neutralize inner halo inside glass-dock */
   .glass-dock button { border-color: transparent !important; }
-  .glass-dock textarea { background: transparent !important; border-radius: 0 !important; outline: none !important; box-shadow: none !important; }
+  .glass-dock textarea,
+  .glass-dock input { background: transparent !important; border: none !important; border-radius: 0 !important; outline: none !important; box-shadow: none !important; ring: none !important; }
   .glass-dock :is(.input-wrapper, .input-container, .chat-input, form) { background: transparent !important; border: 0 !important; box-shadow: none !important; }
   .glass-dock .chat-input-halo {
     background: transparent !important;
@@ -303,8 +304,16 @@ All colors MUST be HSL for perfect glass effects.
     outline: none !important;
     padding: 0 !important;
   }
-  .glass-dock > * > * {
+  .glass-dock .chat-input-halo > div,
+  .glass-dock .chat-input-halo > * {
     background: transparent !important;
+  }
+  .glass-dock textarea:focus-visible {
+    ring: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    --tw-ring-shadow: none !important;
+    --tw-ring-color: transparent !important;
   }
 
 
