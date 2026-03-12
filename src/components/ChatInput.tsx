@@ -314,6 +314,7 @@ const useSafePortalRoot = () => {
 type Props = {
   onImagesChange?: (hasImages: boolean) => void;
   rightPanelOpen?: boolean;
+  inline?: boolean;
 };
 
 export interface ChatInputRef {
