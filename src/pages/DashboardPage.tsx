@@ -132,9 +132,9 @@ export function DashboardPage() {
   const handleSendMessage = () => {
     const msg = inputValue.trim();
     if (!msg) return;
-    const newId = createNewSession();
+    // Store prompt to be picked up by Index page after navigation
     sessionStorage.setItem('pending-prompt', msg);
-    navigate(`/chat/${newId}`);
+    navigate('/');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
