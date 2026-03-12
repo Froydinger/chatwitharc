@@ -180,7 +180,7 @@ export function DashboardPage() {
             <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="rounded-full">
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <ThemedLogo size={36} />
+            <ThemedLogo className="h-9 w-9" />
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
                 {greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}.
