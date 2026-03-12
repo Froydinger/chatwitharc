@@ -131,31 +131,25 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           <div className="flex-1 overflow-hidden">
           <Tabs value={activeTab} className="h-full">
             <AnimatePresence mode="wait">
+              {activeTab === "canvases" && (
+                <TabsContent value="canvases" className="h-full m-0" asChild>
+                  <motion.div key="canvases" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
+                    <CanvasesPanel />
+                  </motion.div>
+                </TabsContent>
+              )}
+
               {activeTab === "apps" && (
                 <TabsContent value="apps" className="h-full m-0" asChild>
-                  <motion.div
-                    key="apps"
-                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
-                    className="h-full"
-                  >
-                    <CanvasesPanel />
+                  <motion.div key="apps" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
+                    <AppsPanel />
                   </motion.div>
                 </TabsContent>
               )}
 
               {activeTab === "media" && (
                 <TabsContent value="media" className="h-full m-0" asChild>
-                  <motion.div
-                    key="media"
-                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
-                    className="h-full"
-                  >
+                  <motion.div key="media" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
                     <MediaLibraryPanel />
                   </motion.div>
                 </TabsContent>
@@ -163,28 +157,15 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
 
               {activeTab === "history" && (
                 <TabsContent value="history" className="h-full m-0" asChild>
-                  <motion.div
-                    key="history"
-                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
-                    className="h-full"
-                  >
+                  <motion.div key="history" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
                     <ChatHistoryPanel />
                   </motion.div>
                 </TabsContent>
               )}
+
               {activeTab === "quote" && (
                 <TabsContent value="quote" className="h-full m-0" asChild>
-                  <motion.div
-                    key="quote"
-                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
-                    className="h-full"
-                  >
+                  <motion.div key="quote" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
                     <QuotePanel />
                   </motion.div>
                 </TabsContent>
