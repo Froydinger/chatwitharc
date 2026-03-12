@@ -189,7 +189,7 @@ export function AdminSettingsPanel() {
       </div>
 
       <Tabs defaultValue="prompts" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="prompts" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
             <span className="hidden sm:inline">AI Prompts</span>
@@ -197,8 +197,12 @@ export function AdminSettingsPanel() {
           </TabsTrigger>
           <TabsTrigger value="banner" className="flex items-center gap-2">
             <Megaphone className="h-4 w-4" />
-            <span className="hidden sm:inline">Banner</span>
-            <span className="sm:hidden">Banner</span>
+            <span>Banner</span>
+          </TabsTrigger>
+          <TabsTrigger value="downloads" className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Downloads</span>
+            <span className="sm:hidden">DL</span>
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
