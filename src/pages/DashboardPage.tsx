@@ -344,7 +344,8 @@ export function DashboardPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {recentApps.map((app, i) => {
-                const favicon = app.favicon_label ? getFaviconByLabel(app.favicon_label) : null;
+                const faviconOpt = app.favicon_label ? getFaviconByLabel(app.favicon_label) : null;
+                const FavIcon = faviconOpt?.icon;
                 return (
                   <motion.div
                     key={app.id}
@@ -357,7 +358,9 @@ export function DashboardPage() {
                       onClick={() => navigate(`/apps/${app.id}`)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="text-2xl">{favicon?.emoji || "🚀"}</div>
+                        <div className="text-2xl">
+                          {FavIcon ? <FavIcon className="h-6 w-6" style={{ color: faviconOpt?.color }} /> : <Rocket className="h-6 w-6 text-primary" />}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-foreground truncate text-sm">{app.title}</p>
                           <div className="flex items-center gap-2 mt-1">
