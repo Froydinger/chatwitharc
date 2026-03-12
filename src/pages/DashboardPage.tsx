@@ -801,7 +801,7 @@ useEffect(() => {
                 key={key}
                 onClick={() => switchTab(key)}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all min-w-0 flex-1 relative min-h-[44px]",
+                  "flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all min-w-0 flex-1 relative min-h-[44px] touch-manipulation active:scale-[0.98]",
                   isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 )}
               >
