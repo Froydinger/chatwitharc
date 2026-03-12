@@ -373,4 +373,5 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   setIdeIsRunning: (running) => set({ ideIsRunning: running }),
   clearIdePrompt: () => set({ idePrompt: null }),
   setIdeProjectId: (id) => set({ ideProjectId: id }),
+  setIdeMessages: (messages) => set({ ideMessages: messages }),
 }));
