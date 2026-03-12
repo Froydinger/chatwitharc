@@ -73,6 +73,7 @@ export function DashboardPage() {
   const { blocks: contextBlocks, loading: blocksLoading, deleteBlock } = useContextBlocks();
   const isAdminBannerActive = useAdminBanner();
   const { accentColor } = useAccentColor();
+  const isMobile = useIsMobile();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
