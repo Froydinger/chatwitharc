@@ -688,8 +688,8 @@ export function DashboardPage() {
       </div>
 
       {/* Bottom Tab Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border/40 backdrop-blur-2xl safe-area-bottom">
-        <div className="flex items-center justify-around max-w-lg mx-auto py-2 px-1">
+      <div className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border/40 backdrop-blur-2xl" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 15px)' }}>
+        <div className="flex items-center justify-around max-w-lg mx-auto pt-2 pb-0 px-1">
           {tabs.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
