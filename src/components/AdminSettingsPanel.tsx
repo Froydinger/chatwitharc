@@ -454,6 +454,10 @@ export function AdminSettingsPanel() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="downloads">
+          <AdminDownloadManager />
+        </TabsContent>
+
         <TabsContent value="users" className="space-y-6">
           <Card>
             <CardHeader>
