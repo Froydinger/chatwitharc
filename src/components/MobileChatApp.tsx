@@ -12,7 +12,7 @@ import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ThemedLogo } from "@/components/ThemedLogo";
-import { AccountHub } from "@/components/AccountHub";
+
 import { MusicPopup } from "@/components/MusicPopup";
 import { CanvasPanel } from "@/components/CanvasPanel";
 
