@@ -276,15 +276,32 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     }
   }, [files, toast, setIdeIsRunning, setIdeActions, saveProject]);
 
-  // If there's a pending prompt, just clear it — never auto-run the agent.
-  // The agent only runs when the user explicitly sends a message via the chat input.
+  // Auto-run exactly once for an initial /code prompt, but keep manual IDE opens blank.
   useEffect(() => {
-    const prompt = useCanvasStore.getState().idePrompt;
-    if (prompt) {
+    if (!idePrompt) return;
+
+    if (!ideAutoRunPrompt) {
       clearIdePrompt();
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    if (didAutoRunInitialPromptRef.current || messages.length > 0) {
+      clearIdePrompt();
+      return;
+    }
+
+    didAutoRunInitialPromptRef.current = true;
+    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: idePrompt, timestamp: Date.now() };
+    const assistantId = crypto.randomUUID();
+
+    setMessages([
+      userMsg,
+      { id: assistantId, role: 'assistant', content: '', timestamp: Date.now() },
+    ]);
+    setGeneratingId(assistantId);
+    clearIdePrompt();
+    runAgent(idePrompt, [userMsg], assistantId);
+  }, [idePrompt, ideAutoRunPrompt, messages.length, clearIdePrompt, runAgent, setMessages]);
 
   const handleChatSend = useCallback((message: string) => {
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: message, timestamp: Date.now() };
