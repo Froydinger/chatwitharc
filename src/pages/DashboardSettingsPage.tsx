@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
@@ -13,6 +13,15 @@ export function DashboardSettingsPage() {
   const { user, loading } = useAuth();
   const isAdminBannerActive = useAdminBanner();
 
+  const [isDesktopStandalone, setIsDesktopStandalone] = useState(false);
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
+    const isElectron = /electron/i.test(navigator.userAgent);
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    setIsDesktopStandalone((isStandalone || isElectron) && !isMobileDevice);
+  }, []);
+
   useEffect(() => {
     if (!loading && !user) navigate("/", { replace: true });
   }, [loading, user, navigate]);
@@ -23,7 +32,7 @@ export function DashboardSettingsPage() {
     <div
       className="min-h-screen overflow-y-auto scrollbar-hide relative z-10"
       style={{
-        paddingTop: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px',
+        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'})`,
       }}
     >
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
