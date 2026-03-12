@@ -1732,21 +1732,28 @@ ${existingCode}
         createPortal(
           <AnimatePresence>
              {showMenu && (() => {
-               const barRect = inputBarRef.current?.getBoundingClientRect();
-               const btnRect = menuButtonRef.current?.getBoundingClientRect();
-               const left = barRect ? barRect.left : 0;
-               const bottom = btnRect ? window.innerHeight - btnRect.top + 8 : 90;
-               return (
-                 <div
-                   className="fixed z-[35] pointer-events-auto ci-tiles"
-                   style={{ left, bottom }}
-                 >
-                   <motion.div
-                     initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                     transition={{ type: "spring", damping: 25, stiffness: 500 }}
-                     className="relative flex items-center gap-1.5 py-2 px-3 rounded-full glass-shimmer ring-[0.5px] ring-border/40 !shadow-[0_8px_32px_rgba(0,0,0,.3)] backdrop-blur-xl"
+                const barRect = inputBarRef.current?.getBoundingClientRect();
+                const btnRect = menuButtonRef.current?.getBoundingClientRect();
+                const left = barRect ? barRect.left : 0;
+                const posStyle = isDashboard
+                  ? { left, top: barRect ? barRect.bottom + 8 : 120 }
+                  : { left, bottom: btnRect ? window.innerHeight - btnRect.top + 8 : 90 };
+                return (
+                  <div
+                    className="fixed z-[35] pointer-events-auto ci-tiles"
+                    style={posStyle}
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, y: isDashboard ? -8 : 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: isDashboard ? -8 : 8, scale: 0.95 }}
+                      transition={{ type: "spring", damping: 25, stiffness: 500 }}
+                      className={cn(
+                        "relative flex items-center gap-1.5 py-2 px-3 rounded-full ring-[0.5px] ring-border/40 backdrop-blur-xl",
+                        isDashboard
+                          ? "bg-black/80 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,.5)]"
+                          : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]"
+                      )}
                   >
                     {[
                       { label: "Attach", icon: <Paperclip className="h-3.5 w-3.5" />, color: "text-blue-400", hideLabel: true, action: () => { setShowMenu(false); fileInputRef.current?.click(); } },
