@@ -625,12 +625,9 @@ export function MobileChatApp() {
   
   return (
     <div
-      className={cn(
-        "h-screen flex relative overflow-hidden",
-        isDesktopStandalone && "pt-[30px]"
-      )}
+      className="h-screen flex relative overflow-hidden"
       style={{
-        paddingTop: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : undefined
+        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'})`,
       }}
     >
 
