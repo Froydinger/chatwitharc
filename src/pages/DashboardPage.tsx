@@ -622,11 +622,15 @@ useEffect(() => {
                     ) : filteredImages.length === 0 ? (
                       <EmptyState icon={Image} text={imageSearch ? "No matching images" : "No images yet"} sub="Ask Arc to generate an image" />
                     ) : (
+                      <>
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                        {filteredImages.map((img, i) => (
-                          <ImageCard key={`${img.sessionId}-${i}`} img={img} onClick={() => setViewingImageIndex(i)} index={i} />
-                        ))}
+                        {filteredImages.slice((imagePage - 1) * ITEMS_PER_PAGE, imagePage * ITEMS_PER_PAGE).map((img, i) => {
+                          const globalIndex = (imagePage - 1) * ITEMS_PER_PAGE + i;
+                          return <ImageCard key={`${img.sessionId}-${globalIndex}`} img={img} onClick={() => setViewingImageIndex(globalIndex)} index={i} />;
+                        })}
                       </div>
+                      <PaginationBar current={imagePage} total={Math.ceil(filteredImages.length / ITEMS_PER_PAGE)} onChange={setImagePage} />
+                      </>
                     )}
                   </motion.div>
                 )}
