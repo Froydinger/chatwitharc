@@ -106,18 +106,20 @@ function PublishedStatusView({
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive hover:bg-destructive/90"
-                onClick={async (e) => {
+                onClick={(e) => {
                   e.preventDefault();
                   setIsUnpublishing(true);
                   setError(null);
-                  try {
-                    await onUnpublish();
-                    onClose();
-                  } catch {
-                    setError('Failed to unpublish');
-                  } finally {
-                    setIsUnpublishing(false);
-                  }
+                  onUnpublish()
+                    .then(() => {
+                      onClose();
+                    })
+                    .catch(() => {
+                      setError('Failed to unpublish');
+                    })
+                    .finally(() => {
+                      setIsUnpublishing(false);
+                    });
                 }}
               >
                 {isUnpublishing ? 'Unpublishing…' : 'Unpublish'}

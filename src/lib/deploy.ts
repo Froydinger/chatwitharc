@@ -43,14 +43,19 @@ async function buildStaticZip(projectName: string, files: VirtualFileSystem, sit
 
 export async function unpublishFromNetlify(siteId: string): Promise<void> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 20000);
   try {
+    const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+    };
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
     const res = await fetch(`${SUPABASE_URL}/functions/v1/deploy-netlify`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-      },
+      headers,
       body: JSON.stringify({ action: 'delete', siteId }),
       signal: controller.signal,
     });
