@@ -291,39 +291,9 @@ export function DashboardPage() {
           </Button>
         </motion.div>
 
-        {/* Chat Input */}
+        {/* Chat Input — real ChatInput with full functionality */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-          <div className="chat-input-halo flex items-center gap-3 rounded-full glass-shimmer">
-            <button type="button" className="ci-menu-btn h-10 w-10 rounded-full flex items-center justify-center glass-shimmer text-muted-foreground hover:text-foreground shrink-0" onClick={() => textareaRef.current?.focus()}>
-              <Sparkles className="h-5 w-5" />
-            </button>
-            <div className="flex-1">
-              <Textarea
-                ref={textareaRef}
-                value={inputValue}
-                onChange={handleInput}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask Arc anything..."
-                className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 px-4 focus:outline-none focus:ring-0 text-[16px]"
-                rows={1}
-              />
-            </div>
-            <button
-              onClick={handleSendMessage}
-              disabled={!inputValue.trim()}
-              className={cn(
-                "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-                inputValue.trim()
-                  ? accentColor === "noir"
-                    ? "!bg-white/90 text-black ring-2 ring-white/60 hover:!bg-white !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
-                    : "!bg-primary/80 text-primary-foreground ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
-                  : "text-muted-foreground cursor-not-allowed"
-              )}
-              aria-label="Send"
-            >
-              <ArrowRight className="h-5 w-5" />
-            </button>
-          </div>
+          <ChatInput />
         </motion.div>
 
         {/* Tab Navigation */}
