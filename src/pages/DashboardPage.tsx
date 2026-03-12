@@ -88,6 +88,7 @@ useEffect(() => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
+  const ITEMS_PER_PAGE = 12;
   const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
   const [recentApps, setRecentApps] = useState<RecentApp[]>([]);
   const [loadingApps, setLoadingApps] = useState(true);
@@ -97,6 +98,10 @@ useEffect(() => {
   const [memorySearch, setMemorySearch] = useState("");
   const [viewingImageIndex, setViewingImageIndex] = useState<number | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const [chatPage, setChatPage] = useState(1);
+  const [imagePage, setImagePage] = useState(1);
+  const [appPage, setAppPage] = useState(1);
+  const [memoryPage, setMemoryPage] = useState(1);
 
   const prevMessageCountRef = useRef(messages.length);
   useEffect(() => {
@@ -107,11 +112,18 @@ useEffect(() => {
     prevMessageCountRef.current = messages.length;
   }, [messages.length, currentSessionId, navigate]);
 
+  // Reset pages on search changes
+  useEffect(() => { setChatPage(1); }, [chatSearch]);
+  useEffect(() => { setImagePage(1); }, [imageSearch]);
+  useEffect(() => { setAppPage(1); }, [appSearch]);
+  useEffect(() => { setMemoryPage(1); }, [memorySearch]);
+
   const switchTab = (tab: DashboardTab) => {
     setActiveTab(tab);
     setSearchParams(tab === "overview" ? {} : { tab });
     setViewingImageIndex(null);
     setSelectedAppId(null);
+    setChatPage(1); setImagePage(1); setAppPage(1); setMemoryPage(1);
     window.scrollTo({ top: 0 });
   };
 
@@ -488,8 +500,9 @@ useEffect(() => {
               ) : filteredChats.length === 0 ? (
                 <EmptyState icon={MessageSquare} text={chatSearch ? "No matching chats" : "No chats yet"} sub="Start a conversation to see history here" />
               ) : (
+                <>
                 <div className="space-y-1.5">
-                  {filteredChats.map((session, i) => (
+                  {filteredChats.slice((chatPage - 1) * ITEMS_PER_PAGE, chatPage * ITEMS_PER_PAGE).map((session, i) => (
                     <motion.div
                       key={session.id}
                       initial={{ opacity: 0, y: 6 }}
@@ -530,6 +543,8 @@ useEffect(() => {
                     </motion.div>
                   ))}
                 </div>
+                <PaginationBar current={chatPage} total={Math.ceil(filteredChats.length / ITEMS_PER_PAGE)} onChange={setChatPage} />
+                </>
               )}
             </motion.div>
           )}
@@ -607,11 +622,15 @@ useEffect(() => {
                     ) : filteredImages.length === 0 ? (
                       <EmptyState icon={Image} text={imageSearch ? "No matching images" : "No images yet"} sub="Ask Arc to generate an image" />
                     ) : (
+                      <>
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                        {filteredImages.map((img, i) => (
-                          <ImageCard key={`${img.sessionId}-${i}`} img={img} onClick={() => setViewingImageIndex(i)} index={i} />
-                        ))}
+                        {filteredImages.slice((imagePage - 1) * ITEMS_PER_PAGE, imagePage * ITEMS_PER_PAGE).map((img, i) => {
+                          const globalIndex = (imagePage - 1) * ITEMS_PER_PAGE + i;
+                          return <ImageCard key={`${img.sessionId}-${globalIndex}`} img={img} onClick={() => setViewingImageIndex(globalIndex)} index={i} />;
+                        })}
                       </div>
+                      <PaginationBar current={imagePage} total={Math.ceil(filteredImages.length / ITEMS_PER_PAGE)} onChange={setImagePage} />
+                      </>
                     )}
                   </motion.div>
                 )}
@@ -697,8 +716,9 @@ useEffect(() => {
                     ) : filteredApps.length === 0 ? (
                       <EmptyState icon={Rocket} text={appSearch ? "No matching apps" : "No apps yet"} sub="Use /build to create your first app" />
                     ) : (
+                      <>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {filteredApps.map((app, i) => (
+                        {filteredApps.slice((appPage - 1) * ITEMS_PER_PAGE, appPage * ITEMS_PER_PAGE).map((app, i) => (
                           <motion.div
                             key={app.id}
                             initial={{ opacity: 0, y: 6 }}
@@ -725,6 +745,8 @@ useEffect(() => {
                           </motion.div>
                         ))}
                       </div>
+                      <PaginationBar current={appPage} total={Math.ceil(filteredApps.length / ITEMS_PER_PAGE)} onChange={setAppPage} />
+                      </>
                     )}
                   </motion.div>
                 )}
@@ -748,8 +770,9 @@ useEffect(() => {
               ) : filteredMemories.length === 0 ? (
                 <EmptyState icon={Brain} text={memorySearch ? "No matching memories" : "No memories yet"} sub='Tell Arc "remember that..." and it will save facts about you' />
               ) : (
+                <>
                 <div className="space-y-1.5">
-                  {filteredMemories.map((block, i) => (
+                  {filteredMemories.slice((memoryPage - 1) * ITEMS_PER_PAGE, memoryPage * ITEMS_PER_PAGE).map((block, i) => (
                     <motion.div
                       key={block.id}
                       initial={{ opacity: 0, y: 6 }}
@@ -778,6 +801,8 @@ useEffect(() => {
                     </motion.div>
                   ))}
                 </div>
+                <PaginationBar current={memoryPage} total={Math.ceil(filteredMemories.length / ITEMS_PER_PAGE)} onChange={setMemoryPage} />
+                </>
               )}
             </motion.div>
           )}
@@ -975,5 +1000,66 @@ function SkeletonGrid({ cols, square }: { cols: number; square?: boolean }) {
 function SkeletonList({ count }: { count: number }) {
   return (
     <div className="space-y-1.5">{Array.from({ length: count }).map((_, i) => <div key={i} className="p-3 rounded-xl border border-border/30 bg-muted/10"><Skeleton className="h-4 w-3/4" /></div>)}</div>
+  );
+}
+
+function PaginationBar({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
+  if (total <= 1) return null;
+
+  const goTo = (p: number) => {
+    onChange(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Show max 5 page buttons with ellipsis
+  const pages: (number | '...')[] = [];
+  if (total <= 5) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (current > 3) pages.push('...');
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (current < total - 2) pages.push('...');
+    pages.push(total);
+  }
+
+  return (
+    <div className="flex items-center justify-center gap-1 pt-4">
+      <button
+        onClick={() => goTo(current - 1)}
+        disabled={current === 1}
+        className="h-8 w-8 rounded-lg flex items-center justify-center text-xs text-muted-foreground hover:bg-muted/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
+      >
+        <ChevronLeft className="h-3.5 w-3.5" />
+      </button>
+      {pages.map((p, i) =>
+        p === '...' ? (
+          <span key={`e${i}`} className="h-8 w-8 flex items-center justify-center text-xs text-muted-foreground/50">…</span>
+        ) : (
+          <button
+            key={p}
+            onClick={() => goTo(p)}
+            className={cn(
+              "h-8 w-8 rounded-lg flex items-center justify-center text-xs font-medium transition-all",
+              p === current
+                ? "bg-primary/15 text-primary border border-primary/25"
+                : "text-muted-foreground hover:bg-muted/40"
+            )}
+          >
+            {p}
+          </button>
+        )
+      )}
+      <button
+        onClick={() => goTo(current + 1)}
+        disabled={current === total}
+        className="h-8 w-8 rounded-lg flex items-center justify-center text-xs text-muted-foreground hover:bg-muted/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
+      >
+        <ChevronRight className="h-3.5 w-3.5" />
+      </button>
+      <span className="ml-2 text-[10px] text-muted-foreground/50">{current}/{total}</span>
+    </div>
   );
 }
