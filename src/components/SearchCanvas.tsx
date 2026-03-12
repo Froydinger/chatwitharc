@@ -608,7 +608,7 @@ export function SearchCanvas() {
   }
 
   return (
-    <div className={cn("flex flex-col h-full w-full bg-background", (isPWAMode || isElectronApp) && "pt-[34px]")}>
+    <div className="flex flex-col h-full w-full bg-background" style={{ paddingTop: (isPWAMode || isElectronApp) ? 'env(safe-area-inset-top, 0px)' : undefined }}>
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-border/20">
         <div className="flex items-center gap-3">

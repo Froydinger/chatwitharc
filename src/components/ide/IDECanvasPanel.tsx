@@ -479,7 +479,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   );
 
   return (
-    <div className={cn('h-screen flex flex-col bg-background', className)}>
+    <div className={cn('h-screen flex flex-col bg-background', className)} style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       {/* Header */}
       <header className="h-auto min-h-[44px] px-2 sm:px-3 py-1.5 border-b border-border/30 flex flex-wrap items-center justify-between gap-1.5 shrink-0 bg-background/80 backdrop-blur-xl">
         <div className="flex items-center gap-1.5 min-w-0">
