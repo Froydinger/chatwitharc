@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from "react";
-import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
+
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Bold,

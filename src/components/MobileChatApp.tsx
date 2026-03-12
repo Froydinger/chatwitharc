@@ -15,7 +15,7 @@ import { ThemedLogo } from "@/components/ThemedLogo";
 import { AccountHub } from "@/components/AccountHub";
 import { MusicPopup } from "@/components/MusicPopup";
 import { CanvasPanel } from "@/components/CanvasPanel";
-import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
+
 import { SearchCanvas } from "@/components/SearchCanvas";
 // CanvasTile removed - canvas now renders inline as chat message artifacts
 import { Button } from "@/components/ui/button";
