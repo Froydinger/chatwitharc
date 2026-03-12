@@ -10,6 +10,7 @@ interface IDEArtifactCardProps {
   prompt: string;
   fileCount?: number;
   projectId?: string;
+  title?: string;
   className?: string;
 }
 
