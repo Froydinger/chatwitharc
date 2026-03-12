@@ -1,21 +1,24 @@
 import { useState, useEffect, useRef } from "react";
-import { X, History, Image, LayoutGrid, Crown, Quote } from "lucide-react";
+import { X, History, Image, LayoutGrid, Crown, Quote, Layers, Rocket } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
 import { CanvasesPanel } from "@/components/CanvasesPanel";
+import { AppsPanel } from "@/components/AppsPanel";
 import { QuotePanel } from "@/components/QuotePanel";
 import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useSubscription } from "@/hooks/useSubscription";
 
+export type RightPanelTab = "history" | "media" | "canvases" | "apps" | "quote" | "settings";
+
 interface RightPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  activeTab: "history" | "media" | "apps" | "quote" | "settings";
-  onTabChange: (tab: "history" | "media" | "apps" | "quote" | "settings") => void;
+  activeTab: RightPanelTab;
+  onTabChange: (tab: RightPanelTab) => void;
 }
 
 export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
@@ -83,52 +86,35 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         )}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border bg-background">
-          <div className="relative flex items-center gap-2 flex-1">
+          <div className="relative flex items-center gap-1.5 flex-1">
             {/* Sliding bubble indicator */}
             <motion.div
-              className="absolute h-10 w-10 rounded-full bg-primary/20 ring-1 ring-primary"
+              className="absolute h-9 w-9 rounded-full bg-primary/20 ring-1 ring-primary"
               layoutId="panel-tab-bubble"
               transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.6 }}
               style={{
-                left: activeTab === "history" ? 0 : activeTab === "media" ? 48 : activeTab === "apps" ? 96 : 144,
+                left: activeTab === "history" ? 0 : activeTab === "media" ? 42 : activeTab === "canvases" ? 84 : activeTab === "apps" ? 126 : 168,
               }}
             />
-            <button
-              onClick={() => onTabChange("history")}
-              className={cn(
-                "relative z-10 h-10 w-10 rounded-full flex items-center justify-center transition-colors",
-                activeTab === "history" ? "text-primary" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <History className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => onTabChange("media")}
-              className={cn(
-                "relative z-10 h-10 w-10 rounded-full flex items-center justify-center transition-colors",
-                activeTab === "media" ? "text-primary" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Image className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => onTabChange("apps")}
-              className={cn(
-                "relative z-10 h-10 w-10 rounded-full flex items-center justify-center transition-colors",
-                activeTab === "apps" ? "text-primary" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => onTabChange("quote")}
-              className={cn(
-                "relative z-10 h-10 w-10 rounded-full flex items-center justify-center transition-colors",
-                activeTab === "quote" ? "text-primary" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Quote className="h-4 w-4" />
-            </button>
+            {[
+              { key: "history" as const, icon: History, label: "History" },
+              { key: "media" as const, icon: Image, label: "Media" },
+              { key: "canvases" as const, icon: Layers, label: "Canvases" },
+              { key: "apps" as const, icon: Rocket, label: "Apps" },
+              { key: "quote" as const, icon: Quote, label: "Quote" },
+            ].map(({ key, icon: Icon, label }) => (
+              <button
+                key={key}
+                onClick={() => onTabChange(key)}
+                title={label}
+                className={cn(
+                  "relative z-10 h-9 w-9 rounded-full flex items-center justify-center transition-colors",
+                  activeTab === key ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            ))}
           </div>
           
             <Button
@@ -145,31 +131,25 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           <div className="flex-1 overflow-hidden">
           <Tabs value={activeTab} className="h-full">
             <AnimatePresence mode="wait">
+              {activeTab === "canvases" && (
+                <TabsContent value="canvases" className="h-full m-0" asChild>
+                  <motion.div key="canvases" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
+                    <CanvasesPanel />
+                  </motion.div>
+                </TabsContent>
+              )}
+
               {activeTab === "apps" && (
                 <TabsContent value="apps" className="h-full m-0" asChild>
-                  <motion.div
-                    key="apps"
-                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
-                    className="h-full"
-                  >
-                    <CanvasesPanel />
+                  <motion.div key="apps" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
+                    <AppsPanel />
                   </motion.div>
                 </TabsContent>
               )}
 
               {activeTab === "media" && (
                 <TabsContent value="media" className="h-full m-0" asChild>
-                  <motion.div
-                    key="media"
-                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
-                    className="h-full"
-                  >
+                  <motion.div key="media" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
                     <MediaLibraryPanel />
                   </motion.div>
                 </TabsContent>
@@ -177,28 +157,15 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
 
               {activeTab === "history" && (
                 <TabsContent value="history" className="h-full m-0" asChild>
-                  <motion.div
-                    key="history"
-                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
-                    className="h-full"
-                  >
+                  <motion.div key="history" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
                     <ChatHistoryPanel />
                   </motion.div>
                 </TabsContent>
               )}
+
               {activeTab === "quote" && (
                 <TabsContent value="quote" className="h-full m-0" asChild>
-                  <motion.div
-                    key="quote"
-                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                    transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }}
-                    className="h-full"
-                  >
+                  <motion.div key="quote" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
                     <QuotePanel />
                   </motion.div>
                 </TabsContent>

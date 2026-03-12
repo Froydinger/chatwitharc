@@ -119,8 +119,8 @@ export interface ArcState {
   setCurrentTab: (tab: 'chat' | 'history' | 'settings') => void;
   rightPanelOpen: boolean;
   setRightPanelOpen: (open: boolean) => void;
-  rightPanelTab: 'history' | 'media' | 'apps' | 'quote' | 'links' | 'settings' | 'export';
-  setRightPanelTab: (tab: 'history' | 'media' | 'apps' | 'quote' | 'links' | 'settings' | 'export') => void;
+  rightPanelTab: 'history' | 'media' | 'canvases' | 'apps' | 'quote' | 'links' | 'settings' | 'export';
+  setRightPanelTab: (tab: 'history' | 'media' | 'canvases' | 'apps' | 'quote' | 'links' | 'settings' | 'export') => void;
 
   isLoading: boolean;
   isGeneratingImage: boolean;
