@@ -720,7 +720,7 @@ useEffect(() => {
                               </Button>
                             </div>
                             {app.prompt && <p className="text-xs text-muted-foreground/70 mt-2 line-clamp-2 leading-relaxed">{app.prompt}</p>}
-                          </motion.div>
+                          </div>
                         ))}
                       </div>
                       <PaginationBar current={appPage} total={Math.ceil(filteredApps.length / ITEMS_PER_PAGE)} onChange={setAppPage} />
