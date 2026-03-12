@@ -1644,7 +1644,17 @@ ${existingCode}
             }
 
             if (user) subscription.recordVoiceSession();
-            activateVoiceMode();
+            
+            // If we're not on a chat page, create a session and navigate first
+            const isOnChatPage = location.pathname === '/' || location.pathname.startsWith('/chat/');
+            if (!isOnChatPage) {
+              const newId = createNewSession();
+              navigate(`/chat/${newId}`);
+              // Delay voice activation slightly so the overlay mounts
+              setTimeout(() => activateVoiceMode(), 150);
+            } else {
+              activateVoiceMode();
+            }
           }}
           className={[
             "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
