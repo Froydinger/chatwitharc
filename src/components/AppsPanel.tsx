@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Code2, Search, Rocket, Cloud, ExternalLink, Layers, Trash2 } from "lucide-react";
+import { Code2, Search, Rocket, ExternalLink, Layers, Trash2 } from "lucide-react";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useArcStore } from "@/store/useArcStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import type { VirtualFileSystem } from "@/types/ide";
 import { cn } from "@/lib/utils";
+import { getFaviconByLabel } from "@/constants/faviconOptions";
 
 interface IDEProject {
   id: string;
@@ -21,6 +22,7 @@ interface IDEProject {
   version: number;
   netlify_url: string | null;
   netlify_subdomain: string | null;
+  favicon_label: string | null;
   created_at: string;
   updated_at: string;
 }
