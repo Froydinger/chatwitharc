@@ -789,11 +789,11 @@ useEffect(() => {
       <div
         className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/30 backdrop-blur-2xl"
         style={{
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 15px)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5px)',
           background: 'hsl(var(--background) / 0.85)',
         }}
       >
-        <div className="flex items-center justify-around max-w-lg mx-auto pt-2 pb-0 px-2">
+        <div className="flex items-center justify-around max-w-lg mx-auto pt-1.5 pb-0 px-2">
           {tabs.map(({ key, label, icon: Icon }) => {
             const isActive = activeTab === key;
             return (
@@ -801,14 +801,14 @@ useEffect(() => {
                 key={key}
                 onClick={() => switchTab(key)}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all min-w-0 flex-1 relative",
+                  "flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all min-w-0 flex-1 relative min-h-[44px]",
                   isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 {isActive && (
                   <motion.div
                     layoutId="tab-indicator"
-                    className="absolute -top-2 left-1/2 -translate-x-1/2 h-0.5 w-6 rounded-full bg-primary"
+                    className="absolute -top-1.5 left-1/2 -translate-x-1/2 h-0.5 w-6 rounded-full bg-primary"
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
