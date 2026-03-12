@@ -312,7 +312,7 @@ useEffect(() => {
         paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px) + 15px)',
       }}
     >
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6 sm:space-y-8">
 
         {/* ═══ HEADER with ambient glow ═══ */}
         <div className="relative">
@@ -322,13 +322,15 @@ useEffect(() => {
           
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => navigate("/")}
-                className="relative h-10 w-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center hover:bg-primary/20 hover:border-primary/30 hover:shadow-[0_0_15px_hsl(var(--primary)/0.15)] transition-all active:scale-95"
+                className="rounded-full glass-shimmer"
                 title="Back to chat"
               >
                 <MessageSquare className="h-4.5 w-4.5 text-primary" />
-              </button>
+              </Button>
               <ThemedLogo className="h-9 w-9" />
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
@@ -337,25 +339,27 @@ useEffect(() => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => setIsMusicPopupOpen(!isMusicPopupOpen)}
                 className={cn(
-                  "h-10 w-10 rounded-2xl border flex items-center justify-center transition-all active:scale-95",
-                  isMusicPlaying
-                    ? "bg-primary/15 border-primary/30 text-primary shadow-[0_0_12px_hsl(var(--primary)/0.15)]"
-                    : "bg-muted/50 border-border/50 text-muted-foreground hover:bg-muted hover:border-border"
+                  "rounded-full glass-shimmer",
+                  isMusicPlaying && "border-primary/30 text-primary shadow-[0_0_12px_hsl(var(--primary)/0.15)]"
                 )}
                 title="Music Player"
               >
                 <Music className="h-4.5 w-4.5" />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => navigate("/dashboard/settings")}
-                className="h-10 w-10 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-center hover:bg-muted hover:border-border transition-all active:scale-95"
+                className="rounded-full glass-shimmer"
                 title="Settings"
               >
                 <Settings className="h-4.5 w-4.5 text-muted-foreground" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -488,13 +492,15 @@ useEffect(() => {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input value={chatSearch} onChange={e => setChatSearch(e.target.value)} placeholder="Search chats..." className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
                 </div>
-                <button
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => { const id = createNewSession(); navigate(`/chat/${id}`); }}
-                  className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center hover:bg-primary/20 transition-all active:scale-95"
+                  className="rounded-full glass-shimmer"
                   title="New chat"
                 >
                   <Plus className="h-4.5 w-4.5 text-primary" />
-                </button>
+                </Button>
               </div>
 
               {!isLoaded ? (
