@@ -175,7 +175,7 @@ function AppsDashboard() {
               variant="ghost"
               size="icon"
               className="rounded-full"
-              onClick={() => navigate('/')}
+              onClick={() => navigate(-1)}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
