@@ -911,12 +911,19 @@ function AppListCard({ app, timeAgo, onClick, index = 0 }: { app: RecentApp; tim
 
 function EmptyState({ icon: Icon, text, sub }: { icon: typeof MessageSquare; text: string; sub: string }) {
   return (
-    <div className="p-8 rounded-2xl text-center border border-dashed border-border/40 bg-muted/10">
-      <div className="h-12 w-12 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto mb-3">
-        <Icon className="h-5 w-5 text-primary/30" />
+    <div className="relative p-8 rounded-2xl text-center border border-dashed border-border/30 overflow-hidden"
+      style={{ background: 'linear-gradient(145deg, hsl(var(--muted) / 0.15) 0%, hsl(var(--primary) / 0.03) 100%)' }}
+    >
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-primary/5 rounded-full blur-[50px] pointer-events-none" />
+      <div className="relative z-10">
+        <div className="h-12 w-12 rounded-2xl flex items-center justify-center mx-auto mb-3"
+          style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.12), hsl(var(--primary) / 0.04))' }}
+        >
+          <Icon className="h-5 w-5 text-primary/40" />
+        </div>
+        <p className="text-sm text-muted-foreground font-medium">{text}</p>
+        <p className="text-xs text-muted-foreground/50 mt-1">{sub}</p>
       </div>
-      <p className="text-sm text-muted-foreground font-medium">{text}</p>
-      <p className="text-xs text-muted-foreground/60 mt-1">{sub}</p>
     </div>
   );
 }
