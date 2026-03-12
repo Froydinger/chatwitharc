@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, User } from "lucide-react";
+import { AppleLogo } from "@/components/icons/AppleLogo";
 import { Separator } from "@/components/ui/separator";
 
 type AuthMode = 'login' | 'signup' | 'forgot-password';
