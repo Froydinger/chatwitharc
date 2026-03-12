@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
-import { Code2, Search, Rocket, ExternalLink, Layers, Trash2 } from "lucide-react";
-import { useCanvasStore } from "@/store/useCanvasStore";
-import { useArcStore } from "@/store/useArcStore";
+import { useNavigate } from "react-router-dom";
+import { Code2, Search, Rocket, ExternalLink, Layers, Trash2, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useArcStore } from "@/store/useArcStore";
 import { toast } from "sonner";
 import type { VirtualFileSystem } from "@/types/ide";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,6 @@ interface IDEProject {
 
 export function AppsPanel() {
   const isMobile = useIsMobile();
-  const { reopenIDECanvas } = useCanvasStore();
   const { setRightPanelOpen } = useArcStore();
   const [projects, setProjects] = useState<IDEProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,10 +60,11 @@ export function AppsPanel() {
   };
 
   const handleOpen = (project: IDEProject) => {
-    reopenIDECanvas(project.id, project.files, project.messages || []);
+    // Navigate to the dedicated Apps page
     if (isMobile || window.innerWidth < 1024) {
       setRightPanelOpen(false);
     }
+    window.location.href = `/apps/${project.id}`;
   };
 
   const handleDelete = async (e: React.MouseEvent, projectId: string) => {
@@ -102,6 +102,16 @@ export function AppsPanel() {
         <p className="text-muted-foreground text-base">
           Full apps built with the App Builder IDE
         </p>
+        {/* View All link */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-primary hover:text-primary/80 gap-1"
+          onClick={() => window.location.href = '/apps'}
+        >
+          View All Apps
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Button>
         <div className="mx-auto max-w-2xl w-full">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -139,7 +149,7 @@ export function AppsPanel() {
                 No apps yet
               </h3>
               <p className="text-muted-foreground mb-8 text-lg">
-                Use <span className="font-mono text-primary">/code</span> to build your first app with the IDE.
+                Use <span className="font-mono text-primary">/build</span> to build your first app with the IDE.
               </p>
             </GlassCard>
           </div>

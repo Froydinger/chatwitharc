@@ -15,7 +15,7 @@ import { ThemedLogo } from "@/components/ThemedLogo";
 import { AccountHub } from "@/components/AccountHub";
 import { MusicPopup } from "@/components/MusicPopup";
 import { CanvasPanel } from "@/components/CanvasPanel";
-import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
+
 import { SearchCanvas } from "@/components/SearchCanvas";
 // CanvasTile removed - canvas now renders inline as chat message artifacts
 import { Button } from "@/components/ui/button";
@@ -162,10 +162,8 @@ export function MobileChatApp() {
     canvasType,
   } = useCanvasStore();
 
-  // IDE mode is full-screen, not a side panel
-  const isIDEOpen = isCanvasOpen && canvasType === 'ide';
-  // If canvas is open on mobile, it fully takes over the UI (but not IDE - that's its own overlay)
-  const isCanvasOverlayActive = isMobile && isCanvasOpen && !isIDEOpen;
+  // If canvas is open on mobile, it fully takes over the UI
+  const isCanvasOverlayActive = isMobile && isCanvasOpen;
 
   // Search mode state
   const { isOpen: isSearchOpen, closeSearch } = useSearchStore();
@@ -805,7 +803,7 @@ export function MobileChatApp() {
         )}
 
         {/* Mobile Canvas Panel (full takeover) */}
-        {isCanvasOpen && isMobile && !isIDEOpen && (
+        {isCanvasOpen && isMobile && (
           <div className="fixed inset-0 z-[70] bg-background">
             <CanvasPanel />
             
@@ -989,7 +987,7 @@ export function MobileChatApp() {
               "fixed bottom-6 z-30 pointer-events-none px-4 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
               "left-0",
               // When canvas is open on desktop, limit to left 50% of screen (search mode is now full-screen)
-              isCanvasOpen && !isMobile && !isIDEOpen ? "right-[50%]" : "right-0",
+              isCanvasOpen && !isMobile ? "right-[50%]" : "right-0",
               rightPanelOpen && !isCanvasOpen && "lg:left-80 xl:left-96"
             )}
           >
@@ -1039,7 +1037,7 @@ export function MobileChatApp() {
 
       {/* Side-by-side Canvas Panel on RIGHT (Desktop only) with resize handle */}
       <AnimatePresence>
-        {isCanvasOpen && !isMobile && !isIDEOpen && (
+        {isCanvasOpen && !isMobile && (
           <motion.div
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: canvasWidthPercent + "%", opacity: 1 }}
@@ -1117,20 +1115,8 @@ export function MobileChatApp() {
         )}
       </AnimatePresence>
 
-      {/* IDE Mode - Full Screen Takeover (all devices, like Maestro) */}
-      <AnimatePresence>
-        {isIDEOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed inset-0 z-[100] bg-background"
-          >
-            <IDECanvasPanel />
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+
 
       {/* Scoped styles */}
       <style>{`

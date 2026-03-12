@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import type { VirtualFileSystem, AgentAction } from '@/types/ide';
 
 export interface CanvasVersion {
   id: string;
@@ -8,7 +7,7 @@ export interface CanvasVersion {
   label?: string;
 }
 
-export type CanvasType = 'writing' | 'code' | 'ide';
+export type CanvasType = 'writing' | 'code';
 
 interface CanvasState {
   isOpen: boolean;
@@ -28,14 +27,6 @@ interface CanvasState {
   codeLanguage: string;
   showCodePreview: boolean;
 
-  // IDE mode state
-  ideFiles: VirtualFileSystem | null;
-  ideActions: AgentAction[];
-  ideIsRunning: boolean;
-  idePrompt: string | null;
-  ideAutoRunPrompt: boolean;
-  ideProjectId: string | null;
-  ideMessages: any[];
 
   // Actions
   openCanvas: (initialContent?: string) => void;
@@ -45,8 +36,6 @@ interface CanvasState {
   openCodeCanvas: (code: string, language: string, label?: string) => void;
   openWithContent: (content: string, type?: CanvasType, language?: string) => void;
   openWithLoading: (type: CanvasType, language?: string) => void;
-  openIDECanvas: (prompt: string, files?: VirtualFileSystem, autoRunPrompt?: boolean) => void;
-  reopenIDECanvas: (projectId: string, files: VirtualFileSystem, messages?: any[]) => void;
   closeCanvas: () => void;
   setContent: (content: string, saveToHistory?: boolean) => void;
   setAIContent: (content: string, label?: string) => void;
@@ -63,13 +52,6 @@ interface CanvasState {
   clearCanvas: () => void;
   clearPendingPrompt: () => void;
 
-  // IDE actions
-  setIdeFiles: (files: VirtualFileSystem) => void;
-  setIdeActions: (actions: AgentAction[] | ((prev: AgentAction[]) => AgentAction[])) => void;
-  setIdeIsRunning: (running: boolean) => void;
-  clearIdePrompt: () => void;
-  setIdeProjectId: (id: string | null) => void;
-  setIdeMessages: (messages: any[]) => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
@@ -89,14 +71,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   codeLanguage: 'typescript',
   showCodePreview: false,
 
-  // IDE defaults
-  ideFiles: null,
-  ideActions: [],
-  ideIsRunning: false,
-  idePrompt: null,
-  ideAutoRunPrompt: false,
-  ideProjectId: null,
-  ideMessages: [],
 
   openCanvas: (initialContent = '') => {
     const initialVersion: CanvasVersion = {
@@ -223,39 +197,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     });
   },
 
-  openIDECanvas: (prompt: string, files?: VirtualFileSystem, autoRunPrompt = false) => {
-    set({
-      isOpen: true,
-      canvasType: 'ide',
-      mode: 'sideBySide',
-      idePrompt: prompt,
-      ideAutoRunPrompt: autoRunPrompt,
-      ideFiles: files || null,
-      ideActions: [],
-      ideIsRunning: false,
-      ideProjectId: null,
-      ideMessages: [],
-      isAIWriting: false,
-      isLoading: false,
-    });
-  },
 
-  reopenIDECanvas: (projectId: string, files: VirtualFileSystem, messages?: any[]) => {
-    set({
-      isOpen: true,
-      canvasType: 'ide',
-      mode: 'sideBySide',
-      idePrompt: null,
-      ideAutoRunPrompt: false,
-      ideFiles: files,
-      ideActions: [],
-      ideIsRunning: false,
-      ideProjectId: projectId,
-      ideMessages: messages || [],
-      isAIWriting: false,
-      isLoading: false,
-    });
-  },
+
 
   closeCanvas: () => set({
     isOpen: false,
@@ -371,13 +314,4 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   clearCanvas: () => set({ content: '', undoStack: [], redoStack: [] }),
 
-  // IDE actions
-  setIdeFiles: (files) => set({ ideFiles: files }),
-  setIdeActions: (actions) => set(state => ({
-    ideActions: typeof actions === 'function' ? actions(state.ideActions) : actions,
-  })),
-  setIdeIsRunning: (running) => set({ ideIsRunning: running }),
-  clearIdePrompt: () => set({ idePrompt: null, ideAutoRunPrompt: false }),
-  setIdeProjectId: (id) => set({ ideProjectId: id }),
-  setIdeMessages: (messages) => set({ ideMessages: messages }),
 }));

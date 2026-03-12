@@ -1,7 +1,7 @@
 // src/components/ChatInput.tsx
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
-import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Mic, Code2, PenLine, Search, Globe, Square, Lightbulb } from "lucide-react";
+import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Mic, Code2, PenLine, Search, Globe, Square, Lightbulb, Rocket } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
@@ -96,14 +96,20 @@ function checkForImageRequest(message: string): boolean {
   return false;
 }
 
-// Prefix-based detection: code/ OR /code
+// Prefix-based detection: code/ OR /code — opens code canvas (inline code block), NOT the IDE
 function checkForCodingRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
-  // Support both code/ and /code syntax
+  // Support both code/ and /code syntax — prefix only, no natural language
   if (/^code\//.test(m) || /^\/code\b/.test(m)) return true;
-  // Natural language detection: "build me a todo app", "create an app that...", "make a website"
-  if (/^(can\s+you\s+)?(please\s+)?(build|create|make|develop|code|program)\s+(me\s+)?(a|an|the)\s+/i.test(m)) return true;
+  return false;
+}
+
+// Prefix-based detection: build/ OR /build — navigates to App Builder IDE
+function checkForBuildRequest(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+  if (/^build\//.test(m) || /^\/build\b/.test(m)) return true;
   return false;
 }
 
@@ -277,8 +283,8 @@ function looksLikeCodeEditRequest(message: string): boolean {
 // Extract the prompt after the prefix (strips prefix/ or /prefix)
 function extractPrefixPrompt(message: string): string {
   return message
-    .replace(/^(image|draw|create|code|write|search)\/\s*/i, "")
-    .replace(/^\/(image|draw|create|code|write|canvas|search)\s*/i, "")
+    .replace(/^(image|draw|create|code|write|search|build)\/\s*/i, "")
+    .replace(/^\/(image|draw|create|code|write|canvas|search|build)\s*/i, "")
     .trim();
 }
 
@@ -741,6 +747,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     const wasCodingMode = shouldShowCodeMode || checkForCodingRequest(userMessage);
     const wasImageMode = shouldShowBanana || checkForImageRequest(userMessage);
     const wasSearchMode = shouldShowSearchMode || checkForSearchRequest(userMessage);
+    const wasBuildMode = checkForBuildRequest(userMessage);
 
     // Clear UI promptly
     setInputValue("");
@@ -750,6 +757,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     setForceCanvasMode(false);
     setForceSearchMode(false);
     setShowMenu(false);
+
+    // BUILD MODE: /build navigates to the App Builder
+    if (wasBuildMode) {
+      const buildPrompt = extractPrefixPrompt(userMessage);
+      // Navigate to App Builder — the prompt will be handled there
+      window.location.href = buildPrompt ? `/apps?prompt=${encodeURIComponent(buildPrompt)}` : '/apps';
+      return;
+    }
 
     // Search mode (/search) - now does a regular web search in chat (NOT Research Mode)
     // Research Mode is opened separately via the button
@@ -1025,26 +1040,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
         const canvasState = useCanvasStore.getState();
 
-        // IDE MODE: Route /code requests to the multi-file App Builder IDE
-        if (isCodingRequest) {
-          const cleanedPrompt = extractPrefixPrompt(userMessage);
-          const idePrompt = cleanedPrompt || userMessage;
-
-          // Add IDE artifact message to chat history
-          await addMessage({
-            content: `Building: ${idePrompt}`,
-            role: 'assistant',
-            type: 'ide',
-            idePrompt: idePrompt,
-          });
-
-          // Open the IDE canvas and auto-run exactly once for this initial /code request
-          const { openIDECanvas } = useCanvasStore.getState();
-          openIDECanvas(idePrompt, undefined, true);
-
-          setLoading(false);
-          return;
-        }
+        // CODE MODE: /code now produces inline code blocks via the normal AI flow
+        // (no longer opens IDE — use /build for that)
+        // The isCodingRequest flag flows through to forceCode below
 
         // When writing canvas is open, default to routing there unless the message
         // is clearly conversational (e.g. "nice!", "thanks", "how does this work?")
@@ -1538,6 +1536,7 @@ ${existingCode}
                   { label: "Write", icon: <PenLine className="h-3.5 w-3.5" />, color: "text-purple-400", action: () => { setForceCanvasMode(true); setInputValue("write/ "); textareaRef.current?.focus(); } },
                   { label: "Research", icon: <Search className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setInputValue(""); openSearchMode(); textareaRef.current?.focus(); } },
                   { label: "Code", icon: <Code2 className="h-3.5 w-3.5" />, color: "text-blue-400", action: () => { setInputValue("code/"); textareaRef.current?.focus(); } },
+                  { label: "Build", icon: <Rocket className="h-3.5 w-3.5" />, color: "text-amber-400", action: () => { setInputValue("build/"); textareaRef.current?.focus(); } },
                 ].map((item, i) => (
                   <motion.button
                     key={item.label}
