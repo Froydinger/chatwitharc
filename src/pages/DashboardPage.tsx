@@ -287,18 +287,6 @@ useEffect(() => {
     { label: "Memories", value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
-  const insightTip = useMemo(() => {
-    const tips = [
-      allChats.length > 0 ? `You've had ${allChats.length} chat${allChats.length === 1 ? '' : 's'} — keep the streak going!` : null,
-      allImages.length > 0 ? `You've generated ${allImages.length} image${allImages.length === 1 ? '' : 's'} with Arc so far.` : null,
-      contextBlocks.length > 0 ? `Arc remembers ${contextBlocks.length} thing${contextBlocks.length === 1 ? '' : 's'} about you.` : null,
-      "Try asking Arc to generate an image of your next project idea.",
-      "Start a new chat to brainstorm your next big idea.",
-      "Use /build to create a web app from a single prompt.",
-    ].filter(Boolean) as string[];
-    return tips[Math.floor(Math.random() * tips.length)];
-  }, [allChats.length, allImages.length, contextBlocks.length]);
-
   return (
     <div
       className="min-h-screen overflow-y-auto scrollbar-hide relative z-10"
