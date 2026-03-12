@@ -52,13 +52,6 @@ interface CanvasState {
   clearCanvas: () => void;
   clearPendingPrompt: () => void;
 
-  // IDE actions
-  setIdeFiles: (files: VirtualFileSystem) => void;
-  setIdeActions: (actions: AgentAction[] | ((prev: AgentAction[]) => AgentAction[])) => void;
-  setIdeIsRunning: (running: boolean) => void;
-  clearIdePrompt: () => void;
-  setIdeProjectId: (id: string | null) => void;
-  setIdeMessages: (messages: any[]) => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
