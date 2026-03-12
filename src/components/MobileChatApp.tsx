@@ -803,7 +803,7 @@ export function MobileChatApp() {
         )}
 
         {/* Mobile Canvas Panel (full takeover) */}
-        {isCanvasOpen && isMobile && !isIDEOpen && (
+        {isCanvasOpen && isMobile && (
           <div className="fixed inset-0 z-[70] bg-background">
             <CanvasPanel />
             
