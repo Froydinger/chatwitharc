@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Code2, Search, Rocket, ExternalLink, Layers, Trash2, Plus, ArrowLeft } from "lucide-react";
+import { Code2, Search, Rocket, ExternalLink, Layers, Trash2, Plus, LayoutDashboard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -173,11 +173,12 @@ function AppsDashboard() {
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
-              size="icon"
-              className="rounded-full"
-              onClick={() => navigate(-1)}
+              size="sm"
+              className="rounded-full gap-2"
+              onClick={() => navigate('/dashboard')}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
             </Button>
             <div className="flex items-center gap-2">
               <div className="glass rounded-full p-2">
