@@ -20,7 +20,6 @@ import { supabase } from '@/integrations/supabase/client';
 import type { VirtualFileSystem, AgentAction } from '@/types/ide';
 import { DEFAULT_FILES } from '@/types/ide';
 import {
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
