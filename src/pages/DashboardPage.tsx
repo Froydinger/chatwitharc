@@ -4,7 +4,7 @@ import {
   MessageSquare, Image, Rocket, Brain,
   Plus, Clock, Settings, Search,
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
-  Globe, Code2, Eye, Sparkles, Zap, ArrowRight, Music
+  Globe, Code2, Eye, Sparkles, Zap, ArrowRight, Music, Edit2, Check, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
