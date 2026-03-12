@@ -37,17 +37,24 @@ async function buildStaticZip(projectName: string, files: VirtualFileSystem, sit
 }
 
 export async function unpublishFromNetlify(siteId: string): Promise<void> {
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/deploy-netlify`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_KEY,
-    },
-    body: JSON.stringify({ action: 'delete', siteId }),
-  });
-  const data = await res.json();
-  if (!res.ok || data.error) {
-    throw new Error(data.error || 'Unpublish failed');
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/deploy-netlify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+      },
+      body: JSON.stringify({ action: 'delete', siteId }),
+      signal: controller.signal,
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      throw new Error(data.error || 'Unpublish failed');
+    }
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
