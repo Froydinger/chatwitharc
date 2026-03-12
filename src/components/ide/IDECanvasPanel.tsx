@@ -153,6 +153,7 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
             files: files as any,
             versions: [...projectVersions.slice(-19), newVersion] as any,
             version: (projectVersions.length || 0) + 1,
+            messages: messages as any,
           })
           .eq('id', projectIdRef.current);
         if (error) throw error;
