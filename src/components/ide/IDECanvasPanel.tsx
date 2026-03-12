@@ -167,6 +167,7 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
             prompt: firstPrompt,
             files: files as any,
             versions: [newVersion] as any,
+            messages: messages as any,
           })
           .select('id')
           .single();
