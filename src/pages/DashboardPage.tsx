@@ -446,7 +446,7 @@ useEffect(() => {
                     <EmptyState icon={Brain} text="No memories yet" sub='Say "remember that..."' />
                   ) : (
                     <div className="space-y-1.5">
-                      {contextBlocks.slice(0, 4).map((block, i) => (
+                      {contextBlocks.slice(0, 3).map((block, i) => (
                         <motion.div
                           key={block.id}
                           initial={{ opacity: 0, x: -8 }}
