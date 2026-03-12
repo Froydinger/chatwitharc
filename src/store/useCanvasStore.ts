@@ -45,7 +45,7 @@ interface CanvasState {
   openWithContent: (content: string, type?: CanvasType, language?: string) => void;
   openWithLoading: (type: CanvasType, language?: string) => void;
   openIDECanvas: (prompt: string, files?: VirtualFileSystem) => void;
-  reopenIDECanvas: (projectId: string, files: VirtualFileSystem) => void;
+  reopenIDECanvas: (projectId: string, files: VirtualFileSystem, messages?: any[]) => void;
   closeCanvas: () => void;
   setContent: (content: string, saveToHistory?: boolean) => void;
   setAIContent: (content: string, label?: string) => void;
