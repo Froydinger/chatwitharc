@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { X, History, Image, LayoutGrid, Crown, Quote, Layers, Rocket } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -22,10 +23,18 @@ interface RightPanelProps {
 }
 
 export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
+  const navigate = useNavigate();
   // Detect PWA/Electron mode for conditional spacing
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const isAdminBannerActive = useAdminBanner();
   const { isSubscribed } = useSubscription();
+
+  // Map sidebar tabs to dashboard routes
+  const dashboardTabMap: Partial<Record<RightPanelTab, string>> = {
+    history: "/dashboard?tab=chats",
+    media: "/dashboard?tab=images",
+    apps: "/dashboard?tab=apps",
+  };
 
   useEffect(() => {
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
@@ -105,7 +114,15 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
             ].map(({ key, icon: Icon, label }) => (
               <button
                 key={key}
-                onClick={() => onTabChange(key)}
+                onClick={() => {
+                  const dashboardRoute = dashboardTabMap[key];
+                  if (dashboardRoute) {
+                    navigate(dashboardRoute);
+                    onClose();
+                  } else {
+                    onTabChange(key);
+                  }
+                }}
                 title={label}
                 className={cn(
                   "relative z-10 h-9 w-9 rounded-full flex items-center justify-center transition-colors",
