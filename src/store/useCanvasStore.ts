@@ -67,6 +67,7 @@ interface CanvasState {
   setIdeIsRunning: (running: boolean) => void;
   clearIdePrompt: () => void;
   setIdeProjectId: (id: string | null) => void;
+  setIdeMessages: (messages: any[]) => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
