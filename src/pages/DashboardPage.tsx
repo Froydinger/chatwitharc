@@ -854,17 +854,25 @@ function ChatCard({ session, timeAgo, onClick, index = 0 }: { session: any; time
 function ImageCard({ img, onClick, index = 0 }: { img: GeneratedImage; onClick: () => void; index?: number }) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.92 }}
+      initial={{ opacity: 0, scale: 0.88 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.04, duration: 0.35 }}
-      whileHover={{ scale: 1.03 }}
-      className="relative aspect-square rounded-xl overflow-hidden cursor-pointer border border-border/20 group"
+      transition={{ delay: index * 0.05, type: "spring", stiffness: 200, damping: 18 }}
+      whileHover={{ scale: 1.04, y: -2 }}
+      className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer group"
+      style={{
+        border: '1px solid hsl(var(--primary) / 0.12)',
+        boxShadow: '0 4px 20px hsl(var(--primary) / 0.06)',
+      }}
       onClick={onClick}
     >
-      <SmoothImage src={img.url} alt={img.prompt} className="w-full h-full object-cover" thumbnail />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
-        <p className="text-white text-xs line-clamp-2 font-medium leading-snug">{img.prompt}</p>
+      <SmoothImage src={img.url} alt={img.prompt} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" thumbnail />
+      {/* Shimmer overlay on hover */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
+        <p className="text-white text-xs line-clamp-2 font-medium leading-snug drop-shadow-lg">{img.prompt}</p>
       </div>
+      {/* Corner glow */}
+      <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-primary/15 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
     </motion.div>
   );
 }
