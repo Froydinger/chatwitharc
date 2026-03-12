@@ -68,7 +68,7 @@ export function DashboardPage() {
   const {
     chatSessions, createNewSession, loadSession, deleteSession,
     hydrateAllSessions, allSessionsHydrated, isHydratingAll,
-    syncFromSupabase, currentSessionId
+    syncFromSupabase, currentSessionId, messages
   } = useArcStore();
   const { blocks: contextBlocks, loading: blocksLoading, deleteBlock } = useContextBlocks();
   const isAdminBannerActive = useAdminBanner();
