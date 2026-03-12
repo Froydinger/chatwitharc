@@ -839,6 +839,12 @@ useEffect(() => {
           })}
         </div>
       </div>
+
+      {/* Music Popup */}
+      <MusicPopup
+        isOpen={isMusicPopupOpen}
+        onClose={() => setIsMusicPopupOpen(false)}
+      />
     </div>
   );
 }
