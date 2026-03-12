@@ -27,6 +27,8 @@ import { useAdminBanner } from "@/components/AdminBanner";
 import { useAccentColor } from "@/hooks/useAccentColor";
 import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "@/components/ChatInput";
+import { MusicPopup } from "@/components/MusicPopup";
+import { useMusicStore } from "@/store/useMusicStore";
 
 type DashboardTab = "overview" | "chats" | "images" | "apps" | "memories";
 
