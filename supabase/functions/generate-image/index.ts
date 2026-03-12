@@ -88,7 +88,7 @@ serve(async (req) => {
       throw new Error('Lovable API key not configured');
     }
 
-    const imageModel = 'google/gemini-3-pro-image-preview';
+    const imageModel = 'google/gemini-3.1-flash-image-preview';
     console.log('Using image model:', imageModel);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
