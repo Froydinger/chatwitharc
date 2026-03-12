@@ -1031,25 +1031,21 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
         const canvasState = useCanvasStore.getState();
 
-        // IDE MODE: Route /code requests to the multi-file App Builder IDE
+        // CODE MODE: Route /code requests to inline code canvas (not IDE)
         if (isCodingRequest) {
           const cleanedPrompt = extractPrefixPrompt(userMessage);
-          const idePrompt = cleanedPrompt || userMessage;
+          const codePrompt = cleanedPrompt || userMessage;
 
-          // Add IDE artifact message to chat history
-          await addMessage({
-            content: `Building: ${idePrompt}`,
-            role: 'assistant',
-            type: 'ide',
-            idePrompt: idePrompt,
-          });
+          // Add user message and let AI generate a code block
+          await addMessage({ content: userMessage, role: "user", type: "text" });
 
-          // Open the IDE canvas and auto-run exactly once for this initial /code request
-          const { openIDECanvas } = useCanvasStore.getState();
-          openIDECanvas(idePrompt, undefined, true);
+          // Open code canvas with loading state and let AI fill it
+          const { openWithLoading } = useCanvasStore.getState();
+          openWithLoading('code', 'html');
 
-          setLoading(false);
-          return;
+          // Use the streaming AI to generate code
+          const { streamWithContinuation: streamFn } = get_streamFnRef();
+          // Fall through to the normal AI handler which will handle forceCode
         }
 
         // When writing canvas is open, default to routing there unless the message
