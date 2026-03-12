@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Code2, Search, Rocket, Cloud, ExternalLink, Layers, Trash2 } from "lucide-react";
+import { Code2, Search, Rocket, ExternalLink, Layers, Trash2 } from "lucide-react";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useArcStore } from "@/store/useArcStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import type { VirtualFileSystem } from "@/types/ide";
 import { cn } from "@/lib/utils";
+import { getFaviconByLabel } from "@/constants/faviconOptions";
 
 interface IDEProject {
   id: string;
@@ -21,6 +22,7 @@ interface IDEProject {
   version: number;
   netlify_url: string | null;
   netlify_subdomain: string | null;
+  favicon_label: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -45,7 +47,7 @@ export function AppsPanel() {
 
       const { data, error } = await supabase
         .from('ide_projects')
-        .select('id, title, prompt, files, messages, version, netlify_url, netlify_subdomain, created_at, updated_at')
+        .select('id, title, prompt, files, messages, version, netlify_url, netlify_subdomain, favicon_label, created_at, updated_at')
         .eq('user_id', session.user.id)
         .order('updated_at', { ascending: false });
 
@@ -153,11 +155,26 @@ export function AppsPanel() {
                 {/* Header bar */}
                 <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/30 bg-muted/20">
                   <div className="flex items-center gap-2 min-w-0">
-                    <Code2 className="w-4 h-4 text-primary flex-shrink-0" />
+                    {(() => {
+                      const favicon = getFaviconByLabel(project.favicon_label);
+                      if (favicon) {
+                        const Icon = favicon.icon;
+                        return (
+                          <div
+                            className="w-5 h-5 rounded flex-shrink-0 flex items-center justify-center"
+                            style={{ backgroundColor: favicon.bg }}
+                          >
+                            <Icon size={12} color={favicon.color} strokeWidth={2} />
+                          </div>
+                        );
+                      }
+                      return <Code2 className="w-4 h-4 text-primary flex-shrink-0" />;
+                    })()}
                     <span className="font-medium text-sm text-foreground truncate">
-                      {project.title.slice(0, 50)}
+                      {project.netlify_subdomain
+                        ? project.netlify_subdomain
+                        : project.title.slice(0, 50)}
                     </span>
-                    <Cloud className="w-3 h-3 flex-shrink-0 text-emerald-400" />
                   </div>
                   <Button
                     variant="ghost"
