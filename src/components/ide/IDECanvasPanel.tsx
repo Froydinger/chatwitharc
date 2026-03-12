@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useArcStore } from '@/store/useArcStore';
-import { ArrowLeft, Code2, Eye, Download, Copy, Check, MessageSquare, Sparkles, Save, Cloud, CloudOff, History, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Code2, Eye, Download, Copy, Check, MessageSquare, Sparkles, Save, Cloud, CloudOff, History, RotateCcw, Rocket, ExternalLink } from 'lucide-react';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,9 @@ import { FileExplorer } from './FileExplorer';
 import { IDECodeEditor } from './IDECodeEditor';
 import { IDEPreviewPanel } from './IDEPreviewPanel';
 import { IDEChatPanel } from './IDEChatPanel';
+import { PublishDialog } from './PublishDialog';
 import { sendAgentMessage, type AgentResult } from '@/services/agent';
+import { deployToNetlify, unpublishFromNetlify } from '@/lib/deploy';
 import { getModelForTask } from '@/store/useModelStore';
 import { supabase } from '@/integrations/supabase/client';
 import type { VirtualFileSystem, AgentAction } from '@/types/ide';
@@ -57,6 +59,10 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
   const [syncStatus, setSyncStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
   const [projectVersions, setProjectVersions] = useState<ProjectVersion[]>([]);
   const [showVersions, setShowVersions] = useState(false);
+  const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [deployedUrl, setDeployedUrl] = useState<string | null>(null);
+  const [netlifySiteId, setNetlifySiteId] = useState<string | null>(null);
+  const [netlifySubdomain, setNetlifySubdomain] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,11 +77,23 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     if (ideFiles && Object.keys(ideFiles).length > 0) {
       setFiles(ideFiles);
     }
-    // If we already have a projectId (reopened), mark as saved
     if (ideProjectId) {
       projectIdRef.current = ideProjectId;
       lastSavedFilesRef.current = JSON.stringify(ideFiles || {});
       setSyncStatus('saved');
+      // Load netlify state from database
+      supabase
+        .from('ide_projects')
+        .select('netlify_url, netlify_site_id, netlify_subdomain')
+        .eq('id', ideProjectId)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setDeployedUrl((data as any).netlify_url || null);
+            setNetlifySiteId((data as any).netlify_site_id || null);
+            setNetlifySubdomain((data as any).netlify_subdomain || null);
+          }
+        });
     } else {
       lastSavedFilesRef.current = JSON.stringify(ideFiles || DEFAULT_FILES);
     }
@@ -291,6 +309,43 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     toast({ title: 'Project exported' });
   };
 
+  const handleDeploy = async (subdomain: string, siteTitle: string, faviconSvg: string) => {
+    const result = await deployToNetlify('arc-app', files, subdomain, netlifySiteId, siteTitle, faviconSvg);
+    setDeployedUrl(result.url);
+    setNetlifySiteId(result.siteId);
+    setNetlifySubdomain(result.subdomain);
+    // Save netlify info to database
+    if (projectIdRef.current) {
+      await supabase
+        .from('ide_projects')
+        .update({
+          netlify_url: result.url,
+          netlify_site_id: result.siteId,
+          netlify_subdomain: result.subdomain,
+        } as any)
+        .eq('id', projectIdRef.current);
+    }
+  };
+
+  const handleUnpublish = async () => {
+    if (!netlifySiteId) return;
+    await unpublishFromNetlify(netlifySiteId);
+    setDeployedUrl(null);
+    setNetlifySiteId(null);
+    setNetlifySubdomain(null);
+    if (projectIdRef.current) {
+      await supabase
+        .from('ide_projects')
+        .update({
+          netlify_url: null,
+          netlify_site_id: null,
+          netlify_subdomain: null,
+        } as any)
+        .eq('id', projectIdRef.current);
+    }
+    toast({ title: 'Site unpublished' });
+  };
+
   const handleClose = () => {
     if (syncStatus === 'unsaved') saveProject();
     closeCanvas();
@@ -396,6 +451,23 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
           <Button variant="ghost" size="sm" onClick={handleExport} className="h-7 w-7 p-0 text-muted-foreground">
             <Download className="w-3.5 h-3.5" />
           </Button>
+          {deployedUrl && !isMobile && (
+            <a href={deployedUrl} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[11px] text-primary hover:underline max-w-[200px] truncate">
+              <ExternalLink className="h-3 w-3 shrink-0" />
+              {deployedUrl.replace('https://', '')}
+            </a>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowPublishDialog(true)}
+            className="h-7 px-2 text-muted-foreground gap-1"
+            title="Publish to web"
+          >
+            <Rocket className="w-3.5 h-3.5" />
+            {!isMobile && <span className="text-[10px]">{deployedUrl ? 'Update' : 'Publish'}</span>}
+          </Button>
         </div>
       </header>
 
@@ -475,6 +547,17 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
           </ResizablePanelGroup>
         )}
       </div>
+
+      <PublishDialog
+        open={showPublishDialog}
+        onOpenChange={setShowPublishDialog}
+        projectName={messages.find(m => m.role === 'user')?.content?.slice(0, 50) || 'Arc App'}
+        currentSubdomain={netlifySubdomain}
+        deployedUrl={deployedUrl}
+        siteId={netlifySiteId}
+        onPublish={handleDeploy}
+        onUnpublish={handleUnpublish}
+      />
     </div>
   );
 }
