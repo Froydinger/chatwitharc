@@ -45,6 +45,9 @@ interface IDECanvasPanelProps {
   className?: string;
 }
 
+const buildPersistenceSnapshot = (nextFiles: VirtualFileSystem, nextMessages: ChatMessage[]) =>
+  JSON.stringify({ files: nextFiles, messages: nextMessages });
+
 export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
   const { ideFiles, idePrompt, ideAutoRunPrompt, ideProjectId, ideMessages: storedMessages, setIdeFiles, closeCanvas, setIdeIsRunning, setIdeActions, clearIdePrompt, setIdeProjectId, setIdeMessages } = useCanvasStore();
   const [files, setFiles] = useState<VirtualFileSystem>(ideFiles || DEFAULT_FILES);
