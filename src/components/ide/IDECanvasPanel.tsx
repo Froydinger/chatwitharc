@@ -547,6 +547,17 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
           </ResizablePanelGroup>
         )}
       </div>
+
+      <PublishDialog
+        open={showPublishDialog}
+        onOpenChange={setShowPublishDialog}
+        projectName={messages.find(m => m.role === 'user')?.content?.slice(0, 50) || 'Arc App'}
+        currentSubdomain={netlifySubdomain}
+        deployedUrl={deployedUrl}
+        siteId={netlifySiteId}
+        onPublish={handleDeploy}
+        onUnpublish={handleUnpublish}
+      />
     </div>
   );
 }
