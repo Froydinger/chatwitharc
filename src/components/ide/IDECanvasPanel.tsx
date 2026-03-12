@@ -46,13 +46,13 @@ interface IDECanvasPanelProps {
 }
 
 export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
-  const { ideFiles, idePrompt, ideProjectId, setIdeFiles, closeCanvas, setIdeIsRunning, setIdeActions, clearIdePrompt, setIdeProjectId } = useCanvasStore();
+  const { ideFiles, idePrompt, ideProjectId, ideMessages: storedMessages, setIdeFiles, closeCanvas, setIdeIsRunning, setIdeActions, clearIdePrompt, setIdeProjectId, setIdeMessages } = useCanvasStore();
   const [files, setFiles] = useState<VirtualFileSystem>(ideFiles || DEFAULT_FILES);
   const [selectedFile, setSelectedFile] = useState<string | null>('src/App.tsx');
   const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
   const [mobileCodeTab, setMobileCodeTab] = useState<'chat' | 'editor'>('chat');
   const [copied, setCopied] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessagesLocal] = useState<ChatMessage[]>(storedMessages?.length ? storedMessages : []);
   const [liveActions, setLiveActions] = useState<AgentAction[]>([]);
   const [isAgentRunning, setIsAgentRunning] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
