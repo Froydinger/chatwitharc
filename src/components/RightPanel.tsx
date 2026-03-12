@@ -95,11 +95,11 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           <div className="relative flex items-center gap-1.5 flex-1">
             {/* Sliding bubble indicator */}
             <motion.div
-              className="absolute h-9 w-9 rounded-full bg-primary/20 ring-1 ring-primary"
+              className="absolute h-10 w-10 rounded-full bg-primary/20 ring-1 ring-primary pointer-events-none"
               layoutId="panel-tab-bubble"
               transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.6 }}
               style={{
-                left: activeTab === "history" ? 0 : activeTab === "media" ? 42 : activeTab === "canvases" ? 84 : activeTab === "apps" ? 126 : 168,
+                left: activeTab === "history" ? 0 : activeTab === "media" ? 46 : activeTab === "canvases" ? 92 : activeTab === "apps" ? 138 : 184,
               }}
             />
             {[
