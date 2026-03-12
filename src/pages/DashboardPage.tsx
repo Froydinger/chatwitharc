@@ -821,15 +821,20 @@ function Section({ title, icon: Icon, action, actionLabel, count, children }: {
 function ChatCard({ session, timeAgo, onClick, index = 0 }: { session: any; timeAgo: (d: any) => string; onClick: () => void; index?: number }) {
   return (
     <motion.div
-      initial={{ opacity: 0, x: -8 }}
+      initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="p-3.5 rounded-xl cursor-pointer border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all group"
+      transition={{ delay: index * 0.05, type: "spring", stiffness: 250, damping: 20 }}
+      className="relative overflow-hidden rounded-xl cursor-pointer border border-border/30 hover:border-primary/25 transition-all group"
+      style={{ background: 'linear-gradient(135deg, hsl(var(--muted) / 0.25) 0%, hsl(var(--primary) / 0.04) 100%)' }}
       onClick={onClick}
     >
-      <div className="flex items-center gap-3">
-        <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-          <MessageSquare className="h-3.5 w-3.5 text-primary/70" />
+      {/* Left accent strip */}
+      <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-primary/40 group-hover:bg-primary/70 transition-colors" />
+      <div className="flex items-center gap-3 p-3.5 pl-4">
+        <div className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--primary) / 0.05))' }}
+        >
+          <MessageSquare className="h-3.5 w-3.5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-foreground truncate text-sm">{session.title}</p>
@@ -840,7 +845,7 @@ function ChatCard({ session, timeAgo, onClick, index = 0 }: { session: any; time
             <span className="text-[11px] text-muted-foreground">{session.messageCount ?? session.messages.length} msgs</span>
           </div>
         </div>
-        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-primary/50 group-hover:translate-x-0.5 transition-all" />
+        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
       </div>
     </motion.div>
   );
