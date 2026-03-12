@@ -223,12 +223,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     });
   },
 
-  openIDECanvas: (prompt: string, files?: VirtualFileSystem) => {
+  openIDECanvas: (prompt: string, files?: VirtualFileSystem, autoRunPrompt = false) => {
     set({
       isOpen: true,
       canvasType: 'ide',
       mode: 'sideBySide',
       idePrompt: prompt,
+      ideAutoRunPrompt: autoRunPrompt,
       ideFiles: files || null,
       ideActions: [],
       ideIsRunning: false,
