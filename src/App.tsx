@@ -24,6 +24,7 @@ import { DownloadPage } from "./pages/DownloadPage";
 import { PricingPage } from "./pages/PricingPage";
 import { AppsPage } from "./pages/AppsPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { DashboardSettingsPage } from "./pages/DashboardSettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,7 @@ const App = () => {
                   <Route path="/downloads" element={<DownloadPage />} />
                   <Route path="/pricing" element={<PricingPage />} />
                   <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
                   <Route path="/apps" element={<AppsPage />} />
                   <Route path="/apps/:projectId" element={<AppsPage />} />
                   <Route path="/admin" element={<AdminPage />} />
