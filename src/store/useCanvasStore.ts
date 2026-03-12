@@ -93,6 +93,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   ideIsRunning: false,
   idePrompt: null,
   ideProjectId: null,
+  ideMessages: [],
 
   openCanvas: (initialContent = '') => {
     const initialVersion: CanvasVersion = {
