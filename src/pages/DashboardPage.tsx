@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  MessageSquare, Image, Rocket, Brain, ArrowLeft, ArrowRight,
-  Plus, Clock, Sparkles, ExternalLink, Settings, Search,
+  MessageSquare, Image, Rocket, Brain, ArrowLeft,
+  Plus, Clock, Settings, Search,
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
-  X, Globe, Code2, Eye
+  Globe, Code2, Eye
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
