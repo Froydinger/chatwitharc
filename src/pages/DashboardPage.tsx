@@ -88,6 +88,7 @@ useEffect(() => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
+  const ITEMS_PER_PAGE = 12;
   const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
   const [recentApps, setRecentApps] = useState<RecentApp[]>([]);
   const [loadingApps, setLoadingApps] = useState(true);
@@ -97,6 +98,10 @@ useEffect(() => {
   const [memorySearch, setMemorySearch] = useState("");
   const [viewingImageIndex, setViewingImageIndex] = useState<number | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const [chatPage, setChatPage] = useState(1);
+  const [imagePage, setImagePage] = useState(1);
+  const [appPage, setAppPage] = useState(1);
+  const [memoryPage, setMemoryPage] = useState(1);
 
   const prevMessageCountRef = useRef(messages.length);
   useEffect(() => {
