@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -9,21 +9,80 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Rocket, CheckCircle2, ExternalLink, AlertCircle, XCircle, Trash2, Pencil } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Loader2, Rocket, CheckCircle2, ExternalLink, AlertCircle, XCircle, Trash2, Pencil,
+  Globe, Zap, Star, Gem, Target, Flame, Lightbulb, Code2, Layout, Layers, Box,
+  Hexagon, Shield, Cpu, Terminal, Sparkles, Heart, Music, Camera, Palette, Gamepad2,
+  BookOpen, ShoppingCart, MessageSquare, Map, Cloud, Coffee, Compass, Aperture,
+  Atom, BrainCircuit, Crown, Fingerprint, Leaf, Pizza, Puzzle, Sailboat, Telescope, Trophy,
+} from 'lucide-react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { createElement } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
-const FAVICON_OPTIONS = [
-  { emoji: '🚀', label: 'Rocket' },
-  { emoji: '⚡', label: 'Lightning' },
-  { emoji: '🌐', label: 'Globe' },
-  { emoji: '⭐', label: 'Star' },
-  { emoji: '💎', label: 'Gem' },
-  { emoji: '🎯', label: 'Target' },
-  { emoji: '🔥', label: 'Fire' },
-  { emoji: '💡', label: 'Idea' },
+interface FaviconOption {
+  icon: LucideIcon;
+  label: string;
+  color: string;
+  bg: string;
+}
+
+const FAVICON_OPTIONS: FaviconOption[] = [
+  { icon: Rocket, label: 'Rocket', color: '#fff', bg: '#6366f1' },
+  { icon: Zap, label: 'Lightning', color: '#fbbf24', bg: '#1e1b4b' },
+  { icon: Globe, label: 'Globe', color: '#38bdf8', bg: '#0f172a' },
+  { icon: Star, label: 'Star', color: '#facc15', bg: '#1e1b4b' },
+  { icon: Gem, label: 'Gem', color: '#a78bfa', bg: '#1e1b4b' },
+  { icon: Target, label: 'Target', color: '#f87171', bg: '#1c1917' },
+  { icon: Flame, label: 'Fire', color: '#f97316', bg: '#1c1917' },
+  { icon: Lightbulb, label: 'Idea', color: '#fbbf24', bg: '#1e1b4b' },
+  { icon: Code2, label: 'Code', color: '#34d399', bg: '#0f172a' },
+  { icon: Layout, label: 'Layout', color: '#60a5fa', bg: '#0f172a' },
+  { icon: Layers, label: 'Layers', color: '#c084fc', bg: '#1e1b4b' },
+  { icon: Box, label: 'Box', color: '#fb923c', bg: '#1c1917' },
+  { icon: Hexagon, label: 'Hexagon', color: '#2dd4bf', bg: '#0f172a' },
+  { icon: Shield, label: 'Shield', color: '#60a5fa', bg: '#1e1b4b' },
+  { icon: Cpu, label: 'CPU', color: '#34d399', bg: '#0f172a' },
+  { icon: Terminal, label: 'Terminal', color: '#4ade80', bg: '#0a0a0a' },
+  { icon: Sparkles, label: 'Sparkles', color: '#e879f9', bg: '#1e1b4b' },
+  { icon: Heart, label: 'Heart', color: '#fb7185', bg: '#1c1917' },
+  { icon: Music, label: 'Music', color: '#818cf8', bg: '#1e1b4b' },
+  { icon: Camera, label: 'Camera', color: '#f472b6', bg: '#1c1917' },
+  { icon: Palette, label: 'Palette', color: '#f472b6', bg: '#0f172a' },
+  { icon: Gamepad2, label: 'Game', color: '#a78bfa', bg: '#1e1b4b' },
+  { icon: BookOpen, label: 'Book', color: '#fbbf24', bg: '#1c1917' },
+  { icon: ShoppingCart, label: 'Shop', color: '#34d399', bg: '#0f172a' },
+  { icon: MessageSquare, label: 'Chat', color: '#60a5fa', bg: '#0f172a' },
+  { icon: Map, label: 'Map', color: '#2dd4bf', bg: '#1e1b4b' },
+  { icon: Cloud, label: 'Cloud', color: '#93c5fd', bg: '#0f172a' },
+  { icon: Coffee, label: 'Coffee', color: '#d97706', bg: '#1c1917' },
+  { icon: Compass, label: 'Compass', color: '#f87171', bg: '#1e1b4b' },
+  { icon: Aperture, label: 'Aperture', color: '#c084fc', bg: '#0f172a' },
+  { icon: Atom, label: 'Atom', color: '#38bdf8', bg: '#0f172a' },
+  { icon: BrainCircuit, label: 'AI', color: '#a78bfa', bg: '#1e1b4b' },
+  { icon: Crown, label: 'Crown', color: '#fbbf24', bg: '#1e1b4b' },
+  { icon: Fingerprint, label: 'Fingerprint', color: '#6ee7b7', bg: '#0f172a' },
+  { icon: Leaf, label: 'Leaf', color: '#4ade80', bg: '#0f172a' },
+  { icon: Pizza, label: 'Pizza', color: '#fb923c', bg: '#1c1917' },
+  { icon: Puzzle, label: 'Puzzle', color: '#60a5fa', bg: '#1e1b4b' },
+  { icon: Sailboat, label: 'Sail', color: '#38bdf8', bg: '#0f172a' },
+  { icon: Telescope, label: 'Telescope', color: '#c084fc', bg: '#1e1b4b' },
+  { icon: Trophy, label: 'Trophy', color: '#fbbf24', bg: '#1c1917' },
 ];
 
-function emojiToSvg(emoji: string): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="#6366f1"/><text x="50" y="72" text-anchor="middle" font-size="52" font-family="sans-serif">${emoji}</text></svg>`;
+function optionToSvg(option: FaviconOption): string {
+  const iconMarkup = renderToStaticMarkup(
+    createElement(option.icon, { size: 24, color: option.color, strokeWidth: 2 })
+  );
+  // Extract the inner content of the SVG (everything between <svg ...> and </svg>)
+  const innerMatch = iconMarkup.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
+  const innerContent = innerMatch ? innerMatch[1] : '';
+  
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+    <rect width="48" height="48" rx="10" fill="${option.bg}"/>
+    <g transform="translate(12,12)">${innerContent}</g>
+  </svg>`;
 }
 
 interface PublishDialogProps {
@@ -149,7 +208,7 @@ function PublishForm({
   const isUpdate = !!deployedUrl;
   const [subdomain, setSubdomain] = useState(currentSubdomain || slugify(projectName));
   const [siteTitle, setSiteTitle] = useState(projectName);
-  const [selectedEmoji, setSelectedEmoji] = useState('🚀');
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(currentSubdomain ? true : null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
@@ -159,14 +218,14 @@ function PublishForm({
     const clean = slugify(subdomain);
     if (currentSubdomain && clean === currentSubdomain) { setIsAvailable(true); return; }
     if (clean.length < 3) { setIsAvailable(null); return; }
-    setIsAvailable(true); // Custom domains are always available
+    setIsAvailable(true);
   }, [subdomain, currentSubdomain]);
 
   const handlePublish = async () => {
     setIsPublishing(true);
     setPublishError(null);
     try {
-      const faviconSvg = emojiToSvg(selectedEmoji);
+      const faviconSvg = optionToSvg(FAVICON_OPTIONS[selectedIndex]);
       await onPublish(slugify(subdomain), siteTitle, faviconSvg);
       setPublishedUrl(`https://${slugify(subdomain)}.froydingermedia.online`);
     } catch (err: any) {
@@ -210,13 +269,33 @@ function PublishForm({
 
         <div className="space-y-2">
           <Label>Favicon</Label>
-          <div className="flex flex-wrap gap-1.5">
-            {FAVICON_OPTIONS.map(({ emoji, label }) => (
-              <button key={emoji} type="button" onClick={() => setSelectedEmoji(emoji)} title={label}
-                className={`w-9 h-9 rounded-md text-lg flex items-center justify-center transition-all border ${selectedEmoji === emoji ? 'border-primary bg-primary/10 ring-1 ring-primary' : 'border-border hover:border-primary/50 bg-background'}`}
-                disabled={isPublishing}>{emoji}</button>
-            ))}
-          </div>
+          <ScrollArea className="h-[120px] rounded-md border border-border/40 p-2">
+            <div className="flex flex-wrap gap-1.5">
+              {FAVICON_OPTIONS.map((opt, i) => {
+                const Icon = opt.icon;
+                return (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={() => setSelectedIndex(i)}
+                    title={opt.label}
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all border ${
+                      selectedIndex === i
+                        ? 'border-primary ring-2 ring-primary/30 scale-110'
+                        : 'border-border/40 hover:border-primary/50'
+                    }`}
+                    style={{ backgroundColor: opt.bg }}
+                    disabled={isPublishing}
+                  >
+                    <Icon size={18} color={opt.color} strokeWidth={2} />
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollArea>
+          <p className="text-[11px] text-muted-foreground">
+            Selected: <span className="font-medium text-foreground">{FAVICON_OPTIONS[selectedIndex].label}</span>
+          </p>
         </div>
 
         <div className="space-y-2">
