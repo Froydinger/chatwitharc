@@ -487,11 +487,8 @@ useEffect(() => {
                 <>
                 <div className="space-y-1.5">
                   {filteredChats.slice((chatPage - 1) * ITEMS_PER_PAGE, chatPage * ITEMS_PER_PAGE).map((session, i) => (
-                    <motion.div
+                    <div
                       key={session.id}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
                       className={cn(
                         "p-4 cursor-pointer group transition-all rounded-xl border",
                         currentSessionId === session.id
