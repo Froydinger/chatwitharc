@@ -246,6 +246,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       canvasType: 'ide',
       mode: 'sideBySide',
       idePrompt: null,
+      ideAutoRunPrompt: false,
       ideFiles: files,
       ideActions: [],
       ideIsRunning: false,
