@@ -368,6 +368,8 @@ useEffect(() => {
         <div className="glass-dock" data-has-images={false}>
           <ChatInput inline />
         </div>
+        {/* Portal target for inline image preview — outside glass-dock */}
+        <div id="dashboard-image-preview-target" />
 
         {/* ═══ SUBSCRIPTION BADGE / CTA ═══ */}
         <div>
