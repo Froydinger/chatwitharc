@@ -751,11 +751,8 @@ useEffect(() => {
                 <>
                 <div className="space-y-1.5">
                   {filteredMemories.slice((memoryPage - 1) * ITEMS_PER_PAGE, memoryPage * ITEMS_PER_PAGE).map((block, i) => (
-                    <motion.div
+                    <div
                       key={block.id}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
                       className="p-4 rounded-xl group border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all"
                     >
                       <div className="flex items-start justify-between gap-3">
