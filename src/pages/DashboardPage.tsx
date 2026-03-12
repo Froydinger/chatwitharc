@@ -366,7 +366,7 @@ useEffect(() => {
 
         {/* ═══ CHAT INPUT ═══ */}
         <div className="glass-dock" data-has-images={false}>
-          <ChatInput />
+          <ChatInput inline />
         </div>
 
         {/* ═══ SUBSCRIPTION BADGE / CTA ═══ */}
