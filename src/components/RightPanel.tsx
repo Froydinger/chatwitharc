@@ -1,21 +1,24 @@
 import { useState, useEffect, useRef } from "react";
-import { X, History, Image, LayoutGrid, Crown, Quote } from "lucide-react";
+import { X, History, Image, LayoutGrid, Crown, Quote, Layers, Rocket } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
 import { CanvasesPanel } from "@/components/CanvasesPanel";
+import { AppsPanel } from "@/components/AppsPanel";
 import { QuotePanel } from "@/components/QuotePanel";
 import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useSubscription } from "@/hooks/useSubscription";
 
+export type RightPanelTab = "history" | "media" | "canvases" | "apps" | "quote" | "settings";
+
 interface RightPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  activeTab: "history" | "media" | "apps" | "quote" | "settings";
-  onTabChange: (tab: "history" | "media" | "apps" | "quote" | "settings") => void;
+  activeTab: RightPanelTab;
+  onTabChange: (tab: RightPanelTab) => void;
 }
 
 export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
