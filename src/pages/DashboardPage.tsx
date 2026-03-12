@@ -521,7 +521,7 @@ useEffect(() => {
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
                 <PaginationBar current={chatPage} total={Math.ceil(filteredChats.length / ITEMS_PER_PAGE)} onChange={setChatPage} />
