@@ -10,6 +10,7 @@ interface IDEArtifactCardProps {
   prompt: string;
   fileCount?: number;
   projectId?: string;
+  title?: string;
   className?: string;
 }
 
@@ -17,10 +18,12 @@ export function IDEArtifactCard({
   prompt,
   fileCount: initialFileCount,
   projectId,
+  title: propTitle,
   className
 }: IDEArtifactCardProps) {
   const { reopenIDECanvas, openIDECanvas, ideFiles, ideProjectId } = useCanvasStore();
   const [resolvedFileCount, setResolvedFileCount] = useState(initialFileCount || 0);
+  const [resolvedTitle, setResolvedTitle] = useState(propTitle || '');
   const [isLoading, setIsLoading] = useState(false);
 
   // Resolve the real file count from store or database
@@ -30,17 +33,20 @@ export function IDEArtifactCard({
       setResolvedFileCount(Object.keys(ideFiles).length);
       return;
     }
-    // If we have a projectId, load count from database
+    // If we have a projectId, load count and title from database
     if (projectId) {
       supabase
         .from('ide_projects')
-        .select('files')
+        .select('files, title')
         .eq('id', projectId)
         .single()
         .then(({ data }) => {
           if (data?.files) {
             const files = data.files as Record<string, unknown>;
             setResolvedFileCount(Object.keys(files).length);
+          }
+          if (data?.title && data.title !== 'Untitled Project') {
+            setResolvedTitle(data.title);
           }
         });
     } else if (ideFiles && Object.keys(ideFiles).length > 0) {
@@ -102,7 +108,7 @@ export function IDEArtifactCard({
         <div className="flex items-center gap-2 min-w-0">
           <Code2 className="w-4 h-4 text-primary flex-shrink-0" />
           <span className="font-medium text-sm text-foreground truncate">
-            App Builder
+            {resolvedTitle || prompt.slice(0, 40) || 'App Builder'}
           </span>
           <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/15 text-primary flex-shrink-0">
             IDE

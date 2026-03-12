@@ -158,12 +158,13 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
           .eq('id', projectIdRef.current);
         if (error) throw error;
       } else {
-        const firstPrompt = messages.find(m => m.role === 'user')?.content || 'Untitled Project';
+        const firstPrompt = messages.find(m => m.role === 'user')?.content || '';
+        const projectTitle = firstPrompt ? firstPrompt.slice(0, 100) : 'Untitled Project';
         const { data, error } = await supabase
           .from('ide_projects')
           .insert({
             user_id: session.user.id,
-            title: firstPrompt.slice(0, 100),
+            title: projectTitle,
             prompt: firstPrompt,
             files: files as any,
             versions: [newVersion] as any,
@@ -357,8 +358,10 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     toast({ title: 'Site unpublished' });
   };
 
-  const handleClose = () => {
-    if (syncStatus === 'unsaved') saveProject();
+  const handleClose = async () => {
+    if (syncStatus === 'unsaved' || syncStatus === 'saving') {
+      await saveProject();
+    }
     closeCanvas();
   };
 
