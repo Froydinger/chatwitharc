@@ -432,9 +432,13 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
   };
 
   const handleClose = async () => {
-    if (syncStatus === 'unsaved' || syncStatus === 'saving') {
+    const hasUnsavedChanges =
+      buildPersistenceSnapshot(filesRef.current, messagesRef.current) !== lastSavedSnapshotRef.current;
+
+    if (hasUnsavedChanges || syncStatus === 'saving' || syncStatus === 'unsaved') {
       await saveProject();
     }
+
     closeCanvas();
   };
 
