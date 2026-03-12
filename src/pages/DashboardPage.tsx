@@ -500,8 +500,9 @@ useEffect(() => {
               ) : filteredChats.length === 0 ? (
                 <EmptyState icon={MessageSquare} text={chatSearch ? "No matching chats" : "No chats yet"} sub="Start a conversation to see history here" />
               ) : (
+                <>
                 <div className="space-y-1.5">
-                  {filteredChats.map((session, i) => (
+                  {filteredChats.slice((chatPage - 1) * ITEMS_PER_PAGE, chatPage * ITEMS_PER_PAGE).map((session, i) => (
                     <motion.div
                       key={session.id}
                       initial={{ opacity: 0, y: 6 }}
@@ -542,6 +543,8 @@ useEffect(() => {
                     </motion.div>
                   ))}
                 </div>
+                <PaginationBar current={chatPage} total={Math.ceil(filteredChats.length / ITEMS_PER_PAGE)} onChange={setChatPage} />
+                </>
               )}
             </motion.div>
           )}
