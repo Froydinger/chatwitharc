@@ -794,7 +794,15 @@ useEffect(() => {
           background: 'hsl(var(--background) / 0.85)',
         }}
       >
-        <div className="flex items-center justify-around max-w-lg mx-auto pt-1.5 pb-0 px-2">
+        <div className="relative flex items-center justify-around max-w-lg mx-auto pt-1.5 pb-0 px-2">
+          {/* Deterministic indicator — no layoutId */}
+          <motion.div
+            className="absolute -top-0 h-0.5 w-6 rounded-full bg-primary pointer-events-none"
+            animate={{
+              left: `calc(${tabs.findIndex(t => t.key === activeTab)} * (100% / ${tabs.length}) + (100% / ${tabs.length} / 2) - 12px)`,
+            }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          />
           {tabs.map(({ key, label, icon: Icon }) => {
             const isActive = activeTab === key;
             return (
@@ -806,13 +814,6 @@ useEffect(() => {
                   isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                {isActive && (
-                  <motion.div
-                    layoutId="tab-indicator"
-                    className="absolute -top-1.5 left-1/2 -translate-x-1/2 h-0.5 w-6 rounded-full bg-primary"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                )}
                 <Icon className={cn("h-5 w-5 transition-all", isActive && "drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]")} />
                 <span className={cn("text-[10px] truncate transition-all", isActive ? "font-semibold" : "font-medium")}>{label}</span>
               </button>
