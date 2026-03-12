@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { toast from "sonner";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getFaviconByLabel } from "@/constants/faviconOptions";
 import { useIDEStore } from "@/store/useIDEStore";
