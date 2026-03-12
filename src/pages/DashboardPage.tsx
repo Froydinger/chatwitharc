@@ -882,14 +882,10 @@ function ChatCard({ session, timeAgo, onClick }: { session: any; timeAgo: (d: an
   );
 }
 
-function ImageCard({ img, onClick, index = 0 }: { img: GeneratedImage; onClick: () => void; index?: number }) {
+function ImageCard({ img, onClick }: { img: GeneratedImage; onClick: () => void; index?: number }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.88 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.05, type: "spring", stiffness: 200, damping: 18 }}
-      whileHover={{ scale: 1.04, y: -2 }}
-      className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer group"
+    <div
+      className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer group hover:scale-[1.04] hover:-translate-y-0.5 transition-transform"
       style={{
         border: '1px solid hsl(var(--primary) / 0.12)',
         boxShadow: '0 4px 20px hsl(var(--primary) / 0.06)',
