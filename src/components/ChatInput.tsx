@@ -1536,6 +1536,7 @@ ${existingCode}
                   { label: "Write", icon: <PenLine className="h-3.5 w-3.5" />, color: "text-purple-400", action: () => { setForceCanvasMode(true); setInputValue("write/ "); textareaRef.current?.focus(); } },
                   { label: "Research", icon: <Search className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setInputValue(""); openSearchMode(); textareaRef.current?.focus(); } },
                   { label: "Code", icon: <Code2 className="h-3.5 w-3.5" />, color: "text-blue-400", action: () => { setInputValue("code/"); textareaRef.current?.focus(); } },
+                  { label: "Build", icon: <Rocket className="h-3.5 w-3.5" />, color: "text-amber-400", action: () => { setInputValue("build/"); textareaRef.current?.focus(); } },
                 ].map((item, i) => (
                   <motion.button
                     key={item.label}
