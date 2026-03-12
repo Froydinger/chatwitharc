@@ -866,6 +866,94 @@ export function SettingsPanel() {
           )}
         </TabsContent>
 
+        {/* Subscription Tab */}
+        <TabsContent value="subscription" className="space-y-6 mt-6">
+          <GlassCard variant="bubble" className="p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <Crown className="h-5 w-5 text-primary-glow" />
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Your Plan</h3>
+                <p className="text-sm text-muted-foreground">
+                  {isSubscribed ? "You're on ArcAI Pro" : "You're on the Free plan"}
+                </p>
+              </div>
+            </div>
+
+            {isSubscribed ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-primary/10 border border-primary/20 w-fit">
+                  <Crown className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Pro Plan — Active</span>
+                </div>
+                {subscriptionEnd && (
+                  <p className="text-xs text-muted-foreground">
+                    Next billing date: {new Date(subscriptionEnd).toLocaleDateString()}
+                  </p>
+                )}
+                <GlassButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => openCustomerPortal()}
+                  className="gap-1.5"
+                >
+                  <SettingsIcon className="h-4 w-4" />
+                  Manage Subscription
+                </GlassButton>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>Free plan includes:</p>
+                  <ul className="space-y-1 ml-4 list-disc">
+                    <li>{FREE_DAILY_MESSAGE_LIMIT} messages per day</li>
+                    <li>{FREE_DAILY_VOICE_LIMIT} voice sessions per day</li>
+                    <li>{FREE_DAILY_IMAGE_LIMIT} image generations per day</li>
+                  </ul>
+                </div>
+                <div className="space-y-2 text-sm text-foreground">
+                  <p className="font-medium">Pro unlocks:</p>
+                  <ul className="space-y-1 ml-4 list-disc text-muted-foreground">
+                    <li>Unlimited messages, voice & images</li>
+                    <li>Model selection</li>
+                    <li>Music player</li>
+                  </ul>
+                </div>
+                <GlassButton
+                  onClick={() => openCheckout()}
+                  className="gap-1.5 w-full justify-center"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Upgrade to Pro
+                </GlassButton>
+              </div>
+            )}
+          </GlassCard>
+
+          {/* Usage */}
+          {!isSubscribed && (
+            <GlassCard variant="bubble" className="p-6 space-y-3">
+              <div className="flex items-center gap-3">
+                <Stars className="h-5 w-5 text-primary-glow" />
+                <h3 className="text-lg font-semibold text-foreground">Today's Usage</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Messages</span>
+                  <span className="font-mono text-foreground">{dailyMessagesUsed} / {FREE_DAILY_MESSAGE_LIMIT}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Voice Sessions</span>
+                  <span className="font-mono text-foreground">{dailyVoiceSessionsUsed} / {FREE_DAILY_VOICE_LIMIT}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Image Generations</span>
+                  <span className="font-mono text-foreground">{dailyImagesUsed} / {FREE_DAILY_IMAGE_LIMIT}</span>
+                </div>
+              </div>
+            </GlassCard>
+          )}
+        </TabsContent>
+
       </Tabs>
 
       {/* Footer with Support Links */}
