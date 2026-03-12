@@ -19,20 +19,7 @@ import { getModelForTask } from '@/store/useModelStore';
 import { supabase } from '@/integrations/supabase/client';
 import type { VirtualFileSystem, AgentAction } from '@/types/ide';
 import { DEFAULT_FILES } from '@/types/ide';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { useCanvasStore } from '@/store/useCanvasStore';
-import { FileExplorer } from './FileExplorer';
-import { IDECodeEditor } from './IDECodeEditor';
-import { IDEPreviewPanel } from './IDEPreviewPanel';
-import { IDEChatPanel } from './IDEChatPanel';
-import { sendAgentMessage, type AgentResult } from '@/services/agent';
-import { getModelForTask } from '@/store/useModelStore';
-import { supabase } from '@/integrations/supabase/client';
-import type { VirtualFileSystem, AgentAction } from '@/types/ide';
-import { DEFAULT_FILES } from '@/types/ide';
+import {
 import {
   DropdownMenu,
   DropdownMenuContent,
