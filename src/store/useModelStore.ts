@@ -9,9 +9,9 @@ const MODEL_MAP: Record<ModelFamily, Record<ModelTask, string>> = {
     'chat': 'google/gemini-3-flash-preview',
     'code': 'google/gemini-3.1-pro-preview',
     'deep-chat': 'google/gemini-3.1-pro-preview',
-    'image-gen': 'google/gemini-3-pro-image-preview',
+    'image-gen': 'google/gemini-3.1-flash-image-preview',
     'image-analysis': 'google/gemini-3-flash-preview',
-    'image-edit': 'google/gemini-3-pro-image-preview',
+    'image-edit': 'google/gemini-3.1-flash-image-preview',
   },
   gpt: {
     'chat': 'openai/gpt-5-mini',
