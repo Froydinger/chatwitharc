@@ -122,7 +122,12 @@ export function useCameraCapture(options: UseCameraCaptureOptions = {}) {
       // Attach stream to video element
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        // Guard against the race condition where stopCapture() is called while
+        // play() is still in-flight (stream removed from document mid-play).
+        // The resulting AbortError is harmless — swallow it silently.
+        await videoRef.current.play().catch((err: any) => {
+          if (err.name !== 'AbortError') throw err;
+        });
       }
       
       // Start frame capture interval

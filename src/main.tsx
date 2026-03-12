@@ -52,6 +52,10 @@ const ignoredErrorPatterns = [
   'AbortError',
   'MutationRecord',
   'attributeName',
+  // Camera/video play() interrupted when stream is removed — harmless race condition
+  'play() request was interrupted',
+  'media was removed from the document',
+  'The play() request was interrupted',
 ];
 
 // Check if an error should be ignored
