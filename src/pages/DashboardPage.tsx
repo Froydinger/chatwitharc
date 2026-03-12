@@ -248,6 +248,18 @@ useEffect(() => {
     return () => document.removeEventListener('keydown', handleKey);
   }, [viewingImageIndex, filteredImages.length]);
 
+  const insightTip = useMemo(() => {
+    const tips = [
+      allChats.length > 0 ? `You've had ${allChats.length} chat${allChats.length === 1 ? '' : 's'} — keep the streak going!` : null,
+      allImages.length > 0 ? `You've generated ${allImages.length} image${allImages.length === 1 ? '' : 's'} with Arc so far.` : null,
+      contextBlocks.length > 0 ? `Arc remembers ${contextBlocks.length} thing${contextBlocks.length === 1 ? '' : 's'} about you.` : null,
+      "Try asking Arc to generate an image of your next project idea.",
+      "Start a new chat to brainstorm your next big idea.",
+      "Use /build to create a web app from a single prompt.",
+    ].filter(Boolean) as string[];
+    return tips[Math.floor(Math.random() * tips.length)];
+  }, [allChats.length, allImages.length, contextBlocks.length]);
+
   if (authLoading) return null;
 
   const greeting = (() => {
@@ -269,10 +281,10 @@ useEffect(() => {
 
   // Stats for overview
   const stats = [
-    { label: "Chats", value: allChats.length, icon: MessageSquare },
-    { label: "Images", value: allImages.length, icon: Image },
-    { label: "Apps", value: recentApps.length, icon: Rocket },
-    { label: "Memories", value: contextBlocks.length, icon: Brain },
+    { label: "Chats", value: allChats.length, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
+    { label: "Images", value: allImages.length, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
+    { label: "Apps", value: recentApps.length, icon: Rocket, color: "30 95% 60%", tw: "text-orange-400" },
+    { label: "Memories", value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
   return (
@@ -356,7 +368,7 @@ useEffect(() => {
 
               {/* Stat cards with gradient fills */}
               <div className="grid grid-cols-4 gap-2">
-                {stats.map(({ label, value, icon: Icon }, i) => (
+                {stats.map(({ label, value, icon: Icon, color, tw }, i) => (
                   <motion.div
                     key={label}
                     initial={{ opacity: 0, y: 14, scale: 0.9 }}
@@ -364,20 +376,30 @@ useEffect(() => {
                     transition={{ delay: 0.12 + i * 0.06, type: "spring", stiffness: 300, damping: 20 }}
                     className="relative overflow-hidden rounded-2xl p-3 text-center group cursor-pointer transition-all hover:scale-[1.04] active:scale-[0.97]"
                     style={{
-                      background: `linear-gradient(145deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--muted) / 0.3) 100%)`,
-                      border: '1px solid hsl(var(--primary) / 0.15)',
-                      boxShadow: '0 2px 12px hsl(var(--primary) / 0.06), inset 0 1px 0 hsl(var(--foreground) / 0.04)',
+                      background: `linear-gradient(145deg, hsl(${color} / 0.12) 0%, hsl(var(--muted) / 0.3) 100%)`,
+                      border: `1px solid hsl(${color} / 0.18)`,
+                      boxShadow: `0 2px 12px hsl(${color} / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.04)`,
                     }}
                     onClick={() => switchTab(tabs[i + 1]?.key || "overview")}
                   >
-                    {/* Subtle inner glow */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-8 bg-primary/10 blur-xl rounded-full pointer-events-none" />
-                    <Icon className="h-4 w-4 text-primary mx-auto mb-1 relative z-10 drop-shadow-[0_0_4px_hsl(var(--primary)/0.3)]" />
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-8 blur-xl rounded-full pointer-events-none" style={{ background: `hsl(${color} / 0.15)` }} />
+                    <Icon className={cn("h-4 w-4 mx-auto mb-1 relative z-10", tw)} style={{ filter: `drop-shadow(0 0 4px hsl(${color} / 0.4))` }} />
                     <p className="text-lg font-bold text-foreground leading-none relative z-10">{value}</p>
                     <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider relative z-10">{label}</p>
                   </motion.div>
                 ))}
               </div>
+
+              {/* Insight tip */}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.35 }}
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-primary/15 bg-primary/5"
+              >
+                <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-sm text-foreground/80">{insightTip}</p>
+              </motion.div>
 
               {/* Recent Chats */}
               <Section title="Recent Chats" icon={MessageSquare} action={() => switchTab("chats")} actionLabel="See all">
@@ -385,7 +407,7 @@ useEffect(() => {
                   <EmptyState icon={MessageSquare} text="No chats yet" sub="Start a conversation above!" />
                 ) : (
                   <div className="space-y-1.5">
-                    {allChats.slice(0, isMobile ? 3 : 5).map((session, i) => (
+                    {allChats.slice(0, 3).map((session, i) => (
                       <ChatCard key={session.id} session={session} timeAgo={timeAgo} onClick={() => { loadSession(session.id); navigate(`/chat/${session.id}`); }} index={i} />
                     ))}
                   </div>
@@ -424,7 +446,7 @@ useEffect(() => {
                     <EmptyState icon={Brain} text="No memories yet" sub='Say "remember that..."' />
                   ) : (
                     <div className="space-y-1.5">
-                      {contextBlocks.slice(0, 4).map((block, i) => (
+                      {contextBlocks.slice(0, 3).map((block, i) => (
                         <motion.div
                           key={block.id}
                           initial={{ opacity: 0, x: -8 }}
