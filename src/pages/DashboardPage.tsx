@@ -878,7 +878,7 @@ function ChatCard({ session, timeAgo, onClick }: { session: any; timeAgo: (d: an
         </div>
         <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
       </div>
-    </motion.div>
+    </div>
   );
 }
 
