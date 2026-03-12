@@ -197,39 +197,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     });
   },
 
-  openIDECanvas: (prompt: string, files?: VirtualFileSystem, autoRunPrompt = false) => {
-    set({
-      isOpen: true,
-      canvasType: 'ide',
-      mode: 'sideBySide',
-      idePrompt: prompt,
-      ideAutoRunPrompt: autoRunPrompt,
-      ideFiles: files || null,
-      ideActions: [],
-      ideIsRunning: false,
-      ideProjectId: null,
-      ideMessages: [],
-      isAIWriting: false,
-      isLoading: false,
-    });
-  },
 
-  reopenIDECanvas: (projectId: string, files: VirtualFileSystem, messages?: any[]) => {
-    set({
-      isOpen: true,
-      canvasType: 'ide',
-      mode: 'sideBySide',
-      idePrompt: null,
-      ideAutoRunPrompt: false,
-      ideFiles: files,
-      ideActions: [],
-      ideIsRunning: false,
-      ideProjectId: projectId,
-      ideMessages: messages || [],
-      isAIWriting: false,
-      isLoading: false,
-    });
-  },
+
 
   closeCanvas: () => set({
     isOpen: false,
