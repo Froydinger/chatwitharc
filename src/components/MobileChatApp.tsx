@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Brain, Bolt } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Brain, LayoutDashboard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore } from "@/store/useArcStore";
@@ -12,7 +12,7 @@ import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ThemedLogo } from "@/components/ThemedLogo";
-import { AccountHub } from "@/components/AccountHub";
+
 import { MusicPopup } from "@/components/MusicPopup";
 import { CanvasPanel } from "@/components/CanvasPanel";
 
@@ -783,17 +783,10 @@ export function MobileChatApp() {
                     variant="outline"
                     size="icon"
                     className="rounded-full glass-shimmer transition-all overflow-hidden"
-                    onClick={() => {
-                      // Trigger spin animation
-                      setIsLogoSpinning(true);
-                      setTimeout(() => setIsLogoSpinning(false), 600);
-
-                      // Open support popup
-                      setIsSupportPopupOpen(true);
-                    }}
-                    title="Account"
+                    onClick={() => navigate('/dashboard')}
+                    title="Dashboard"
                   >
-                    <Bolt className="h-7 w-7 text-primary" />
+                    <LayoutDashboard className="h-6 w-6 text-primary" />
                   </Button>
                 </motion.div>
               </div>
@@ -1006,11 +999,6 @@ export function MobileChatApp() {
           onTabChange={setRightPanelTab}
         />
 
-        {/* Account Hub */}
-        <AccountHub
-          isOpen={isSupportPopupOpen}
-          onClose={() => setIsSupportPopupOpen(false)}
-        />
 
         {/* Music Popup */}
         <MusicPopup
