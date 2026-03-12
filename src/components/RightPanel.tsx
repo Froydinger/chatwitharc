@@ -85,11 +85,12 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         )}
         style={{
           top: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px',
-          height: isAdminBannerActive ? 'calc(100vh - var(--admin-banner-height, 0px))' : '100vh'
+          height: isAdminBannerActive ? 'calc(100vh - var(--admin-banner-height, 0px))' : '100vh',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
         }}
       >
-        {/* Internal wrapper with conditional padding */}
-        <div className="flex flex-col h-full" style={{ paddingTop: isStandaloneApp ? 'env(safe-area-inset-top, 0px)' : undefined }}>
+        {/* Internal wrapper with conditional padding for desktop traffic lights */}
+        <div className="flex flex-col h-full" style={{ paddingTop: isStandaloneApp ? '30px' : undefined }}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border bg-background">
           <div className="relative flex items-center gap-1.5 flex-1">
