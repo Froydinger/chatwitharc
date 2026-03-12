@@ -283,8 +283,8 @@ function looksLikeCodeEditRequest(message: string): boolean {
 // Extract the prompt after the prefix (strips prefix/ or /prefix)
 function extractPrefixPrompt(message: string): string {
   return message
-    .replace(/^(image|draw|create|code|write|search)\/\s*/i, "")
-    .replace(/^\/(image|draw|create|code|write|canvas|search)\s*/i, "")
+    .replace(/^(image|draw|create|code|write|search|build)\/\s*/i, "")
+    .replace(/^\/(image|draw|create|code|write|canvas|search|build)\s*/i, "")
     .trim();
 }
 
