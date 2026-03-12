@@ -181,7 +181,19 @@ serve(async (req) => {
               break;
             }
 
-            const data = await aiResp.json();
+            let data: any;
+            try {
+              data = await aiResp.json();
+            } catch (parseErr) {
+              console.error("Failed to parse AI response:", parseErr);
+              if (iterations < MAX_ITERATIONS) {
+                send({ type: "error", message: "Unexpected end of JSON input" });
+                // Retry the iteration
+                continue;
+              }
+              send({ type: "error", message: "Failed to parse AI response after retries" });
+              break;
+            }
             const choice = data.choices?.[0];
             if (!choice) { send({ type: "error", message: "No response from AI" }); break; }
 
