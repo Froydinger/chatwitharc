@@ -237,7 +237,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     });
   },
 
-  reopenIDECanvas: (projectId: string, files: VirtualFileSystem) => {
+  reopenIDECanvas: (projectId: string, files: VirtualFileSystem, messages?: any[]) => {
     set({
       isOpen: true,
       canvasType: 'ide',
@@ -247,6 +247,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       ideActions: [],
       ideIsRunning: false,
       ideProjectId: projectId,
+      ideMessages: messages || [],
       isAIWriting: false,
       isLoading: false,
     });
