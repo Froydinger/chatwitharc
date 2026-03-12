@@ -24,8 +24,8 @@ import { cn } from "@/lib/utils";
 import { getFaviconByLabel } from "@/constants/faviconOptions";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useAccentColor } from "@/hooks/useAccentColor";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { ChatInput } from "@/components/ChatInput";
 
 type DashboardTab = "overview" | "chats" | "images" | "apps" | "memories";
 
