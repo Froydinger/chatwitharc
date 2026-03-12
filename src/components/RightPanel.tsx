@@ -86,52 +86,35 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         )}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border bg-background">
-          <div className="relative flex items-center gap-2 flex-1">
+          <div className="relative flex items-center gap-1.5 flex-1">
             {/* Sliding bubble indicator */}
             <motion.div
-              className="absolute h-10 w-10 rounded-full bg-primary/20 ring-1 ring-primary"
+              className="absolute h-9 w-9 rounded-full bg-primary/20 ring-1 ring-primary"
               layoutId="panel-tab-bubble"
               transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.6 }}
               style={{
-                left: activeTab === "history" ? 0 : activeTab === "media" ? 48 : activeTab === "apps" ? 96 : 144,
+                left: activeTab === "history" ? 0 : activeTab === "media" ? 42 : activeTab === "canvases" ? 84 : activeTab === "apps" ? 126 : 168,
               }}
             />
-            <button
-              onClick={() => onTabChange("history")}
-              className={cn(
-                "relative z-10 h-10 w-10 rounded-full flex items-center justify-center transition-colors",
-                activeTab === "history" ? "text-primary" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <History className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => onTabChange("media")}
-              className={cn(
-                "relative z-10 h-10 w-10 rounded-full flex items-center justify-center transition-colors",
-                activeTab === "media" ? "text-primary" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Image className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => onTabChange("apps")}
-              className={cn(
-                "relative z-10 h-10 w-10 rounded-full flex items-center justify-center transition-colors",
-                activeTab === "apps" ? "text-primary" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => onTabChange("quote")}
-              className={cn(
-                "relative z-10 h-10 w-10 rounded-full flex items-center justify-center transition-colors",
-                activeTab === "quote" ? "text-primary" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Quote className="h-4 w-4" />
-            </button>
+            {[
+              { key: "history" as const, icon: History, label: "History" },
+              { key: "media" as const, icon: Image, label: "Media" },
+              { key: "canvases" as const, icon: Layers, label: "Canvases" },
+              { key: "apps" as const, icon: Rocket, label: "Apps" },
+              { key: "quote" as const, icon: Quote, label: "Quote" },
+            ].map(({ key, icon: Icon, label }) => (
+              <button
+                key={key}
+                onClick={() => onTabChange(key)}
+                title={label}
+                className={cn(
+                  "relative z-10 h-9 w-9 rounded-full flex items-center justify-center transition-colors",
+                  activeTab === key ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            ))}
           </div>
           
             <Button
