@@ -23,10 +23,18 @@ interface RightPanelProps {
 }
 
 export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
+  const navigate = useNavigate();
   // Detect PWA/Electron mode for conditional spacing
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const isAdminBannerActive = useAdminBanner();
   const { isSubscribed } = useSubscription();
+
+  // Map sidebar tabs to dashboard routes
+  const dashboardTabMap: Partial<Record<RightPanelTab, string>> = {
+    history: "/dashboard?tab=chats",
+    media: "/dashboard?tab=images",
+    apps: "/dashboard?tab=apps",
+  };
 
   useEffect(() => {
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
