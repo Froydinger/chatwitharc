@@ -1415,6 +1415,8 @@ ${existingCode}
               ? "Disable image mode"
               : shouldShowCodeMode
               ? "Disable code mode"
+              : shouldShowBuildMode
+              ? "Disable build mode"
               : showCanvasIndicator
               ? (isCanvasAutoMode ? "Writing to canvas" : "Disable canvas mode")
               : shouldShowSearchMode
