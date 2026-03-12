@@ -690,7 +690,28 @@ export function DashboardPage() {
           )}
         </AnimatePresence>
 
-        <div className="h-8" />
+        <div className="h-4" />
+      </div>
+
+      {/* Bottom Tab Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border/40 backdrop-blur-2xl safe-area-bottom">
+        <div className="flex items-center justify-around max-w-lg mx-auto py-2 px-1">
+          {tabs.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => switchTab(key)}
+              className={cn(
+                "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all min-w-0 flex-1",
+                activeTab === key
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Icon className={cn("h-5 w-5", activeTab === key && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.5)]")} />
+              <span className="text-[10px] font-medium truncate">{label}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
