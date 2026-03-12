@@ -610,44 +610,6 @@ export function SettingsPanel() {
             </div>
           </GlassCard>
 
-          {/* Subscription */}
-          <GlassCard variant="bubble" className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-                    <Crown className="w-4 h-4 text-primary" />
-                    {subscription.isSubscribed ? 'ArcAi Pro' : 'Free Plan'}
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    {subscription.isSubscribed
-                      ? `Active until ${new Date(subscription.subscriptionEnd!).toLocaleDateString()}`
-                      : `${subscription.remainingMessages} messages left today · ${subscription.remainingVoiceSessions} voice sessions left`}
-                  </p>
-                </div>
-              </div>
-              {subscription.isSubscribed ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => subscription.openCustomerPortal()}
-                  className="w-full"
-                >
-                  Manage Subscription
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  onClick={() => subscription.openCheckout()}
-                  className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
-                >
-                  <Crown className="w-4 h-4 mr-2" />
-                  Upgrade to Pro — $8/mo
-                </Button>
-              )}
-            </div>
-          </GlassCard>
-
           <GlassCard variant="bubble" className="p-6">
             <div className="space-y-6">
               {/* Connected Accounts */}
