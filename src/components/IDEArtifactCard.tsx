@@ -108,7 +108,7 @@ export function IDEArtifactCard({
         <div className="flex items-center gap-2 min-w-0">
           <Code2 className="w-4 h-4 text-primary flex-shrink-0" />
           <span className="font-medium text-sm text-foreground truncate">
-            App Builder
+            {resolvedTitle || prompt.slice(0, 40) || 'App Builder'}
           </span>
           <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/15 text-primary flex-shrink-0">
             IDE

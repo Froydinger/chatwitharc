@@ -164,7 +164,7 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
           .from('ide_projects')
           .insert({
             user_id: session.user.id,
-            title: firstPrompt.slice(0, 100),
+            title: projectTitle,
             prompt: firstPrompt,
             files: files as any,
             versions: [newVersion] as any,

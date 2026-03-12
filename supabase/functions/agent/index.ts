@@ -20,12 +20,22 @@ The user is giving you a BUILD request. You MUST write code to fulfill it. You h
 3. Only AFTER you have written ALL files, call the done tool with a brief summary
 4. NEVER call done without first calling at least one create_file or modify_file
 
+━━━ INCREMENTAL UPDATES (CRITICAL) ━━━
+• When the user already has an existing app (<current-files> is present), make SURGICAL, INCREMENTAL changes
+• ONLY modify the files that need to change — DO NOT rewrite files that don't need changes
+• NEVER recreate the entire app from scratch unless the user EXPLICITLY asks for a full rewrite
+• Preserve all existing functionality, styles, and structure when adding new features
+• If adding a new feature, create new component files and only modify existing files minimally (e.g. adding an import and using the component)
+• If fixing a bug, only change the specific lines/logic that are broken
+• Think of yourself as a careful surgeon — precise cuts, minimal disruption
+
 ━━━ CRITICAL RULES ━━━
 • You MUST use tools to respond. Plain text responses are NOT allowed.
 • Every file you want in the project MUST be explicitly created or modified via tools
-• When you see <current-files>, those files already exist — modify them if needed, or create new ones
+• When you see <current-files>, those files already exist — modify them ONLY if needed, or create new ones
 • For new projects, always create at minimum: src/main.tsx and src/App.tsx
-• Return COMPLETE file content — no truncation, no "rest of code here" comments
+• Return COMPLETE file content for any file you touch — no truncation, no "rest of code here" comments
+• Keep your tool call arguments as clean JSON — avoid unnecessary escaping or formatting
 
 ━━━ DESIGN PHILOSOPHY ━━━
 • Premium-by-default: depth via layered shadows, subtle gradients, generous whitespace
@@ -71,7 +81,7 @@ const tools = [
     type: "function",
     function: {
       name: "modify_file",
-      description: "Modify an existing file. Return the COMPLETE new file content with all changes applied.",
+      description: "Modify an existing file. Return the COMPLETE new file content with all changes applied. Only modify files that actually need changes.",
       parameters: {
         type: "object",
         properties: {
@@ -150,6 +160,8 @@ serve(async (req) => {
           let finalSummary = "";
           let iterations = 0;
           let filesWritten = 0;
+          let jsonRetries = 0;
+          const MAX_JSON_RETRIES = 3;
 
           while (iterations < MAX_ITERATIONS) {
             iterations++;
@@ -162,11 +174,11 @@ serve(async (req) => {
               method: "POST",
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
-                model: model || "google/gemini-3.1-pro-preview",
+                model: model || "google/gemini-3-flash-preview",
                 messages: conversationMessages,
                 tools,
                 tool_choice: toolChoice,
-                temperature: 0.7,
+                temperature: 0.4,
                 max_tokens: 32000,
               }),
             });
@@ -181,19 +193,42 @@ serve(async (req) => {
               break;
             }
 
-            let data: any;
+            let rawText: string;
             try {
-              data = await aiResp.json();
-            } catch (parseErr) {
-              console.error("Failed to parse AI response:", parseErr);
-              if (iterations < MAX_ITERATIONS) {
-                send({ type: "error", message: "Unexpected end of JSON input" });
-                // Retry the iteration
+              rawText = await aiResp.text();
+            } catch (readErr) {
+              console.error("Failed to read response body:", readErr);
+              if (jsonRetries < MAX_JSON_RETRIES) {
+                jsonRetries++;
+                send({ type: "status", message: `Retrying… (attempt ${jsonRetries})` });
                 continue;
               }
-              send({ type: "error", message: "Failed to parse AI response after retries" });
+              send({ type: "error", message: "Failed to read AI response after retries" });
               break;
             }
+
+            let data: any;
+            try {
+              data = JSON.parse(rawText);
+            } catch (parseErr) {
+              console.error("Failed to parse AI response JSON:", parseErr, "Raw length:", rawText.length);
+              if (jsonRetries < MAX_JSON_RETRIES) {
+                jsonRetries++;
+                send({ type: "status", message: `JSON parse error, retrying… (attempt ${jsonRetries})` });
+                // Add a user message asking the model to retry with valid JSON
+                conversationMessages.push({
+                  role: "user",
+                  content: "Your previous response was malformed JSON. Please try again — call create_file or modify_file tools with valid content."
+                });
+                continue;
+              }
+              send({ type: "error", message: "Failed to parse AI response after retries. Please try a simpler prompt." });
+              break;
+            }
+
+            // Reset JSON retry counter on success
+            jsonRetries = 0;
+
             const choice = data.choices?.[0];
             if (!choice) { send({ type: "error", message: "No response from AI" }); break; }
 
@@ -219,8 +254,14 @@ serve(async (req) => {
             let calledDone = false;
             for (const tc of msg.tool_calls) {
               let args: any;
-              try { args = typeof tc.function.arguments === "string" ? JSON.parse(tc.function.arguments) : tc.function.arguments; }
-              catch { args = {}; }
+              try {
+                args = typeof tc.function.arguments === "string" ? JSON.parse(tc.function.arguments) : tc.function.arguments;
+              } catch (argParseErr) {
+                console.error("Failed to parse tool call arguments:", argParseErr);
+                // Try to salvage — skip this tool call
+                conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: "Error: Invalid JSON in arguments. Please retry with valid JSON." });
+                continue;
+              }
 
               const toolName = tc.function.name;
               let result = "";
@@ -248,14 +289,13 @@ serve(async (req) => {
                   break;
                 case "done":
                   if (filesWritten === 0) {
-                    // Called done with no files — inject a correction and retry
                     result = "Error: You must create or modify files before calling done.";
                     conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: result });
                     conversationMessages.push({
                       role: "user",
                       content: "You called done without writing any files. Please call create_file or modify_file to actually write the code first."
                     });
-                    calledDone = false; // Don't break — let the loop retry
+                    calledDone = false;
                     continue;
                   }
                   finalSummary = args.summary || "Done!";
