@@ -447,16 +447,13 @@ useEffect(() => {
                   ) : (
                     <div className="space-y-1.5">
                       {contextBlocks.slice(0, 3).map((block, i) => (
-                        <motion.div
+                        <div
                           key={block.id}
-                          initial={{ opacity: 0, x: -8 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.05 }}
                           className="group p-3 rounded-xl border border-border/30 bg-muted/20 hover:border-primary/20 hover:bg-primary/5 transition-all"
                         >
                           <p className="text-sm text-foreground/90 line-clamp-2 leading-relaxed">{block.content}</p>
                           <span className="text-[10px] text-muted-foreground mt-1.5 block uppercase tracking-wider">{timeAgo(block.created_at)}</span>
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   )}
