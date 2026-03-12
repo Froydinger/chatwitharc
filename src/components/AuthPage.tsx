@@ -339,6 +339,18 @@ export function AuthPage() {
                 Continue with Google
               </GlassButton>
 
+              {/* Apple Sign In */}
+              <GlassButton
+                variant="ghost"
+                onClick={handleAppleAuth}
+                disabled={loading}
+                className="w-full border border-white/20"
+                type="button"
+              >
+                <AppleLogo className="w-4 h-4 mr-2" />
+                Continue with Apple
+              </GlassButton>
+
               {/* Toggle Auth Mode */}
               <div className="text-center">
                 <button
