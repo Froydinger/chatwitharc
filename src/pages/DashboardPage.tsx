@@ -74,6 +74,16 @@ export function DashboardPage() {
   } = useArcStore();
   const { blocks: contextBlocks, loading: blocksLoading, deleteBlock } = useContextBlocks();
   const isAdminBannerActive = useAdminBanner();
+
+// Detect desktop standalone (PWA/Electron) for traffic light safe area
+const [isDesktopStandalone, setIsDesktopStandalone] = useState(false);
+useEffect(() => {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true;
+  const isElectron = /electron/i.test(navigator.userAgent);
+  const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  setIsDesktopStandalone((isStandalone || isElectron) && !isMobileDevice);
+}, []);
   const { accentColor } = useAccentColor();
   const isMobile = useIsMobile();
   const { toast } = useToast();
