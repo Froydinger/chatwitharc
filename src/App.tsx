@@ -17,6 +17,7 @@ import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { BugReportModal } from "@/components/BugReportModal";
 import { useBugReport } from "@/hooks/useBugReport";
 import { useVisibilityHandler } from "@/hooks/useVisibilityHandler";
+import { GlobalMusicPlayer } from "@/components/GlobalMusicPlayer";
 import { Index } from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminPage } from "./pages/AdminPage";
