@@ -190,19 +190,6 @@ export function DashboardPage() {
   const isImagesLoading = isHydratingAll && !allSessionsHydrated;
   const selectedApp = selectedAppId ? recentApps.find(a => a.id === selectedAppId) : null;
 
-  const handleSendMessage = () => {
-    const msg = inputValue.trim();
-    if (!msg) return;
-    sessionStorage.setItem('pending-prompt', msg);
-    navigate('/');
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
 
   const handleDeleteChat = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
