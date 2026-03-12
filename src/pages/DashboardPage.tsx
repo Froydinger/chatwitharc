@@ -298,33 +298,22 @@ export function DashboardPage() {
           <ChatInput />
         </motion.div>
 
-        {/* Tab Navigation — wrapping pills on desktop, hidden on mobile (bottom bar instead) */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="hidden sm:block">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {tabs.map(({ key, label, icon: Icon, count }) => (
-              <button
-                key={key}
-                onClick={() => switchTab(key)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap",
-                  activeTab === key
-                    ? "bg-primary/20 text-primary ring-1 ring-primary/40"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                <span>{label}</span>
-                {count !== undefined && count > 0 && (
-                  <span className={cn(
-                    "text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1",
-                    activeTab === key ? "bg-primary/30 text-primary" : "bg-muted/50 text-muted-foreground"
-                  )}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+        {/* Subscription info / CTA */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+          {isSubscribed ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium w-fit">
+              <Rocket className="h-3 w-3" />
+              <span>Pro Plan{subscriptionEnd ? ` · renews ${new Date(subscriptionEnd).toLocaleDateString()}` : ''}</span>
+            </div>
+          ) : (
+            <button
+              onClick={() => openCheckout()}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium transition-colors w-fit"
+            >
+              <Rocket className="h-3 w-3" />
+              <span>Upgrade to Pro — $8/mo for unlimited everything</span>
+            </button>
+          )}
         </motion.div>
 
         {/* Tab Content */}
