@@ -43,7 +43,21 @@ Implement the user request with the SMALLEST safe set of file changes that compi
 
 ━━━ RESPONSE STYLE ━━━
 • Do not send plain-text implementation instead of tools
-• Use concise done summary of what changed`;
+• Use concise done summary of what changed
+
+━━━ ROUTING (IMPORTANT) ━━━
+The preview uses a **hash-based react-router-dom shim** (not the real library). It supports:
+• BrowserRouter (maps to HashRouter), Routes, Route, Link, NavLink, Navigate, Outlet
+• useNavigate (string path, { replace, state }, or number for go(-1)), useLocation, useParams, useSearchParams
+• Dynamic route params: \`/users/:id\` works — useParams() returns { id: "42" }
+• Nested routes with Outlet: wrap layout Route around child Routes
+• Wildcard \`*\` catch-all route (lowest priority)
+
+Rules for routing:
+• Always wrap the app in BrowserRouter with Routes/Route
+• Do NOT use lazy(), loader, action, createBrowserRouter, or data APIs — they are not supported
+• Keep route patterns simple: static segments and :param segments
+• For multi-page apps, create separate page components and wire them via Route elements`;
 
 const tools = [
   {
