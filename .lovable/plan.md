@@ -1,69 +1,79 @@
 
-Goal: fix unpublish so it never locks the screen, and if it fails it reports clearly while retrying in the background once.
+Goal: eliminate the persistent Voice Error (1006), make voice startup resilient, and keep the picker clean with only Cedric + Marina while preserving compatibility.
 
-What I found
-- The screen lock is coming from `src/components/ide/PublishDialog.tsx`:
-  - `AlertDialogAction` calls `e.preventDefault()`, which prevents Radix from closing the confirm dialog.
-  - The dialog is not controlled via `open/onOpenChange`, so there is no manual close path after preventDefault.
-  - Result: overlay/focus trap can stay active and lock the whole UI.
-- Failure visibility is weak:
-  - `handleUnpublish` in `src/components/ide/IDECanvasPanel.tsx` catches errors and does not rethrow, so caller-level error handling can’t reliably react.
-  - `unpublishFromNetlify` parsing is brittle (`res.json()` only), so non-JSON error bodies can become generic errors.
-- You asked for non-blocking behavior + background retry: we should release UI immediately and run unpublish in background.
+What I found from your current setup
+1) The client is successfully reaching your backend voice proxy and the proxy is successfully connecting upstream.
+- Proxy logs repeatedly show:
+  - “Authenticated WebSocket for user …”
+  - “Connected to OpenAI Realtime”
+2) Immediately after that, the browser-side socket is dropping with unexpected EOF repeatedly, which then triggers your client auto-reconnect loop and ends in “Voice connection lost (1006)”.
+3) Voice list UX is already mostly simplified (Cedric + Marina shown), but runtime robustness still needs tightening.
+4) Model string is currently hardcoded in the proxy to a preview model (`gpt-4o-realtime-preview-2025-06-03`), while your intended behavior is to use realtime model routing (“gpt-realtime” family).
+5) There are still profile records in the backend with legacy voice values (e.g. coral/echo). Your client does fallback logic, but we should harden this path server-side and on session init to remove ambiguity.
 
-Implementation plan
-1) Fix the lock at the source (PublishDialog)
-- Refactor confirm flow in `PublishedStatusView`:
-  - Add controlled state for the confirmation dialog (`confirmOpen`).
-  - Remove `e.preventDefault()` from destructive action.
-  - On confirm: immediately close confirm dialog (and optionally close publish dialog), then run unpublish async in background.
-- Keep UI interactive while unpublish runs:
-  - No blocking overlay after confirm.
-  - Show a small “Unpublishing in background…” status/toast instead of trapping interaction.
+Implementation plan (sequenced)
+Phase 1 — Stabilize realtime model/session handshake
+1. Update proxy upstream model selection to default to `gpt-realtime` (your expected production path), with optional fallback order.
+2. Add explicit upstream lifecycle logging in proxy for:
+- session creation message sent
+- first upstream event type received
+- upstream close code/reason
+- client close code/reason
+3. Add safe close propagation:
+- if upstream closes, relay a structured error payload once, then close client socket with explicit reason
+- if client closes, gracefully close upstream with normal code and skip noisy error loops
 
-2) Make unpublish contract explicit (IDECanvasPanel)
-- Update `handleUnpublish` so errors propagate to caller:
-  - Do not swallow errors silently.
-  - Check DB update result and throw on `error` (currently ignored).
-- Return a clear success/failure signal so publish dialog can:
-  - show success toast on completion,
-  - show actionable failure toast if both attempts fail.
+Phase 2 — Harden frontend connection state machine
+1. Refine reconnect behavior in `useOpenAIRealtime`:
+- do not reconnect for intentional disconnects/user deactivation
+- exponential backoff (instead of tight 1s loop)
+- stop reconnect on deterministic auth/config errors
+2. Add a short “session-ready” gate:
+- after WS open, wait for a valid session ack event before allowing mic stream commits
+- prevents early message races that can destabilize startup
+3. Improve surfaced errors:
+- separate “couldn’t initialize voice session” from “network dropped”
+- include upstream close reason when present (instead of generic 1006 only)
 
-3) Add one background retry with clear messaging
-- In `PublishedStatusView` flow:
-  - Attempt unpublish once.
-  - If it fails, wait briefly (e.g. ~1.5–2s) and retry once automatically in background.
-  - If second attempt fails, show explicit error (no lock, no spinner dead-end), with copy like:
-    - “Couldn’t unpublish right now. Please try again.”
-- Ensure button state resets in all paths.
+Phase 3 — Enforce two-voice policy cleanly (Cedric + Marina)
+1. Keep picker UI constrained to Cedric + Marina everywhere (Account Hub + overlay).
+2. Add runtime sanitizer on connect:
+- if selected/persisted voice is not in allowed realtime set, force to `cedar` before session.update
+3. Persist sanitized value back to profile when mismatch is detected, so future sessions are clean.
 
-4) Harden unpublish request parsing (deploy.ts)
-- In `unpublishFromNetlify`:
-  - Gracefully parse response as JSON when possible, fallback to text.
-  - Normalize timeout/abort message so user sees real reason.
-  - Keep abort timeout, but surface deterministic errors to UI.
+Phase 4 — Robust proxy/auth/config hardening
+1. Ensure websocket auth path is fully deterministic:
+- parse bearer token safely from protocol/header
+- return explicit auth failure messages before attempting upstream
+2. Add defensive handling for malformed/empty WS messages and buffer growth limits.
+3. Add heartbeat/keepalive handling (or idle timeout strategy) so silent sessions don’t die unexpectedly on some networks.
 
-5) Harden backend delete timeout + diagnostics (edge function)
-- In `supabase/functions/deploy-netlify/index.ts` delete branch:
-  - Wrap Netlify DELETE with an AbortController timeout to avoid long hangs.
-  - Return structured JSON errors on timeout/failure.
-  - Add concise logs for start/fail/success of delete requests.
+Phase 5 — Validation pass (end-to-end)
+1. Start voice from idle chat (Cedric) → confirm stable connect, no 1006.
+2. Switch to Marina and restart session → confirm stable connect.
+3. Mute/unmute and interrupt actions → confirm no forced disconnect.
+4. Background tab/foreground return (mobile-like flow) → confirm reconnect behavior is controlled and recovers.
+5. Confirm toasts are accurate:
+- auth/config issue
+- upstream unavailable
+- transient network interruption
+- true session loss after max retries
 
-Technical details (exact files)
-- `src/components/ide/PublishDialog.tsx`
-  - control AlertDialog open state
-  - remove preventDefault deadlock pattern
-  - background unpublish + one retry + clear UI feedback
-- `src/components/ide/IDECanvasPanel.tsx`
-  - make `handleUnpublish` propagate errors and validate DB update result
-- `src/lib/deploy.ts`
-  - robust response parsing + normalized error messages for unpublish
-- `supabase/functions/deploy-netlify/index.ts`
-  - timeout wrapper around Netlify delete + improved error payload/logging
+Technical notes (why this should fix your exact symptom)
+- Your logs prove upstream connect is succeeding; failure is in post-connect lifecycle.
+- The current reconnect loop masks root causes by repeatedly re-opening and failing.
+- Moving to `gpt-realtime` + better lifecycle gating + clearer close propagation removes ambiguity and prevents the 1006 thrash loop.
+- Sanitizing persisted voice values eliminates hidden profile/state mismatch risks when users have old voice preferences.
 
-Validation checklist
-- Confirm unpublish no longer locks the full screen (mobile viewport 390x844 and desktop).
-- Confirm confirmation modal closes immediately after clicking Unpublish.
-- Confirm background retry runs once on failure.
-- Confirm failure is visible and actionable (not silent, not endless spinner).
-- Confirm success clears published state (`netlify_url`, `netlify_site_id`, `netlify_subdomain`) and UI reflects unpublished status.
+Files/components targeted in implementation
+- `supabase/functions/openai-realtime-proxy/index.ts` (primary stability + model + close propagation)
+- `src/hooks/useOpenAIRealtime.tsx` (reconnect logic, readiness gating, error surfacing)
+- `src/components/VoiceModeController.tsx` (startup flow coordination if needed)
+- `src/components/VoiceModeOverlay.tsx` and `src/components/VoiceSelector.tsx` (confirm two-voice UX remains consistent)
+- optional small backend data normalization for profile `preferred_voice` values
+
+Expected outcome
+- Voice mode starts reliably without immediate 1006 loops
+- Cleaner, deterministic error handling when something truly fails
+- Only Cedric + Marina visible, with safe fallback behavior under the hood
+- Overall “robust as hell” startup/reconnect behavior instead of fragile retry churn

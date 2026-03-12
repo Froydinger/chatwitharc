@@ -58,8 +58,24 @@ function PublishedStatusView({
   onUnpublish: () => Promise<void>;
   onClose: () => void;
 }) {
-  const [isUnpublishing, setIsUnpublishing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const onConfirmUnpublish = () => {
+    // Close both dialogs immediately — no blocking overlay
+    setConfirmOpen(false);
+    onClose();
+
+    // Fire-and-forget with one background retry
+    const attempt = () => onUnpublish();
+    attempt().catch(() => {
+      // Retry once after 2s
+      setTimeout(() => {
+        attempt().catch(() => {
+          // Both attempts failed — already toasted from IDECanvasPanel
+        });
+      }, 2000);
+    });
+  };
 
   return (
     <>
@@ -80,19 +96,13 @@ function PublishedStatusView({
           <ExternalLink className="h-3.5 w-3.5" />
           {deployedUrl}
         </a>
-        {error && (
-          <p className="text-xs text-destructive flex items-center justify-center gap-1">
-            <AlertCircle className="h-3.5 w-3.5" /> {error}
-          </p>
-        )}
       </div>
 
       <DialogFooter className="flex-row justify-between sm:justify-between">
-        <AlertDialog>
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="sm" className="gap-1.5" disabled={isUnpublishing}>
-              {isUnpublishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-              {isUnpublishing ? 'Unpublishing…' : 'Unpublish'}
+            <Button variant="destructive" size="sm" className="gap-1.5">
+              <Trash2 className="h-3.5 w-3.5" /> Unpublish
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
@@ -106,23 +116,9 @@ function PublishedStatusView({
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive hover:bg-destructive/90"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setIsUnpublishing(true);
-                  setError(null);
-                  onUnpublish()
-                    .then(() => {
-                      onClose();
-                    })
-                    .catch(() => {
-                      setError('Failed to unpublish');
-                    })
-                    .finally(() => {
-                      setIsUnpublishing(false);
-                    });
-                }}
+                onClick={onConfirmUnpublish}
               >
-                {isUnpublishing ? 'Unpublishing…' : 'Unpublish'}
+                Unpublish
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

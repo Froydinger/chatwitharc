@@ -417,26 +417,22 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
   const handleUnpublish = async () => {
     if (!netlifySiteId) return;
-    try {
-      await unpublishFromNetlify(netlifySiteId);
-      setDeployedUrl(null);
-      setNetlifySiteId(null);
-      setNetlifySubdomain(null);
-      if (projectIdRef.current) {
-        await supabase
-          .from('ide_projects')
-          .update({
-            netlify_url: null,
-            netlify_site_id: null,
-            netlify_subdomain: null,
-          } as any)
-          .eq('id', projectIdRef.current);
-      }
-      toast({ title: 'Site unpublished' });
-    } catch (err) {
-      console.error('Unpublish failed:', err);
-      toast({ title: 'Failed to unpublish site', variant: 'destructive' });
+    await unpublishFromNetlify(netlifySiteId);
+    setDeployedUrl(null);
+    setNetlifySiteId(null);
+    setNetlifySubdomain(null);
+    if (projectIdRef.current) {
+      const { error } = await supabase
+        .from('ide_projects')
+        .update({
+          netlify_url: null,
+          netlify_site_id: null,
+          netlify_subdomain: null,
+        } as any)
+        .eq('id', projectIdRef.current);
+      if (error) throw new Error('Failed to clear publish state');
     }
+    toast({ title: 'Site unpublished' });
   };
 
   const handleClose = async () => {
