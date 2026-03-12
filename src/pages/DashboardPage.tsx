@@ -407,7 +407,7 @@ useEffect(() => {
                   <EmptyState icon={MessageSquare} text="No chats yet" sub="Start a conversation above!" />
                 ) : (
                   <div className="space-y-1.5">
-                    {allChats.slice(0, isMobile ? 3 : 5).map((session, i) => (
+                    {allChats.slice(0, 3).map((session, i) => (
                       <ChatCard key={session.id} session={session} timeAgo={timeAgo} onClick={() => { loadSession(session.id); navigate(`/chat/${session.id}`); }} index={i} />
                     ))}
                   </div>
