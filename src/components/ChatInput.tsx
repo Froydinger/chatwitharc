@@ -1349,17 +1349,18 @@ ${existingCode}
   /* ---------------- Render ---------------- */
   return (
     <div className="space-y-4 relative">
-      {/* Selected Images preview (fixed portal above the dock) */}
-      {portalRoot &&
-        selectedImages.length > 0 &&
-        createPortal(
+      {/* Selected Images preview */}
+      {selectedImages.length > 0 && (() => {
+        const imagePreviewContent = (
           <div
-            className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
-            style={{ bottom: "calc(110px + env(safe-area-inset-bottom, 0px))" }}
+            className={cn(
+              inline
+                ? "mt-3 w-full"
+                : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
+            )}
+            style={inline ? undefined : { bottom: "calc(110px + env(safe-area-inset-bottom, 0px))" }}
           >
-            <div
-              className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3"
-            >
+            <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/14)</span>
                 <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">
@@ -1376,7 +1377,6 @@ ${existingCode}
                         alt={`sel-${i}`}
                         className="w-16 h-16 object-cover rounded-full border border-border/40"
                       />
-                      
                       <button
                         onClick={() => removeImage(i)}
                         className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
@@ -1388,8 +1388,6 @@ ${existingCode}
                   );
                 })}
               </div>
-              
-              {/* Single mode toggle for all images */}
               {selectedImages.length > 0 && (
                 <div className="mt-3 pt-2 border-t border-border/30">
                   <button
@@ -1402,9 +1400,10 @@ ${existingCode}
                 </div>
               )}
             </div>
-          </div>,
-          portalRoot,
-        )}
+          </div>
+        );
+        return inline ? imagePreviewContent : portalRoot ? createPortal(imagePreviewContent, portalRoot) : null;
+      })()}
 
       {/* Input Row */}
       <div ref={inputBarRef} className="chat-input-halo flex items-center gap-3 rounded-full">
