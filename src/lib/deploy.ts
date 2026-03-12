@@ -59,10 +59,21 @@ export async function unpublishFromNetlify(siteId: string): Promise<void> {
       body: JSON.stringify({ action: 'delete', siteId }),
       signal: controller.signal,
     });
-    const data = await res.json();
-    if (!res.ok || data.error) {
-      throw new Error(data.error || 'Unpublish failed');
+    let data: any;
+    try {
+      data = await res.json();
+    } catch {
+      const text = await res.text().catch(() => '');
+      throw new Error(text || `Unpublish failed (HTTP ${res.status})`);
     }
+    if (!res.ok || data.error) {
+      throw new Error(data.error || `Unpublish failed (HTTP ${res.status})`);
+    }
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new Error('Unpublish timed out — please try again');
+    }
+    throw err;
   } finally {
     clearTimeout(timeout);
   }

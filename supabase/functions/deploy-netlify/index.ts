@@ -28,13 +28,31 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      const deleteRes = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${NETLIFY_ACCESS_TOKEN}` },
-      });
-      if (!deleteRes.ok && deleteRes.status !== 404) {
-        const err = await deleteRes.text();
-        throw new Error(`Failed to delete site [${deleteRes.status}]: ${err}`);
+      console.log('[DEPLOY] Deleting site:', siteId);
+      const deleteController = new AbortController();
+      const deleteTimeout = setTimeout(() => deleteController.abort(), 15000);
+      try {
+        const deleteRes = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${NETLIFY_ACCESS_TOKEN}` },
+          signal: deleteController.signal,
+        });
+        clearTimeout(deleteTimeout);
+        if (!deleteRes.ok && deleteRes.status !== 404) {
+          const err = await deleteRes.text();
+          console.error('[DEPLOY] Delete failed:', deleteRes.status, err);
+          throw new Error(`Failed to delete site [${deleteRes.status}]: ${err}`);
+        }
+        console.log('[DEPLOY] Delete success for:', siteId);
+      } catch (e: unknown) {
+        clearTimeout(deleteTimeout);
+        if (e instanceof DOMException && e.name === 'AbortError') {
+          console.error('[DEPLOY] Delete timed out for:', siteId);
+          return new Response(JSON.stringify({ error: 'Netlify delete timed out' }), {
+            status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw e;
       }
       return new Response(JSON.stringify({ success: true }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
