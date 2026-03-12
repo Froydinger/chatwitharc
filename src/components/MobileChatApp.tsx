@@ -1007,13 +1007,7 @@ export function MobileChatApp() {
           onClose={() => setIsContextPanelOpen(false)}
         />
 
-        {/* Global Audio Element for Music Player */}
-        <audio
-          ref={audioCallbackRef}
-          src={currentMusicTrack.url}
-          loop={playbackMode === 'loop-track'}
-          preload="metadata"
-        />
+        {/* Audio element now lives in GlobalMusicPlayer (App.tsx) */}
 
       </div>
 

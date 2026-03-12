@@ -89,6 +89,7 @@ const App = () => {
                 </Routes>
               </PageTransition>
             </BrowserRouter>
+            <GlobalMusicPlayer />
         </TooltipProvider>
         </SubscriptionProvider>
       </AuthProvider>
