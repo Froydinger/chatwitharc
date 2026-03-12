@@ -1,79 +1,76 @@
 
-Goal: eliminate the persistent Voice Error (1006), make voice startup resilient, and keep the picker clean with only Cedric + Marina while preserving compatibility.
 
-What I found from your current setup
-1) The client is successfully reaching your backend voice proxy and the proxy is successfully connecting upstream.
-- Proxy logs repeatedly show:
-  - “Authenticated WebSocket for user …”
-  - “Connected to OpenAI Realtime”
-2) Immediately after that, the browser-side socket is dropping with unexpected EOF repeatedly, which then triggers your client auto-reconnect loop and ends in “Voice connection lost (1006)”.
-3) Voice list UX is already mostly simplified (Cedric + Marina shown), but runtime robustness still needs tightening.
-4) Model string is currently hardcoded in the proxy to a preview model (`gpt-4o-realtime-preview-2025-06-03`), while your intended behavior is to use realtime model routing (“gpt-realtime” family).
-5) There are still profile records in the backend with legacy voice values (e.g. coral/echo). Your client does fallback logic, but we should harden this path server-side and on session init to remove ambiguity.
+## Separate IDE into Its Own Mode ("App Builder")
 
-Implementation plan (sequenced)
-Phase 1 — Stabilize realtime model/session handshake
-1. Update proxy upstream model selection to default to `gpt-realtime` (your expected production path), with optional fallback order.
-2. Add explicit upstream lifecycle logging in proxy for:
-- session creation message sent
-- first upstream event type received
-- upstream close code/reason
-- client close code/reason
-3. Add safe close propagation:
-- if upstream closes, relay a structured error payload once, then close client socket with explicit reason
-- if client closes, gracefully close upstream with normal code and skip noisy error loops
+This is a significant architectural change to decouple the App Builder IDE from the chat canvas system and give it its own dedicated mode — similar to how Research Mode works today.
 
-Phase 2 — Harden frontend connection state machine
-1. Refine reconnect behavior in `useOpenAIRealtime`:
-- do not reconnect for intentional disconnects/user deactivation
-- exponential backoff (instead of tight 1s loop)
-- stop reconnect on deterministic auth/config errors
-2. Add a short “session-ready” gate:
-- after WS open, wait for a valid session ack event before allowing mic stream commits
-- prevents early message races that can destabilize startup
-3. Improve surfaced errors:
-- separate “couldn’t initialize voice session” from “network dropped”
-- include upstream close reason when present (instead of generic 1006 only)
+### Current State
+- The IDE lives inside `useCanvasStore` as `canvasType: 'ide'`, sharing state with writing/code canvases
+- `/code` triggers the IDE via `checkForCodingRequest()` in ChatInput
+- IDE renders as a full-screen overlay in MobileChatApp (lines 1120-1133)
+- Apps are listed in the sidebar's "Apps" tab (`AppsPanel.tsx`)
+- IDE projects persist in the `ide_projects` table
 
-Phase 3 — Enforce two-voice policy cleanly (Cedric + Marina)
-1. Keep picker UI constrained to Cedric + Marina everywhere (Account Hub + overlay).
-2. Add runtime sanitizer on connect:
-- if selected/persisted voice is not in allowed realtime set, force to `cedar` before session.update
-3. Persist sanitized value back to profile when mismatch is detected, so future sessions are clean.
+### What Changes
 
-Phase 4 — Robust proxy/auth/config hardening
-1. Ensure websocket auth path is fully deterministic:
-- parse bearer token safely from protocol/header
-- return explicit auth failure messages before attempting upstream
-2. Add defensive handling for malformed/empty WS messages and buffer growth limits.
-3. Add heartbeat/keepalive handling (or idle timeout strategy) so silent sessions don’t die unexpectedly on some networks.
+#### 1. New Route: `/apps` (Dashboard) and `/apps/:projectId` (IDE)
+- **`/apps`** — A full-page "All Apps" dashboard (inspired by Maestro's `ProjectsPage`): grid of project cards with mini-previews, search, delete, and a "New App" button
+- **`/apps/:projectId`** — Opens the IDE for a specific project (like Research Mode's full-screen takeover)
+- Add routes in `App.tsx`
 
-Phase 5 — Validation pass (end-to-end)
-1. Start voice from idle chat (Cedric) → confirm stable connect, no 1006.
-2. Switch to Marina and restart session → confirm stable connect.
-3. Mute/unmute and interrupt actions → confirm no forced disconnect.
-4. Background tab/foreground return (mobile-like flow) → confirm reconnect behavior is controlled and recovers.
-5. Confirm toasts are accurate:
-- auth/config issue
-- upstream unavailable
-- transient network interruption
-- true session loss after max retries
+#### 2. New Page: `src/pages/AppsPage.tsx`
+- Manages the view state: dashboard vs IDE
+- Dashboard view shows all `ide_projects` in a grid with favicons, titles, file counts, deploy status
+- Clicking a project navigates to `/apps/:projectId` and renders the IDE
+- "New App" button creates a project and navigates into it
+- Back button returns to dashboard
 
-Technical notes (why this should fix your exact symptom)
-- Your logs prove upstream connect is succeeding; failure is in post-connect lifecycle.
-- The current reconnect loop masks root causes by repeatedly re-opening and failing.
-- Moving to `gpt-realtime` + better lifecycle gating + clearer close propagation removes ambiguity and prevents the 1006 thrash loop.
-- Sanitizing persisted voice values eliminates hidden profile/state mismatch risks when users have old voice preferences.
+#### 3. Decouple IDE from Canvas Store
+- Remove IDE-specific state from `useCanvasStore` (`ideFiles`, `ideActions`, `ideIsRunning`, `idePrompt`, etc.)
+- Move IDE state into its own `useIDEStore` (or keep it local to the IDE page)
+- Canvas store returns to only managing writing/code canvases
 
-Files/components targeted in implementation
-- `supabase/functions/openai-realtime-proxy/index.ts` (primary stability + model + close propagation)
-- `src/hooks/useOpenAIRealtime.tsx` (reconnect logic, readiness gating, error surfacing)
-- `src/components/VoiceModeController.tsx` (startup flow coordination if needed)
-- `src/components/VoiceModeOverlay.tsx` and `src/components/VoiceSelector.tsx` (confirm two-voice UX remains consistent)
-- optional small backend data normalization for profile `preferred_voice` values
+#### 4. Change `/code` to Regular Code Blocks
+- `checkForCodingRequest()` in ChatInput currently opens the IDE — change it to produce inline code blocks in chat instead (like `/write` opens a canvas)
+- The AI chat response handler should treat `/code` as a code canvas, not IDE
 
-Expected outcome
-- Voice mode starts reliably without immediate 1006 loops
-- Cleaner, deterministic error handling when something truly fails
-- Only Cedric + Marina visible, with safe fallback behavior under the hood
-- Overall “robust as hell” startup/reconnect behavior instead of fragile retry churn
+#### 5. Add `/build` Command
+- New slash command `/build` (and `build/`) triggers navigation to `/apps` with a prompt
+- Add "Build" to the slash command picker (line 1535-1558 in ChatInput)
+- When the AI detects a request that would benefit from the full IDE (multi-file app), it should suggest using `/build` instead of auto-opening the IDE
+
+#### 6. Update AI Chat Behavior
+- Update the chat edge function prompt so that when Arc receives a "build me an app" request, it responds with a suggestion: "This sounds like a full app — you can open it in the App Builder with `/build`" and provides the code block inline
+- Remove the auto-IDE-trigger from natural language detection in `checkForCodingRequest`
+
+#### 7. Keep Sidebar Apps Tab
+- `AppsPanel.tsx` stays in the sidebar but clicking an app navigates to `/apps/:projectId` instead of opening the canvas overlay
+- Add a "View All" link at the top that navigates to `/apps`
+
+#### 8. Update Agent Prompt
+- Update `supabase/functions/agent/index.ts` if needed for the `/build` command context
+
+### Files to Create
+- `src/pages/AppsPage.tsx` — Dashboard + IDE routing page
+- `src/store/useIDEStore.ts` — Dedicated IDE state (optional, could keep state local)
+
+### Files to Modify
+- `src/App.tsx` — Add `/apps` and `/apps/:projectId` routes
+- `src/components/ChatInput.tsx` — Change `/code` to code blocks, add `/build` command, update slash picker
+- `src/components/AppsPanel.tsx` — Navigate to `/apps/:projectId` instead of opening canvas overlay
+- `src/store/useCanvasStore.ts` — Remove IDE state
+- `src/components/MobileChatApp.tsx` — Remove IDE overlay rendering
+- `src/components/RightPanel.tsx` — Minor: "View All" link for apps tab
+- `src/components/WelcomeSection.tsx` — Update quick prompts from `/code` to `/build` where appropriate
+- `src/services/ai.ts` or chat edge function — Update AI to suggest `/build` for app requests
+
+### Navigation Flow
+```text
+Chat ──/build──> /apps (new project created) ──> /apps/:id (IDE)
+Sidebar Apps tab ──click──> /apps/:id (IDE)  
+Sidebar Apps tab ──View All──> /apps (dashboard)
+/code ──> inline code block in chat (like before)
+```
+
+This mirrors Research Mode's pattern: it has its own full-screen page, its own persistence, and its own entry point — while the sidebar provides quick access to recent items.
+
