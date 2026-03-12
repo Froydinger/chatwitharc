@@ -323,8 +323,6 @@ export interface ChatInputRef {
 
 export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ onImagesChange, rightPanelOpen = false }, ref) {
   useProfile();
-  const location = useLocation();
-  const isDashboard = location.pathname === "/dashboard";
   const portalRoot = useSafePortalRoot();
   const { toast } = useToast();
   const showPopup = useFingerPopup((state) => state.showPopup);
