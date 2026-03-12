@@ -138,7 +138,7 @@ export function SettingsPanel() {
   } = useArcStore();
   const { user } = useAuth();
   const { profile, updateProfile, updating } = useProfile();
-  const subscription = useSubscription();
+  const { isSubscribed, subscriptionEnd, openCheckout, openCustomerPortal, dailyMessagesUsed, dailyVoiceSessionsUsed, dailyImagesUsed, FREE_DAILY_MESSAGE_LIMIT, FREE_DAILY_VOICE_LIMIT, FREE_DAILY_IMAGE_LIMIT, ...subscription } = useSubscription();
   const { toast } = useToast();
   const showPopup = useFingerPopup((state) => state.showPopup);
   // Use unified accent color system
