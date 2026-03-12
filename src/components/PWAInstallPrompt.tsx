@@ -124,8 +124,7 @@ export function PWAInstallPrompt() {
   };
 
   const handleMacDownload = () => {
-    // Direct download of the Mac app
-    window.location.href = 'https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/download-files/ArcAi-4.0.5.dmg';
+    window.location.href = downloadUrl;
     handleDismiss();
   };
 

@@ -438,8 +438,7 @@ export function LandingScreen() {
   const [isLogoSpinning, setIsLogoSpinning] = useState(false);
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const snarkyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const downloadUrl = "https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/download-files/ArcAi-4.0.5.dmg";
+  const { url: downloadUrl } = useDownloadInfo();
 
   // Create mailto link for mobile users
   const mailtoLink = `mailto:?subject=ArcAi for Mac&body=Download ArcAi for Mac:%0D%0A%0D%0A${encodeURIComponent(downloadUrl)}`;
