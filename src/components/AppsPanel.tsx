@@ -47,7 +47,7 @@ export function AppsPanel() {
 
       const { data, error } = await supabase
         .from('ide_projects')
-        .select('id, title, prompt, files, messages, version, netlify_url, netlify_subdomain, created_at, updated_at')
+        .select('id, title, prompt, files, messages, version, netlify_url, netlify_subdomain, favicon_label, created_at, updated_at')
         .eq('user_id', session.user.id)
         .order('updated_at', { ascending: false });
 
