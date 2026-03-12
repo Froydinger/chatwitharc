@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  MessageSquare, Image, Rocket, Brain, ArrowLeft,
+  MessageSquare, Image, Rocket, Brain,
   Plus, Clock, Settings, Search,
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
   Globe, Code2, Eye
