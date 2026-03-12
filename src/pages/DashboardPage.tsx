@@ -79,7 +79,6 @@ export function DashboardPage() {
   const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
   const [recentApps, setRecentApps] = useState<RecentApp[]>([]);
   const [loadingApps, setLoadingApps] = useState(true);
-  const [inputValue, setInputValue] = useState("");
   const [chatSearch, setChatSearch] = useState("");
   const [imageSearch, setImageSearch] = useState("");
   const [appSearch, setAppSearch] = useState("");
@@ -91,7 +90,18 @@ export function DashboardPage() {
   // App detail state
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Track message count to detect when ChatInput sends a message and navigate to chat
+  const prevMessageCountRef = useRef(messages.length);
+  useEffect(() => {
+    if (messages.length > prevMessageCountRef.current) {
+      // A message was added — navigate to the current chat
+      const sessionId = currentSessionId;
+      if (sessionId) {
+        navigate(`/chat/${sessionId}`);
+      }
+    }
+    prevMessageCountRef.current = messages.length;
+  }, [messages.length, currentSessionId, navigate]);
 
   const switchTab = (tab: DashboardTab) => {
     setActiveTab(tab);
