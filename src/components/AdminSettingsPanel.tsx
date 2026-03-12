@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Users, MessageSquare, Trash2, Plus, Megaphone, Construction, AlertTriangle, PartyPopper, X, ChevronUp } from 'lucide-react';
+import { Settings, Users, MessageSquare, Trash2, Plus, Megaphone, Construction, AlertTriangle, PartyPopper, X, ChevronUp, Download } from 'lucide-react';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { toast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
