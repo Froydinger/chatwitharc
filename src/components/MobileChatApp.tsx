@@ -1037,7 +1037,7 @@ export function MobileChatApp() {
 
       {/* Side-by-side Canvas Panel on RIGHT (Desktop only) with resize handle */}
       <AnimatePresence>
-        {isCanvasOpen && !isMobile && !isIDEOpen && (
+        {isCanvasOpen && !isMobile && (
           <motion.div
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: canvasWidthPercent + "%", opacity: 1 }}
