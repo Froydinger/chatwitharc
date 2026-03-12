@@ -394,14 +394,21 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     setDeployedUrl(result.url);
     setNetlifySiteId(result.siteId);
     setNetlifySubdomain(result.subdomain);
-    // Save netlify info to database
+    // Save netlify info + favicon label to database
     if (projectIdRef.current) {
+      // Extract favicon label from the SVG by finding which option was used
+      const { FAVICON_OPTIONS } = await import('@/constants/faviconOptions');
+      const matchedOption = FAVICON_OPTIONS.find(o => {
+        const testSvg = faviconSvg;
+        return testSvg.includes(o.bg) && testSvg.includes(o.color);
+      });
       await supabase
         .from('ide_projects')
         .update({
           netlify_url: result.url,
           netlify_site_id: result.siteId,
           netlify_subdomain: result.subdomain,
+          favicon_label: matchedOption?.label || null,
         } as any)
         .eq('id', projectIdRef.current);
     }
