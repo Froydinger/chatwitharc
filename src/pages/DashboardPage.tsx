@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useArcStore } from "@/store/useArcStore";
 import { useProfile } from "@/hooks/useProfile";
 import { useChatSync } from "@/hooks/useChatSync";
@@ -72,6 +73,7 @@ export function DashboardPage() {
   const { blocks: contextBlocks, loading: blocksLoading, deleteBlock } = useContextBlocks();
   const isAdminBannerActive = useAdminBanner();
   const { accentColor } = useAccentColor();
+  const isMobile = useIsMobile();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
@@ -373,7 +375,7 @@ export function DashboardPage() {
                   <EmptyState icon={MessageSquare} text="No chats yet" sub="Start a conversation above!" />
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                    {allChats.slice(0, 6).map(session => (
+                    {allChats.slice(0, isMobile ? 3 : 6).map(session => (
                       <ChatCard key={session.id} session={session} timeAgo={timeAgo} onClick={() => { loadSession(session.id); navigate(`/chat/${session.id}`); }} />
                     ))}
                   </div>
