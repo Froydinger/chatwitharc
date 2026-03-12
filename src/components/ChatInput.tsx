@@ -747,6 +747,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     const wasCodingMode = shouldShowCodeMode || checkForCodingRequest(userMessage);
     const wasImageMode = shouldShowBanana || checkForImageRequest(userMessage);
     const wasSearchMode = shouldShowSearchMode || checkForSearchRequest(userMessage);
+    const wasBuildMode = checkForBuildRequest(userMessage);
 
     // Clear UI promptly
     setInputValue("");
@@ -756,6 +757,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     setForceCanvasMode(false);
     setForceSearchMode(false);
     setShowMenu(false);
+
+    // BUILD MODE: /build navigates to the App Builder
+    if (wasBuildMode) {
+      const buildPrompt = extractPrefixPrompt(userMessage);
+      // Navigate to App Builder — the prompt will be handled there
+      window.location.href = buildPrompt ? `/apps?prompt=${encodeURIComponent(buildPrompt)}` : '/apps';
+      return;
+    }
 
     // Search mode (/search) - now does a regular web search in chat (NOT Research Mode)
     // Research Mode is opened separately via the button
