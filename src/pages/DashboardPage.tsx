@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   MessageSquare, Image, Rocket, Brain, ArrowLeft, ArrowRight,
   Plus, Clock, Sparkles, ExternalLink, Settings, Search,
-  Trash2, Download, RefreshCw, LayoutDashboard
+  Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
+  X, Globe, Code2, Eye
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,7 +24,6 @@ import { getFaviconByLabel } from "@/constants/faviconOptions";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useAccentColor } from "@/hooks/useAccentColor";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
 type DashboardTab = "overview" | "chats" | "images" | "apps" | "memories";
@@ -39,9 +39,13 @@ interface GeneratedImage {
 interface RecentApp {
   id: string;
   title: string;
+  prompt: string;
   favicon_label: string | null;
   netlify_url: string | null;
+  netlify_subdomain: string | null;
   updated_at: string;
+  created_at: string;
+  version: number;
 }
 
 function toDate(ts: unknown): Date | null {
@@ -76,14 +80,23 @@ export function DashboardPage() {
   const [inputValue, setInputValue] = useState("");
   const [chatSearch, setChatSearch] = useState("");
   const [imageSearch, setImageSearch] = useState("");
-  const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [appSearch, setAppSearch] = useState("");
+  const [memorySearch, setMemorySearch] = useState("");
+
+  // Image viewer state
+  const [viewingImageIndex, setViewingImageIndex] = useState<number | null>(null);
+
+  // App detail state
+  const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Sync tab with URL
   const switchTab = (tab: DashboardTab) => {
     setActiveTab(tab);
     setSearchParams(tab === "overview" ? {} : { tab });
+    // Reset sub-views when switching tabs
+    setViewingImageIndex(null);
+    setSelectedAppId(null);
   };
 
   useEffect(() => {
@@ -103,7 +116,7 @@ export function DashboardPage() {
         if (!session?.user) return;
         const { data } = await supabase
           .from('ide_projects')
-          .select('id, title, favicon_label, netlify_url, updated_at')
+          .select('id, title, prompt, favicon_label, netlify_url, netlify_subdomain, updated_at, created_at, version')
           .eq('user_id', session.user.id)
           .order('updated_at', { ascending: false });
         setRecentApps((data || []) as RecentApp[]);
@@ -118,7 +131,6 @@ export function DashboardPage() {
     el.style.height = Math.min(el.scrollHeight, 144) + 'px';
   }, []);
 
-  // ALL chats sorted
   const allChats = useMemo(() => {
     return chatSessions
       .filter(s => (s.messageCount ?? s.messages.length) > 0)
@@ -131,7 +143,6 @@ export function DashboardPage() {
     return allChats.filter(s => s.title.toLowerCase().includes(q));
   }, [allChats, chatSearch]);
 
-  // ALL images
   const allImages = useMemo(() => {
     const images: GeneratedImage[] = [];
     chatSessions.forEach(session => {
@@ -159,7 +170,20 @@ export function DashboardPage() {
     return allImages.filter(img => img.prompt.toLowerCase().includes(q));
   }, [allImages, imageSearch]);
 
+  const filteredApps = useMemo(() => {
+    if (!appSearch.trim()) return recentApps;
+    const q = appSearch.toLowerCase();
+    return recentApps.filter(a => a.title.toLowerCase().includes(q) || a.prompt?.toLowerCase().includes(q));
+  }, [recentApps, appSearch]);
+
+  const filteredMemories = useMemo(() => {
+    if (!memorySearch.trim()) return contextBlocks;
+    const q = memorySearch.toLowerCase();
+    return contextBlocks.filter(b => b.content.toLowerCase().includes(q));
+  }, [contextBlocks, memorySearch]);
+
   const isImagesLoading = isHydratingAll && !allSessionsHydrated;
+  const selectedApp = selectedAppId ? recentApps.find(a => a.id === selectedAppId) : null;
 
   const handleSendMessage = () => {
     const msg = inputValue.trim();
@@ -177,9 +201,7 @@ export function DashboardPage() {
 
   const handleDeleteChat = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setDeletingId(sessionId);
     try { deleteSession(sessionId); } catch { /* ignore */ }
-    finally { setDeletingId(null); }
   };
 
   const downloadImage = async (img: GeneratedImage) => {
@@ -194,7 +216,19 @@ export function DashboardPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch { /* ignore */ }
+      toast({ title: "Image downloaded" });
+    } catch { toast({ title: "Download failed", variant: "destructive" }); }
+  };
+
+  const deleteApp = async (appId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      await supabase.from('ide_projects').delete().eq('id', appId).eq('user_id', session.user.id);
+      setRecentApps(prev => prev.filter(a => a.id !== appId));
+      if (selectedAppId === appId) setSelectedAppId(null);
+      toast({ title: "App deleted" });
+    } catch { toast({ title: "Failed to delete", variant: "destructive" }); }
   };
 
   const timeAgo = (dateStr: string | Date) => {
@@ -208,6 +242,18 @@ export function DashboardPage() {
     if (days < 30) return `${days}d ago`;
     return new Date(dateStr).toLocaleDateString();
   };
+
+  // Keyboard navigation for image viewer
+  useEffect(() => {
+    if (viewingImageIndex === null) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setViewingImageIndex(null);
+      if (e.key === 'ArrowRight' && viewingImageIndex < filteredImages.length - 1) setViewingImageIndex(viewingImageIndex + 1);
+      if (e.key === 'ArrowLeft' && viewingImageIndex > 0) setViewingImageIndex(viewingImageIndex - 1);
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [viewingImageIndex, filteredImages.length]);
 
   if (authLoading) return null;
 
@@ -226,6 +272,8 @@ export function DashboardPage() {
     { key: "memories", label: "Memories", icon: Brain, count: contextBlocks.length },
   ];
 
+  const currentImage = viewingImageIndex !== null ? filteredImages[viewingImageIndex] : null;
+
   return (
     <div
       className="min-h-screen overflow-y-auto scrollbar-hide relative z-10"
@@ -233,11 +281,7 @@ export function DashboardPage() {
     >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between"
-        >
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="rounded-full h-9 w-9">
               <ArrowLeft className="h-4 w-4" />
@@ -324,33 +368,30 @@ export function DashboardPage() {
           {/* ====== OVERVIEW ====== */}
           {activeTab === "overview" && (
             <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-              {/* Recent Chats Preview */}
               <Section title="Recent Chats" icon={MessageSquare} action={() => switchTab("chats")} actionLabel="See all">
                 {!isLoaded ? <SkeletonGrid cols={3} /> : allChats.length === 0 ? (
                   <EmptyState icon={MessageSquare} text="No chats yet" sub="Start a conversation above!" />
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                     {allChats.slice(0, 6).map(session => (
-                      <ChatCard key={session.id} session={session} timeAgo={timeAgo} onClick={() => navigate(`/chat/${session.id}`)} />
+                      <ChatCard key={session.id} session={session} timeAgo={timeAgo} onClick={() => { loadSession(session.id); navigate(`/chat/${session.id}`); }} />
                     ))}
                   </div>
                 )}
               </Section>
 
-              {/* Images Preview */}
               <Section title="Recent Images" icon={Image} action={() => switchTab("images")} actionLabel="See all">
                 {isImagesLoading ? <SkeletonGrid cols={4} square /> : allImages.length === 0 ? (
                   <EmptyState icon={Image} text="No images yet" sub="Ask Arc to generate one!" />
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     {allImages.slice(0, 8).map((img, i) => (
-                      <ImageCard key={`${img.sessionId}-${i}`} img={img} onClick={() => setSelectedImage(img)} />
+                      <ImageCard key={`${img.sessionId}-${i}`} img={img} onClick={() => { switchTab("images"); setViewingImageIndex(i); }} />
                     ))}
                   </div>
                 )}
               </Section>
 
-              {/* Apps & Memories side by side */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Section title="Apps" icon={Rocket} action={() => switchTab("apps")} actionLabel="See all">
                   {loadingApps ? <SkeletonList count={2} /> : recentApps.length === 0 ? (
@@ -358,7 +399,7 @@ export function DashboardPage() {
                   ) : (
                     <div className="space-y-2">
                       {recentApps.slice(0, 3).map(app => (
-                        <AppCard key={app.id} app={app} timeAgo={timeAgo} onClick={() => navigate(`/apps/${app.id}`)} />
+                        <AppListCard key={app.id} app={app} timeAgo={timeAgo} onClick={() => { switchTab("apps"); setSelectedAppId(app.id); }} />
                       ))}
                     </div>
                   )}
@@ -388,12 +429,7 @@ export function DashboardPage() {
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    value={chatSearch}
-                    onChange={e => setChatSearch(e.target.value)}
-                    placeholder="Search chats..."
-                    className="pl-9"
-                  />
+                  <Input value={chatSearch} onChange={e => setChatSearch(e.target.value)} placeholder="Search chats..." className="pl-9" />
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => { const id = createNewSession(); navigate(`/chat/${id}`); }} title="New chat" className="rounded-full h-10 w-10">
                   <Plus className="h-4 w-4" />
@@ -411,9 +447,7 @@ export function DashboardPage() {
                       key={session.id}
                       className={cn(
                         "p-4 cursor-pointer group transition-all rounded-xl border",
-                        currentSessionId === session.id
-                          ? "border-primary/50 bg-primary/10 glass"
-                          : "border-border/40 hover:border-primary/30 glass"
+                        currentSessionId === session.id ? "border-primary/50 bg-primary/10 glass" : "border-border/40 hover:border-primary/30 glass"
                       )}
                       onClick={() => { loadSession(session.id); navigate(`/chat/${session.id}`); }}
                     >
@@ -431,11 +465,7 @@ export function DashboardPage() {
                             </div>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost" size="icon"
-                          className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all shrink-0"
-                          onClick={(e) => handleDeleteChat(session.id, e)}
-                        >
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all shrink-0" onClick={(e) => handleDeleteChat(session.id, e)}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
@@ -446,73 +476,236 @@ export function DashboardPage() {
             </motion.div>
           )}
 
-          {/* ====== FULL IMAGES ====== */}
+          {/* ====== FULL IMAGES (with inline viewer) ====== */}
           {activeTab === "images" && (
             <motion.div key="images" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={imageSearch}
-                  onChange={e => setImageSearch(e.target.value)}
-                  placeholder="Search images by prompt..."
-                  className="pl-9"
-                />
-              </div>
+              <AnimatePresence mode="wait">
+                {viewingImageIndex !== null && currentImage ? (
+                  /* ---- IMAGE VIEWER ---- */
+                  <motion.div key="viewer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                    {/* Back + counter */}
+                    <div className="flex items-center justify-between">
+                      <Button variant="ghost" size="sm" onClick={() => setViewingImageIndex(null)} className="text-muted-foreground">
+                        <ChevronLeft className="h-4 w-4 mr-1" /> Back to gallery
+                      </Button>
+                      <span className="text-xs text-muted-foreground">{viewingImageIndex + 1} of {filteredImages.length}</span>
+                    </div>
 
-              {isImagesLoading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                  {[1,2,3,4,5,6,7,8].map(i => <Skeleton key={i} className="aspect-square rounded-xl" />)}
-                </div>
-              ) : filteredImages.length === 0 ? (
-                <EmptyState icon={Image} text={imageSearch ? "No matching images" : "No images yet"} sub="Ask Arc to generate an image" />
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                  {filteredImages.map((img, i) => (
-                    <ImageCard key={`${img.sessionId}-${i}`} img={img} onClick={() => setSelectedImage(img)} />
-                  ))}
-                </div>
-              )}
+                    {/* Main image */}
+                    <GlassCard className="rounded-2xl overflow-hidden relative group">
+                      <div className="relative flex items-center justify-center bg-black/20 min-h-[300px] sm:min-h-[400px] max-h-[70vh]">
+                        <SmoothImage src={currentImage.url} alt={currentImage.prompt} className="w-full h-full max-h-[70vh] object-contain" />
+
+                        {/* Prev/Next arrows */}
+                        {viewingImageIndex > 0 && (
+                          <button onClick={() => setViewingImageIndex(viewingImageIndex - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 flex items-center justify-center text-white transition-all opacity-0 group-hover:opacity-100">
+                            <ChevronLeft className="h-5 w-5" />
+                          </button>
+                        )}
+                        {viewingImageIndex < filteredImages.length - 1 && (
+                          <button onClick={() => setViewingImageIndex(viewingImageIndex + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 flex items-center justify-center text-white transition-all opacity-0 group-hover:opacity-100">
+                            <ChevronRight className="h-5 w-5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Image info bar */}
+                      <div className="p-4 sm:p-5 space-y-3">
+                        <p className="text-sm text-foreground leading-relaxed">{currentImage.prompt || "Generated image"}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          <span>{currentImage.timestamp.toLocaleString()}</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <Button variant="outline" size="sm" onClick={() => downloadImage(currentImage)} className="glass">
+                            <Download className="h-3.5 w-3.5 mr-1.5" /> Download
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => { loadSession(currentImage.sessionId); navigate(`/chat/${currentImage.sessionId}`); }} className="glass">
+                            <MessageSquare className="h-3.5 w-3.5 mr-1.5" /> Go to chat
+                          </Button>
+                        </div>
+                      </div>
+                    </GlassCard>
+
+                    {/* Thumbnail strip */}
+                    <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-2">
+                      {filteredImages.map((img, i) => (
+                        <button
+                          key={`thumb-${i}`}
+                          onClick={() => setViewingImageIndex(i)}
+                          className={cn(
+                            "shrink-0 h-14 w-14 sm:h-16 sm:w-16 rounded-lg overflow-hidden border-2 transition-all",
+                            i === viewingImageIndex ? "border-primary ring-1 ring-primary/40 scale-105" : "border-transparent opacity-60 hover:opacity-100"
+                          )}
+                        >
+                          <SmoothImage src={img.url} alt="" className="w-full h-full object-cover" thumbnail />
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                ) : (
+                  /* ---- IMAGE GRID ---- */
+                  <motion.div key="grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input value={imageSearch} onChange={e => setImageSearch(e.target.value)} placeholder="Search images by prompt..." className="pl-9" />
+                    </div>
+
+                    {isImagesLoading ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                        {[1,2,3,4,5,6,7,8].map(i => <Skeleton key={i} className="aspect-square rounded-xl" />)}
+                      </div>
+                    ) : filteredImages.length === 0 ? (
+                      <EmptyState icon={Image} text={imageSearch ? "No matching images" : "No images yet"} sub="Ask Arc to generate an image" />
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                        {filteredImages.map((img, i) => (
+                          <ImageCard key={`${img.sessionId}-${i}`} img={img} onClick={() => setViewingImageIndex(i)} />
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
 
-          {/* ====== FULL APPS ====== */}
+          {/* ====== FULL APPS (with detail view) ====== */}
           {activeTab === "apps" && (
             <motion.div key="apps" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{recentApps.length} app{recentApps.length !== 1 ? 's' : ''}</p>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/apps")} className="text-xs text-muted-foreground h-7 px-2">
-                  Open App Builder
-                </Button>
-              </div>
-              {loadingApps ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {[1,2,3,4].map(i => <GlassCard key={i} className="p-4 rounded-xl"><Skeleton className="h-5 w-3/4 mb-2" /><Skeleton className="h-4 w-1/2" /></GlassCard>)}
-                </div>
-              ) : recentApps.length === 0 ? (
-                <EmptyState icon={Rocket} text="No apps yet" sub="Use /build to create your first app" />
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {recentApps.map(app => (
-                    <AppCard key={app.id} app={app} timeAgo={timeAgo} onClick={() => navigate(`/apps/${app.id}`)} full />
-                  ))}
-                </div>
-              )}
+              <AnimatePresence mode="wait">
+                {selectedApp ? (
+                  /* ---- APP DETAIL ---- */
+                  <motion.div key="app-detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedAppId(null)} className="text-muted-foreground">
+                      <ChevronLeft className="h-4 w-4 mr-1" /> Back to apps
+                    </Button>
+
+                    <GlassCard className="rounded-2xl overflow-hidden">
+                      {/* App header */}
+                      <div className="p-5 sm:p-6 space-y-4">
+                        <div className="flex items-start gap-4">
+                          <AppIcon app={selectedApp} size="lg" />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-bold text-foreground">{selectedApp.title}</h3>
+                            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+                              <span>v{selectedApp.version}</span>
+                              <span>·</span>
+                              <span>Updated {timeAgo(selectedApp.updated_at)}</span>
+                              <span>·</span>
+                              <span>Created {new Date(selectedApp.created_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {selectedApp.prompt && (
+                          <div className="glass rounded-xl p-3">
+                            <p className="text-xs text-muted-foreground mb-1">Original prompt</p>
+                            <p className="text-sm text-foreground line-clamp-4">{selectedApp.prompt}</p>
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" onClick={() => navigate(`/apps/${selectedApp.id}`)} className="glass-shimmer">
+                            <Code2 className="h-3.5 w-3.5 mr-1.5" /> Open in Builder
+                          </Button>
+                          {selectedApp.netlify_url && (
+                            <Button variant="outline" size="sm" onClick={() => window.open(selectedApp.netlify_url!, '_blank')} className="glass">
+                              <Globe className="h-3.5 w-3.5 mr-1.5" /> View Live
+                            </Button>
+                          )}
+                          <Button variant="outline" size="sm" onClick={() => deleteApp(selectedApp.id)} className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40">
+                            <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Live preview iframe */}
+                      {selectedApp.netlify_url && (
+                        <div className="border-t border-border/40">
+                          <div className="p-3 flex items-center gap-2 text-xs text-muted-foreground">
+                            <Eye className="h-3 w-3" />
+                            <span>Live Preview</span>
+                          </div>
+                          <div className="relative w-full aspect-video bg-black/10">
+                            <iframe
+                              src={selectedApp.netlify_url}
+                              className="w-full h-full border-0"
+                              title={selectedApp.title}
+                              sandbox="allow-scripts allow-same-origin"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </GlassCard>
+                  </motion.div>
+                ) : (
+                  /* ---- APP LIST ---- */
+                  <motion.div key="app-list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input value={appSearch} onChange={e => setAppSearch(e.target.value)} placeholder="Search apps..." className="pl-9" />
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => navigate("/apps")} className="text-xs text-muted-foreground shrink-0">
+                        New App
+                      </Button>
+                    </div>
+
+                    {loadingApps ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {[1,2,3,4].map(i => <GlassCard key={i} className="p-4 rounded-xl"><Skeleton className="h-5 w-3/4 mb-2" /><Skeleton className="h-4 w-1/2" /></GlassCard>)}
+                      </div>
+                    ) : filteredApps.length === 0 ? (
+                      <EmptyState icon={Rocket} text={appSearch ? "No matching apps" : "No apps yet"} sub="Use /build to create your first app" />
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {filteredApps.map(app => (
+                          <GlassCard key={app.id} className="p-4 rounded-xl cursor-pointer hover:scale-[1.01] transition-transform group" onClick={() => setSelectedAppId(app.id)}>
+                            <div className="flex items-center gap-3">
+                              <AppIcon app={app} />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-foreground truncate text-sm">{app.title}</p>
+                                <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
+                                  <span>v{app.version}</span>
+                                  <span>·</span>
+                                  <span>{timeAgo(app.updated_at)}</span>
+                                  {app.netlify_url && <Globe className="h-3 w-3 text-primary/60 ml-1" />}
+                                </div>
+                              </div>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all shrink-0" onClick={(e) => { e.stopPropagation(); deleteApp(app.id); }}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            {app.prompt && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{app.prompt}</p>}
+                          </GlassCard>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
 
           {/* ====== FULL MEMORIES ====== */}
           {activeTab === "memories" && (
             <motion.div key="memories" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{contextBlocks.length} memor{contextBlocks.length !== 1 ? 'ies' : 'y'}</p>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input value={memorySearch} onChange={e => setMemorySearch(e.target.value)} placeholder="Search memories..." className="pl-9" />
+                </div>
+                <span className="text-xs text-muted-foreground shrink-0">{filteredMemories.length} memor{filteredMemories.length !== 1 ? 'ies' : 'y'}</span>
               </div>
+
               {blocksLoading ? (
                 <div className="space-y-2">{[1,2,3,4].map(i => <GlassCard key={i} className="p-4 rounded-xl"><Skeleton className="h-4 w-full" /></GlassCard>)}</div>
-              ) : contextBlocks.length === 0 ? (
-                <EmptyState icon={Brain} text="No memories yet" sub='Tell Arc "remember that..." and it will save facts about you' />
+              ) : filteredMemories.length === 0 ? (
+                <EmptyState icon={Brain} text={memorySearch ? "No matching memories" : "No memories yet"} sub='Tell Arc "remember that..." and it will save facts about you' />
               ) : (
                 <div className="space-y-2">
-                  {contextBlocks.map(block => (
+                  {filteredMemories.map(block => (
                     <GlassCard key={block.id} className="p-4 rounded-xl group">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
@@ -523,11 +716,7 @@ export function DashboardPage() {
                             <span>{timeAgo(block.created_at)}</span>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost" size="icon"
-                          className="h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all shrink-0"
-                          onClick={() => deleteBlock(block.id)}
-                        >
+                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all shrink-0" onClick={() => deleteBlock(block.id)}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
@@ -539,40 +728,13 @@ export function DashboardPage() {
           )}
         </AnimatePresence>
 
-        {/* Bottom spacing */}
         <div className="h-8" />
       </div>
-
-      {/* Image Preview Modal */}
-      <Dialog open={!!selectedImage} onOpenChange={(open) => { if (!open) setSelectedImage(null); }}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden glass border-border/40">
-          {selectedImage && (
-            <div>
-              <div className="relative">
-                <SmoothImage src={selectedImage.url} alt={selectedImage.prompt} className="w-full max-h-[70vh] object-contain" />
-              </div>
-              <div className="p-4 space-y-3">
-                <p className="text-sm text-foreground">{selectedImage.prompt || "Generated image"}</p>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => downloadImage(selectedImage)} className="glass">
-                    <Download className="h-3.5 w-3.5 mr-1.5" />
-                    Download
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => { navigate(`/chat/${selectedImage.sessionId}`); setSelectedImage(null); }}>
-                    <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-                    Go to chat
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
 
-/* ====== Shared sub-components ====== */
+/* ====== Sub-components ====== */
 
 function Section({ title, icon: Icon, action, actionLabel, count, children }: {
   title: string; icon: typeof MessageSquare; action?: () => void; actionLabel?: string; count?: number; children: React.ReactNode;
@@ -616,7 +778,7 @@ function ImageCard({ img, onClick }: { img: GeneratedImage; onClick: () => void 
       className="relative aspect-square rounded-xl overflow-hidden cursor-pointer glass group"
       onClick={onClick}
     >
-      <SmoothImage src={img.url} alt={img.prompt} className="w-full h-full object-cover" />
+      <SmoothImage src={img.url} alt={img.prompt} className="w-full h-full object-cover" thumbnail />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
         <p className="text-white text-xs line-clamp-2">{img.prompt}</p>
       </div>
@@ -624,20 +786,25 @@ function ImageCard({ img, onClick }: { img: GeneratedImage; onClick: () => void 
   );
 }
 
-function AppCard({ app, timeAgo, onClick, full }: { app: RecentApp; timeAgo: (d: any) => string; onClick: () => void; full?: boolean }) {
+function AppIcon({ app, size }: { app: RecentApp; size?: "lg" }) {
   const fav = app.favicon_label ? getFaviconByLabel(app.favicon_label) : null;
   const FavIcon = fav?.icon;
+  const s = size === "lg" ? "h-12 w-12" : "h-8 w-8";
+  const iconS = size === "lg" ? "h-6 w-6" : "h-4 w-4";
   return (
-    <GlassCard className={cn("p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-transform flex items-center gap-3", full && "p-4")} onClick={onClick}>
-      <div className="h-8 w-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
-        {FavIcon ? <FavIcon className="h-4 w-4" style={{ color: fav?.color }} /> : <Rocket className="h-4 w-4 text-primary" />}
-      </div>
+    <div className={cn(s, "rounded-xl bg-muted/50 flex items-center justify-center shrink-0")}>
+      {FavIcon ? <FavIcon className={iconS} style={{ color: fav?.color }} /> : <Rocket className={cn(iconS, "text-primary")} />}
+    </div>
+  );
+}
+
+function AppListCard({ app, timeAgo, onClick }: { app: RecentApp; timeAgo: (d: any) => string; onClick: () => void }) {
+  return (
+    <GlassCard className="p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-transform flex items-center gap-3" onClick={onClick}>
+      <AppIcon app={app} />
       <div className="flex-1 min-w-0">
         <p className="font-medium text-foreground truncate text-sm">{app.title}</p>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <span className="text-xs text-muted-foreground">{timeAgo(app.updated_at)}</span>
-          {app.netlify_url && <ExternalLink className="h-3 w-3 text-primary/60" />}
-        </div>
+        <span className="text-xs text-muted-foreground">{timeAgo(app.updated_at)}</span>
       </div>
     </GlassCard>
   );
