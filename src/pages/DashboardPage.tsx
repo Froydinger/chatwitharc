@@ -929,7 +929,7 @@ function AppListCard({ app, timeAgo, onClick }: { app: RecentApp; timeAgo: (d: a
         <span className="text-[11px] text-muted-foreground">{timeAgo(app.updated_at)}</span>
       </div>
       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-primary/50 group-hover:translate-x-0.5 transition-all" />
-    </motion.div>
+    </div>
   );
 }
 
