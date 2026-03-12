@@ -377,11 +377,8 @@ useEffect(() => {
               {/* Stat cards with gradient fills */}
               <div className="grid grid-cols-4 gap-2">
                 {stats.map(({ label, value, icon: Icon, color, tw }, i) => (
-                  <motion.div
+                  <div
                     key={label}
-                    initial={{ opacity: 0, y: 14, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ delay: 0.12 + i * 0.06, type: "spring", stiffness: 300, damping: 20 }}
                     className="relative overflow-hidden rounded-2xl p-3 text-center group cursor-pointer transition-all hover:scale-[1.04] active:scale-[0.97]"
                     style={{
                       background: `linear-gradient(145deg, hsl(${color} / 0.12) 0%, hsl(var(--muted) / 0.3) 100%)`,
