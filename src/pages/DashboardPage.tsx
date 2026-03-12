@@ -92,6 +92,8 @@ useEffect(() => {
 
   const ITEMS_PER_PAGE = 12;
   const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
+  const [isMusicPopupOpen, setIsMusicPopupOpen] = useState(false);
+  const { isPlaying: isMusicPlaying } = useMusicStore();
   const [recentApps, setRecentApps] = useState<RecentApp[]>([]);
   const [loadingApps, setLoadingApps] = useState(true);
   const [chatSearch, setChatSearch] = useState("");
