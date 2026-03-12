@@ -122,7 +122,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                 }}
                 title={label}
                 className={cn(
-                  "relative z-10 h-9 w-9 rounded-full flex items-center justify-center transition-colors",
+                  "relative z-10 h-10 w-10 rounded-full flex items-center justify-center transition-colors touch-manipulation active:scale-95",
                   activeTab === key ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 )}
               >
