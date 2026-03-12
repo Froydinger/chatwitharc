@@ -1002,3 +1002,64 @@ function SkeletonList({ count }: { count: number }) {
     <div className="space-y-1.5">{Array.from({ length: count }).map((_, i) => <div key={i} className="p-3 rounded-xl border border-border/30 bg-muted/10"><Skeleton className="h-4 w-3/4" /></div>)}</div>
   );
 }
+
+function PaginationBar({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
+  if (total <= 1) return null;
+
+  const goTo = (p: number) => {
+    onChange(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Show max 5 page buttons with ellipsis
+  const pages: (number | '...')[] = [];
+  if (total <= 5) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (current > 3) pages.push('...');
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (current < total - 2) pages.push('...');
+    pages.push(total);
+  }
+
+  return (
+    <div className="flex items-center justify-center gap-1 pt-4">
+      <button
+        onClick={() => goTo(current - 1)}
+        disabled={current === 1}
+        className="h-8 w-8 rounded-lg flex items-center justify-center text-xs text-muted-foreground hover:bg-muted/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
+      >
+        <ChevronLeft className="h-3.5 w-3.5" />
+      </button>
+      {pages.map((p, i) =>
+        p === '...' ? (
+          <span key={`e${i}`} className="h-8 w-8 flex items-center justify-center text-xs text-muted-foreground/50">…</span>
+        ) : (
+          <button
+            key={p}
+            onClick={() => goTo(p)}
+            className={cn(
+              "h-8 w-8 rounded-lg flex items-center justify-center text-xs font-medium transition-all",
+              p === current
+                ? "bg-primary/15 text-primary border border-primary/25"
+                : "text-muted-foreground hover:bg-muted/40"
+            )}
+          >
+            {p}
+          </button>
+        )
+      )}
+      <button
+        onClick={() => goTo(current + 1)}
+        disabled={current === total}
+        className="h-8 w-8 rounded-lg flex items-center justify-center text-xs text-muted-foreground hover:bg-muted/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
+      >
+        <ChevronRight className="h-3.5 w-3.5" />
+      </button>
+      <span className="ml-2 text-[10px] text-muted-foreground/50">{current}/{total}</span>
+    </div>
+  );
+}
