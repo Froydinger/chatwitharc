@@ -492,13 +492,15 @@ useEffect(() => {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input value={chatSearch} onChange={e => setChatSearch(e.target.value)} placeholder="Search chats..." className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
                 </div>
-                <button
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => { const id = createNewSession(); navigate(`/chat/${id}`); }}
-                  className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center hover:bg-primary/20 transition-all active:scale-95"
+                  className="rounded-full glass-shimmer"
                   title="New chat"
                 >
                   <Plus className="h-4.5 w-4.5 text-primary" />
-                </button>
+                </Button>
               </div>
 
               {!isLoaded ? (
