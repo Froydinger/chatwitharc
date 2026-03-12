@@ -300,6 +300,11 @@ All colors MUST be HSL for perfect glass effects.
     box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    outline: none !important;
+    padding: 0 !important;
+  }
+  .glass-dock > * > * {
+    background: transparent !important;
   }
 
 
