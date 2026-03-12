@@ -1,29 +1,28 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Download, CheckCircle, AlertCircle } from "lucide-react";
 import { GlassButton } from "@/components/ui/glass-button";
 import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { Link } from "react-router-dom";
-
-const DOWNLOAD_URL = "https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/download-files/ArcAi-4.0.5.dmg";
-const VERSION = "4.0.5";
+import { useDownloadInfo } from "@/hooks/useDownloadInfo";
 
 export function DownloadPage() {
+  const { version, url, loading } = useDownloadInfo();
   const [downloadStarted, setDownloadStarted] = useState(false);
 
   useEffect(() => {
-    // Auto-trigger download after 1 second
+    if (loading) return;
     const timer = setTimeout(() => {
-      window.location.href = DOWNLOAD_URL;
+      window.location.href = url;
       setDownloadStarted(true);
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [loading, url]);
 
   const handleManualDownload = () => {
-    window.location.href = DOWNLOAD_URL;
+    window.location.href = url;
     setDownloadStarted(true);
   };
 
@@ -38,16 +37,14 @@ export function DownloadPage() {
           transition={{ duration: 0.6 }}
           className="w-full max-w-2xl space-y-8"
         >
-          {/* Header */}
           <div className="flex flex-col items-center gap-6 text-center">
             <ThemedLogo className="h-24 w-24" />
             <div>
               <h1 className="text-4xl font-bold mb-2">Download ArcAi for Mac</h1>
-              <p className="text-muted-foreground">Version {VERSION}</p>
+              <p className="text-muted-foreground">Version {version}</p>
             </div>
           </div>
 
-          {/* Download Status Card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -84,7 +81,6 @@ export function DownloadPage() {
             </div>
           </motion.div>
 
-          {/* Installation Instructions */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -105,7 +101,6 @@ export function DownloadPage() {
             </div>
           </motion.div>
 
-          {/* Update Information */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -129,7 +124,6 @@ export function DownloadPage() {
             </div>
           </motion.div>
 
-          {/* Footer */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

@@ -7,10 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Users, MessageSquare, Trash2, Plus, Megaphone, Construction, AlertTriangle, PartyPopper, X, ChevronUp } from 'lucide-react';
+import { Settings, Users, MessageSquare, Trash2, Plus, Megaphone, Construction, AlertTriangle, PartyPopper, X, ChevronUp, Download } from 'lucide-react';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { toast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { AdminDownloadManager } from './AdminDownloadManager';
 
 export function AdminSettingsPanel() {
   const {
@@ -188,7 +189,7 @@ export function AdminSettingsPanel() {
       </div>
 
       <Tabs defaultValue="prompts" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="prompts" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
             <span className="hidden sm:inline">AI Prompts</span>
@@ -196,8 +197,12 @@ export function AdminSettingsPanel() {
           </TabsTrigger>
           <TabsTrigger value="banner" className="flex items-center gap-2">
             <Megaphone className="h-4 w-4" />
-            <span className="hidden sm:inline">Banner</span>
-            <span className="sm:hidden">Banner</span>
+            <span>Banner</span>
+          </TabsTrigger>
+          <TabsTrigger value="downloads" className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Downloads</span>
+            <span className="sm:hidden">DL</span>
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -447,6 +452,10 @@ export function AdminSettingsPanel() {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="downloads">
+          <AdminDownloadManager />
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">

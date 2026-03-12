@@ -4,6 +4,7 @@ import { Download, X, Smartphone, MonitorSmartphone } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useAuth } from "@/hooks/useAuth";
+import { useDownloadInfo } from "@/hooks/useDownloadInfo";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -35,6 +36,7 @@ const isDesktop = () => {
 
 export function PWAInstallPrompt() {
   const { user } = useAuth();
+  const { url: downloadUrl } = useDownloadInfo();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isMacDesktop, setIsMacDesktop] = useState(false);
@@ -122,8 +124,7 @@ export function PWAInstallPrompt() {
   };
 
   const handleMacDownload = () => {
-    // Direct download of the Mac app
-    window.location.href = 'https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/download-files/ArcAi-4.0.5.dmg';
+    window.location.href = downloadUrl;
     handleDismiss();
   };
 
