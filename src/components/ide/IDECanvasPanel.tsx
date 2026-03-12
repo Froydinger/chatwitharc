@@ -158,7 +158,8 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
           .eq('id', projectIdRef.current);
         if (error) throw error;
       } else {
-        const firstPrompt = messages.find(m => m.role === 'user')?.content || 'Untitled Project';
+        const firstPrompt = messages.find(m => m.role === 'user')?.content || '';
+        const projectTitle = firstPrompt ? firstPrompt.slice(0, 100) : 'Untitled Project';
         const { data, error } = await supabase
           .from('ide_projects')
           .insert({
