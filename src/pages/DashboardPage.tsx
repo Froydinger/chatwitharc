@@ -344,21 +344,27 @@ export function DashboardPage() {
           {activeTab === "overview" && (
             <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-6">
 
-              {/* Stat pills row */}
+              {/* Stat cards with gradient fills */}
               <div className="grid grid-cols-4 gap-2">
                 {stats.map(({ label, value, icon: Icon }, i) => (
                   <motion.div
                     key={label}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 + i * 0.05 }}
-                    className="relative overflow-hidden rounded-2xl border border-border/40 bg-muted/30 p-3 text-center group hover:border-primary/20 hover:bg-primary/5 transition-all cursor-pointer"
+                    initial={{ opacity: 0, y: 14, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ delay: 0.12 + i * 0.06, type: "spring", stiffness: 300, damping: 20 }}
+                    className="relative overflow-hidden rounded-2xl p-3 text-center group cursor-pointer transition-all hover:scale-[1.04] active:scale-[0.97]"
+                    style={{
+                      background: `linear-gradient(145deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--muted) / 0.3) 100%)`,
+                      border: '1px solid hsl(var(--primary) / 0.15)',
+                      boxShadow: '0 2px 12px hsl(var(--primary) / 0.06), inset 0 1px 0 hsl(var(--foreground) / 0.04)',
+                    }}
                     onClick={() => switchTab(tabs[i + 1]?.key || "overview")}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <Icon className="h-4 w-4 text-primary/60 mx-auto mb-1" />
-                    <p className="text-lg font-bold text-foreground leading-none">{value}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">{label}</p>
+                    {/* Subtle inner glow */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-8 bg-primary/10 blur-xl rounded-full pointer-events-none" />
+                    <Icon className="h-4 w-4 text-primary mx-auto mb-1 relative z-10 drop-shadow-[0_0_4px_hsl(var(--primary)/0.3)]" />
+                    <p className="text-lg font-bold text-foreground leading-none relative z-10">{value}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider relative z-10">{label}</p>
                   </motion.div>
                 ))}
               </div>
