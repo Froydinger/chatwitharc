@@ -341,21 +341,26 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
 
   const handleUnpublish = async () => {
     if (!netlifySiteId) return;
-    await unpublishFromNetlify(netlifySiteId);
-    setDeployedUrl(null);
-    setNetlifySiteId(null);
-    setNetlifySubdomain(null);
-    if (projectIdRef.current) {
-      await supabase
-        .from('ide_projects')
-        .update({
-          netlify_url: null,
-          netlify_site_id: null,
-          netlify_subdomain: null,
-        } as any)
-        .eq('id', projectIdRef.current);
+    try {
+      await unpublishFromNetlify(netlifySiteId);
+      setDeployedUrl(null);
+      setNetlifySiteId(null);
+      setNetlifySubdomain(null);
+      if (projectIdRef.current) {
+        await supabase
+          .from('ide_projects')
+          .update({
+            netlify_url: null,
+            netlify_site_id: null,
+            netlify_subdomain: null,
+          } as any)
+          .eq('id', projectIdRef.current);
+      }
+      toast({ title: 'Site unpublished' });
+    } catch (err) {
+      console.error('Unpublish failed:', err);
+      toast({ title: 'Failed to unpublish site', variant: 'destructive' });
     }
-    toast({ title: 'Site unpublished' });
   };
 
   const handleClose = async () => {
