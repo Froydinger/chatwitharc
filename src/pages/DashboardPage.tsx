@@ -275,35 +275,41 @@ export function DashboardPage() {
     >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
 
-        {/* ═══ HEADER ═══ */}
+        {/* ═══ HEADER with ambient glow ═══ */}
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.25, 0.8, 0.25, 1] }}
-          className="flex items-center justify-between"
+          className="relative"
         >
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/")}
-              className="relative h-10 w-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center hover:bg-primary/15 hover:border-primary/30 transition-all active:scale-95"
-              title="Back to chat"
-            >
-              <MessageSquare className="h-4.5 w-4.5 text-primary" />
-            </button>
-            <ThemedLogo className="h-9 w-9" />
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
-                {greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}.
-              </h1>
+          {/* Ambient glow behind greeting */}
+          <div className="absolute -top-12 left-1/4 w-48 h-48 rounded-full bg-primary/8 blur-[80px] pointer-events-none" />
+          <div className="absolute -top-8 right-1/3 w-32 h-32 rounded-full bg-primary/5 blur-[60px] pointer-events-none" />
+          
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate("/")}
+                className="relative h-10 w-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center hover:bg-primary/20 hover:border-primary/30 hover:shadow-[0_0_15px_hsl(var(--primary)/0.15)] transition-all active:scale-95"
+                title="Back to chat"
+              >
+                <MessageSquare className="h-4.5 w-4.5 text-primary" />
+              </button>
+              <ThemedLogo className="h-9 w-9" />
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+                  {greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}.
+                </h1>
+              </div>
             </div>
+            <button
+              onClick={() => navigate("/dashboard/settings")}
+              className="h-10 w-10 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-center hover:bg-muted hover:border-border transition-all active:scale-95"
+              title="Settings"
+            >
+              <Settings className="h-4.5 w-4.5 text-muted-foreground" />
+            </button>
           </div>
-          <button
-            onClick={() => navigate("/dashboard/settings")}
-            className="h-10 w-10 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-center hover:bg-muted hover:border-border transition-all active:scale-95"
-            title="Settings"
-          >
-            <Settings className="h-4.5 w-4.5 text-muted-foreground" />
-          </button>
         </motion.div>
 
         {/* ═══ CHAT INPUT ═══ */}
