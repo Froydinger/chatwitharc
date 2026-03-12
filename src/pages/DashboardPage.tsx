@@ -340,15 +340,15 @@ useEffect(() => {
               <Settings className="h-4.5 w-4.5 text-muted-foreground" />
             </button>
           </div>
-        </motion.div>
+        </div>
 
         {/* ═══ CHAT INPUT ═══ */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.4 }}>
+        <div>
           <ChatInput />
-        </motion.div>
+        </div>
 
         {/* ═══ SUBSCRIPTION BADGE / CTA ═══ */}
-        <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.12, duration: 0.35 }}>
+        <div>
           {isSubscribed ? (
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/25 bg-primary/8 text-primary text-xs font-medium">
               <Zap className="h-3.5 w-3.5" />
