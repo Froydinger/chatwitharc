@@ -279,7 +279,7 @@ useEffect(() => {
     <div
       className="min-h-screen overflow-y-auto scrollbar-hide relative z-10"
       style={{
-        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'})`,
+        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'})`,
         paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px) + 15px)',
       }}
     >
