@@ -139,10 +139,16 @@ const cleanupStaleToolCalls = () => {
 // Helper to detect garbled/stuttered transcription
 const isGarbledTranscription = (text: string): boolean => {
   if (!text || text.length < 2) return true;
+  // Filter very short "phantom" transcripts from noise/typing (e.g. "hmm", "uh", "you")
+  const trimmed = text.trim();
+  if (trimmed.length < 4) return true;
   if (/(.)\1{4,}/.test(text)) return true;
   if (/(\b\w+\b)\s+\1\s+\1/i.test(text)) return true;
   const alphaRatio = (text.match(/[a-zA-Z]/g) || []).length / text.length;
   if (alphaRatio < 0.3 && text.length > 5) return true;
+  // Common phantom transcriptions from background noise
+  const phantomPhrases = ['thank you', 'thanks', 'you', 'bye', 'hmm', 'um', 'uh', 'oh', 'the', 'a', 'i', 'it'];
+  if (phantomPhrases.includes(trimmed.toLowerCase())) return true;
   return false;
 };
 
@@ -653,9 +659,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             },
             turn_detection: {
               type: 'server_vad',
-              threshold: 0.85,
-              prefix_padding_ms: 600,
-              silence_duration_ms: 1500,
+              threshold: 0.95,
+              prefix_padding_ms: 500,
+              silence_duration_ms: 2000,
               create_response: true
             },
             tools: [
