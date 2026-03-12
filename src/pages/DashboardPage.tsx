@@ -700,11 +700,8 @@ useEffect(() => {
                       <>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {filteredApps.slice((appPage - 1) * ITEMS_PER_PAGE, appPage * ITEMS_PER_PAGE).map((app, i) => (
-                          <motion.div
+                          <div
                             key={app.id}
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.04 }}
                             className="p-4 rounded-xl cursor-pointer group border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all"
                             onClick={() => setSelectedAppId(app.id)}
                           >
