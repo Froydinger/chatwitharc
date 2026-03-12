@@ -591,7 +591,7 @@ export function SettingsPanel() {
           </GlassCard>
 
           {/* Model Family Selector */}
-          <ModelFamilySelector isSubscribed={subscription.isSubscribed} />
+          <ModelFamilySelector isSubscribed={isSubscribed} />
 
         </TabsContent>
 
