@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { cn } from "@/lib/utils";
 import { getFaviconByLabel } from "@/constants/faviconOptions";
