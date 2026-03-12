@@ -147,22 +147,27 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Track file changes for auto-save (only after initial load)
+  // Track file/message changes and auto-save
   useEffect(() => {
-    const currentHash = JSON.stringify(files);
-    if (lastSavedFilesRef.current === '') return; // Not yet initialized
-    if (currentHash !== lastSavedFilesRef.current) {
+    const currentSnapshot = buildPersistenceSnapshot(files, messages);
+
+    if (currentSnapshot !== lastSavedSnapshotRef.current) {
       setSyncStatus('unsaved');
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+
       autoSaveTimerRef.current = setTimeout(() => {
-        saveProject();
+        void saveProject();
       }, 3000);
     }
+
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files]);
+  }, [files, messages]);
 
   // Save project to database
   const saveProject = useCallback(async () => {
