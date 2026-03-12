@@ -11,6 +11,7 @@ import { Settings, Users, MessageSquare, Trash2, Plus, Megaphone, Construction, 
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { toast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { AdminDownloadManager } from './AdminDownloadManager';
 
 export function AdminSettingsPanel() {
   const {
