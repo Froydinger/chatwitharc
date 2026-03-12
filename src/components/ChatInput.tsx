@@ -322,7 +322,7 @@ export interface ChatInputRef {
   focusInput: () => void;
 }
 
-export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ onImagesChange, rightPanelOpen = false }, ref) {
+export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ onImagesChange, rightPanelOpen = false, inline = false }, ref) {
   useProfile();
   const portalRoot = useSafePortalRoot();
   const { toast } = useToast();
