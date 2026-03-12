@@ -531,7 +531,8 @@ export const useArcStore = create<ArcState>()(
         set((state) => ({
           chatSessions: [newSession, ...state.chatSessions],
           currentSessionId: sessionId,
-          messages: []
+          messages: [],
+          rightPanelOpen: false
         }));
 
         // Save to Supabase
