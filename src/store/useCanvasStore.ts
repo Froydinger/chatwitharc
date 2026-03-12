@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import type { VirtualFileSystem, AgentAction } from '@/types/ide';
 
 export interface CanvasVersion {
   id: string;
@@ -8,7 +7,7 @@ export interface CanvasVersion {
   label?: string;
 }
 
-export type CanvasType = 'writing' | 'code' | 'ide';
+export type CanvasType = 'writing' | 'code';
 
 interface CanvasState {
   isOpen: boolean;

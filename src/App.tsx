@@ -76,6 +76,8 @@ const App = () => {
                   <Route path="/chat/:sessionId" element={<Index />} />
                   <Route path="/downloads" element={<DownloadPage />} />
                   <Route path="/pricing" element={<PricingPage />} />
+                  <Route path="/apps" element={<AppsPage />} />
+                  <Route path="/apps/:projectId" element={<AppsPage />} />
                   <Route path="/admin" element={<AdminPage />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
