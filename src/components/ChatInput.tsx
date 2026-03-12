@@ -1480,6 +1480,13 @@ ${existingCode}
                 ×
               </span>
             </>
+          ) : shouldShowBuildMode ? (
+            <>
+              <Rocket className="h-5 w-5 text-amber-400" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
+                ×
+              </span>
+            </>
           ) : showCanvasIndicator ? (
             <>
               <PenLine className="h-5 w-5 text-purple-400" />
