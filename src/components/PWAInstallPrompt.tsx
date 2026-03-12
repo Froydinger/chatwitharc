@@ -36,6 +36,7 @@ const isDesktop = () => {
 
 export function PWAInstallPrompt() {
   const { user } = useAuth();
+  const { url: downloadUrl } = useDownloadInfo();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isMacDesktop, setIsMacDesktop] = useState(false);
