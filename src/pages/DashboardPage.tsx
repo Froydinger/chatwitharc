@@ -74,7 +74,7 @@ export function DashboardPage() {
     hydrateAllSessions, allSessionsHydrated, isHydratingAll,
     syncFromSupabase, currentSessionId, messages
   } = useArcStore();
-  const { blocks: contextBlocks, loading: blocksLoading, deleteBlock } = useContextBlocks();
+  const { blocks: contextBlocks, loading: blocksLoading, deleteBlock, updateBlock, addBlock } = useContextBlocks();
   const isAdminBannerActive = useAdminBanner();
 
 // Detect desktop standalone (PWA/Electron) for traffic light safe area
