@@ -84,9 +84,8 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           "flex flex-col overflow-hidden"
         )}
         style={{
-          top: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px',
-          height: isAdminBannerActive ? 'calc(100vh - var(--admin-banner-height, 0px))' : '100vh',
-          paddingTop: 'env(safe-area-inset-top, 0px)',
+          top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'})`,
+          height: `calc(100vh - env(safe-area-inset-top, 0px) - ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'})`,
         }}
       >
         {/* Internal wrapper with conditional padding for desktop traffic lights */}
