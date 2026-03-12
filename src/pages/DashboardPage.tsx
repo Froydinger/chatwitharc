@@ -270,8 +270,11 @@ export function DashboardPage() {
 
   return (
     <div
-      className="min-h-screen overflow-y-auto scrollbar-hide relative z-10 pb-20"
-      style={{ paddingTop: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px' }}
+      className="min-h-screen overflow-y-auto scrollbar-hide relative z-10"
+      style={{
+        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'})`,
+        paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px) + 15px)',
+      }}
     >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
         {/* Header */}
