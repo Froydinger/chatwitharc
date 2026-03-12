@@ -311,12 +311,7 @@ useEffect(() => {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
 
         {/* ═══ HEADER with ambient glow ═══ */}
-        <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.25, 0.8, 0.25, 1] }}
-          className="relative"
-        >
+        <div className="relative">
           {/* Ambient glow behind greeting */}
           <div className="absolute -top-12 left-1/4 w-48 h-48 rounded-full bg-primary/8 blur-[80px] pointer-events-none" />
           <div className="absolute -top-8 right-1/3 w-32 h-32 rounded-full bg-primary/5 blur-[60px] pointer-events-none" />
@@ -345,15 +340,15 @@ useEffect(() => {
               <Settings className="h-4.5 w-4.5 text-muted-foreground" />
             </button>
           </div>
-        </motion.div>
+        </div>
 
         {/* ═══ CHAT INPUT ═══ */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.4 }}>
+        <div>
           <ChatInput />
-        </motion.div>
+        </div>
 
         {/* ═══ SUBSCRIPTION BADGE / CTA ═══ */}
-        <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.12, duration: 0.35 }}>
+        <div>
           {isSubscribed ? (
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/25 bg-primary/8 text-primary text-xs font-medium">
               <Zap className="h-3.5 w-3.5" />
@@ -371,10 +366,10 @@ useEffect(() => {
               <ArrowRight className="h-3.5 w-3.5 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
             </button>
           )}
-        </motion.div>
+        </div>
 
         {/* ═══ TAB CONTENT ═══ */}
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           {/* ====== OVERVIEW ====== */}
           {activeTab === "overview" && (
             <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-6">
@@ -382,11 +377,8 @@ useEffect(() => {
               {/* Stat cards with gradient fills */}
               <div className="grid grid-cols-4 gap-2">
                 {stats.map(({ label, value, icon: Icon, color, tw }, i) => (
-                  <motion.div
+                  <div
                     key={label}
-                    initial={{ opacity: 0, y: 14, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ delay: 0.12 + i * 0.06, type: "spring", stiffness: 300, damping: 20 }}
                     className="relative overflow-hidden rounded-2xl p-3 text-center group cursor-pointer transition-all hover:scale-[1.04] active:scale-[0.97]"
                     style={{
                       background: `linear-gradient(145deg, hsl(${color} / 0.12) 0%, hsl(var(--muted) / 0.3) 100%)`,
@@ -399,20 +391,15 @@ useEffect(() => {
                     <Icon className={cn("h-4 w-4 mx-auto mb-1 relative z-10", tw)} style={{ filter: `drop-shadow(0 0 4px hsl(${color} / 0.4))` }} />
                     <p className="text-lg font-bold text-foreground leading-none relative z-10">{value}</p>
                     <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider relative z-10">{label}</p>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
 
               {/* Insight tip */}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.35 }}
-                className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-primary/15 bg-primary/5"
-              >
+              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-primary/15 bg-primary/5">
                 <Sparkles className="h-4 w-4 text-primary shrink-0" />
                 <p className="text-sm text-foreground/80">{insightTip}</p>
-              </motion.div>
+              </div>
 
               {/* Recent Chats */}
               <Section title="Recent Chats" icon={MessageSquare} action={() => switchTab("chats")} actionLabel="See all">
@@ -460,16 +447,13 @@ useEffect(() => {
                   ) : (
                     <div className="space-y-1.5">
                       {contextBlocks.slice(0, 3).map((block, i) => (
-                        <motion.div
+                        <div
                           key={block.id}
-                          initial={{ opacity: 0, x: -8 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.05 }}
                           className="group p-3 rounded-xl border border-border/30 bg-muted/20 hover:border-primary/20 hover:bg-primary/5 transition-all"
                         >
                           <p className="text-sm text-foreground/90 line-clamp-2 leading-relaxed">{block.content}</p>
                           <span className="text-[10px] text-muted-foreground mt-1.5 block uppercase tracking-wider">{timeAgo(block.created_at)}</span>
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -503,11 +487,8 @@ useEffect(() => {
                 <>
                 <div className="space-y-1.5">
                   {filteredChats.slice((chatPage - 1) * ITEMS_PER_PAGE, chatPage * ITEMS_PER_PAGE).map((session, i) => (
-                    <motion.div
+                    <div
                       key={session.id}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
                       className={cn(
                         "p-4 cursor-pointer group transition-all rounded-xl border",
                         currentSessionId === session.id
@@ -540,7 +521,7 @@ useEffect(() => {
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
                 <PaginationBar current={chatPage} total={Math.ceil(filteredChats.length / ITEMS_PER_PAGE)} onChange={setChatPage} />
@@ -719,11 +700,8 @@ useEffect(() => {
                       <>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {filteredApps.slice((appPage - 1) * ITEMS_PER_PAGE, appPage * ITEMS_PER_PAGE).map((app, i) => (
-                          <motion.div
+                          <div
                             key={app.id}
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.04 }}
                             className="p-4 rounded-xl cursor-pointer group border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all"
                             onClick={() => setSelectedAppId(app.id)}
                           >
@@ -742,7 +720,7 @@ useEffect(() => {
                               </Button>
                             </div>
                             {app.prompt && <p className="text-xs text-muted-foreground/70 mt-2 line-clamp-2 leading-relaxed">{app.prompt}</p>}
-                          </motion.div>
+                          </div>
                         ))}
                       </div>
                       <PaginationBar current={appPage} total={Math.ceil(filteredApps.length / ITEMS_PER_PAGE)} onChange={setAppPage} />
@@ -773,11 +751,8 @@ useEffect(() => {
                 <>
                 <div className="space-y-1.5">
                   {filteredMemories.slice((memoryPage - 1) * ITEMS_PER_PAGE, memoryPage * ITEMS_PER_PAGE).map((block, i) => (
-                    <motion.div
+                    <div
                       key={block.id}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
                       className="p-4 rounded-xl group border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all"
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -798,7 +773,7 @@ useEffect(() => {
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
                 <PaginationBar current={memoryPage} total={Math.ceil(filteredMemories.length / ITEMS_PER_PAGE)} onChange={setMemoryPage} />
@@ -877,12 +852,9 @@ function Section({ title, icon: Icon, action, actionLabel, count, children }: {
   );
 }
 
-function ChatCard({ session, timeAgo, onClick, index = 0 }: { session: any; timeAgo: (d: any) => string; onClick: () => void; index?: number }) {
+function ChatCard({ session, timeAgo, onClick }: { session: any; timeAgo: (d: any) => string; onClick: () => void; index?: number }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.05, type: "spring", stiffness: 250, damping: 20 }}
+    <div
       className="relative overflow-hidden rounded-xl cursor-pointer border border-border/30 hover:border-primary/25 transition-all group"
       style={{ background: 'linear-gradient(135deg, hsl(var(--muted) / 0.25) 0%, hsl(var(--primary) / 0.04) 100%)' }}
       onClick={onClick}
@@ -906,18 +878,14 @@ function ChatCard({ session, timeAgo, onClick, index = 0 }: { session: any; time
         </div>
         <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-function ImageCard({ img, onClick, index = 0 }: { img: GeneratedImage; onClick: () => void; index?: number }) {
+function ImageCard({ img, onClick }: { img: GeneratedImage; onClick: () => void; index?: number }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.88 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.05, type: "spring", stiffness: 200, damping: 18 }}
-      whileHover={{ scale: 1.04, y: -2 }}
-      className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer group"
+    <div
+      className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer group hover:scale-[1.04] hover:-translate-y-0.5 transition-transform"
       style={{
         border: '1px solid hsl(var(--primary) / 0.12)',
         boxShadow: '0 4px 20px hsl(var(--primary) / 0.06)',
@@ -932,7 +900,7 @@ function ImageCard({ img, onClick, index = 0 }: { img: GeneratedImage; onClick: 
       </div>
       {/* Corner glow */}
       <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-primary/15 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-    </motion.div>
+    </div>
   );
 }
 
@@ -949,12 +917,9 @@ function AppIcon({ app, size }: { app: RecentApp; size?: "lg" }) {
   );
 }
 
-function AppListCard({ app, timeAgo, onClick, index = 0 }: { app: RecentApp; timeAgo: (d: any) => string; onClick: () => void; index?: number }) {
+function AppListCard({ app, timeAgo, onClick }: { app: RecentApp; timeAgo: (d: any) => string; onClick: () => void; index?: number }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -8 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.05 }}
+    <div
       className="p-3 rounded-xl cursor-pointer flex items-center gap-3 border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all group"
       onClick={onClick}
     >
@@ -964,7 +929,7 @@ function AppListCard({ app, timeAgo, onClick, index = 0 }: { app: RecentApp; tim
         <span className="text-[11px] text-muted-foreground">{timeAgo(app.updated_at)}</span>
       </div>
       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-primary/50 group-hover:translate-x-0.5 transition-all" />
-    </motion.div>
+    </div>
   );
 }
 

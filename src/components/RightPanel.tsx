@@ -93,14 +93,16 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border bg-background">
           <div className="relative flex items-center gap-1.5 flex-1">
-            {/* Sliding bubble indicator */}
+            {/* Deterministic bubble indicator — no layoutId */}
             <motion.div
               className="absolute h-10 w-10 rounded-full bg-primary/20 ring-1 ring-primary pointer-events-none"
-              layoutId="panel-tab-bubble"
-              transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.6 }}
-              style={{
-                left: activeTab === "history" ? 0 : activeTab === "media" ? 46 : activeTab === "canvases" ? 92 : activeTab === "apps" ? 138 : 184,
+              animate={{
+                left: (() => {
+                  const tabs = ["history", "media", "canvases", "apps", "quote"];
+                  return tabs.indexOf(activeTab) * 46;
+                })(),
               }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
             />
             {[
               { key: "history" as const, icon: History, label: "History" },

@@ -1,50 +1,79 @@
 
+Goal: eliminate the persistent Voice Error (1006), make voice startup resilient, and keep the picker clean with only Cedric + Marina while preserving compatibility.
 
-# Fix: Animations "Blipping" Repeatedly Across the App
+What I found from your current setup
+1) The client is successfully reaching your backend voice proxy and the proxy is successfully connecting upstream.
+- Proxy logs repeatedly show:
+  - “Authenticated WebSocket for user …”
+  - “Connected to OpenAI Realtime”
+2) Immediately after that, the browser-side socket is dropping with unexpected EOF repeatedly, which then triggers your client auto-reconnect loop and ends in “Voice connection lost (1006)”.
+3) Voice list UX is already mostly simplified (Cedric + Marina shown), but runtime robustness still needs tightening.
+4) Model string is currently hardcoded in the proxy to a preview model (`gpt-4o-realtime-preview-2025-06-03`), while your intended behavior is to use realtime model routing (“gpt-realtime” family).
+5) There are still profile records in the backend with legacy voice values (e.g. coral/echo). Your client does fallback logic, but we should harden this path server-side and on session init to remove ambiguity.
 
-## Problem
+Implementation plan (sequenced)
+Phase 1 — Stabilize realtime model/session handshake
+1. Update proxy upstream model selection to default to `gpt-realtime` (your expected production path), with optional fallback order.
+2. Add explicit upstream lifecycle logging in proxy for:
+- session creation message sent
+- first upstream event type received
+- upstream close code/reason
+- client close code/reason
+3. Add safe close propagation:
+- if upstream closes, relay a structured error payload once, then close client socket with explicit reason
+- if client closes, gracefully close upstream with normal code and skip noisy error loops
 
-Animations replay their entrance (`initial → animate`) every time their parent component re-renders. This causes items to fade/slide in repeatedly — "blipping" — especially when:
-1. State changes trigger re-renders (data loading, search filtering, tab switches)
-2. List items use staggered `delay` based on index, causing cascading re-animations
-3. The `AnimatePresence mode="wait"` on dashboard tab content triggers full exit→enter cycles
+Phase 2 — Harden frontend connection state machine
+1. Refine reconnect behavior in `useOpenAIRealtime`:
+- do not reconnect for intentional disconnects/user deactivation
+- exponential backoff (instead of tight 1s loop)
+- stop reconnect on deterministic auth/config errors
+2. Add a short “session-ready” gate:
+- after WS open, wait for a valid session ack event before allowing mic stream commits
+- prevents early message races that can destabilize startup
+3. Improve surfaced errors:
+- separate “couldn’t initialize voice session” from “network dropped”
+- include upstream close reason when present (instead of generic 1006 only)
 
-## Root Cause
+Phase 3 — Enforce two-voice policy cleanly (Cedric + Marina)
+1. Keep picker UI constrained to Cedric + Marina everywhere (Account Hub + overlay).
+2. Add runtime sanitizer on connect:
+- if selected/persisted voice is not in allowed realtime set, force to `cedar` before session.update
+3. Persist sanitized value back to profile when mismatch is detected, so future sessions are clean.
 
-Using `initial` + `animate` on `motion.div` without guarding against re-mounts. Every time React re-renders these components, framer-motion replays the entrance animation from `initial` to `animate`. Sub-components like `ChatCard`, `ImageCard`, `AppListCard`, and the overview stat cards all have `initial={{ opacity: 0 }}` that fires on every render.
+Phase 4 — Robust proxy/auth/config hardening
+1. Ensure websocket auth path is fully deterministic:
+- parse bearer token safely from protocol/header
+- return explicit auth failure messages before attempting upstream
+2. Add defensive handling for malformed/empty WS messages and buffer growth limits.
+3. Add heartbeat/keepalive handling (or idle timeout strategy) so silent sessions don’t die unexpectedly on some networks.
 
-## Fix Strategy
+Phase 5 — Validation pass (end-to-end)
+1. Start voice from idle chat (Cedric) → confirm stable connect, no 1006.
+2. Switch to Marina and restart session → confirm stable connect.
+3. Mute/unmute and interrupt actions → confirm no forced disconnect.
+4. Background tab/foreground return (mobile-like flow) → confirm reconnect behavior is controlled and recovers.
+5. Confirm toasts are accurate:
+- auth/config issue
+- upstream unavailable
+- transient network interruption
+- true session loss after max retries
 
-**Two-pronged approach:**
+Technical notes (why this should fix your exact symptom)
+- Your logs prove upstream connect is succeeding; failure is in post-connect lifecycle.
+- The current reconnect loop masks root causes by repeatedly re-opening and failing.
+- Moving to `gpt-realtime` + better lifecycle gating + clearer close propagation removes ambiguity and prevents the 1006 thrash loop.
+- Sanitizing persisted voice values eliminates hidden profile/state mismatch risks when users have old voice preferences.
 
-### 1. Dashboard Page (`src/pages/DashboardPage.tsx`)
-- Add `initial={false}` to the top-level `AnimatePresence` wrapping tab content, so switching tabs doesn't replay entrance animations for content that's already visible
-- On sub-components (`ChatCard`, `ImageCard`, `AppListCard`, overview stat cards, memory items), change `initial` to only fire on first mount by using `initial={false}` after the component has mounted, or more practically: remove staggered `delay` from list items and use `initial={false}` on paginated list items (since pagination already implies the user chose to see them — no need to animate each one in)
-- For the overview tab's stat cards and sections, keep entrance animations but use `viewport={{ once: true }}` pattern or guard with a ref so they only play once per session
+Files/components targeted in implementation
+- `supabase/functions/openai-realtime-proxy/index.ts` (primary stability + model + close propagation)
+- `src/hooks/useOpenAIRealtime.tsx` (reconnect logic, readiness gating, error surfacing)
+- `src/components/VoiceModeController.tsx` (startup flow coordination if needed)
+- `src/components/VoiceModeOverlay.tsx` and `src/components/VoiceSelector.tsx` (confirm two-voice UX remains consistent)
+- optional small backend data normalization for profile `preferred_voice` values
 
-### 2. Sub-components with entrance animations
-- `ChatCard`: Remove `initial`/`animate` motion wrapper or set `initial={false}` — these are list items that shouldn't re-animate
-- `ImageCard`: Same — remove entrance animation, keep only `whileHover`
-- `AppListCard`: Same treatment
-- Overview memory items (lines 463-472): Remove `initial`/`animate`
-
-### 3. Header and fixed elements
-- The header (`motion.div` line 314), chat input wrapper (line 351), and subscription badge (line 356) all have entrance animations that replay on every render. Add `initial={false}` after first mount or wrap in a "mount once" guard.
-
-### 4. RightPanel sidebar (`src/components/RightPanel.tsx`)
-- Replace `layoutId="panel-tab-bubble"` with deterministic positioning (same fix as dashboard tabs) to prevent the bubble from glitching on re-mount
-
-## Specific Changes
-
-**`src/pages/DashboardPage.tsx`:**
-- Paginated list items (chats, apps, memories lines ~506, ~722, ~776): Remove `initial`/`animate` from individual `motion.div` wrappers, or convert to plain `div` since they don't need entrance animations after pagination
-- `ChatCard`, `ImageCard`, `AppListCard` sub-components: Remove `initial`/`animate`, keep only hover/tap interactions
-- Overview stat cards (line 385-402): Use a mounted ref to only animate on first mount
-- Header/input/badge wrappers (lines 314, 351, 356): Use a mounted ref or `initial={false}` after first render
-
-**`src/components/RightPanel.tsx`:**
-- Replace `layoutId="panel-tab-bubble"` with index-based `style.left` + `motion.animate`, matching the dashboard fix
-
-## Impact
-This will eliminate the repeated fade-in "blipping" across the dashboard and sidebar. Animations will play once on initial load, then items will appear instantly on subsequent renders, tab switches, and pagination changes.
-
+Expected outcome
+- Voice mode starts reliably without immediate 1006 loops
+- Cleaner, deterministic error handling when something truly fails
+- Only Cedric + Marina visible, with safe fallback behavior under the hood
+- Overall “robust as hell” startup/reconnect behavior instead of fragile retry churn
