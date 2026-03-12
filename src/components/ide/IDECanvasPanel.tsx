@@ -43,13 +43,14 @@ interface ProjectVersion {
 
 interface IDECanvasPanelProps {
   className?: string;
+  onClose?: () => void;
 }
 
 const buildPersistenceSnapshot = (nextFiles: VirtualFileSystem, nextMessages: ChatMessage[]) =>
   JSON.stringify({ files: nextFiles, messages: nextMessages });
 
-export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
-  const { ideFiles, idePrompt, ideAutoRunPrompt, ideProjectId, ideMessages: storedMessages, setIdeFiles, closeCanvas, setIdeIsRunning, setIdeActions, clearIdePrompt, setIdeProjectId, setIdeMessages } = useCanvasStore();
+export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
+  const { ideFiles, idePrompt, ideAutoRunPrompt, ideProjectId, ideMessages: storedMessages, setIdeFiles, closeIDE, setIdeIsRunning, setIdeActions, clearIdePrompt, setIdeProjectId, setIdeMessages } = useIDEStore();
   const [files, setFiles] = useState<VirtualFileSystem>(ideFiles || DEFAULT_FILES);
   const [selectedFile, setSelectedFile] = useState<string | null>('src/App.tsx');
   const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
