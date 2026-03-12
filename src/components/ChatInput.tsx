@@ -395,6 +395,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   // Navigation (for activating voice from non-chat pages like Dashboard)
   const navigate = useNavigate();
   const location = useLocation();
+  const isDashboard = location.pathname === "/dashboard";
 
   // Textarea auto-resize with cursor position preservation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1540,14 +1541,23 @@ ${existingCode}
                 "fixed z-[9999] flex items-center justify-center px-4",
                 rightPanelOpen && "lg:mr-80 xl:mr-96"
               )}
-              style={{
+              style={isDashboard ? {
+                top: inputBarRef.current ? inputBarRef.current.getBoundingClientRect().bottom + 12 : 120,
+                left: 0,
+                right: 0,
+              } : {
                 bottom: "calc(100px + env(safe-area-inset-bottom, 0px))",
                 left: 0,
                 right: 0,
               }}
             >
               {/* Compact inline pill bar */}
-              <div className="relative flex flex-wrap items-center justify-center gap-1.5 py-2 px-3 rounded-2xl glass-shimmer ring-[0.5px] ring-border/40 !shadow-[0_8px_32px_rgba(0,0,0,.3)] backdrop-blur-xl max-w-[calc(100vw-32px)]">
+              <div className={cn(
+                "relative flex flex-wrap items-center justify-center gap-1.5 py-2 px-3 rounded-2xl ring-[0.5px] ring-border/40 backdrop-blur-xl max-w-[calc(100vw-32px)]",
+                isDashboard
+                  ? "bg-black/80 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,.5)]"
+                  : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]"
+              )}>
                 {[
                   { label: "Image", icon: <ImagePlus className="h-3.5 w-3.5" />, color: "text-green-400", action: () => { setInputValue("image/"); textareaRef.current?.focus(); } },
                   { label: "Search", icon: <Globe className="h-3.5 w-3.5" />, color: "text-cyan-400", action: () => { setInputValue("search/"); textareaRef.current?.focus(); } },
@@ -1722,21 +1732,28 @@ ${existingCode}
         createPortal(
           <AnimatePresence>
              {showMenu && (() => {
-               const barRect = inputBarRef.current?.getBoundingClientRect();
-               const btnRect = menuButtonRef.current?.getBoundingClientRect();
-               const left = barRect ? barRect.left : 0;
-               const bottom = btnRect ? window.innerHeight - btnRect.top + 8 : 90;
-               return (
-                 <div
-                   className="fixed z-[35] pointer-events-auto ci-tiles"
-                   style={{ left, bottom }}
-                 >
-                   <motion.div
-                     initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                     transition={{ type: "spring", damping: 25, stiffness: 500 }}
-                     className="relative flex items-center gap-1.5 py-2 px-3 rounded-full glass-shimmer ring-[0.5px] ring-border/40 !shadow-[0_8px_32px_rgba(0,0,0,.3)] backdrop-blur-xl"
+                const barRect = inputBarRef.current?.getBoundingClientRect();
+                const btnRect = menuButtonRef.current?.getBoundingClientRect();
+                const left = barRect ? barRect.left : 0;
+                const posStyle = isDashboard
+                  ? { left, top: barRect ? barRect.bottom + 8 : 120 }
+                  : { left, bottom: btnRect ? window.innerHeight - btnRect.top + 8 : 90 };
+                return (
+                  <div
+                    className="fixed z-[35] pointer-events-auto ci-tiles"
+                    style={posStyle}
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, y: isDashboard ? -8 : 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: isDashboard ? -8 : 8, scale: 0.95 }}
+                      transition={{ type: "spring", damping: 25, stiffness: 500 }}
+                      className={cn(
+                        "relative flex items-center gap-1.5 py-2 px-3 rounded-full ring-[0.5px] ring-border/40 backdrop-blur-xl",
+                        isDashboard
+                          ? "bg-black/80 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,.5)]"
+                          : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]"
+                      )}
                   >
                     {[
                       { label: "Attach", icon: <Paperclip className="h-3.5 w-3.5" />, color: "text-blue-400", hideLabel: true, action: () => { setShowMenu(false); fileInputRef.current?.click(); } },
