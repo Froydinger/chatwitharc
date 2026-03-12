@@ -22,6 +22,7 @@ import NotFound from "./pages/NotFound";
 import { AdminPage } from "./pages/AdminPage";
 import { DownloadPage } from "./pages/DownloadPage";
 import { PricingPage } from "./pages/PricingPage";
+import { AppsPage } from "./pages/AppsPage";
 
 const queryClient = new QueryClient();
 
