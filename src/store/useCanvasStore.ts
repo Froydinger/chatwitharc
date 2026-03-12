@@ -94,6 +94,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   ideActions: [],
   ideIsRunning: false,
   idePrompt: null,
+  ideAutoRunPrompt: false,
   ideProjectId: null,
   ideMessages: [],
 
