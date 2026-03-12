@@ -368,6 +368,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const shouldShowCodeMode = forceCodingMode || (!!inputValue && checkForCodingRequest(inputValue));
   const shouldShowCanvasMode = forceCanvasMode || (!!inputValue && checkForCanvasRequest(inputValue));
   const shouldShowSearchMode = forceSearchMode || (!!inputValue && checkForSearchRequest(inputValue));
+  const shouldShowBuildMode = !!inputValue && checkForBuildRequest(inputValue);
 
   // When a /write canvas is open, auto-show canvas mode indicator so user knows
   // their messages will modify the canvas (not go to chat)
