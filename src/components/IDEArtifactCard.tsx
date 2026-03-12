@@ -23,6 +23,7 @@ export function IDEArtifactCard({
 }: IDEArtifactCardProps) {
   const { reopenIDECanvas, openIDECanvas, ideFiles, ideProjectId } = useCanvasStore();
   const [resolvedFileCount, setResolvedFileCount] = useState(initialFileCount || 0);
+  const [resolvedTitle, setResolvedTitle] = useState(propTitle || '');
   const [isLoading, setIsLoading] = useState(false);
 
   // Resolve the real file count from store or database
