@@ -76,7 +76,10 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSavedFilesRef = useRef<string>('');
+  const filesRef = useRef<VirtualFileSystem>(files);
+  const messagesRef = useRef<ChatMessage[]>(messages);
+  const projectVersionsRef = useRef<ProjectVersion[]>([]);
+  const lastSavedSnapshotRef = useRef(buildPersistenceSnapshot(ideFiles || DEFAULT_FILES, storedMessages?.length ? storedMessages : []));
   const projectIdRef = useRef<string | null>(ideProjectId);
   const didAutoRunInitialPromptRef = useRef(false);
 
