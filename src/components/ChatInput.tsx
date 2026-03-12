@@ -1541,14 +1541,23 @@ ${existingCode}
                 "fixed z-[9999] flex items-center justify-center px-4",
                 rightPanelOpen && "lg:mr-80 xl:mr-96"
               )}
-              style={{
+              style={isDashboard ? {
+                top: inputBarRef.current ? inputBarRef.current.getBoundingClientRect().bottom + 12 : 120,
+                left: 0,
+                right: 0,
+              } : {
                 bottom: "calc(100px + env(safe-area-inset-bottom, 0px))",
                 left: 0,
                 right: 0,
               }}
             >
               {/* Compact inline pill bar */}
-              <div className="relative flex flex-wrap items-center justify-center gap-1.5 py-2 px-3 rounded-2xl glass-shimmer ring-[0.5px] ring-border/40 !shadow-[0_8px_32px_rgba(0,0,0,.3)] backdrop-blur-xl max-w-[calc(100vw-32px)]">
+              <div className={cn(
+                "relative flex flex-wrap items-center justify-center gap-1.5 py-2 px-3 rounded-2xl ring-[0.5px] ring-border/40 backdrop-blur-xl max-w-[calc(100vw-32px)]",
+                isDashboard
+                  ? "bg-black/80 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,.5)]"
+                  : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]"
+              )}>
                 {[
                   { label: "Image", icon: <ImagePlus className="h-3.5 w-3.5" />, color: "text-green-400", action: () => { setInputValue("image/"); textareaRef.current?.focus(); } },
                   { label: "Search", icon: <Globe className="h-3.5 w-3.5" />, color: "text-cyan-400", action: () => { setInputValue("search/"); textareaRef.current?.focus(); } },
