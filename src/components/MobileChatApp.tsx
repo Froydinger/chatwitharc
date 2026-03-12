@@ -783,17 +783,10 @@ export function MobileChatApp() {
                     variant="outline"
                     size="icon"
                     className="rounded-full glass-shimmer transition-all overflow-hidden"
-                    onClick={() => {
-                      // Trigger spin animation
-                      setIsLogoSpinning(true);
-                      setTimeout(() => setIsLogoSpinning(false), 600);
-
-                      // Open support popup
-                      setIsSupportPopupOpen(true);
-                    }}
-                    title="Account"
+                    onClick={() => navigate('/dashboard')}
+                    title="Dashboard"
                   >
-                    <Bolt className="h-7 w-7 text-primary" />
+                    <LayoutDashboard className="h-6 w-6 text-primary" />
                   </Button>
                 </motion.div>
               </div>
