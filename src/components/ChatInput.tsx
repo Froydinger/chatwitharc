@@ -1031,22 +1031,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
         const canvasState = useCanvasStore.getState();
 
-        // CODE MODE: Route /code requests to inline code canvas (not IDE)
-        if (isCodingRequest) {
-          const cleanedPrompt = extractPrefixPrompt(userMessage);
-          const codePrompt = cleanedPrompt || userMessage;
-
-          // Add user message and let AI generate a code block
-          await addMessage({ content: userMessage, role: "user", type: "text" });
-
-          // Open code canvas with loading state and let AI fill it
-          const { openWithLoading } = useCanvasStore.getState();
-          openWithLoading('code', 'html');
-
-          // Use the streaming AI to generate code
-          const { streamWithContinuation: streamFn } = get_streamFnRef();
-          // Fall through to the normal AI handler which will handle forceCode
-        }
+        // CODE MODE: /code now produces inline code blocks via the normal AI flow
+        // (no longer opens IDE — use /build for that)
+        // The isCodingRequest flag flows through to forceCode below
 
         // When writing canvas is open, default to routing there unless the message
         // is clearly conversational (e.g. "nice!", "thanks", "how does this work?")
