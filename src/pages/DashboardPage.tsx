@@ -391,7 +391,7 @@ useEffect(() => {
                     <Icon className={cn("h-4 w-4 mx-auto mb-1 relative z-10", tw)} style={{ filter: `drop-shadow(0 0 4px hsl(${color} / 0.4))` }} />
                     <p className="text-lg font-bold text-foreground leading-none relative z-10">{value}</p>
                     <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider relative z-10">{label}</p>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
 
