@@ -96,14 +96,20 @@ function checkForImageRequest(message: string): boolean {
   return false;
 }
 
-// Prefix-based detection: code/ OR /code
+// Prefix-based detection: code/ OR /code — opens code canvas (inline code block), NOT the IDE
 function checkForCodingRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
-  // Support both code/ and /code syntax
+  // Support both code/ and /code syntax — prefix only, no natural language
   if (/^code\//.test(m) || /^\/code\b/.test(m)) return true;
-  // Natural language detection: "build me a todo app", "create an app that...", "make a website"
-  if (/^(can\s+you\s+)?(please\s+)?(build|create|make|develop|code|program)\s+(me\s+)?(a|an|the)\s+/i.test(m)) return true;
+  return false;
+}
+
+// Prefix-based detection: build/ OR /build — navigates to App Builder IDE
+function checkForBuildRequest(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+  if (/^build\//.test(m) || /^\/build\b/.test(m)) return true;
   return false;
 }
 
