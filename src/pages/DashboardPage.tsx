@@ -248,6 +248,18 @@ useEffect(() => {
     return () => document.removeEventListener('keydown', handleKey);
   }, [viewingImageIndex, filteredImages.length]);
 
+  const insightTip = useMemo(() => {
+    const tips = [
+      allChats.length > 0 ? `You've had ${allChats.length} chat${allChats.length === 1 ? '' : 's'} — keep the streak going!` : null,
+      allImages.length > 0 ? `You've generated ${allImages.length} image${allImages.length === 1 ? '' : 's'} with Arc so far.` : null,
+      contextBlocks.length > 0 ? `Arc remembers ${contextBlocks.length} thing${contextBlocks.length === 1 ? '' : 's'} about you.` : null,
+      "Try asking Arc to generate an image of your next project idea.",
+      "Start a new chat to brainstorm your next big idea.",
+      "Use /build to create a web app from a single prompt.",
+    ].filter(Boolean) as string[];
+    return tips[Math.floor(Math.random() * tips.length)];
+  }, [allChats.length, allImages.length, contextBlocks.length]);
+
   if (authLoading) return null;
 
   const greeting = (() => {
