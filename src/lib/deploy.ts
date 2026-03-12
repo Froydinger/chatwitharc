@@ -30,11 +30,14 @@ function generateDeployHtml(bundledCode: string, appName: string, hasFavicon: bo
 async function buildStaticZip(projectName: string, files: VirtualFileSystem, siteTitle?: string, faviconSvg?: string): Promise<Blob> {
   await initializeEsbuild();
   const bundledCode = await bundleProject(files);
-  const html = generateDeployHtml(bundledCode, siteTitle || projectName, faviconSvg);
+  const html = generateDeployHtml(bundledCode, siteTitle || projectName, !!faviconSvg);
 
   const zip = new JSZip();
   zip.file('index.html', html);
   zip.file('_redirects', '/*    /index.html   200');
+  if (faviconSvg) {
+    zip.file('favicon.svg', faviconSvg);
+  }
   return zip.generateAsync({ type: 'blob' });
 }
 
