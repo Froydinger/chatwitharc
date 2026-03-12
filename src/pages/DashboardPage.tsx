@@ -770,8 +770,9 @@ useEffect(() => {
               ) : filteredMemories.length === 0 ? (
                 <EmptyState icon={Brain} text={memorySearch ? "No matching memories" : "No memories yet"} sub='Tell Arc "remember that..." and it will save facts about you' />
               ) : (
+                <>
                 <div className="space-y-1.5">
-                  {filteredMemories.map((block, i) => (
+                  {filteredMemories.slice((memoryPage - 1) * ITEMS_PER_PAGE, memoryPage * ITEMS_PER_PAGE).map((block, i) => (
                     <motion.div
                       key={block.id}
                       initial={{ opacity: 0, y: 6 }}
@@ -800,6 +801,8 @@ useEffect(() => {
                     </motion.div>
                   ))}
                 </div>
+                <PaginationBar current={memoryPage} total={Math.ceil(filteredMemories.length / ITEMS_PER_PAGE)} onChange={setMemoryPage} />
+                </>
               )}
             </motion.div>
           )}
