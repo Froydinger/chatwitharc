@@ -343,7 +343,7 @@ useEffect(() => {
         </div>
 
         {/* ═══ CHAT INPUT ═══ */}
-        <div>
+        <div className="glass-dock" data-has-images={false}>
           <ChatInput />
         </div>
 
