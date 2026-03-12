@@ -716,8 +716,9 @@ useEffect(() => {
                     ) : filteredApps.length === 0 ? (
                       <EmptyState icon={Rocket} text={appSearch ? "No matching apps" : "No apps yet"} sub="Use /build to create your first app" />
                     ) : (
+                      <>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {filteredApps.map((app, i) => (
+                        {filteredApps.slice((appPage - 1) * ITEMS_PER_PAGE, appPage * ITEMS_PER_PAGE).map((app, i) => (
                           <motion.div
                             key={app.id}
                             initial={{ opacity: 0, y: 6 }}
@@ -744,6 +745,8 @@ useEffect(() => {
                           </motion.div>
                         ))}
                       </div>
+                      <PaginationBar current={appPage} total={Math.ceil(filteredApps.length / ITEMS_PER_PAGE)} onChange={setAppPage} />
+                      </>
                     )}
                   </motion.div>
                 )}
