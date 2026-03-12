@@ -1,0 +1,1 @@
+ALTER TABLE public.ide_projects ADD COLUMN messages jsonb NOT NULL DEFAULT '[]'::jsonb;

@@ -55,13 +55,14 @@ export function IDEArtifactCard({
       try {
         const { data } = await supabase
           .from('ide_projects')
-          .select('files')
+          .select('files, messages')
           .eq('id', projectId)
           .single();
 
         if (data?.files) {
           const loadedFiles = data.files as unknown as VirtualFileSystem;
-          reopenIDECanvas(projectId, loadedFiles);
+          const loadedMessages = (data as any).messages || [];
+          reopenIDECanvas(projectId, loadedFiles, loadedMessages);
         } else if (ideFiles && Object.keys(ideFiles).length > 0) {
           reopenIDECanvas(projectId, ideFiles);
         } else {

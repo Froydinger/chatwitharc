@@ -46,13 +46,20 @@ interface IDECanvasPanelProps {
 }
 
 export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
-  const { ideFiles, idePrompt, ideProjectId, setIdeFiles, closeCanvas, setIdeIsRunning, setIdeActions, clearIdePrompt, setIdeProjectId } = useCanvasStore();
+  const { ideFiles, idePrompt, ideProjectId, ideMessages: storedMessages, setIdeFiles, closeCanvas, setIdeIsRunning, setIdeActions, clearIdePrompt, setIdeProjectId, setIdeMessages } = useCanvasStore();
   const [files, setFiles] = useState<VirtualFileSystem>(ideFiles || DEFAULT_FILES);
   const [selectedFile, setSelectedFile] = useState<string | null>('src/App.tsx');
   const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
   const [mobileCodeTab, setMobileCodeTab] = useState<'chat' | 'editor'>('chat');
   const [copied, setCopied] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessagesRaw] = useState<ChatMessage[]>(storedMessages?.length ? storedMessages : []);
+  const setMessages: typeof setMessagesRaw = useCallback((update) => {
+    setMessagesRaw(prev => {
+      const next = typeof update === 'function' ? update(prev) : update;
+      setIdeMessages(next);
+      return next;
+    });
+  }, [setIdeMessages]);
   const [liveActions, setLiveActions] = useState<AgentAction[]>([]);
   const [isAgentRunning, setIsAgentRunning] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
@@ -81,10 +88,10 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
       projectIdRef.current = ideProjectId;
       lastSavedFilesRef.current = JSON.stringify(ideFiles || {});
       setSyncStatus('saved');
-      // Load netlify state from database
+      // Load netlify state and messages from database
       supabase
         .from('ide_projects')
-        .select('netlify_url, netlify_site_id, netlify_subdomain')
+        .select('netlify_url, netlify_site_id, netlify_subdomain, messages')
         .eq('id', ideProjectId)
         .single()
         .then(({ data }) => {
@@ -92,6 +99,12 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
             setDeployedUrl((data as any).netlify_url || null);
             setNetlifySiteId((data as any).netlify_site_id || null);
             setNetlifySubdomain((data as any).netlify_subdomain || null);
+            // Load persisted messages if we don't already have them from the store
+            const dbMessages = (data as any).messages;
+            if (dbMessages && Array.isArray(dbMessages) && dbMessages.length > 0 && messages.length === 0) {
+              setMessagesRaw(dbMessages);
+              setIdeMessages(dbMessages);
+            }
           }
         });
     } else {
@@ -140,6 +153,7 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
             files: files as any,
             versions: [...projectVersions.slice(-19), newVersion] as any,
             version: (projectVersions.length || 0) + 1,
+            messages: messages as any,
           })
           .eq('id', projectIdRef.current);
         if (error) throw error;
@@ -153,6 +167,7 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
             prompt: firstPrompt,
             files: files as any,
             versions: [newVersion] as any,
+            messages: messages as any,
           })
           .select('id')
           .single();

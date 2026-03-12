@@ -172,6 +172,7 @@ export type Database = {
           created_at: string
           files: Json
           id: string
+          messages: Json
           netlify_site_id: string | null
           netlify_subdomain: string | null
           netlify_url: string | null
@@ -186,6 +187,7 @@ export type Database = {
           created_at?: string
           files?: Json
           id?: string
+          messages?: Json
           netlify_site_id?: string | null
           netlify_subdomain?: string | null
           netlify_url?: string | null
@@ -200,6 +202,7 @@ export type Database = {
           created_at?: string
           files?: Json
           id?: string
+          messages?: Json
           netlify_site_id?: string | null
           netlify_subdomain?: string | null
           netlify_url?: string | null

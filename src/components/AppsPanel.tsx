@@ -17,6 +17,7 @@ interface IDEProject {
   title: string;
   prompt: string;
   files: VirtualFileSystem;
+  messages: any[];
   version: number;
   netlify_url: string | null;
   netlify_subdomain: string | null;
@@ -44,7 +45,7 @@ export function AppsPanel() {
 
       const { data, error } = await supabase
         .from('ide_projects')
-        .select('id, title, prompt, files, version, netlify_url, netlify_subdomain, created_at, updated_at')
+        .select('id, title, prompt, files, messages, version, netlify_url, netlify_subdomain, created_at, updated_at')
         .eq('user_id', session.user.id)
         .order('updated_at', { ascending: false });
 
@@ -58,7 +59,7 @@ export function AppsPanel() {
   };
 
   const handleOpen = (project: IDEProject) => {
-    reopenIDECanvas(project.id, project.files);
+    reopenIDECanvas(project.id, project.files, project.messages || []);
     if (isMobile || window.innerWidth < 1024) {
       setRightPanelOpen(false);
     }

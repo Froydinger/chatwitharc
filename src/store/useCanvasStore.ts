@@ -34,6 +34,7 @@ interface CanvasState {
   ideIsRunning: boolean;
   idePrompt: string | null;
   ideProjectId: string | null;
+  ideMessages: any[];
 
   // Actions
   openCanvas: (initialContent?: string) => void;
@@ -44,7 +45,7 @@ interface CanvasState {
   openWithContent: (content: string, type?: CanvasType, language?: string) => void;
   openWithLoading: (type: CanvasType, language?: string) => void;
   openIDECanvas: (prompt: string, files?: VirtualFileSystem) => void;
-  reopenIDECanvas: (projectId: string, files: VirtualFileSystem) => void;
+  reopenIDECanvas: (projectId: string, files: VirtualFileSystem, messages?: any[]) => void;
   closeCanvas: () => void;
   setContent: (content: string, saveToHistory?: boolean) => void;
   setAIContent: (content: string, label?: string) => void;
@@ -67,6 +68,7 @@ interface CanvasState {
   setIdeIsRunning: (running: boolean) => void;
   clearIdePrompt: () => void;
   setIdeProjectId: (id: string | null) => void;
+  setIdeMessages: (messages: any[]) => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
@@ -92,6 +94,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   ideIsRunning: false,
   idePrompt: null,
   ideProjectId: null,
+  ideMessages: [],
 
   openCanvas: (initialContent = '') => {
     const initialVersion: CanvasVersion = {
@@ -228,12 +231,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       ideActions: [],
       ideIsRunning: false,
       ideProjectId: null,
+      ideMessages: [],
       isAIWriting: false,
       isLoading: false,
     });
   },
 
-  reopenIDECanvas: (projectId: string, files: VirtualFileSystem) => {
+  reopenIDECanvas: (projectId: string, files: VirtualFileSystem, messages?: any[]) => {
     set({
       isOpen: true,
       canvasType: 'ide',
@@ -243,6 +247,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       ideActions: [],
       ideIsRunning: false,
       ideProjectId: projectId,
+      ideMessages: messages || [],
       isAIWriting: false,
       isLoading: false,
     });
@@ -370,4 +375,5 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   setIdeIsRunning: (running) => set({ ideIsRunning: running }),
   clearIdePrompt: () => set({ idePrompt: null }),
   setIdeProjectId: (id) => set({ ideProjectId: id }),
+  setIdeMessages: (messages) => set({ ideMessages: messages }),
 }));
