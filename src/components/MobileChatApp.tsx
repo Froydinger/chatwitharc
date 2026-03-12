@@ -987,7 +987,7 @@ export function MobileChatApp() {
               "fixed bottom-6 z-30 pointer-events-none px-4 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
               "left-0",
               // When canvas is open on desktop, limit to left 50% of screen (search mode is now full-screen)
-              isCanvasOpen && !isMobile && !isIDEOpen ? "right-[50%]" : "right-0",
+              isCanvasOpen && !isMobile ? "right-[50%]" : "right-0",
               rightPanelOpen && !isCanvasOpen && "lg:left-80 xl:left-96"
             )}
           >
