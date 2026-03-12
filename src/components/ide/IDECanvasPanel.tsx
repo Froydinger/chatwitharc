@@ -447,7 +447,11 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       await saveProject();
     }
 
-    closeCanvas();
+    if (onClose) {
+      onClose();
+    } else {
+      closeIDE();
+    }
   };
 
   const fileCount = Object.keys(files).length;

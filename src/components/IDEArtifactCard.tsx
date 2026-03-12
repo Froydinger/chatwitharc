@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Code2, ExternalLink, Layers, Cloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useCanvasStore } from '@/store/useCanvasStore';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import type { VirtualFileSystem } from '@/types/ide';
@@ -21,19 +21,13 @@ export function IDEArtifactCard({
   title: propTitle,
   className
 }: IDEArtifactCardProps) {
-  const { reopenIDECanvas, openIDECanvas, ideFiles, ideProjectId } = useCanvasStore();
+  const navigate = useNavigate();
   const [resolvedFileCount, setResolvedFileCount] = useState(initialFileCount || 0);
   const [resolvedTitle, setResolvedTitle] = useState(propTitle || '');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Resolve the real file count from store or database
+  // Resolve the real file count from database
   useEffect(() => {
-    // If store has files for this project, use that count
-    if (ideFiles && ideProjectId === projectId && Object.keys(ideFiles).length > 0) {
-      setResolvedFileCount(Object.keys(ideFiles).length);
-      return;
-    }
-    // If we have a projectId, load count and title from database
     if (projectId) {
       supabase
         .from('ide_projects')
@@ -49,46 +43,14 @@ export function IDEArtifactCard({
             setResolvedTitle(data.title);
           }
         });
-    } else if (ideFiles && Object.keys(ideFiles).length > 0) {
-      // Fallback: use current store files
-      setResolvedFileCount(Object.keys(ideFiles).length);
     }
-  }, [projectId, ideFiles, ideProjectId]);
+  }, [projectId]);
 
-  const handleOpen = async () => {
+  const handleOpen = () => {
     if (projectId) {
-      setIsLoading(true);
-      try {
-        const { data } = await supabase
-          .from('ide_projects')
-          .select('files, messages')
-          .eq('id', projectId)
-          .single();
-
-        if (data?.files) {
-          const loadedFiles = data.files as unknown as VirtualFileSystem;
-          const loadedMessages = (data as any).messages || [];
-          reopenIDECanvas(projectId, loadedFiles, loadedMessages);
-        } else if (ideFiles && Object.keys(ideFiles).length > 0) {
-          reopenIDECanvas(projectId, ideFiles);
-        } else {
-          openIDECanvas(prompt);
-        }
-      } catch {
-        if (ideFiles && Object.keys(ideFiles).length > 0) {
-          reopenIDECanvas(projectId, ideFiles);
-        } else {
-          openIDECanvas(prompt);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    } else if (ideFiles && Object.keys(ideFiles).length > 0) {
-      // No projectId but files in store — reopen without triggering agent
-      reopenIDECanvas('local', ideFiles);
+      navigate(`/apps/${projectId}`);
     } else {
-      // No files anywhere — fresh start
-      openIDECanvas(prompt);
+      navigate('/apps');
     }
   };
 
