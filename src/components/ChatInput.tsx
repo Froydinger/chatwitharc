@@ -1431,6 +1431,8 @@ ${existingCode}
               ? "!bg-green-500/20 ring-1 ring-green-400/50 !shadow-[0_0_24px_rgba(34,197,94,0.25)]"
               : shouldShowCodeMode
               ? "!bg-blue-500/20 ring-1 ring-blue-400/50 !shadow-[0_0_24px_rgba(59,130,246,0.25)]"
+              : shouldShowBuildMode
+              ? "!bg-amber-500/20 ring-1 ring-amber-400/50 !shadow-[0_0_24px_rgba(245,158,11,0.25)]"
               : showCanvasIndicator
               ? "!bg-purple-500/20 ring-1 ring-purple-400/50 !shadow-[0_0_24px_rgba(168,85,247,0.25)]"
               : shouldShowSearchMode
