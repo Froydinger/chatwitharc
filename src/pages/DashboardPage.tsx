@@ -312,7 +312,7 @@ useEffect(() => {
         paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px) + 15px)',
       }}
     >
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6 sm:space-y-8">
 
         {/* ═══ HEADER with ambient glow ═══ */}
         <div className="relative">
