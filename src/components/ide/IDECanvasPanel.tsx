@@ -175,59 +175,71 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
+      const filesToPersist = filesRef.current;
+      const messagesToPersist = messagesRef.current;
+      const versionsToPersist = projectVersionsRef.current;
+
       setSyncStatus('saving');
-      const filesJson = JSON.stringify(files);
 
       const newVersion: ProjectVersion = {
         id: crypto.randomUUID(),
-        files: { ...files },
+        files: { ...filesToPersist },
         timestamp: Date.now(),
-        label: `v${projectVersions.length + 1}`,
+        label: `v${versionsToPersist.length + 1}`,
       };
 
       if (projectIdRef.current) {
         const { error } = await supabase
           .from('ide_projects')
           .update({
-            files: files as any,
-            versions: [...projectVersions.slice(-19), newVersion] as any,
-            version: (projectVersions.length || 0) + 1,
-            messages: messages as any,
+            files: filesToPersist as any,
+            versions: [...versionsToPersist.slice(-19), newVersion] as any,
+            version: (versionsToPersist.length || 0) + 1,
+            messages: messagesToPersist as any,
           })
           .eq('id', projectIdRef.current);
+
         if (error) throw error;
       } else {
-        const firstPrompt = messages.find(m => m.role === 'user')?.content || '';
+        const firstPrompt = messagesToPersist.find((m) => m.role === 'user')?.content || '';
         const projectTitle = firstPrompt ? firstPrompt.slice(0, 100) : 'Untitled Project';
+
         const { data, error } = await supabase
           .from('ide_projects')
           .insert({
             user_id: session.user.id,
             title: projectTitle,
             prompt: firstPrompt,
-            files: files as any,
+            files: filesToPersist as any,
             versions: [newVersion] as any,
-            messages: messages as any,
+            messages: messagesToPersist as any,
           })
           .select('id')
           .single();
+
         if (error) throw error;
+
         if (data) {
           projectIdRef.current = data.id;
           setIdeProjectId(data.id);
         }
       }
 
-      setProjectVersions(prev => [...prev.slice(-19), newVersion]);
-      lastSavedFilesRef.current = filesJson;
+      setProjectVersions((prev) => {
+        const next = [...prev.slice(-19), newVersion];
+        projectVersionsRef.current = next;
+        return next;
+      });
+
+      lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesToPersist, messagesToPersist);
       setSyncStatus('saved');
 
       // Update the IDE message in chat with projectId and file count
-      const fileCount = Object.keys(files).length;
+      const fileCount = Object.keys(filesToPersist).length;
       const pid = projectIdRef.current;
       if (pid) {
-        useArcStore.setState(state => ({
-          messages: state.messages.map(m =>
+        useArcStore.setState((state) => ({
+          messages: state.messages.map((m) =>
             m.type === 'ide'
               ? { ...m, ideProjectId: pid, ideFileCount: fileCount }
               : m
@@ -238,7 +250,7 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
       console.error('Failed to save project:', err);
       setSyncStatus('error');
     }
-  }, [files, messages, projectVersions, setIdeProjectId]);
+  }, [setIdeProjectId]);
 
   // Save on close if unsaved
   useEffect(() => {
