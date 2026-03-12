@@ -45,6 +45,9 @@ interface IDECanvasPanelProps {
   className?: string;
 }
 
+const buildPersistenceSnapshot = (nextFiles: VirtualFileSystem, nextMessages: ChatMessage[]) =>
+  JSON.stringify({ files: nextFiles, messages: nextMessages });
+
 export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
   const { ideFiles, idePrompt, ideAutoRunPrompt, ideProjectId, ideMessages: storedMessages, setIdeFiles, closeCanvas, setIdeIsRunning, setIdeActions, clearIdePrompt, setIdeProjectId, setIdeMessages } = useCanvasStore();
   const [files, setFiles] = useState<VirtualFileSystem>(ideFiles || DEFAULT_FILES);
@@ -73,22 +76,52 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSavedFilesRef = useRef<string>('');
+  const filesRef = useRef<VirtualFileSystem>(files);
+  const messagesRef = useRef<ChatMessage[]>(messages);
+  const projectVersionsRef = useRef<ProjectVersion[]>([]);
+  const lastSavedSnapshotRef = useRef(buildPersistenceSnapshot(ideFiles || DEFAULT_FILES, storedMessages?.length ? storedMessages : []));
   const projectIdRef = useRef<string | null>(ideProjectId);
   const didAutoRunInitialPromptRef = useRef(false);
 
-  // Sync files to store
-  useEffect(() => { setIdeFiles(files); }, [files, setIdeFiles]);
-
-  // On mount: load from store if files exist
+  // Keep refs in sync so save operations always persist the freshest state
   useEffect(() => {
+    filesRef.current = files;
+  }, [files]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    projectVersionsRef.current = projectVersions;
+  }, [projectVersions]);
+
+  // Sync files to store
+  useEffect(() => {
+    setIdeFiles(files);
+  }, [files, setIdeFiles]);
+
+  // On mount: hydrate from store/db and initialize saved snapshot baseline
+  useEffect(() => {
+    const initialFiles = ideFiles && Object.keys(ideFiles).length > 0 ? ideFiles : DEFAULT_FILES;
+    const initialMessages = storedMessages?.length ? (storedMessages as ChatMessage[]) : [];
+
     if (ideFiles && Object.keys(ideFiles).length > 0) {
       setFiles(ideFiles);
+      filesRef.current = ideFiles;
     }
+
+    if (storedMessages?.length) {
+      setMessagesRaw(storedMessages as ChatMessage[]);
+      messagesRef.current = storedMessages as ChatMessage[];
+    }
+
+    lastSavedSnapshotRef.current = buildPersistenceSnapshot(initialFiles, initialMessages);
+
     if (ideProjectId) {
       projectIdRef.current = ideProjectId;
-      lastSavedFilesRef.current = JSON.stringify(ideFiles || {});
       setSyncStatus('saved');
+
       // Load netlify state and messages from database
       supabase
         .from('ide_projects')
@@ -96,40 +129,45 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
         .eq('id', ideProjectId)
         .single()
         .then(({ data }) => {
-          if (data) {
-            setDeployedUrl((data as any).netlify_url || null);
-            setNetlifySiteId((data as any).netlify_site_id || null);
-            setNetlifySubdomain((data as any).netlify_subdomain || null);
-            // Load persisted messages if we don't already have them from the store
-            const dbMessages = (data as any).messages;
-            if (dbMessages && Array.isArray(dbMessages) && dbMessages.length > 0 && messages.length === 0) {
-              setMessagesRaw(dbMessages);
-              setIdeMessages(dbMessages);
-            }
+          if (!data) return;
+
+          setDeployedUrl((data as any).netlify_url || null);
+          setNetlifySiteId((data as any).netlify_site_id || null);
+          setNetlifySubdomain((data as any).netlify_subdomain || null);
+
+          const dbMessages = (data as any).messages;
+          if (Array.isArray(dbMessages) && dbMessages.length > 0 && messagesRef.current.length === 0) {
+            setMessagesRaw(dbMessages as ChatMessage[]);
+            setIdeMessages(dbMessages as ChatMessage[]);
+            messagesRef.current = dbMessages as ChatMessage[];
+            lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesRef.current, dbMessages as ChatMessage[]);
           }
         });
-    } else {
-      lastSavedFilesRef.current = JSON.stringify(ideFiles || DEFAULT_FILES);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Track file changes for auto-save (only after initial load)
+  // Track file/message changes and auto-save
   useEffect(() => {
-    const currentHash = JSON.stringify(files);
-    if (lastSavedFilesRef.current === '') return; // Not yet initialized
-    if (currentHash !== lastSavedFilesRef.current) {
+    const currentSnapshot = buildPersistenceSnapshot(files, messages);
+
+    if (currentSnapshot !== lastSavedSnapshotRef.current) {
       setSyncStatus('unsaved');
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+
       autoSaveTimerRef.current = setTimeout(() => {
-        saveProject();
+        void saveProject();
       }, 3000);
     }
+
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files]);
+  }, [files, messages]);
 
   // Save project to database
   const saveProject = useCallback(async () => {
@@ -137,59 +175,71 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
+      const filesToPersist = filesRef.current;
+      const messagesToPersist = messagesRef.current;
+      const versionsToPersist = projectVersionsRef.current;
+
       setSyncStatus('saving');
-      const filesJson = JSON.stringify(files);
 
       const newVersion: ProjectVersion = {
         id: crypto.randomUUID(),
-        files: { ...files },
+        files: { ...filesToPersist },
         timestamp: Date.now(),
-        label: `v${projectVersions.length + 1}`,
+        label: `v${versionsToPersist.length + 1}`,
       };
 
       if (projectIdRef.current) {
         const { error } = await supabase
           .from('ide_projects')
           .update({
-            files: files as any,
-            versions: [...projectVersions.slice(-19), newVersion] as any,
-            version: (projectVersions.length || 0) + 1,
-            messages: messages as any,
+            files: filesToPersist as any,
+            versions: [...versionsToPersist.slice(-19), newVersion] as any,
+            version: (versionsToPersist.length || 0) + 1,
+            messages: messagesToPersist as any,
           })
           .eq('id', projectIdRef.current);
+
         if (error) throw error;
       } else {
-        const firstPrompt = messages.find(m => m.role === 'user')?.content || '';
+        const firstPrompt = messagesToPersist.find((m) => m.role === 'user')?.content || '';
         const projectTitle = firstPrompt ? firstPrompt.slice(0, 100) : 'Untitled Project';
+
         const { data, error } = await supabase
           .from('ide_projects')
           .insert({
             user_id: session.user.id,
             title: projectTitle,
             prompt: firstPrompt,
-            files: files as any,
+            files: filesToPersist as any,
             versions: [newVersion] as any,
-            messages: messages as any,
+            messages: messagesToPersist as any,
           })
           .select('id')
           .single();
+
         if (error) throw error;
+
         if (data) {
           projectIdRef.current = data.id;
           setIdeProjectId(data.id);
         }
       }
 
-      setProjectVersions(prev => [...prev.slice(-19), newVersion]);
-      lastSavedFilesRef.current = filesJson;
+      setProjectVersions((prev) => {
+        const next = [...prev.slice(-19), newVersion];
+        projectVersionsRef.current = next;
+        return next;
+      });
+
+      lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesToPersist, messagesToPersist);
       setSyncStatus('saved');
 
       // Update the IDE message in chat with projectId and file count
-      const fileCount = Object.keys(files).length;
+      const fileCount = Object.keys(filesToPersist).length;
       const pid = projectIdRef.current;
       if (pid) {
-        useArcStore.setState(state => ({
-          messages: state.messages.map(m =>
+        useArcStore.setState((state) => ({
+          messages: state.messages.map((m) =>
             m.type === 'ide'
               ? { ...m, ideProjectId: pid, ideFileCount: fileCount }
               : m
@@ -200,13 +250,13 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
       console.error('Failed to save project:', err);
       setSyncStatus('error');
     }
-  }, [files, messages, projectVersions, setIdeProjectId]);
+  }, [setIdeProjectId]);
 
-  // Save on close if unsaved
+  // Save on unmount if there are unsaved changes
   useEffect(() => {
     return () => {
-      if (syncStatus === 'unsaved' && projectIdRef.current) {
-        saveProject();
+      if (syncStatus === 'unsaved' || syncStatus === 'saving') {
+        void saveProject();
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -382,9 +432,13 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
   };
 
   const handleClose = async () => {
-    if (syncStatus === 'unsaved' || syncStatus === 'saving') {
+    const hasUnsavedChanges =
+      buildPersistenceSnapshot(filesRef.current, messagesRef.current) !== lastSavedSnapshotRef.current;
+
+    if (hasUnsavedChanges || syncStatus === 'saving' || syncStatus === 'unsaved') {
       await saveProject();
     }
+
     closeCanvas();
   };
 
