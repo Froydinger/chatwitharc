@@ -4,6 +4,7 @@ import { Download, X, Smartphone, MonitorSmartphone } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useAuth } from "@/hooks/useAuth";
+import { useDownloadInfo } from "@/hooks/useDownloadInfo";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
