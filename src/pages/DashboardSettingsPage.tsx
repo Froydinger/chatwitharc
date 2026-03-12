@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
@@ -12,6 +12,15 @@ export function DashboardSettingsPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const isAdminBannerActive = useAdminBanner();
+
+  const [isDesktopStandalone, setIsDesktopStandalone] = useState(false);
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
+    const isElectron = /electron/i.test(navigator.userAgent);
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    setIsDesktopStandalone((isStandalone || isElectron) && !isMobileDevice);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) navigate("/", { replace: true });
