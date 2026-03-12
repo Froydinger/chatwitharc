@@ -17,6 +17,7 @@ interface IDEProject {
   title: string;
   prompt: string;
   files: VirtualFileSystem;
+  messages: any[];
   version: number;
   netlify_url: string | null;
   netlify_subdomain: string | null;
