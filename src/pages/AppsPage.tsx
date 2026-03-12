@@ -173,11 +173,12 @@ function AppsDashboard() {
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
-              size="icon"
-              className="rounded-full"
-              onClick={() => navigate(-1)}
+              size="sm"
+              className="rounded-full gap-2"
+              onClick={() => navigate('/dashboard')}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
             </Button>
             <div className="flex items-center gap-2">
               <div className="glass rounded-full p-2">
