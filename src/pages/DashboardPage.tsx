@@ -136,13 +136,6 @@ export function DashboardPage() {
     })();
   }, [user]);
 
-  const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-    const el = e.target;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 144) + 'px';
-  }, []);
-
   const allChats = useMemo(() => {
     return chatSessions
       .filter(s => (s.messageCount ?? s.messages.length) > 0)
