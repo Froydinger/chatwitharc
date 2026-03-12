@@ -917,12 +917,9 @@ function AppIcon({ app, size }: { app: RecentApp; size?: "lg" }) {
   );
 }
 
-function AppListCard({ app, timeAgo, onClick, index = 0 }: { app: RecentApp; timeAgo: (d: any) => string; onClick: () => void; index?: number }) {
+function AppListCard({ app, timeAgo, onClick }: { app: RecentApp; timeAgo: (d: any) => string; onClick: () => void; index?: number }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -8 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.05 }}
+    <div
       className="p-3 rounded-xl cursor-pointer flex items-center gap-3 border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all group"
       onClick={onClick}
     >
