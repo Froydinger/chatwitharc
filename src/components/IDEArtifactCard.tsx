@@ -18,6 +18,7 @@ export function IDEArtifactCard({
   prompt,
   fileCount: initialFileCount,
   projectId,
+  title: propTitle,
   className
 }: IDEArtifactCardProps) {
   const { reopenIDECanvas, openIDECanvas, ideFiles, ideProjectId } = useCanvasStore();
