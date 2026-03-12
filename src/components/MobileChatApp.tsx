@@ -255,74 +255,12 @@ export function MobileChatApp() {
   const canvasResizingRef = useRef(false);
   const snarkyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Music store
+  // Music store (audio element now in GlobalMusicPlayer)
   const {
     isPlaying: isMusicPlaying,
-    setIsPlaying: setMusicIsPlaying,
-    volume: musicVolume,
-    isMuted: musicMuted,
     currentTrack,
-    playbackMode,
-    setAudioRef,
-    setCurrentTime: setMusicCurrentTime,
-    setDuration: setMusicDuration,
-    setIsLoading: setMusicIsLoading,
   } = useMusicStore();
-
-  // Get current track data
-  const getCurrentTrack = () => musicTracks.find(t => t.id === currentTrack) || musicTracks[0];
-  const currentMusicTrack = getCurrentTrack();
-
-  // Set audio ref in store using callback ref
-  const audioCallbackRef = useCallback((node: HTMLAudioElement | null) => {
-    audioRef.current = node;
-    if (node) {
-      setAudioRef(node);
-    }
-  }, [setAudioRef]);
-
-  // Audio event handlers
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleEnded = () => {
-      const { handleTrackEnded } = useMusicStore.getState();
-      handleTrackEnded();
-    };
-    const handleError = () => {
-      setMusicIsPlaying(false);
-      setMusicIsLoading(false);
-    };
-    const handleTimeUpdate = () => {
-      setMusicCurrentTime(audio.currentTime);
-    };
-    const handleLoadedMetadata = () => {
-      setMusicDuration(audio.duration);
-      setMusicIsLoading(false);
-    };
-    const handleLoadStart = () => setMusicIsLoading(true);
-    const handleCanPlay = () => setMusicIsLoading(false);
-
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('loadstart', handleLoadStart);
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.volume = musicMuted ? 0 : musicVolume;
-
-    return () => {
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('loadstart', handleLoadStart);
-      audio.removeEventListener('canplay', handleCanPlay);
-    };
-  }, [musicVolume, musicMuted, currentTrack, setMusicIsPlaying, setMusicCurrentTime, setMusicDuration, setMusicIsLoading]);
 
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
