@@ -275,35 +275,41 @@ export function DashboardPage() {
     >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
 
-        {/* ═══ HEADER ═══ */}
+        {/* ═══ HEADER with ambient glow ═══ */}
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.25, 0.8, 0.25, 1] }}
-          className="flex items-center justify-between"
+          className="relative"
         >
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/")}
-              className="relative h-10 w-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center hover:bg-primary/15 hover:border-primary/30 transition-all active:scale-95"
-              title="Back to chat"
-            >
-              <MessageSquare className="h-4.5 w-4.5 text-primary" />
-            </button>
-            <ThemedLogo className="h-9 w-9" />
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
-                {greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}.
-              </h1>
+          {/* Ambient glow behind greeting */}
+          <div className="absolute -top-12 left-1/4 w-48 h-48 rounded-full bg-primary/8 blur-[80px] pointer-events-none" />
+          <div className="absolute -top-8 right-1/3 w-32 h-32 rounded-full bg-primary/5 blur-[60px] pointer-events-none" />
+          
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate("/")}
+                className="relative h-10 w-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center hover:bg-primary/20 hover:border-primary/30 hover:shadow-[0_0_15px_hsl(var(--primary)/0.15)] transition-all active:scale-95"
+                title="Back to chat"
+              >
+                <MessageSquare className="h-4.5 w-4.5 text-primary" />
+              </button>
+              <ThemedLogo className="h-9 w-9" />
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+                  {greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}.
+                </h1>
+              </div>
             </div>
+            <button
+              onClick={() => navigate("/dashboard/settings")}
+              className="h-10 w-10 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-center hover:bg-muted hover:border-border transition-all active:scale-95"
+              title="Settings"
+            >
+              <Settings className="h-4.5 w-4.5 text-muted-foreground" />
+            </button>
           </div>
-          <button
-            onClick={() => navigate("/dashboard/settings")}
-            className="h-10 w-10 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-center hover:bg-muted hover:border-border transition-all active:scale-95"
-            title="Settings"
-          >
-            <Settings className="h-4.5 w-4.5 text-muted-foreground" />
-          </button>
         </motion.div>
 
         {/* ═══ CHAT INPUT ═══ */}
@@ -338,21 +344,27 @@ export function DashboardPage() {
           {activeTab === "overview" && (
             <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-6">
 
-              {/* Stat pills row */}
+              {/* Stat cards with gradient fills */}
               <div className="grid grid-cols-4 gap-2">
                 {stats.map(({ label, value, icon: Icon }, i) => (
                   <motion.div
                     key={label}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 + i * 0.05 }}
-                    className="relative overflow-hidden rounded-2xl border border-border/40 bg-muted/30 p-3 text-center group hover:border-primary/20 hover:bg-primary/5 transition-all cursor-pointer"
+                    initial={{ opacity: 0, y: 14, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ delay: 0.12 + i * 0.06, type: "spring", stiffness: 300, damping: 20 }}
+                    className="relative overflow-hidden rounded-2xl p-3 text-center group cursor-pointer transition-all hover:scale-[1.04] active:scale-[0.97]"
+                    style={{
+                      background: `linear-gradient(145deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--muted) / 0.3) 100%)`,
+                      border: '1px solid hsl(var(--primary) / 0.15)',
+                      boxShadow: '0 2px 12px hsl(var(--primary) / 0.06), inset 0 1px 0 hsl(var(--foreground) / 0.04)',
+                    }}
                     onClick={() => switchTab(tabs[i + 1]?.key || "overview")}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <Icon className="h-4 w-4 text-primary/60 mx-auto mb-1" />
-                    <p className="text-lg font-bold text-foreground leading-none">{value}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">{label}</p>
+                    {/* Subtle inner glow */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-8 bg-primary/10 blur-xl rounded-full pointer-events-none" />
+                    <Icon className="h-4 w-4 text-primary mx-auto mb-1 relative z-10 drop-shadow-[0_0_4px_hsl(var(--primary)/0.3)]" />
+                    <p className="text-lg font-bold text-foreground leading-none relative z-10">{value}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider relative z-10">{label}</p>
                   </motion.div>
                 ))}
               </div>
@@ -809,15 +821,20 @@ function Section({ title, icon: Icon, action, actionLabel, count, children }: {
 function ChatCard({ session, timeAgo, onClick, index = 0 }: { session: any; timeAgo: (d: any) => string; onClick: () => void; index?: number }) {
   return (
     <motion.div
-      initial={{ opacity: 0, x: -8 }}
+      initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="p-3.5 rounded-xl cursor-pointer border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all group"
+      transition={{ delay: index * 0.05, type: "spring", stiffness: 250, damping: 20 }}
+      className="relative overflow-hidden rounded-xl cursor-pointer border border-border/30 hover:border-primary/25 transition-all group"
+      style={{ background: 'linear-gradient(135deg, hsl(var(--muted) / 0.25) 0%, hsl(var(--primary) / 0.04) 100%)' }}
       onClick={onClick}
     >
-      <div className="flex items-center gap-3">
-        <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-          <MessageSquare className="h-3.5 w-3.5 text-primary/70" />
+      {/* Left accent strip */}
+      <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-primary/40 group-hover:bg-primary/70 transition-colors" />
+      <div className="flex items-center gap-3 p-3.5 pl-4">
+        <div className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--primary) / 0.05))' }}
+        >
+          <MessageSquare className="h-3.5 w-3.5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-foreground truncate text-sm">{session.title}</p>
@@ -828,7 +845,7 @@ function ChatCard({ session, timeAgo, onClick, index = 0 }: { session: any; time
             <span className="text-[11px] text-muted-foreground">{session.messageCount ?? session.messages.length} msgs</span>
           </div>
         </div>
-        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-primary/50 group-hover:translate-x-0.5 transition-all" />
+        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
       </div>
     </motion.div>
   );
@@ -837,17 +854,25 @@ function ChatCard({ session, timeAgo, onClick, index = 0 }: { session: any; time
 function ImageCard({ img, onClick, index = 0 }: { img: GeneratedImage; onClick: () => void; index?: number }) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.92 }}
+      initial={{ opacity: 0, scale: 0.88 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.04, duration: 0.35 }}
-      whileHover={{ scale: 1.03 }}
-      className="relative aspect-square rounded-xl overflow-hidden cursor-pointer border border-border/20 group"
+      transition={{ delay: index * 0.05, type: "spring", stiffness: 200, damping: 18 }}
+      whileHover={{ scale: 1.04, y: -2 }}
+      className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer group"
+      style={{
+        border: '1px solid hsl(var(--primary) / 0.12)',
+        boxShadow: '0 4px 20px hsl(var(--primary) / 0.06)',
+      }}
       onClick={onClick}
     >
-      <SmoothImage src={img.url} alt={img.prompt} className="w-full h-full object-cover" thumbnail />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
-        <p className="text-white text-xs line-clamp-2 font-medium leading-snug">{img.prompt}</p>
+      <SmoothImage src={img.url} alt={img.prompt} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" thumbnail />
+      {/* Shimmer overlay on hover */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
+        <p className="text-white text-xs line-clamp-2 font-medium leading-snug drop-shadow-lg">{img.prompt}</p>
       </div>
+      {/* Corner glow */}
+      <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-primary/15 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
     </motion.div>
   );
 }
@@ -886,12 +911,19 @@ function AppListCard({ app, timeAgo, onClick, index = 0 }: { app: RecentApp; tim
 
 function EmptyState({ icon: Icon, text, sub }: { icon: typeof MessageSquare; text: string; sub: string }) {
   return (
-    <div className="p-8 rounded-2xl text-center border border-dashed border-border/40 bg-muted/10">
-      <div className="h-12 w-12 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto mb-3">
-        <Icon className="h-5 w-5 text-primary/30" />
+    <div className="relative p-8 rounded-2xl text-center border border-dashed border-border/30 overflow-hidden"
+      style={{ background: 'linear-gradient(145deg, hsl(var(--muted) / 0.15) 0%, hsl(var(--primary) / 0.03) 100%)' }}
+    >
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-primary/5 rounded-full blur-[50px] pointer-events-none" />
+      <div className="relative z-10">
+        <div className="h-12 w-12 rounded-2xl flex items-center justify-center mx-auto mb-3"
+          style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.12), hsl(var(--primary) / 0.04))' }}
+        >
+          <Icon className="h-5 w-5 text-primary/40" />
+        </div>
+        <p className="text-sm text-muted-foreground font-medium">{text}</p>
+        <p className="text-xs text-muted-foreground/50 mt-1">{sub}</p>
       </div>
-      <p className="text-sm text-muted-foreground font-medium">{text}</p>
-      <p className="text-xs text-muted-foreground/60 mt-1">{sub}</p>
     </div>
   );
 }
