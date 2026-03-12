@@ -900,7 +900,7 @@ function ImageCard({ img, onClick }: { img: GeneratedImage; onClick: () => void;
       </div>
       {/* Corner glow */}
       <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-primary/15 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-    </motion.div>
+    </div>
   );
 }
 
