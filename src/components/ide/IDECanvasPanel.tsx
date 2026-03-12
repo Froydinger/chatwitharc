@@ -309,6 +309,43 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     toast({ title: 'Project exported' });
   };
 
+  const handleDeploy = async (subdomain: string, siteTitle: string, faviconSvg: string) => {
+    const result = await deployToNetlify('arc-app', files, subdomain, netlifySiteId, siteTitle, faviconSvg);
+    setDeployedUrl(result.url);
+    setNetlifySiteId(result.siteId);
+    setNetlifySubdomain(result.subdomain);
+    // Save netlify info to database
+    if (projectIdRef.current) {
+      await supabase
+        .from('ide_projects')
+        .update({
+          netlify_url: result.url,
+          netlify_site_id: result.siteId,
+          netlify_subdomain: result.subdomain,
+        } as any)
+        .eq('id', projectIdRef.current);
+    }
+  };
+
+  const handleUnpublish = async () => {
+    if (!netlifySiteId) return;
+    await unpublishFromNetlify(netlifySiteId);
+    setDeployedUrl(null);
+    setNetlifySiteId(null);
+    setNetlifySubdomain(null);
+    if (projectIdRef.current) {
+      await supabase
+        .from('ide_projects')
+        .update({
+          netlify_url: null,
+          netlify_site_id: null,
+          netlify_subdomain: null,
+        } as any)
+        .eq('id', projectIdRef.current);
+    }
+    toast({ title: 'Site unpublished' });
+  };
+
   const handleClose = () => {
     if (syncStatus === 'unsaved') saveProject();
     closeCanvas();
