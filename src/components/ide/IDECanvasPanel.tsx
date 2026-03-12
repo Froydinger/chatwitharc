@@ -46,7 +46,7 @@ interface IDECanvasPanelProps {
 }
 
 export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
-  const { ideFiles, idePrompt, ideProjectId, ideMessages: storedMessages, setIdeFiles, closeCanvas, setIdeIsRunning, setIdeActions, clearIdePrompt, setIdeProjectId, setIdeMessages } = useCanvasStore();
+  const { ideFiles, idePrompt, ideAutoRunPrompt, ideProjectId, ideMessages: storedMessages, setIdeFiles, closeCanvas, setIdeIsRunning, setIdeActions, clearIdePrompt, setIdeProjectId, setIdeMessages } = useCanvasStore();
   const [files, setFiles] = useState<VirtualFileSystem>(ideFiles || DEFAULT_FILES);
   const [selectedFile, setSelectedFile] = useState<string | null>('src/App.tsx');
   const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
@@ -75,6 +75,7 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedFilesRef = useRef<string>('');
   const projectIdRef = useRef<string | null>(ideProjectId);
+  const didAutoRunInitialPromptRef = useRef(false);
 
   // Sync files to store
   useEffect(() => { setIdeFiles(files); }, [files, setIdeFiles]);
@@ -275,15 +276,32 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     }
   }, [files, toast, setIdeIsRunning, setIdeActions, saveProject]);
 
-  // If there's a pending prompt, just clear it — never auto-run the agent.
-  // The agent only runs when the user explicitly sends a message via the chat input.
+  // Auto-run exactly once for an initial /code prompt, but keep manual IDE opens blank.
   useEffect(() => {
-    const prompt = useCanvasStore.getState().idePrompt;
-    if (prompt) {
+    if (!idePrompt) return;
+
+    if (!ideAutoRunPrompt) {
       clearIdePrompt();
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    if (didAutoRunInitialPromptRef.current || messages.length > 0) {
+      clearIdePrompt();
+      return;
+    }
+
+    didAutoRunInitialPromptRef.current = true;
+    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: idePrompt, timestamp: Date.now() };
+    const assistantId = crypto.randomUUID();
+
+    setMessages([
+      userMsg,
+      { id: assistantId, role: 'assistant', content: '', timestamp: Date.now() },
+    ]);
+    setGeneratingId(assistantId);
+    clearIdePrompt();
+    runAgent(idePrompt, [userMsg], assistantId);
+  }, [idePrompt, ideAutoRunPrompt, messages.length, clearIdePrompt, runAgent, setMessages]);
 
   const handleChatSend = useCallback((message: string) => {
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: message, timestamp: Date.now() };

@@ -1038,9 +1038,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             idePrompt: idePrompt,
           });
 
-          // Open the IDE canvas
+          // Open the IDE canvas and auto-run exactly once for this initial /code request
           const { openIDECanvas } = useCanvasStore.getState();
-          openIDECanvas(idePrompt);
+          openIDECanvas(idePrompt, undefined, true);
 
           setLoading(false);
           return;

@@ -33,6 +33,7 @@ interface CanvasState {
   ideActions: AgentAction[];
   ideIsRunning: boolean;
   idePrompt: string | null;
+  ideAutoRunPrompt: boolean;
   ideProjectId: string | null;
   ideMessages: any[];
 
@@ -44,7 +45,7 @@ interface CanvasState {
   openCodeCanvas: (code: string, language: string, label?: string) => void;
   openWithContent: (content: string, type?: CanvasType, language?: string) => void;
   openWithLoading: (type: CanvasType, language?: string) => void;
-  openIDECanvas: (prompt: string, files?: VirtualFileSystem) => void;
+  openIDECanvas: (prompt: string, files?: VirtualFileSystem, autoRunPrompt?: boolean) => void;
   reopenIDECanvas: (projectId: string, files: VirtualFileSystem, messages?: any[]) => void;
   closeCanvas: () => void;
   setContent: (content: string, saveToHistory?: boolean) => void;
@@ -93,6 +94,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   ideActions: [],
   ideIsRunning: false,
   idePrompt: null,
+  ideAutoRunPrompt: false,
   ideProjectId: null,
   ideMessages: [],
 
@@ -221,12 +223,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     });
   },
 
-  openIDECanvas: (prompt: string, files?: VirtualFileSystem) => {
+  openIDECanvas: (prompt: string, files?: VirtualFileSystem, autoRunPrompt = false) => {
     set({
       isOpen: true,
       canvasType: 'ide',
       mode: 'sideBySide',
       idePrompt: prompt,
+      ideAutoRunPrompt: autoRunPrompt,
       ideFiles: files || null,
       ideActions: [],
       ideIsRunning: false,
@@ -243,6 +246,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       canvasType: 'ide',
       mode: 'sideBySide',
       idePrompt: null,
+      ideAutoRunPrompt: false,
       ideFiles: files,
       ideActions: [],
       ideIsRunning: false,
@@ -373,7 +377,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     ideActions: typeof actions === 'function' ? actions(state.ideActions) : actions,
   })),
   setIdeIsRunning: (running) => set({ ideIsRunning: running }),
-  clearIdePrompt: () => set({ idePrompt: null }),
+  clearIdePrompt: () => set({ idePrompt: null, ideAutoRunPrompt: false }),
   setIdeProjectId: (id) => set({ ideProjectId: id }),
   setIdeMessages: (messages) => set({ ideMessages: messages }),
 }));
