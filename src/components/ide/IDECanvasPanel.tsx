@@ -274,16 +274,25 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     }
   }, [files, toast, setIdeIsRunning, setIdeActions, saveProject]);
 
-  // Auto-process initial prompt ONLY for new projects (no projectId)
+  // Auto-process initial prompt ONLY for brand-new projects with no existing messages
+  const hasAutoRun = useRef(false);
   useEffect(() => {
-    const prompt = useCanvasStore.getState().idePrompt;
-    if (prompt && !useCanvasStore.getState().ideIsRunning && !projectIdRef.current) {
+    if (hasAutoRun.current) return;
+    const store = useCanvasStore.getState();
+    const prompt = store.idePrompt;
+    const hasExistingMessages = store.ideMessages && store.ideMessages.length > 0;
+    // Only auto-run if there's a prompt, no existing project, no existing messages, and agent isn't running
+    if (prompt && !store.ideIsRunning && !projectIdRef.current && !hasExistingMessages) {
+      hasAutoRun.current = true;
       clearIdePrompt();
       const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: prompt, timestamp: Date.now() };
       const assistantId = crypto.randomUUID();
       setMessages([userMsg, { id: assistantId, role: 'assistant', content: '', timestamp: Date.now() }]);
       setGeneratingId(assistantId);
       runAgent(prompt, [], assistantId);
+    } else if (prompt) {
+      // Clear the prompt without running so it doesn't trigger on next mount
+      clearIdePrompt();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
