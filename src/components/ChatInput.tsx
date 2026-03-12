@@ -1523,7 +1523,7 @@ ${existingCode}
             onBlur={() => setIsActive(false)}
             placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe your image..." : shouldShowCodeMode ? "Describe what to code..." : shouldShowBuildMode ? "Describe your app..." : showCanvasIndicator ? (isCanvasAutoMode ? "Describe changes to your writing..." : "What should I write...") : shouldShowSearchMode ? "Search the web..." : "Ask"}
             disabled={isLoading}
-            className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 px-4 focus:outline-none focus:ring-0 text-[16px]"
+            className="!border-0 !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 px-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
           />
         </div>

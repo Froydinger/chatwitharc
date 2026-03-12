@@ -596,6 +596,15 @@ All colors MUST be HSL for perfect glass effects.
     border-color: rgba(60, 60, 70, 0.4) !important;
   }
 
+  /* Keep chat input inside glass dock fully transparent */
+  .dark .glass-dock textarea,
+  .dark .glass-dock input:not([type="range"]):not([type="checkbox"]):not([type="radio"]) {
+    background: transparent !important;
+    border-color: transparent !important;
+    --tw-ring-shadow: none !important;
+    --tw-ring-color: transparent !important;
+  }
+
   /* Dark glass cards in panels */
   .dark .glass-card-dark {
     background: rgba(35, 38, 45, 0.65) !important;
