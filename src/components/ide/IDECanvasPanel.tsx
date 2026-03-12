@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCanvasStore } from '@/store/useCanvasStore';
+import { useIDEStore } from '@/store/useIDEStore';
 import { FileExplorer } from './FileExplorer';
 import { IDECodeEditor } from './IDECodeEditor';
 import { IDEPreviewPanel } from './IDEPreviewPanel';
