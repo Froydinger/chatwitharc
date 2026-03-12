@@ -659,9 +659,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             },
             turn_detection: {
               type: 'server_vad',
-              threshold: 0.85,
-              prefix_padding_ms: 600,
-              silence_duration_ms: 1500,
+              threshold: 0.95,
+              prefix_padding_ms: 500,
+              silence_duration_ms: 2000,
               create_response: true
             },
             tools: [
