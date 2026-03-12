@@ -852,12 +852,9 @@ function Section({ title, icon: Icon, action, actionLabel, count, children }: {
   );
 }
 
-function ChatCard({ session, timeAgo, onClick, index = 0 }: { session: any; timeAgo: (d: any) => string; onClick: () => void; index?: number }) {
+function ChatCard({ session, timeAgo, onClick }: { session: any; timeAgo: (d: any) => string; onClick: () => void; index?: number }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.05, type: "spring", stiffness: 250, damping: 20 }}
+    <div
       className="relative overflow-hidden rounded-xl cursor-pointer border border-border/30 hover:border-primary/25 transition-all group"
       style={{ background: 'linear-gradient(135deg, hsl(var(--muted) / 0.25) 0%, hsl(var(--primary) / 0.04) 100%)' }}
       onClick={onClick}
