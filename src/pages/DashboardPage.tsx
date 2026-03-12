@@ -396,15 +396,10 @@ useEffect(() => {
               </div>
 
               {/* Insight tip */}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.35 }}
-                className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-primary/15 bg-primary/5"
-              >
+              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-primary/15 bg-primary/5">
                 <Sparkles className="h-4 w-4 text-primary shrink-0" />
                 <p className="text-sm text-foreground/80">{insightTip}</p>
-              </motion.div>
+              </div>
 
               {/* Recent Chats */}
               <Section title="Recent Chats" icon={MessageSquare} action={() => switchTab("chats")} actionLabel="See all">
