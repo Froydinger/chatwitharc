@@ -773,7 +773,7 @@ useEffect(() => {
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
                 <PaginationBar current={memoryPage} total={Math.ceil(filteredMemories.length / ITEMS_PER_PAGE)} onChange={setMemoryPage} />
