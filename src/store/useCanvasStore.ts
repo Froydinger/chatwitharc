@@ -33,6 +33,7 @@ interface CanvasState {
   ideActions: AgentAction[];
   ideIsRunning: boolean;
   idePrompt: string | null;
+  ideAutoRunPrompt: boolean;
   ideProjectId: string | null;
   ideMessages: any[];
 
