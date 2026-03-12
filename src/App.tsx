@@ -24,6 +24,7 @@ import { DownloadPage } from "./pages/DownloadPage";
 import { PricingPage } from "./pages/PricingPage";
 import { AppsPage } from "./pages/AppsPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { DashboardSettingsPage } from "./pages/DashboardSettingsPage";
 
 const queryClient = new QueryClient();
 

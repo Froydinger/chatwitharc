@@ -1,0 +1,52 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { SettingsPanel } from "@/components/SettingsPanel";
+import { ThemedLogo } from "@/components/ThemedLogo";
+import { useAdminBanner } from "@/components/AdminBanner";
+
+export function DashboardSettingsPage() {
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const isAdminBannerActive = useAdminBanner();
+
+  useEffect(() => {
+    if (!loading && !user) navigate("/", { replace: true });
+  }, [loading, user, navigate]);
+
+  if (loading) return null;
+
+  return (
+    <div
+      className="min-h-screen overflow-y-auto scrollbar-hide relative z-10"
+      style={{
+        paddingTop: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px',
+      }}
+    >
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 mb-6"
+        >
+          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="rounded-full h-9 w-9">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <ThemedLogo className="h-8 w-8" />
+          <h1 className="text-xl font-bold text-foreground">Settings</h1>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+        >
+          <SettingsPanel />
+        </motion.div>
+      </div>
+    </div>
+  );
+}
