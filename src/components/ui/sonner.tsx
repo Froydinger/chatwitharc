@@ -1,10 +1,26 @@
 import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
 import { Toaster as Sonner, toast } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
+  const [topOffset, setTopOffset] = useState("1rem")
+
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
+    const isElectron = /electron/i.test(navigator.userAgent);
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isDesktopStandalone = (isStandalone || isElectron) && !isMobileDevice;
+
+    if (isDesktopStandalone) {
+      setTopOffset("calc(30px + 1rem)");
+    } else if (isStandalone && isMobileDevice) {
+      setTopOffset("calc(env(safe-area-inset-top, 0px) + 1rem)");
+    }
+  }, []);
 
   return (
     <Sonner
@@ -12,6 +28,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       className="toaster group"
       position="top-right"
       duration={3000}
+      style={{ top: topOffset } as React.CSSProperties}
       toastOptions={{
         classNames: {
           toast:
