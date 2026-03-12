@@ -451,6 +451,23 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
           <Button variant="ghost" size="sm" onClick={handleExport} className="h-7 w-7 p-0 text-muted-foreground">
             <Download className="w-3.5 h-3.5" />
           </Button>
+          {deployedUrl && !isMobile && (
+            <a href={deployedUrl} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[11px] text-primary hover:underline max-w-[200px] truncate">
+              <ExternalLink className="h-3 w-3 shrink-0" />
+              {deployedUrl.replace('https://', '')}
+            </a>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowPublishDialog(true)}
+            className="h-7 px-2 text-muted-foreground gap-1"
+            title="Publish to web"
+          >
+            <Rocket className="w-3.5 h-3.5" />
+            {!isMobile && <span className="text-[10px]">{deployedUrl ? 'Update' : 'Publish'}</span>}
+          </Button>
         </div>
       </header>
 
