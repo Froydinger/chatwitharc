@@ -274,24 +274,11 @@ export function IDECanvasPanel({ className }: IDECanvasPanelProps) {
     }
   }, [files, toast, setIdeIsRunning, setIdeActions, saveProject]);
 
-  // Auto-process initial prompt ONLY for brand-new projects with no existing messages
-  const hasAutoRun = useRef(false);
+  // If there's a pending prompt, just clear it — never auto-run the agent.
+  // The agent only runs when the user explicitly sends a message via the chat input.
   useEffect(() => {
-    if (hasAutoRun.current) return;
-    const store = useCanvasStore.getState();
-    const prompt = store.idePrompt;
-    const hasExistingMessages = store.ideMessages && store.ideMessages.length > 0;
-    // Only auto-run if there's a prompt, no existing project, no existing messages, and agent isn't running
-    if (prompt && !store.ideIsRunning && !projectIdRef.current && !hasExistingMessages) {
-      hasAutoRun.current = true;
-      clearIdePrompt();
-      const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: prompt, timestamp: Date.now() };
-      const assistantId = crypto.randomUUID();
-      setMessages([userMsg, { id: assistantId, role: 'assistant', content: '', timestamp: Date.now() }]);
-      setGeneratingId(assistantId);
-      runAgent(prompt, [], assistantId);
-    } else if (prompt) {
-      // Clear the prompt without running so it doesn't trigger on next mount
+    const prompt = useCanvasStore.getState().idePrompt;
+    if (prompt) {
       clearIdePrompt();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
