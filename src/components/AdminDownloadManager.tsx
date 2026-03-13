@@ -213,7 +213,7 @@ function PlatformSection({
   files: StorageFile[];
   loading: boolean;
   getSetting: (key: string) => string;
-  updateSetting: (key: string, value: string, description?: string) => Promise<void>;
+  updateSetting: (key: string, value: string, description?: string) => Promise<any>;
   extractVersion: (f: string) => string;
   formatSize: (b?: number) => string;
   onDelete: (f: string) => void;
