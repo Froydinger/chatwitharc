@@ -97,14 +97,21 @@ export function DownloadPage() {
                 <button
                   onClick={() => handleSelectPlatform("windows")}
                   disabled={loading}
-                  className="glass-panel rounded-2xl p-8 border border-border/40 hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer text-left group"
+                  className="glass-panel rounded-2xl p-8 border border-yellow-500/40 hover:border-yellow-500/60 hover:bg-yellow-500/5 transition-all cursor-pointer text-left group relative overflow-hidden"
                 >
+                  {/* Beta ribbon */}
+                  <div className="absolute top-3 right-[-30px] rotate-45 bg-yellow-500 text-black text-[10px] font-black uppercase tracking-widest px-8 py-0.5 shadow-md">
+                    Beta
+                  </div>
                   <div className="flex flex-col items-center gap-4 text-center">
-                    <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <div className="h-16 w-16 rounded-2xl bg-yellow-500/10 flex items-center justify-center group-hover:bg-yellow-500/20 transition-colors relative">
                       <WindowsLogo className="h-8 w-8" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold mb-1">Windows</h2>
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <h2 className="text-xl font-semibold">Windows</h2>
+                        <span className="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 text-[10px] font-bold uppercase tracking-wider border border-yellow-500/30">Beta</span>
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         v{windows.version} • .exe
                       </p>
@@ -113,6 +120,7 @@ export function DownloadPage() {
                       <Download className="h-4 w-4" />
                       Download for Windows
                     </GlassButton>
+                    <p className="text-[11px] text-yellow-500/70 font-medium">⚠️ Beta — may not work as expected</p>
                   </div>
                 </button>
               </motion.div>
