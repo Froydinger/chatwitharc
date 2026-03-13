@@ -152,16 +152,26 @@ export function DownloadPage() {
                     )}
 
                     <div>
-                      <h2 className="text-xl font-semibold mb-2">
-                        {downloadStarted
-                          ? "Download Started!"
-                          : `ArcAi for ${selectedPlatform === "mac" ? "macOS" : "Windows"}`}
-                      </h2>
-                      <p className="text-muted-foreground mb-6">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <h2 className="text-xl font-semibold">
+                          {downloadStarted
+                            ? "Download Started!"
+                            : `ArcAi for ${selectedPlatform === "mac" ? "macOS" : "Windows"}`}
+                        </h2>
+                        {selectedPlatform === "windows" && !downloadStarted && (
+                          <span className="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 text-[10px] font-bold uppercase tracking-wider border border-yellow-500/30">Beta</span>
+                        )}
+                      </div>
+                      <p className="text-muted-foreground mb-4">
                         {downloadStarted
                           ? "Your download has started. If it doesn't, click the button below."
                           : `Version ${currentInfo.version} — Ready to download`}
                       </p>
+                      {selectedPlatform === "windows" && (
+                        <div className="mb-4 mx-auto max-w-sm p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-yellow-500 text-sm font-medium text-center">
+                          ⚠️ Windows version is in beta and may not work as expected. Use at your own risk.
+                        </div>
+                      )}
                     </div>
 
                     <GlassButton
