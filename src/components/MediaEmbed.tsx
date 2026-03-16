@@ -80,6 +80,7 @@ export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => 
             src={`https://www.youtube.com/embed/${youtubeId}?rel=0`}
             title={title || 'YouTube Video'}
             className="w-full h-full"
+            loading="lazy"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
@@ -177,7 +178,7 @@ interface MediaEmbedsProps {
   maxItems?: number;
 }
 
-export const MediaEmbeds = ({ sources, maxItems = 4 }: MediaEmbedsProps) => {
+export const MediaEmbeds = ({ sources, maxItems = 2 }: MediaEmbedsProps) => {
   // Filter to only embeddable media
   const mediaItems = sources
     .filter(source => getMediaType(source.url) !== 'none')
@@ -185,26 +186,28 @@ export const MediaEmbeds = ({ sources, maxItems = 4 }: MediaEmbedsProps) => {
 
   if (mediaItems.length === 0) return null;
 
-  // Separate YouTube videos and images
+  // Only show max 1 video, rest as compact
   const videos = mediaItems.filter(s => getMediaType(s.url) === 'youtube');
   const images = mediaItems.filter(s => getMediaType(s.url) === 'image');
 
   return (
     <div className="space-y-3 mt-3">
-      {/* Videos first */}
+      {/* Show only the first video as a full embed */}
       {videos.length > 0 && (
         <div className="space-y-2">
-          {videos.map((video, index) => (
-            <MediaEmbed key={`video-${index}`} url={video.url} title={video.title} />
+          <MediaEmbed url={videos[0].url} title={videos[0].title} />
+          {/* Rest as compact chips */}
+          {videos.slice(1).map((video, index) => (
+            <MediaEmbed key={`video-${index}`} url={video.url} title={video.title} compact />
           ))}
         </div>
       )}
 
-      {/* Images in a grid */}
+      {/* Images as compact chips */}
       {images.length > 0 && (
-        <div className={`grid gap-2 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+        <div className="flex flex-wrap gap-2">
           {images.map((image, index) => (
-            <MediaEmbed key={`image-${index}`} url={image.url} title={image.title} />
+            <MediaEmbed key={`image-${index}`} url={image.url} title={image.title} compact />
           ))}
         </div>
       )}
