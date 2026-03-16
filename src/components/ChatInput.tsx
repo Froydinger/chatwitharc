@@ -814,7 +814,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
     const userMessage = messageToSend.trim();
     const images = [...selectedImages];
-
+    const documents = [...selectedDocuments];
     // Capture mode states BEFORE clearing UI (they're needed in handleSendMessage)
     const wasCanvasMode = shouldShowCanvasMode || checkForCanvasRequest(userMessage);
     const wasCodingMode = shouldShowCodeMode || checkForCodingRequest(userMessage);
