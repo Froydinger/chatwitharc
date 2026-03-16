@@ -407,15 +407,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   // Expose handleImageUploadFiles and focusInput via ref
   useImperativeHandle(ref, () => ({
     handleImageUploadFiles: (files: File[]) => {
-      const images = files.filter((f) => f.type.startsWith("image/"));
-      const max = 14;
-      setSelectedImages((prev) => {
-        const merged = [...prev, ...images].slice(0, max);
-        if (merged.length >= max && images.length > 0 && merged.length > prev.length) {
-          toast({ title: "Max images", description: `Up to ${max} images supported`, variant: "default" });
-        }
-        return merged;
-      });
+      handleUploadFiles(files);
     },
     focusInput: () => {
       textareaRef.current?.focus();
