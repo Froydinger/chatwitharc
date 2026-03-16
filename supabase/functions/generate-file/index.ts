@@ -98,26 +98,56 @@ serve(async (req) => {
     console.log('Authenticated user:', user.id);
 
     // Use AI to generate the file content based on the prompt
-const systemPrompt = `You are a file content generator. Generate complete, properly formatted content for ${fileType} files.
-    
-For PDF content:
-- Output clean, well-structured text that will be rendered in a PDF
-- Use simple text formatting - no markdown, no special characters
-- For blank spaces/lines for writing, use the word "________________" (exactly 16 underscores) as a placeholder for lines
-- For section headings, use clear text followed by a blank line
-- Ensure proper spacing between sections with blank lines
-- Keep it simple and printer-friendly
+const systemPrompt = `You are a world-class document designer and content creator. Generate stunning, professionally formatted content for ${fileType} files. Your documents should look like they were designed by a professional — not just plain text dumps.
 
-For documents (DOCX, TXT, MD), output the complete document content.
-For data files (JSON, CSV, XML), output properly formatted data structures.
+For PDF content:
+- Create visually structured documents with clear hierarchy
+- Use "═══════════════════════════════════" for major section dividers
+- Use "───────────────────────────────────" for minor section dividers  
+- Use "•" for bullet points, "  ◦" for sub-bullets
+- Use UPPERCASE for main headings, Title Case for subheadings
+- Add generous spacing between sections (2-3 blank lines between major sections)
+- For writing lines, use "________________________________________"
+- Structure content with clear visual rhythm: heading → description → details → spacing
+- Think about information hierarchy and visual balance
+- Make it printer-friendly and scannable
+
+For DOCX/DOC content:
+- Output structured JSON with this format: { "title": "Document Title", "sections": [{ "type": "heading"|"subheading"|"paragraph"|"bullets"|"numbered"|"divider"|"spacer", "content": "text" OR ["item1","item2"] }] }
+- Create rich, well-organized documents with proper heading hierarchy
+- Use a mix of headings, paragraphs, bullet lists, and numbered lists
+- Write compelling, detailed content — not placeholder text
+- Think like a professional writer: strong openings, clear structure, impactful conclusions
+
+For PPTX content:
+- Output structured JSON: { "title": "Presentation Title", "slides": [{ "title": "Slide Title", "subtitle": "optional subtitle", "type": "title"|"content"|"bullets"|"two-column"|"quote"|"section", "content": "text" OR ["bullet1","bullet2"], "notes": "speaker notes" }] }
+- Create visually balanced slides — max 5-6 bullet points per slide
+- Use the 10-20-30 rule: meaningful titles, concise points
+- Include a title slide, agenda/overview, content slides, and a closing slide
+- Write real, substantive content — not generic filler
+- Add speaker notes for context
+
+For HTML content:
+- Generate a complete, beautiful standalone HTML page with embedded CSS
+- Use modern CSS: flexbox/grid, gradients, shadows, nice typography
+- Include a <style> block with professional styling
+- Use Google Fonts or system font stacks
+- Make it responsive and visually polished
+
+For Markdown (MD):
+- Use full markdown formatting: headers, bold, italic, tables, code blocks, blockquotes
+- Structure with clear hierarchy and visual variety
+- Add horizontal rules between major sections
+
+For data files (JSON, CSV):
+- Output properly formatted, realistic data structures
+- Use meaningful, realistic sample data — not "test" or "example"
 
 For ZIP files:
-- Output JSON with this structure: { "files": [{ "name": "filename.ext", "content": "file content here" }, ...] }
-- Create multiple files as needed based on the user's request
-- Use appropriate file names and extensions
-- Keep individual file contents concise but complete
+- Output JSON: { "files": [{ "name": "filename.ext", "content": "file content" }, ...] }
+- Create a well-organized file structure with multiple files
 
-IMPORTANT: Output ONLY the file content (or JSON for ZIP), no explanations or markdown code blocks.`;
+CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No explanations, no markdown code fences wrapping the output.`;
 
     // Use passed model for file generation (defaults to Gemini 3 Flash)
     const selectedModel = model || 'google/gemini-3-flash-preview';
