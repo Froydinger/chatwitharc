@@ -80,6 +80,7 @@ export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => 
             src={`https://www.youtube.com/embed/${youtubeId}?rel=0`}
             title={title || 'YouTube Video'}
             className="w-full h-full"
+            loading="lazy"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
