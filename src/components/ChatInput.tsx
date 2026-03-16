@@ -859,14 +859,51 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       const ai = new AIService();
 
       // Guest mode restrictions: only basic text chat
-      if (isGuestMode && (images.length > 0 || wasCanvasMode || wasCodingMode || wasImageMode)) {
+      if (isGuestMode && (images.length > 0 || documents.length > 0 || wasCanvasMode || wasCodingMode || wasImageMode)) {
         await addMessage({ content: userMessage || "Sent message", role: "user", type: "text" });
         await addMessage({
-          content: "✨ Image generation, canvas, and code features are available when you create a free account! Sign up to unlock all of Arc's capabilities.",
+          content: "✨ Image generation, canvas, code, and document analysis features are available when you create a free account! Sign up to unlock all of Arc's capabilities.",
           role: "assistant",
           type: "text"
         });
         setLoading(false);
+        return;
+      }
+
+      // With Documents -> analyze
+      if (documents.length > 0) {
+        await addMessage({
+          content: userMessage || `Analyzing ${documents.length} document${documents.length > 1 ? 's' : ''}: ${documents.map(d => d.name).join(', ')}`,
+          role: "user",
+          type: "text",
+        });
+
+        try {
+          for (const doc of documents) {
+            const fileData = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = () => reject(new Error("Failed to read file"));
+              reader.readAsDataURL(doc);
+            });
+
+            const analysisPrompt = userMessage || `Analyze and summarize this document: ${doc.name}`;
+            const response = await ai.sendMessageWithDocument(
+              [{ role: "user", content: analysisPrompt }],
+              fileData,
+              doc.name,
+              doc.type || 'application/octet-stream'
+            );
+            await addMessage({ content: response, role: "assistant", type: "text" });
+          }
+        } catch (err: any) {
+          toast({ title: "Error", description: err?.message || "Failed to analyze document", variant: "destructive" });
+          await addMessage({
+            content: "Sorry, I couldn't analyze the document. Please try again.",
+            role: "assistant",
+            type: "text",
+          });
+        }
         return;
       }
 
