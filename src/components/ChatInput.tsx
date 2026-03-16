@@ -501,32 +501,95 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     };
   }, []);
 
+  // Supported document MIME types
+  const DOCUMENT_TYPES = [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation', // PPTX
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // XLSX
+    'text/plain',
+    'text/markdown',
+    'text/html',
+    'text/csv',
+    'application/json',
+    'application/xml',
+    'text/xml',
+  ];
+
+  const isDocumentFile = (file: File) => DOCUMENT_TYPES.includes(file.type) || /\.(pdf|docx|pptx|xlsx|txt|md|html|csv|json|xml)$/i.test(file.name);
+
   // File input
   const fileInputRef = useRef<HTMLInputElement>(null);
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    handleImageUploadFiles(files);
+    handleUploadFiles(files);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
-  const handleImageUploadFiles = (files: File[]) => {
+  const handleUploadFiles = (files: File[]) => {
     const images = files.filter((f) => f.type.startsWith("image/"));
-    const max = 14;
-    setSelectedImages((prev) => {
-      const merged = [...prev, ...images].slice(0, max);
-      if (merged.length >= max && images.length > 0 && merged.length > prev.length) {
-        toast({ title: "Max images", description: `Up to ${max} images supported`, variant: "default" });
-      }
-      return merged;
-    });
+    const docs = files.filter((f) => !f.type.startsWith("image/") && isDocumentFile(f));
+
+    if (images.length > 0) {
+      const max = 14;
+      setSelectedImages((prev) => {
+        const merged = [...prev, ...images].slice(0, max);
+        if (merged.length >= max && images.length > 0 && merged.length > prev.length) {
+          toast({ title: "Max images", description: `Up to ${max} images supported`, variant: "default" });
+        }
+        return merged;
+      });
+    }
+
+    if (docs.length > 0) {
+      // Max 3 documents at a time
+      setSelectedDocuments((prev) => {
+        const merged = [...prev, ...docs].slice(0, 3);
+        if (merged.length >= 3 && docs.length > 0 && merged.length > prev.length) {
+          toast({ title: "Max documents", description: "Up to 3 documents supported at a time", variant: "default" });
+        }
+        return merged;
+      });
+    }
+
+    // Warn about unsupported files
+    const unsupported = files.filter(f => !f.type.startsWith("image/") && !isDocumentFile(f));
+    if (unsupported.length > 0) {
+      toast({ title: "Unsupported file type", description: `${unsupported[0].name} is not supported. Try PDF, DOCX, PPTX, XLSX, TXT, CSV, JSON, or images.`, variant: "destructive" });
+    }
   };
+  // Keep old name for backward compat with imperative handle
+  const handleImageUploadFiles = handleUploadFiles;
   const removeImage = (idx: number) => {
     setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
+  };
+  const removeDocument = (idx: number) => {
+    setSelectedDocuments((prev) => prev.filter((_, i) => i !== idx));
   };
   const clearSelected = () => {
     setSelectedImages([]);
     setImagePreviewUrls([]);
     setAllImagesEditMode(false);
+    setSelectedDocuments([]);
   };
+
+  // Drag & drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) handleUploadFiles(files);
+  }, []);
 
   /* ---------- Handle edited message resend ---------- */
   const handleEditedMessage = useCallback(async (newContent: string, editedMessageId: string) => {
