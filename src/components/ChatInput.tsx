@@ -1451,7 +1451,55 @@ ${existingCode}
 
   /* ---------------- Render ---------------- */
   return (
-    <div className="space-y-4 relative">
+    <div className="space-y-4 relative" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+      {/* Drag overlay */}
+      <AnimatePresence>
+        {isDragOver && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[50] flex items-center justify-center bg-background/80 backdrop-blur-sm"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className="rounded-2xl border-2 border-dashed border-primary/50 bg-primary/5 p-12 text-center">
+              <Paperclip className="h-12 w-12 text-primary mx-auto mb-3" />
+              <p className="text-lg font-medium text-foreground">Drop files here</p>
+              <p className="text-sm text-muted-foreground mt-1">Images, PDFs, DOCX, PPTX, and more</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Selected Documents preview - for non-inline, portal above dock */}
+      {!inline && selectedDocuments.length > 0 && portalRoot && createPortal(
+        <div
+          className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
+          style={{ bottom: selectedImages.length > 0 ? "calc(210px + env(safe-area-inset-bottom, 0px))" : "calc(110px + env(safe-area-inset-bottom, 0px))" }}
+        >
+          <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Documents ({selectedDocuments.length}/3)</span>
+              <button onClick={() => setSelectedDocuments([])} className="text-xs text-muted-foreground hover:text-foreground">Clear</button>
+            </div>
+            <div className="flex flex-col gap-2">
+              {selectedDocuments.map((doc, i) => (
+                <div key={i} className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2 group">
+                  <FileText className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
+                  <span className="text-xs text-muted-foreground">{(doc.size / 1024).toFixed(0)} KB</span>
+                  <button onClick={() => removeDocument(i)} className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>,
+        portalRoot,
+      )}
       {/* Selected Images preview - for non-inline, portal above dock */}
       {!inline && selectedImages.length > 0 && portalRoot && createPortal(
         <div
