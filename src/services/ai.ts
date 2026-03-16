@@ -458,6 +458,37 @@ export class AIService {
     }
   }
 
+  async sendMessageWithDocument(
+    messages: AIMessage[],
+    fileBase64: string,
+    fileName: string,
+    mimeType: string
+  ): Promise<string> {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('Document analysis service is not available.');
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-document', {
+        body: { messages, fileBase64, fileName, mimeType }
+      });
+
+      if (error) {
+        console.error('Document analysis error:', error);
+        throw new Error(`Document analysis error: ${error.message}`);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      return data.content || 'Sorry, I could not analyze the document.';
+    } catch (error) {
+      console.error('Document analysis error:', error);
+      throw error;
+    }
+  }
+
   async sendMessageWithImage(messages: AIMessage[], base64Images: string | string[]): Promise<string> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Image analysis service is not available. Please configure Supabase.');

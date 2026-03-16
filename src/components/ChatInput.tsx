@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Mic, Code2, PenLine, Search, Globe, Square, Lightbulb, Rocket } from "lucide-react";
+import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Mic, Code2, PenLine, Search, Globe, Square, Lightbulb, Rocket, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
@@ -348,7 +348,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]); // Store object URLs
   const [allImagesEditMode, setAllImagesEditMode] = useState(false); // Single toggle for all images
+  const [selectedDocuments, setSelectedDocuments] = useState<File[]>([]); // Document files (PDF, DOCX, etc.)
   const [isActive, setIsActive] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Tiles menu
   const [showMenu, setShowMenu] = useState(false);
@@ -405,15 +407,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   // Expose handleImageUploadFiles and focusInput via ref
   useImperativeHandle(ref, () => ({
     handleImageUploadFiles: (files: File[]) => {
-      const images = files.filter((f) => f.type.startsWith("image/"));
-      const max = 14;
-      setSelectedImages((prev) => {
-        const merged = [...prev, ...images].slice(0, max);
-        if (merged.length >= max && images.length > 0 && merged.length > prev.length) {
-          toast({ title: "Max images", description: `Up to ${max} images supported`, variant: "default" });
-        }
-        return merged;
-      });
+      handleUploadFiles(files);
     },
     focusInput: () => {
       textareaRef.current?.focus();
@@ -499,32 +493,95 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     };
   }, []);
 
+  // Supported document MIME types
+  const DOCUMENT_TYPES = [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation', // PPTX
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // XLSX
+    'text/plain',
+    'text/markdown',
+    'text/html',
+    'text/csv',
+    'application/json',
+    'application/xml',
+    'text/xml',
+  ];
+
+  const isDocumentFile = (file: File) => DOCUMENT_TYPES.includes(file.type) || /\.(pdf|docx|pptx|xlsx|txt|md|html|csv|json|xml)$/i.test(file.name);
+
   // File input
   const fileInputRef = useRef<HTMLInputElement>(null);
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    handleImageUploadFiles(files);
+    handleUploadFiles(files);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
-  const handleImageUploadFiles = (files: File[]) => {
+  const handleUploadFiles = (files: File[]) => {
     const images = files.filter((f) => f.type.startsWith("image/"));
-    const max = 14;
-    setSelectedImages((prev) => {
-      const merged = [...prev, ...images].slice(0, max);
-      if (merged.length >= max && images.length > 0 && merged.length > prev.length) {
-        toast({ title: "Max images", description: `Up to ${max} images supported`, variant: "default" });
-      }
-      return merged;
-    });
+    const docs = files.filter((f) => !f.type.startsWith("image/") && isDocumentFile(f));
+
+    if (images.length > 0) {
+      const max = 14;
+      setSelectedImages((prev) => {
+        const merged = [...prev, ...images].slice(0, max);
+        if (merged.length >= max && images.length > 0 && merged.length > prev.length) {
+          toast({ title: "Max images", description: `Up to ${max} images supported`, variant: "default" });
+        }
+        return merged;
+      });
+    }
+
+    if (docs.length > 0) {
+      // Max 3 documents at a time
+      setSelectedDocuments((prev) => {
+        const merged = [...prev, ...docs].slice(0, 3);
+        if (merged.length >= 3 && docs.length > 0 && merged.length > prev.length) {
+          toast({ title: "Max documents", description: "Up to 3 documents supported at a time", variant: "default" });
+        }
+        return merged;
+      });
+    }
+
+    // Warn about unsupported files
+    const unsupported = files.filter(f => !f.type.startsWith("image/") && !isDocumentFile(f));
+    if (unsupported.length > 0) {
+      toast({ title: "Unsupported file type", description: `${unsupported[0].name} is not supported. Try PDF, DOCX, PPTX, XLSX, TXT, CSV, JSON, or images.`, variant: "destructive" });
+    }
   };
+  // Keep old name for backward compat with imperative handle
+  const handleImageUploadFiles = handleUploadFiles;
   const removeImage = (idx: number) => {
     setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
+  };
+  const removeDocument = (idx: number) => {
+    setSelectedDocuments((prev) => prev.filter((_, i) => i !== idx));
   };
   const clearSelected = () => {
     setSelectedImages([]);
     setImagePreviewUrls([]);
     setAllImagesEditMode(false);
+    setSelectedDocuments([]);
   };
+
+  // Drag & drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) handleUploadFiles(files);
+  }, []);
 
   /* ---------- Handle edited message resend ---------- */
   const handleEditedMessage = useCallback(async (newContent: string, editedMessageId: string) => {
@@ -725,7 +782,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   /* ---------- Submit ---------- */
   const handleSend = async (messageOverride?: string) => {
     const messageToSend = messageOverride ?? inputValue;
-    if ((!messageToSend.trim() && selectedImages.length === 0) || isLoading) return;
+    if ((!messageToSend.trim() && selectedImages.length === 0 && selectedDocuments.length === 0) || isLoading) return;
 
     // Guest mode: check if limit reached
     if (isGuestMode) {
@@ -749,7 +806,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
     const userMessage = messageToSend.trim();
     const images = [...selectedImages];
-
+    const documents = [...selectedDocuments];
     // Capture mode states BEFORE clearing UI (they're needed in handleSendMessage)
     const wasCanvasMode = shouldShowCanvasMode || checkForCanvasRequest(userMessage);
     const wasCodingMode = shouldShowCodeMode || checkForCodingRequest(userMessage);
@@ -760,6 +817,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     // Clear UI promptly
     setInputValue("");
     setSelectedImages([]);
+    setSelectedDocuments([]);
     setForceImageMode(false);
     setForceCodingMode(false);
     setForceCanvasMode(false);
@@ -793,14 +851,51 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       const ai = new AIService();
 
       // Guest mode restrictions: only basic text chat
-      if (isGuestMode && (images.length > 0 || wasCanvasMode || wasCodingMode || wasImageMode)) {
+      if (isGuestMode && (images.length > 0 || documents.length > 0 || wasCanvasMode || wasCodingMode || wasImageMode)) {
         await addMessage({ content: userMessage || "Sent message", role: "user", type: "text" });
         await addMessage({
-          content: "✨ Image generation, canvas, and code features are available when you create a free account! Sign up to unlock all of Arc's capabilities.",
+          content: "✨ Image generation, canvas, code, and document analysis features are available when you create a free account! Sign up to unlock all of Arc's capabilities.",
           role: "assistant",
           type: "text"
         });
         setLoading(false);
+        return;
+      }
+
+      // With Documents -> analyze
+      if (documents.length > 0) {
+        await addMessage({
+          content: userMessage || `Analyzing ${documents.length} document${documents.length > 1 ? 's' : ''}: ${documents.map(d => d.name).join(', ')}`,
+          role: "user",
+          type: "text",
+        });
+
+        try {
+          for (const doc of documents) {
+            const fileData = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = () => reject(new Error("Failed to read file"));
+              reader.readAsDataURL(doc);
+            });
+
+            const analysisPrompt = userMessage || `Analyze and summarize this document: ${doc.name}`;
+            const response = await ai.sendMessageWithDocument(
+              [{ role: "user", content: analysisPrompt }],
+              fileData,
+              doc.name,
+              doc.type || 'application/octet-stream'
+            );
+            await addMessage({ content: response, role: "assistant", type: "text" });
+          }
+        } catch (err: any) {
+          toast({ title: "Error", description: err?.message || "Failed to analyze document", variant: "destructive" });
+          await addMessage({
+            content: "Sorry, I couldn't analyze the document. Please try again.",
+            role: "assistant",
+            type: "text",
+          });
+        }
         return;
       }
 
@@ -1348,7 +1443,55 @@ ${existingCode}
 
   /* ---------------- Render ---------------- */
   return (
-    <div className="space-y-4 relative">
+    <div className="space-y-4 relative" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+      {/* Drag overlay */}
+      <AnimatePresence>
+        {isDragOver && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[50] flex items-center justify-center bg-background/80 backdrop-blur-sm"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className="rounded-2xl border-2 border-dashed border-primary/50 bg-primary/5 p-12 text-center">
+              <Paperclip className="h-12 w-12 text-primary mx-auto mb-3" />
+              <p className="text-lg font-medium text-foreground">Drop files here</p>
+              <p className="text-sm text-muted-foreground mt-1">Images, PDFs, DOCX, PPTX, and more</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Selected Documents preview - for non-inline, portal above dock */}
+      {!inline && selectedDocuments.length > 0 && portalRoot && createPortal(
+        <div
+          className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
+          style={{ bottom: selectedImages.length > 0 ? "calc(210px + env(safe-area-inset-bottom, 0px))" : "calc(110px + env(safe-area-inset-bottom, 0px))" }}
+        >
+          <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Documents ({selectedDocuments.length}/3)</span>
+              <button onClick={() => setSelectedDocuments([])} className="text-xs text-muted-foreground hover:text-foreground">Clear</button>
+            </div>
+            <div className="flex flex-col gap-2">
+              {selectedDocuments.map((doc, i) => (
+                <div key={i} className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2 group">
+                  <FileText className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
+                  <span className="text-xs text-muted-foreground">{(doc.size / 1024).toFixed(0)} KB</span>
+                  <button onClick={() => removeDocument(i)} className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>,
+        portalRoot,
+      )}
       {/* Selected Images preview - for non-inline, portal above dock */}
       {!inline && selectedImages.length > 0 && portalRoot && createPortal(
         <div
@@ -1691,10 +1834,10 @@ ${existingCode}
         ) : (
           <button
             onClick={() => handleSend()}
-            disabled={!inputValue.trim() && selectedImages.length === 0}
+            disabled={!inputValue.trim() && selectedImages.length === 0 && selectedDocuments.length === 0}
             className={[
               "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-              inputValue.trim() || selectedImages.length
+              inputValue.trim() || selectedImages.length || selectedDocuments.length
                 ? accentColor === "noir"
                   ? "!bg-white/90 text-black ring-2 ring-white/60 hover:!bg-white !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
                   : "!bg-primary/80 text-primary-foreground ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
@@ -1798,7 +1941,7 @@ ${existingCode}
         )}
 
       {/* hidden file input */}
-      <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+      <input ref={fileInputRef} type="file" accept="image/*,.pdf,.docx,.pptx,.xlsx,.txt,.md,.html,.csv,.json,.xml" multiple className="hidden" onChange={handleFileSelect} />
 
       {/* Inline selected images preview — portaled to inlinePortalRef if provided */}
       {inline && selectedImages.length > 0 && (() => {
@@ -1836,6 +1979,22 @@ ${existingCode}
         const inlineTarget = document.getElementById('dashboard-image-preview-target');
         return inlineTarget ? createPortal(content, inlineTarget) : content;
       })()}
+      {/* Inline document preview */}
+      {inline && selectedDocuments.length > 0 && (
+        <div className="mt-2 w-full">
+          <div className="rounded-2xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-lg px-3 py-2">
+            {selectedDocuments.map((doc, i) => (
+              <div key={i} className="flex items-center gap-2 py-1 group">
+                <FileText className="h-4 w-4 text-primary shrink-0" />
+                <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
+                <button onClick={() => removeDocument(i)} className="w-4 h-4 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 });
