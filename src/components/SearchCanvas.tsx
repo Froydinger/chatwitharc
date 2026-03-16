@@ -1094,7 +1094,7 @@ export function SearchCanvas() {
                               {children}
                             </a>
                           );
-                        },
+                        };})(),
                         code: ({ node, className, ...props }) => {
                           const isInline = !className;
                           return isInline ? (
