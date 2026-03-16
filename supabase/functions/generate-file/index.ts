@@ -27,7 +27,7 @@ serve(async (req) => {
     }
 
     // Validate fileType against allowlist (prevent arbitrary file types)
-    const allowedFileTypes = ['pdf', 'txt', 'md', 'markdown', 'html', 'json', 'csv', 'zip'];
+    const allowedFileTypes = ['pdf', 'txt', 'md', 'markdown', 'html', 'json', 'csv', 'zip', 'docx', 'doc', 'pptx'];
     if (!allowedFileTypes.includes(fileType.toLowerCase())) {
       return new Response(
         JSON.stringify({
