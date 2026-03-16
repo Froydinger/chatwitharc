@@ -1987,6 +1987,22 @@ ${existingCode}
         const inlineTarget = document.getElementById('dashboard-image-preview-target');
         return inlineTarget ? createPortal(content, inlineTarget) : content;
       })()}
+      {/* Inline document preview */}
+      {inline && selectedDocuments.length > 0 && (
+        <div className="mt-2 w-full">
+          <div className="rounded-2xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-lg px-3 py-2">
+            {selectedDocuments.map((doc, i) => (
+              <div key={i} className="flex items-center gap-2 py-1 group">
+                <FileText className="h-4 w-4 text-primary shrink-0" />
+                <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
+                <button onClick={() => removeDocument(i)} className="w-4 h-4 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 });
