@@ -1035,8 +1035,10 @@ export function SearchCanvas() {
                           <li className="text-base sm:text-lg leading-relaxed text-foreground/90" {...props} />
                         ),
                         strong: ({ node, ...props }) => <strong className="font-semibold text-foreground" {...props} />,
-                        a: ({ node, href, children, ...props }) => {
-                          // Detect YouTube links and embed them
+                        a: (() => {
+                          let videoCount = 0;
+                          return ({ node, href, children, ...props }: any) => {
+                          // YouTube links — only embed the first one, rest as compact chips
                           if (href && getYouTubeVideoId(href)) {
                             const linkText =
                               typeof children === "string"
@@ -1044,14 +1046,22 @@ export function SearchCanvas() {
                                 : Array.isArray(children)
                                   ? children.join("")
                                   : String(children);
+                            videoCount++;
+                            if (videoCount <= 1) {
+                              return (
+                                <div className="my-4">
+                                  <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} />
+                                </div>
+                              );
+                            }
                             return (
-                              <div className="my-4">
-                                <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} />
+                              <div className="my-2">
+                                <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} compact />
                               </div>
                             );
                           }
 
-                          // Detect direct image URLs and embed them
+                          // Image links — render as compact chips, no full embed inline
                           if (href && isImageUrl(href)) {
                             const linkText =
                               typeof children === "string"
@@ -1060,8 +1070,8 @@ export function SearchCanvas() {
                                   ? children.join("")
                                   : String(children);
                             return (
-                              <div className="my-4">
-                                <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} />
+                              <div className="my-2 inline-block">
+                                <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} compact />
                               </div>
                             );
                           }
