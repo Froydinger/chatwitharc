@@ -191,6 +191,19 @@ CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No expla
         fileContent = await generateSimplePDF(generatedContent);
         break;
       
+      case 'docx':
+      case 'doc':
+        mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        fileName = 'generated-document.docx';
+        fileContent = await generateDocx(generatedContent);
+        break;
+      
+      case 'pptx':
+        mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+        fileName = 'generated-presentation.pptx';
+        fileContent = await generatePptx(generatedContent);
+        break;
+      
       case 'txt':
         mimeType = 'text/plain';
         fileName = 'generated-document.txt';
@@ -225,7 +238,6 @@ CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No expla
       case 'zip':
         mimeType = 'application/zip';
         fileName = 'generated-file.zip';
-        // For ZIP files, we need to parse the AI's structured output
         fileContent = await generateZipFile(generatedContent);
         break;
       
