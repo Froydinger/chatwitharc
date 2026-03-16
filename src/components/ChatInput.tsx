@@ -1794,7 +1794,7 @@ ${existingCode}
         ) : (
           <button
             onClick={() => handleSend()}
-            disabled={!inputValue.trim() && selectedImages.length === 0}
+            disabled={!inputValue.trim() && selectedImages.length === 0 && selectedDocuments.length === 0}
             className={[
               "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
               inputValue.trim() || selectedImages.length
