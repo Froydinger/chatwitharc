@@ -713,6 +713,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     imageModel?: string,
     additionalImages?: string[],
   ) => {
+    if (isGeneratingImage) return;
     try {
       const ai = new AIService();
       setGeneratingImage(true);
