@@ -94,7 +94,7 @@ export function Index() {
           // Show upgrade modal after onboarding
           const hasSeenUpgrade = localStorage.getItem('arcai-seen-upgrade');
           if (!hasSeenUpgrade) {
-            setTimeout(() => setShowUpgradeModal(true), 800);
+            setTimeout(() => window.dispatchEvent(new CustomEvent('open-upgrade-modal')), 800);
             localStorage.setItem('arcai-seen-upgrade', 'true');
           }
         }}
