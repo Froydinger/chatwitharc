@@ -8,7 +8,6 @@ import { NamePrompt } from "@/components/NamePrompt";
 import { MobileChatApp } from "@/components/MobileChatApp";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { LandingScreen } from "@/components/LandingScreen";
-import { UpgradeModal } from "@/components/UpgradeModal";
 
 export function Index() {
   const { sessionId } = useParams();
@@ -18,14 +17,6 @@ export function Index() {
   const { currentSessionId, loadSession, chatSessions } = useArcStore();
 
   const [onboardingComplete, setOnboardingComplete] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-
-  // Listen for upgrade modal open events from anywhere in the app
-  useEffect(() => {
-    const handler = () => setShowUpgradeModal(true);
-    window.addEventListener('open-upgrade-modal', handler);
-    return () => window.removeEventListener('open-upgrade-modal', handler);
-  }, []);
 
   // Ensure theme-ready class is set
   useEffect(() => {
