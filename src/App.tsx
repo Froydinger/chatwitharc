@@ -99,6 +99,10 @@ const App = () => {
               </PageTransition>
             </BrowserRouter>
             <GlobalMusicPlayer />
+            <UpgradeModal
+              isOpen={showUpgradeModal}
+              onClose={() => setShowUpgradeModal(false)}
+            />
         </TooltipProvider>
         </SubscriptionProvider>
       </AuthProvider>

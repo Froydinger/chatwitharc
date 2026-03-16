@@ -103,14 +103,5 @@ export function Index() {
   }
 
   // Authenticated user - show chat
-  return (
-    <>
-      <MobileChatApp />
-      <UpgradeModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        userName={profile?.display_name || undefined}
-      />
-    </>
-  );
+  return <MobileChatApp />;
 }
