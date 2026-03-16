@@ -496,54 +496,46 @@ async function generateSimplePDF(content: string): Promise<Uint8Array> {
   const linesPerPage = Math.floor((pageHeight - (margin * 2)) / lineHeight);
   const totalPages = Math.ceil(wrappedLines.length / linesPerPage);
   
-  // Build PDF objects
-  let pdfObjects = '';
-  let objectNumber = 1;
-  const objectOffsets: number[] = [];
-  const pdfHeader = '%PDF-1.4\n';
-
-  // Catalog
-  objectOffsets.push(pdfHeader.length + pdfObjects.length);
-  pdfObjects += `${objectNumber} 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`;
-  objectNumber++;
-
-  // Pages object - we'll update this later with correct page references
-  const pagesObjectIndex = objectOffsets.length;
-  objectOffsets.push(pdfHeader.length + pdfObjects.length);
-  const pagesPlaceholder = objectNumber;
-  objectNumber++;
-
-  // Font object
-  const fontObjNum = objectNumber;
-  objectOffsets.push(pdfHeader.length + pdfObjects.length);
-  pdfObjects += `${objectNumber} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n`;
-  objectNumber++;
-
-  // Calculate page object numbers (they come after content objects)
-  // For each page: content object, then page object
+  // Two-pass PDF generation: first build all content, then calculate correct offsets
+  const pdfHeader = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'; // Binary comment for PDF identification
+  
+  // Pre-calculate object numbers
+  // Obj 1: Catalog, Obj 2: Pages, Obj 3: Font
+  // Then for each page: content stream obj, page obj
+  const fontObjNum = 3;
+  const firstPageContentObj = 4;
+  
   const pageObjectNumbers: number[] = [];
   for (let i = 0; i < totalPages; i++) {
-    pageObjectNumbers.push(fontObjNum + 1 + (i * 2) + 1); // Skip content, get page number
+    pageObjectNumbers.push(firstPageContentObj + (i * 2) + 1); // page obj follows content obj
   }
-
-  // Now add the Pages object with correct references
-  const pageRefs = pageObjectNumbers.map(num => `${num} 0 R`).join(' ');
-  pdfObjects += `${pagesPlaceholder} 0 obj\n<< /Type /Pages /Kids [${pageRefs}] /Count ${totalPages} >>\nendobj\n`;
   
-  // Create page objects and content streams
+  // Build all objects in order, tracking offsets correctly
+  const objects: string[] = [];
+  
+  // Obj 1: Catalog
+  objects.push(`1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`);
+  
+  // Obj 2: Pages
+  const pageRefs = pageObjectNumbers.map(num => `${num} 0 R`).join(' ');
+  objects.push(`2 0 obj\n<< /Type /Pages /Kids [${pageRefs}] /Count ${totalPages} >>\nendobj\n`);
+  
+  // Obj 3: Font
+  objects.push(`${fontObjNum} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n`);
+  
+  // Page content + page objects
+  let objNum = firstPageContentObj;
   for (let pageNum = 0; pageNum < totalPages; pageNum++) {
     const startLine = pageNum * linesPerPage;
     const endLine = Math.min(startLine + linesPerPage, wrappedLines.length);
     const pageLines = wrappedLines.slice(startLine, endLine);
     
-    // Build content stream
     let contentStream = 'BT\n';
-    contentStream += '/F1 12 Tf\n'; // Slightly larger font
-    contentStream += `${margin} ${pageHeight - margin - 20} Td\n`; // Start a bit lower
-    contentStream += `${lineHeight} TL\n`; // Set leading (line height)
+    contentStream += '/F1 12 Tf\n';
+    contentStream += `${margin} ${pageHeight - margin - 20} Td\n`;
+    contentStream += `${lineHeight} TL\n`;
     
     for (const line of pageLines) {
-      // Escape special characters and handle empty lines
       const escapedLine = line
         .replace(/\\/g, '\\\\')
         .replace(/\(/g, '\\(')
@@ -551,7 +543,6 @@ async function generateSimplePDF(content: string): Promise<Uint8Array> {
         .replace(/\r/g, '')
         .trim();
       
-      // For empty lines, just move down
       if (escapedLine === '') {
         contentStream += 'T*\n';
       } else {
@@ -560,35 +551,37 @@ async function generateSimplePDF(content: string): Promise<Uint8Array> {
     }
     contentStream += 'ET\n';
     
-    const contentLength = contentStream.length;
+    const contentObjNum = objNum;
+    objects.push(`${contentObjNum} 0 obj\n<< /Length ${contentStream.length} >>\nstream\n${contentStream}endstream\nendobj\n`);
+    objNum++;
     
-    // Content stream object
-    const contentObjNum = objectNumber;
-    objectOffsets.push(pdfHeader.length + pdfObjects.length);
-    pdfObjects += `${objectNumber} 0 obj\n<< /Length ${contentLength} >>\nstream\n${contentStream}endstream\nendobj\n`;
-    objectNumber++;
-
-    // Page object (use sequential numbering)
-    const pageObjNum = objectNumber;
-    objectOffsets.push(pdfHeader.length + pdfObjects.length);
-    pdfObjects += `${pageObjNum} 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 ${fontObjNum} 0 R >> >> /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents ${contentObjNum} 0 R >>\nendobj\n`;
-    objectNumber++;
+    const pageObjNum = objNum;
+    objects.push(`${pageObjNum} 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 ${fontObjNum} 0 R >> >> /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents ${contentObjNum} 0 R >>\nendobj\n`);
+    objNum++;
   }
+  
+  // Calculate correct byte offsets for each object
+  const objectOffsets: number[] = [];
+  let currentOffset = pdfHeader.length;
+  const allObjectsStr = objects.map(obj => {
+    objectOffsets.push(currentOffset);
+    currentOffset += obj.length;
+    return obj;
+  }).join('');
   
   // Build xref table
+  const totalObjects = objects.length;
   let xref = 'xref\n';
-  xref += `0 ${objectOffsets.length + 1}\n`;
+  xref += `0 ${totalObjects + 1}\n`;
   xref += '0000000000 65535 f \n';
   
-  for (let i = 0; i < objectOffsets.length; i++) {
-    const offset = objectOffsets[i].toString().padStart(10, '0');
-    xref += `${offset} 00000 n \n`;
+  for (const offset of objectOffsets) {
+    xref += `${offset.toString().padStart(10, '0')} 00000 n \n`;
   }
   
-  // Build trailer
-  const xrefOffset = pdfHeader.length + pdfObjects.length;
-  const trailer = `trailer\n<< /Size ${objectOffsets.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  const xrefOffset = pdfHeader.length + allObjectsStr.length;
+  const trailer = `trailer\n<< /Size ${totalObjects + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
 
-  const fullPDF = `${pdfHeader}${pdfObjects}${xref}${trailer}`;
+  const fullPDF = `${pdfHeader}${allObjectsStr}${xref}${trailer}`;
   return new TextEncoder().encode(fullPDF);
 }
