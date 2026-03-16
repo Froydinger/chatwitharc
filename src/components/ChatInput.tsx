@@ -825,6 +825,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     // Clear UI promptly
     setInputValue("");
     setSelectedImages([]);
+    setSelectedDocuments([]);
     setForceImageMode(false);
     setForceCodingMode(false);
     setForceCanvasMode(false);
