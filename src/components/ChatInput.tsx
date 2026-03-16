@@ -1901,7 +1901,7 @@ ${existingCode}
         )}
 
       {/* hidden file input */}
-      <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+      <input ref={fileInputRef} type="file" accept="image/*,.pdf,.docx,.pptx,.xlsx,.txt,.md,.html,.csv,.json,.xml" multiple className="hidden" onChange={handleFileSelect} />
 
       {/* Inline selected images preview — portaled to inlinePortalRef if provided */}
       {inline && selectedImages.length > 0 && (() => {
