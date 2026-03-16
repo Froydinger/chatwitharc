@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
+import { UpgradeModal } from "@/components/UpgradeModal";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -45,11 +46,19 @@ const detectStandaloneMode = () => {
 const App = () => {
   const { isOpen, errorMessage, errorStack, closeBugReport } = useBugReport();
   const showStarfield = useStarfieldStore((s) => s.showStarfield);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   useVisibilityHandler();
 
   // Detect standalone mode on mount
   useEffect(() => {
     detectStandaloneMode();
+  }, []);
+
+  // Global listener for upgrade modal events
+  useEffect(() => {
+    const handler = () => setShowUpgradeModal(true);
+    window.addEventListener('open-upgrade-modal', handler);
+    return () => window.removeEventListener('open-upgrade-modal', handler);
   }, []);
 
   return (
@@ -90,6 +99,10 @@ const App = () => {
               </PageTransition>
             </BrowserRouter>
             <GlobalMusicPlayer />
+            <UpgradeModal
+              isOpen={showUpgradeModal}
+              onClose={() => setShowUpgradeModal(false)}
+            />
         </TooltipProvider>
         </SubscriptionProvider>
       </AuthProvider>
