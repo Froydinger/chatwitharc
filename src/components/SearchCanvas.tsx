@@ -1255,7 +1255,7 @@ export function SearchCanvas() {
                                             {children}
                                           </a>
                                         );
-                                      },
+                                      };})(),
                                     }}
                                   >
                                     {response.content.replace(/\n\n---\n\*.*\*$/, "")}
