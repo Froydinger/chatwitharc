@@ -348,7 +348,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]); // Store object URLs
   const [allImagesEditMode, setAllImagesEditMode] = useState(false); // Single toggle for all images
+  const [selectedDocuments, setSelectedDocuments] = useState<File[]>([]); // Document files (PDF, DOCX, etc.)
   const [isActive, setIsActive] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Tiles menu
   const [showMenu, setShowMenu] = useState(false);
