@@ -1037,9 +1037,13 @@ export function SearchCanvas() {
                         strong: ({ node, ...props }) => <strong className="font-semibold text-foreground" {...props} />,
                         a: (() => {
                           let videoCount = 0;
+                          const seenVideoIds = new Set<string>();
                           return ({ node, href, children, ...props }: any) => {
-                          // YouTube links — only embed the first one, rest as compact chips
+                          // YouTube links — dedupe and only embed the first one
                           if (href && getYouTubeVideoId(href)) {
+                            const videoId = getYouTubeVideoId(href)!;
+                            if (seenVideoIds.has(videoId)) return null;
+                            seenVideoIds.add(videoId);
                             const linkText =
                               typeof children === "string"
                                 ? children
