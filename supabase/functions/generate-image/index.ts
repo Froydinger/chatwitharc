@@ -112,6 +112,12 @@ serve(async (req) => {
 
     console.log('Enhanced prompt with restrictions:', finalPrompt);
 
+    const requestBody = JSON.stringify({
+      model: imageModel,
+      messages: [{ role: 'user', content: finalPrompt }],
+      modalities: ['image', 'text']
+    });
+
     // AbortController with 55-second timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 55000);
@@ -124,11 +130,7 @@ serve(async (req) => {
           'Authorization': `Bearer ${lovableApiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: imageModel,
-          messages: [{ role: 'user', content: finalPrompt }],
-          modalities: ['image', 'text']
-        }),
+        body: requestBody,
         signal: controller.signal,
       });
     } catch (fetchErr: any) {
@@ -147,6 +149,40 @@ serve(async (req) => {
       throw fetchErr;
     }
     clearTimeout(timeoutId);
+
+    // Retry once on 429 after a short delay
+    if (response.status === 429) {
+      console.log('Rate limited (429), retrying after 3s...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      const retryController = new AbortController();
+      const retryTimeoutId = setTimeout(() => retryController.abort(), 55000);
+      try {
+        response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: requestBody,
+          signal: retryController.signal,
+        });
+      } catch (retryErr: any) {
+        clearTimeout(retryTimeoutId);
+        if (retryErr.name === 'AbortError') {
+          return new Response(JSON.stringify({
+            error: 'Image generation timed out. Try a simpler prompt or try again.',
+            errorType: 'timeout',
+            debugDetail: 'Retry aborted after 55s timeout',
+            success: false
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw retryErr;
+      }
+      clearTimeout(retryTimeoutId);
+    }
 
     if (!response.ok) {
       const errorData = await response.text();
