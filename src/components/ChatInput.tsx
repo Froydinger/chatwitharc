@@ -1797,7 +1797,7 @@ ${existingCode}
             disabled={!inputValue.trim() && selectedImages.length === 0 && selectedDocuments.length === 0}
             className={[
               "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-              inputValue.trim() || selectedImages.length
+              inputValue.trim() || selectedImages.length || selectedDocuments.length
                 ? accentColor === "noir"
                   ? "!bg-white/90 text-black ring-2 ring-white/60 hover:!bg-white !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
                   : "!bg-primary/80 text-primary-foreground ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
