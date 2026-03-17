@@ -498,7 +498,7 @@ export function LandingScreen() {
     <div
       className="dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white"
       style={{
-        paddingTop: `calc(${(isPWAMode || isElectronApp) && !isMobile ? 'env(safe-area-inset-top, 0px)' : '0px'} + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'})`,
+        paddingTop: `calc(${(isPWAMode || isElectronApp) ? 'env(safe-area-inset-top, 0px)' : '0px'} + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'})`,
       }}
     >
       {/* Background Image */}
