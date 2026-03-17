@@ -316,7 +316,7 @@ export function AuthPage() {
           </form>
 
           {/* Only show social login and toggle for login/signup */}
-          {mode !== 'forgot-password' && (
+          {(mode === 'login' || mode === 'signup') && (
             <>
               {/* Divider */}
               <div className="flex items-center gap-4">
@@ -324,6 +324,18 @@ export function AuthPage() {
                 <span className="text-xs text-gray-400">OR</span>
                 <Separator className="flex-1 bg-white/10" />
               </div>
+
+              {/* Magic Link */}
+              <GlassButton
+                variant="ghost"
+                onClick={() => setMode('magic-link')}
+                disabled={loading}
+                className="w-full border border-white/20"
+                type="button"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Sign in with Magic Link
+              </GlassButton>
 
               {/* Google Sign In */}
               <GlassButton
