@@ -32,10 +32,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
       return;
     }
 
-    if (!email || (!isMagicLink && !password)) {
+    if (!email || !password) {
       toast({
         title: "Error",
-        description: isMagicLink ? "Please enter your email" : "Please fill in all fields",
+        description: "Please fill in all fields",
         variant: "destructive",
       });
       return;
@@ -43,17 +43,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     setLoading(true);
     try {
-      if (isMagicLink) {
-        const redirectUrl = `${window.location.origin}/`;
-        const { error } = await supabase.auth.signInWithOtp({
-          email,
-          options: { emailRedirectTo: redirectUrl },
-        });
-        if (error) throw error;
-        toast({ title: "Check your email ✨", description: "We've sent you a magic link to sign in" });
-        setEmail("");
-        setIsMagicLink(false);
-      } else if (isLogin) {
+      if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast({ title: "Welcome back!", description: "You've been signed in successfully" });
