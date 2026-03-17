@@ -309,7 +309,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       disabled={loading} 
                       className="w-full h-12 rounded-xl text-base font-medium"
                     >
-                      {loading ? "Loading..." : isMagicLink ? "Send Magic Link" : isLogin ? "Sign In" : "Sign Up"}
+                      {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
                     </GlassButton>
                   </motion.div>
                 </form>
