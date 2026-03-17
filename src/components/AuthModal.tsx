@@ -172,17 +172,6 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 transition={{ delay: 0.1 }}
                 className="space-y-6"
               >
-                {/* Back button for magic link */}
-                {isMagicLink && (
-                  <button
-                    onClick={() => setIsMagicLink(false)}
-                    className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
-                    type="button"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to sign in
-                  </button>
-                )}
 
                 {/* Logo */}
                 <div className="text-center">
