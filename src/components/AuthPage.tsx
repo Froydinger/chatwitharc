@@ -148,6 +148,7 @@ export function AuthPage() {
     switch (mode) {
       case 'forgot-password': return 'Reset Password';
       case 'signup': return 'Create Account';
+      case 'magic-link': return 'Magic Link Sign In';
       default: return 'Welcome to ArcAI';
     }
   };
@@ -156,6 +157,7 @@ export function AuthPage() {
     switch (mode) {
       case 'forgot-password': return "Enter your email and we'll send you a reset link";
       case 'signup': return 'Create your account';
+      case 'magic-link': return "We'll email you a link to sign in — no password needed";
       default: return 'Sign in to continue';
     }
   };
