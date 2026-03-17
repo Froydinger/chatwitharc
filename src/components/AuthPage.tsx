@@ -10,7 +10,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowLeft, User } from "lucide-react";
 import { AppleLogo } from "@/components/icons/AppleLogo";
 import { Separator } from "@/components/ui/separator";
 
-type AuthMode = 'login' | 'signup' | 'forgot-password';
+type AuthMode = 'login' | 'signup' | 'forgot-password' | 'magic-link';
 
 export function AuthPage() {
   const [mode, setMode] = useState<AuthMode>('login');
@@ -31,10 +31,10 @@ export function AuthPage() {
       return;
     }
 
-    if (!email || (mode !== 'forgot-password' && !password) || (mode === 'signup' && !name.trim())) {
+    if (!email || (mode !== 'forgot-password' && mode !== 'magic-link' && !password) || (mode === 'signup' && !name.trim())) {
       toast({
         title: "Error",
-        description: mode === 'forgot-password' ? "Please enter your email" : "Please fill in all fields",
+        description: (mode === 'forgot-password' || mode === 'magic-link') ? "Please enter your email" : "Please fill in all fields",
         variant: "destructive",
       });
       return;
@@ -42,7 +42,19 @@ export function AuthPage() {
 
     setLoading(true);
     try {
-      if (mode === 'forgot-password') {
+      if (mode === 'magic-link') {
+        const redirectUrl = `${window.location.origin}/`;
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: { emailRedirectTo: redirectUrl },
+        });
+        if (error) throw error;
+        toast({
+          title: "Check your email ✨",
+          description: "We've sent you a magic link to sign in"
+        });
+        setEmail("");
+      } else if (mode === 'forgot-password') {
         const redirectUrl = `${window.location.origin}/`;
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: redirectUrl,
@@ -136,6 +148,7 @@ export function AuthPage() {
     switch (mode) {
       case 'forgot-password': return 'Reset Password';
       case 'signup': return 'Create Account';
+      case 'magic-link': return 'Magic Link Sign In';
       default: return 'Welcome to ArcAI';
     }
   };
@@ -144,6 +157,7 @@ export function AuthPage() {
     switch (mode) {
       case 'forgot-password': return "Enter your email and we'll send you a reset link";
       case 'signup': return 'Create your account';
+      case 'magic-link': return "We'll email you a link to sign in — no password needed";
       default: return 'Sign in to continue';
     }
   };
@@ -153,6 +167,7 @@ export function AuthPage() {
     switch (mode) {
       case 'forgot-password': return 'Send Reset Link';
       case 'signup': return 'Sign Up';
+      case 'magic-link': return 'Send Magic Link';
       default: return 'Sign In';
     }
   };
@@ -177,8 +192,8 @@ export function AuthPage() {
       {/* Solid Black Card - no glass effects */}
       <div className="w-full max-w-md p-8 relative z-10 bg-black border border-white/10 rounded-2xl shadow-2xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          {/* Back button for forgot password */}
-          {mode === 'forgot-password' && (
+          {/* Back button for forgot password / magic link */}
+          {(mode === 'forgot-password' || mode === 'magic-link') && (
             <button
               onClick={() => setMode('login')}
               className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
@@ -254,7 +269,7 @@ export function AuthPage() {
             </div>
 
             {/* Password - only show for login/signup */}
-            {mode !== 'forgot-password' && (
+            {mode !== 'forgot-password' && mode !== 'magic-link' && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-white">Password</Label>
@@ -301,7 +316,7 @@ export function AuthPage() {
           </form>
 
           {/* Only show social login and toggle for login/signup */}
-          {mode !== 'forgot-password' && (
+          {(mode === 'login' || mode === 'signup') && (
             <>
               {/* Divider */}
               <div className="flex items-center gap-4">
@@ -309,6 +324,18 @@ export function AuthPage() {
                 <span className="text-xs text-gray-400">OR</span>
                 <Separator className="flex-1 bg-white/10" />
               </div>
+
+              {/* Magic Link */}
+              <GlassButton
+                variant="ghost"
+                onClick={() => setMode('magic-link')}
+                disabled={loading}
+                className="w-full border border-white/20"
+                type="button"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Sign in with Magic Link
+              </GlassButton>
 
               {/* Google Sign In */}
               <GlassButton
