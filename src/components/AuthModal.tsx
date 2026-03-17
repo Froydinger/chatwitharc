@@ -192,10 +192,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     </div>
                   </motion.div>
                   <h1 className="text-2xl font-bold text-white mb-2">
-                    {isMagicLink ? "Magic Link Sign In" : "Welcome to ArcAI"}
+                    Welcome to ArcAI
                   </h1>
                   <p className="text-white/60 text-sm">
-                    {isMagicLink ? "We'll email you a link to sign in — no password needed" : isLogin ? "Sign in to continue" : "Create your account"}
+                    {isLogin ? "Sign in to continue" : "Create your account"}
                   </p>
                 </div>
 
