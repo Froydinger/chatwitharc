@@ -42,7 +42,19 @@ export function AuthPage() {
 
     setLoading(true);
     try {
-      if (mode === 'forgot-password') {
+      if (mode === 'magic-link') {
+        const redirectUrl = `${window.location.origin}/`;
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: { emailRedirectTo: redirectUrl },
+        });
+        if (error) throw error;
+        toast({
+          title: "Check your email ✨",
+          description: "We've sent you a magic link to sign in"
+        });
+        setEmail("");
+      } else if (mode === 'forgot-password') {
         const redirectUrl = `${window.location.origin}/`;
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: redirectUrl,
