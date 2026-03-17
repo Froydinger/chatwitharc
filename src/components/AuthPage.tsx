@@ -10,7 +10,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowLeft, User } from "lucide-react";
 import { AppleLogo } from "@/components/icons/AppleLogo";
 import { Separator } from "@/components/ui/separator";
 
-type AuthMode = 'login' | 'signup' | 'forgot-password';
+type AuthMode = 'login' | 'signup' | 'forgot-password' | 'magic-link';
 
 export function AuthPage() {
   const [mode, setMode] = useState<AuthMode>('login');
