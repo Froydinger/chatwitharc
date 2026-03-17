@@ -199,37 +199,35 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   </p>
                 </div>
 
-                {/* Tab Switcher - hide when in magic link mode */}
-                {!isMagicLink && (
-                  <div className="flex p-1 rounded-full bg-white/5 border border-white/10">
-                    <button
-                      type="button"
-                      onClick={() => setIsLogin(true)}
-                      className={cn(
-                        "flex-1 py-2 px-4 rounded-full text-sm font-medium transition-all duration-200",
-                        isLogin
-                          ? "bg-white/10 text-white shadow-[0_0_12px_rgba(255,255,255,0.06)]"
-                          : "text-white/50 hover:text-white/70"
-                      )}
-                      disabled={loading}
-                    >
-                      Sign In
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsLogin(false)}
-                      className={cn(
-                        "flex-1 py-2 px-4 rounded-full text-sm font-medium transition-all duration-200",
-                        !isLogin
-                          ? "bg-white/10 text-white shadow-[0_0_12px_rgba(255,255,255,0.06)]"
-                          : "text-white/50 hover:text-white/70"
-                      )}
-                      disabled={loading}
-                    >
-                      Sign Up
-                    </button>
-                  </div>
-                )}
+                {/* Tab Switcher */}
+                <div className="flex p-1 rounded-full bg-white/5 border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setIsLogin(true)}
+                    className={cn(
+                      "flex-1 py-2 px-4 rounded-full text-sm font-medium transition-all duration-200",
+                      isLogin
+                        ? "bg-white/10 text-white shadow-[0_0_12px_rgba(255,255,255,0.06)]"
+                        : "text-white/50 hover:text-white/70"
+                    )}
+                    disabled={loading}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsLogin(false)}
+                    className={cn(
+                      "flex-1 py-2 px-4 rounded-full text-sm font-medium transition-all duration-200",
+                      !isLogin
+                        ? "bg-white/10 text-white shadow-[0_0_12px_rgba(255,255,255,0.06)]"
+                        : "text-white/50 hover:text-white/70"
+                    )}
+                    disabled={loading}
+                  >
+                    Sign Up
+                  </button>
+                </div>
 
                 <form onSubmit={onSubmit} className="space-y-4">
                   {/* Email */}
