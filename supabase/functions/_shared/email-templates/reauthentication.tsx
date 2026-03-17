@@ -58,7 +58,7 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
 
         <Section style={footerSection}>
           <Text style={copyright}>
-            © 2025 ArcAI by Win The Night Productions
+            © 2026 ArcAI by Win The Night Productions
           </Text>
         </Section>
       </Container>
