@@ -182,6 +182,18 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 transition={{ delay: 0.1 }}
                 className="space-y-6"
               >
+                {/* Back button for magic link */}
+                {isMagicLink && (
+                  <button
+                    onClick={() => setIsMagicLink(false)}
+                    className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
+                    type="button"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to sign in
+                  </button>
+                )}
+
                 {/* Logo */}
                 <div className="text-center">
                   <motion.div
@@ -200,8 +212,12 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       <img src="/arc-logo-ui.png" alt="ArcAI" className="h-10 w-10" />
                     </div>
                   </motion.div>
-                  <h1 className="text-2xl font-bold text-white mb-2">Welcome to ArcAI</h1>
-                  <p className="text-white/60 text-sm">{isLogin ? "Sign in to continue" : "Create your account"}</p>
+                  <h1 className="text-2xl font-bold text-white mb-2">
+                    {isMagicLink ? "Magic Link Sign In" : "Welcome to ArcAI"}
+                  </h1>
+                  <p className="text-white/60 text-sm">
+                    {isMagicLink ? "We'll email you a link to sign in — no password needed" : isLogin ? "Sign in to continue" : "Create your account"}
+                  </p>
                 </div>
 
                 {/* Tab Switcher */}
