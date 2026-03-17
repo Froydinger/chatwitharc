@@ -269,7 +269,7 @@ export function AuthPage() {
             </div>
 
             {/* Password - only show for login/signup */}
-            {mode !== 'forgot-password' && (
+            {mode !== 'forgot-password' && mode !== 'magic-link' && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-white">Password</Label>
