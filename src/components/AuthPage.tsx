@@ -192,8 +192,8 @@ export function AuthPage() {
       {/* Solid Black Card - no glass effects */}
       <div className="w-full max-w-md p-8 relative z-10 bg-black border border-white/10 rounded-2xl shadow-2xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          {/* Back button for forgot password */}
-          {mode === 'forgot-password' && (
+          {/* Back button for forgot password / magic link */}
+          {(mode === 'forgot-password' || mode === 'magic-link') && (
             <button
               onClick={() => setMode('login')}
               className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
