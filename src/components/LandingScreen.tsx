@@ -514,7 +514,7 @@ export function LandingScreen() {
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
             className="fixed left-0 right-0 z-50 glass-panel border-b border-white/10 backdrop-blur-xl"
             style={{
-              top: isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'
+              top: `calc(${(isPWAMode || isElectronApp) ? 'env(safe-area-inset-top, 0px)' : '0px'} + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'})`
             }}
           >
             <div className="flex items-center justify-between px-4 py-3 md:px-8 max-w-7xl mx-auto">
