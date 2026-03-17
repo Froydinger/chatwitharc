@@ -5,7 +5,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
-import { Mail, Lock, Eye, EyeOff, X, ArrowLeft } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AuthModalProps {
