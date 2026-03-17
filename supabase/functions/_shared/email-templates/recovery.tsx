@@ -9,8 +9,11 @@ import {
   Head,
   Heading,
   Html,
+  Img,
   Preview,
+  Section,
   Text,
+  Hr,
 } from 'npm:@react-email/components@0.0.22'
 
 interface RecoveryEmailProps {
@@ -24,21 +27,56 @@ export const RecoveryEmail = ({
 }: RecoveryEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Reset your password for {siteName}</Preview>
+    <Preview>Reset your ArcAI password 🔐</Preview>
     <Body style={main}>
-      <Container style={container}>
-        <Heading style={h1}>Reset your password</Heading>
-        <Text style={text}>
-          We received a request to reset your password for {siteName}. Click
-          the button below to choose a new password.
-        </Text>
-        <Button style={button} href={confirmationUrl}>
-          Reset Password
-        </Button>
-        <Text style={footer}>
-          If you didn't request a password reset, you can safely ignore this
-          email. Your password will not be changed.
-        </Text>
+      <Container style={outerContainer}>
+        <Section style={card}>
+          <Section style={logoSection}>
+            <Img
+              src="https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/email-assets/arc-logo-ui.png"
+              width="56"
+              height="56"
+              alt="ArcAI"
+              style={logo}
+            />
+          </Section>
+
+          <Text style={emoji}>🔐</Text>
+          <Heading style={h1}>Reset your password</Heading>
+
+          <Text style={text}>
+            We received a request to reset your ArcAI password.
+            Click below to choose a new one.
+          </Text>
+
+          <Section style={buttonContainer}>
+            <Button style={primaryButton} href={confirmationUrl}>
+              Reset Password
+            </Button>
+          </Section>
+
+          <Hr style={divider} />
+
+          <Section style={warningBox}>
+            <Text style={warningText}>
+              ⚠️ This link expires in 24 hours. If you didn't request this, please ignore this email.
+            </Text>
+          </Section>
+
+          <Text style={footerNote}>
+            If the button doesn't work, copy and paste this link:
+          </Text>
+          <Text style={linkText}>{confirmationUrl}</Text>
+        </Section>
+
+        <Section style={footerSection}>
+          <Text style={footerText}>
+            Need help? Reply to this email and we'll assist you.
+          </Text>
+          <Text style={copyright}>
+            © 2025 ArcAI by Win The Night Productions
+          </Text>
+        </Section>
       </Container>
     </Body>
   </Html>
@@ -46,26 +84,80 @@ export const RecoveryEmail = ({
 
 export default RecoveryEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
+const colors = {
+  body: '#ffffff',
+  surface: '#1a1a2e',
+  primary: '#0080f0',
+  primaryGlow: '#2e9beb',
+  textLight: '#f0f0f5',
+  textSecondary: '#a8a8b3',
+  textMuted: '#71717a',
+  border: '#2e2e42',
+  warningBg: '#2e1a00',
+  warningColor: '#f59e0b',
+}
+
+const main = {
+  backgroundColor: colors.body,
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+}
+
+const outerContainer = { margin: '0 auto', padding: '40px 20px', maxWidth: '600px' }
+
+const card = {
+  backgroundColor: colors.surface,
+  borderRadius: '16px',
+  padding: '40px 32px',
+  textAlign: 'center' as const,
+}
+
+const logoSection = { marginBottom: '16px', textAlign: 'center' as const }
+const logo = { margin: '0 auto', borderRadius: '12px' }
+const emoji = { fontSize: '42px', margin: '0 0 8px' }
+
 const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
+  color: colors.textLight,
+  fontSize: '26px',
+  fontWeight: '600' as const,
+  margin: '0 0 16px',
 }
+
 const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
+  color: colors.textSecondary,
+  fontSize: '15px',
+  lineHeight: '24px',
+  margin: '0 0 28px',
 }
-const button = {
-  backgroundColor: '#000000',
+
+const buttonContainer = { margin: '0 0 28px', textAlign: 'center' as const }
+
+const primaryButton = {
+  background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryGlow} 100%)`,
+  borderRadius: '12px',
   color: '#ffffff',
-  fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
+  fontSize: '16px',
+  fontWeight: '600' as const,
   textDecoration: 'none',
+  textAlign: 'center' as const,
+  display: 'inline-block',
+  padding: '14px 40px',
+  border: 'none',
 }
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+
+const divider = { borderColor: colors.border, margin: '0 0 20px' }
+
+const warningBox = {
+  backgroundColor: colors.warningBg,
+  border: `1px solid ${colors.warningColor}40`,
+  borderRadius: '12px',
+  padding: '14px 18px',
+  marginBottom: '20px',
+  textAlign: 'left' as const,
+}
+
+const warningText = { color: colors.warningColor, fontSize: '13px', lineHeight: '20px', margin: '0' }
+const footerNote = { color: colors.textMuted, fontSize: '12px', margin: '0 0 8px' }
+const linkText = { color: colors.primary, fontSize: '11px', wordBreak: 'break-all' as const, margin: '0' }
+const footerSection = { paddingTop: '24px', textAlign: 'center' as const }
+const footerText = { color: colors.textMuted, fontSize: '13px', margin: '0 0 8px' }
+const copyright = { color: '#999999', fontSize: '12px', margin: '0' }
