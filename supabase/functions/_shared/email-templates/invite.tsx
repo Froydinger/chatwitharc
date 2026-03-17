@@ -70,7 +70,7 @@ export const InviteEmail = ({
             If you weren't expecting this invitation, you can safely ignore this email.
           </Text>
           <Text style={copyright}>
-            © 2025 ArcAI by Win The Night Productions
+            © 2026 ArcAI by Win The Night Productions
           </Text>
         </Section>
       </Container>

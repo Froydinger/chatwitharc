@@ -71,7 +71,7 @@ export const SignupEmail = ({
             If you didn't create an account, you can safely ignore this email.
           </Text>
           <Text style={copyright}>
-            © 2025 ArcAI by Win The Night Productions
+            © 2026 ArcAI by Win The Night Productions
           </Text>
         </Section>
       </Container>

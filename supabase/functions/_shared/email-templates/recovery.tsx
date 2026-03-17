@@ -74,7 +74,7 @@ export const RecoveryEmail = ({
             Need help? Reply to this email and we'll assist you.
           </Text>
           <Text style={copyright}>
-            © 2025 ArcAI by Win The Night Productions
+            © 2026 ArcAI by Win The Night Productions
           </Text>
         </Section>
       </Container>
