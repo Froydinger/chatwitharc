@@ -380,10 +380,6 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     Continue with Google
                   </GlassButton>
                 </motion.div>
-                    </svg>
-                    Continue with Google
-                  </GlassButton>
-                </motion.div>
 
               </motion.div>
             </div>
