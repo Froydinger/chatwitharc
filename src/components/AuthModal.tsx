@@ -263,46 +263,44 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     </div>
                   </div>
 
-                  {/* Password - hide for magic link */}
-                  {!isMagicLink && (
-                    <div className="space-y-2">
-                      <label htmlFor="password" className="text-sm font-medium text-white/80">Password</label>
-                      <div className="relative group">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 transition-colors group-focus-within:text-blue-400" />
-                        <input
-                          id="password"
-                          name="password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Enter your password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className={cn(
-                            "w-full h-12 pl-10 pr-10 rounded-xl",
-                            "bg-white/5 border border-white/10",
-                            "backdrop-blur-sm text-white placeholder:text-white/40",
-                            "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50",
-                            "transition-all duration-200",
-                            "hover:bg-white/[0.07] hover:border-white/20",
-                            "autofill:bg-black autofill:text-white autofill:shadow-[inset_0_0_0px_1000px_rgb(0,0,0)]"
-                          )}
-                          disabled={loading}
-                          autoComplete={isLogin ? "current-password" : "new-password"}
-                          required
-                        />
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
-                          aria-label={showPassword ? "Hide password" : "Show password"}
-                          tabIndex={-1}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </motion.button>
-                      </div>
+                  {/* Password */}
+                  <div className="space-y-2">
+                    <label htmlFor="password" className="text-sm font-medium text-white/80">Password</label>
+                    <div className="relative group">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 transition-colors group-focus-within:text-blue-400" />
+                      <input
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={cn(
+                          "w-full h-12 pl-10 pr-10 rounded-xl",
+                          "bg-white/5 border border-white/10",
+                          "backdrop-blur-sm text-white placeholder:text-white/40",
+                          "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50",
+                          "transition-all duration-200",
+                          "hover:bg-white/[0.07] hover:border-white/20",
+                          "autofill:bg-black autofill:text-white autofill:shadow-[inset_0_0_0px_1000px_rgb(0,0,0)]"
+                        )}
+                        disabled={loading}
+                        autoComplete={isLogin ? "current-password" : "new-password"}
+                        required
+                      />
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </motion.button>
                     </div>
-                  )}
+                  </div>
 
                   <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                     <GlassButton 
