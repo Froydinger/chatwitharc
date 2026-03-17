@@ -167,6 +167,7 @@ export function AuthPage() {
     switch (mode) {
       case 'forgot-password': return 'Send Reset Link';
       case 'signup': return 'Sign Up';
+      case 'magic-link': return 'Send Magic Link';
       default: return 'Sign In';
     }
   };
