@@ -450,14 +450,15 @@ export function VoiceModeOverlay() {
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ delay: 0.1 }}
               onClick={deactivateVoiceMode}
-              className="absolute top-6 right-6 z-10 p-3 rounded-full glass-shimmer hover:bg-muted/50 transition-colors"
+              className="absolute right-6 z-10 p-3 rounded-full glass-shimmer hover:bg-muted/50 transition-colors"
+              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)' }}
               aria-label="Close voice mode"
             >
               <X className="w-6 h-6 text-foreground" />
             </motion.button>
 
             {/* Top-right action buttons: Camera, Attachment */}
-            <div className="absolute top-6 right-20 z-10 flex items-center gap-2">
+            <div className="absolute right-20 z-10 flex items-center gap-2" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)' }}>
               {/* Attachment button */}
               <motion.button
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -514,11 +515,12 @@ export function VoiceModeOverlay() {
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ delay: 0.15 }}
               onClick={handleMuteToggle}
-              className={`absolute top-6 left-6 z-10 p-3 rounded-full glass-shimmer transition-colors ${
-                isMuted 
-                  ? 'bg-destructive/20 hover:bg-destructive/30' 
+              className={`absolute left-6 z-10 p-3 rounded-full glass-shimmer transition-colors ${
+                isMuted
+                  ? 'bg-destructive/20 hover:bg-destructive/30'
                   : 'hover:bg-muted/50'
               }`}
+              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)' }}
               aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
             >
               {isMuted ? (
