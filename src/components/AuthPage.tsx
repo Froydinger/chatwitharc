@@ -31,10 +31,10 @@ export function AuthPage() {
       return;
     }
 
-    if (!email || (mode !== 'forgot-password' && !password) || (mode === 'signup' && !name.trim())) {
+    if (!email || (mode !== 'forgot-password' && mode !== 'magic-link' && !password) || (mode === 'signup' && !name.trim())) {
       toast({
         title: "Error",
-        description: mode === 'forgot-password' ? "Please enter your email" : "Please fill in all fields",
+        description: (mode === 'forgot-password' || mode === 'magic-link') ? "Please enter your email" : "Please fill in all fields",
         variant: "destructive",
       });
       return;
