@@ -686,7 +686,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     const editHandler = (ev: Event) => {
       const e = ev as CustomEvent<{ content: string; baseImageUrl: string | string[]; additionalImages?: string[]; editInstruction: string; imageModel?: string }>;
       if (!e?.detail) return;
-      handleExternalImageEdit(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction, e.detail.imageModel, e.detail.additionalImages);
+      handleExternalImageEditRef.current(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction, e.detail.imageModel, e.detail.additionalImages);
     };
     const editedMessageHandler = (ev: Event) => {
       const e = ev as CustomEvent<{ content: string; editedMessageId: string }>;
@@ -703,7 +703,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       window.removeEventListener("processImageEdit", editHandler as EventListener);
       window.removeEventListener("processEditedMessage", editedMessageHandler as EventListener);
     };
-  }, [handleEditedMessage, handleExternalImageEdit]);
+  }, [handleEditedMessage]);
 
   /* ---------- External image edit (modal) ---------- */
   const handleExternalImageEdit = async (
