@@ -377,9 +377,9 @@ serve(async (req) => {
     }
 
     // Validate message count (prevent DoS)
-    if (messages.length > 100) {
+    if (messages.length > 50) {
       return new Response(
-        JSON.stringify({ error: 'Too many messages (max 100)' }),
+        JSON.stringify({ error: 'Too many messages (max 50)' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -400,15 +400,30 @@ serve(async (req) => {
       }
 
       // Limit message content length (prevent DoS)
-      if (typeof msg.content === 'string' && msg.content.length > 50000) {
+      if (typeof msg.content === 'string' && msg.content.length > 15000) {
         return new Response(
-          JSON.stringify({ error: 'Message content too long (max 50000 characters)' }),
+          JSON.stringify({ error: 'Message content too long (max 15,000 characters)' }),
           {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         );
       }
+    }
+
+    // Total payload size guard (prevent memory exhaustion)
+    const totalPayloadSize = messages.reduce((sum: number, msg: any) => {
+      const contentLen = typeof msg.content === 'string' ? msg.content.length : JSON.stringify(msg.content || '').length;
+      return sum + contentLen;
+    }, 0);
+    if (totalPayloadSize > 200_000) {
+      return new Response(
+        JSON.stringify({ error: 'Total message payload too large (max 200,000 characters)' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Validate model if provided
