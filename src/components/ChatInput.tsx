@@ -352,6 +352,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const [isActive, setIsActive] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
+  // Ref to always point to latest handleExternalImageEdit (avoids stale closures in event listeners)
+  const handleExternalImageEditRef = useRef<(...args: any[]) => void>(() => {});
+
   // Tiles menu
   const [showMenu, setShowMenu] = useState(false);
    const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -686,7 +689,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     const editHandler = (ev: Event) => {
       const e = ev as CustomEvent<{ content: string; baseImageUrl: string | string[]; additionalImages?: string[]; editInstruction: string; imageModel?: string }>;
       if (!e?.detail) return;
-      handleExternalImageEdit(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction, e.detail.imageModel, e.detail.additionalImages);
+      handleExternalImageEditRef.current(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction, e.detail.imageModel, e.detail.additionalImages);
     };
     const editedMessageHandler = (ev: Event) => {
       const e = ev as CustomEvent<{ content: string; editedMessageId: string }>;
@@ -713,7 +716,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     imageModel?: string,
     additionalImages?: string[],
   ) => {
-    if (isGeneratingImage) return;
+    // Read fresh from store to avoid stale closure issues
+    if (useArcStore.getState().isGeneratingImage) return;
     try {
       const ai = new AIService();
       setGeneratingImage(true);
@@ -779,8 +783,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     }
   };
 
+  // Keep ref in sync so event listeners always call the latest version
+  handleExternalImageEditRef.current = handleExternalImageEdit;
 
-  /* ---------- Submit ---------- */
+
   const handleSend = async (messageOverride?: string) => {
     const messageToSend = messageOverride ?? inputValue;
     if ((!messageToSend.trim() && selectedImages.length === 0 && selectedDocuments.length === 0) || isLoading) return;
