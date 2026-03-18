@@ -703,7 +703,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       window.removeEventListener("processImageEdit", editHandler as EventListener);
       window.removeEventListener("processEditedMessage", editedMessageHandler as EventListener);
     };
-  }, [handleEditedMessage]);
+  }, [handleEditedMessage, handleExternalImageEdit]);
 
   /* ---------- External image edit (modal) ---------- */
   const handleExternalImageEdit = async (
