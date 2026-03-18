@@ -377,9 +377,9 @@ serve(async (req) => {
     }
 
     // Validate message count (prevent DoS)
-    if (messages.length > 100) {
+    if (messages.length > 50) {
       return new Response(
-        JSON.stringify({ error: 'Too many messages (max 100)' }),
+        JSON.stringify({ error: 'Too many messages (max 50)' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
