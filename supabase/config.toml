@@ -5,5 +5,3 @@ project_id = "jxywhodnndagbsmnbnnw"
     verify_jwt = false
   [functions.process-email-queue]
     verify_jwt = true
-  [functions.arc-context-api]
-    verify_jwt = false
