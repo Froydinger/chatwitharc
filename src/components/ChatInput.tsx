@@ -783,8 +783,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     }
   };
 
+  // Keep ref in sync so event listeners always call the latest version
+  handleExternalImageEditRef.current = handleExternalImageEdit;
 
-  /* ---------- Submit ---------- */
+
   const handleSend = async (messageOverride?: string) => {
     const messageToSend = messageOverride ?? inputValue;
     if ((!messageToSend.trim() && selectedImages.length === 0 && selectedDocuments.length === 0) || isLoading) return;
