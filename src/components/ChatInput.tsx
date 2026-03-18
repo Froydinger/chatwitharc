@@ -713,7 +713,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     imageModel?: string,
     additionalImages?: string[],
   ) => {
-    if (isGeneratingImage) return;
+    // Read fresh from store to avoid stale closure issues
+    if (useArcStore.getState().isGeneratingImage) return;
     try {
       const ai = new AIService();
       setGeneratingImage(true);
