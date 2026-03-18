@@ -284,7 +284,34 @@ serve(async (req) => {
       });
     }
 
-    const data = await response.json();
+    let data: any;
+    try {
+      const rawText = await response.text();
+      console.log('Image editing raw response length:', rawText.length);
+      if (!rawText || rawText.trim() === '') {
+        return new Response(JSON.stringify({
+          error: 'The image model returned an empty response. Please try again.',
+          errorType: 'empty_response',
+          debugDetail: 'Response body was empty despite 200 status',
+          success: false
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      data = JSON.parse(rawText);
+    } catch (parseErr) {
+      console.error('Failed to parse edit-image response:', parseErr);
+      return new Response(JSON.stringify({
+        error: 'The image model returned an invalid response. Please try again.',
+        errorType: 'parse_error',
+        debugDetail: `Response read/parse failed: ${parseErr instanceof Error ? parseErr.message : 'unknown'}`,
+        success: false
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     console.log('Image editing response received');
 
     const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
