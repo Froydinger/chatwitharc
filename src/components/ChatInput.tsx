@@ -352,6 +352,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const [isActive, setIsActive] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
+  // Ref to always point to latest handleExternalImageEdit (avoids stale closures in event listeners)
+  const handleExternalImageEditRef = useRef<(...args: any[]) => void>(() => {});
+
   // Tiles menu
   const [showMenu, setShowMenu] = useState(false);
    const menuButtonRef = useRef<HTMLButtonElement>(null);
