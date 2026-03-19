@@ -18,6 +18,8 @@ const features = [
   { name: "Voice Mode", free: "3 sessions/day", pro: "Unlimited", icon: Mic },
   { name: "Unlimited Image Generation", free: "5 images/day", pro: "Unlimited", icon: Image },
   { name: "Choose Your Model (GPT or Gemini)", free: false, pro: true, icon: Sparkles },
+  { name: "ArcNotes (Substack Pro)", free: false, pro: true, icon: Sparkles },
+  { name: "Arcana Notes (AI Notes App Pro)", free: false, pro: true, icon: Sparkles },
 ];
 
 export function PricingPage() {
