@@ -788,6 +788,7 @@ export function MobileChatApp() {
           >
             {/* Spacer for header */}
             <div style={{ paddingTop: "5rem" }} />
+            <PaymentFailureBanner />
 
             {/* Empty state or hydrating state */}
             {messages.length === 0 ? (
