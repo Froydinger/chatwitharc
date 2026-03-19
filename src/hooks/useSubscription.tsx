@@ -52,6 +52,7 @@ interface SubscriptionState {
   isSubscribed: boolean;
   productId: string | null;
   subscriptionEnd: string | null;
+  paymentStatus: 'ok' | 'past_due' | 'none';
   loading: boolean;
   // Limits
   dailyMessagesUsed: number;
