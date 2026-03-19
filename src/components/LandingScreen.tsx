@@ -1101,7 +1101,7 @@ export function LandingScreen() {
               <ul className="space-y-2 text-sm text-gray-300">
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <strong>Unlimited</strong> messages, voice & images</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <Headphones className="w-3 h-3 inline" /> Built-in music player</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> ArcNotes & Arcana Notes Pro included</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> ArcNotes™ Pro & Arcana™ Notes Pro included</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Everything in Free</li>
               </ul>
               <button
