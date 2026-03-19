@@ -18,6 +18,8 @@ const features = [
   { name: "Voice Mode", free: "3 sessions/day", pro: "Unlimited", icon: Mic },
   { name: "Unlimited Image Generation", free: "5 images/day", pro: "Unlimited", icon: Image },
   { name: "Choose Your Model (GPT or Gemini)", free: false, pro: true, icon: Sparkles },
+  { name: "ArcNotes (Substack Pro)", free: false, pro: true, icon: Sparkles },
+  { name: "Arcana Notes (AI Notes App Pro)", free: false, pro: true, icon: Sparkles },
 ];
 
 export function PricingPage() {
@@ -141,12 +143,16 @@ export function PricingPage() {
                     <h3 className="text-lg font-semibold text-foreground">Pro</h3>
                     <Crown className="w-4 h-4 text-primary" />
                   </div>
-                  <div className="mt-2 flex items-baseline gap-1">
+                  <div className="mt-2 flex items-baseline gap-2">
                     <span className="text-4xl font-bold text-foreground">$8</span>
+                    <span className="text-lg text-muted-foreground line-through">$12</span>
                     <span className="text-muted-foreground text-sm">/month</span>
                   </div>
+                  <p className="text-xs text-primary font-medium mt-1">
+                    Launch pricing — save $4/mo until May 1
+                  </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Unlimited everything. No limits, ever.
+                    Unlimited everything. Includes ArcNotes &amp; Arcana Notes Pro.
                   </p>
                 </div>
 
@@ -157,6 +163,8 @@ export function PricingPage() {
                     { text: "Unlimited messages", bold: true },
                     { text: "Unlimited voice sessions", bold: true },
                     { text: "Switch between AI models", bold: true },
+                    { text: "ArcNotes Pro (arcnotes.pro)", bold: true },
+                    { text: "Arcana Notes Pro included", bold: true },
                     { text: "Everything in Free", bold: false },
                     { text: "Priority support", bold: false },
                   ].map(({ text, bold }) => (

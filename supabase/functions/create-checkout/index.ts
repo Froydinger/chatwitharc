@@ -52,10 +52,11 @@ serve(async (req) => {
         customer_email: customerId ? undefined : user.email,
         line_items: [
           {
-            price: "price_1T6L7QAB32948AKDfYOiwbCy",
+            price: "price_1TCXWdAB32948AKD4SFikT2q",
             quantity: 1,
           },
         ],
+        discounts: [{ coupon: "M7Wa63eA" }],
         mode: "subscription",
         ui_mode: "embedded",
         return_url: `${origin}/?checkout=success`,
@@ -72,10 +73,11 @@ serve(async (req) => {
         customer_email: customerId ? undefined : user.email,
         line_items: [
           {
-            price: "price_1T6L7QAB32948AKDfYOiwbCy",
+            price: "price_1TCXWdAB32948AKD4SFikT2q",
             quantity: 1,
           },
         ],
+        discounts: [{ coupon: "M7Wa63eA" }],
         mode: "subscription",
         success_url: `${origin}/`,
         cancel_url: `${origin}/`,
