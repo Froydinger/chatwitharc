@@ -166,8 +166,8 @@ export function PricingPage() {
                   <div className="mt-2 flex items-baseline gap-2">
                     {billingInterval === "yearly" ? (
                       <>
-                        <span className="text-4xl font-bold text-foreground">$8.64</span>
-                        <span className="text-lg text-muted-foreground line-through">$10.80</span>
+                        <span className="text-4xl font-bold text-foreground">$9.60</span>
+                        <span className="text-lg text-muted-foreground line-through">$12</span>
                         <span className="text-muted-foreground text-sm">/month</span>
                       </>
                     ) : (
@@ -179,7 +179,7 @@ export function PricingPage() {
                   </div>
                   {billingInterval === "yearly" ? (
                     <p className="text-xs text-primary font-medium mt-1">
-                      $103.68 billed today · 20% off annual billing
+                      $115.20 billed today · 20% off annual billing
                     </p>
                   ) : (
                     <p className="text-xs text-primary font-medium mt-1">
