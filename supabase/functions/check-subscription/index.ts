@@ -64,25 +64,33 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
-    const subscriptions = await stripe.subscriptions.list({
+    // Check for active subscriptions first
+    const activeSubscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
       limit: 1,
     });
 
-    const hasActiveSub = subscriptions.data.length > 0;
+    // Also check for past_due subscriptions (payment failed but not yet canceled)
+    const pastDueSubscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "past_due",
+      limit: 1,
+    });
+
+    const hasActiveSub = activeSubscriptions.data.length > 0;
+    const hasPastDueSub = pastDueSubscriptions.data.length > 0;
+    const subscription = hasActiveSub 
+      ? activeSubscriptions.data[0] 
+      : hasPastDueSub 
+        ? pastDueSubscriptions.data[0] 
+        : null;
+
     let productId = null;
     let subscriptionEnd = null;
+    let paymentStatus: "ok" | "past_due" | "none" = "none";
 
-    if (hasActiveSub) {
-      const subscription = subscriptions.data[0];
-      logStep("Raw subscription data", { 
-        id: subscription.id, 
-        current_period_end: subscription.current_period_end,
-        type: typeof subscription.current_period_end 
-      });
-      
-      // Handle current_period_end safely - it may be a number (unix timestamp) or string
+    if (subscription) {
       try {
         const periodEnd = subscription.current_period_end;
         if (typeof periodEnd === 'number' && periodEnd > 0) {
@@ -93,17 +101,25 @@ serve(async (req) => {
       } catch (e) {
         logStep("Could not parse period end, skipping", { raw: subscription.current_period_end });
       }
-      
+
       productId = subscription.items.data[0]?.price?.product || null;
-      logStep("Active subscription found", { subscriptionEnd, productId });
+
+      if (hasActiveSub) {
+        paymentStatus = "ok";
+        logStep("Active subscription found", { subscriptionEnd, productId });
+      } else {
+        paymentStatus = "past_due";
+        logStep("Past due subscription found", { subscriptionEnd, productId });
+      }
     } else {
-      logStep("No active subscription");
+      logStep("No active or past_due subscription");
     }
 
     return new Response(JSON.stringify({
-      subscribed: hasActiveSub,
+      subscribed: hasActiveSub || hasPastDueSub, // Keep access during past_due (grace period)
       product_id: productId,
       subscription_end: subscriptionEnd,
+      payment_status: paymentStatus,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

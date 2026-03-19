@@ -52,6 +52,7 @@ interface SubscriptionState {
   isSubscribed: boolean;
   productId: string | null;
   subscriptionEnd: string | null;
+  paymentStatus: 'ok' | 'past_due' | 'none';
   loading: boolean;
   // Limits
   dailyMessagesUsed: number;
@@ -84,6 +85,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [isAdmin, setIsAdmin] = useState(false);
   const [productId, setProductId] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<'ok' | 'past_due' | 'none'>('none');
   const [loading, setLoading] = useState(true);
   const [dailyMessagesUsed, setDailyMessagesUsed] = useState(() => getDailyCount(DAILY_MSG_KEY));
   const [dailyVoiceSessionsUsed, setDailyVoiceSessionsUsed] = useState(() => getDailyCount(DAILY_VOICE_KEY));
@@ -118,6 +120,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setIsSubscribed(data?.subscribed || false);
       setProductId(data?.product_id || null);
       setSubscriptionEnd(data?.subscription_end || null);
+      setPaymentStatus(data?.payment_status || 'none');
     } catch (err) {
       console.error('Failed to check subscription:', err);
       setIsSubscribed(false);
@@ -195,6 +198,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       isSubscribed: isSubscribed || isAdmin,
       productId,
       subscriptionEnd,
+      paymentStatus,
       loading,
       dailyMessagesUsed,
       dailyVoiceSessionsUsed,

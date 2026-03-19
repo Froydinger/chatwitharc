@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "@/components/ChatInput";
 import { MusicPopup } from "@/components/MusicPopup";
 import { useMusicStore } from "@/store/useMusicStore";
+import { PaymentFailureBanner } from "@/components/PaymentFailureBanner";
 
 type DashboardTab = "overview" | "chats" | "images" | "apps" | "memories";
 
@@ -317,6 +318,7 @@ useEffect(() => {
         paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px) + 15px)',
       }}
     >
+      <PaymentFailureBanner />
       <div className="w-full px-4 sm:px-6 pt-3 sm:pt-4 pb-8 sm:pb-12 space-y-6 sm:space-y-8">
 
         {/* ═══ HEADER with ambient glow ═══ */}
