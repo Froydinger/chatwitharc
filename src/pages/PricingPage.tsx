@@ -27,6 +27,7 @@ export function PricingPage() {
   const subscription = useSubscription();
   const [showAuth, setShowAuth] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
 
   const handleUpgrade = () => {
     if (!user) {
@@ -60,6 +61,25 @@ export function PricingPage() {
             Start free with generous limits. Upgrade when you need more.
           </p>
         </motion.div>
+
+        {/* Billing Toggle */}
+        <div className="flex items-center justify-center gap-3 mb-10">
+          <button
+            onClick={() => setBillingInterval("monthly")}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${billingInterval === "monthly" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:text-foreground"}`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setBillingInterval("yearly")}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${billingInterval === "yearly" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:text-foreground"}`}
+          >
+            Yearly
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${billingInterval === "yearly" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/15 text-primary"}`}>
+              Save 19%
+            </span>
+          </button>
+        </div>
 
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-2 gap-6 mb-16">
@@ -144,13 +164,26 @@ export function PricingPage() {
                     <Crown className="w-4 h-4 text-primary" />
                   </div>
                   <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-4xl font-bold text-foreground">$8</span>
+                    <span className="text-4xl font-bold text-foreground">
+                      {billingInterval === "monthly" ? "$8" : "$9.72"}
+                    </span>
                     <span className="text-lg text-muted-foreground line-through">$12</span>
                     <span className="text-muted-foreground text-sm">/month</span>
                   </div>
-                  <p className="text-xs text-primary font-medium mt-1">
-                    Launch pricing — save $4/mo until May 1
-                  </p>
+                  {billingInterval === "yearly" ? (
+                    <>
+                      <p className="text-xs text-primary font-medium mt-1">
+                        $116.64/yr — launch + annual savings until May 1
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        10% annual discount + 10% launch discount applied
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-primary font-medium mt-1">
+                      Launch pricing — save $4/mo until May 1
+                    </p>
+                  )}
                   <p className="text-sm text-muted-foreground mt-2">
                     Unlimited everything. Includes ArcNotes &amp; Arcana Notes Pro.
                   </p>
@@ -284,7 +317,7 @@ export function PricingPage() {
                 >
                   <X className="w-4 h-4" />
                 </button>
-                <EmbeddedCheckoutForm />
+                <EmbeddedCheckoutForm interval={billingInterval} />
               </div>
             </motion.div>
           </motion.div>

@@ -10,14 +10,18 @@ const stripePromise = loadStripe(
   "pk_live_51Qdlh0AB32948AKDzlRswkYwSIWl6tXNItf8bxQT8fkbCk0GEhFhIWIIMTJDzRZgq69t7x0atykPasYRDopG0p6M00ceEJA4Vu"
 );
 
-export function EmbeddedCheckoutForm() {
+interface EmbeddedCheckoutFormProps {
+  interval?: "monthly" | "yearly";
+}
+
+export function EmbeddedCheckoutForm({ interval = "monthly" }: EmbeddedCheckoutFormProps) {
   const fetchClientSecret = useCallback(async () => {
     const { data, error } = await supabase.functions.invoke("create-checkout", {
-      body: { embedded: true },
+      body: { embedded: true, interval },
     });
     if (error) throw error;
     return data.clientSecret;
-  }, []);
+  }, [interval]);
 
   return (
     <div className="w-full min-h-[400px]">

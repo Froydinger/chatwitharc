@@ -7,6 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const MONTHLY_PRICE_ID = "price_1TCXWdAB32948AKD4SFikT2q";
+const YEARLY_PRICE_ID = "price_1TCXaOAB32948AKDM21FdATf";
+const MONTHLY_COUPON = "M7Wa63eA";
+const YEARLY_COUPON = "JvA9kQgO";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -36,27 +41,26 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://chatwitharc.lovable.app";
 
-    // Parse request body to check for embedded mode
+    // Parse request body
     let useEmbedded = false;
+    let billingInterval = "monthly";
     try {
       const body = await req.json();
       useEmbedded = body?.embedded === true;
+      if (body?.interval === "yearly") billingInterval = "yearly";
     } catch {
-      // No body or invalid JSON — default to redirect mode
+      // No body or invalid JSON — defaults
     }
 
+    const priceId = billingInterval === "yearly" ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
+    const coupon = billingInterval === "yearly" ? YEARLY_COUPON : MONTHLY_COUPON;
+
     if (useEmbedded) {
-      // Embedded checkout mode — return client_secret
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         customer_email: customerId ? undefined : user.email,
-        line_items: [
-          {
-            price: "price_1TCXWdAB32948AKD4SFikT2q",
-            quantity: 1,
-          },
-        ],
-        discounts: [{ coupon: "M7Wa63eA" }],
+        line_items: [{ price: priceId, quantity: 1 }],
+        discounts: [{ coupon }],
         mode: "subscription",
         ui_mode: "embedded",
         return_url: `${origin}/?checkout=success`,
@@ -67,17 +71,11 @@ serve(async (req) => {
         status: 200,
       });
     } else {
-      // Redirect checkout mode (legacy)
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         customer_email: customerId ? undefined : user.email,
-        line_items: [
-          {
-            price: "price_1TCXWdAB32948AKD4SFikT2q",
-            quantity: 1,
-          },
-        ],
-        discounts: [{ coupon: "M7Wa63eA" }],
+        line_items: [{ price: priceId, quantity: 1 }],
+        discounts: [{ coupon }],
         mode: "subscription",
         success_url: `${origin}/`,
         cancel_url: `${origin}/`,
