@@ -187,7 +187,7 @@ export function PricingPage() {
                     </p>
                   )}
                   <p className="text-sm text-muted-foreground mt-2">
-                    Unlimited everything. Includes ArcNotes™ &amp; Arcana™ Notes Pro.
+                    Unlimited everything. Includes Pro access to all current and future Win The Night™ Apps.
                   </p>
                 </div>
 
