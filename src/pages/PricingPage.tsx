@@ -27,6 +27,7 @@ export function PricingPage() {
   const subscription = useSubscription();
   const [showAuth, setShowAuth] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
 
   const handleUpgrade = () => {
     if (!user) {
