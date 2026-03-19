@@ -179,7 +179,7 @@ export function PricingPage() {
                   </div>
                   {billingInterval === "yearly" ? (
                     <p className="text-xs text-primary font-medium mt-1">
-                      $103.68/yr — 20% off annual billing
+                      $103.68 billed today · 20% off annual billing
                     </p>
                   ) : (
                     <p className="text-xs text-primary font-medium mt-1">
