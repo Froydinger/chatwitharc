@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const MONTHLY_PRICE_ID = "price_1TCXWdAB32948AKD4SFikT2q";
-const YEARLY_PRICE_ID = "price_1TCXaOAB32948AKDM21FdATf";
+const YEARLY_PRICE_ID = "price_1TCXj8AB32948AKDFFUm8UKj";
 const YEARLY_COUPON = "9v4Flk8g";
 
 serve(async (req) => {
