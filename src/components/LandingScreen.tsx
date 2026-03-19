@@ -1094,7 +1094,7 @@ export function LandingScreen() {
                 </div>
                 <p className="text-xs text-cyan-400 font-medium mt-1">7-day free trial · cancel anytime</p>
                 <p className="text-[11px] text-gray-500 mt-0.5">
-                  Or yearly: <span className="text-white font-medium">$8.64/mo</span> — $103.68 billed today, save 20%
+                  Or yearly: <span className="text-white font-medium">$9.60/mo</span> — $115.20 billed today, save 20%
                 </p>
               </div>
               <ul className="space-y-2 text-sm text-gray-300">
