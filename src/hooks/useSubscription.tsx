@@ -120,6 +120,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setIsSubscribed(data?.subscribed || false);
       setProductId(data?.product_id || null);
       setSubscriptionEnd(data?.subscription_end || null);
+      setPaymentStatus(data?.payment_status || 'none');
     } catch (err) {
       console.error('Failed to check subscription:', err);
       setIsSubscribed(false);
