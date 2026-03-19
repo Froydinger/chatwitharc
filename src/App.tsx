@@ -83,6 +83,7 @@ const App = () => {
               errorStack={errorStack}
             />
             <BrowserRouter>
+              <ScrollToTop />
               <PageTransition>
                 <Routes>
                   <Route path="/" element={<Index />} />
