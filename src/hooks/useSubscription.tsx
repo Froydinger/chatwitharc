@@ -85,6 +85,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [isAdmin, setIsAdmin] = useState(false);
   const [productId, setProductId] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<'ok' | 'past_due' | 'none'>('none');
   const [loading, setLoading] = useState(true);
   const [dailyMessagesUsed, setDailyMessagesUsed] = useState(() => getDailyCount(DAILY_MSG_KEY));
   const [dailyVoiceSessionsUsed, setDailyVoiceSessionsUsed] = useState(() => getDailyCount(DAILY_VOICE_KEY));
