@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, createContext, useContext } from 'rea
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-const ARCAI_PRO_PRODUCT_ID = 'prod_U4U5QGmibWU8wD';
-const ARCAI_PRO_PRICE_ID = 'price_1T6L7QAB32948AKDfYOiwbCy';
+const ARCAI_PRO_PRODUCT_ID = 'prod_UAtIOiu4df3Rso';
+const ARCAI_PRO_PRICE_ID = 'price_1TCXWdAB32948AKD4SFikT2q';
 
 // Daily limits for free users
 const FREE_DAILY_MESSAGE_LIMIT = 30;
