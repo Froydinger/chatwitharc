@@ -185,7 +185,7 @@ export function PricingPage() {
                     </p>
                   )}
                   <p className="text-sm text-muted-foreground mt-2">
-                    Unlimited everything. Includes ArcNotes &amp; Arcana Notes Pro.
+                    Unlimited everything. Includes ArcNotes™ &amp; Arcana™ Notes Pro.
                   </p>
                 </div>
 
