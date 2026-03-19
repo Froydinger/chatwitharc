@@ -1051,7 +1051,7 @@ export function LandingScreen() {
               </span>
             </h2>
             <p className="text-gray-400 max-xl mx-auto text-lg">
-              Arc is free. If you like what you see, Pro unlocks unlimited everything — voice, images, music, ArcNotes, Arcana Notes, the works. Launch pricing: <span className="text-white font-semibold">$8/mo</span> <span className="line-through text-gray-500">$12</span> or <span className="text-white font-semibold">$9.72/mo</span> yearly. No catch.
+              Arc is free. If you like what you see, Pro unlocks unlimited everything — voice, images, music, ArcNotes™, Arcana™ Notes, the works. Launch pricing: <span className="text-white font-semibold">$8/mo</span> <span className="line-through text-gray-500">$12</span> or <span className="text-white font-semibold">$9.72/mo</span> yearly. No catch.
             </p>
           </motion.div>
 
@@ -1101,7 +1101,7 @@ export function LandingScreen() {
               <ul className="space-y-2 text-sm text-gray-300">
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <strong>Unlimited</strong> messages, voice & images</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <Headphones className="w-3 h-3 inline" /> Built-in music player</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> ArcNotes & Arcana Notes Pro included</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> ArcNotes™ Pro & Arcana™ Notes Pro included</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Everything in Free</li>
               </ul>
               <button
