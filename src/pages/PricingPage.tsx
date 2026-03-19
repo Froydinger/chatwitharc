@@ -76,7 +76,7 @@ export function PricingPage() {
           >
             Yearly
             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${billingInterval === "yearly" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/15 text-primary"}`}>
-              Save 19%
+              Save 20%
             </span>
           </button>
         </div>
