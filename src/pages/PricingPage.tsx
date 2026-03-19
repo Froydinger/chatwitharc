@@ -143,12 +143,16 @@ export function PricingPage() {
                     <h3 className="text-lg font-semibold text-foreground">Pro</h3>
                     <Crown className="w-4 h-4 text-primary" />
                   </div>
-                  <div className="mt-2 flex items-baseline gap-1">
+                  <div className="mt-2 flex items-baseline gap-2">
                     <span className="text-4xl font-bold text-foreground">$8</span>
+                    <span className="text-lg text-muted-foreground line-through">$12</span>
                     <span className="text-muted-foreground text-sm">/month</span>
                   </div>
+                  <p className="text-xs text-primary font-medium mt-1">
+                    Launch pricing — save $4/mo until May 1
+                  </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Unlimited everything. No limits, ever.
+                    Unlimited everything. Includes ArcNotes &amp; Arcana Notes Pro.
                   </p>
                 </div>
 
