@@ -163,6 +163,8 @@ export function PricingPage() {
                     { text: "Unlimited messages", bold: true },
                     { text: "Unlimited voice sessions", bold: true },
                     { text: "Switch between AI models", bold: true },
+                    { text: "ArcNotes Pro (arcnotes.pro)", bold: true },
+                    { text: "Arcana Notes Pro included", bold: true },
                     { text: "Everything in Free", bold: false },
                     { text: "Priority support", bold: false },
                   ].map(({ text, bold }) => (
