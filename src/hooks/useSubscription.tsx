@@ -198,6 +198,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       isSubscribed: isSubscribed || isAdmin,
       productId,
       subscriptionEnd,
+      paymentStatus,
       loading,
       dailyMessagesUsed,
       dailyVoiceSessionsUsed,
