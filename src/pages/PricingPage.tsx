@@ -62,6 +62,25 @@ export function PricingPage() {
           </p>
         </motion.div>
 
+        {/* Billing Toggle */}
+        <div className="flex items-center justify-center gap-3 mb-10">
+          <button
+            onClick={() => setBillingInterval("monthly")}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${billingInterval === "monthly" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:text-foreground"}`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setBillingInterval("yearly")}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${billingInterval === "yearly" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:text-foreground"}`}
+          >
+            Yearly
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${billingInterval === "yearly" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/15 text-primary"}`}>
+              Save 19%
+            </span>
+          </button>
+        </div>
+
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-2 gap-6 mb-16">
           {/* Free Plan */}
