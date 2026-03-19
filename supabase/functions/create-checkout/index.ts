@@ -9,8 +9,7 @@ const corsHeaders = {
 
 const MONTHLY_PRICE_ID = "price_1TCXWdAB32948AKD4SFikT2q";
 const YEARLY_PRICE_ID = "price_1TCXaOAB32948AKDM21FdATf";
-const MONTHLY_COUPON = "M7Wa63eA";
-const YEARLY_COUPON = "JvA9kQgO";
+const YEARLY_COUPON = "9v4Flk8g";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -49,38 +48,41 @@ serve(async (req) => {
       useEmbedded = body?.embedded === true;
       if (body?.interval === "yearly") billingInterval = "yearly";
     } catch {
-      // No body or invalid JSON — defaults
+      // defaults
     }
 
-    const priceId = billingInterval === "yearly" ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
-    const coupon = billingInterval === "yearly" ? YEARLY_COUPON : MONTHLY_COUPON;
+    const isYearly = billingInterval === "yearly";
+    const priceId = isYearly ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
+
+    const sessionParams: any = {
+      customer: customerId,
+      customer_email: customerId ? undefined : user.email,
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: "subscription",
+    };
+
+    if (isYearly) {
+      // 20% off annual plans
+      sessionParams.discounts = [{ coupon: YEARLY_COUPON }];
+    } else {
+      // 7-day free trial for monthly
+      sessionParams.subscription_data = { trial_period_days: 7 };
+    }
 
     if (useEmbedded) {
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        customer_email: customerId ? undefined : user.email,
-        line_items: [{ price: priceId, quantity: 1 }],
-        discounts: [{ coupon }],
-        mode: "subscription",
-        ui_mode: "embedded",
-        return_url: `${origin}/?checkout=success`,
-      });
+      sessionParams.ui_mode = "embedded";
+      sessionParams.return_url = `${origin}/?checkout=success`;
 
+      const session = await stripe.checkout.sessions.create(sessionParams);
       return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     } else {
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        customer_email: customerId ? undefined : user.email,
-        line_items: [{ price: priceId, quantity: 1 }],
-        discounts: [{ coupon }],
-        mode: "subscription",
-        success_url: `${origin}/`,
-        cancel_url: `${origin}/`,
-      });
+      sessionParams.success_url = `${origin}/`;
+      sessionParams.cancel_url = `${origin}/`;
 
+      const session = await stripe.checkout.sessions.create(sessionParams);
       return new Response(JSON.stringify({ url: session.url }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
