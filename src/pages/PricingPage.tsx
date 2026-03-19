@@ -164,24 +164,26 @@ export function PricingPage() {
                     <Crown className="w-4 h-4 text-primary" />
                   </div>
                   <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-4xl font-bold text-foreground">
-                      {billingInterval === "monthly" ? "$8" : "$9.72"}
-                    </span>
-                    <span className="text-lg text-muted-foreground line-through">$12</span>
-                    <span className="text-muted-foreground text-sm">/month</span>
+                    {billingInterval === "yearly" ? (
+                      <>
+                        <span className="text-4xl font-bold text-foreground">$8.64</span>
+                        <span className="text-lg text-muted-foreground line-through">$10.80</span>
+                        <span className="text-muted-foreground text-sm">/month</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-4xl font-bold text-foreground">$12</span>
+                        <span className="text-muted-foreground text-sm">/month</span>
+                      </>
+                    )}
                   </div>
                   {billingInterval === "yearly" ? (
-                    <>
-                      <p className="text-xs text-primary font-medium mt-1">
-                        $116.64/yr — launch + annual savings until May 1
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        10% annual discount + 10% launch discount applied
-                      </p>
-                    </>
+                    <p className="text-xs text-primary font-medium mt-1">
+                      $103.68/yr — 20% off annual billing
+                    </p>
                   ) : (
                     <p className="text-xs text-primary font-medium mt-1">
-                      Launch pricing — save $4/mo until May 1
+                      Start with a 7-day free trial
                     </p>
                   )}
                   <p className="text-sm text-muted-foreground mt-2">
