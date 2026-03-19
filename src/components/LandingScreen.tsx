@@ -1051,73 +1051,28 @@ export function LandingScreen() {
               </span>
             </h2>
             <p className="text-gray-400 max-w-xl mx-auto text-lg">
-              Arc is free. If you like what you see, Pro unlocks unlimited everything — voice, images, music, ArcNotes™, Arcana™ Notes, the works. <span className="text-white font-semibold">$12/mo</span> with a 7-day free trial, or <span className="text-white font-semibold">$9.60/mo</span> yearly. No catch.
+              Arc is free forever. When you're ready for unlimited everything, Pro starts at <span className="text-white font-semibold">$9.60/mo</span>.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            {/* Free Plan */}
-            <div className="glass-card rounded-2xl p-8 space-y-5">
-              <div>
-                <h3 className="text-xl font-bold">Free</h3>
-                <div className="mt-1">
-                  <span className="text-3xl font-bold">$0</span>
-                  <span className="text-gray-400 text-sm"> /forever</span>
-                </div>
-              </div>
-              <ul className="space-y-2 text-sm text-gray-300">
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> 30 messages per day</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> 3 voice sessions per day</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> 5 image generations per day</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Memory & code generation</li>
-              </ul>
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="w-full px-6 py-3 rounded-full font-semibold border border-white/10 text-white hover:bg-white/5 transition-colors"
-              >
-                Get Started Free
-              </button>
-            </div>
-
-            {/* Pro Plan */}
-            <div className="glass-card rounded-2xl p-8 space-y-5 relative overflow-hidden border border-cyan-500/30 animate-[neon-pulse_2s_ease-in-out_infinite]">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
-              <div className="absolute top-4 right-4 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">Most Popular</div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-bold">Pro</h3>
-                  <Crown className="w-5 h-5 text-cyan-400" />
-                </div>
-                <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-3xl font-bold">$12</span>
-                  <span className="text-gray-400 text-sm">/month</span>
-                </div>
-                <p className="text-xs text-cyan-400 font-medium mt-1">7-day free trial · cancel anytime</p>
-                <p className="text-[11px] text-gray-500 mt-0.5">
-                  Or yearly: <span className="text-white font-medium">$9.60/mo</span> — $115.20 billed today, save 20%
-                </p>
-              </div>
-              <ul className="space-y-2 text-sm text-gray-300">
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <strong>Unlimited</strong> messages, voice & images</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <Headphones className="w-3 h-3 inline" /> Built-in music player</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> ArcNotes™ Pro & Arcana™ Notes Pro included</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Everything in Free</li>
-              </ul>
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="w-full px-6 py-3 rounded-full font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <Crown className="w-4 h-4" />
-                  Upgrade to Pro
-                </span>
-              </button>
-            </div>
+          <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
+            <Link
+              to="/pricing"
+              className="w-full px-8 py-4 rounded-full font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity text-center flex items-center justify-center gap-2"
+            >
+              <Crown className="w-5 h-5" />
+              See Plans & Pricing
+            </Link>
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="px-6 py-3 rounded-full font-semibold border border-white/10 text-white hover:bg-white/5 transition-colors"
+            >
+              Get Started Free
+            </button>
           </div>
 
           <p className="text-center text-xs text-gray-500 mt-6">
-            Free limits reset daily. Pro = no limits, ever.{' '}
-            <Link to="/pricing" className="underline hover:text-white transition-colors">See full comparison →</Link>
+            7-day free trial on monthly · 20% off yearly · no catch.
           </p>
         </div>
       </section>
