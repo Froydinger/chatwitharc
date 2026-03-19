@@ -1088,15 +1088,20 @@ export function LandingScreen() {
                   <h3 className="text-xl font-bold">Pro</h3>
                   <Crown className="w-5 h-5 text-cyan-400" />
                 </div>
-                <div className="mt-1">
+                <div className="mt-1 flex items-baseline gap-2">
                   <span className="text-3xl font-bold">$8</span>
-                  <span className="text-gray-400 text-sm"> /month</span>
+                  <span className="text-gray-500 text-lg line-through">$12</span>
+                  <span className="text-gray-400 text-sm">/month</span>
                 </div>
+                <p className="text-xs text-cyan-400 font-medium mt-1">Launch pricing — save $4/mo until May 1</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  Or yearly: <span className="text-white font-medium">$9.72/mo</span> <span className="line-through">$12</span> — save even more
+                </p>
               </div>
               <ul className="space-y-2 text-sm text-gray-300">
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <strong>Unlimited</strong> messages</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <strong>Unlimited</strong> voice & images</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <strong>Unlimited</strong> messages, voice & images</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> <Headphones className="w-3 h-3 inline" /> Built-in music player</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> ArcNotes & Arcana Notes Pro included</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Everything in Free</li>
               </ul>
               <button
