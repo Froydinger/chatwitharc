@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Crown, MessageCircle, Mic, Image, Brain, Code, Globe, Sparkles, ArrowLeft, X } from "lucide-react";
@@ -28,9 +28,20 @@ export function PricingPage() {
   const [showAuth, setShowAuth] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
+  const pendingUpgrade = useRef(false);
+
+  // Auto-open checkout after user signs in from upgrade flow
+  useEffect(() => {
+    if (user && pendingUpgrade.current) {
+      pendingUpgrade.current = false;
+      setShowAuth(false);
+      setShowCheckout(true);
+    }
+  }, [user]);
 
   const handleUpgrade = () => {
     if (!user) {
+      pendingUpgrade.current = true;
       setShowAuth(true);
       return;
     }
