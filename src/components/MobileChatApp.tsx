@@ -28,6 +28,7 @@ import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { usePromptPreload } from "@/hooks/usePromptPreload";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useMusicStore, musicTracks } from "@/store/useMusicStore";
+import { PaymentFailureBanner } from "@/components/PaymentFailureBanner";
 import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 import { VoiceModeController } from "@/components/VoiceModeController";
 import { ContextBlocksPanel } from "@/components/ContextBlocksPanel";
