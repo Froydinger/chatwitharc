@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "@/components/ChatInput";
 import { MusicPopup } from "@/components/MusicPopup";
 import { useMusicStore } from "@/store/useMusicStore";
+import { PaymentFailureBanner } from "@/components/PaymentFailureBanner";
 
 type DashboardTab = "overview" | "chats" | "images" | "apps" | "memories";
 
