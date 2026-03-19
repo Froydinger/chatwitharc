@@ -1050,8 +1050,8 @@ export function LandingScreen() {
                 Or don't.
               </span>
             </h2>
-            <p className="text-gray-400 max-w-xl mx-auto text-lg">
-              Arc is free. If you like what you see, $8/month unlocks unlimited everything — voice, images, music, the works. The most affordable multi-modal AI for creativity and personal growth. No catch.
+            <p className="text-gray-400 max-xl mx-auto text-lg">
+              Arc is free. If you like what you see, Pro unlocks unlimited everything — voice, images, music, ArcNotes, Arcana Notes, the works. Launch pricing: <span className="text-white font-semibold">$8/mo</span> <span className="line-through text-gray-500">$12</span> or <span className="text-white font-semibold">$9.72/mo</span> yearly. No catch.
             </p>
           </motion.div>
 
