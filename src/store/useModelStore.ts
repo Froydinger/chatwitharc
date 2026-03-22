@@ -7,7 +7,7 @@ export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-ana
 const MODEL_MAP: Record<ModelFamily, Record<ModelTask, string>> = {
   gemini: {
     'chat': 'google/gemini-3-flash-preview',
-    'code': 'google/gemini-3-flash-preview',
+    'code': 'google/gemini-3.1-pro-preview',
     'deep-chat': 'google/gemini-3.1-pro-preview',
     'image-gen': 'google/gemini-3.1-flash-image-preview',
     'image-analysis': 'google/gemini-3-flash-preview',
