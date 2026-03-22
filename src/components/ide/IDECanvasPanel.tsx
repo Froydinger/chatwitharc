@@ -68,6 +68,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   const [isAgentRunning, setIsAgentRunning] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
+  const syncStatusRef = useRef<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
   const [projectVersions, setProjectVersions] = useState<ProjectVersion[]>([]);
   const [showVersions, setShowVersions] = useState(false);
   const [showPublishDialog, setShowPublishDialog] = useState(false);
@@ -253,15 +254,21 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     }
   }, [setIdeProjectId]);
 
-  // Save on unmount if there are unsaved changes
+  // Keep syncStatusRef current so the unmount handler sees the latest value
+  useEffect(() => { syncStatusRef.current = syncStatus; }, [syncStatus]);
+
+  // Save on unmount if there are unsaved changes — empty deps so this only
+  // runs cleanup on true unmount, not on every syncStatus/saveProject change
+  // (previously those deps caused the cleanup to re-fire and loop 330+ times).
+  const saveProjectRef = useRef(saveProject);
+  useEffect(() => { saveProjectRef.current = saveProject; }, [saveProject]);
   useEffect(() => {
     return () => {
-      if (syncStatus === 'unsaved' || syncStatus === 'saving') {
-        void saveProject();
+      if (syncStatusRef.current === 'unsaved' || syncStatusRef.current === 'saving') {
+        void saveProjectRef.current();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [syncStatus, saveProject]);
+  }, []);
 
   const restoreVersion = useCallback((version: ProjectVersion) => {
     setFiles(version.files);
