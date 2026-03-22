@@ -586,6 +586,16 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     if (files.length > 0) handleUploadFiles(files);
   }, []);
 
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageItems = items.filter((item) => item.type.startsWith("image/"));
+    if (imageItems.length > 0) {
+      e.preventDefault();
+      const files = imageItems.map((item) => item.getAsFile()).filter(Boolean) as File[];
+      if (files.length > 0) handleUploadFiles(files);
+    }
+  }, []);
+
   /* ---------- Handle edited message resend ---------- */
   const handleEditedMessage = useCallback(async (newContent: string, editedMessageId: string) => {
     if (!newContent.trim() || isLoading) return;
@@ -1458,16 +1468,24 @@ ${existingCode}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[50] flex items-center justify-center bg-background/80 backdrop-blur-sm"
+            className="fixed inset-0 z-[50] flex items-center justify-center bg-background/90 backdrop-blur-md"
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <div className="rounded-2xl border-2 border-dashed border-primary/50 bg-primary/5 p-12 text-center">
-              <Paperclip className="h-12 w-12 text-primary mx-auto mb-3" />
-              <p className="text-lg font-medium text-foreground">Drop files here</p>
-              <p className="text-sm text-muted-foreground mt-1">Images, PDFs, DOCX, PPTX, and more</p>
-            </div>
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.92, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 400 }}
+              className="absolute inset-6 rounded-3xl border-2 border-dashed border-primary/60 bg-primary/5 flex flex-col items-center justify-center gap-4 pointer-events-none"
+            >
+              <div className="rounded-2xl bg-primary/10 p-5">
+                <Paperclip className="h-14 w-14 text-primary" />
+              </div>
+              <p className="text-2xl font-semibold text-foreground">Drop files here</p>
+              <p className="text-base text-muted-foreground">Images, PDFs, DOCX, PPTX, and more</p>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1646,6 +1664,7 @@ ${existingCode}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyPress}
+            onPaste={handlePaste}
             onFocus={() => {
               setIsActive(true);
               handleInputFocus();
