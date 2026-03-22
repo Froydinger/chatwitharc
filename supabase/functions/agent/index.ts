@@ -198,7 +198,7 @@ serve(async (req) => {
               method: "POST",
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
-                model: model || "google/gemini-3-flash-preview",
+                model: model || "google/gemini-3.1-pro-preview",
                 messages: conversationMessages,
                 tools,
                 tool_choice: toolChoice,
