@@ -351,6 +351,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const [selectedDocuments, setSelectedDocuments] = useState<File[]>([]); // Document files (PDF, DOCX, etc.)
   const [isActive, setIsActive] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const dragCounterRef = useRef(0);
 
   // Ref to always point to latest handleExternalImageEdit (avoids stale closures in event listeners)
   const handleExternalImageEditRef = useRef<(...args: any[]) => void>(() => {});
@@ -567,23 +568,41 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     setSelectedDocuments([]);
   };
 
-  // Drag & drop handlers
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(true);
-  }, []);
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-  }, []);
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) handleUploadFiles(files);
+  // Global drag & drop handlers — attach to document so overlay covers full screen
+  useEffect(() => {
+    const onDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounterRef.current += 1;
+      if (dragCounterRef.current === 1) setIsDragOver(true);
+    };
+    const onDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounterRef.current -= 1;
+      if (dragCounterRef.current <= 0) {
+        dragCounterRef.current = 0;
+        setIsDragOver(false);
+      }
+    };
+    const onDragOver = (e: DragEvent) => {
+      e.preventDefault();
+    };
+    const onDrop = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounterRef.current = 0;
+      setIsDragOver(false);
+      const files = Array.from(e.dataTransfer?.files ?? []);
+      if (files.length > 0) handleUploadFiles(files);
+    };
+    document.addEventListener("dragenter", onDragEnter);
+    document.addEventListener("dragleave", onDragLeave);
+    document.addEventListener("dragover", onDragOver);
+    document.addEventListener("drop", onDrop);
+    return () => {
+      document.removeEventListener("dragenter", onDragEnter);
+      document.removeEventListener("dragleave", onDragLeave);
+      document.removeEventListener("dragover", onDragOver);
+      document.removeEventListener("drop", onDrop);
+    };
   }, []);
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
@@ -1460,7 +1479,7 @@ ${existingCode}
 
   /* ---------------- Render ---------------- */
   return (
-    <div className="space-y-4 relative" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+    <div className="space-y-4 relative">
       {/* Drag overlay */}
       <AnimatePresence>
         {isDragOver && (
@@ -1469,9 +1488,6 @@ ${existingCode}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[50] flex items-center justify-center bg-background/90 backdrop-blur-md"
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
           >
             <motion.div
               initial={{ scale: 0.92, opacity: 0 }}
