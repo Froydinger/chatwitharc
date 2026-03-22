@@ -1480,31 +1480,36 @@ ${existingCode}
   /* ---------------- Render ---------------- */
   return (
     <div className="space-y-4 relative">
-      {/* Drag overlay */}
-      <AnimatePresence>
-        {isDragOver && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[50] flex items-center justify-center bg-background/90 backdrop-blur-md"
-          >
+      {/* Drag overlay — portaled to body so it escapes any transformed parent */}
+      {portalRoot && createPortal(
+        <AnimatePresence>
+          {isDragOver && (
             <motion.div
-              initial={{ scale: 0.92, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.92, opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 400 }}
-              className="absolute inset-6 rounded-3xl border-2 border-dashed border-primary/60 bg-primary/5 flex flex-col items-center justify-center gap-4 pointer-events-none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{ position: "fixed", inset: 0, zIndex: 9999 }}
+              className="flex items-center justify-center bg-background/90 backdrop-blur-md"
             >
-              <div className="rounded-2xl bg-primary/10 p-5">
-                <Paperclip className="h-14 w-14 text-primary" />
-              </div>
-              <p className="text-2xl font-semibold text-foreground">Drop files here</p>
-              <p className="text-base text-muted-foreground">Images, PDFs, DOCX, PPTX, and more</p>
+              <motion.div
+                initial={{ scale: 0.92, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.92, opacity: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 400 }}
+                style={{ position: "absolute", inset: 24 }}
+                className="rounded-3xl border-2 border-dashed border-primary/60 bg-primary/5 flex flex-col items-center justify-center gap-4 pointer-events-none"
+              >
+                <div className="rounded-2xl bg-primary/10 p-5">
+                  <Paperclip className="h-14 w-14 text-primary" />
+                </div>
+                <p className="text-2xl font-semibold text-foreground">Drop files here</p>
+                <p className="text-base text-muted-foreground">Images, PDFs, DOCX, PPTX, and more</p>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        portalRoot,
+      )}
 
       {/* Selected Documents preview - for non-inline, portal above dock */}
       {!inline && selectedDocuments.length > 0 && portalRoot && createPortal(
