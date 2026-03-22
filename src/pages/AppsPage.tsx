@@ -197,9 +197,9 @@ function AppsDashboard() {
   const getFileCount = (files: VirtualFileSystem) => Object.keys(files || {}).length;
 
   return (
-    <div className="min-h-screen bg-background" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-      {/* Top bar */}
-      <div className="sticky top-0 z-10 border-b border-border/30 bg-background/80 backdrop-blur-xl">
+    <div className="min-h-screen bg-background">
+      {/* Top bar — safe-area padding here so bar spans under Dynamic Island and sticks at true top */}
+      <div className="sticky top-0 z-10 border-b border-border/30 bg-background/80 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="max-w-5xl mx-auto flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <Button
