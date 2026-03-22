@@ -1195,12 +1195,31 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         let isCodeCanvasOpen = canvasState.isOpen && canvasState.canvasType === 'code';
         if (!isCodeCanvasOpen && looksLikeCodeEditRequest(userMessage)) {
           const recentMsgs = useArcStore.getState().messages;
+          // First: look for a dedicated code tile message (type === 'code')
           const lastCodeMsg = [...recentMsgs].reverse().find(m => (m as any).type === 'code');
           if (lastCodeMsg) {
             const codeContent = (lastCodeMsg as any).codeContent || '';
             const codeLang = (lastCodeMsg as any).codeLanguage || 'html';
             useCanvasStore.getState().openWithContent(codeContent, 'code', codeLang);
             isCodeCanvasOpen = true;
+          } else {
+            // Fallback: scan recent assistant text messages for fenced code blocks
+            const recentTextMsgs = [...recentMsgs]
+              .reverse()
+              .filter(m => m.role === 'assistant' && (m as any).type === 'text')
+              .slice(0, 5);
+            for (const msg of recentTextMsgs) {
+              const match = msg.content.match(/```(\w+)?\n([\s\S]+?)```/);
+              if (match) {
+                const codeLang = match[1] || 'html';
+                const codeContent = match[2] || '';
+                if (codeContent.trim().length > 50) {
+                  useCanvasStore.getState().openWithContent(codeContent, 'code', codeLang);
+                  isCodeCanvasOpen = true;
+                  break;
+                }
+              }
+            }
           }
         }
         const shouldRouteToCodeCanvas = isCodeCanvasOpen && looksLikeCodeEditRequest(userMessage);

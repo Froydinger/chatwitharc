@@ -106,6 +106,15 @@ export async function sendAgentMessage(
     }
   }
 
+  // If stream ended with an error action but no summary, throw so the caller
+  // shows the real error instead of the silent "Done!" fallback.
+  if (!summary) {
+    const errAction = actions.find(a => a.type === 'error') as any;
+    if (errAction?.message) {
+      throw new Error(errAction.message);
+    }
+  }
+
   let vfs: VirtualFileSystem | undefined;
   if (files && Object.keys(files).length > 0) {
     vfs = {};
