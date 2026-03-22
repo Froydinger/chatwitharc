@@ -241,7 +241,6 @@ export function MobileChatApp() {
     localStorage.setItem("arc_rightPanelOpen", String(rightPanelOpen));
   }, [rightPanelOpen]);
 
-  const [dragOver, setDragOver] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
@@ -497,17 +496,6 @@ export function MobileChatApp() {
     sessionStorage.setItem("arc_session_model", "google/gemini-3-flash-preview");
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-
-    // Extract files from drag event
-    const files = Array.from(e.dataTransfer?.files || []);
-    if (files.length > 0) {
-      // Pass files to ChatInput component via ref
-      chatInputRef.current?.handleImageUploadFiles(files);
-    }
-  };
 
   const triggerPrompt = useCallback(
     (prompt: string) => {
@@ -773,13 +761,7 @@ export function MobileChatApp() {
         )}
         {/* Scrollable messages layer with bottom padding equal to dock height */}
         <div
-          className={cn("relative flex-1 transition-all duration-300 ease-out", dragOver && "bg-primary/5")}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragOver(true);
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
+          className="relative flex-1 transition-all duration-300 ease-out"
         >
           {/* Chat Messages */}
           <div
