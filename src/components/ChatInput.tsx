@@ -1189,8 +1189,20 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           wasCanvasMode ||
           (canvasState.isOpen && canvasState.canvasType === 'writing' && !isConversationalMessage(userMessage));
 
-        // Check if code canvas is open and user is asking to edit it
-        const isCodeCanvasOpen = canvasState.isOpen && canvasState.canvasType === 'code';
+        // Check if code canvas is open and user is asking to edit it.
+        // Also auto-open the canvas from the last code message in chat if it isn't open yet,
+        // so follow-up messages work without requiring the user to click the code card first.
+        let isCodeCanvasOpen = canvasState.isOpen && canvasState.canvasType === 'code';
+        if (!isCodeCanvasOpen && looksLikeCodeEditRequest(userMessage)) {
+          const recentMsgs = useArcStore.getState().messages;
+          const lastCodeMsg = [...recentMsgs].reverse().find(m => (m as any).type === 'code');
+          if (lastCodeMsg) {
+            const codeContent = (lastCodeMsg as any).codeContent || '';
+            const codeLang = (lastCodeMsg as any).codeLanguage || 'html';
+            useCanvasStore.getState().openWithContent(codeContent, 'code', codeLang);
+            isCodeCanvasOpen = true;
+          }
+        }
         const shouldRouteToCodeCanvas = isCodeCanvasOpen && looksLikeCodeEditRequest(userMessage);
 
         const cleanedMessage = extractPrefixPrompt(userMessage);

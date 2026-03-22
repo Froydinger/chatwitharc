@@ -110,6 +110,12 @@ useEffect(() => {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [chatPage, setChatPage] = useState(1);
   const [imagePage, setImagePage] = useState(1);
+  // Lazy DB-driven image state (replaces full-hydration approach)
+  const [dbImages, setDbImages] = useState<GeneratedImage[]>([]);
+  const [dbImagesLoading, setDbImagesLoading] = useState(false);
+  const [dbSessionOffset, setDbSessionOffset] = useState(0);
+  const [dbHasMoreSessions, setDbHasMoreSessions] = useState(true);
+  const DB_SESSION_BATCH = 30;
   const [appPage, setAppPage] = useState(1);
   const [memoryPage, setMemoryPage] = useState(1);
 
@@ -144,6 +150,56 @@ useEffect(() => {
   useEffect(() => {
     if (user) hydrateAllSessions();
   }, [user, hydrateAllSessions]);
+
+  // Fetch a batch of sessions from DB and extract images from them
+  const fetchMoreImages = async (reset = false) => {
+    if (dbImagesLoading) return;
+    if (!reset && !dbHasMoreSessions) return;
+    setDbImagesLoading(true);
+    const offset = reset ? 0 : dbSessionOffset;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      const { data, error } = await supabase
+        .from('chat_sessions')
+        .select('id, messages, updated_at')
+        .eq('user_id', session.user.id)
+        .order('updated_at', { ascending: false })
+        .range(offset, offset + DB_SESSION_BATCH - 1);
+      if (error) throw error;
+      const newImages: GeneratedImage[] = [];
+      (data || []).forEach(s => {
+        ((s.messages as any[]) || []).forEach(msg => {
+          if (msg?.type === 'image' && msg?.imageUrl && msg?.role === 'assistant') {
+            const ts = toDate(msg?.timestamp);
+            if (!ts) return;
+            newImages.push({
+              url: msg.imageUrl,
+              prompt: typeof msg?.content === 'string' ? msg.content.replace('Generated image: ', '') : '',
+              sessionId: s.id,
+              messageId: msg.id,
+              timestamp: ts,
+            });
+          }
+        });
+      });
+      newImages.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      setDbImages(prev => reset ? newImages : [...prev, ...newImages]);
+      setDbSessionOffset(offset + DB_SESSION_BATCH);
+      setDbHasMoreSessions((data || []).length === DB_SESSION_BATCH);
+    } catch (e) {
+      console.error('Failed to load images from DB:', e);
+    } finally {
+      setDbImagesLoading(false);
+    }
+  };
+
+  // Load images when images tab becomes active (only on first open)
+  useEffect(() => {
+    if (activeTab === 'images' && dbImages.length === 0 && !dbImagesLoading) {
+      fetchMoreImages(true);
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (!user) return;
@@ -195,11 +251,12 @@ useEffect(() => {
     return images;
   }, [chatSessions]);
 
+  // filteredImages now uses dbImages (lazy DB-loaded) instead of allImages (full hydration)
   const filteredImages = useMemo(() => {
-    if (!imageSearch.trim()) return allImages;
+    if (!imageSearch.trim()) return dbImages;
     const q = imageSearch.toLowerCase();
-    return allImages.filter(img => img.prompt.toLowerCase().includes(q));
-  }, [allImages, imageSearch]);
+    return dbImages.filter(img => img.prompt.toLowerCase().includes(q));
+  }, [dbImages, imageSearch]);
 
   const filteredApps = useMemo(() => {
     if (!appSearch.trim()) return recentApps;
@@ -213,7 +270,7 @@ useEffect(() => {
     return contextBlocks.filter(b => b.content.toLowerCase().includes(q));
   }, [contextBlocks, memorySearch]);
 
-  const isImagesLoading = isHydratingAll && !allSessionsHydrated;
+  const isImagesLoading = dbImagesLoading && dbImages.length === 0;
   const selectedApp = selectedAppId ? recentApps.find(a => a.id === selectedAppId) : null;
 
   const handleDeleteChat = async (sessionId: string, e: React.MouseEvent) => {
@@ -644,6 +701,13 @@ useEffect(() => {
                         })}
                       </div>
                       <PaginationBar current={imagePage} total={Math.ceil(filteredImages.length / ITEMS_PER_PAGE)} onChange={setImagePage} />
+                      {dbHasMoreSessions && (
+                        <div className="flex justify-center pt-2">
+                          <Button variant="outline" size="sm" className="rounded-full" onClick={() => fetchMoreImages()} disabled={dbImagesLoading}>
+                            {dbImagesLoading ? 'Loading…' : 'Load more'}
+                          </Button>
+                        </div>
+                      )}
                       </>
                     )}
                   </motion.div>
