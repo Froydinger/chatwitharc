@@ -1205,16 +1205,18 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         }
         const shouldRouteToCodeCanvas = isCodeCanvasOpen && looksLikeCodeEditRequest(userMessage);
 
+        // Re-read canvas state after potential openWithContent call above
+        const freshCanvasState = useCanvasStore.getState();
+
         const cleanedMessage = extractPrefixPrompt(userMessage);
 
         // Build the message to send to AI
         let messageToSend: string;
 
-        if (shouldRouteToCodeCanvas && canvasState.content) {
-        } else if (shouldRouteToCodeCanvas && canvasState.content) {
+        if (shouldRouteToCodeCanvas && freshCanvasState.content) {
           // Code canvas is open and user wants to modify existing code
-          const existingCode = canvasState.content;
-          const language = canvasState.codeLanguage || 'html';
+          const existingCode = freshCanvasState.content;
+          const language = freshCanvasState.codeLanguage || 'html';
           messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CODE: The user has existing ${language} code. Modify it based on their request using the update_code tool. You MUST output the COMPLETE, FULL modified code - do NOT truncate, summarize, or cut off mid-way. Write EVERY line.
 
 EXISTING CODE TO MODIFY:
@@ -1225,9 +1227,9 @@ ${existingCode}
 USER'S REQUEST: ${cleanedMessage || userMessage}
 
 MANDATORY: Output the COMPLETE updated code. Never stop mid-sentence or mid-function. Include ALL code from start to finish.`;
-        } else if (shouldRouteToCanvas && canvasState.isOpen && canvasState.content) {
+        } else if (shouldRouteToCanvas && freshCanvasState.isOpen && freshCanvasState.content) {
           // Writing canvas is open with existing content - include it for modification
-          const existingContent = canvasState.content;
+          const existingContent = freshCanvasState.content;
           messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: The user has existing writing in the canvas. Modify it based on their request using the update_canvas tool. You MUST output the COMPLETE, FULL modified markdown content - do NOT truncate, summarize, or cut off mid-way. Write EVERY paragraph.
 
 EXISTING CANVAS CONTENT TO MODIFY:
@@ -1241,11 +1243,11 @@ MANDATORY: Output the COMPLETE updated content. Never stop mid-sentence or mid-p
           messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: Use the update_canvas tool to write COMPLETE, FULL markdown content for this request. Do NOT truncate, summarize, or cut short. Write the ENTIRE piece from beginning to end - every paragraph, every section, complete thoughts. Never stop mid-sentence:\n\n${cleanedMessage || userMessage}`;
         } else if (wasSearchMode) {
           messageToSend = `Search the web for: ${cleanedMessage || userMessage}`;
-        } else if (isCodeCanvasOpen && canvasState.content && !isConversationalMessage(userMessage)) {
+        } else if (isCodeCanvasOpen && freshCanvasState.content && !isConversationalMessage(userMessage)) {
           // Code canvas is open and user isn't explicitly asking to edit, but also not conversational
           // Only provide code context for messages that might be related to the code
-          const existingCode = canvasState.content;
-          const language = canvasState.codeLanguage || 'html';
+          const existingCode = freshCanvasState.content;
+          const language = freshCanvasState.codeLanguage || 'html';
           messageToSend = `${cleanedMessage || userMessage}
 
 [CONTEXT: The user has a Code Canvas open with the following ${language} code. ONLY modify this code if the user is explicitly asking for changes. For casual conversation like "great!", "looks good", questions about how something works, etc. - just respond conversationally WITHOUT updating the code.]
