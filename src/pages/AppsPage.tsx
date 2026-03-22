@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { getFaviconByLabel } from "@/constants/faviconOptions";
 import { useIDEStore } from "@/store/useIDEStore";
 import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import type { VirtualFileSystem } from "@/types/ide";
 
@@ -32,6 +32,7 @@ interface IDEProject {
 
 export function AppsPage() {
   const { projectId } = useParams<{ projectId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { isOpen, reopenIDECanvas, openIDECanvas, closeIDE } = useIDEStore();
@@ -39,13 +40,41 @@ export function AppsPage() {
   // If we have a projectId in the URL, load and open that project
   useEffect(() => {
     if (projectId) {
-      loadAndOpenProject(projectId);
+      const initialPrompt = searchParams.get('initialPrompt') || undefined;
+      loadAndOpenProject(projectId, initialPrompt);
     } else {
-      closeIDE();
+      const buildPrompt = searchParams.get('prompt');
+      if (buildPrompt) {
+        createAndOpenWithPrompt(buildPrompt);
+      } else {
+        closeIDE();
+      }
     }
   }, [projectId]);
 
-  const loadAndOpenProject = async (id: string) => {
+  const createAndOpenWithPrompt = async (prompt: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast.error("Please sign in to create apps");
+        return;
+      }
+      const { data, error } = await supabase
+        .from('ide_projects')
+        .insert({ user_id: session.user.id, title: 'Untitled Project', prompt })
+        .select('id')
+        .single();
+      if (error) throw error;
+      if (data) {
+        navigate(`/apps/${data.id}?initialPrompt=${encodeURIComponent(prompt)}`);
+      }
+    } catch (err) {
+      console.error('Failed to create project:', err);
+      toast.error("Failed to create project");
+    }
+  };
+
+  const loadAndOpenProject = async (id: string, initialPrompt?: string) => {
     try {
       const { data } = await supabase
         .from('ide_projects')
@@ -54,7 +83,9 @@ export function AppsPage() {
         .single();
 
       if (data?.files) {
-        reopenIDECanvas(id, data.files as unknown as VirtualFileSystem, (data as any).messages || []);
+        reopenIDECanvas(id, data.files as unknown as VirtualFileSystem, (data as any).messages || [], initialPrompt);
+      } else if (initialPrompt) {
+        reopenIDECanvas(id, {} as VirtualFileSystem, [], initialPrompt);
       }
     } catch (err) {
       console.error('Failed to load project:', err);

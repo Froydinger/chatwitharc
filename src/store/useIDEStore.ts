@@ -13,7 +13,7 @@ interface IDEState {
 
   // Actions
   openIDECanvas: (prompt: string, files?: VirtualFileSystem, autoRunPrompt?: boolean) => void;
-  reopenIDECanvas: (projectId: string, files: VirtualFileSystem, messages?: any[]) => void;
+  reopenIDECanvas: (projectId: string, files: VirtualFileSystem, messages?: any[], initialPrompt?: string) => void;
   closeIDE: () => void;
   setIdeFiles: (files: VirtualFileSystem) => void;
   setIdeActions: (actions: AgentAction[] | ((prev: AgentAction[]) => AgentAction[])) => void;
@@ -46,11 +46,11 @@ export const useIDEStore = create<IDEState>((set) => ({
     });
   },
 
-  reopenIDECanvas: (projectId, files, messages) => {
+  reopenIDECanvas: (projectId, files, messages, initialPrompt) => {
     set({
       isOpen: true,
-      idePrompt: null,
-      ideAutoRunPrompt: false,
+      idePrompt: initialPrompt ?? null,
+      ideAutoRunPrompt: !!initialPrompt,
       ideFiles: files,
       ideActions: [],
       ideIsRunning: false,
