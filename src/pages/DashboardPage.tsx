@@ -502,18 +502,6 @@ useEffect(() => {
                 )}
               </Section>
 
-              {/* Recent Images */}
-              <Section title="Recent Images" icon={Image} action={() => switchTab("images")} actionLabel="See all">
-                {isImagesLoading ? <SkeletonGrid cols={4} square /> : allImages.length === 0 ? (
-                  <EmptyState icon={Image} text="No images yet" sub="Ask Arc to generate one!" />
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {allImages.slice(0, 8).map((img, i) => (
-                      <ImageCard key={`${img.sessionId}-${i}`} img={img} onClick={() => { switchTab("images"); setViewingImageIndex(i); }} index={i} />
-                    ))}
-                  </div>
-                )}
-              </Section>
 
               {/* Apps + Memories side-by-side */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
