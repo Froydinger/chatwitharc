@@ -1,6 +1,12 @@
 import type { VirtualFileSystem, AgentAction } from '@/types/ide';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const DEFAULT_SUPABASE_URL = 'https://jxywhodnndagbsmnbnnw.supabase.co';
+const DEFAULT_PUBLISHABLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4eXdob2RubmRhZ2JzbW5ibm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwOTkwNjUsImV4cCI6MjA4MTY3NTA2NX0.tmqRRB4jbOOR0FWVsS8zXer_2IZLjzsPb2D3Ozu2bKk';
+
+const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL ||
+  (PROJECT_ID ? `https://${PROJECT_ID}.supabase.co` : DEFAULT_SUPABASE_URL);
 const AGENT_URL = `${SUPABASE_URL}/functions/v1/agent`;
 
 export interface AgentResult {
@@ -18,7 +24,7 @@ export async function sendAgentMessage(
   authToken?: string,
   chatHistory?: { role: string; content: string }[]
 ): Promise<AgentResult> {
-  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || DEFAULT_PUBLISHABLE_KEY;
 
   // Build messages array: include chat history for multi-turn context
   const messages = chatHistory && chatHistory.length > 0
@@ -43,6 +49,17 @@ export async function sendAgentMessage(
     if (resp.status === 402) throw new Error('AI credits exhausted. Please add funds.');
     const err = await resp.json().catch(() => ({ error: 'Failed to connect to AI' }));
     throw new Error(err.error || 'Failed to get response');
+  }
+
+  const contentType = resp.headers.get('content-type') || '';
+  if (!contentType.includes('text/event-stream')) {
+    const body = await resp.text().catch(() => '');
+    const looksLikeHtml = body.trim().startsWith('<!DOCTYPE html') || body.trim().startsWith('<html');
+    throw new Error(
+      looksLikeHtml
+        ? 'Agent request hit the app shell instead of the backend function. Please retry.'
+        : `Unexpected agent response type: ${contentType || 'unknown'}`
+    );
   }
 
   const reader = resp.body.getReader();
@@ -113,12 +130,20 @@ export async function sendAgentMessage(
   }
 
   // If stream ended with an error action but no summary, throw so the caller
-  // shows the real error instead of the silent "Done!" fallback.
+  // shows the real error instead of a silent fallback.
   if (!summary) {
     const errAction = actions.find(a => a.type === 'error') as any;
     if (errAction?.message) {
       throw new Error(errAction.message);
     }
+
+    const hasFileChanges = !!files && Object.keys(files).length > 0;
+    const hasDeletions = !!deletions && deletions.length > 0;
+    if (!hasFileChanges && !hasDeletions) {
+      throw new Error('Agent returned no file changes. Please retry with a clearer build request.');
+    }
+
+    summary = 'Applied file changes.';
   }
 
   let vfs: VirtualFileSystem | undefined;
