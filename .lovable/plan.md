@@ -1,79 +1,42 @@
 
-Goal: eliminate the persistent Voice Error (1006), make voice startup resilient, and keep the picker clean with only Cedric + Marina while preserving compatibility.
 
-What I found from your current setup
-1) The client is successfully reaching your backend voice proxy and the proxy is successfully connecting upstream.
-- Proxy logs repeatedly show:
-  - “Authenticated WebSocket for user …”
-  - “Connected to OpenAI Realtime”
-2) Immediately after that, the browser-side socket is dropping with unexpected EOF repeatedly, which then triggers your client auto-reconnect loop and ends in “Voice connection lost (1006)”.
-3) Voice list UX is already mostly simplified (Cedric + Marina shown), but runtime robustness still needs tightening.
-4) Model string is currently hardcoded in the proxy to a preview model (`gpt-4o-realtime-preview-2025-06-03`), while your intended behavior is to use realtime model routing (“gpt-realtime” family).
-5) There are still profile records in the backend with legacy voice values (e.g. coral/echo). Your client does fallback logic, but we should harden this path server-side and on session init to remove ambiguity.
+## Plan: Fix IDE / Build Flow + Build Error
 
-Implementation plan (sequenced)
-Phase 1 — Stabilize realtime model/session handshake
-1. Update proxy upstream model selection to default to `gpt-realtime` (your expected production path), with optional fallback order.
-2. Add explicit upstream lifecycle logging in proxy for:
-- session creation message sent
-- first upstream event type received
-- upstream close code/reason
-- client close code/reason
-3. Add safe close propagation:
-- if upstream closes, relay a structured error payload once, then close client socket with explicit reason
-- if client closes, gracefully close upstream with normal code and skip noisy error loops
+### Problems Identified
 
-Phase 2 — Harden frontend connection state machine
-1. Refine reconnect behavior in `useOpenAIRealtime`:
-- do not reconnect for intentional disconnects/user deactivation
-- exponential backoff (instead of tight 1s loop)
-- stop reconnect on deterministic auth/config errors
-2. Add a short “session-ready” gate:
-- after WS open, wait for a valid session ack event before allowing mic stream commits
-- prevents early message races that can destabilize startup
-3. Improve surfaced errors:
-- separate “couldn’t initialize voice session” from “network dropped”
-- include upstream close reason when present (instead of generic 1006 only)
+1. **Build error in `process-email-queue/index.ts`** — `msg` and `id` parameters lack type annotations. This is unrelated to the IDE but blocks deployment.
 
-Phase 3 — Enforce two-voice policy cleanly (Cedric + Marina)
-1. Keep picker UI constrained to Cedric + Marina everywhere (Account Hub + overlay).
-2. Add runtime sanitizer on connect:
-- if selected/persisted voice is not in allowed realtime set, force to `cedar` before session.update
-3. Persist sanitized value back to profile when mismatch is detected, so future sessions are clean.
+2. **`/build` prompt never reaches the agent** — The flow is:
+   - ChatInput detects `/build`, navigates to `/apps?prompt=...`
+   - AppsPage creates a DB row, then navigates to `/apps/{id}?initialPrompt=...`
+   - `loadAndOpenProject` fetches the project (which has no files yet), calls `reopenIDECanvas`
+   - IDECanvasPanel mounts, the auto-run `useEffect` checks `ideAutoRunPrompt` — but `reopenIDECanvas` only sets `ideAutoRunPrompt: true` when `initialPrompt` is truthy AND the store field is `!!initialPrompt`. This part looks correct.
+   - **The real issue**: `messages.length > 0` guard on line 346 — if `storedMessages` from the store is populated from a previous session, the auto-run is skipped. Also, `didAutoRunInitialPromptRef` persists across re-renders if the component doesn't fully unmount between projects.
 
-Phase 4 — Robust proxy/auth/config hardening
-1. Ensure websocket auth path is fully deterministic:
-- parse bearer token safely from protocol/header
-- return explicit auth failure messages before attempting upstream
-2. Add defensive handling for malformed/empty WS messages and buffer growth limits.
-3. Add heartbeat/keepalive handling (or idle timeout strategy) so silent sessions don’t die unexpectedly on some networks.
+3. **Agent only sends the latest message, not conversation history** — `sendAgentMessage` hardcodes `messages: [{ role: 'user', content: userMessage }]` instead of forwarding the full chat history. Multi-turn conversations are broken; the agent has no context of prior exchanges.
 
-Phase 5 — Validation pass (end-to-end)
-1. Start voice from idle chat (Cedric) → confirm stable connect, no 1006.
-2. Switch to Marina and restart session → confirm stable connect.
-3. Mute/unmute and interrupt actions → confirm no forced disconnect.
-4. Background tab/foreground return (mobile-like flow) → confirm reconnect behavior is controlled and recovers.
-5. Confirm toasts are accurate:
-- auth/config issue
-- upstream unavailable
-- transient network interruption
-- true session loss after max retries
+4. **"Done!" with no file changes** — When the agent edge function gets a request but the AI returns no tool calls (possibly due to missing context or model confusion), it falls through to `summary: "Done!"`. The client-side `sendAgentMessage` also has a fallback `summary || 'Done!'`. Combined with issue #3, the model likely gets confused with no context.
 
-Technical notes (why this should fix your exact symptom)
-- Your logs prove upstream connect is succeeding; failure is in post-connect lifecycle.
-- The current reconnect loop masks root causes by repeatedly re-opening and failing.
-- Moving to `gpt-realtime` + better lifecycle gating + clearer close propagation removes ambiguity and prevents the 1006 thrash loop.
-- Sanitizing persisted voice values eliminates hidden profile/state mismatch risks when users have old voice preferences.
+### Fix Plan
 
-Files/components targeted in implementation
-- `supabase/functions/openai-realtime-proxy/index.ts` (primary stability + model + close propagation)
-- `src/hooks/useOpenAIRealtime.tsx` (reconnect logic, readiness gating, error surfacing)
-- `src/components/VoiceModeController.tsx` (startup flow coordination if needed)
-- `src/components/VoiceModeOverlay.tsx` and `src/components/VoiceSelector.tsx` (confirm two-voice UX remains consistent)
-- optional small backend data normalization for profile `preferred_voice` values
+**Step 1: Fix build error in `process-email-queue/index.ts`**
+- Add explicit types to the `.map((msg)` and `.filter((id)` callbacks (lines 125 and 130). Type `msg` as `any` and `id` as `string | null`.
 
-Expected outcome
-- Voice mode starts reliably without immediate 1006 loops
-- Cleaner, deterministic error handling when something truly fails
-- Only Cedric + Marina visible, with safe fallback behavior under the hood
-- Overall “robust as hell” startup/reconnect behavior instead of fragile retry churn
+**Step 2: Fix `sendAgentMessage` to send full conversation history**
+- Change `src/services/agent.ts` to accept and forward the full message history instead of wrapping just the latest message.
+- Update the function signature to accept `chatHistory` array.
+- Send `messages: [...chatHistory, { role: 'user', content: userMessage }]` in the request body.
+
+**Step 3: Fix `runAgent` in `IDECanvasPanel.tsx` to pass chat history**
+- Convert the `chatHistory` parameter (which is already passed but unused by `sendAgentMessage`) into the format the agent expects (`{ role, content }[]`).
+- Pass it through to `sendAgentMessage`.
+
+**Step 4: Fix auto-run guard for `/build` prompts**
+- Reset `didAutoRunInitialPromptRef` when `ideProjectId` changes (new project).
+- Adjust the `messages.length > 0` check: only skip if messages contain actual user content (not just the empty assistant placeholder from a previous mount).
+
+**Step 5: Fix `ChatInput.tsx` navigation for `/build`**
+- Use `navigate()` from react-router instead of `window.location.href` to avoid a full page reload that could lose state.
+
+### Files to Edit
+1. `su
