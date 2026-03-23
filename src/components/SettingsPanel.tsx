@@ -504,12 +504,9 @@ export function SettingsPanel() {
                 <p className="text-sm text-muted-foreground">View & manage what Arc remembers about you</p>
               </div>
             </div>
-            <GlassButton 
+            <GlassButton
               className="w-full h-12 rounded-full outline-shimmer inline-flex items-center justify-center text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('open-context-blocks'));
-                setRightPanelTab('settings');
-              }}
+              onClick={() => navigate('/dashboard?tab=memories')}
             >
               <Brain className="h-4 w-4 mr-2" />
               View Memory
