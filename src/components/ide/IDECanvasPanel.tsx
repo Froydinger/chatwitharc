@@ -291,6 +291,11 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       const { data: { session } } = await supabase.auth.getSession();
       const model = getModelForTask('code');
 
+      // Convert chat history to the format the agent expects
+      const historyForAgent = chatHistory
+        .filter(m => m.content && m.content.trim())
+        .map(m => ({ role: m.role, content: m.content }));
+
       const result: AgentResult = await sendAgentMessage(
         prompt,
         files,
@@ -299,7 +304,8 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
           setIdeActions(prev => [...prev, action]);
         },
         model,
-        session?.access_token
+        session?.access_token,
+        historyForAgent
       );
 
       if (result.files) {
@@ -334,7 +340,12 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     }
   }, [files, toast, setIdeIsRunning, setIdeActions, saveProject]);
 
-  // Auto-run exactly once for an initial /code prompt, but keep manual IDE opens blank.
+  // Reset auto-run ref when switching projects
+  useEffect(() => {
+    didAutoRunInitialPromptRef.current = false;
+  }, [ideProjectId]);
+
+  // Auto-run exactly once for an initial /build prompt, but keep manual IDE opens blank.
   useEffect(() => {
     if (!idePrompt) return;
 
@@ -343,7 +354,9 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       return;
     }
 
-    if (didAutoRunInitialPromptRef.current || messages.length > 0) {
+    // Only skip if we already auto-ran OR if there are real user messages (not empty placeholders)
+    const hasRealMessages = messages.some(m => m.role === 'user' && m.content?.trim());
+    if (didAutoRunInitialPromptRef.current || hasRealMessages) {
       clearIdePrompt();
       return;
     }
@@ -359,7 +372,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     setGeneratingId(assistantId);
     clearIdePrompt();
     runAgent(idePrompt, [userMsg], assistantId);
-  }, [idePrompt, ideAutoRunPrompt, messages.length, clearIdePrompt, runAgent, setMessages]);
+  }, [idePrompt, ideAutoRunPrompt, messages, clearIdePrompt, runAgent, setMessages, ideProjectId]);
 
   const handleChatSend = useCallback((message: string) => {
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: message, timestamp: Date.now() };
