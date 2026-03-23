@@ -80,6 +80,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const filesRef = useRef<VirtualFileSystem>(files);
   const messagesRef = useRef<ChatMessage[]>(messages);
+  const autoFixedRef = useRef(false);
   const projectVersionsRef = useRef<ProjectVersion[]>([]);
   const lastSavedSnapshotRef = useRef(buildPersistenceSnapshot(ideFiles || DEFAULT_FILES, storedMessages?.length ? storedMessages : []));
   const projectIdRef = useRef<string | null>(ideProjectId);
@@ -308,13 +309,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
         historyForAgent
       );
 
-      const hasFileChanges = !!result.files && Object.keys(result.files).length > 0;
-      const hasDeletions = !!result.deletions && result.deletions.length > 0;
-      if (!hasFileChanges && !hasDeletions) {
-        throw new Error('No file changes were generated. Please try a more specific prompt.');
-      }
-
-      if (result.files) {
+      if (result.files && Object.keys(result.files).length > 0) {
         const merged = { ...files, ...result.files };
         if (result.deletions) {
           for (const path of result.deletions) delete merged[path];
@@ -381,12 +376,28 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   }, [idePrompt, ideAutoRunPrompt, messages, clearIdePrompt, runAgent, setMessages, ideProjectId]);
 
   const handleChatSend = useCallback((message: string) => {
+    autoFixedRef.current = false;
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: message, timestamp: Date.now() };
     const assistantId = crypto.randomUUID();
     setMessages(prev => [...prev, userMsg, { id: assistantId, role: 'assistant', content: '', timestamp: Date.now() }]);
     setGeneratingId(assistantId);
     runAgent(message, messages, assistantId);
   }, [messages, runAgent]);
+
+  const handlePreviewError = useCallback((error: string) => {
+    if (isAgentRunning || autoFixedRef.current) return;
+    autoFixedRef.current = true;
+    const fixMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: `Fix this runtime error:\n\n${error}`,
+      timestamp: Date.now(),
+    };
+    const assistantId = crypto.randomUUID();
+    setMessages(prev => [...prev, fixMsg, { id: assistantId, role: 'assistant', content: '', timestamp: Date.now() }]);
+    setGeneratingId(assistantId);
+    runAgent(fixMsg.content, messagesRef.current, assistantId);
+  }, [isAgentRunning, runAgent, setMessages]);
 
   const handleFileChange = (path: string, content: string) => {
     setFiles(prev => ({ ...prev, [path]: { ...prev[path], content } }));
@@ -642,7 +653,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
               </div>
             </TabsContent>
             <TabsContent value="preview" className="flex-1 m-0 min-h-0">
-              <IDEPreviewPanel files={files} />
+              <IDEPreviewPanel files={files} onError={handlePreviewError} />
             </TabsContent>
           </Tabs>
         ) : (
@@ -665,7 +676,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                     <TabsTrigger value="preview" className="gap-1.5 text-xs"><Eye className="h-3.5 w-3.5" />Preview</TabsTrigger>
                   </TabsList>
                   <TabsContent value="code" className="flex-1 m-0">{EditorArea}</TabsContent>
-                  <TabsContent value="preview" className="flex-1 m-0"><IDEPreviewPanel files={files} /></TabsContent>
+                  <TabsContent value="preview" className="flex-1 m-0"><IDEPreviewPanel files={files} onError={handlePreviewError} /></TabsContent>
                 </Tabs>
               </div>
             </ResizablePanel>
