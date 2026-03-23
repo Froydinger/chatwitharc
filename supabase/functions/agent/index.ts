@@ -337,10 +337,19 @@ serve(async (req) => {
             if (finalSummary) break;
           }
 
-          if (Object.keys(accumulatedFiles).length > 0 || deletions.length > 0) {
-            send({ type: "files", files: accumulatedFiles, deletions });
+          const hasFileChanges = Object.keys(accumulatedFiles).length > 0 || deletions.length > 0;
+
+          if (!hasFileChanges) {
+            send({
+              type: "error",
+              message: "No file changes were generated. Please retry with a clearer prompt.",
+            });
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+            return;
           }
-          send({ type: "done", summary: finalSummary || "Done! Check the code and preview." });
+
+          send({ type: "files", files: accumulatedFiles, deletions });
+          send({ type: "done", summary: finalSummary || "Applied file changes." });
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         } catch (e) {
           console.error("Agent loop error:", e);
