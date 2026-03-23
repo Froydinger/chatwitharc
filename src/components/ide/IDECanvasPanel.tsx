@@ -291,6 +291,11 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       const { data: { session } } = await supabase.auth.getSession();
       const model = getModelForTask('code');
 
+      // Convert chat history to the format the agent expects
+      const historyForAgent = chatHistory
+        .filter(m => m.content && m.content.trim())
+        .map(m => ({ role: m.role, content: m.content }));
+
       const result: AgentResult = await sendAgentMessage(
         prompt,
         files,
@@ -299,7 +304,8 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
           setIdeActions(prev => [...prev, action]);
         },
         model,
-        session?.access_token
+        session?.access_token,
+        historyForAgent
       );
 
       if (result.files) {
