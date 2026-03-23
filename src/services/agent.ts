@@ -15,9 +15,15 @@ export async function sendAgentMessage(
   currentFiles: VirtualFileSystem,
   onAction: (action: AgentAction) => void,
   model?: string,
-  authToken?: string
+  authToken?: string,
+  chatHistory?: { role: string; content: string }[]
 ): Promise<AgentResult> {
   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+  // Build messages array: include chat history for multi-turn context
+  const messages = chatHistory && chatHistory.length > 0
+    ? [...chatHistory, { role: 'user', content: userMessage }]
+    : [{ role: 'user', content: userMessage }];
 
   const resp = await fetch(AGENT_URL, {
     method: 'POST',
@@ -26,7 +32,7 @@ export async function sendAgentMessage(
       'Authorization': `Bearer ${authToken || supabaseKey}`,
     },
     body: JSON.stringify({
-      messages: [{ role: 'user', content: userMessage }],
+      messages,
       currentFiles,
       model,
     }),
