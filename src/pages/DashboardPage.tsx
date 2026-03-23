@@ -194,12 +194,16 @@ useEffect(() => {
     }
   };
 
-  // Load images when images tab becomes active (only on first open)
+  // Load images when images tab becomes active; auto-fetch all batches in background
   useEffect(() => {
-    if (activeTab === 'images' && dbImages.length === 0 && !dbImagesLoading) {
-      fetchMoreImages(true);
+    if (activeTab === 'images' && !dbImagesLoading) {
+      if (dbImages.length === 0) {
+        fetchMoreImages(true);
+      } else if (dbHasMoreSessions) {
+        fetchMoreImages();
+      }
     }
-  }, [activeTab]);
+  }, [activeTab, dbImages.length, dbHasMoreSessions, dbImagesLoading]);
 
   useEffect(() => {
     if (!user) return;
@@ -477,7 +481,9 @@ useEffect(() => {
                   >
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-8 blur-xl rounded-full pointer-events-none" style={{ background: `hsl(${color} / 0.15)` }} />
                     <Icon className={cn("h-4 w-4 mx-auto mb-1 relative z-10", tw)} style={{ filter: `drop-shadow(0 0 4px hsl(${color} / 0.4))` }} />
-                    <p className="text-lg font-bold text-foreground leading-none relative z-10">{value}</p>
+                    <p className="text-lg font-bold text-foreground leading-none relative z-10">
+                      {label === "Images" && isHydratingAll ? <span className="inline-block h-4 w-6 rounded bg-muted-foreground/30 animate-pulse align-middle" /> : value}
+                    </p>
                     <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider relative z-10">{label}</p>
                   </div>
                 ))}
@@ -689,11 +695,9 @@ useEffect(() => {
                         })}
                       </div>
                       <PaginationBar current={imagePage} total={Math.ceil(filteredImages.length / ITEMS_PER_PAGE)} onChange={setImagePage} />
-                      {dbHasMoreSessions && (
+                      {dbHasMoreSessions && dbImagesLoading && (
                         <div className="flex justify-center pt-2">
-                          <Button variant="outline" size="sm" className="rounded-full" onClick={() => fetchMoreImages()} disabled={dbImagesLoading}>
-                            {dbImagesLoading ? 'Loading…' : 'Load more'}
-                          </Button>
+                          <span className="text-xs text-muted-foreground animate-pulse">Loading more images…</span>
                         </div>
                       )}
                       </>
