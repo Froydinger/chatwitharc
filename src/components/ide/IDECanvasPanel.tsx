@@ -308,6 +308,12 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
         historyForAgent
       );
 
+      const hasFileChanges = !!result.files && Object.keys(result.files).length > 0;
+      const hasDeletions = !!result.deletions && result.deletions.length > 0;
+      if (!hasFileChanges && !hasDeletions) {
+        throw new Error('No file changes were generated. Please try a more specific prompt.');
+      }
+
       if (result.files) {
         const merged = { ...files, ...result.files };
         if (result.deletions) {
@@ -321,7 +327,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
       const finalActions = [...liveActions];
       setMessages(prev => prev.map(msg =>
-        msg.id === aId ? { ...msg, content: result.summary || 'Done!', agentActions: result.actions || finalActions } : msg
+        msg.id === aId ? { ...msg, content: result.summary, agentActions: result.actions || finalActions } : msg
       ));
 
       // Auto-save after successful generation
@@ -371,7 +377,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     ]);
     setGeneratingId(assistantId);
     clearIdePrompt();
-    runAgent(idePrompt, [userMsg], assistantId);
+    runAgent(idePrompt, [], assistantId);
   }, [idePrompt, ideAutoRunPrompt, messages, clearIdePrompt, runAgent, setMessages, ideProjectId]);
 
   const handleChatSend = useCallback((message: string) => {
