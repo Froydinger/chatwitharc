@@ -335,11 +335,13 @@ export function generatePreviewHtml(bundledCode: string): string {
 <body>
   <div id="root"></div>
   <script>
-    window.onerror = function(msg, url, line) {
+    window.onerror = function(msg, url, line, col, err) {
+      var errMsg = (err && err.message) ? err.message : String(msg);
       var root = document.getElementById('root');
       if (root && !root.innerHTML.trim()) {
-        root.innerHTML = '<div style="padding:20px;color:#ef4444;font-family:monospace;"><h2>Runtime Error</h2><pre>' + msg + '</pre></div>';
+        root.innerHTML = '<div style="padding:20px;color:#ef4444;font-family:monospace;"><h2>Runtime Error</h2><pre>' + errMsg + '</pre></div>';
       }
+      try { window.parent.postMessage({ type: 'preview-error', error: errMsg }, '*'); } catch(e) {}
     };
     try {
       ${bundledCode}
@@ -350,8 +352,10 @@ export function generatePreviewHtml(bundledCode: string): string {
         }
       }, 1000);
     } catch (error) {
-      document.getElementById('root').innerHTML = 
-        '<div style="padding:20px;color:#ef4444;font-family:monospace;"><h2>Runtime Error</h2><pre>' + error.message + '</pre></div>';
+      var errMsg = error.message || String(error);
+      document.getElementById('root').innerHTML =
+        '<div style="padding:20px;color:#ef4444;font-family:monospace;"><h2>Runtime Error</h2><pre>' + errMsg + '</pre></div>';
+      try { window.parent.postMessage({ type: 'preview-error', error: errMsg }, '*'); } catch(e) {}
     }
   <\/script>
 </body>

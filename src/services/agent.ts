@@ -139,11 +139,7 @@ export async function sendAgentMessage(
 
     const hasFileChanges = !!files && Object.keys(files).length > 0;
     const hasDeletions = !!deletions && deletions.length > 0;
-    if (!hasFileChanges && !hasDeletions) {
-      throw new Error('Agent returned no file changes. Please retry with a clearer build request.');
-    }
-
-    summary = 'Applied file changes.';
+    summary = hasFileChanges || hasDeletions ? 'Applied file changes.' : 'No changes were needed.';
   }
 
   let vfs: VirtualFileSystem | undefined;

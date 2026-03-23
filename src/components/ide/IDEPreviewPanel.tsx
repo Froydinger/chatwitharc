@@ -6,9 +6,10 @@ import { bundleProject, generatePreviewHtml, initializeEsbuild } from '@/lib/esb
 
 interface IDEPreviewPanelProps {
   files: VirtualFileSystem;
+  onError?: (error: string) => void;
 }
 
-export function IDEPreviewPanel({ files }: IDEPreviewPanelProps) {
+export function IDEPreviewPanel({ files, onError }: IDEPreviewPanelProps) {
   const [html, setHtml] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isBuilding, setIsBuilding] = useState(false);
@@ -27,6 +28,17 @@ export function IDEPreviewPanel({ files }: IDEPreviewPanelProps) {
 
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
+
+  useEffect(() => {
+    if (!onError) return;
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'preview-error' && e.data.error) {
+        onError(e.data.error);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [onError]);
 
   const runBuild = useCallback(async () => {
     if (isInitializing) return;
