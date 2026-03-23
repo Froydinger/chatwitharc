@@ -116,6 +116,7 @@ useEffect(() => {
   const [dbSessionOffset, setDbSessionOffset] = useState(0);
   const [dbHasMoreSessions, setDbHasMoreSessions] = useState(true);
   const DB_SESSION_BATCH = 30;
+  const [totalImageCount, setTotalImageCount] = useState<number | null>(null);
   const [appPage, setAppPage] = useState(1);
   const [memoryPage, setMemoryPage] = useState(1);
 
@@ -204,6 +205,13 @@ useEffect(() => {
       }
     }
   }, [activeTab, dbImages.length, dbHasMoreSessions, dbImagesLoading]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.rpc('count_user_images').then(({ data }) => {
+      if (typeof data === 'number') setTotalImageCount(data);
+    });
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -366,7 +374,7 @@ useEffect(() => {
   // Stats for overview
   const stats = [
     { label: "Chats", value: allChats.length, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
-    { label: "Images", value: allImages.length, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
+    { label: "Images", value: totalImageCount ?? allImages.length, loading: totalImageCount === null, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
     { label: "Apps", value: recentApps.length, icon: Rocket, color: "30 95% 60%", tw: "text-orange-400" },
     { label: "Memories", value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
@@ -468,7 +476,7 @@ useEffect(() => {
 
               {/* Stat cards with gradient fills */}
               <div className="grid grid-cols-4 gap-2">
-                {stats.map(({ label, value, icon: Icon, color, tw }, i) => (
+                {stats.map(({ label, value, loading, icon: Icon, color, tw }, i) => (
                   <div
                     key={label}
                     className="relative overflow-hidden rounded-2xl p-3 text-center group cursor-pointer transition-all hover:scale-[1.04] active:scale-[0.97]"
@@ -482,7 +490,7 @@ useEffect(() => {
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-8 blur-xl rounded-full pointer-events-none" style={{ background: `hsl(${color} / 0.15)` }} />
                     <Icon className={cn("h-4 w-4 mx-auto mb-1 relative z-10", tw)} style={{ filter: `drop-shadow(0 0 4px hsl(${color} / 0.4))` }} />
                     <p className="text-lg font-bold text-foreground leading-none relative z-10">
-                      {label === "Images" && isHydratingAll ? <span className="inline-block h-4 w-6 rounded bg-muted-foreground/30 animate-pulse align-middle" /> : value}
+                      {loading ? <span className="inline-block h-4 w-6 rounded bg-muted-foreground/30 animate-pulse align-middle" /> : value}
                     </p>
                     <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider relative z-10">{label}</p>
                   </div>
