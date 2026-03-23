@@ -21,7 +21,7 @@ async function fetchWasm(urls: string[]): Promise<WebAssembly.Module> {
       const bytes = await resp.arrayBuffer();
       return await WebAssembly.compile(bytes);
     } catch (err) {
-      console.warn(`[esbuild] WASM fetch failed (${urls[i]}):`, err);
+      console.error(`[esbuild] WASM fetch failed (${urls[i]}). Status: ${resp?.status}, Error:`, err);
       if (i === urls.length - 1) throw err;
     }
   }

@@ -82,10 +82,13 @@ export function AppsPage() {
         .eq('id', id)
         .single();
 
-      if (data?.files) {
-        reopenIDECanvas(id, data.files as unknown as VirtualFileSystem, (data as any).messages || [], initialPrompt);
-      } else if (initialPrompt) {
-        reopenIDECanvas(id, {} as VirtualFileSystem, [], initialPrompt);
+      const filesToLoad = data?.files ? (data.files as unknown as VirtualFileSystem) : {};
+      if (Object.keys(filesToLoad).length === 0 && initialPrompt) {
+        // If no files are loaded but there's an initial prompt, use default files
+        const { DEFAULT_FILES } = await import("@/types/ide");
+        reopenIDECanvas(id, DEFAULT_FILES, (data as any).messages || [], initialPrompt);
+      } else {
+        reopenIDECanvas(id, filesToLoad, (data as any).messages || [], initialPrompt);
       }
     } catch (err) {
       console.error('Failed to load project:', err);

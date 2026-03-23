@@ -108,7 +108,7 @@ export async function sendAgentMessage(
           break;
         }
       }
-    } catch { /* incomplete JSON */ }
+    } catch (e) { console.warn("Frontend JSON parse error (incomplete JSON?):", e, "Line:", jsonStr); }
   };
 
   while (true) {

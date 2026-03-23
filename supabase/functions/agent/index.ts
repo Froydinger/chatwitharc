@@ -235,7 +235,7 @@ serve(async (req) => {
             try {
               data = JSON.parse(rawText);
             } catch (parseErr) {
-              console.error("Failed to parse AI response JSON:", parseErr, "Raw length:", rawText.length);
+              console.error("Failed to parse AI response JSON:", parseErr, "Raw length:", rawText.length, "Raw text:", rawText);
               if (jsonRetries < MAX_JSON_RETRIES) {
                 jsonRetries++;
                 send({ type: "status", message: `JSON parse error, retrying… (attempt ${jsonRetries})` });
