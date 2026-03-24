@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { deployCodeBlock, DeployCodeBlockOpts } from '@/lib/deploy';
 import { unpublishFromNetlify } from '@/lib/deploy';
-import { updatePublishedSite, deletePublishedSite, PublishedSite } from '@/lib/publishedSites';
+import { savePublishedSite, updatePublishedSite, deletePublishedSite, PublishedSite } from '@/lib/publishedSites';
 import { toast } from 'sonner';
 
 const EMOJI_OPTIONS = ['🚀', '⚡', '🌟', '🎯', '🔥', '💎', '🎨', '🌈', '🦋', '🍀', '🎭', '🏆'];
@@ -119,8 +119,8 @@ export function SiteManageModal({ open, onClose, site, onUpdated, onUnpublished 
 
       await deployCodeBlock(site.code ?? '', site.code_language ?? 'html', opts);
 
-      // Update DB record
-      const updates = {
+      // Update DB record — if id is empty the initial DB save failed, so insert instead
+      const record = {
         subdomain: subdomain.trim(),
         title: title.trim() || subdomain,
         favicon_svg: faviconSvg,
@@ -129,7 +129,15 @@ export function SiteManageModal({ open, onClose, site, onUpdated, onUnpublished 
         og_description: ogDescription.trim() || null,
         og_image_url: ogImageUrl.trim() || null,
       };
-      const updated = await updatePublishedSite(site.id, updates);
+      const updated = site.id
+        ? await updatePublishedSite(site.id, record)
+        : await savePublishedSite({
+            ...record,
+            netlify_site_id: site.netlify_site_id,
+            url: site.url,
+            code: site.code,
+            code_language: site.code_language,
+          });
       onUpdated(updated);
       toast.success('Site updated!', {
         action: { label: 'View', onClick: () => window.open(updated.url, '_blank') },
@@ -147,7 +155,7 @@ export function SiteManageModal({ open, onClose, site, onUpdated, onUnpublished 
     setUnpublishing(true);
     try {
       await unpublishFromNetlify(site.netlify_site_id);
-      await deletePublishedSite(site.id);
+      if (site.id) await deletePublishedSite(site.id);
       toast.success('Site unpublished');
       onUnpublished();
       onClose();
