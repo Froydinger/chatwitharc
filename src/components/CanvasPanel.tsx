@@ -39,6 +39,8 @@ import { deployCodeBlock } from "@/lib/deploy";
 import { useSubscription } from "@/hooks/useSubscription";
 import { toast as sonnerToast } from "sonner";
 import { PublishModal } from "@/components/PublishModal";
+import { SiteManageModal } from "@/components/SiteManageModal";
+import { savePublishedSite, PublishedSite } from "@/lib/publishedSites";
 
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -78,9 +80,10 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const { toast } = useToast();
   const { isSubscribed } = useSubscription();
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
-  const [liveUrl, setLiveUrl] = useState<string | null>(null);
+  const [publishedSite, setPublishedSite] = useState<PublishedSite | null>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
+  const [showManageModal, setShowManageModal] = useState(false);
 
   const handlePublish = () => {
     if (!isSubscribed) {
@@ -92,7 +95,36 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
   const handlePublishConfirm = async (opts: { subdomain: string; title: string; faviconSvg: string }) => {
     const result = await deployCodeBlock(content, codeLanguage, opts);
-    setLiveUrl(result.url);
+    // Persist to DB
+    try {
+      const site = await savePublishedSite({
+        netlify_site_id: result.siteId,
+        subdomain: result.subdomain,
+        url: result.url,
+        title: opts.title,
+        favicon_svg: opts.faviconSvg,
+        favicon_data: null,
+        og_title: null,
+        og_description: null,
+        og_image_url: null,
+        code: content,
+        code_language: codeLanguage,
+      });
+      setPublishedSite(site);
+    } catch {
+      // DB save failed — still show the live button with local state
+      setPublishedSite({
+        id: '', user_id: '', created_at: '', updated_at: '',
+        netlify_site_id: result.siteId,
+        subdomain: result.subdomain,
+        url: result.url,
+        title: opts.title,
+        favicon_svg: opts.faviconSvg,
+        favicon_data: null,
+        og_title: null, og_description: null, og_image_url: null,
+        code: content, code_language: codeLanguage,
+      });
+    }
     sonnerToast.success('Published! Your site is live.', {
       action: { label: 'View', onClick: () => window.open(result.url, '_blank') },
     });
@@ -438,13 +470,13 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           <div className="flex items-center gap-1 ml-1">
             {/* Publish to web — all code mode */}
             {isCodeMode && (
-              liveUrl ? (
+              publishedSite ? (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => window.open(liveUrl, '_blank')}
+                  onClick={() => setShowManageModal(true)}
                   className="h-9 px-3 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-white/10 transition-all text-xs font-medium"
-                  title="View live site"
+                  title="Manage live site"
                 >
                   <Globe className="w-4 h-4 mr-1.5" />
                   <span className="hidden sm:inline">Live</span>
@@ -735,6 +767,16 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
         onPublish={handlePublishConfirm}
         defaultTitle={codeLanguage === 'html' ? '' : undefined}
       />
+
+      {publishedSite && (
+        <SiteManageModal
+          open={showManageModal}
+          onClose={() => setShowManageModal(false)}
+          site={publishedSite}
+          onUpdated={(updated) => setPublishedSite(updated)}
+          onUnpublished={() => setPublishedSite(null)}
+        />
+      )}
     </div>
   );
 }
