@@ -292,43 +292,49 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       const { data: { session } } = await supabase.auth.getSession();
       const model = getModelForTask('code');
 
-      // Convert chat history to the format the agent expects
       const historyForAgent = chatHistory
-        .filter(m => m.content && m.content.trim())
-        .map(m => ({ role: m.role, content: m.content }));
+        .filter((m) => m.content && m.content.trim())
+        .map((m) => ({ role: m.role, content: m.content }));
 
       const result: AgentResult = await sendAgentMessage(
         prompt,
-        files,
+        filesRef.current,
         (action: AgentAction) => {
           setLiveActions(prev => [...prev, action]);
           setIdeActions(prev => [...prev, action]);
         },
         model,
         session?.access_token,
-        historyForAgent
+        historyForAgent,
       );
 
-      if (result.files && Object.keys(result.files).length > 0) {
-        const merged = { ...files, ...result.files };
-        if (result.deletions) {
-          for (const path of result.deletions) delete merged[path];
-        }
-        setFiles(merged);
-        const firstNew = Object.keys(result.files)[0];
+      const hasWrittenFiles = !!result.files && Object.keys(result.files).length > 0;
+      const hasDeletions = Array.isArray(result.deletions) && result.deletions.length > 0;
+
+      if (hasWrittenFiles || hasDeletions) {
+        setFiles((prev) => {
+          const merged: VirtualFileSystem = { ...prev, ...(result.files || {}) };
+          for (const path of result.deletions || []) {
+            delete merged[path];
+          }
+          return merged;
+        });
+
+        const firstNew = hasWrittenFiles ? Object.keys(result.files!)[0] : null;
         if (firstNew) setSelectedFile(firstNew);
         setActiveTab('preview');
       }
 
-      const finalActions = [...liveActions];
       setMessages(prev => prev.map(msg =>
-        msg.id === aId ? { ...msg, content: result.summary, agentActions: result.actions || finalActions } : msg
+        msg.id === aId ? { ...msg, content: result.summary, agentActions: result.actions } : msg,
       ));
 
-      // Auto-save after successful generation
       setTimeout(() => saveProject(), 500);
 
-      toast({ title: 'Files updated!' });
+      toast({
+        title: hasWrittenFiles || hasDeletions ? 'Files updated!' : 'Completed',
+        description: hasWrittenFiles || hasDeletions ? undefined : result.summary,
+      });
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Something went wrong';
       setMessages(prev => prev.map(m => m.id === aId ? { ...m, content: `Error: ${msg}` } : m));
@@ -339,7 +345,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       setGeneratingId(null);
       setLiveActions([]);
     }
-  }, [files, toast, setIdeIsRunning, setIdeActions, saveProject]);
+  }, [toast, setIdeIsRunning, setIdeActions, saveProject]);
 
   // Reset auto-run ref when switching projects
   useEffect(() => {
@@ -355,7 +361,6 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       return;
     }
 
-    // Only skip if we already auto-ran OR if there are real user messages (not empty placeholders)
     const hasRealMessages = messages.some(m => m.role === 'user' && m.content?.trim());
     if (didAutoRunInitialPromptRef.current || hasRealMessages) {
       clearIdePrompt();
@@ -381,8 +386,8 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     const assistantId = crypto.randomUUID();
     setMessages(prev => [...prev, userMsg, { id: assistantId, role: 'assistant', content: '', timestamp: Date.now() }]);
     setGeneratingId(assistantId);
-    runAgent(message, messages, assistantId);
-  }, [messages, runAgent]);
+    runAgent(message, messagesRef.current, assistantId);
+  }, [runAgent]);
 
   const handlePreviewError = useCallback((error: string) => {
     if (isAgentRunning || autoFixedRef.current) return;

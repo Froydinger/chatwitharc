@@ -8,7 +8,11 @@ const corsHeaders = {
 };
 
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MAX_ITERATIONS = 12;
+const DEFAULT_AGENT_MODEL = "google/gemini-3-flash-preview";
+const MAX_ITERATIONS = 8;
+const MAX_NO_PROGRESS_ITERATIONS = 2;
+const MAX_JSON_RETRIES = 2;
+const AI_REQUEST_TIMEOUT_MS = 70000;
 
 const AGENT_SYSTEM_PROMPT = `You are **Arc Code**, a senior software engineer building production-ready apps inside an existing React + Vite + TypeScript project.
 
@@ -125,6 +129,46 @@ const tools = [
   },
 ];
 
+function parseLooseJson(text: string): any {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const firstBrace = text.indexOf("{");
+    const lastBrace = text.lastIndexOf("}");
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      return JSON.parse(text.slice(firstBrace, lastBrace + 1));
+    }
+    throw new Error("Invalid JSON payload");
+  }
+}
+
+function safeToolArgs(raw: unknown): any {
+  if (typeof raw === "object" && raw !== null) return raw;
+  if (typeof raw !== "string") return {};
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const cleaned = raw
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/```$/i, "")
+      .trim();
+    return parseLooseJson(cleaned);
+  }
+}
+
+function normalizeMessages(input: any): { role: "user" | "assistant" | "system"; content: string }[] {
+  if (!Array.isArray(input)) return [];
+
+  return input
+    .map((m) => ({
+      role: m?.role === "assistant" || m?.role === "system" ? m.role : "user",
+      content: typeof m?.content === "string" ? m.content.trim() : "",
+    }))
+    .filter((m) => m.content.length > 0);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -153,7 +197,14 @@ serve(async (req) => {
       });
     }
 
-    const { messages, currentFiles, model } = await req.json();
+    const { messages: rawMessages, currentFiles, model } = await req.json();
+    const messages = normalizeMessages(rawMessages);
+    if (messages.length === 0) {
+      return new Response(JSON.stringify({ error: "At least one user message is required." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -185,39 +236,63 @@ serve(async (req) => {
           let iterations = 0;
           let filesWritten = 0;
           let jsonRetries = 0;
-          const MAX_JSON_RETRIES = 3;
+          let noProgressIterations = 0;
 
           while (iterations < MAX_ITERATIONS) {
             iterations++;
-            send({ type: "status", message: iterations === 1 ? "Planning and writing code…" : `Continuing… (step ${iterations})` });
-
-            // Force tool use on first call; allow any on subsequent
-            const toolChoice = iterations === 1 ? "required" : "auto";
-
-            const aiResp = await fetch(AI_GATEWAY, {
-              method: "POST",
-              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-              body: JSON.stringify({
-                model: model || "google/gemini-3.1-pro-preview",
-                messages: conversationMessages,
-                tools,
-                tool_choice: toolChoice,
-                temperature: 0.4,
-                max_tokens: 32000,
-              }),
+            send({
+              type: "status",
+              message: iterations === 1 ? "Planning and writing code…" : `Continuing… (step ${iterations})`,
             });
+
+            const toolChoice = iterations === 1 ? "required" : "auto";
+            const aiAbortController = new AbortController();
+            const aiTimeout = setTimeout(() => aiAbortController.abort(), AI_REQUEST_TIMEOUT_MS);
+
+            let aiResp: Response;
+            try {
+              aiResp = await fetch(AI_GATEWAY, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  model: model || DEFAULT_AGENT_MODEL,
+                  messages: conversationMessages,
+                  tools,
+                  tool_choice: toolChoice,
+                  temperature: 0.2,
+                  max_tokens: 12000,
+                  stream: false,
+                }),
+                signal: aiAbortController.signal,
+              });
+            } catch (fetchErr) {
+              clearTimeout(aiTimeout);
+              if (fetchErr instanceof Error && fetchErr.name === "AbortError") {
+                send({ type: "error", message: "The agent timed out while generating code. Please retry." });
+                break;
+              }
+              throw fetchErr;
+            } finally {
+              clearTimeout(aiTimeout);
+            }
 
             if (!aiResp.ok) {
               const status = aiResp.status;
-              if (status === 429) { send({ type: "error", message: "Rate limited — please wait and try again." }); break; }
-              if (status === 402) { send({ type: "error", message: "AI credits exhausted. Please add funds." }); break; }
+              if (status === 429) {
+                send({ type: "error", message: "Rate limited — please wait and try again." });
+                break;
+              }
+              if (status === 402) {
+                send({ type: "error", message: "AI credits exhausted. Please add funds." });
+                break;
+              }
               const t = await aiResp.text();
               console.error("AI gateway error:", status, t);
               send({ type: "error", message: `AI error (${status})` });
               break;
             }
 
-            let rawText: string;
+            let rawText = "";
             try {
               rawText = await aiResp.text();
             } catch (readErr) {
@@ -227,114 +302,168 @@ serve(async (req) => {
                 send({ type: "status", message: `Retrying… (attempt ${jsonRetries})` });
                 continue;
               }
-              send({ type: "error", message: "Failed to read AI response after retries" });
+              send({ type: "error", message: "Failed to read AI response after retries." });
               break;
             }
 
             let data: any;
             try {
-              data = JSON.parse(rawText);
+              data = parseLooseJson(rawText);
+              jsonRetries = 0;
             } catch (parseErr) {
-              console.error("Failed to parse AI response JSON:", parseErr, "Raw length:", rawText.length, "Raw text:", rawText);
+              console.error("Failed to parse AI response JSON:", parseErr, "Raw length:", rawText.length);
               if (jsonRetries < MAX_JSON_RETRIES) {
                 jsonRetries++;
                 send({ type: "status", message: `JSON parse error, retrying… (attempt ${jsonRetries})` });
-                // Add a user message asking the model to retry with valid JSON
                 conversationMessages.push({
                   role: "user",
-                  content: "Your previous response was malformed JSON. Please try again — call create_file or modify_file tools with valid content."
+                  content: "Retry now. Output valid tool calls only. Do not output plain text.",
                 });
                 continue;
               }
-              send({ type: "error", message: "Failed to parse AI response after retries. Please try a simpler prompt." });
+              send({ type: "error", message: "The AI returned malformed data repeatedly. Please retry." });
               break;
             }
 
-            // Reset JSON retry counter on success
-            jsonRetries = 0;
-
-            const choice = data.choices?.[0];
-            if (!choice) { send({ type: "error", message: "No response from AI" }); break; }
-
-            const msg = choice.message;
-            conversationMessages.push(msg);
-
-            // If model returned text with no tool calls, check if we have files already
-            if (!msg.tool_calls || msg.tool_calls.length === 0) {
-              if (filesWritten > 0) {
-                // Files were written, treat text as summary
-                if (msg.content) finalSummary = msg.content;
-              } else {
-                // No files written and no tool calls — model is confused, retry with stronger instruction
-                conversationMessages.push({
-                  role: "user",
-                  content: "You must call create_file or modify_file tools to write the actual code. Do not respond with text — use the tools to create the files now."
-                });
-                continue;
-              }
+            const choice = data?.choices?.[0];
+            const msg = choice?.message;
+            if (!msg) {
+              send({ type: "error", message: "No response from AI." });
               break;
+            }
+
+            conversationMessages.push(msg);
+            const toolCalls = Array.isArray(msg.tool_calls) ? msg.tool_calls : [];
+
+            if (toolCalls.length === 0) {
+              if (filesWritten > 0 || deletions.length > 0) {
+                if (typeof msg.content === "string" && msg.content.trim()) finalSummary = msg.content.trim();
+                break;
+              }
+
+              noProgressIterations++;
+              if (noProgressIterations >= MAX_NO_PROGRESS_ITERATIONS) {
+                send({ type: "error", message: "The agent did not produce file actions. Please retry with a clearer prompt." });
+                break;
+              }
+
+              conversationMessages.push({
+                role: "user",
+                content: "Use create_file/modify_file/delete_file tools now. Do not respond in plain text.",
+              });
+              continue;
             }
 
             let calledDone = false;
-            for (const tc of msg.tool_calls) {
+            let iterationHadFileMutation = false;
+
+            for (const tc of toolCalls.slice(0, 24)) {
+              const toolCallId = typeof tc?.id === "string" ? tc.id : crypto.randomUUID();
               let args: any;
+
               try {
-                args = typeof tc.function.arguments === "string" ? JSON.parse(tc.function.arguments) : tc.function.arguments;
+                args = safeToolArgs(tc?.function?.arguments);
               } catch (argParseErr) {
                 console.error("Failed to parse tool call arguments:", argParseErr);
-                // Try to salvage — skip this tool call
-                conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: "Error: Invalid JSON in arguments. Please retry with valid JSON." });
+                conversationMessages.push({
+                  role: "tool",
+                  tool_call_id: toolCallId,
+                  content: "Error: Invalid JSON arguments. Retry this tool call with valid JSON.",
+                });
                 continue;
               }
 
-              const toolName = tc.function.name;
+              const toolName = tc?.function?.name;
               let result = "";
 
               switch (toolName) {
-                case "create_file":
+                case "create_file": {
+                  if (typeof args.path !== "string" || typeof args.content !== "string") {
+                    result = "Error: create_file requires string path and content.";
+                    conversationMessages.push({ role: "tool", tool_call_id: toolCallId, content: result });
+                    continue;
+                  }
+
                   send({ type: "action", action: "creating", path: args.path });
                   accumulatedFiles[args.path] = args.content;
                   filesWritten++;
+                  iterationHadFileMutation = true;
                   result = `Created ${args.path}`;
                   send({ type: "action_complete", action: "created", path: args.path, success: true });
                   break;
-                case "modify_file":
+                }
+                case "modify_file": {
+                  if (typeof args.path !== "string" || typeof args.content !== "string") {
+                    result = "Error: modify_file requires string path and content.";
+                    conversationMessages.push({ role: "tool", tool_call_id: toolCallId, content: result });
+                    continue;
+                  }
+
                   send({ type: "action", action: "modifying", path: args.path });
                   accumulatedFiles[args.path] = args.content;
                   filesWritten++;
+                  iterationHadFileMutation = true;
                   result = `Modified ${args.path}`;
                   send({ type: "action_complete", action: "modified", path: args.path, success: true });
                   break;
-                case "delete_file":
+                }
+                case "delete_file": {
+                  if (typeof args.path !== "string") {
+                    result = "Error: delete_file requires a string path.";
+                    conversationMessages.push({ role: "tool", tool_call_id: toolCallId, content: result });
+                    continue;
+                  }
+
                   send({ type: "action", action: "deleting", path: args.path });
                   deletions.push(args.path);
+                  iterationHadFileMutation = true;
                   result = `Deleted ${args.path}`;
                   send({ type: "action_complete", action: "deleted", path: args.path, success: true });
                   break;
-                case "done":
-                  if (filesWritten === 0) {
-                    result = "Error: You must create or modify files before calling done.";
-                    conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: result });
+                }
+                case "done": {
+                  if (filesWritten === 0 && deletions.length === 0) {
+                    result = "Error: You must create, modify, or delete at least one file before done.";
+                    conversationMessages.push({ role: "tool", tool_call_id: toolCallId, content: result });
                     conversationMessages.push({
                       role: "user",
-                      content: "You called done without writing any files. Please call create_file or modify_file to actually write the code first."
+                      content: "You called done without file changes. Perform actual file operations first.",
                     });
-                    calledDone = false;
                     continue;
                   }
-                  finalSummary = args.summary || "Done!";
+
+                  finalSummary = typeof args.summary === "string" && args.summary.trim()
+                    ? args.summary.trim()
+                    : "Applied file changes.";
                   calledDone = true;
                   result = "Done";
                   break;
+                }
+                default: {
+                  result = `Ignored unknown tool: ${toolName || "unknown"}`;
+                  conversationMessages.push({ role: "tool", tool_call_id: toolCallId, content: result });
+                  continue;
+                }
               }
 
               if (toolName !== "done" || calledDone) {
-                conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: result });
+                conversationMessages.push({ role: "tool", tool_call_id: toolCallId, content: result });
               }
+
               if (calledDone) break;
             }
 
-            if (finalSummary) break;
+            if (calledDone) break;
+
+            if (!iterationHadFileMutation) {
+              noProgressIterations++;
+              if (noProgressIterations >= MAX_NO_PROGRESS_ITERATIONS) {
+                send({ type: "error", message: "The agent failed to make concrete file changes. Please retry." });
+                break;
+              }
+            } else {
+              noProgressIterations = 0;
+            }
           }
 
           const hasFileChanges = Object.keys(accumulatedFiles).length > 0 || deletions.length > 0;
