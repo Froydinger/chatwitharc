@@ -84,21 +84,39 @@ export async function unpublishFromNetlify(siteId: string): Promise<void> {
 export async function deployCodeBlock(
   code: string,
   language: string,
+  opts: { subdomain?: string; title?: string; faviconSvg?: string } = {},
 ): Promise<{ url: string; netlifyUrl?: string; siteId: string; subdomain: string }> {
+  const { subdomain = `arc-code-${Date.now().toString(36)}`, title, faviconSvg } = opts;
+
   // Wrap code in appropriate HTML for the given language
   let html: string;
   const lang = language.toLowerCase();
+  const pageTitle = title || 'My Site';
+  const faviconTag = faviconSvg
+    ? `<link rel="icon" href="/favicon.svg" type="image/svg+xml">`
+    : '';
+
   if (lang === 'html') {
-    html = code;
+    // Inject title + favicon into existing HTML
+    if (title || faviconSvg) {
+      html = code
+        .replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`)
+        .replace('</head>', `${faviconTag}\n</head>`);
+      if (!html.includes('<title>')) {
+        html = html.replace('<head>', `<head><title>${pageTitle}</title>${faviconTag}`);
+      }
+    } else {
+      html = code;
+    }
   } else if (lang === 'css') {
-    html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${code}</style></head><body></body></html>`;
+    html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${pageTitle}</title>${faviconTag}<style>${code}</style></head><body></body></html>`;
   } else if (canPreview(lang)) {
     // js / ts / jsx / tsx — run it
-    html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><script type="module">${code}</script></body></html>`;
+    html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${pageTitle}</title>${faviconTag}</head><body><script type="module">${code}</script></body></html>`;
   } else {
     // Python, SQL, Bash, etc. — show as a styled read-only code viewer
     const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Code</title><style>
+    html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${pageTitle}</title>${faviconTag}<style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0d1117;color:#e6edf3;font-family:ui-monospace,SFMono-Regular,SF Mono,Menlo,monospace;padding:2rem;min-height:100vh}
 pre{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1.5rem;overflow:auto;font-size:.875rem;line-height:1.6;white-space:pre}
@@ -109,10 +127,12 @@ pre{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1.5rem
   const zip = new JSZip();
   zip.file('index.html', html);
   zip.file('_redirects', '/*    /index.html   200');
+  if (faviconSvg) {
+    zip.file('favicon.svg', faviconSvg);
+  }
   const zipBlob = await zip.generateAsync({ type: 'blob' });
   const zipBase64 = await blobToBase64(zipBlob);
 
-  const subdomain = `arc-code-${Date.now().toString(36)}`;
   const res = await fetch(`${SUPABASE_URL}/functions/v1/deploy-netlify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },

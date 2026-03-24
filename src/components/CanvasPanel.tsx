@@ -38,6 +38,7 @@ import { getLanguageDisplay, getFileExtension, canPreview } from "@/utils/codeUt
 import { deployCodeBlock } from "@/lib/deploy";
 import { useSubscription } from "@/hooks/useSubscription";
 import { toast as sonnerToast } from "sonner";
+import { PublishModal } from "@/components/PublishModal";
 
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -77,27 +78,24 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const { toast } = useToast();
   const { isSubscribed } = useSubscription();
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
-  const [deploying, setDeploying] = useState(false);
   const [liveUrl, setLiveUrl] = useState<string | null>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
 
-  const handlePublish = async () => {
+  const handlePublish = () => {
     if (!isSubscribed) {
       window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
       return;
     }
-    setDeploying(true);
-    try {
-      const result = await deployCodeBlock(content, codeLanguage);
-      setLiveUrl(result.url);
-      sonnerToast.success('Published! Your site is live.', {
-        action: { label: 'View', onClick: () => window.open(result.url, '_blank') },
-      });
-    } catch (err) {
-      sonnerToast.error(err instanceof Error ? err.message : 'Publish failed');
-    } finally {
-      setDeploying(false);
-    }
+    setShowPublishModal(true);
+  };
+
+  const handlePublishConfirm = async (opts: { subdomain: string; title: string; faviconSvg: string }) => {
+    const result = await deployCodeBlock(content, codeLanguage, opts);
+    setLiveUrl(result.url);
+    sonnerToast.success('Published! Your site is live.', {
+      action: { label: 'View', onClick: () => window.open(result.url, '_blank') },
+    });
   };
 
   useEffect(() => {
@@ -456,13 +454,12 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
                   variant="ghost"
                   size="sm"
                   onClick={handlePublish}
-                  disabled={deploying || isAIWriting || !content}
+                  disabled={isAIWriting || !content}
                   className="h-9 px-3 rounded-xl text-primary hover:text-primary hover:bg-white/10 disabled:opacity-40 transition-all text-xs font-medium"
                   title="Publish to web"
                 >
-                  {deploying
-                    ? <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /><span className="hidden sm:inline">Publishing…</span></>
-                    : <><Rocket className="w-4 h-4 mr-1.5" /><span className="hidden sm:inline">Publish</span></>}
+                  <Rocket className="w-4 h-4 mr-1.5" />
+                  <span className="hidden sm:inline">Publish</span>
                 </Button>
               )
             )}
@@ -731,6 +728,13 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           )}
         </AnimatePresence>
       </div>
+
+      <PublishModal
+        open={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+        onPublish={handlePublishConfirm}
+        defaultTitle={codeLanguage === 'html' ? '' : undefined}
+      />
     </div>
   );
 }
