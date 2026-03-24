@@ -53,17 +53,15 @@ export function DeploysPanel() {
   return (
     <div className="flex-1 overflow-y-auto">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-border/20 sticky top-0 bg-background/80 backdrop-blur-xl z-10">
+      <div className="px-4 pt-5 pb-3">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold flex items-center gap-2">
-            <div className="h-6 w-6 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Globe className="h-3.5 w-3.5 text-primary" />
-            </div>
-            Published sites
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-border/20 backdrop-blur-sm">
+            <Globe className="h-3.5 w-3.5 text-primary" />
+            <span className="text-sm font-medium">Published sites</span>
             {sites.length > 0 && (
-              <span className="text-xs text-muted-foreground font-normal">({sites.length})</span>
+              <span className="text-xs text-muted-foreground font-normal bg-white/10 rounded-full px-1.5 py-0.5 leading-none">{sites.length}</span>
             )}
-          </h2>
+          </div>
         </div>
         {sites.length > 3 && (
           <Input
