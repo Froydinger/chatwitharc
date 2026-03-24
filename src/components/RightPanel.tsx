@@ -1,19 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, History, Image, LayoutGrid, Crown, Quote, Layers, Rocket } from "lucide-react";
+import { X, History, Image, LayoutGrid, Crown, Quote, Layers } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
 import { CanvasesPanel } from "@/components/CanvasesPanel";
-import { AppsPanel } from "@/components/AppsPanel";
 import { QuotePanel } from "@/components/QuotePanel";
 import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useSubscription } from "@/hooks/useSubscription";
 
-export type RightPanelTab = "history" | "media" | "canvases" | "apps" | "quote" | "settings";
+export type RightPanelTab = "history" | "media" | "canvases" | "quote" | "settings";
 
 interface RightPanelProps {
   isOpen: boolean;
@@ -33,7 +32,6 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
   const dashboardTabMap: Partial<Record<RightPanelTab, string>> = {
     history: "/dashboard?tab=chats",
     media: "/dashboard?tab=images",
-    apps: "/dashboard?tab=apps",
   };
 
   useEffect(() => {
@@ -98,7 +96,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
               className="absolute h-10 w-10 rounded-full bg-primary/20 ring-1 ring-primary pointer-events-none"
               animate={{
                 left: (() => {
-                  const tabs = ["history", "media", "canvases", "apps", "quote"];
+                  const tabs = ["history", "media", "canvases", "quote"];
                   return tabs.indexOf(activeTab) * 46;
                 })(),
               }}
@@ -108,7 +106,6 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
               { key: "history" as const, icon: History, label: "History" },
               { key: "media" as const, icon: Image, label: "Media" },
               { key: "canvases" as const, icon: Layers, label: "Canvases" },
-              { key: "apps" as const, icon: Rocket, label: "Apps" },
               { key: "quote" as const, icon: Quote, label: "Quote" },
             ].map(({ key, icon: Icon, label }) => (
               <button
@@ -155,13 +152,6 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                 </TabsContent>
               )}
 
-              {activeTab === "apps" && (
-                <TabsContent value="apps" className="h-full m-0" asChild>
-                  <motion.div key="apps" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
-                    <AppsPanel />
-                  </motion.div>
-                </TabsContent>
-              )}
 
               {activeTab === "media" && (
                 <TabsContent value="media" className="h-full m-0" asChild>
