@@ -1633,14 +1633,29 @@ ${existingCode}
         portalRoot,
       )}
 
-      {/* Message Queue - inline above input */}
-      <div className="px-1 mb-1">
-        <MessageQueue
-          onSendMessage={(content) => handleSend(content)}
-          isLoading={isLoading}
-          isDashboard={isDashboard}
-        />
-      </div>
+      {/* Message Queue - portaled above dock for non-inline mode */}
+      {!inline && portalRoot && createPortal(
+        <div
+          className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[34]"
+          style={{ bottom: "calc(92px + env(safe-area-inset-bottom, 0px))" }}
+        >
+          <MessageQueue
+            onSendMessage={(content) => handleSend(content)}
+            isLoading={isLoading}
+            isDashboard={isDashboard}
+          />
+        </div>,
+        portalRoot,
+      )}
+      {inline && (
+        <div className="px-1 mb-1">
+          <MessageQueue
+            onSendMessage={(content) => handleSend(content)}
+            isLoading={isLoading}
+            isDashboard={isDashboard}
+          />
+        </div>
+      )}
 
       {/* Input Row */}
       <div ref={inputBarRef} className="chat-input-halo flex items-center gap-3 rounded-full">
