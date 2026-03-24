@@ -129,6 +129,46 @@ const tools = [
   },
 ];
 
+function parseLooseJson(text: string): any {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const firstBrace = text.indexOf("{");
+    const lastBrace = text.lastIndexOf("}");
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      return JSON.parse(text.slice(firstBrace, lastBrace + 1));
+    }
+    throw new Error("Invalid JSON payload");
+  }
+}
+
+function safeToolArgs(raw: unknown): any {
+  if (typeof raw === "object" && raw !== null) return raw;
+  if (typeof raw !== "string") return {};
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const cleaned = raw
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/```$/i, "")
+      .trim();
+    return parseLooseJson(cleaned);
+  }
+}
+
+function normalizeMessages(input: any): { role: "user" | "assistant" | "system"; content: string }[] {
+  if (!Array.isArray(input)) return [];
+
+  return input
+    .map((m) => ({
+      role: m?.role === "assistant" || m?.role === "system" ? m.role : "user",
+      content: typeof m?.content === "string" ? m.content.trim() : "",
+    }))
+    .filter((m) => m.content.length > 0);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
