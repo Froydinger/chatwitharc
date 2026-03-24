@@ -79,7 +79,9 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { isSubscribed } = useSubscription();
-  const [isStandaloneApp, setIsStandaloneApp] = useState(false);
+  const [isStandaloneApp, setIsStandaloneApp] = useState(false); // Mac PWA / Electron (traffic lights)
+  const [isIOS, setIsIOS] = useState(false);
+  const [isIOSPWA, setIsIOSPWA] = useState(false);
   const [publishedSite, setPublishedSite] = useState<PublishedSite | null>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
@@ -131,12 +133,15 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   };
 
   useEffect(() => {
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
                   (window.navigator as any).standalone === true;
     const isElectron = /electron/i.test(navigator.userAgent);
-    const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
-                           (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
-    setIsStandaloneApp((isPWA || isElectron) && !isMobileDevice);
+    const isIOSDevice = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+                        (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
+    setIsIOS(isIOSDevice);
+    setIsIOSPWA(isIOSDevice && isPWA);
+    // Mac PWA or Electron — floating traffic lights need extra headroom
+    setIsStandaloneApp((isPWA || isElectron) && !isIOSDevice);
   }, []);
   const [showHistory, setShowHistory] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -358,7 +363,13 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
       {/* Header - Glassy style */}
-      <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/20 bg-gradient-to-r from-background/80 via-background/60 to-background/80 backdrop-blur-xl" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 14px)' }}>
+      <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/20 bg-gradient-to-r from-background/80 via-background/60 to-background/80 backdrop-blur-xl" style={{
+        paddingTop: (isIOSPWA || isStandaloneApp)
+          ? 'calc(env(safe-area-inset-top, 0px) + 14px)'  // iOS PWA (Dynamic Island) + Mac PWA (traffic lights)
+          : isIOS
+          ? 'env(safe-area-inset-top, 0px)'                // iOS browser (viewport-fit=cover)
+          : undefined                                        // Android / desktop
+      }}>
         <div className="flex items-center gap-2 sm:gap-3">
           <Button
             variant="ghost"
