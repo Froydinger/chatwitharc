@@ -292,21 +292,33 @@ useEffect(() => {
     });
   }, [user]);
 
-  // Sync jelly bubble to active tab (tab taps trigger a jiggle too)
-  useEffect(() => {
-    if (isBubbleDragging || !navPillRef.current) return;
+  // Reusable: snap bubble to active tab position (instant or animated)
+  const snapBubble = (instant = false) => {
+    if (!navPillRef.current) return;
     const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
     const tabW = contentW / tabs.length;
     const idx = tabs.findIndex(t => t.key === activeTab);
     const cx = PILL_PAD + idx * tabW + tabW / 2;
-    if (bubbleCX.get() === -999) {
+    if (instant || bubbleCX.get() === -999) {
       bubbleCX.set(cx);
     } else {
       animate(bubbleCX, cx, { type: 'spring', stiffness: 380, damping: 26, mass: 0.65 });
-      // Jiggle on arrival
       animate(rawSX, [1.12, 0.9, 1.05, 0.98, 1], { duration: 0.45 });
       animate(rawSY, [0.9, 1.12, 0.95, 1.02, 1], { duration: 0.45 });
     }
+  };
+
+  // Sync on tab change
+  useEffect(() => {
+    if (!isBubbleDragging) snapBubble();
+  }, [activeTab, isBubbleDragging]);
+
+  // Re-snap instantly on resize so bubble never sits outside the pill
+  useEffect(() => {
+    if (!navPillRef.current) return;
+    const ro = new ResizeObserver(() => { if (!isBubbleDragging) snapBubble(true); });
+    ro.observe(navPillRef.current);
+    return () => ro.disconnect();
   }, [activeTab, isBubbleDragging]);
 
   useEffect(() => {
