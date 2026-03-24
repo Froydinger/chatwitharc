@@ -168,8 +168,14 @@ useEffect(() => {
   // Jelly deformation springs
   const rawSX = useMotionValue(1);
   const rawSY = useMotionValue(1);
-  const springScaleX = useSpring(rawSX, { stiffness: 260, damping: 18, mass: 0.45 });
-  const springScaleY = useSpring(rawSY, { stiffness: 260, damping: 18, mass: 0.45 });
+  const springSX = useSpring(rawSX, { stiffness: 260, damping: 18, mass: 0.45 });
+  const springSY = useSpring(rawSY, { stiffness: 260, damping: 18, mass: 0.45 });
+  // Base scale spring for pickup (bigger) / putdown (normal)
+  const rawBase = useMotionValue(1);
+  const springBase = useSpring(rawBase, { stiffness: 320, damping: 20, mass: 0.5 });
+  // Combined: base scale × deformation
+  const springScaleX = useTransform([springBase, springSX] as const, ([b, sx]) => (b as number) * (sx as number));
+  const springScaleY = useTransform([springBase, springSY] as const, ([b, sy]) => (b as number) * (sy as number));
 
   // Callback ref — initializes bubble as soon as pill mounts
   const setPillRef = (el: HTMLDivElement | null) => {
@@ -286,15 +292,21 @@ useEffect(() => {
     });
   }, [user]);
 
-  // Sync jelly bubble to active tab
+  // Sync jelly bubble to active tab (tab taps trigger a jiggle too)
   useEffect(() => {
     if (isBubbleDragging || !navPillRef.current) return;
     const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
     const tabW = contentW / tabs.length;
     const idx = tabs.findIndex(t => t.key === activeTab);
     const cx = PILL_PAD + idx * tabW + tabW / 2;
-    if (bubbleCX.get() === -999) bubbleCX.set(cx);
-    else animate(bubbleCX, cx, { type: 'spring', stiffness: 380, damping: 26, mass: 0.65 });
+    if (bubbleCX.get() === -999) {
+      bubbleCX.set(cx);
+    } else {
+      animate(bubbleCX, cx, { type: 'spring', stiffness: 380, damping: 26, mass: 0.65 });
+      // Jiggle on arrival
+      animate(rawSX, [1.12, 0.9, 1.05, 0.98, 1], { duration: 0.45 });
+      animate(rawSY, [0.9, 1.12, 0.95, 1.02, 1], { duration: 0.45 });
+    }
   }, [activeTab, isBubbleDragging]);
 
   useEffect(() => {
@@ -426,6 +438,10 @@ useEffect(() => {
     bubbleDragStartRef.current = { pointerX: e.clientX, startCX: bubbleCX.get() };
     lastPtrXRef.current = e.clientX;
     lastPtrTRef.current = performance.now();
+    // Scale up on pickup + jiggle
+    rawBase.set(1.22);
+    animate(rawSX, [1, 0.85, 1.18, 0.93, 1.08, 1], { duration: 0.42 });
+    animate(rawSY, [1, 1.18, 0.86, 1.09, 0.94, 1], { duration: 0.42 });
   };
   const onBubblePtrMove = (e: React.PointerEvent) => {
     if (!isBubbleDragging || !navPillRef.current) return;
@@ -452,9 +468,10 @@ useEffect(() => {
     const idx = Math.min(tabs.length - 1, Math.max(0, Math.floor(cx / tabW)));
     const target = tabs[idx]?.key || activeTab;
     animate(bubbleCX, PILL_PAD + idx * tabW + tabW / 2, { type: 'spring', stiffness: 420, damping: 20, mass: 0.7 });
-    // Jiggle on landing
-    animate(rawSX, [1.2, 0.88, 1.06, 0.97, 1], { duration: 0.55 });
-    animate(rawSY, [0.85, 1.15, 0.94, 1.04, 1], { duration: 0.55 });
+    // Scale back down on putdown + landing jiggle
+    rawBase.set(1.0);
+    animate(rawSX, [1.15, 0.86, 1.08, 0.96, 1], { duration: 0.5 });
+    animate(rawSY, [0.88, 1.16, 0.93, 1.04, 1], { duration: 0.5 });
     switchTab(target);
   };
 
@@ -1059,7 +1076,7 @@ useEffect(() => {
                 key={key}
                 onClick={() => switchTab(key)}
                 className={cn(
-                  "flex flex-col items-center gap-1 px-3 py-2.5 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation",
+                  "flex items-center justify-center px-3 py-3 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation",
                   isActive ? "text-primary" : "text-muted-foreground/60 hover:text-muted-foreground"
                 )}
                 style={{ zIndex: 20 }}
@@ -1068,7 +1085,6 @@ useEffect(() => {
                   "h-5 w-5 transition-all duration-300",
                   isActive && "drop-shadow-[0_0_12px_hsl(var(--primary)/0.6)]"
                 )} />
-                <span className={cn("text-[9px] truncate transition-all duration-300 font-medium", isActive ? "text-primary" : "text-muted-foreground/50")}>{label}</span>
               </button>
             );
           })}
