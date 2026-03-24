@@ -563,8 +563,9 @@ useEffect(() => {
                     </div>
                     <div className="p-3 font-mono">
                       <p className="text-[10px] text-muted-foreground/60 mb-0.5">const {label.toLowerCase()} =</p>
-                      <p className={cn("text-2xl font-bold leading-none", tw)}>
-                        {loading ? <span className="inline-block h-5 w-8 rounded bg-muted-foreground/30 animate-pulse align-middle" /> : value}
+                      <p className={cn("text-2xl font-bold leading-none flex items-center gap-1.5", tw)}>
+                        {value}
+                        {loading && <span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin opacity-50" />}
                       </p>
                       <Icon className={cn("h-3.5 w-3.5 mt-2 opacity-50", tw)} />
                     </div>
