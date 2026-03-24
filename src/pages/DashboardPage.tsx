@@ -143,6 +143,11 @@ useEffect(() => {
   const [dbHasMoreSessions, setDbHasMoreSessions] = useState(true);
   const DB_SESSION_BATCH = 30;
   const [totalImageCount, setTotalImageCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (!user?.id) return;
+    const cached = localStorage.getItem(`arc_image_count_${user.id}`);
+    if (cached !== null && totalImageCount === null) setTotalImageCount(Number(cached));
+  }, [user?.id]);
   const [appPage, setAppPage] = useState(1);
   const [memoryPage, setMemoryPage] = useState(1);
   const [canvasSearch, setCanvasSearch] = useState("");
@@ -247,7 +252,10 @@ useEffect(() => {
   useEffect(() => {
     if (!user) return;
     supabase.rpc('count_user_images').then(({ data }) => {
-      if (typeof data === 'number') setTotalImageCount(data);
+      if (typeof data === 'number') {
+        setTotalImageCount(data);
+        localStorage.setItem(`arc_image_count_${user.id}`, String(data));
+      }
     });
   }, [user]);
 
