@@ -5,7 +5,7 @@ import {
   Plus, Clock, Settings, Search,
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
   Globe, Code2, Eye, Sparkles, Zap, ArrowRight, Music, Edit2, Check, X,
-  Layers, PenLine, FileCode
+  Layers, PenLine, FileCode, MessageCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -189,7 +189,7 @@ useEffect(() => {
     if (user) hydrateAllSessions();
   }, [user, hydrateAllSessions]);
 
-  // Fetch a batch of sessions from DB and extract images from them
+  // Optimized image fetching: only fetch sessions that actually contain images
   const fetchMoreImages = async (reset = false) => {
     if (dbImagesLoading) return;
     if (!reset && !dbHasMoreSessions) return;
@@ -198,13 +198,18 @@ useEffect(() => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
+      
+      // Use a more targeted query to find sessions with images
       const { data, error } = await supabase
         .from('chat_sessions')
         .select('id, messages, updated_at')
         .eq('user_id', session.user.id)
+        .filter('messages', 'cs', '[{"type": "image", "role": "assistant"}]')
         .order('updated_at', { ascending: false })
         .range(offset, offset + DB_SESSION_BATCH - 1);
+        
       if (error) throw error;
+      
       const newImages: GeneratedImage[] = [];
       (data || []).forEach(s => {
         ((s.messages as any[]) || []).forEach(msg => {
@@ -221,6 +226,7 @@ useEffect(() => {
           }
         });
       });
+      
       newImages.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
       setDbImages(prev => reset ? newImages : [...prev, ...newImages]);
       setDbSessionOffset(offset + DB_SESSION_BATCH);
@@ -265,15 +271,17 @@ useEffect(() => {
           .select('id, title, prompt, favicon_label, netlify_url, netlify_subdomain, updated_at, created_at, version')
           .eq('user_id', session.user.id)
           .order('updated_at', { ascending: false });
-        setRecentApps((data || []) as RecentApp[]);
-      } catch { /* ignore */ } finally { setLoadingApps(false); }
+        if (data) setRecentApps(data as RecentApp[]);
+      } catch (e) {
+        console.error('Failed to load apps:', e);
+      } finally {
+        setLoadingApps(false);
+      }
     })();
   }, [user]);
 
   const allChats = useMemo(() => {
-    return chatSessions
-      .filter(s => (s.messageCount ?? s.messages.length) > 0)
-      .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+    return [...chatSessions].sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
   }, [chatSessions]);
 
   const filteredChats = useMemo(() => {
@@ -282,7 +290,6 @@ useEffect(() => {
     return allChats.filter(s => s.title.toLowerCase().includes(q));
   }, [allChats, chatSearch]);
 
-  // filteredImages now uses dbImages (lazy DB-loaded) instead of allImages (full hydration)
   const filteredImages = useMemo(() => {
     if (!imageSearch.trim()) return dbImages;
     const q = imageSearch.toLowerCase();
@@ -292,7 +299,7 @@ useEffect(() => {
   const filteredApps = useMemo(() => {
     if (!appSearch.trim()) return recentApps;
     const q = appSearch.toLowerCase();
-    return recentApps.filter(a => a.title.toLowerCase().includes(q) || a.prompt?.toLowerCase().includes(q));
+    return recentApps.filter(app => app.title.toLowerCase().includes(q));
   }, [recentApps, appSearch]);
 
   const filteredMemories = useMemo(() => {
@@ -301,111 +308,46 @@ useEffect(() => {
     return contextBlocks.filter(b => b.content.toLowerCase().includes(q));
   }, [contextBlocks, memorySearch]);
 
-  const canvasItems = useMemo((): CanvasItem[] => {
+  const filteredCanvases = useMemo(() => {
     const items: CanvasItem[] = [];
-    chatSessions.forEach((session) => {
-      session.messages.forEach((message) => {
-        if (!message) return;
-        const coerced = toDate(message?.timestamp);
-        if (!coerced) return;
-        if (message.type === 'canvas') {
-          const canvasContent = (message as any).canvasContent;
-          if (typeof canvasContent === 'string' && canvasContent.length > 0) {
-            items.push({ id: `canvas-${message.id}`, type: 'writing', content: canvasContent, sessionId: session.id, sessionTitle: session.title ?? "Untitled chat", timestamp: coerced, label: (message as any).canvasLabel || 'Writing Canvas' });
-          }
-        }
-        if (message.type === 'code') {
-          const codeContent = (message as any).codeContent;
-          if (typeof codeContent === 'string' && codeContent.length > 0) {
-            items.push({ id: `code-${message.id}`, type: 'code', content: codeContent, language: (message as any).codeLanguage || 'text', sessionId: session.id, sessionTitle: session.title ?? "Untitled chat", timestamp: coerced, label: (message as any).codeLabel || 'Code Canvas' });
-          }
-        }
-        if (message.role === 'assistant' && typeof message.content === 'string') {
-          extractCodeBlocks(message.content).forEach((block, index) => {
-            items.push({ id: `block-${message.id}-${index}`, type: 'code', content: block.code, language: block.language, sessionId: session.id, sessionTitle: session.title ?? "Untitled chat", timestamp: coerced, label: `${getLanguageDisplay(block.language)} snippet` });
+    chatSessions.forEach(s => {
+      s.messages.forEach(m => {
+        if (m.type === 'code' || m.type === 'writing') {
+          items.push({
+            id: m.id,
+            type: m.type,
+            content: typeof m.content === 'string' ? m.content : '',
+            language: m.language,
+            sessionId: s.id,
+            sessionTitle: s.title,
+            timestamp: toDate(m.timestamp) || new Date(),
+            label: m.label || (m.type === 'code' ? 'Code Block' : 'Writing')
           });
         }
       });
     });
     items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    return items;
-  }, [chatSessions]);
-
-  const filteredCanvases = useMemo(() => {
-    if (!canvasSearch.trim()) return canvasItems;
+    if (!canvasSearch.trim()) return items;
     const q = canvasSearch.toLowerCase();
-    return canvasItems.filter(item =>
-      item.content.toLowerCase().includes(q) ||
-      item.sessionTitle.toLowerCase().includes(q) ||
-      (item.language && item.language.toLowerCase().includes(q)) ||
-      (item.label && item.label.toLowerCase().includes(q))
-    );
-  }, [canvasItems, canvasSearch]);
+    return items.filter(i => i.label?.toLowerCase().includes(q) || i.content.toLowerCase().includes(q));
+  }, [chatSessions, canvasSearch]);
 
-  const isImagesLoading = dbImagesLoading && dbImages.length === 0;
-  const selectedApp = selectedAppId ? recentApps.find(a => a.id === selectedAppId) : null;
-
-  const handleDeleteChat = async (sessionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try { deleteSession(sessionId); } catch { /* ignore */ }
+  const timeAgo = (date: Date | string) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
+    if (diff < 60) return "just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+    return d.toLocaleDateString();
   };
-
-  const downloadImage = async (img: GeneratedImage) => {
-    try {
-      const response = await fetch(img.url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `arcai-${Date.now()}.png`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast({ title: "Image downloaded" });
-    } catch { toast({ title: "Download failed", variant: "destructive" }); }
-  };
-
-  const deleteApp = async (appId: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
-      await supabase.from('ide_projects').delete().eq('id', appId).eq('user_id', session.user.id);
-      setRecentApps(prev => prev.filter(a => a.id !== appId));
-      if (selectedAppId === appId) setSelectedAppId(null);
-      toast({ title: "App deleted" });
-    } catch { toast({ title: "Failed to delete", variant: "destructive" }); }
-  };
-
-  const timeAgo = (dateStr: string | Date) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "Just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 30) return `${days}d ago`;
-    return new Date(dateStr).toLocaleDateString();
-  };
-
-  useEffect(() => {
-    if (viewingImageIndex === null) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setViewingImageIndex(null);
-      if (e.key === 'ArrowRight' && viewingImageIndex < filteredImages.length - 1) setViewingImageIndex(viewingImageIndex + 1);
-      if (e.key === 'ArrowLeft' && viewingImageIndex > 0) setViewingImageIndex(viewingImageIndex - 1);
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [viewingImageIndex, filteredImages.length]);
 
   const insightTip = useMemo(() => {
     const tips = [
-      allChats.length > 0 ? `You've had ${allChats.length} chat${allChats.length === 1 ? '' : 's'} — keep the streak going!` : null,
+      allChats.length > 0 ? `You've had ${allChats.length} conversations with Arc.` : null,
       totalImageCount != null && totalImageCount > 0 ? `You've generated ${totalImageCount} image${totalImageCount === 1 ? '' : 's'} with Arc so far.` : null,
-      contextBlocks.length > 0 ? `Arc remembers ${contextBlocks.length} thing${contextBlocks.length === 1 ? '' : 's'} about you.` : null,
-      "Try asking Arc to generate an image of your next project idea.",
+      contextBlocks.length > 0 ? `Arc is remembering ${contextBlocks.length} key details about you.` : null,
       "Start a new chat to brainstorm your next big idea.",
       "Use /build to create a web app from a single prompt.",
     ].filter(Boolean) as string[];
@@ -438,6 +380,23 @@ useEffect(() => {
     { label: "Images", value: totalImageCount ?? 0, loading: totalImageCount === null, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
     { label: "Memories", value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
+
+  const downloadImage = async (image: GeneratedImage) => {
+    try {
+      const response = await fetch(image.url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `arc-image-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
+  };
 
   return (
     <div
@@ -658,26 +617,31 @@ useEffect(() => {
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-start gap-3 flex-1 min-w-0">
                           <div className={cn(
-                            "h-8 w-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5",
-                            currentSessionId === session.id ? "bg-primary/15" : "bg-muted/40"
+                            "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
+                            currentSessionId === session.id ? "bg-primary/20" : "bg-muted/30"
                           )}>
-                            <MessageSquare className={cn("h-3.5 w-3.5", currentSessionId === session.id ? "text-primary" : "text-muted-foreground")} />
+                            <MessageSquare className={cn("h-5 w-5", currentSessionId === session.id ? "text-primary" : "text-muted-foreground")} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className={cn("font-semibold truncate text-sm", currentSessionId === session.id ? "text-primary" : "text-foreground")}>
-                              {session.title}
-                            </h4>
-                            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              <span>{timeAgo(session.lastMessageAt)}</span>
-                              <span className="text-muted-foreground/40">·</span>
-                              <span>{session.messageCount ?? session.messages.length} msgs</span>
+                            <p className="font-semibold text-foreground truncate">{session.title}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-muted-foreground">{timeAgo(session.lastMessageAt)}</span>
+                              <span className="text-muted-foreground/30">·</span>
+                              <span className="text-xs text-muted-foreground">{session.messageCount ?? session.messages.length} messages</span>
                             </div>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all shrink-0" onClick={(e) => handleDeleteChat(session.id, e)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => { e.stopPropagation(); deleteSession(session.id); }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground/30" />
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -688,7 +652,7 @@ useEffect(() => {
             </motion.div>
           )}
 
-          {/* ====== FULL IMAGES ====== */}
+          {/* ====== IMAGES ====== */}
           {activeTab === "images" && (
             <motion.div key="images" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-4">
               <AnimatePresence mode="wait">
@@ -749,32 +713,62 @@ useEffect(() => {
                   </motion.div>
                 ) : (
                   <motion.div key="grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input value={imageSearch} onChange={e => setImageSearch(e.target.value)} placeholder="Search images by prompt..." className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
-                    </div>
-
-                    {isImagesLoading ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                        {[1,2,3,4,5,6,7,8].map(i => <Skeleton key={i} className="aspect-square rounded-xl" />)}
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input value={imageSearch} onChange={e => setImageSearch(e.target.value)} placeholder="Search your generations..." className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
                       </div>
-                    ) : filteredImages.length === 0 ? (
-                      <EmptyState icon={Image} text={imageSearch ? "No matching images" : "No images yet"} sub="Ask Arc to generate an image" />
-                    ) : (
-                      <>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                        {filteredImages.slice((imagePage - 1) * ITEMS_PER_PAGE, imagePage * ITEMS_PER_PAGE).map((img, i) => {
-                          const globalIndex = (imagePage - 1) * ITEMS_PER_PAGE + i;
-                          return <ImageCard key={`${img.sessionId}-${globalIndex}`} img={img} onClick={() => setViewingImageIndex(globalIndex)} index={i} />;
-                        })}
-                      </div>
-                      <PaginationBar current={imagePage} total={Math.ceil(filteredImages.length / ITEMS_PER_PAGE)} onChange={setImagePage} />
-                      {dbHasMoreSessions && dbImagesLoading && (
-                        <div className="flex justify-center pt-2">
-                          <span className="text-xs text-muted-foreground animate-pulse">Loading more images…</span>
+                      {totalImageCount !== null && (
+                        <div className="hidden sm:block px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/10">
+                          <span className="text-xs font-medium text-primary">{totalImageCount} total</span>
                         </div>
                       )}
-                      </>
+                    </div>
+
+                    {dbImagesLoading && dbImages.length === 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {[1,2,3,4,5,6,7,8].map(i => (
+                          <div key={i} className="aspect-square rounded-2xl bg-muted/20 animate-pulse border border-border/10" />
+                        ))}
+                      </div>
+                    ) : filteredImages.length === 0 ? (
+                      <div className="py-20">
+                        <EmptyState 
+                          icon={Image} 
+                          text={imageSearch ? "No matching images" : "Your gallery is empty"} 
+                          sub={imageSearch ? "Try a different search term" : "Images you generate in chat will appear here automatically."} 
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {filteredImages.slice((imagePage - 1) * ITEMS_PER_PAGE, imagePage * ITEMS_PER_PAGE).map((img, i) => {
+                            const globalIndex = (imagePage - 1) * ITEMS_PER_PAGE + i;
+                            return <ImageCard key={`${img.sessionId}-${globalIndex}`} img={img} onClick={() => setViewingImageIndex(globalIndex)} index={i} />;
+                          })}
+                        </div>
+                        
+                        <div className="flex flex-col items-center gap-4 pt-4">
+                          <PaginationBar current={imagePage} total={Math.ceil(filteredImages.length / ITEMS_PER_PAGE)} onChange={setImagePage} />
+                          
+                          {dbHasMoreSessions && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => fetchMoreImages()} 
+                              disabled={dbImagesLoading}
+                              className="text-xs text-muted-foreground hover:text-primary"
+                            >
+                              {dbImagesLoading ? (
+                                <span className="flex items-center gap-2">
+                                  <span className="h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                                  Loading more...
+                                </span>
+                              ) : "Load more from history"}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </motion.div>
                 )}
@@ -841,36 +835,22 @@ useEffect(() => {
                         {filteredCanvases.slice((canvasPage - 1) * ITEMS_PER_PAGE, canvasPage * ITEMS_PER_PAGE).map((item) => (
                           <div
                             key={item.id}
-                            className="rounded-xl border border-border/30 bg-muted/15 overflow-hidden cursor-pointer hover:border-primary/30 hover:bg-primary/5 transition-all group"
+                            className="group p-4 rounded-xl border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all cursor-pointer"
                             onClick={() => setSelectedCanvas(item)}
                           >
-                            {/* Preview area */}
-                            <div className="relative bg-black/20 overflow-hidden" style={{ height: '130px' }}>
-                              {item.type === 'code' && item.language && canPreview(item.language) ? (
-                                <div className="w-full h-full pointer-events-none scale-[0.6] origin-top-left" style={{ width: '167%', height: '167%' }}>
-                                  <CodePreview code={item.content} language={item.language} />
-                                </div>
-                              ) : (
-                                <div className="p-3 h-full overflow-hidden">
-                                  {item.type === 'writing' ? (
-                                    <p className="text-xs text-foreground/60 leading-relaxed line-clamp-6 font-serif">{item.content}</p>
-                                  ) : (
-                                    <pre className="text-[10px] font-mono text-foreground/50 leading-relaxed overflow-hidden whitespace-pre-wrap line-clamp-8">{item.content}</pre>
-                                  )}
-                                </div>
-                              )}
-                              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40 pointer-events-none" />
-                            </div>
-                            {/* Card info */}
-                            <div className="p-3 flex items-center gap-2">
-                              {item.type === 'code' ? <FileCode className="h-3.5 w-3.5 text-primary/60 shrink-0" /> : <PenLine className="h-3.5 w-3.5 text-primary/60 shrink-0" />}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-foreground truncate">{item.label}</p>
-                                <p className="text-[10px] text-muted-foreground truncate">{item.sessionTitle} · {item.timestamp.toLocaleDateString()}</p>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {item.type === 'code' ? <FileCode className="h-4 w-4 text-primary shrink-0" /> : <PenLine className="h-4 w-4 text-primary shrink-0" />}
+                                <p className="font-semibold text-foreground truncate text-sm">{item.label}</p>
                               </div>
-                              {item.language && item.language !== 'text' && (
-                                <span className={cn("text-[9px] px-1 py-0.5 rounded font-medium shrink-0", getLanguageColor(item.language))}>{getLanguageDisplay(item.language)}</span>
-                              )}
+                              <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo(item.timestamp)}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground/70 mt-2 line-clamp-3 font-mono bg-black/10 p-2 rounded-lg border border-border/10">
+                              {item.content.slice(0, 200)}
+                            </p>
+                            <div className="flex items-center justify-between mt-3">
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.sessionTitle}</span>
+                              <ArrowRight className="h-3 w-3 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                             </div>
                           </div>
                         ))}
@@ -884,7 +864,14 @@ useEffect(() => {
             </motion.div>
           )}
 
-          {/* ====== FULL MEMORIES ====== */}
+          {/* ====== DEPLOYS ====== */}
+          {activeTab === "deploys" && (
+            <motion.div key="deploys" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }}>
+              <DeploysPanel />
+            </motion.div>
+          )}
+
+          {/* ====== MEMORIES ====== */}
           {activeTab === "memories" && (
             <motion.div key="memories" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-4">
               <div className="flex items-center gap-2">
@@ -892,83 +879,56 @@ useEffect(() => {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input value={memorySearch} onChange={e => setMemorySearch(e.target.value)} placeholder="Search memories..." className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
                 </div>
-                <Button variant="outline" size="sm" className="rounded-xl shrink-0" onClick={() => { setIsAddingMemory(true); setNewMemoryContent(""); }}>
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Add
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => { setIsAddingMemory(true); setNewMemoryContent(""); }}
+                  className="rounded-full glass-shimmer"
+                  title="Add memory"
+                >
+                  <Plus className="h-4.5 w-4.5 text-primary" />
                 </Button>
-                <span className="text-[11px] text-muted-foreground shrink-0 font-medium">{filteredMemories.length} memor{filteredMemories.length !== 1 ? 'ies' : 'y'}</span>
               </div>
 
-              {/* Add new memory form */}
               {isAddingMemory && (
-                <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
-                  <Textarea
-                    value={newMemoryContent}
-                    onChange={e => setNewMemoryContent(e.target.value)}
-                    placeholder="Add something Arc should remember..."
-                    className="bg-muted/30 border-border/40 rounded-xl min-h-[70px] resize-none text-sm"
-                    autoFocus
-                  />
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" className="rounded-xl" onClick={async () => { if (newMemoryContent.trim()) { await addBlock(newMemoryContent.trim(), 'manual'); setNewMemoryContent(""); setIsAddingMemory(false); } }} disabled={!newMemoryContent.trim()}>
-                      <Check className="h-3 w-3 mr-1" /> Save
-                    </Button>
-                    <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => { setIsAddingMemory(false); setNewMemoryContent(""); }}>
-                      <X className="h-3 w-3 mr-1" /> Cancel
-                    </Button>
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-4 rounded-2xl border border-primary/20 bg-primary/5 space-y-3">
+                  <Textarea value={newMemoryContent} onChange={e => setNewMemoryContent(e.target.value)} placeholder="What should Arc remember?" className="bg-background/50 border-border/40 rounded-xl min-h-[100px]" autoFocus />
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setIsAddingMemory(false)} className="rounded-xl">Cancel</Button>
+                    <Button size="sm" disabled={!newMemoryContent.trim()} onClick={async () => { await addBlock(newMemoryContent); setIsAddingMemory(false); }} className="rounded-xl">Save Memory</Button>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {blocksLoading ? (
-                <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="p-4 rounded-xl border border-border/30 bg-muted/20"><Skeleton className="h-4 w-full" /></div>)}</div>
+                <SkeletonList count={5} />
               ) : filteredMemories.length === 0 ? (
-                <EmptyState icon={Brain} text={memorySearch ? "No matching memories" : "No memories yet"} sub='Tell Arc "remember that..." and it will save facts about you' />
+                <EmptyState icon={Brain} text={memorySearch ? "No matching memories" : "No memories yet"} sub='Tell Arc "remember that..." to save context' />
               ) : (
                 <>
-                <div className="space-y-1.5">
-                  {filteredMemories.slice((memoryPage - 1) * ITEMS_PER_PAGE, memoryPage * ITEMS_PER_PAGE).map((block, i) => (
-                    <div
-                      key={block.id}
-                      className="p-4 rounded-xl group border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all"
-                    >
+                <div className="space-y-2">
+                  {filteredMemories.slice((memoryPage - 1) * ITEMS_PER_PAGE, memoryPage * ITEMS_PER_PAGE).map((block) => (
+                    <div key={block.id} className="group p-4 rounded-xl border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all">
                       {editingMemoryId === block.id ? (
                         <div className="space-y-3">
-                          <Textarea
-                            value={editMemoryContent}
-                            onChange={e => setEditMemoryContent(e.target.value)}
-                            className="bg-muted/30 border-border/40 rounded-xl min-h-[60px] resize-none text-sm"
-                            autoFocus
-                          />
-                          <div className="flex items-center gap-2">
-                            <Button size="sm" className="rounded-xl" onClick={async () => { if (editMemoryContent.trim()) { await updateBlock(editingMemoryId, editMemoryContent.trim()); setEditingMemoryId(null); setEditMemoryContent(""); } }} disabled={!editMemoryContent.trim()}>
-                              <Check className="h-3 w-3 mr-1" /> Save
-                            </Button>
-                            <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => { setEditingMemoryId(null); setEditMemoryContent(""); }}>
-                              <X className="h-3 w-3 mr-1" /> Cancel
-                            </Button>
+                          <Textarea value={editMemoryContent} onChange={e => setEditMemoryContent(e.target.value)} className="bg-background/50 border-border/40 rounded-xl min-h-[80px]" autoFocus />
+                          <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => setEditingMemoryId(null)} className="rounded-xl">Cancel</Button>
+                            <Button size="sm" onClick={async () => { await updateBlock(block.id, editMemoryContent); setEditingMemoryId(null); }} className="rounded-xl">Update</Button>
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3 flex-1 min-w-0">
-                            <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                              <Brain className="h-3.5 w-3.5 text-primary/60" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-foreground/90 leading-relaxed">{block.content}</p>
-                              <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground uppercase tracking-wider">
-                                <span>{block.source}</span>
-                                <span className="text-muted-foreground/30">·</span>
-                                <span>{timeAgo(block.created_at)}</span>
-                              </div>
-                            </div>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-foreground/90 leading-relaxed">{block.content}</p>
+                            <span className="text-[10px] text-muted-foreground mt-2 block uppercase tracking-wider">{timeAgo(block.created_at)}</span>
                           </div>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-xl hover:bg-primary/10 hover:text-primary" onClick={() => { setEditingMemoryId(block.id); setEditMemoryContent(block.content); }}>
-                              <Edit2 className="h-3 w-3" />
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => { setEditingMemoryId(block.id); setEditMemoryContent(block.content); }}>
+                              <Edit2 className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-xl hover:bg-destructive/10 hover:text-destructive" onClick={() => deleteBlock(block.id)}>
-                              <Trash2 className="h-3 w-3" />
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => deleteBlock(block.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </div>
@@ -981,35 +941,12 @@ useEffect(() => {
               )}
             </motion.div>
           )}
-
-          {/* ====== DEPLOYS ====== */}
-          {activeTab === "deploys" && (
-            <motion.div key="deploys" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }}>
-              <DeploysPanel />
-            </motion.div>
-          )}
         </AnimatePresence>
-
-        <div className="h-4" />
       </div>
 
-      {/* ═══ BOTTOM TAB BAR ═══ */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/30 backdrop-blur-2xl"
-        style={{
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5px)',
-          background: 'hsl(var(--background) / 0.85)',
-        }}
-      >
-        <div className="relative flex items-center justify-around max-w-lg mx-auto pt-1.5 pb-0 px-2">
-          {/* Deterministic indicator — no layoutId */}
-          <motion.div
-            className="absolute -top-0 h-0.5 w-6 rounded-full bg-primary pointer-events-none"
-            animate={{
-              left: `calc(${tabs.findIndex(t => t.key === activeTab)} * (100% / ${tabs.length}) + (100% / ${tabs.length} / 2) - 12px)`,
-            }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          />
+      {/* ═══ BOTTOM NAVIGATION ═══ */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none" style={{ paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 20px)` }}>
+        <div className="mx-[10px] flex items-center justify-around p-2 rounded-full border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-auto relative overflow-hidden">
           {tabs.map(({ key, label, icon: Icon }) => {
             const isActive = activeTab === key;
             return (
@@ -1017,12 +954,15 @@ useEffect(() => {
                 key={key}
                 onClick={() => switchTab(key)}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all min-w-0 flex-1 relative min-h-[44px] touch-manipulation active:scale-[0.98]",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  "flex flex-col items-center gap-1 px-3 py-2.5 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation active:scale-[0.95]",
+                  isActive ? "text-primary" : "text-muted-foreground/60 hover:text-muted-foreground"
                 )}
               >
-                <Icon className={cn("h-5 w-5 transition-all", isActive && "drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]")} />
-                <span className={cn("text-[10px] truncate transition-all", isActive ? "font-semibold" : "font-medium")}>{label}</span>
+                <Icon className={cn(
+                  "h-5 w-5 transition-all duration-300",
+                  isActive && "drop-shadow-[0_0_12px_hsl(var(--primary)/0.6)]"
+                )} />
+                <span className={cn("text-[9px] truncate transition-all duration-300 font-medium", isActive ? "text-primary" : "text-muted-foreground/50")}>{label}</span>
               </button>
             );
           })}
