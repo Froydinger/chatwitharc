@@ -365,7 +365,6 @@ useEffect(() => {
     { key: "overview", label: "Overview", icon: LayoutDashboard },
     { key: "chats", label: "Chats", icon: MessageSquare },
     { key: "images", label: "Images", icon: Image },
-    { key: "apps", label: "Apps", icon: Rocket },
     { key: "memories", label: "Memories", icon: Brain },
   ];
 
@@ -375,7 +374,6 @@ useEffect(() => {
   const stats = [
     { label: "Chats", value: allChats.length, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
     { label: "Images", value: totalImageCount ?? allImages.length, loading: totalImageCount === null, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
-    { label: "Apps", value: recentApps.length, icon: Rocket, color: "30 95% 60%", tw: "text-orange-400" },
     { label: "Memories", value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
@@ -517,20 +515,8 @@ useEffect(() => {
               </Section>
 
 
-              {/* Apps + Memories side-by-side */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Section title="Apps" icon={Rocket} action={() => switchTab("apps")} actionLabel="See all">
-                  {loadingApps ? <SkeletonList count={2} /> : recentApps.length === 0 ? (
-                    <EmptyState icon={Rocket} text="No apps yet" sub="Use /build to create one" />
-                  ) : (
-                    <div className="space-y-1.5">
-                      {recentApps.slice(0, 3).map((app, i) => (
-                        <AppListCard key={app.id} app={app} timeAgo={timeAgo} onClick={() => { switchTab("apps"); setSelectedAppId(app.id); }} index={i} />
-                      ))}
-                    </div>
-                  )}
-                </Section>
-
+              {/* Memories */}
+              <div className="grid grid-cols-1 gap-4">
                 <Section title="Memories" icon={Brain} action={() => switchTab("memories")} actionLabel="See all" count={contextBlocks.length}>
                   {blocksLoading ? <SkeletonList count={3} /> : contextBlocks.length === 0 ? (
                     <EmptyState icon={Brain} text="No memories yet" sub='Say "remember that..."' />
@@ -716,118 +702,6 @@ useEffect(() => {
             </motion.div>
           )}
 
-          {/* ====== FULL APPS ====== */}
-          {activeTab === "apps" && (
-            <motion.div key="apps" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-4">
-              <AnimatePresence mode="wait">
-                {selectedApp ? (
-                  <motion.div key="app-detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-                    <button onClick={() => setSelectedAppId(null)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      <ChevronLeft className="h-4 w-4" /> Back to apps
-                    </button>
-                    <div className="rounded-2xl overflow-hidden border border-border/30 bg-muted/10">
-                      <div className="p-5 sm:p-6 space-y-4">
-                        <div className="flex items-start gap-4">
-                          <AppIcon app={selectedApp} size="lg" />
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-bold text-foreground">{selectedApp.title}</h3>
-                            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-muted-foreground">
-                              <span className="px-1.5 py-0.5 rounded-md bg-muted/40 font-medium">v{selectedApp.version}</span>
-                              <span>Updated {timeAgo(selectedApp.updated_at)}</span>
-                              <span className="text-muted-foreground/40">·</span>
-                              <span>Created {new Date(selectedApp.created_at).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-                        </div>
-                        {selectedApp.prompt && (
-                          <div className="rounded-xl p-3 border border-border/20 bg-muted/20">
-                            <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Original prompt</p>
-                            <p className="text-sm text-foreground/90 line-clamp-4 leading-relaxed">{selectedApp.prompt}</p>
-                          </div>
-                        )}
-                        <div className="flex flex-wrap gap-2">
-                          <Button size="sm" onClick={() => navigate(`/apps/${selectedApp.id}`)} className="rounded-xl glass-shimmer">
-                            <Code2 className="h-3.5 w-3.5 mr-1.5" /> Open in Builder
-                          </Button>
-                          {selectedApp.netlify_url && (
-                            <Button variant="outline" size="sm" onClick={() => window.open(selectedApp.netlify_url!, '_blank')} className="rounded-xl border-border/40 bg-muted/20">
-                              <Globe className="h-3.5 w-3.5 mr-1.5" /> View Live
-                            </Button>
-                          )}
-                          <Button variant="outline" size="sm" onClick={() => deleteApp(selectedApp.id)} className="rounded-xl hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40">
-                            <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete
-                          </Button>
-                        </div>
-                      </div>
-                      {selectedApp.netlify_url && (
-                        <div className="border-t border-border/20">
-                          <div className="p-3 flex items-center gap-2 text-xs text-muted-foreground">
-                            <Eye className="h-3 w-3" />
-                            <span>Live Preview</span>
-                          </div>
-                          <div className="relative w-full aspect-video bg-black/10">
-                            <iframe src={selectedApp.netlify_url} className="w-full h-full border-0" title={selectedApp.title} sandbox="allow-scripts allow-same-origin" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div key="app-list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input value={appSearch} onChange={e => setAppSearch(e.target.value)} placeholder="Search apps..." className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
-                      </div>
-                      <button
-                        onClick={() => navigate("/apps")}
-                        className="h-10 px-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-2 text-xs text-primary font-medium hover:bg-primary/20 transition-all active:scale-95"
-                      >
-                        <Plus className="h-3.5 w-3.5" /> New
-                      </button>
-                    </div>
-
-                    {loadingApps ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {[1,2,3,4].map(i => <div key={i} className="p-4 rounded-xl border border-border/30 bg-muted/20"><Skeleton className="h-5 w-3/4 mb-2" /><Skeleton className="h-4 w-1/2" /></div>)}
-                      </div>
-                    ) : filteredApps.length === 0 ? (
-                      <EmptyState icon={Rocket} text={appSearch ? "No matching apps" : "No apps yet"} sub="Use /build to create your first app" />
-                    ) : (
-                      <>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {filteredApps.slice((appPage - 1) * ITEMS_PER_PAGE, appPage * ITEMS_PER_PAGE).map((app, i) => (
-                          <div
-                            key={app.id}
-                            className="p-4 rounded-xl cursor-pointer group border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all"
-                            onClick={() => setSelectedAppId(app.id)}
-                          >
-                            <div className="flex items-center gap-3">
-                              <AppIcon app={app} />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-foreground truncate text-sm">{app.title}</p>
-                                <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-muted-foreground">
-                                  <span className="px-1 py-0.5 rounded bg-muted/40 font-medium">v{app.version}</span>
-                                  <span>{timeAgo(app.updated_at)}</span>
-                                  {app.netlify_url && <Globe className="h-3 w-3 text-primary/50 ml-1" />}
-                                </div>
-                              </div>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all shrink-0" onClick={(e) => { e.stopPropagation(); deleteApp(app.id); }}>
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                            {app.prompt && <p className="text-xs text-muted-foreground/70 mt-2 line-clamp-2 leading-relaxed">{app.prompt}</p>}
-                          </div>
-                        ))}
-                      </div>
-                      <PaginationBar current={appPage} total={Math.ceil(filteredApps.length / ITEMS_PER_PAGE)} onChange={setAppPage} />
-                      </>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          )}
 
           {/* ====== FULL MEMORIES ====== */}
           {activeTab === "memories" && (

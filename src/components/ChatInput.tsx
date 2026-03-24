@@ -108,11 +108,8 @@ function checkForCodingRequest(message: string): boolean {
   return false;
 }
 
-// Prefix-based detection: build/ OR /build — navigates to App Builder IDE
-function checkForBuildRequest(message: string): boolean {
-  if (!message) return false;
-  const m = message.trim().toLowerCase();
-  if (/^build\//.test(m) || /^\/build\b/.test(m)) return true;
+// App Builder IDE is disabled — /build is treated as a regular code request
+function checkForBuildRequest(_message: string): boolean {
   return false;
 }
 
