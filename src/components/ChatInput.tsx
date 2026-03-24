@@ -1505,10 +1505,34 @@ ${existingCode}
     }
   };
 
+  // Auto-send next queued message when loading finishes
+  const prevLoadingRef = useRef(isLoading);
+  useEffect(() => {
+    if (prevLoadingRef.current && !isLoading) {
+      // Loading just finished - check queue
+      const { queue, isPaused, popNext } = useMessageQueueStore.getState();
+      if (queue.length > 0 && !isPaused) {
+        const next = popNext();
+        if (next) {
+          setTimeout(() => handleSend(next.content), 500);
+        }
+      }
+    }
+    prevLoadingRef.current = isLoading;
+  }, [isLoading]);
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      if (e.ctrlKey || e.metaKey) {
+        // Ctrl/Cmd+Enter = add to queue
+        if (inputValue.trim()) {
+          useMessageQueueStore.getState().addToQueue(inputValue.trim());
+          setInputValue("");
+        }
+      } else {
+        handleSend();
+      }
     }
   };
 
