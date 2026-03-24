@@ -160,6 +160,7 @@ useEffect(() => {
   const PILL_PAD = 8; // p-2 = 8px each side
   const navPillRef = useRef<HTMLDivElement>(null);
   const [isBubbleDragging, setIsBubbleDragging] = useState(false);
+  const [bubbleHoverIdx, setBubbleHoverIdx] = useState(-1);
   const bubbleCX = useMotionValue(-999); // -999 = not yet initialized
   const bubbleLeft = useTransform(bubbleCX, cx => cx - BUBBLE_R);
   const bubbleDragStartRef = useRef({ pointerX: 0, startCX: 0 });
@@ -292,21 +293,33 @@ useEffect(() => {
     });
   }, [user]);
 
-  // Sync jelly bubble to active tab (tab taps trigger a jiggle too)
-  useEffect(() => {
-    if (isBubbleDragging || !navPillRef.current) return;
+  // Reusable: snap bubble to active tab position (instant or animated)
+  const snapBubble = (instant = false) => {
+    if (!navPillRef.current) return;
     const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
     const tabW = contentW / tabs.length;
     const idx = tabs.findIndex(t => t.key === activeTab);
     const cx = PILL_PAD + idx * tabW + tabW / 2;
-    if (bubbleCX.get() === -999) {
+    if (instant || bubbleCX.get() === -999) {
       bubbleCX.set(cx);
     } else {
       animate(bubbleCX, cx, { type: 'spring', stiffness: 380, damping: 26, mass: 0.65 });
-      // Jiggle on arrival
       animate(rawSX, [1.12, 0.9, 1.05, 0.98, 1], { duration: 0.45 });
       animate(rawSY, [0.9, 1.12, 0.95, 1.02, 1], { duration: 0.45 });
     }
+  };
+
+  // Sync on tab change
+  useEffect(() => {
+    if (!isBubbleDragging) snapBubble();
+  }, [activeTab, isBubbleDragging]);
+
+  // Re-snap instantly on resize so bubble never sits outside the pill
+  useEffect(() => {
+    if (!navPillRef.current) return;
+    const ro = new ResizeObserver(() => { if (!isBubbleDragging) snapBubble(true); });
+    ro.observe(navPillRef.current);
+    return () => ro.disconnect();
   }, [activeTab, isBubbleDragging]);
 
   useEffect(() => {
@@ -431,10 +444,18 @@ useEffect(() => {
     { label: "Memories", value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
+  const getIdxFromCX = (cx: number) => {
+    if (!navPillRef.current) return 0;
+    const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
+    const tabW = contentW / tabs.length;
+    return Math.min(tabs.length - 1, Math.max(0, Math.floor((cx - PILL_PAD) / tabW)));
+  };
+
   const onBubblePtrDown = (e: React.PointerEvent) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     e.stopPropagation();
     setIsBubbleDragging(true);
+    setBubbleHoverIdx(getIdxFromCX(bubbleCX.get()));
     bubbleDragStartRef.current = { pointerX: e.clientX, startCX: bubbleCX.get() };
     lastPtrXRef.current = e.clientX;
     lastPtrTRef.current = performance.now();
@@ -449,6 +470,7 @@ useEffect(() => {
     const dx = e.clientX - bubbleDragStartRef.current.pointerX;
     const newCX = Math.max(PILL_PAD + BUBBLE_R, Math.min(PILL_PAD + contentW - BUBBLE_R, bubbleDragStartRef.current.startCX + dx));
     bubbleCX.set(newCX);
+    setBubbleHoverIdx(getIdxFromCX(newCX));
     // Velocity-based jelly deformation
     const now = performance.now();
     const dt = now - lastPtrTRef.current;
@@ -462,6 +484,7 @@ useEffect(() => {
   const onBubblePtrUp = (e: React.PointerEvent) => {
     if (!isBubbleDragging || !navPillRef.current) return;
     setIsBubbleDragging(false);
+    setBubbleHoverIdx(-1);
     const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
     const tabW = contentW / tabs.length;
     const cx = bubbleCX.get() - PILL_PAD;
@@ -1067,7 +1090,25 @@ useEffect(() => {
             onPointerMove={onBubblePtrMove}
             onPointerUp={onBubblePtrUp}
             onPointerCancel={onBubblePtrUp}
-          />
+          >
+            {/* Magnified icon — visible while dragging, shows whichever tab bubble is over */}
+            {(() => {
+              const idx = isBubbleDragging ? bubbleHoverIdx : tabs.findIndex(t => t.key === activeTab);
+              const MagIcon = idx >= 0 ? tabs[idx]?.icon : null;
+              return MagIcon ? (
+                <motion.div
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                  animate={{ opacity: isBubbleDragging ? 1 : 0, scale: isBubbleDragging ? 1 : 0.5 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                >
+                  <MagIcon
+                    className="h-8 w-8 text-primary"
+                    style={{ filter: 'drop-shadow(0 0 6px hsl(var(--primary)))' }}
+                  />
+                </motion.div>
+              ) : null;
+            })()}
+          </motion.div>
 
           {tabs.map(({ key, label, icon: Icon }) => {
             const isActive = activeTab === key;
