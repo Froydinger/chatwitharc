@@ -358,7 +358,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
       {/* Header - Glassy style */}
-      <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/20 bg-gradient-to-r from-background/80 via-background/60 to-background/80 backdrop-blur-xl" style={{ paddingTop: isStandaloneApp ? 'calc(env(safe-area-inset-top, 0px) + 14px)' : undefined }}>
+      <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/20 bg-gradient-to-r from-background/80 via-background/60 to-background/80 backdrop-blur-xl" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 14px)' }}>
         <div className="flex items-center gap-2 sm:gap-3">
           <Button
             variant="ghost"
