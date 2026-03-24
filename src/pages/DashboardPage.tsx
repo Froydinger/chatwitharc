@@ -156,7 +156,7 @@ useEffect(() => {
   const { openWithContent } = useCanvasStore();
 
   // Jelly nav bubble
-  const BUBBLE_R = 22;
+  const BUBBLE_R = 28;
   const PILL_PAD = 8; // p-2 = 8px each side
   const navPillRef = useRef<HTMLDivElement>(null);
   const [isBubbleDragging, setIsBubbleDragging] = useState(false);
@@ -1039,13 +1039,11 @@ useEffect(() => {
               scaleY: springScaleY,
               zIndex: 30,
               cursor: isBubbleDragging ? 'grabbing' : 'grab',
-              border: '1.5px solid hsl(var(--primary) / 0.6)',
-              background: 'radial-gradient(circle at 50% 50%, transparent 25%, hsl(var(--primary) / 0.06) 75%, hsl(var(--primary) / 0.12) 100%)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
+              border: '2px solid hsl(var(--primary))',
+              background: 'transparent',
               boxShadow: isBubbleDragging
-                ? '0 0 0 2px hsl(var(--primary) / 0.18), 0 0 24px hsl(var(--primary) / 0.45), inset 0 0 12px hsl(var(--primary) / 0.08)'
-                : '0 0 0 1px hsl(var(--primary) / 0.1), 0 0 16px hsl(var(--primary) / 0.3), inset 0 0 8px hsl(var(--primary) / 0.05)',
+                ? '0 0 12px 3px hsl(var(--primary) / 0.7), 0 0 32px 6px hsl(var(--primary) / 0.35), inset 0 0 16px 2px hsl(var(--primary) / 0.15)'
+                : '0 0 8px 2px hsl(var(--primary) / 0.55), 0 0 22px 4px hsl(var(--primary) / 0.25), inset 0 0 10px 1px hsl(var(--primary) / 0.08)',
               pointerEvents: 'auto',
             }}
             onPointerDown={onBubblePtrDown}
