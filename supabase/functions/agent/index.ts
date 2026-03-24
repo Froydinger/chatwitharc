@@ -249,6 +249,12 @@ serve(async (req) => {
             const aiAbortController = new AbortController();
             const aiTimeout = setTimeout(() => aiAbortController.abort(), AI_REQUEST_TIMEOUT_MS);
 
+            // Heartbeat: send a ping every 20s while awaiting the AI so the
+            // client-side inactivity timer doesn't fire during long AI calls.
+            const heartbeat = setInterval(() => {
+              send({ type: "status", message: "Still working…" });
+            }, 20000);
+
             let aiResp: Response;
             try {
               aiResp = await fetch(AI_GATEWAY, {
@@ -267,6 +273,7 @@ serve(async (req) => {
               });
             } catch (fetchErr) {
               clearTimeout(aiTimeout);
+              clearInterval(heartbeat);
               if (fetchErr instanceof Error && fetchErr.name === "AbortError") {
                 send({ type: "error", message: "The agent timed out while generating code. Please retry." });
                 break;
@@ -274,6 +281,7 @@ serve(async (req) => {
               throw fetchErr;
             } finally {
               clearTimeout(aiTimeout);
+              clearInterval(heartbeat);
             }
 
             if (!aiResp.ok) {
