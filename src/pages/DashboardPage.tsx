@@ -369,7 +369,7 @@ useEffect(() => {
   // Stats for overview
   const stats = [
     { label: "Chats", value: allChats.length, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400", desc: "Conversations" },
-    { label: "Images", value: totalImageCount, loading: totalImageCount === null, icon: Image, color: "270 80% 65%", tw: "text-purple-400", desc: "Generations" },
+    { label: "Gallery", action: true, icon: Image, color: "270 80% 65%", tw: "text-purple-400", desc: "View your generations" },
     { label: "Memories", value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400", desc: "Context points" },
   ];
 
@@ -487,7 +487,7 @@ useEffect(() => {
 
               {/* Stat cards — modern redesign */}
               <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                {stats.map(({ label, value, loading, icon: Icon, color, tw, desc }, i) => (
+                {stats.map(({ label, value, action, icon: Icon, color, tw, desc }, i) => (
                   <div
                     key={label}
                     className="relative overflow-hidden rounded-2xl cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group p-4 sm:p-5"
@@ -497,7 +497,7 @@ useEffect(() => {
                       backdropFilter: 'blur(10px)'
                     }}
                     onClick={() => {
-                      const targetTab = label === "Chats" ? "chats" : label === "Images" ? "images" : label === "Memories" ? "memories" : "overview";
+                      const targetTab = label === "Chats" ? "chats" : label === "Gallery" ? "images" : label === "Memories" ? "memories" : "overview";
                       switchTab(targetTab);
                     }}
                   >
@@ -506,7 +506,7 @@ useEffect(() => {
                         <div className={cn("p-2 rounded-xl", tw)} style={{ background: `hsl(${color} / 0.1)` }}>
                           <Icon className="h-5 w-5" />
                         </div>
-                        {label === "Images" && (
+                        {action && (
                           <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <ArrowRight className="h-3 w-3 text-primary" />
                           </div>
@@ -515,16 +515,21 @@ useEffect(() => {
                       
                       <div className="space-y-1">
                         <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
-                        <div className="flex items-baseline gap-2">
-                          {loading ? (
-                            <div className="h-8 w-16 rounded-lg bg-muted/20 animate-pulse" />
-                          ) : (
+                        {action ? (
+                          <div className="flex items-center gap-2 pt-1">
+                            <div className="h-8 w-8 rounded-lg bg-primary/15 flex items-center justify-center">
+                              <Sparkles className="h-4 w-4 text-primary" />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground/60 font-medium">Tap to explore</p>
+                          </div>
+                        ) : (
+                          <>
                             <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
                               {value ?? 0}
                             </h3>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-muted-foreground/60 font-medium">{desc}</p>
+                            <p className="text-[10px] text-muted-foreground/60 font-medium">{desc}</p>
+                          </>
+                        )}
                       </div>
                     </div>
                     
@@ -947,17 +952,8 @@ useEffect(() => {
       </div>
 
       {/* ═══ BOTTOM NAVIGATION ═══ */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-[env(safe-area-inset-bottom,15px)] pt-4 pointer-events-none">
-        <div className="max-w-md mx-auto flex items-center justify-around p-1.5 rounded-[24px] border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-auto relative overflow-hidden">
-          {/* Active tab indicator */}
-          <motion.div
-            className="absolute h-[40px] rounded-2xl bg-primary/15 border border-primary/20"
-            initial={false}
-            animate={{
-              left: `calc(${tabs.findIndex(t => t.key === activeTab)} * (100% / ${tabs.length}) + (100% / ${tabs.length} / 2) - 12px)`,
-            }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          />
+      <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none" style={{ paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 20px)` }}>
+        <div className="mx-[10px] flex items-center justify-around p-2 rounded-full border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-auto relative overflow-hidden">
           {tabs.map(({ key, label, icon: Icon }) => {
             const isActive = activeTab === key;
             return (
@@ -965,12 +961,15 @@ useEffect(() => {
                 key={key}
                 onClick={() => switchTab(key)}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all min-w-0 flex-1 relative min-h-[44px] touch-manipulation active:scale-[0.98]",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  "flex flex-col items-center gap-1 px-3 py-2.5 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation active:scale-[0.95]",
+                  isActive ? "text-primary" : "text-muted-foreground/60 hover:text-muted-foreground"
                 )}
               >
-                <Icon className={cn("h-5 w-5 transition-all", isActive && "drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]")} />
-                <span className={cn("text-[10px] truncate transition-all", isActive ? "font-semibold" : "font-medium")}>{label}</span>
+                <Icon className={cn(
+                  "h-5 w-5 transition-all duration-300",
+                  isActive && "drop-shadow-[0_0_12px_hsl(var(--primary)/0.6)]"
+                )} />
+                <span className={cn("text-[9px] truncate transition-all duration-300 font-medium", isActive ? "text-primary" : "text-muted-foreground/50")}>{label}</span>
               </button>
             );
           })}
