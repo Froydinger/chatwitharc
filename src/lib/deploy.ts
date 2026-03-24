@@ -3,8 +3,8 @@ import type { VirtualFileSystem } from '@/types/ide';
 import { bundleProject, generatePreviewHtml, initializeEsbuild } from '@/lib/esbuild';
 import { canPreview } from '@/utils/codeUtils';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://jxywhodnndagbsmnbnnw.supabase.co";
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4eXdob2RubmRhZ2JzbW5ibm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwOTkwNjUsImV4cCI6MjA4MTY3NTA2NX0.tmqRRB4jbOOR0FWVsS8zXer_2IZLjzsPb2D3Ozu2bKk";
 
 async function blobToBase64(blob: Blob): Promise<string> {
   const buffer = await blob.arrayBuffer();
