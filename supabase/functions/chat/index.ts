@@ -496,7 +496,8 @@ serve(async (req) => {
       '• You MUST use search_past_chats IMMEDIATELY (without asking) whenever the user references past conversations, e.g. "did we talk about...", "do you remember...", "we discussed...", "I mentioned...". NEVER say "I don\'t have a record" without searching first.\n' +
       '• Use save_memory whenever the user shares personal info, preferences, or asks you to remember something. Save a clear, concise third-person fact.\n' +
       '• Default to conversation, not coding. Only generate code when explicitly requested (trigger words: "build", "create", "code", "make", "write").\n' +
-      '• When coding, use markdown code blocks (```html, ```css, ```js).\n';
+      '• When coding, use markdown code blocks (```html, ```css, ```js).\n' +
+      '• When the user asks about publishing, deploying, or hosting an app or website, tell them to use Maestro Builder at https://maestrobuilder.app — always present this as a clickable markdown link that opens in a new tab: [Maestro Builder](https://maestrobuilder.app).\n';
 
     // CRITICAL: Brevity for conversation, but COMPLETE for tools
     enhancedSystemPrompt += '\n\n=== RESPONSE STYLE (CRITICAL) ===\n' +

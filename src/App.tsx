@@ -4,7 +4,7 @@ import { UpgradeModal } from "@/components/UpgradeModal";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
@@ -92,8 +92,8 @@ const App = () => {
                   <Route path="/pricing" element={<PricingPage />} />
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
-                  <Route path="/apps" element={<AppsPage />} />
-                  <Route path="/apps/:projectId" element={<AppsPage />} />
+                  <Route path="/apps" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/apps/:projectId" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/admin" element={<AdminPage />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
