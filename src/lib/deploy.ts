@@ -24,7 +24,7 @@ function generateDeployHtml(bundledCode: string, appName: string, hasFavicon: bo
     ? `<link rel="icon" href="/favicon.svg" type="image/svg+xml">`
     : `<link rel="icon" href="data:image/svg+xml,${encodeURIComponent(DEFAULT_FAVICON_SVG)}" type="image/svg+xml">`;
   return base
-    .replace('<title>Preview</title>', `<title>${appName}</title>\n  ${faviconTag}`)
+    .replace('</head>', `  <title>${appName}</title>\n  ${faviconTag}\n</head>`)
     .replace(`"development"`, `"production"`);
 }
 
