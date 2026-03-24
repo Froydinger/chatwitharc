@@ -376,9 +376,9 @@ useEffect(() => {
 
   // Stats for overview
   const stats = [
-    { label: "Chats", value: allChats.length, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400", desc: "Conversations" },
-    { label: "Gallery", action: true, icon: Image, color: "270 80% 65%", tw: "text-purple-400", desc: "View your generations" },
-    { label: "Memories", value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400", desc: "Context points" },
+    { label: "Chats", value: allChats.length, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
+    { label: "Images", value: totalImageCount ?? 0, loading: totalImageCount === null, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
+    { label: "Memories", value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
   const downloadImage = async (image: GeneratedImage) => {
@@ -493,60 +493,45 @@ useEffect(() => {
           {activeTab === "overview" && (
             <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-6">
 
-              {/* Stat cards — modern redesign */}
-              <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                {stats.map(({ label, value, action, icon: Icon, color, tw, desc }, i) => (
-                  <div
-                    key={label}
-                    className="relative overflow-hidden rounded-2xl cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group p-4 sm:p-5"
-                    style={{ 
-                      border: `1px solid hsl(${color} / 0.15)`, 
-                      background: `linear-gradient(165deg, hsl(${color} / 0.05) 0%, hsl(var(--background) / 0.4) 100%)`,
-                      backdropFilter: 'blur(10px)'
-                    }}
-                    onClick={() => {
-                      const targetTab = label === "Chats" ? "chats" : label === "Gallery" ? "images" : label === "Memories" ? "memories" : "overview";
-                      switchTab(targetTab);
-                    }}
-                  >
-                    <div className="flex flex-col h-full relative z-10">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className={cn("p-2 rounded-xl", tw)} style={{ background: `hsl(${color} / 0.1)` }}>
-                          <Icon className="h-5 w-5" />
-                        </div>
-                        {action && (
-                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <ArrowRight className="h-3 w-3 text-primary" />
-                          </div>
-                        )}
+              {/* Stat cards — code-block style */}
+              <div className="grid grid-cols-3 gap-2">
+                {stats.map(({ label, value, loading, icon: Icon, color, tw }, i) => {
+                  const isImages = label === "Images";
+                  return (
+                    <div
+                      key={label}
+                      className="relative overflow-hidden rounded-xl cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97] group"
+                      style={{ border: `1px solid hsl(${color} / 0.25)`, background: `linear-gradient(160deg, hsl(${color} / 0.08) 0%, hsl(var(--background) / 0.9) 100%)` }}
+                      onClick={() => switchTab(tabs[i + 1]?.key || "overview")}
+                    >
+                      {/* top bar mimicking a code editor tab */}
+                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b" style={{ borderColor: `hsl(${color} / 0.2)`, background: `hsl(${color} / 0.06)` }}>
+                        <div className="h-1.5 w-1.5 rounded-full opacity-70" style={{ background: `hsl(${color})` }} />
+                        <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{label}.arc</span>
                       </div>
-                      
-                      <div className="space-y-1">
-                        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
-                        {action ? (
-                          <div className="flex items-center gap-2 pt-1">
-                            <div className="h-8 w-8 rounded-lg bg-primary/15 flex items-center justify-center">
-                              <Sparkles className="h-4 w-4 text-primary" />
-                            </div>
-                            <p className="text-[10px] text-muted-foreground/60 font-medium">Tap to explore</p>
+                      <div className="p-3 font-mono">
+                        {isImages && (
+                          <Icon className={cn("absolute bottom-1 right-1 h-12 w-12 opacity-[0.06]", tw)} />
+                        )}
+                        <p className="text-[10px] text-muted-foreground/60 mb-0.5">const {label.toLowerCase()} =</p>
+                        <p className={cn("text-2xl font-bold leading-none flex items-center gap-1.5", tw)}>
+                          {value}
+                          {loading && <span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin opacity-50" />}
+                        </p>
+                        {isImages ? (
+                          <div
+                            className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-sans font-medium tracking-wide backdrop-blur-sm border transition-colors"
+                            style={{ borderColor: `hsl(${color} / 0.3)`, background: `hsl(${color} / 0.1)`, color: `hsl(${color})` }}
+                          >
+                            All images
                           </div>
                         ) : (
-                          <>
-                            <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                              {value ?? 0}
-                            </h3>
-                            <p className="text-[10px] text-muted-foreground/60 font-medium">{desc}</p>
-                          </>
+                          <Icon className={cn("h-3.5 w-3.5 mt-2 opacity-50", tw)} />
                         )}
                       </div>
                     </div>
-                    
-                    {/* Background decoration */}
-                    <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">
-                      <Icon className="h-24 w-24" />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Insight tip */}
