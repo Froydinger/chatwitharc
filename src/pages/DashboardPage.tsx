@@ -7,7 +7,7 @@ import {
   Globe, Code2, Eye, Sparkles, Zap, ArrowRight, Music, Edit2, Check, X,
   Layers, PenLine, FileCode, MessageCircle
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -155,6 +155,14 @@ useEffect(() => {
   const [selectedCanvas, setSelectedCanvas] = useState<CanvasItem | null>(null);
   const { openWithContent } = useCanvasStore();
 
+  // Jelly nav bubble
+  const BUBBLE_R = 22;
+  const navPillRef = useRef<HTMLDivElement>(null);
+  const [isBubbleDragging, setIsBubbleDragging] = useState(false);
+  const bubbleCX = useMotionValue(0);
+  const bubbleLeft = useTransform(bubbleCX, cx => cx - BUBBLE_R);
+  const bubbleDragStartRef = useRef({ pointerX: 0, startCX: 0 });
+
   const prevMessageCountRef = useRef(messages.length);
   useEffect(() => {
     if (messages.length > prevMessageCountRef.current) {
@@ -258,6 +266,18 @@ useEffect(() => {
       }
     });
   }, [user]);
+
+  // Sync jelly bubble to active tab
+  useEffect(() => {
+    if (isBubbleDragging || !navPillRef.current) return;
+    const pillW = navPillRef.current.offsetWidth;
+    const tabW = pillW / tabs.length;
+    const idx = tabs.findIndex(t => t.key === activeTab);
+    const cx = idx * tabW + tabW / 2;
+    const cur = bubbleCX.get();
+    if (cur === 0) bubbleCX.set(cx);
+    else animate(bubbleCX, cx, { type: 'spring', stiffness: 380, damping: 26, mass: 0.65 });
+  }, [activeTab, isBubbleDragging]);
 
   useEffect(() => {
     if (!user) return;
@@ -380,6 +400,31 @@ useEffect(() => {
     { label: "Images", value: totalImageCount ?? 0, loading: totalImageCount === null, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
     { label: "Memories", value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
+
+  const onBubblePtrDown = (e: React.PointerEvent) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.stopPropagation();
+    setIsBubbleDragging(true);
+    bubbleDragStartRef.current = { pointerX: e.clientX, startCX: bubbleCX.get() };
+  };
+  const onBubblePtrMove = (e: React.PointerEvent) => {
+    if (!isBubbleDragging || !navPillRef.current) return;
+    const pillW = navPillRef.current.offsetWidth;
+    const dx = e.clientX - bubbleDragStartRef.current.pointerX;
+    const newCX = Math.max(BUBBLE_R, Math.min(pillW - BUBBLE_R, bubbleDragStartRef.current.startCX + dx));
+    bubbleCX.set(newCX);
+  };
+  const onBubblePtrUp = (e: React.PointerEvent) => {
+    if (!isBubbleDragging || !navPillRef.current) return;
+    setIsBubbleDragging(false);
+    const pillW = navPillRef.current.offsetWidth;
+    const tabW = pillW / tabs.length;
+    const cx = bubbleCX.get();
+    const idx = Math.min(tabs.length - 1, Math.max(0, Math.floor(cx / tabW)));
+    const target = tabs[idx]?.key || activeTab;
+    animate(bubbleCX, idx * tabW + tabW / 2, { type: 'spring', stiffness: 420, damping: 22, mass: 0.7 });
+    switchTab(target);
+  };
 
   const downloadImage = async (image: GeneratedImage) => {
     try {
@@ -946,7 +991,35 @@ useEffect(() => {
 
       {/* ═══ BOTTOM NAVIGATION ═══ */}
       <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none" style={{ paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 20px)` }}>
-        <div className="mx-[10px] flex items-center justify-around p-2 rounded-full border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-auto relative overflow-hidden">
+        <div
+          ref={navPillRef}
+          className="mx-[10px] flex items-center justify-around p-2 rounded-full border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-auto relative"
+        >
+          {/* Jelly bubble */}
+          <motion.div
+            className="absolute top-1/2 rounded-full touch-none select-none pointer-events-auto"
+            style={{
+              left: bubbleLeft,
+              width: BUBBLE_R * 2,
+              height: BUBBLE_R * 2,
+              translateY: '-50%',
+              zIndex: isBubbleDragging ? 20 : 5,
+              cursor: isBubbleDragging ? 'grabbing' : 'grab',
+              border: '1.5px solid hsl(var(--primary) / 0.55)',
+              background: 'radial-gradient(circle at 50% 50%, transparent 30%, hsl(var(--primary) / 0.07) 100%)',
+              backdropFilter: 'blur(2px)',
+              boxShadow: isBubbleDragging
+                ? '0 0 0 2px hsl(var(--primary) / 0.15), 0 0 20px hsl(var(--primary) / 0.4)'
+                : '0 0 0 1px hsl(var(--primary) / 0.08), 0 0 14px hsl(var(--primary) / 0.25)',
+            }}
+            animate={{ scale: isBubbleDragging ? 1.12 : 1 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 22 }}
+            onPointerDown={onBubblePtrDown}
+            onPointerMove={onBubblePtrMove}
+            onPointerUp={onBubblePtrUp}
+            onPointerCancel={onBubblePtrUp}
+          />
+
           {tabs.map(({ key, label, icon: Icon }) => {
             const isActive = activeTab === key;
             return (
@@ -957,6 +1030,7 @@ useEffect(() => {
                   "flex flex-col items-center gap-1 px-3 py-2.5 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation active:scale-[0.95]",
                   isActive ? "text-primary" : "text-muted-foreground/60 hover:text-muted-foreground"
                 )}
+                style={{ zIndex: 10 }}
               >
                 <Icon className={cn(
                   "h-5 w-5 transition-all duration-300",
