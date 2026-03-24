@@ -8,7 +8,11 @@ const corsHeaders = {
 };
 
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MAX_ITERATIONS = 12;
+const DEFAULT_AGENT_MODEL = "google/gemini-3-flash-preview";
+const MAX_ITERATIONS = 8;
+const MAX_NO_PROGRESS_ITERATIONS = 2;
+const MAX_JSON_RETRIES = 2;
+const AI_REQUEST_TIMEOUT_MS = 70000;
 
 const AGENT_SYSTEM_PROMPT = `You are **Arc Code**, a senior software engineer building production-ready apps inside an existing React + Vite + TypeScript project.
 
