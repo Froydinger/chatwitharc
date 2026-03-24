@@ -175,12 +175,12 @@ export function SiteManageModal({ open, onClose, site, onUpdated, onUnpublished 
   const currentFaviconSvg = faviconMode === 'emoji' ? makeFaviconSvg(emoji, bg) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal — full-screen sheet on mobile */}
-      <div className="relative w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border/30 bg-background shadow-2xl overflow-hidden max-h-[92dvh] flex flex-col">
+      {/* Modal — full-screen sheet on mobile, account for bottom nav (~4rem) */}
+      <div className="relative w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border/30 bg-background shadow-2xl overflow-hidden max-h-[calc(92dvh-4rem)] sm:max-h-[92dvh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-border/20 flex-shrink-0">
@@ -225,7 +225,7 @@ export function SiteManageModal({ open, onClose, site, onUpdated, onUnpublished 
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Site details</h3>
             <div className="space-y-2">
               <Label className="text-sm">Page title</Label>
-              <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="My Awesome Site" className="bg-muted/30 border-border/30" />
+              <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="My Awesome Site" className="bg-muted/30 border-border/30 text-[16px]" />
             </div>
             <div className="space-y-2">
               <Label className="text-sm">Site address</Label>
@@ -233,7 +233,7 @@ export function SiteManageModal({ open, onClose, site, onUpdated, onUnpublished 
                 <Input
                   value={subdomain}
                   onChange={e => { setSubdomainEdited(true); setSubdomain(slugify(e.target.value)); }}
-                  className="bg-muted/30 border-border/30 rounded-r-none border-r-0 font-mono text-sm"
+                  className="bg-muted/30 border-border/30 rounded-r-none border-r-0 font-mono text-[16px]"
                 />
                 <div className="h-10 px-3 flex items-center bg-muted/50 border border-border/30 rounded-r-lg text-xs text-muted-foreground font-mono whitespace-nowrap">
                   .froydingermedia.online
@@ -307,15 +307,15 @@ export function SiteManageModal({ open, onClose, site, onUpdated, onUnpublished 
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Social share</h3>
             <div className="space-y-2">
               <Label className="text-sm">OG title</Label>
-              <Input value={ogTitle} onChange={e => setOgTitle(e.target.value)} placeholder="Same as page title" className="bg-muted/30 border-border/30" />
+              <Input value={ogTitle} onChange={e => setOgTitle(e.target.value)} placeholder="Same as page title" className="bg-muted/30 border-border/30 text-[16px]" />
             </div>
             <div className="space-y-2">
               <Label className="text-sm">OG description</Label>
-              <Textarea value={ogDescription} onChange={e => setOgDescription(e.target.value)} placeholder="A short description for link previews…" rows={2} className="bg-muted/30 border-border/30 resize-none" />
+              <Textarea value={ogDescription} onChange={e => setOgDescription(e.target.value)} placeholder="A short description for link previews…" rows={2} className="bg-muted/30 border-border/30 resize-none text-[16px]" />
             </div>
             <div className="space-y-2">
               <Label className="text-sm">OG image URL</Label>
-              <Input value={ogImageUrl} onChange={e => setOgImageUrl(e.target.value)} placeholder="https://…" className="bg-muted/30 border-border/30 font-mono text-sm" />
+              <Input value={ogImageUrl} onChange={e => setOgImageUrl(e.target.value)} placeholder="https://…" className="bg-muted/30 border-border/30 font-mono text-[16px]" />
               {ogImageUrl && (
                 <img src={ogImageUrl} alt="OG preview" className="w-full rounded-lg border border-border/30 object-cover max-h-32" onError={e => (e.currentTarget.style.display = 'none')} />
               )}
