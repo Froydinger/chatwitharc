@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Mic, Code2, PenLine, Search, Globe, Square, Lightbulb, Rocket, FileText } from "lucide-react";
+import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Mic, Code2, PenLine, Search, Globe, Square, Lightbulb, Rocket, FileText, ListPlus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
@@ -23,6 +23,8 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { cn } from "@/lib/utils";
+import { useMessageQueueStore } from "@/store/useMessageQueueStore";
+import { MessageQueue } from "@/components/MessageQueue";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -1503,10 +1505,34 @@ ${existingCode}
     }
   };
 
+  // Auto-send next queued message when loading finishes
+  const prevLoadingRef = useRef(isLoading);
+  useEffect(() => {
+    if (prevLoadingRef.current && !isLoading) {
+      // Loading just finished - check queue
+      const { queue, isPaused, popNext } = useMessageQueueStore.getState();
+      if (queue.length > 0 && !isPaused) {
+        const next = popNext();
+        if (next) {
+          setTimeout(() => handleSend(next.content), 500);
+        }
+      }
+    }
+    prevLoadingRef.current = isLoading;
+  }, [isLoading]);
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      if (e.ctrlKey || e.metaKey) {
+        // Ctrl/Cmd+Enter = add to queue
+        if (inputValue.trim()) {
+          useMessageQueueStore.getState().addToQueue(inputValue.trim());
+          setInputValue("");
+        }
+      } else {
+        handleSend();
+      }
     }
   };
 
@@ -1606,6 +1632,15 @@ ${existingCode}
         </div>,
         portalRoot,
       )}
+
+      {/* Message Queue - inline above input */}
+      <div className="px-1 mb-1">
+        <MessageQueue
+          onSendMessage={(content) => handleSend(content)}
+          isLoading={isLoading}
+          isDashboard={isDashboard}
+        />
+      </div>
 
       {/* Input Row */}
       <div ref={inputBarRef} className="chat-input-halo flex items-center gap-3 rounded-full">
@@ -1912,21 +1947,37 @@ ${existingCode}
             <Square className="h-4 w-4 fill-current" />
           </button>
         ) : (
-          <button
-            onClick={() => handleSend()}
-            disabled={!inputValue.trim() && selectedImages.length === 0 && selectedDocuments.length === 0}
-            className={[
-              "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-              inputValue.trim() || selectedImages.length || selectedDocuments.length
-                ? accentColor === "noir"
-                  ? "!bg-white/90 text-black ring-2 ring-white/60 hover:!bg-white !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
-                  : "!bg-primary/80 text-primary-foreground ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
-                : "text-muted-foreground cursor-not-allowed",
-            ].join(" ")}
-            aria-label="Send"
-          >
-            <ArrowRight className="h-5 w-5" />
-          </button>
+          <>
+            {/* Queue button - only show when there's input */}
+            {inputValue.trim() && (
+              <button
+                onClick={() => {
+                  useMessageQueueStore.getState().addToQueue(inputValue.trim());
+                  setInputValue("");
+                }}
+                className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                aria-label="Add to queue"
+                title="Add to queue (Ctrl+Enter)"
+              >
+                <ListPlus className="h-4.5 w-4.5" />
+              </button>
+            )}
+            <button
+              onClick={() => handleSend()}
+              disabled={!inputValue.trim() && selectedImages.length === 0 && selectedDocuments.length === 0}
+              className={[
+                "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
+                inputValue.trim() || selectedImages.length || selectedDocuments.length
+                  ? accentColor === "noir"
+                    ? "!bg-white/90 text-black ring-2 ring-white/60 hover:!bg-white !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
+                    : "!bg-primary/80 text-primary-foreground ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
+                  : "text-muted-foreground cursor-not-allowed",
+              ].join(" ")}
+              aria-label="Send"
+            >
+              <ArrowRight className="h-5 w-5" />
+            </button>
+          </>
         )}
       </div>
 
