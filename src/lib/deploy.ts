@@ -80,25 +80,30 @@ export async function unpublishFromNetlify(siteId: string): Promise<void> {
   }
 }
 
-/** Deploy a single raw code block (HTML/JS/CSS) — no esbuild needed */
+/** Deploy a single raw code block — any language supported */
 export async function deployCodeBlock(
   code: string,
   language: string,
 ): Promise<{ url: string; netlifyUrl?: string; siteId: string; subdomain: string }> {
-  if (!canPreview(language)) {
-    throw new Error(`Language "${language}" cannot be previewed/deployed`);
-  }
-
-  // Wrap non-HTML code in a minimal boilerplate
+  // Wrap code in appropriate HTML for the given language
   let html: string;
   const lang = language.toLowerCase();
   if (lang === 'html') {
     html = code;
   } else if (lang === 'css') {
     html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${code}</style></head><body></body></html>`;
-  } else {
-    // js / ts / jsx / tsx
+  } else if (canPreview(lang)) {
+    // js / ts / jsx / tsx — run it
     html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><script type="module">${code}</script></body></html>`;
+  } else {
+    // Python, SQL, Bash, etc. — show as a styled read-only code viewer
+    const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Code</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:ui-monospace,SFMono-Regular,SF Mono,Menlo,monospace;padding:2rem;min-height:100vh}
+pre{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1.5rem;overflow:auto;font-size:.875rem;line-height:1.6;white-space:pre}
+.lang{display:inline-block;background:#21262d;color:#8b949e;font-size:.75rem;padding:.25rem .75rem;border-radius:4px;margin-bottom:1rem}
+</style></head><body><div class="lang">${language}</div><pre>${escaped}</pre></body></html>`;
   }
 
   const zip = new JSZip();
