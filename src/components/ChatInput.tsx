@@ -1647,15 +1647,6 @@ ${existingCode}
         </div>,
         portalRoot,
       )}
-      {inline && (
-        <div className="px-1 mb-1">
-          <MessageQueue
-            onSendMessage={(content) => handleSend(content)}
-            isLoading={isLoading}
-            isDashboard={isDashboard}
-          />
-        </div>
-      )}
 
       {/* Input Row */}
       <div ref={inputBarRef} className="chat-input-halo flex items-center gap-3 rounded-full">
