@@ -80,43 +80,75 @@ export async function unpublishFromNetlify(siteId: string): Promise<void> {
   }
 }
 
+export interface DeployCodeBlockOpts {
+  subdomain?: string;
+  title?: string;
+  faviconSvg?: string;    // SVG string from emoji picker → stored as /favicon.svg in zip
+  faviconData?: string;   // data URL from file upload → embedded directly in <link>
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImageUrl?: string;
+  siteId?: string;        // existing Netlify site ID for re-deploys
+}
+
 /** Deploy a single raw code block — any language supported */
 export async function deployCodeBlock(
   code: string,
   language: string,
-  opts: { subdomain?: string; title?: string; faviconSvg?: string } = {},
+  opts: DeployCodeBlockOpts = {},
 ): Promise<{ url: string; netlifyUrl?: string; siteId: string; subdomain: string }> {
-  const { subdomain = `arc-code-${Date.now().toString(36)}`, title, faviconSvg } = opts;
+  const {
+    subdomain = `arc-code-${Date.now().toString(36)}`,
+    title,
+    faviconSvg,
+    faviconData,
+    ogTitle,
+    ogDescription,
+    ogImageUrl,
+    siteId,
+  } = opts;
+
+  // Build OG / social meta tags
+  const ogTags = [
+    ogTitle        && `<meta property="og:title" content="${ogTitle.replace(/"/g, '&quot;')}">`,
+    ogDescription  && `<meta property="og:description" content="${ogDescription.replace(/"/g, '&quot;')}">`,
+    ogImageUrl     && `<meta property="og:image" content="${ogImageUrl.replace(/"/g, '&quot;')}">`,
+    ogTitle        && `<meta name="twitter:card" content="summary_large_image">`,
+    ogTitle        && `<meta name="twitter:title" content="${ogTitle.replace(/"/g, '&quot;')}">`,
+    ogDescription  && `<meta name="twitter:description" content="${ogDescription.replace(/"/g, '&quot;')}">`,
+    ogImageUrl     && `<meta name="twitter:image" content="${ogImageUrl.replace(/"/g, '&quot;')}">`,
+  ].filter(Boolean).join('\n  ');
+
+  // Favicon link tag — uploaded file takes priority over emoji SVG
+  const faviconTag = faviconData
+    ? `<link rel="icon" href="${faviconData}">`
+    : faviconSvg
+    ? `<link rel="icon" href="/favicon.svg" type="image/svg+xml">`
+    : '';
+
+  const pageTitle = title || 'My Site';
+  const headExtras = [faviconTag, ogTags].filter(Boolean).join('\n  ');
 
   // Wrap code in appropriate HTML for the given language
   let html: string;
   const lang = language.toLowerCase();
-  const pageTitle = title || 'My Site';
-  const faviconTag = faviconSvg
-    ? `<link rel="icon" href="/favicon.svg" type="image/svg+xml">`
-    : '';
 
   if (lang === 'html') {
-    // Inject title + favicon into existing HTML
-    if (title || faviconSvg) {
-      html = code
-        .replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`)
-        .replace('</head>', `${faviconTag}\n</head>`);
-      if (!html.includes('<title>')) {
-        html = html.replace('<head>', `<head><title>${pageTitle}</title>${faviconTag}`);
-      }
-    } else {
-      html = code;
+    // Inject into existing HTML
+    html = code
+      .replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`)
+      .replace('</head>', `  ${headExtras}\n</head>`);
+    if (!html.includes('<title>')) {
+      html = html.replace('<head>', `<head>\n  <title>${pageTitle}</title>\n  ${headExtras}`);
     }
   } else if (lang === 'css') {
-    html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${pageTitle}</title>${faviconTag}<style>${code}</style></head><body></body></html>`;
+    html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${pageTitle}</title>${headExtras}<style>${code}</style></head><body></body></html>`;
   } else if (canPreview(lang)) {
-    // js / ts / jsx / tsx — run it
-    html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${pageTitle}</title>${faviconTag}</head><body><script type="module">${code}</script></body></html>`;
+    html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${pageTitle}</title>${headExtras}</head><body><script type="module">${code}</script></body></html>`;
   } else {
-    // Python, SQL, Bash, etc. — show as a styled read-only code viewer
+    // Python, SQL, Bash, etc. — styled read-only code viewer
     const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${pageTitle}</title>${faviconTag}<style>
+    html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${pageTitle}</title>${headExtras}<style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0d1117;color:#e6edf3;font-family:ui-monospace,SFMono-Regular,SF Mono,Menlo,monospace;padding:2rem;min-height:100vh}
 pre{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1.5rem;overflow:auto;font-size:.875rem;line-height:1.6;white-space:pre}
@@ -127,7 +159,7 @@ pre{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1.5rem
   const zip = new JSZip();
   zip.file('index.html', html);
   zip.file('_redirects', '/*    /index.html   200');
-  if (faviconSvg) {
+  if (faviconSvg && !faviconData) {
     zip.file('favicon.svg', faviconSvg);
   }
   const zipBlob = await zip.generateAsync({ type: 'blob' });
@@ -136,7 +168,7 @@ pre{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1.5rem
   const res = await fetch(`${SUPABASE_URL}/functions/v1/deploy-netlify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
-    body: JSON.stringify({ zipBase64, subdomain }),
+    body: JSON.stringify({ zipBase64, subdomain, ...(siteId ? { siteId } : {}) }),
   });
 
   const text = await res.text();

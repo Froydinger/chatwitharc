@@ -8,6 +8,8 @@ import { deployCodeBlock } from '@/lib/deploy';
 import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 import { PublishModal } from '@/components/PublishModal';
+import { SiteManageModal } from '@/components/SiteManageModal';
+import { savePublishedSite, PublishedSite } from '@/lib/publishedSites';
 
 interface CodeArtifactCardProps {
   codeContent: string;
@@ -24,8 +26,9 @@ export function CodeArtifactCard({
 }: CodeArtifactCardProps) {
   const { openWithContent } = useCanvasStore();
   const { isSubscribed } = useSubscription();
-  const [liveUrl, setLiveUrl] = useState<string | null>(null);
+  const [publishedSite, setPublishedSite] = useState<PublishedSite | null>(null);
   const [showPublishModal, setShowPublishModal] = useState(false);
+  const [showManageModal, setShowManageModal] = useState(false);
 
   const handleOpen = () => {
     openWithContent(codeContent, 'code', codeLanguage);
@@ -42,7 +45,32 @@ export function CodeArtifactCard({
 
   const handlePublishConfirm = async (opts: { subdomain: string; title: string; faviconSvg: string }) => {
     const result = await deployCodeBlock(codeContent, codeLanguage, opts);
-    setLiveUrl(result.url);
+    try {
+      const site = await savePublishedSite({
+        netlify_site_id: result.siteId,
+        subdomain: result.subdomain,
+        url: result.url,
+        title: opts.title,
+        favicon_svg: opts.faviconSvg,
+        favicon_data: null,
+        og_title: null, og_description: null, og_image_url: null,
+        code: codeContent,
+        code_language: codeLanguage,
+      });
+      setPublishedSite(site);
+    } catch {
+      setPublishedSite({
+        id: '', user_id: '', created_at: '', updated_at: '',
+        netlify_site_id: result.siteId,
+        subdomain: result.subdomain,
+        url: result.url,
+        title: opts.title,
+        favicon_svg: opts.faviconSvg,
+        favicon_data: null,
+        og_title: null, og_description: null, og_image_url: null,
+        code: codeContent, code_language: codeLanguage,
+      });
+    }
     toast.success('Published! Your site is live.', {
       action: { label: 'View', onClick: () => window.open(result.url, '_blank') },
     });
@@ -88,7 +116,7 @@ export function CodeArtifactCard({
               <ExternalLink className="w-3.5 h-3.5 mr-1" />
               Open
             </Button>
-            {!liveUrl && (
+            {!publishedSite && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -99,15 +127,15 @@ export function CodeArtifactCard({
                 Publish
               </Button>
             )}
-            {liveUrl && (
+            {publishedSite && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-7 px-2 text-xs text-emerald-400 hover:text-emerald-300"
-                onClick={(e) => { e.stopPropagation(); window.open(liveUrl, '_blank'); }}
+                onClick={(e) => { e.stopPropagation(); setShowManageModal(true); }}
               >
                 <Globe className="w-3.5 h-3.5 mr-1" />
-                View Live
+                Live
               </Button>
             )}
           </div>
@@ -127,17 +155,14 @@ export function CodeArtifactCard({
           <span className="text-xs text-muted-foreground">
             {lineCount} {lineCount === 1 ? 'line' : 'lines'}
           </span>
-          {liveUrl && (
-            <a
-              href={liveUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
+          {publishedSite && (
+            <button
+              onClick={e => { e.stopPropagation(); setShowManageModal(true); }}
               className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
             >
               <Globe className="w-3 h-3" />
-              {liveUrl.replace('https://', '')}
-            </a>
+              {publishedSite.url.replace('https://', '')}
+            </button>
           )}
         </div>
       </div>
@@ -147,6 +172,16 @@ export function CodeArtifactCard({
         onClose={() => setShowPublishModal(false)}
         onPublish={handlePublishConfirm}
       />
+
+      {publishedSite && (
+        <SiteManageModal
+          open={showManageModal}
+          onClose={() => setShowManageModal(false)}
+          site={publishedSite}
+          onUpdated={(updated) => setPublishedSite(updated)}
+          onUnpublished={() => setPublishedSite(null)}
+        />
+      )}
     </>
   );
 }

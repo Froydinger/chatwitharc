@@ -35,8 +35,9 @@ import { PaymentFailureBanner } from "@/components/PaymentFailureBanner";
 import { CodePreview } from "@/components/CodePreview";
 import { canPreview, getLanguageDisplay, getLanguageColor } from "@/utils/codeUtils";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { DeploysPanel } from "@/components/DeploysPanel";
 
-type DashboardTab = "overview" | "chats" | "images" | "canvases" | "memories";
+type DashboardTab = "overview" | "chats" | "images" | "canvases" | "memories" | "deploys";
 
 interface GeneratedImage {
   url: string;
@@ -438,6 +439,7 @@ useEffect(() => {
     { key: "chats", label: "Chats", icon: MessageSquare },
     { key: "images", label: "Images", icon: Image },
     { key: "canvases", label: "Canvases", icon: Layers },
+    { key: "deploys", label: "Deploys", icon: Globe },
     { key: "memories", label: "Memories", icon: Brain },
   ];
 
@@ -974,6 +976,13 @@ useEffect(() => {
                 <PaginationBar current={memoryPage} total={Math.ceil(filteredMemories.length / ITEMS_PER_PAGE)} onChange={setMemoryPage} />
                 </>
               )}
+            </motion.div>
+          )}
+
+          {/* ====== DEPLOYS ====== */}
+          {activeTab === "deploys" && (
+            <motion.div key="deploys" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }}>
+              <DeploysPanel />
             </motion.div>
           )}
         </AnimatePresence>

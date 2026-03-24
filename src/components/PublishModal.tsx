@@ -8,10 +8,19 @@ import { cn } from '@/lib/utils';
 const EMOJI_OPTIONS = ['🚀', '⚡', '🌟', '🎯', '🔥', '💎', '🎨', '🌈', '🦋', '🍀', '🎭', '🏆'];
 const BG_OPTIONS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
 
+export interface PublishOpts {
+  subdomain: string;
+  title: string;
+  faviconSvg: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImageUrl?: string;
+}
+
 interface PublishModalProps {
   open: boolean;
   onClose: () => void;
-  onPublish: (opts: { subdomain: string; title: string; faviconSvg: string }) => Promise<void>;
+  onPublish: (opts: PublishOpts) => Promise<void>;
   defaultTitle?: string;
 }
 
@@ -61,6 +70,7 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
     try {
       await onPublish({ subdomain: subdomain.trim(), title: title.trim() || subdomain, faviconSvg });
       onClose();
+      // Note: ogTitle / ogDescription / ogImageUrl can be set after publishing via the manage modal
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Publish failed');
     } finally {
