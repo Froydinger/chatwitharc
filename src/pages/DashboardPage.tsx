@@ -7,7 +7,7 @@ import {
   Globe, Code2, Eye, Sparkles, Zap, ArrowRight, Music, Edit2, Check, X,
   Layers, PenLine, FileCode, MessageCircle
 } from "lucide-react";
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -157,11 +157,30 @@ useEffect(() => {
 
   // Jelly nav bubble
   const BUBBLE_R = 22;
+  const PILL_PAD = 8; // p-2 = 8px each side
   const navPillRef = useRef<HTMLDivElement>(null);
   const [isBubbleDragging, setIsBubbleDragging] = useState(false);
-  const bubbleCX = useMotionValue(0);
+  const bubbleCX = useMotionValue(-999); // -999 = not yet initialized
   const bubbleLeft = useTransform(bubbleCX, cx => cx - BUBBLE_R);
   const bubbleDragStartRef = useRef({ pointerX: 0, startCX: 0 });
+  const lastPtrXRef = useRef(0);
+  const lastPtrTRef = useRef(0);
+  // Jelly deformation springs
+  const rawSX = useMotionValue(1);
+  const rawSY = useMotionValue(1);
+  const springScaleX = useSpring(rawSX, { stiffness: 260, damping: 18, mass: 0.45 });
+  const springScaleY = useSpring(rawSY, { stiffness: 260, damping: 18, mass: 0.45 });
+
+  // Callback ref — initializes bubble as soon as pill mounts
+  const setPillRef = (el: HTMLDivElement | null) => {
+    (navPillRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+    if (el && bubbleCX.get() === -999) {
+      const contentW = el.offsetWidth - PILL_PAD * 2;
+      const tabW = contentW / tabs.length;
+      const idx = tabs.findIndex(t => t.key === activeTab);
+      bubbleCX.set(PILL_PAD + idx * tabW + tabW / 2);
+    }
+  };
 
   const prevMessageCountRef = useRef(messages.length);
   useEffect(() => {
@@ -270,12 +289,11 @@ useEffect(() => {
   // Sync jelly bubble to active tab
   useEffect(() => {
     if (isBubbleDragging || !navPillRef.current) return;
-    const pillW = navPillRef.current.offsetWidth;
-    const tabW = pillW / tabs.length;
+    const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
+    const tabW = contentW / tabs.length;
     const idx = tabs.findIndex(t => t.key === activeTab);
-    const cx = idx * tabW + tabW / 2;
-    const cur = bubbleCX.get();
-    if (cur === 0) bubbleCX.set(cx);
+    const cx = PILL_PAD + idx * tabW + tabW / 2;
+    if (bubbleCX.get() === -999) bubbleCX.set(cx);
     else animate(bubbleCX, cx, { type: 'spring', stiffness: 380, damping: 26, mass: 0.65 });
   }, [activeTab, isBubbleDragging]);
 
@@ -406,23 +424,37 @@ useEffect(() => {
     e.stopPropagation();
     setIsBubbleDragging(true);
     bubbleDragStartRef.current = { pointerX: e.clientX, startCX: bubbleCX.get() };
+    lastPtrXRef.current = e.clientX;
+    lastPtrTRef.current = performance.now();
   };
   const onBubblePtrMove = (e: React.PointerEvent) => {
     if (!isBubbleDragging || !navPillRef.current) return;
-    const pillW = navPillRef.current.offsetWidth;
+    const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
     const dx = e.clientX - bubbleDragStartRef.current.pointerX;
-    const newCX = Math.max(BUBBLE_R, Math.min(pillW - BUBBLE_R, bubbleDragStartRef.current.startCX + dx));
+    const newCX = Math.max(PILL_PAD + BUBBLE_R, Math.min(PILL_PAD + contentW - BUBBLE_R, bubbleDragStartRef.current.startCX + dx));
     bubbleCX.set(newCX);
+    // Velocity-based jelly deformation
+    const now = performance.now();
+    const dt = now - lastPtrTRef.current;
+    const vel = dt > 0 ? (e.clientX - lastPtrXRef.current) / dt : 0; // px/ms
+    lastPtrXRef.current = e.clientX;
+    lastPtrTRef.current = now;
+    const stretch = Math.min(0.45, Math.abs(vel) * 0.06);
+    rawSX.set(1 + stretch);
+    rawSY.set(1 / (1 + stretch));
   };
   const onBubblePtrUp = (e: React.PointerEvent) => {
     if (!isBubbleDragging || !navPillRef.current) return;
     setIsBubbleDragging(false);
-    const pillW = navPillRef.current.offsetWidth;
-    const tabW = pillW / tabs.length;
-    const cx = bubbleCX.get();
+    const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
+    const tabW = contentW / tabs.length;
+    const cx = bubbleCX.get() - PILL_PAD;
     const idx = Math.min(tabs.length - 1, Math.max(0, Math.floor(cx / tabW)));
     const target = tabs[idx]?.key || activeTab;
-    animate(bubbleCX, idx * tabW + tabW / 2, { type: 'spring', stiffness: 420, damping: 22, mass: 0.7 });
+    animate(bubbleCX, PILL_PAD + idx * tabW + tabW / 2, { type: 'spring', stiffness: 420, damping: 20, mass: 0.7 });
+    // Jiggle on landing
+    animate(rawSX, [1.2, 0.88, 1.06, 0.97, 1], { duration: 0.55 });
+    animate(rawSY, [0.85, 1.15, 0.94, 1.04, 1], { duration: 0.55 });
     switchTab(target);
   };
 
@@ -540,7 +572,7 @@ useEffect(() => {
 
               {/* Stat cards — code-block style */}
               <div className="grid grid-cols-3 gap-2">
-                {stats.map(({ label, value, loading, icon: Icon, color, tw }, i) => {
+                {stats.map(({ label, icon: Icon, color, tw, value, loading }, i) => {
                   const isImages = label === "Images";
                   return (
                     <div
@@ -549,29 +581,29 @@ useEffect(() => {
                       style={{ border: `1px solid hsl(${color} / 0.25)`, background: `linear-gradient(160deg, hsl(${color} / 0.08) 0%, hsl(var(--background) / 0.9) 100%)` }}
                       onClick={() => switchTab(tabs[i + 1]?.key || "overview")}
                     >
-                      {/* top bar mimicking a code editor tab */}
                       <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b" style={{ borderColor: `hsl(${color} / 0.2)`, background: `hsl(${color} / 0.06)` }}>
                         <div className="h-1.5 w-1.5 rounded-full opacity-70" style={{ background: `hsl(${color})` }} />
                         <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{label}.arc</span>
                       </div>
                       <div className="p-3 font-mono">
-                        {isImages && (
-                          <Icon className={cn("absolute bottom-1 right-1 h-12 w-12 opacity-[0.06]", tw)} />
-                        )}
-                        <p className="text-[10px] text-muted-foreground/60 mb-0.5">const {label.toLowerCase()} =</p>
-                        <p className={cn("text-2xl font-bold leading-none flex items-center gap-1.5", tw)}>
-                          {value}
-                          {loading && <span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin opacity-50" />}
-                        </p>
+                        <Icon className={cn("absolute bottom-1 right-1 h-12 w-12 opacity-[0.06]", tw)} />
                         {isImages ? (
-                          <div
-                            className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-sans font-medium tracking-wide backdrop-blur-sm border transition-colors"
-                            style={{ borderColor: `hsl(${color} / 0.3)`, background: `hsl(${color} / 0.1)`, color: `hsl(${color})` }}
-                          >
-                            All images
-                          </div>
+                          <>
+                            <p className="text-[10px] text-muted-foreground/60 mb-2">const images =</p>
+                            <div
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-sans font-semibold tracking-wide backdrop-blur-sm border transition-colors"
+                              style={{ borderColor: `hsl(${color} / 0.35)`, background: `hsl(${color} / 0.12)`, color: `hsl(${color})` }}
+                            >
+                              <Icon className="h-3 w-3" />
+                              All images
+                            </div>
+                          </>
                         ) : (
-                          <Icon className={cn("h-3.5 w-3.5 mt-2 opacity-50", tw)} />
+                          <>
+                            <p className="text-[10px] text-muted-foreground/60 mb-0.5">const {label.toLowerCase()} =</p>
+                            <p className={cn("text-2xl font-bold leading-none", tw)}>{value}</p>
+                            <Icon className={cn("h-3.5 w-3.5 mt-2 opacity-50", tw)} />
+                          </>
                         )}
                       </div>
                     </div>
@@ -992,28 +1024,30 @@ useEffect(() => {
       {/* ═══ BOTTOM NAVIGATION ═══ */}
       <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none" style={{ paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 20px)` }}>
         <div
-          ref={navPillRef}
-          className="mx-[10px] flex items-center justify-around p-2 rounded-full border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-auto relative"
+          ref={setPillRef}
+          className="mx-[10px] flex items-center p-2 rounded-full border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-auto relative"
         >
-          {/* Jelly bubble */}
+          {/* Jelly bubble — rendered first so tabs stack above it visually but bubble captures pointer via z-index */}
           <motion.div
-            className="absolute top-1/2 rounded-full touch-none select-none pointer-events-auto"
+            className="absolute top-1/2 rounded-full touch-none select-none"
             style={{
               left: bubbleLeft,
               width: BUBBLE_R * 2,
               height: BUBBLE_R * 2,
               translateY: '-50%',
-              zIndex: isBubbleDragging ? 20 : 5,
+              scaleX: springScaleX,
+              scaleY: springScaleY,
+              zIndex: 30,
               cursor: isBubbleDragging ? 'grabbing' : 'grab',
-              border: '1.5px solid hsl(var(--primary) / 0.55)',
-              background: 'radial-gradient(circle at 50% 50%, transparent 30%, hsl(var(--primary) / 0.07) 100%)',
-              backdropFilter: 'blur(2px)',
+              border: '1.5px solid hsl(var(--primary) / 0.6)',
+              background: 'radial-gradient(circle at 50% 50%, transparent 25%, hsl(var(--primary) / 0.06) 75%, hsl(var(--primary) / 0.12) 100%)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
               boxShadow: isBubbleDragging
-                ? '0 0 0 2px hsl(var(--primary) / 0.15), 0 0 20px hsl(var(--primary) / 0.4)'
-                : '0 0 0 1px hsl(var(--primary) / 0.08), 0 0 14px hsl(var(--primary) / 0.25)',
+                ? '0 0 0 2px hsl(var(--primary) / 0.18), 0 0 24px hsl(var(--primary) / 0.45), inset 0 0 12px hsl(var(--primary) / 0.08)'
+                : '0 0 0 1px hsl(var(--primary) / 0.1), 0 0 16px hsl(var(--primary) / 0.3), inset 0 0 8px hsl(var(--primary) / 0.05)',
+              pointerEvents: 'auto',
             }}
-            animate={{ scale: isBubbleDragging ? 1.12 : 1 }}
-            transition={{ type: 'spring', stiffness: 420, damping: 22 }}
             onPointerDown={onBubblePtrDown}
             onPointerMove={onBubblePtrMove}
             onPointerUp={onBubblePtrUp}
@@ -1027,10 +1061,10 @@ useEffect(() => {
                 key={key}
                 onClick={() => switchTab(key)}
                 className={cn(
-                  "flex flex-col items-center gap-1 px-3 py-2.5 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation active:scale-[0.95]",
+                  "flex flex-col items-center gap-1 px-3 py-2.5 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation",
                   isActive ? "text-primary" : "text-muted-foreground/60 hover:text-muted-foreground"
                 )}
-                style={{ zIndex: 10 }}
+                style={{ zIndex: 20 }}
               >
                 <Icon className={cn(
                   "h-5 w-5 transition-all duration-300",
