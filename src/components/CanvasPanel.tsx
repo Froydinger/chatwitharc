@@ -10,6 +10,7 @@ import {
   Download,
   Eye,
   FileText,
+  Globe,
   Heading1,
   Heading2,
   History,
@@ -17,7 +18,9 @@ import {
   List,
   Loader2,
   Monitor,
+  MoreVertical,
   Redo2,
+  Rocket,
   Smartphone,
   Sparkles,
   Undo2,
@@ -32,6 +35,9 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { CanvasCodeEditor } from "@/components/CanvasCodeEditor";
 import { CodePreview } from "@/components/CodePreview";
 import { getLanguageDisplay, getFileExtension, canPreview } from "@/utils/codeUtils";
+import { deployCodeBlock } from "@/lib/deploy";
+import { useSubscription } from "@/hooks/useSubscription";
+import { toast as sonnerToast } from "sonner";
 
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -69,7 +75,30 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const { isSubscribed } = useSubscription();
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
+  const [deploying, setDeploying] = useState(false);
+  const [liveUrl, setLiveUrl] = useState<string | null>(null);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  const handlePublish = async () => {
+    if (!isSubscribed) {
+      window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
+      return;
+    }
+    setDeploying(true);
+    try {
+      const result = await deployCodeBlock(content, codeLanguage);
+      setLiveUrl(result.url);
+      sonnerToast.success('Published! Your site is live.', {
+        action: { label: 'View', onClick: () => window.open(result.url, '_blank') },
+      });
+    } catch (err) {
+      sonnerToast.error(err instanceof Error ? err.message : 'Publish failed');
+    } finally {
+      setDeploying(false);
+    }
+  };
 
   useEffect(() => {
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
@@ -409,44 +438,114 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           )}
 
           <div className="flex items-center gap-1 ml-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowHistory(!showHistory)}
-              className={cn(
-                "h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all",
-                showHistory && "bg-white/10 text-foreground"
-              )}
-              title="History"
-            >
-              <History className="w-4 h-4" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCopy}
-              disabled={!content}
-              className="h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 disabled:opacity-40 transition-all"
-              title="Copy"
-            >
-              {copied ? (
-                <Check className="w-4 h-4 text-primary" />
+            {/* Publish to web — all code mode */}
+            {isCodeMode && (
+              liveUrl ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => window.open(liveUrl, '_blank')}
+                  className="h-9 px-3 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-white/10 transition-all text-xs font-medium"
+                  title="View live site"
+                >
+                  <Globe className="w-4 h-4 mr-1.5" />
+                  <span className="hidden sm:inline">Live</span>
+                </Button>
               ) : (
-                <Copy className="w-4 h-4" />
-              )}
-            </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handlePublish}
+                  disabled={deploying || isAIWriting || !content}
+                  className="h-9 px-3 rounded-xl text-primary hover:text-primary hover:bg-white/10 disabled:opacity-40 transition-all text-xs font-medium"
+                  title="Publish to web"
+                >
+                  {deploying
+                    ? <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /><span className="hidden sm:inline">Publishing…</span></>
+                    : <><Rocket className="w-4 h-4 mr-1.5" /><span className="hidden sm:inline">Publish</span></>}
+                </Button>
+              )
+            )}
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDownload}
-              disabled={!content}
-              className="h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 disabled:opacity-40 transition-all"
-              title="Download"
-            >
-              <Download className="w-4 h-4" />
-            </Button>
+            {/* Desktop: individual buttons */}
+            <div className="hidden sm:flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowHistory(!showHistory)}
+                className={cn(
+                  "h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all",
+                  showHistory && "bg-white/10 text-foreground"
+                )}
+                title="History"
+              >
+                <History className="w-4 h-4" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopy}
+                disabled={!content}
+                className="h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 disabled:opacity-40 transition-all"
+                title="Copy"
+              >
+                {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDownload}
+                disabled={!content}
+                className="h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 disabled:opacity-40 transition-all"
+                title="Download"
+              >
+                <Download className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Mobile: collapsed into ⋮ menu */}
+            <div className="relative sm:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowMobileMenu(v => !v)}
+                className={cn(
+                  "h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all",
+                  showMobileMenu && "bg-white/10 text-foreground"
+                )}
+              >
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+              {showMobileMenu && (
+                <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-xl border border-border/30 bg-background/95 backdrop-blur-xl shadow-xl overflow-hidden">
+                  <button
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                    onClick={() => { setShowHistory(!showHistory); setShowMobileMenu(false); }}
+                  >
+                    <History className="w-4 h-4" />
+                    History
+                  </button>
+                  <button
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                    onClick={() => { handleCopy(); setShowMobileMenu(false); }}
+                    disabled={!content}
+                  >
+                    {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                  <button
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                    onClick={() => { handleDownload(); setShowMobileMenu(false); }}
+                    disabled={!content}
+                  >
+                    <Download className="w-4 h-4" />
+                    Download
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
