@@ -4,7 +4,8 @@ import {
   MessageSquare, Image, Rocket, Brain,
   Plus, Clock, Settings, Search,
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
-  Globe, Code2, Eye, Sparkles, Zap, ArrowRight, Music, Edit2, Check, X
+  Globe, Code2, Eye, Sparkles, Zap, ArrowRight, Music, Edit2, Check, X,
+  Layers, PenLine, FileCode
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,8 +32,11 @@ import { ChatInput } from "@/components/ChatInput";
 import { MusicPopup } from "@/components/MusicPopup";
 import { useMusicStore } from "@/store/useMusicStore";
 import { PaymentFailureBanner } from "@/components/PaymentFailureBanner";
+import { CodePreview } from "@/components/CodePreview";
+import { canPreview, getLanguageDisplay, getLanguageColor } from "@/utils/codeUtils";
+import { useCanvasStore } from "@/store/useCanvasStore";
 
-type DashboardTab = "overview" | "chats" | "images" | "apps" | "memories";
+type DashboardTab = "overview" | "chats" | "images" | "canvases" | "memories";
 
 interface GeneratedImage {
   url: string;
@@ -61,6 +65,27 @@ function toDate(ts: unknown): Date | null {
     return isNaN(d.getTime()) ? null : d;
   }
   return null;
+}
+
+interface CanvasItem {
+  id: string;
+  type: 'code' | 'writing';
+  content: string;
+  language?: string;
+  sessionId: string;
+  sessionTitle: string;
+  timestamp: Date;
+  label?: string;
+}
+
+function extractCodeBlocks(content: string): Array<{ code: string; language: string }> {
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+  const blocks: Array<{ code: string; language: string }> = [];
+  let match;
+  while ((match = codeBlockRegex.exec(content)) !== null) {
+    blocks.push({ language: match[1] || "text", code: match[2].trim() });
+  }
+  return blocks;
 }
 
 export function DashboardPage() {
@@ -119,6 +144,10 @@ useEffect(() => {
   const [totalImageCount, setTotalImageCount] = useState<number | null>(null);
   const [appPage, setAppPage] = useState(1);
   const [memoryPage, setMemoryPage] = useState(1);
+  const [canvasSearch, setCanvasSearch] = useState("");
+  const [canvasPage, setCanvasPage] = useState(1);
+  const [selectedCanvas, setSelectedCanvas] = useState<CanvasItem | null>(null);
+  const { openWithContent } = useCanvasStore();
 
   const prevMessageCountRef = useRef(messages.length);
   useEffect(() => {
@@ -134,13 +163,15 @@ useEffect(() => {
   useEffect(() => { setImagePage(1); }, [imageSearch]);
   useEffect(() => { setAppPage(1); }, [appSearch]);
   useEffect(() => { setMemoryPage(1); }, [memorySearch]);
+  useEffect(() => { setCanvasPage(1); }, [canvasSearch]);
 
   const switchTab = (tab: DashboardTab) => {
     setActiveTab(tab);
     setSearchParams(tab === "overview" ? {} : { tab });
     setViewingImageIndex(null);
     setSelectedAppId(null);
-    setChatPage(1); setImagePage(1); setAppPage(1); setMemoryPage(1);
+    setSelectedCanvas(null);
+    setChatPage(1); setImagePage(1); setAppPage(1); setMemoryPage(1); setCanvasPage(1);
     window.scrollTo({ top: 0 });
   };
 
@@ -282,6 +313,47 @@ useEffect(() => {
     return contextBlocks.filter(b => b.content.toLowerCase().includes(q));
   }, [contextBlocks, memorySearch]);
 
+  const canvasItems = useMemo((): CanvasItem[] => {
+    const items: CanvasItem[] = [];
+    chatSessions.forEach((session) => {
+      session.messages.forEach((message) => {
+        if (!message) return;
+        const coerced = toDate(message?.timestamp);
+        if (!coerced) return;
+        if (message.type === 'canvas') {
+          const canvasContent = (message as any).canvasContent;
+          if (typeof canvasContent === 'string' && canvasContent.length > 0) {
+            items.push({ id: `canvas-${message.id}`, type: 'writing', content: canvasContent, sessionId: session.id, sessionTitle: session.title ?? "Untitled chat", timestamp: coerced, label: (message as any).canvasLabel || 'Writing Canvas' });
+          }
+        }
+        if (message.type === 'code') {
+          const codeContent = (message as any).codeContent;
+          if (typeof codeContent === 'string' && codeContent.length > 0) {
+            items.push({ id: `code-${message.id}`, type: 'code', content: codeContent, language: (message as any).codeLanguage || 'text', sessionId: session.id, sessionTitle: session.title ?? "Untitled chat", timestamp: coerced, label: (message as any).codeLabel || 'Code Canvas' });
+          }
+        }
+        if (message.role === 'assistant' && typeof message.content === 'string') {
+          extractCodeBlocks(message.content).forEach((block, index) => {
+            items.push({ id: `block-${message.id}-${index}`, type: 'code', content: block.code, language: block.language, sessionId: session.id, sessionTitle: session.title ?? "Untitled chat", timestamp: coerced, label: `${getLanguageDisplay(block.language)} snippet` });
+          });
+        }
+      });
+    });
+    items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return items;
+  }, [chatSessions]);
+
+  const filteredCanvases = useMemo(() => {
+    if (!canvasSearch.trim()) return canvasItems;
+    const q = canvasSearch.toLowerCase();
+    return canvasItems.filter(item =>
+      item.content.toLowerCase().includes(q) ||
+      item.sessionTitle.toLowerCase().includes(q) ||
+      (item.language && item.language.toLowerCase().includes(q)) ||
+      (item.label && item.label.toLowerCase().includes(q))
+    );
+  }, [canvasItems, canvasSearch]);
+
   const isImagesLoading = dbImagesLoading && dbImages.length === 0;
   const selectedApp = selectedAppId ? recentApps.find(a => a.id === selectedAppId) : null;
 
@@ -365,6 +437,7 @@ useEffect(() => {
     { key: "overview", label: "Overview", icon: LayoutDashboard },
     { key: "chats", label: "Chats", icon: MessageSquare },
     { key: "images", label: "Images", icon: Image },
+    { key: "canvases", label: "Canvases", icon: Layers },
     { key: "memories", label: "Memories", icon: Brain },
   ];
 
@@ -472,25 +545,27 @@ useEffect(() => {
           {activeTab === "overview" && (
             <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-6">
 
-              {/* Stat cards with gradient fills */}
-              <div className="grid grid-cols-4 gap-2">
+              {/* Stat cards — code-block style */}
+              <div className="grid grid-cols-3 gap-2">
                 {stats.map(({ label, value, loading, icon: Icon, color, tw }, i) => (
                   <div
                     key={label}
-                    className="relative overflow-hidden rounded-2xl p-3 text-center group cursor-pointer transition-all hover:scale-[1.04] active:scale-[0.97]"
-                    style={{
-                      background: `linear-gradient(145deg, hsl(${color} / 0.12) 0%, hsl(var(--muted) / 0.3) 100%)`,
-                      border: `1px solid hsl(${color} / 0.18)`,
-                      boxShadow: `0 2px 12px hsl(${color} / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.04)`,
-                    }}
+                    className="relative overflow-hidden rounded-xl cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97] group"
+                    style={{ border: `1px solid hsl(${color} / 0.25)`, background: `linear-gradient(160deg, hsl(${color} / 0.08) 0%, hsl(var(--background) / 0.9) 100%)` }}
                     onClick={() => switchTab(tabs[i + 1]?.key || "overview")}
                   >
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-8 blur-xl rounded-full pointer-events-none" style={{ background: `hsl(${color} / 0.15)` }} />
-                    <Icon className={cn("h-4 w-4 mx-auto mb-1 relative z-10", tw)} style={{ filter: `drop-shadow(0 0 4px hsl(${color} / 0.4))` }} />
-                    <p className="text-lg font-bold text-foreground leading-none relative z-10">
-                      {loading ? <span className="inline-block h-4 w-6 rounded bg-muted-foreground/30 animate-pulse align-middle" /> : value}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider relative z-10">{label}</p>
+                    {/* top bar mimicking a code editor tab */}
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b" style={{ borderColor: `hsl(${color} / 0.2)`, background: `hsl(${color} / 0.06)` }}>
+                      <div className="h-1.5 w-1.5 rounded-full opacity-70" style={{ background: `hsl(${color})` }} />
+                      <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{label}.arc</span>
+                    </div>
+                    <div className="p-3 font-mono">
+                      <p className="text-[10px] text-muted-foreground/60 mb-0.5">const {label.toLowerCase()} =</p>
+                      <p className={cn("text-2xl font-bold leading-none", tw)}>
+                        {loading ? <span className="inline-block h-5 w-8 rounded bg-muted-foreground/30 animate-pulse align-middle" /> : value}
+                      </p>
+                      <Icon className={cn("h-3.5 w-3.5 mt-2 opacity-50", tw)} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -702,6 +777,107 @@ useEffect(() => {
             </motion.div>
           )}
 
+
+          {/* ====== FULL CANVASES ====== */}
+          {activeTab === "canvases" && (
+            <motion.div key="canvases" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-4">
+              <AnimatePresence mode="wait">
+                {selectedCanvas ? (
+                  <motion.div key="canvas-detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <button onClick={() => setSelectedCanvas(null)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        <ChevronLeft className="h-4 w-4" /> Back to canvases
+                      </button>
+                    </div>
+                    <div className="rounded-2xl overflow-hidden border border-border/30 bg-muted/10">
+                      <div className="p-4 border-b border-border/20 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {selectedCanvas.type === 'code' ? <FileCode className="h-4 w-4 text-primary shrink-0" /> : <PenLine className="h-4 w-4 text-primary shrink-0" />}
+                          <p className="font-semibold text-foreground truncate text-sm">{selectedCanvas.label}</p>
+                          {selectedCanvas.language && selectedCanvas.language !== 'text' && (
+                            <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", getLanguageColor(selectedCanvas.language))}>{getLanguageDisplay(selectedCanvas.language)}</span>
+                          )}
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <Button variant="outline" size="sm" className="rounded-xl border-border/40 bg-muted/20" onClick={() => { loadSession(selectedCanvas.sessionId); navigate(`/chat/${selectedCanvas.sessionId}`); openWithContent(selectedCanvas.content, selectedCanvas.type, selectedCanvas.language || 'text'); }}>
+                            <Eye className="h-3.5 w-3.5 mr-1.5" /> Open
+                          </Button>
+                          <Button variant="outline" size="sm" className="rounded-xl border-border/40 bg-muted/20" onClick={() => { loadSession(selectedCanvas.sessionId); navigate(`/chat/${selectedCanvas.sessionId}`); }}>
+                            <MessageSquare className="h-3.5 w-3.5 mr-1.5" /> Chat
+                          </Button>
+                        </div>
+                      </div>
+                      {selectedCanvas.type === 'code' && selectedCanvas.language && canPreview(selectedCanvas.language) ? (
+                        <div className="relative w-full" style={{ height: '420px' }}>
+                          <CodePreview code={selectedCanvas.content} language={selectedCanvas.language} />
+                        </div>
+                      ) : (
+                        <pre className="p-4 text-xs font-mono text-foreground/80 overflow-auto max-h-[420px] whitespace-pre-wrap leading-relaxed">
+                          {selectedCanvas.content.slice(0, 3000)}{selectedCanvas.content.length > 3000 ? '\n…' : ''}
+                        </pre>
+                      )}
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div key="canvas-grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input value={canvasSearch} onChange={e => setCanvasSearch(e.target.value)} placeholder="Search canvases…" className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
+                    </div>
+                    {!allSessionsHydrated && isHydratingAll ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {[1,2,3,4].map(i => <div key={i} className="rounded-xl border border-border/30 bg-muted/20 overflow-hidden"><Skeleton className="h-32 w-full" /><div className="p-3"><Skeleton className="h-4 w-3/4 mb-1.5" /><Skeleton className="h-3 w-1/2" /></div></div>)}
+                      </div>
+                    ) : filteredCanvases.length === 0 ? (
+                      <EmptyState icon={Layers} text={canvasSearch ? "No matching canvases" : "No canvases yet"} sub="Ask Arc to write code or use /write" />
+                    ) : (
+                      <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {filteredCanvases.slice((canvasPage - 1) * ITEMS_PER_PAGE, canvasPage * ITEMS_PER_PAGE).map((item) => (
+                          <div
+                            key={item.id}
+                            className="rounded-xl border border-border/30 bg-muted/15 overflow-hidden cursor-pointer hover:border-primary/30 hover:bg-primary/5 transition-all group"
+                            onClick={() => setSelectedCanvas(item)}
+                          >
+                            {/* Preview area */}
+                            <div className="relative bg-black/20 overflow-hidden" style={{ height: '130px' }}>
+                              {item.type === 'code' && item.language && canPreview(item.language) ? (
+                                <div className="w-full h-full pointer-events-none scale-[0.6] origin-top-left" style={{ width: '167%', height: '167%' }}>
+                                  <CodePreview code={item.content} language={item.language} />
+                                </div>
+                              ) : (
+                                <div className="p-3 h-full overflow-hidden">
+                                  {item.type === 'writing' ? (
+                                    <p className="text-xs text-foreground/60 leading-relaxed line-clamp-6 font-serif">{item.content}</p>
+                                  ) : (
+                                    <pre className="text-[10px] font-mono text-foreground/50 leading-relaxed overflow-hidden whitespace-pre-wrap line-clamp-8">{item.content}</pre>
+                                  )}
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40 pointer-events-none" />
+                            </div>
+                            {/* Card info */}
+                            <div className="p-3 flex items-center gap-2">
+                              {item.type === 'code' ? <FileCode className="h-3.5 w-3.5 text-primary/60 shrink-0" /> : <PenLine className="h-3.5 w-3.5 text-primary/60 shrink-0" />}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-foreground truncate">{item.label}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">{item.sessionTitle} · {item.timestamp.toLocaleDateString()}</p>
+                              </div>
+                              {item.language && item.language !== 'text' && (
+                                <span className={cn("text-[9px] px-1 py-0.5 rounded font-medium shrink-0", getLanguageColor(item.language))}>{getLanguageDisplay(item.language)}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <PaginationBar current={canvasPage} total={Math.ceil(filteredCanvases.length / ITEMS_PER_PAGE)} onChange={setCanvasPage} />
+                      </>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
 
           {/* ====== FULL MEMORIES ====== */}
           {activeTab === "memories" && (
