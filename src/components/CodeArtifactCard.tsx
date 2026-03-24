@@ -1,8 +1,11 @@
-import { Code, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { Code, ExternalLink, Rocket, Loader2, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { cn } from '@/lib/utils';
-import { getLanguageDisplay, getLanguageColor } from '@/utils/codeUtils';
+import { getLanguageDisplay, getLanguageColor, canPreview } from '@/utils/codeUtils';
+import { deployCodeBlock } from '@/lib/deploy';
+import { toast } from 'sonner';
 
 interface CodeArtifactCardProps {
   codeContent: string;
@@ -18,17 +21,32 @@ export function CodeArtifactCard({
   className
 }: CodeArtifactCardProps) {
   const { openWithContent } = useCanvasStore();
+  const [deploying, setDeploying] = useState(false);
+  const [liveUrl, setLiveUrl] = useState<string | null>(null);
 
   const handleOpen = () => {
-    // Use atomic openWithContent to prevent race conditions
     openWithContent(codeContent, 'code', codeLanguage);
   };
 
-  // Get first 3-4 lines for preview
+  const handleDeploy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeploying(true);
+    try {
+      const result = await deployCodeBlock(codeContent, codeLanguage);
+      setLiveUrl(result.url);
+      toast.success('Deployed! Your site is live.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Deploy failed');
+    } finally {
+      setDeploying(false);
+    }
+  };
+
   const previewLines = codeContent.split('\n').slice(0, 4).join('\n');
   const lineCount = codeContent.split('\n').length;
   const langDisplay = getLanguageDisplay(codeLanguage);
   const langColor = getLanguageColor(codeLanguage);
+  const isDeployable = canPreview(codeLanguage);
 
   return (
     <div
@@ -54,18 +72,41 @@ export function CodeArtifactCard({
             {langDisplay}
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 px-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleOpen();
-          }}
-        >
-          <ExternalLink className="w-3.5 h-3.5 mr-1" />
-          Open
-        </Button>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={(e) => { e.stopPropagation(); handleOpen(); }}
+          >
+            <ExternalLink className="w-3.5 h-3.5 mr-1" />
+            Open
+          </Button>
+          {isDeployable && !liveUrl && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs text-primary hover:text-primary"
+              onClick={handleDeploy}
+              disabled={deploying}
+            >
+              {deploying
+                ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />Deploying…</>
+                : <><Rocket className="w-3.5 h-3.5 mr-1" />Deploy</>}
+            </Button>
+          )}
+          {liveUrl && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs text-emerald-400 hover:text-emerald-300"
+              onClick={(e) => { e.stopPropagation(); window.open(liveUrl, '_blank'); }}
+            >
+              <Globe className="w-3.5 h-3.5 mr-1" />
+              View Live
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Code Preview */}
@@ -78,10 +119,22 @@ export function CodeArtifactCard({
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-2 border-t border-border/20 bg-muted/10">
+      <div className="px-4 py-2 border-t border-border/20 bg-muted/10 flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
           {lineCount} {lineCount === 1 ? 'line' : 'lines'}
         </span>
+        {liveUrl && (
+          <a
+            href={liveUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+          >
+            <Globe className="w-3 h-3" />
+            {liveUrl.replace('https://', '')}
+          </a>
+        )}
       </div>
     </div>
   );

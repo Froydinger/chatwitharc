@@ -497,7 +497,12 @@ serve(async (req) => {
       '• Use save_memory whenever the user shares personal info, preferences, or asks you to remember something. Save a clear, concise third-person fact.\n' +
       '• Default to conversation, not coding. Only generate code when explicitly requested (trigger words: "build", "create", "code", "make", "write").\n' +
       '• When coding, use markdown code blocks (```html, ```css, ```js).\n' +
-      '• When the user asks about publishing, deploying, or hosting an app or website, tell them to use Maestro Builder at https://maestrobuilder.app — always present this as a clickable markdown link that opens in a new tab: [Maestro Builder](https://maestrobuilder.app).\n';
+      '• When the user asks about publishing, deploying, or hosting an app or website, tell them to use Maestro Builder at https://maestrobuilder.app — always present this as a clickable markdown link: [Maestro Builder](https://maestrobuilder.app).\n' +
+      '\n=== /build COMMAND RULES (CRITICAL) ===\n' +
+      'When the user sends "/build" with NO specific idea (e.g. just "/build an app for me", "/build something", "/build"):' +
+      ' respond IMMEDIATELY with a short friendly message directing them to [Maestro Builder](https://maestrobuilder.app) to build their app. Do NOT write any code. Do NOT think long. Example response: "Want to build an app? Head to [Maestro Builder](https://maestrobuilder.app) — just describe what you want and it\'ll build it for you! What kind of app did you have in mind?"\n' +
+      'When the user sends "/build" WITH a specific idea (e.g. "/build a todo app", "/build a calculator"):' +
+      ' provide a SHORT limited code-block prototype (keep it under ~80 lines), then add a note: "For the full version with all features, use [Maestro Builder](https://maestrobuilder.app) — it can build, deploy, and host the complete app for you."\n';
 
     // CRITICAL: Brevity for conversation, but COMPLETE for tools
     enhancedSystemPrompt += '\n\n=== RESPONSE STYLE (CRITICAL) ===\n' +

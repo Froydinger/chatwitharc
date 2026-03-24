@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import type { VirtualFileSystem } from '@/types/ide';
 import { bundleProject, generatePreviewHtml, initializeEsbuild } from '@/lib/esbuild';
+import { canPreview } from '@/utils/codeUtils';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -77,6 +78,45 @@ export async function unpublishFromNetlify(siteId: string): Promise<void> {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/** Deploy a single raw code block (HTML/JS/CSS) — no esbuild needed */
+export async function deployCodeBlock(
+  code: string,
+  language: string,
+): Promise<{ url: string; netlifyUrl?: string; siteId: string; subdomain: string }> {
+  if (!canPreview(language)) {
+    throw new Error(`Language "${language}" cannot be previewed/deployed`);
+  }
+
+  // Wrap non-HTML code in a minimal boilerplate
+  let html: string;
+  const lang = language.toLowerCase();
+  if (lang === 'html') {
+    html = code;
+  } else if (lang === 'css') {
+    html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${code}</style></head><body></body></html>`;
+  } else {
+    // js / ts / jsx / tsx
+    html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><script type="module">${code}</script></body></html>`;
+  }
+
+  const zip = new JSZip();
+  zip.file('index.html', html);
+  zip.file('_redirects', '/*    /index.html   200');
+  const zipBlob = await zip.generateAsync({ type: 'blob' });
+  const zipBase64 = await blobToBase64(zipBlob);
+
+  const subdomain = `arc-code-${Date.now().toString(36)}`;
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/deploy-netlify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+    body: JSON.stringify({ zipBase64, subdomain }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Deploy failed');
+  return { url: data.url, netlifyUrl: data.netlifyUrl, siteId: data.siteId, subdomain: data.subdomain };
 }
 
 export async function deployToNetlify(
