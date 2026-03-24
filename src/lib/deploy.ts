@@ -119,9 +119,15 @@ pre{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1.5rem
     body: JSON.stringify({ zipBase64, subdomain }),
   });
 
-  const data = await res.json();
-  if (!res.ok || data.error) throw new Error(data.error || 'Deploy failed');
-  return { url: data.url, netlifyUrl: data.netlifyUrl, siteId: data.siteId, subdomain: data.subdomain };
+  const text = await res.text();
+  let data: Record<string, unknown> = {};
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Deploy failed (${res.status}): unexpected response from server`);
+  }
+  if (!res.ok || data.error) throw new Error((data.error as string) || `Deploy failed (${res.status})`);
+  return { url: data.url as string, netlifyUrl: data.netlifyUrl as string | undefined, siteId: data.siteId as string, subdomain: data.subdomain as string };
 }
 
 export async function deployToNetlify(
