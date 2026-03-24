@@ -427,7 +427,7 @@ useEffect(() => {
   // Stats for overview
   const stats = [
     { label: "Chats", value: allChats.length, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
-    { label: "Images", value: totalImageCount ?? 0, loading: totalImageCount === null, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
+    { label: "Images", value: totalImageCount, loading: totalImageCount === null, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
     { label: "Memories", value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
@@ -533,20 +533,36 @@ useEffect(() => {
                     key={label}
                     className="relative overflow-hidden rounded-xl cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97] group"
                     style={{ border: `1px solid hsl(${color} / 0.25)`, background: `linear-gradient(160deg, hsl(${color} / 0.08) 0%, hsl(var(--background) / 0.9) 100%)` }}
-                    onClick={() => switchTab(tabs[i + 1]?.key || "overview")}
+                    onClick={() => {
+                      const targetTab = label === "Chats" ? "chats" : label === "Images" ? "images" : label === "Memories" ? "memories" : "overview";
+                      switchTab(targetTab);
+                    }}
                   >
                     {/* top bar mimicking a code editor tab */}
                     <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b" style={{ borderColor: `hsl(${color} / 0.2)`, background: `hsl(${color} / 0.06)` }}>
                       <div className="h-1.5 w-1.5 rounded-full opacity-70" style={{ background: `hsl(${color})` }} />
                       <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{label}.arc</span>
                     </div>
-                    <div className="p-3 font-mono">
+                    <div className="p-3 font-mono flex flex-col h-full">
                       <p className="text-[10px] text-muted-foreground/60 mb-0.5">const {label.toLowerCase()} =</p>
-                      <p className={cn("text-2xl font-bold leading-none flex items-center gap-1.5", tw)}>
-                        {value}
-                        {loading && <span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin opacity-50" />}
-                      </p>
-                      <Icon className={cn("h-3.5 w-3.5 mt-2 opacity-50", tw)} />
+                      <div className="flex-1 flex flex-col justify-center">
+                        {loading ? (
+                          <div className="h-6 w-12 rounded bg-muted/20 animate-pulse" />
+                        ) : (
+                          <p className={cn("text-2xl font-bold leading-none flex items-center gap-1.5", tw)}>
+                            {value ?? 0}
+                          </p>
+                        )}
+                        {label === "Images" && (
+                          <div className="mt-3">
+                            <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-[10px] text-primary font-medium hover:bg-primary/20 transition-colors">
+                              View all images
+                              <ArrowRight className="h-2.5 w-2.5" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <Icon className={cn("h-3.5 w-3.5 mt-2 opacity-50 self-end", tw)} />
                     </div>
                   </div>
                 ))}
