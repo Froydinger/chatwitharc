@@ -274,27 +274,6 @@ useEffect(() => {
     return allChats.filter(s => s.title.toLowerCase().includes(q));
   }, [allChats, chatSearch]);
 
-  const allImages = useMemo(() => {
-    const images: GeneratedImage[] = [];
-    chatSessions.forEach(session => {
-      session.messages.forEach(msg => {
-        if (msg?.type === 'image' && msg?.imageUrl && msg?.role === 'assistant') {
-          const ts = toDate(msg?.timestamp);
-          if (!ts) return;
-          images.push({
-            url: msg.imageUrl,
-            prompt: typeof msg?.content === 'string' ? msg.content.replace('Generated image: ', '') : '',
-            sessionId: session.id,
-            messageId: msg.id,
-            timestamp: ts,
-          });
-        }
-      });
-    });
-    images.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    return images;
-  }, [chatSessions]);
-
   // filteredImages now uses dbImages (lazy DB-loaded) instead of allImages (full hydration)
   const filteredImages = useMemo(() => {
     if (!imageSearch.trim()) return dbImages;
@@ -416,14 +395,14 @@ useEffect(() => {
   const insightTip = useMemo(() => {
     const tips = [
       allChats.length > 0 ? `You've had ${allChats.length} chat${allChats.length === 1 ? '' : 's'} — keep the streak going!` : null,
-      allImages.length > 0 ? `You've generated ${allImages.length} image${allImages.length === 1 ? '' : 's'} with Arc so far.` : null,
+      totalImageCount != null && totalImageCount > 0 ? `You've generated ${totalImageCount} image${totalImageCount === 1 ? '' : 's'} with Arc so far.` : null,
       contextBlocks.length > 0 ? `Arc remembers ${contextBlocks.length} thing${contextBlocks.length === 1 ? '' : 's'} about you.` : null,
       "Try asking Arc to generate an image of your next project idea.",
       "Start a new chat to brainstorm your next big idea.",
       "Use /build to create a web app from a single prompt.",
     ].filter(Boolean) as string[];
     return tips[Math.floor(Math.random() * tips.length)];
-  }, [allChats.length, allImages.length, contextBlocks.length]);
+  }, [allChats.length, totalImageCount, contextBlocks.length]);
 
   if (authLoading) return null;
 
@@ -448,7 +427,7 @@ useEffect(() => {
   // Stats for overview
   const stats = [
     { label: "Chats", value: allChats.length, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
-    { label: "Images", value: totalImageCount ?? allImages.length, loading: totalImageCount === null, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
+    { label: "Images", value: totalImageCount ?? 0, loading: totalImageCount === null, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
     { label: "Memories", value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
