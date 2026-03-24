@@ -536,28 +536,43 @@ useEffect(() => {
 
               {/* Stat cards — code-block style */}
               <div className="grid grid-cols-3 gap-2">
-                {stats.map(({ label, value, loading, icon: Icon, color, tw }, i) => (
-                  <div
-                    key={label}
-                    className="relative overflow-hidden rounded-xl cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97] group"
-                    style={{ border: `1px solid hsl(${color} / 0.25)`, background: `linear-gradient(160deg, hsl(${color} / 0.08) 0%, hsl(var(--background) / 0.9) 100%)` }}
-                    onClick={() => switchTab(tabs[i + 1]?.key || "overview")}
-                  >
-                    {/* top bar mimicking a code editor tab */}
-                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b" style={{ borderColor: `hsl(${color} / 0.2)`, background: `hsl(${color} / 0.06)` }}>
-                      <div className="h-1.5 w-1.5 rounded-full opacity-70" style={{ background: `hsl(${color})` }} />
-                      <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{label}.arc</span>
+                {stats.map(({ label, value, loading, icon: Icon, color, tw }, i) => {
+                  const isImages = label === "Images";
+                  return (
+                    <div
+                      key={label}
+                      className="relative overflow-hidden rounded-xl cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97] group"
+                      style={{ border: `1px solid hsl(${color} / 0.25)`, background: `linear-gradient(160deg, hsl(${color} / 0.08) 0%, hsl(var(--background) / 0.9) 100%)` }}
+                      onClick={() => switchTab(tabs[i + 1]?.key || "overview")}
+                    >
+                      {/* top bar mimicking a code editor tab */}
+                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b" style={{ borderColor: `hsl(${color} / 0.2)`, background: `hsl(${color} / 0.06)` }}>
+                        <div className="h-1.5 w-1.5 rounded-full opacity-70" style={{ background: `hsl(${color})` }} />
+                        <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{label}.arc</span>
+                      </div>
+                      <div className="p-3 font-mono">
+                        {isImages && (
+                          <Icon className={cn("absolute bottom-1 right-1 h-12 w-12 opacity-[0.06]", tw)} />
+                        )}
+                        <p className="text-[10px] text-muted-foreground/60 mb-0.5">const {label.toLowerCase()} =</p>
+                        <p className={cn("text-2xl font-bold leading-none flex items-center gap-1.5", tw)}>
+                          {value}
+                          {loading && <span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin opacity-50" />}
+                        </p>
+                        {isImages ? (
+                          <div
+                            className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-sans font-medium tracking-wide backdrop-blur-sm border transition-colors"
+                            style={{ borderColor: `hsl(${color} / 0.3)`, background: `hsl(${color} / 0.1)`, color: `hsl(${color})` }}
+                          >
+                            All images
+                          </div>
+                        ) : (
+                          <Icon className={cn("h-3.5 w-3.5 mt-2 opacity-50", tw)} />
+                        )}
+                      </div>
                     </div>
-                    <div className="p-3 font-mono">
-                      <p className="text-[10px] text-muted-foreground/60 mb-0.5">const {label.toLowerCase()} =</p>
-                      <p className={cn("text-2xl font-bold leading-none flex items-center gap-1.5", tw)}>
-                        {value}
-                        {loading && <span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin opacity-50" />}
-                      </p>
-                      <Icon className={cn("h-3.5 w-3.5 mt-2 opacity-50", tw)} />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Insight tip */}
