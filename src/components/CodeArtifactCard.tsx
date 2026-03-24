@@ -5,6 +5,7 @@ import { useCanvasStore } from '@/store/useCanvasStore';
 import { cn } from '@/lib/utils';
 import { getLanguageDisplay, getLanguageColor, canPreview } from '@/utils/codeUtils';
 import { deployCodeBlock } from '@/lib/deploy';
+import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 
 interface CodeArtifactCardProps {
@@ -21,6 +22,7 @@ export function CodeArtifactCard({
   className
 }: CodeArtifactCardProps) {
   const { openWithContent } = useCanvasStore();
+  const { isSubscribed } = useSubscription();
   const [deploying, setDeploying] = useState(false);
   const [liveUrl, setLiveUrl] = useState<string | null>(null);
 
@@ -30,6 +32,10 @@ export function CodeArtifactCard({
 
   const handleDeploy = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isSubscribed) {
+      window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
+      return;
+    }
     setDeploying(true);
     try {
       const result = await deployCodeBlock(codeContent, codeLanguage);
