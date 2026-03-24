@@ -23,6 +23,8 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { cn } from "@/lib/utils";
+import { useMessageQueueStore } from "@/store/useMessageQueueStore";
+import { MessageQueue } from "@/components/MessageQueue";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
