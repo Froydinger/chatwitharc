@@ -162,7 +162,7 @@ useEffect(() => {
   const [isBubbleDragging, setIsBubbleDragging] = useState(false);
   const [bubbleHoverIdx, setBubbleHoverIdx] = useState(-1);
   const [pillDims, setPillDims] = useState({ w: 0, h: 64 });
-  const LENS_SCALE = 2.2;
+  const LENS_SCALE = 2.0;
   const bubbleCX = useMotionValue(-999); // -999 = not yet initialized
   const bubbleLeft = useTransform(bubbleCX, cx => cx - BUBBLE_R);
   // Lens left: positions the scaled content so the pill's pixel at bubbleCX maps to bubble center at BUBBLE_R
