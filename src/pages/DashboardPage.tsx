@@ -165,8 +165,9 @@ useEffect(() => {
   const LENS_SCALE = 2.2;
   const bubbleCX = useMotionValue(-999); // -999 = not yet initialized
   const bubbleLeft = useTransform(bubbleCX, cx => cx - BUBBLE_R);
-  // Lens left: positions the duplicated pill content so the bubble-center pixel is at x=BUBBLE_R inside the bubble
-  const lensLeft = useTransform(bubbleCX, cx => BUBBLE_R - cx);
+  // Lens left: positions the scaled content so the pill's pixel at bubbleCX maps to bubble center at BUBBLE_R
+  // With scale(LENS_SCALE) from transform-origin:0 0, we need: left = BUBBLE_R - bubbleCX * LENS_SCALE
+  const lensLeft = useTransform(bubbleCX, cx => BUBBLE_R - cx * LENS_SCALE);
   const bubbleDragStartRef = useRef({ pointerX: 0, startCX: 0 });
   const lastPtrXRef = useRef(0);
   const lastPtrTRef = useRef(0);
@@ -1106,11 +1107,11 @@ useEffect(() => {
               style={{
                 position: 'absolute',
                 left: lensLeft,
-                top: -(pillDims.h - BUBBLE_R * 2) / 2,
+                top: BUBBLE_R - (pillDims.h / 2) * LENS_SCALE,
                 width: pillDims.w || navPillRef.current?.offsetWidth || 300,
                 height: pillDims.h || 64,
                 transform: `scale(${LENS_SCALE})`,
-                transformOrigin: `${BUBBLE_R}px ${BUBBLE_R}px`,
+                transformOrigin: '0 0',
                 pointerEvents: 'none',
               }}
             >
