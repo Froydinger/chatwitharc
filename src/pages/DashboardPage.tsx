@@ -223,6 +223,29 @@ useEffect(() => {
   useEffect(() => { setCanvasPage(1); }, [canvasSearch]);
 
   const switchTab = (tab: DashboardTab) => {
+    const tabIndex = tabs.findIndex(t => t.key === tab);
+    if (tabIndex === -1) return;
+
+    // Animate bubble like it's being grabbed and dropped
+    // Pickup animation
+    rawBase.set(1.22);
+    animate(rawSX, [1, 0.85, 1.18, 0.93, 1.08, 1], { duration: 0.42 });
+    animate(rawSY, [1, 1.18, 0.86, 1.09, 0.94, 1], { duration: 0.42 });
+
+    // Move bubble to new tab position
+    if (navPillRef.current) {
+      const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
+      const tabW = contentW / tabs.length;
+      animate(bubbleCX, PILL_PAD + tabIndex * tabW + tabW / 2, { type: 'spring', stiffness: 420, damping: 20, mass: 0.7 });
+    }
+
+    // Drop animation (delayed to happen after movement)
+    setTimeout(() => {
+      rawBase.set(1.0);
+      animate(rawSX, [1.15, 0.86, 1.08, 0.96, 1], { duration: 0.5 });
+      animate(rawSY, [0.88, 1.16, 0.93, 1.04, 1], { duration: 0.5 });
+    }, 0);
+
     setActiveTab(tab);
     setSearchParams(tab === "overview" ? {} : { tab });
     setViewingImageIndex(null);
@@ -1149,7 +1172,7 @@ useEffect(() => {
       <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none flex justify-center" style={{ paddingBottom: '20px' }}>
         <div
           ref={setPillRef}
-          className="flex items-center p-1 rounded-full pointer-events-auto relative sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-[10px] sm:mx-4"
+          className="flex items-center px-1 py-1.5 rounded-full pointer-events-auto relative sm:max-w-3xl md:max-w-4xl lg:max-w-5xl mx-[10px] sm:mx-4"
           style={{
             background: 'hsl(var(--background) / 0.85)',
             backdropFilter: 'blur(24px) saturate(120%)',
