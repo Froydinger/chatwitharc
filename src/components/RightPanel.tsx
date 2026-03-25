@@ -1,18 +1,14 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { X, History, Image, LayoutGrid, Crown, Quote, Layers } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Crown, Quote } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
-import { MediaLibraryPanel } from "@/components/MediaLibraryPanel";
-import { CanvasesPanel } from "@/components/CanvasesPanel";
 import { QuotePanel } from "@/components/QuotePanel";
 import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useSubscription } from "@/hooks/useSubscription";
 
-export type RightPanelTab = "history" | "media" | "canvases" | "quote" | "settings";
+export type RightPanelTab = "history" | "quote" | "settings";
 
 interface RightPanelProps {
   isOpen: boolean;
@@ -22,17 +18,10 @@ interface RightPanelProps {
 }
 
 export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
-  const navigate = useNavigate();
   // Detect PWA/Electron mode for conditional spacing
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const isAdminBannerActive = useAdminBanner();
   const { isSubscribed } = useSubscription();
-
-  // Map sidebar tabs to dashboard routes
-  const dashboardTabMap: Partial<Record<RightPanelTab, string>> = {
-    history: "/dashboard?tab=chats",
-    media: "/dashboard?tab=images",
-  };
 
   useEffect(() => {
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
@@ -90,94 +79,45 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         <div className="flex flex-col h-full" style={{ paddingTop: isStandaloneApp ? '30px' : undefined }}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border bg-background">
-          <div className="relative flex items-center gap-1.5 flex-1">
-            {/* Deterministic bubble indicator — no layoutId */}
-            <motion.div
-              className="absolute h-10 w-10 rounded-full bg-primary/20 ring-1 ring-primary pointer-events-none"
-              animate={{
-                left: (() => {
-                  const tabs = ["history", "media", "canvases", "quote"];
-                  return tabs.indexOf(activeTab) * 46;
-                })(),
-              }}
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            />
-            {[
-              { key: "history" as const, icon: History, label: "History" },
-              { key: "media" as const, icon: Image, label: "Media" },
-              { key: "canvases" as const, icon: Layers, label: "Canvases" },
-              { key: "quote" as const, icon: Quote, label: "Quote" },
-            ].map(({ key, icon: Icon, label }) => (
-              <button
-                key={key}
-                onClick={() => {
-                  const dashboardRoute = dashboardTabMap[key];
-                  if (dashboardRoute) {
-                    navigate(dashboardRoute);
-                    onClose();
-                  } else {
-                    onTabChange(key);
-                  }
-                }}
-                title={label}
+            <h2 className="text-sm font-semibold text-foreground">Chat History</h2>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => onTabChange("quote")}
                 className={cn(
-                  "relative z-10 h-10 w-10 rounded-full flex items-center justify-center transition-colors touch-manipulation active:scale-95",
-                  activeTab === key ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  "h-9 px-3 rounded-lg text-xs font-medium transition-all",
+                  activeTab === "quote"
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "bg-muted/50 text-foreground hover:bg-muted hover:text-primary"
                 )}
               >
-                <Icon className="h-4 w-4" />
-              </button>
-            ))}
-          </div>
-          
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="ml-2 rounded-full bg-muted/50 hover:bg-destructive/10 hover:text-destructive"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+                <Quote className="h-3.5 w-3.5 mr-1.5" /> Quote
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="ml-1 rounded-full bg-muted/50 hover:bg-destructive/10 hover:text-destructive"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Content */}
           <div className="flex-1 overflow-hidden">
-          <Tabs value={activeTab} className="h-full">
             <AnimatePresence mode="wait">
-              {activeTab === "canvases" && (
-                <TabsContent value="canvases" className="h-full m-0" asChild>
-                  <motion.div key="canvases" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
-                    <CanvasesPanel />
-                  </motion.div>
-                </TabsContent>
-              )}
-
-
-              {activeTab === "media" && (
-                <TabsContent value="media" className="h-full m-0" asChild>
-                  <motion.div key="media" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
-                    <MediaLibraryPanel />
-                  </motion.div>
-                </TabsContent>
-              )}
-
               {activeTab === "history" && (
-                <TabsContent value="history" className="h-full m-0" asChild>
-                  <motion.div key="history" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
-                    <ChatHistoryPanel />
-                  </motion.div>
-                </TabsContent>
+                <motion.div key="history" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
+                  <ChatHistoryPanel />
+                </motion.div>
               )}
 
               {activeTab === "quote" && (
-                <TabsContent value="quote" className="h-full m-0" asChild>
-                  <motion.div key="quote" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
-                    <QuotePanel />
-                  </motion.div>
-                </TabsContent>
+                <motion.div key="quote" initial={{ opacity: 0, x: -20, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 20, scale: 0.95 }} transition={{ type: "spring", damping: 20, stiffness: 300, mass: 0.8 }} className="h-full">
+                  <QuotePanel />
+                </motion.div>
               )}
             </AnimatePresence>
-            </Tabs>
           </div>
 
           {/* Upgrade Banner for free users */}
