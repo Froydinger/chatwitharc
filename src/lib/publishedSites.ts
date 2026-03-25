@@ -46,7 +46,7 @@ export async function updatePublishedSite(
     .single();
 
   if (error) throw new Error(error.message);
-  return data as PublishedSite;
+  return data as unknown as PublishedSite;
 }
 
 export async function deletePublishedSite(id: string): Promise<void> {
