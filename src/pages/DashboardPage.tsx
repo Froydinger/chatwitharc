@@ -627,7 +627,7 @@ useEffect(() => {
 
               {/* Stat cards — code-block style */}
               <div className="grid grid-cols-2 gap-2">
-                {stats.map(({ label, tab, icon: Icon, color, tw, value, loading }) => {
+                {stats.map(({ label, tab, icon: Icon, color, tw, value }) => {
                   const isImages = label === "Images";
                   return (
                     <div
