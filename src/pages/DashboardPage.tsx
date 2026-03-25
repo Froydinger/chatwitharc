@@ -1098,7 +1098,14 @@ useEffect(() => {
       <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none" style={{ paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 20px)` }}>
         <div
           ref={setPillRef}
-          className="mx-[10px] flex items-center p-2 rounded-full border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-auto relative"
+          className="mx-[10px] flex items-center p-2 rounded-full pointer-events-auto relative"
+          style={{
+            background: 'hsl(var(--background) / 0.85)',
+            backdropFilter: 'blur(24px) saturate(120%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(120%)',
+            border: '1px solid hsl(var(--border) / 0.5)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 hsl(var(--foreground) / 0.08)',
+          }}
         >
           {/* Jelly bubble — rendered first so tabs stack above it visually but bubble captures pointer via z-index */}
           <motion.div
