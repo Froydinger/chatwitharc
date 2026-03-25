@@ -162,7 +162,7 @@ useEffect(() => {
   const [isBubbleDragging, setIsBubbleDragging] = useState(false);
   const [bubbleHoverIdx, setBubbleHoverIdx] = useState(-1);
   const [pillDims, setPillDims] = useState({ w: 0, h: 64 });
-  const LENS_SCALE = 2.2;
+  const LENS_SCALE = 2.0;
   const bubbleCX = useMotionValue(-999); // -999 = not yet initialized
   const bubbleLeft = useTransform(bubbleCX, cx => cx - BUBBLE_R);
   // Lens left: positions the scaled content so the pill's pixel at bubbleCX maps to bubble center at BUBBLE_R
@@ -1115,9 +1115,9 @@ useEffect(() => {
                 pointerEvents: 'none',
               }}
             >
-              <div style={{ display: 'flex', width: '100%', height: '100%', alignItems: 'center', paddingLeft: PILL_PAD, paddingRight: PILL_PAD }}>
+              <div style={{ display: 'flex', width: '100%', height: '100%', alignItems: 'center' }}>
                 {tabs.map(({ key, icon: Icon }, i) => (
-                  <div key={key} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div key={key} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 12, paddingRight: 12 }}>
                     <Icon
                       style={{
                         width: 20,
@@ -1126,7 +1126,6 @@ useEffect(() => {
                           ? 'hsl(var(--primary))'
                           : 'hsl(var(--muted-foreground) / 0.5)',
                         filter: bubbleHoverIdx === i ? 'drop-shadow(0 0 4px hsl(var(--primary)))' : 'none',
-                        transition: 'color 0.15s, filter 0.15s',
                       }}
                     />
                   </div>
@@ -1135,8 +1134,9 @@ useEffect(() => {
             </motion.div>
           </motion.div>
 
-          {tabs.map(({ key, label, icon: Icon }) => {
+          {tabs.map(({ key, label, icon: Icon }, i) => {
             const isActive = activeTab === key;
+            const isHiddenByBubble = isBubbleDragging && bubbleHoverIdx === i;
             return (
               <button
                 key={key}
@@ -1145,7 +1145,7 @@ useEffect(() => {
                   "flex items-center justify-center px-3 py-3 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation",
                   isActive ? "text-primary" : "text-muted-foreground/60 hover:text-muted-foreground"
                 )}
-                style={{ zIndex: 20 }}
+                style={{ zIndex: 20, opacity: isHiddenByBubble ? 0 : 1, transitionProperty: 'opacity', transitionDuration: '0.1s' }}
               >
                 <Icon className={cn(
                   "h-5 w-5 transition-all duration-300",
