@@ -197,9 +197,9 @@ useEffect(() => {
   // Lens magnification scale - animates from 1 to LENS_SCALE smoothly
   const lensScale = useMotionValue(1);
   const springLensScale = useSpring(lensScale, { stiffness: 320, damping: 20, mass: 0.4 });
-  // Lens positioning - maps the pill's bubbleCX point to bubble center at BUBBLE_R
-  const lensLeftPos = useTransform(bubbleCX, cx => BUBBLE_R - cx * LENS_SCALE);
-  const lensTopPos = useMotionValue(BUBBLE_R - (pillDims.h / 2) * LENS_SCALE);
+  // Lens positioning - keeps the icon at bubbleCX centered as we magnify
+  const lensLeftPos = useTransform([bubbleCX, springLensScale], ([cx, scale]) => BUBBLE_R - (cx as number) * (scale as number));
+  const lensTopPos = useTransform(springLensScale, (scale) => BUBBLE_R - (pillDims.h / 2) * (scale as number));
 
   // Callback ref — initializes bubble as soon as pill mounts
   const setPillRef = (el: HTMLDivElement | null) => {
@@ -1219,6 +1219,8 @@ useEffect(() => {
           >
             {/* True magnification lens — zooms the actual nav icons through the bubble circle */}
             <motion.div
+              animate={{ opacity: isBubbleDragging ? 1 : 0 }}
+              transition={{ duration: 0.12 }}
               style={{
                 position: 'absolute',
                 left: lensLeftPos,
