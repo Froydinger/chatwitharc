@@ -154,6 +154,10 @@ useEffect(() => {
     }
     return null;
   });
+  const [quickCounts, setQuickCounts] = useState<{ chats: number | null; memories: number | null }>({
+    chats: null,
+    memories: null,
+  });
   const [appPage, setAppPage] = useState(1);
   const [memoryPage, setMemoryPage] = useState(1);
   const [canvasSearch, setCanvasSearch] = useState("");
@@ -297,12 +301,56 @@ useEffect(() => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.rpc('count_user_images').then(({ data }) => {
-      if (typeof data === 'number') {
-        setTotalImageCount(data);
-        localStorage.setItem(`arc_image_count_${user.id}`, String(data));
-      }
+
+    const cachedChats = Number(localStorage.getItem(`arc_chat_count_${user.id}`));
+    const cachedMemories = Number(localStorage.getItem(`arc_memory_count_${user.id}`));
+    const cachedImages = Number(localStorage.getItem(`arc_image_count_${user.id}`));
+
+    setQuickCounts({
+      chats: Number.isNaN(cachedChats) ? null : cachedChats,
+      memories: Number.isNaN(cachedMemories) ? null : cachedMemories,
     });
+    if (!Number.isNaN(cachedImages)) {
+      setTotalImageCount(cachedImages);
+    }
+
+    (async () => {
+      try {
+        const [chatsRes, memoriesRes, imagesResWithArg] = await Promise.all([
+          supabase
+            .from('chat_sessions')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id),
+          supabase
+            .from('context_blocks')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id),
+          supabase.rpc('count_user_images', { target_user_id: user.id } as any),
+        ]);
+
+        const imageCountResult =
+          typeof imagesResWithArg.data === 'number'
+            ? imagesResWithArg
+            : await supabase.rpc('count_user_images');
+
+        if (typeof chatsRes.count === 'number') {
+          setQuickCounts(prev => ({ ...prev, chats: chatsRes.count ?? 0 }));
+          localStorage.setItem(`arc_chat_count_${user.id}`, String(chatsRes.count ?? 0));
+        }
+
+        if (typeof memoriesRes.count === 'number') {
+          setQuickCounts(prev => ({ ...prev, memories: memoriesRes.count ?? 0 }));
+          localStorage.setItem(`arc_memory_count_${user.id}`, String(memoriesRes.count ?? 0));
+        }
+
+        if (typeof imageCountResult.data === 'number') {
+          setTotalImageCount(imageCountResult.data);
+          localStorage.setItem(`arc_image_count_${user.id}`, String(imageCountResult.data));
+        }
+      } catch (error) {
+        console.error('Failed to load quick dashboard counts:', error);
+      }
+    })();
   }, [user]);
 
   // Reusable: snap bubble to active tab position (instant or animated)
@@ -453,10 +501,10 @@ useEffect(() => {
 
   // Stats for overview
   const stats = [
-    { label: "Chats", tab: "chats" as DashboardTab, value: allChats.length, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
+    { label: "Chats", tab: "chats" as DashboardTab, value: allChats.length > 0 ? allChats.length : quickCounts.chats, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
     { label: "Images", tab: "images" as DashboardTab, value: totalImageCount, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
     { label: "Canvases", tab: "canvases" as DashboardTab, value: filteredCanvases.length, icon: Layers, color: "35 90% 60%", tw: "text-orange-400" },
-    { label: "Memories", tab: "memories" as DashboardTab, value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
+    { label: "Memories", tab: "memories" as DashboardTab, value: contextBlocks.length > 0 ? contextBlocks.length : quickCounts.memories, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
   const getIdxFromCX = (cx: number) => {
