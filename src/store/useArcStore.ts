@@ -196,10 +196,19 @@ export const useArcStore = create<ArcState>()(
         set({ isSyncing: true });
         let currentUserId: string | null = null;
 
+        // Safety timeout: never leave isSyncing stuck true
+        const syncTimeout = setTimeout(() => {
+          if (get().isSyncing) {
+            console.warn('⚠️ Sync timed out after 30s, resetting isSyncing');
+            set({ isSyncing: false });
+          }
+        }, 30000);
+
         try {
-          const { data: { user } } = await supabase.auth.getUser();
+          const { data: { session } } = await supabase.auth.getSession();
+          const user = session?.user ?? null;
           if (!user) {
-            console.log('⚠️ No user found, skipping sync');
+            console.log('⚠️ No user session found, skipping sync');
             return;
           }
 
@@ -305,7 +314,7 @@ export const useArcStore = create<ArcState>()(
             syncedUserId: currentUserId ?? get().syncedUserId,
           });
         } finally {
-          // CRITICAL: Always clear sync state to prevent stuck loading
+          clearTimeout(syncTimeout);
           set({ isSyncing: false });
         }
       },
@@ -324,7 +333,8 @@ export const useArcStore = create<ArcState>()(
         set({ isHydratingSession: sessionId });
 
         try {
-          const { data: { user } } = await supabase.auth.getUser();
+          const { data: { session } } = await supabase.auth.getSession();
+          const user = session?.user ?? null;
           if (!user) return;
 
           console.log('💧 Hydrating session:', sessionId);
@@ -392,7 +402,8 @@ export const useArcStore = create<ArcState>()(
         set({ isHydratingAll: true });
 
         try {
-          const { data: { user } } = await supabase.auth.getUser();
+          const { data: { session } } = await supabase.auth.getSession();
+          const user = session?.user ?? null;
           if (!user) return;
 
           console.log(`💧 Bulk hydrating ${unhydratedSessions.length} sessions for sidebar tabs`);
@@ -484,7 +495,8 @@ export const useArcStore = create<ArcState>()(
         }
 
         try {
-          const { data: { user } } = await supabase.auth.getUser();
+          const { data: { session } } = await supabase.auth.getSession();
+          const user = session?.user ?? null;
           if (!user) {
             console.warn('⚠️ No user found, cannot save to Supabase');
             return;
@@ -678,7 +690,8 @@ export const useArcStore = create<ArcState>()(
         // Delete from Supabase (if configured)
         if (supabase && isSupabaseConfigured) {
           try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user ?? null;
             if (user) {
               await supabase
                 .from('chat_sessions')
@@ -750,7 +763,8 @@ export const useArcStore = create<ArcState>()(
         // Clear from Supabase (if configured)
         if (supabase && isSupabaseConfigured) {
           try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user ?? null;
             if (user) {
               // Delete all chat sessions
               await supabase
