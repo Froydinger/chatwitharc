@@ -161,8 +161,12 @@ useEffect(() => {
   const navPillRef = useRef<HTMLDivElement>(null);
   const [isBubbleDragging, setIsBubbleDragging] = useState(false);
   const [bubbleHoverIdx, setBubbleHoverIdx] = useState(-1);
+  const [pillDims, setPillDims] = useState({ w: 0, h: 64 });
+  const LENS_SCALE = 2.2;
   const bubbleCX = useMotionValue(-999); // -999 = not yet initialized
   const bubbleLeft = useTransform(bubbleCX, cx => cx - BUBBLE_R);
+  // Lens left: positions the duplicated pill content so the bubble-center pixel is at x=BUBBLE_R inside the bubble
+  const lensLeft = useTransform(bubbleCX, cx => BUBBLE_R - cx);
   const bubbleDragStartRef = useRef({ pointerX: 0, startCX: 0 });
   const lastPtrXRef = useRef(0);
   const lastPtrTRef = useRef(0);
@@ -181,11 +185,14 @@ useEffect(() => {
   // Callback ref — initializes bubble as soon as pill mounts
   const setPillRef = (el: HTMLDivElement | null) => {
     (navPillRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-    if (el && bubbleCX.get() === -999) {
-      const contentW = el.offsetWidth - PILL_PAD * 2;
-      const tabW = contentW / tabs.length;
-      const idx = tabs.findIndex(t => t.key === activeTab);
-      bubbleCX.set(PILL_PAD + idx * tabW + tabW / 2);
+    if (el) {
+      setPillDims({ w: el.offsetWidth, h: el.offsetHeight });
+      if (bubbleCX.get() === -999) {
+        const contentW = el.offsetWidth - PILL_PAD * 2;
+        const tabW = contentW / tabs.length;
+        const idx = tabs.findIndex(t => t.key === activeTab);
+        bubbleCX.set(PILL_PAD + idx * tabW + tabW / 2);
+      }
     }
   };
 
@@ -317,7 +324,10 @@ useEffect(() => {
   // Re-snap instantly on resize so bubble never sits outside the pill
   useEffect(() => {
     if (!navPillRef.current) return;
-    const ro = new ResizeObserver(() => { if (!isBubbleDragging) snapBubble(true); });
+    const ro = new ResizeObserver(() => {
+      if (navPillRef.current) setPillDims({ w: navPillRef.current.offsetWidth, h: navPillRef.current.offsetHeight });
+      if (!isBubbleDragging) snapBubble(true);
+    });
     ro.observe(navPillRef.current);
     return () => ro.disconnect();
   }, [activeTab, isBubbleDragging]);
@@ -1079,6 +1089,7 @@ useEffect(() => {
               scaleY: springScaleY,
               zIndex: 30,
               cursor: isBubbleDragging ? 'grabbing' : 'grab',
+              overflow: 'hidden',
               border: '2px solid hsl(var(--primary))',
               background: 'transparent',
               boxShadow: isBubbleDragging
@@ -1091,23 +1102,39 @@ useEffect(() => {
             onPointerUp={onBubblePtrUp}
             onPointerCancel={onBubblePtrUp}
           >
-            {/* Magnified icon — visible while dragging, shows whichever tab bubble is over */}
-            {(() => {
-              const idx = isBubbleDragging ? bubbleHoverIdx : tabs.findIndex(t => t.key === activeTab);
-              const MagIcon = idx >= 0 ? tabs[idx]?.icon : null;
-              return MagIcon ? (
-                <motion.div
-                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                  animate={{ opacity: isBubbleDragging ? 1 : 0, scale: isBubbleDragging ? 1 : 0.5 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                >
-                  <MagIcon
-                    className="h-8 w-8 text-primary"
-                    style={{ filter: 'drop-shadow(0 0 6px hsl(var(--primary)))' }}
-                  />
-                </motion.div>
-              ) : null;
-            })()}
+            {/* True magnification lens — zooms the actual nav icons through the bubble circle */}
+            <motion.div
+              animate={{ opacity: isBubbleDragging ? 1 : 0 }}
+              transition={{ duration: 0.12 }}
+              style={{
+                position: 'absolute',
+                left: lensLeft,
+                top: -(pillDims.h - BUBBLE_R * 2) / 2,
+                width: pillDims.w || navPillRef.current?.offsetWidth || 300,
+                height: pillDims.h || 64,
+                transform: `scale(${LENS_SCALE})`,
+                transformOrigin: `${BUBBLE_R}px ${BUBBLE_R}px`,
+                pointerEvents: 'none',
+              }}
+            >
+              <div style={{ display: 'flex', width: '100%', height: '100%', alignItems: 'center', paddingLeft: PILL_PAD, paddingRight: PILL_PAD }}>
+                {tabs.map(({ key, icon: Icon }, i) => (
+                  <div key={key} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon
+                      style={{
+                        width: 20,
+                        height: 20,
+                        color: bubbleHoverIdx === i
+                          ? 'hsl(var(--primary))'
+                          : 'hsl(var(--muted-foreground) / 0.5)',
+                        filter: bubbleHoverIdx === i ? 'drop-shadow(0 0 4px hsl(var(--primary)))' : 'none',
+                        transition: 'color 0.15s, filter 0.15s',
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </motion.div>
           </motion.div>
 
           {tabs.map(({ key, label, icon: Icon }) => {
