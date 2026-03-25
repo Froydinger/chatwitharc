@@ -1146,10 +1146,10 @@ useEffect(() => {
       </div>
 
       {/* ═══ BOTTOM NAVIGATION ═══ */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none" style={{ paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 20px)` }}>
+      <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none flex justify-center" style={{ paddingBottom: '20px' }}>
         <div
           ref={setPillRef}
-          className="mx-[10px] flex items-center p-1 rounded-full pointer-events-auto relative"
+          className="flex items-center p-1 rounded-full pointer-events-auto relative sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-[10px] sm:mx-4"
           style={{
             background: 'hsl(var(--background) / 0.85)',
             backdropFilter: 'blur(24px) saturate(120%)',
