@@ -1219,11 +1219,11 @@ useEffect(() => {
               style={{
                 position: 'absolute',
                 left: lensLeft,
-                top: BUBBLE_R - (pillDims.h / 2) * LENS_SCALE,
+                top: BUBBLE_R - (pillDims.h / 2),
                 width: pillDims.w || navPillRef.current?.offsetWidth || 300,
                 height: pillDims.h || 64,
                 scale: springLensScale,
-                transformOrigin: '0 0',
+                transformOrigin: 'center',
                 pointerEvents: 'none',
               }}
             >
