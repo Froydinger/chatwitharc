@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Crown, Quote } from "lucide-react";
+import { X, Crown, Quote, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
@@ -32,6 +32,13 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
     setIsStandaloneApp((isPWA || isElectron) && !isMobileDevice);
   }, []);
 
+  // Reset to chat history when sidebar opens
+  useEffect(() => {
+    if (isOpen) {
+      onTabChange("history");
+    }
+  }, [isOpen, onTabChange]);
+
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -39,7 +46,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         onClose();
       }
     };
-    
+
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
@@ -79,27 +86,55 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         <div className="flex flex-col h-full" style={{ paddingTop: isStandaloneApp ? '30px' : undefined }}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border bg-background">
-            <h2 className="text-sm font-semibold text-foreground">Chat History</h2>
+            <button
+              onClick={() => onTabChange("history")}
+              className={cn(
+                "text-sm font-semibold transition-colors",
+                activeTab === "quote" ? "text-muted-foreground hover:text-foreground cursor-pointer" : "text-foreground cursor-default"
+              )}
+            >
+              Chat History
+            </button>
             <div className="flex items-center gap-2">
-              <Button
-                onClick={() => onTabChange("quote")}
-                className={cn(
-                  "h-9 px-3 rounded-lg text-xs font-medium transition-all",
-                  activeTab === "quote"
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "bg-muted/50 text-foreground hover:bg-muted hover:text-primary"
-                )}
-              >
-                <Quote className="h-3.5 w-3.5 mr-1.5" /> Quote
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="ml-1 rounded-full bg-muted/50 hover:bg-destructive/10 hover:text-destructive"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              {activeTab === "quote" ? (
+                <>
+                  <Button
+                    onClick={() => onTabChange("history")}
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5 mr-1.5" /> Back
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    className="ml-1 rounded-full bg-muted/50 hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    onClick={() => onTabChange("quote")}
+                    className={cn(
+                      "h-9 px-3 rounded-lg text-xs font-medium transition-all bg-muted/50 text-foreground hover:bg-muted hover:text-primary"
+                    )}
+                  >
+                    <Quote className="h-3.5 w-3.5 mr-1.5" /> Quote
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    className="ml-1 rounded-full bg-muted/50 hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
