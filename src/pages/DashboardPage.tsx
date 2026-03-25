@@ -180,7 +180,6 @@ useEffect(() => {
   // Lens left: positions the scaled content so the pill's pixel at bubbleCX maps to bubble center at BUBBLE_R
   // With scale(LENS_SCALE) from transform-origin:0 0, we need: left = BUBBLE_R - bubbleCX * LENS_SCALE
   const lensLeft = useTransform(bubbleCX, cx => BUBBLE_R - cx * LENS_SCALE);
-  const lensTop = useTransform(springLensScale, scale => BUBBLE_R - (pillDims.h / 2) * (scale as number));
   const bubbleDragStartRef = useRef({ pointerX: 0, startCX: 0 });
   const lastPtrXRef = useRef(0);
   const lastPtrTRef = useRef(0);
@@ -198,6 +197,7 @@ useEffect(() => {
   // Lens magnification scale - animates from 1 to LENS_SCALE smoothly
   const lensScale = useMotionValue(1);
   const springLensScale = useSpring(lensScale, { stiffness: 320, damping: 20, mass: 0.4 });
+  const lensTop = useTransform(springLensScale, scale => BUBBLE_R - (pillDims.h / 2) * (scale as number));
 
   // Callback ref — initializes bubble as soon as pill mounts
   const setPillRef = (el: HTMLDivElement | null) => {
