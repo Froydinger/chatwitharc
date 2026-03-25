@@ -180,6 +180,7 @@ useEffect(() => {
   // Lens left: positions the scaled content so the pill's pixel at bubbleCX maps to bubble center at BUBBLE_R
   // With scale(LENS_SCALE) from transform-origin:0 0, we need: left = BUBBLE_R - bubbleCX * LENS_SCALE
   const lensLeft = useTransform(bubbleCX, cx => BUBBLE_R - cx * LENS_SCALE);
+  const lensTop = useTransform(springLensScale, scale => BUBBLE_R - (pillDims.h / 2) * (scale as number));
   const bubbleDragStartRef = useRef({ pointerX: 0, startCX: 0 });
   const lastPtrXRef = useRef(0);
   const lastPtrTRef = useRef(0);
@@ -194,6 +195,9 @@ useEffect(() => {
   // Combined: base scale × deformation
   const springScaleX = useTransform([springBase, springSX] as const, ([b, sx]) => (b as number) * (sx as number));
   const springScaleY = useTransform([springBase, springSY] as const, ([b, sy]) => (b as number) * (sy as number));
+  // Lens magnification scale - animates from 1 to LENS_SCALE smoothly
+  const lensScale = useMotionValue(1);
+  const springLensScale = useSpring(lensScale, { stiffness: 320, damping: 20, mass: 0.4 });
 
   // Callback ref — initializes bubble as soon as pill mounts
   const setPillRef = (el: HTMLDivElement | null) => {
@@ -221,6 +225,11 @@ useEffect(() => {
   useEffect(() => { setAppPage(1); }, [appSearch]);
   useEffect(() => { setMemoryPage(1); }, [memorySearch]);
   useEffect(() => { setCanvasPage(1); }, [canvasSearch]);
+
+  // Animate lens scale when dragging
+  useEffect(() => {
+    animate(lensScale, isBubbleDragging ? LENS_SCALE : 1, { type: 'spring', stiffness: 320, damping: 20, mass: 0.4 });
+  }, [isBubbleDragging]);
 
   const switchTab = (tab: DashboardTab) => {
     const tabIndex = tabs.findIndex(t => t.key === tab);
@@ -1208,15 +1217,13 @@ useEffect(() => {
           >
             {/* True magnification lens — zooms the actual nav icons through the bubble circle */}
             <motion.div
-              animate={{ opacity: isBubbleDragging ? 1 : 0 }}
-              transition={{ duration: 0.12 }}
               style={{
                 position: 'absolute',
                 left: lensLeft,
-                top: BUBBLE_R - (pillDims.h / 2) * LENS_SCALE,
+                top: lensTop,
                 width: pillDims.w || navPillRef.current?.offsetWidth || 300,
                 height: pillDims.h || 64,
-                transform: `scale(${LENS_SCALE})`,
+                scale: springLensScale,
                 transformOrigin: '0 0',
                 pointerEvents: 'none',
               }}
