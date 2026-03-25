@@ -449,7 +449,7 @@ useEffect(() => {
   // Stats for overview
   const stats = [
     { label: "Chats", tab: "chats" as DashboardTab, value: allChats.length, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
-    { label: "Images", tab: "images" as DashboardTab, value: totalImageCount ?? 0, loading: totalImageCount === null, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
+    { label: "Images", tab: "images" as DashboardTab, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
     { label: "Canvases", tab: "canvases" as DashboardTab, value: filteredCanvases.length, icon: Layers, color: "35 90% 60%", tw: "text-orange-400" },
     { label: "Memories", tab: "memories" as DashboardTab, value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
@@ -638,20 +638,18 @@ useEffect(() => {
                       <div className="p-3 font-mono">
                         <Icon className={cn("absolute bottom-1 right-1 h-12 w-12 opacity-[0.06]", tw)} />
                         <p className="text-[10px] text-muted-foreground/60 mb-0.5">const {label.toLowerCase()} =</p>
-                        {loading ? (
-                          <div className="h-6 w-12 rounded bg-muted/20 animate-pulse" />
-                        ) : (
-                          <p className={cn("text-2xl font-bold leading-none", tw)}>{value ?? 0}</p>
-                        )}
                         {isImages ? (
-                          <div className="mt-2">
+                          <div className="mt-1">
                             <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-[10px] text-primary font-medium hover:bg-primary/20 transition-colors">
                               View all images
                               <ArrowRight className="h-2.5 w-2.5" />
                             </div>
                           </div>
                         ) : (
-                          <Icon className={cn("h-3.5 w-3.5 mt-2 opacity-50", tw)} />
+                          <>
+                            <p className={cn("text-2xl font-bold leading-none", tw)}>{value ?? 0}</p>
+                            <Icon className={cn("h-3.5 w-3.5 mt-2 opacity-50", tw)} />
+                          </>
                         )}
                       </div>
                     </div>
