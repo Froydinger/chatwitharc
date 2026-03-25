@@ -31,7 +31,7 @@ export async function savePublishedSite(
     .single();
 
   if (error) throw new Error(error.message);
-  return data as PublishedSite;
+  return data as unknown as PublishedSite;
 }
 
 export async function updatePublishedSite(
