@@ -160,11 +160,12 @@ useEffect(() => {
   const [canvasPage, setCanvasPage] = useState(1);
   const [selectedCanvas, setSelectedCanvas] = useState<CanvasItem | null>(null);
   const [canvasDetailTab, setCanvasDetailTab] = useState<CanvasDetailTab>("canvas");
+  const imageFetchStartedRef = useRef(false);
   const { openWithContent } = useCanvasStore();
 
   // Jelly nav bubble
   const BUBBLE_R = 28;
-  const PILL_PAD = 8; // p-2 = 8px each side
+  const PILL_PAD = 4; // p-1 = 4px each side
   const navPillRef = useRef<HTMLDivElement>(null);
   const [isBubbleDragging, setIsBubbleDragging] = useState(false);
   const [bubbleHoverIdx, setBubbleHoverIdx] = useState(-1);
@@ -286,16 +287,13 @@ useEffect(() => {
     }
   };
 
-  // Load images eagerly on mount so they're ready regardless of which tab is active
+  // Kick off one eager image load on mount — use a ref so this never re-triggers
   useEffect(() => {
-    if (user && isLoaded && !dbImagesLoading) {
-      if (dbImages.length === 0) {
-        fetchMoreImages(true);
-      } else if (dbHasMoreSessions) {
-        fetchMoreImages();
-      }
+    if (user && isLoaded && !imageFetchStartedRef.current) {
+      imageFetchStartedRef.current = true;
+      fetchMoreImages(true);
     }
-  }, [user, isLoaded, dbImages.length, dbHasMoreSessions, dbImagesLoading]);
+  }, [user, isLoaded]);
 
   useEffect(() => {
     if (!user) return;
@@ -1103,7 +1101,7 @@ useEffect(() => {
       <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none" style={{ paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 20px)` }}>
         <div
           ref={setPillRef}
-          className="mx-[10px] flex items-center p-2 rounded-full pointer-events-auto relative"
+          className="mx-[10px] flex items-center p-1 rounded-full pointer-events-auto relative"
           style={{
             background: 'hsl(var(--background) / 0.85)',
             backdropFilter: 'blur(24px) saturate(120%)',
