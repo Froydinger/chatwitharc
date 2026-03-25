@@ -301,12 +301,56 @@ useEffect(() => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.rpc('count_user_images').then(({ data }) => {
-      if (typeof data === 'number') {
-        setTotalImageCount(data);
-        localStorage.setItem(`arc_image_count_${user.id}`, String(data));
-      }
+
+    const cachedChats = Number(localStorage.getItem(`arc_chat_count_${user.id}`));
+    const cachedMemories = Number(localStorage.getItem(`arc_memory_count_${user.id}`));
+    const cachedImages = Number(localStorage.getItem(`arc_image_count_${user.id}`));
+
+    setQuickCounts({
+      chats: Number.isNaN(cachedChats) ? null : cachedChats,
+      memories: Number.isNaN(cachedMemories) ? null : cachedMemories,
     });
+    if (!Number.isNaN(cachedImages)) {
+      setTotalImageCount(cachedImages);
+    }
+
+    (async () => {
+      try {
+        const [chatsRes, memoriesRes, imagesResWithArg] = await Promise.all([
+          supabase
+            .from('chat_sessions')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id),
+          supabase
+            .from('context_blocks')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id),
+          supabase.rpc('count_user_images', { target_user_id: user.id } as any),
+        ]);
+
+        const imageCountResult =
+          typeof imagesResWithArg.data === 'number'
+            ? imagesResWithArg
+            : await supabase.rpc('count_user_images');
+
+        if (typeof chatsRes.count === 'number') {
+          setQuickCounts(prev => ({ ...prev, chats: chatsRes.count ?? 0 }));
+          localStorage.setItem(`arc_chat_count_${user.id}`, String(chatsRes.count ?? 0));
+        }
+
+        if (typeof memoriesRes.count === 'number') {
+          setQuickCounts(prev => ({ ...prev, memories: memoriesRes.count ?? 0 }));
+          localStorage.setItem(`arc_memory_count_${user.id}`, String(memoriesRes.count ?? 0));
+        }
+
+        if (typeof imageCountResult.data === 'number') {
+          setTotalImageCount(imageCountResult.data);
+          localStorage.setItem(`arc_image_count_${user.id}`, String(imageCountResult.data));
+        }
+      } catch (error) {
+        console.error('Failed to load quick dashboard counts:', error);
+      }
+    })();
   }, [user]);
 
   // Reusable: snap bubble to active tab position (instant or animated)
