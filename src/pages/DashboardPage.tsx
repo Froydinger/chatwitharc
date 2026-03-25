@@ -1218,12 +1218,12 @@ useEffect(() => {
             <motion.div
               style={{
                 position: 'absolute',
-                left: useTransform(bubbleCX, (cx) => cx - (pillDims.w || 300) / 2),
-                top: BUBBLE_R - (pillDims.h || 64) / 2,
+                left: useTransform([bubbleCX, springLensScale], ([cx, scale]) => BUBBLE_R - (cx as number) * (scale as number)),
+                top: useTransform(springLensScale, (scale) => BUBBLE_R - (pillDims.h / 2) * (scale as number)),
                 width: pillDims.w || navPillRef.current?.offsetWidth || 300,
                 height: pillDims.h || 64,
                 scale: springLensScale,
-                transformOrigin: 'center',
+                transformOrigin: '0 0',
                 pointerEvents: 'none',
               }}
             >
