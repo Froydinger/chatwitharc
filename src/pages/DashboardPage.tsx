@@ -501,10 +501,10 @@ useEffect(() => {
 
   // Stats for overview
   const stats = [
-    { label: "Chats", tab: "chats" as DashboardTab, value: allChats.length, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
+    { label: "Chats", tab: "chats" as DashboardTab, value: allChats.length > 0 ? allChats.length : quickCounts.chats, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
     { label: "Images", tab: "images" as DashboardTab, value: totalImageCount, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
     { label: "Canvases", tab: "canvases" as DashboardTab, value: filteredCanvases.length, icon: Layers, color: "35 90% 60%", tw: "text-orange-400" },
-    { label: "Memories", tab: "memories" as DashboardTab, value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
+    { label: "Memories", tab: "memories" as DashboardTab, value: contextBlocks.length > 0 ? contextBlocks.length : quickCounts.memories, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
   const getIdxFromCX = (cx: number) => {
