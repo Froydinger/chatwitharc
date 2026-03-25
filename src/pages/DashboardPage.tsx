@@ -197,7 +197,6 @@ useEffect(() => {
   // Lens magnification scale - animates from 1 to LENS_SCALE smoothly
   const lensScale = useMotionValue(1);
   const springLensScale = useSpring(lensScale, { stiffness: 320, damping: 20, mass: 0.4 });
-  const lensTop = useTransform(springLensScale, scale => BUBBLE_R - (pillDims.h / 2) * (scale as number));
 
   // Callback ref — initializes bubble as soon as pill mounts
   const setPillRef = (el: HTMLDivElement | null) => {
@@ -1220,7 +1219,7 @@ useEffect(() => {
               style={{
                 position: 'absolute',
                 left: lensLeft,
-                top: lensTop,
+                top: BUBBLE_R - (pillDims.h / 2) * LENS_SCALE,
                 width: pillDims.w || navPillRef.current?.offsetWidth || 300,
                 height: pillDims.h || 64,
                 scale: springLensScale,
