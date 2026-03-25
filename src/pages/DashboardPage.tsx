@@ -642,9 +642,10 @@ useEffect(() => {
                         <p className="text-[10px] text-muted-foreground/60 mb-0.5">const {label.toLowerCase()} =</p>
                         {isImages ? (
                           <>
-                            <p className={cn("text-2xl font-bold leading-none", tw)}>{value ?? '—'}</p>
-                            <div className="mt-2">
+                            {value !== null && <p className={cn("text-2xl font-bold leading-none", tw)}>{value}</p>}
+                            <div className={value !== null ? "mt-2" : "mt-1"}>
                               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-[10px] text-primary font-medium hover:bg-primary/20 transition-colors">
+                                <Icon className="h-2.5 w-2.5" />
                                 View all images
                                 <ArrowRight className="h-2.5 w-2.5" />
                               </div>
@@ -653,7 +654,13 @@ useEffect(() => {
                         ) : (
                           <>
                             <p className={cn("text-2xl font-bold leading-none", tw)}>{value ?? 0}</p>
-                            <Icon className={cn("h-3.5 w-3.5 mt-2 opacity-50", tw)} />
+                            <div className="mt-2">
+                              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-[10px] text-primary font-medium hover:bg-primary/20 transition-colors">
+                                <Icon className="h-2.5 w-2.5" />
+                                View all
+                                <ArrowRight className="h-2.5 w-2.5" />
+                              </div>
+                            </div>
                           </>
                         )}
                       </div>
