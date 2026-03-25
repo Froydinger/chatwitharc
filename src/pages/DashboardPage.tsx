@@ -226,9 +226,11 @@ useEffect(() => {
     if (!authLoading && !user) navigate("/", { replace: true });
   }, [authLoading, user, navigate]);
 
+  // Wait for sessions to be loaded before hydrating so hydrateAllSessions
+  // doesn't see an empty chatSessions array and bail out early.
   useEffect(() => {
-    if (user) hydrateAllSessions();
-  }, [user, hydrateAllSessions]);
+    if (user && isLoaded) hydrateAllSessions();
+  }, [user, isLoaded, hydrateAllSessions]);
 
   // Optimized image fetching: only fetch sessions that actually contain images
   const fetchMoreImages = async (reset = false) => {
@@ -279,16 +281,16 @@ useEffect(() => {
     }
   };
 
-  // Load images when images tab becomes active; auto-fetch all batches in background
+  // Load images eagerly on mount so they're ready regardless of which tab is active
   useEffect(() => {
-    if (activeTab === 'images' && !dbImagesLoading) {
+    if (user && isLoaded && !dbImagesLoading) {
       if (dbImages.length === 0) {
         fetchMoreImages(true);
       } else if (dbHasMoreSessions) {
         fetchMoreImages();
       }
     }
-  }, [activeTab, dbImages.length, dbHasMoreSessions, dbImagesLoading]);
+  }, [user, isLoaded, dbImages.length, dbHasMoreSessions, dbImagesLoading]);
 
   useEffect(() => {
     if (!user) return;
