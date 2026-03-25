@@ -37,7 +37,8 @@ import { canPreview, getLanguageDisplay, getLanguageColor } from "@/utils/codeUt
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { DeploysPanel } from "@/components/DeploysPanel";
 
-type DashboardTab = "overview" | "chats" | "images" | "canvases" | "memories" | "deploys";
+type DashboardTab = "overview" | "chats" | "images" | "canvases" | "memories";
+type CanvasDetailTab = "canvas" | "deployed";
 
 interface GeneratedImage {
   url: string;
@@ -153,6 +154,7 @@ useEffect(() => {
   const [canvasSearch, setCanvasSearch] = useState("");
   const [canvasPage, setCanvasPage] = useState(1);
   const [selectedCanvas, setSelectedCanvas] = useState<CanvasItem | null>(null);
+  const [canvasDetailTab, setCanvasDetailTab] = useState<CanvasDetailTab>("canvas");
   const { openWithContent } = useCanvasStore();
 
   // Jelly nav bubble
@@ -439,7 +441,6 @@ useEffect(() => {
     { key: "chats", label: "Chats", icon: MessageSquare },
     { key: "images", label: "Images", icon: Image },
     { key: "canvases", label: "Canvases", icon: Layers },
-    { key: "deploys", label: "Deploys", icon: Globe },
     { key: "memories", label: "Memories", icon: Brain },
   ];
 
@@ -909,36 +910,58 @@ useEffect(() => {
                 {selectedCanvas ? (
                   <motion.div key="canvas-detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <button onClick={() => setSelectedCanvas(null)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                      <button onClick={() => { setSelectedCanvas(null); setCanvasDetailTab("canvas"); }} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
                         <ChevronLeft className="h-4 w-4" /> Back to canvases
                       </button>
                     </div>
                     <div className="rounded-2xl overflow-hidden border border-border/30 bg-muted/10">
-                      <div className="p-4 border-b border-border/20 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 min-w-0">
-                          {selectedCanvas.type === 'code' ? <FileCode className="h-4 w-4 text-primary shrink-0" /> : <PenLine className="h-4 w-4 text-primary shrink-0" />}
-                          <p className="font-semibold text-foreground truncate text-sm">{selectedCanvas.label}</p>
-                          {selectedCanvas.language && selectedCanvas.language !== 'text' && (
-                            <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", getLanguageColor(selectedCanvas.language))}>{getLanguageDisplay(selectedCanvas.language)}</span>
-                          )}
+                      <div className="p-4 border-b border-border/20 space-y-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {selectedCanvas.type === 'code' ? <FileCode className="h-4 w-4 text-primary shrink-0" /> : <PenLine className="h-4 w-4 text-primary shrink-0" />}
+                            <p className="font-semibold text-foreground truncate text-sm">{selectedCanvas.label}</p>
+                            {selectedCanvas.language && selectedCanvas.language !== 'text' && (
+                              <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", getLanguageColor(selectedCanvas.language))}>{getLanguageDisplay(selectedCanvas.language)}</span>
+                            )}
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            <Button variant="outline" size="sm" className="rounded-xl border-border/40 bg-muted/20" onClick={() => { loadSession(selectedCanvas.sessionId); navigate(`/chat/${selectedCanvas.sessionId}`); openWithContent(selectedCanvas.content, selectedCanvas.type, selectedCanvas.language || 'text'); }}>
+                              <Eye className="h-3.5 w-3.5 mr-1.5" /> Open
+                            </Button>
+                            <Button variant="outline" size="sm" className="rounded-xl border-border/40 bg-muted/20" onClick={() => { loadSession(selectedCanvas.sessionId); navigate(`/chat/${selectedCanvas.sessionId}`); }}>
+                              <MessageSquare className="h-3.5 w-3.5 mr-1.5" /> Chat
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex gap-2 shrink-0">
-                          <Button variant="outline" size="sm" className="rounded-xl border-border/40 bg-muted/20" onClick={() => { loadSession(selectedCanvas.sessionId); navigate(`/chat/${selectedCanvas.sessionId}`); openWithContent(selectedCanvas.content, selectedCanvas.type, selectedCanvas.language || 'text'); }}>
-                            <Eye className="h-3.5 w-3.5 mr-1.5" /> Open
-                          </Button>
-                          <Button variant="outline" size="sm" className="rounded-xl border-border/40 bg-muted/20" onClick={() => { loadSession(selectedCanvas.sessionId); navigate(`/chat/${selectedCanvas.sessionId}`); }}>
-                            <MessageSquare className="h-3.5 w-3.5 mr-1.5" /> Chat
-                          </Button>
+                        {/* Canvas detail tabs */}
+                        <div className="flex gap-1 -mx-4 px-4">
+                          <button onClick={() => setCanvasDetailTab("canvas")} className={cn("px-3 py-2 text-sm font-medium rounded-lg transition-colors", canvasDetailTab === "canvas" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground")}>
+                            Canvas
+                          </button>
+                          <button onClick={() => setCanvasDetailTab("deployed")} className={cn("px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5", canvasDetailTab === "deployed" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground")}>
+                            <Globe className="h-3.5 w-3.5" /> Live Sites
+                          </button>
                         </div>
                       </div>
-                      {selectedCanvas.type === 'code' && selectedCanvas.language && canPreview(selectedCanvas.language) ? (
-                        <div className="relative w-full" style={{ height: '420px' }}>
-                          <CodePreview code={selectedCanvas.content} language={selectedCanvas.language} />
+                      {/* Canvas view */}
+                      {canvasDetailTab === "canvas" && (
+                        <>
+                          {selectedCanvas.type === 'code' && selectedCanvas.language && canPreview(selectedCanvas.language) ? (
+                            <div className="relative w-full" style={{ height: '420px' }}>
+                              <CodePreview code={selectedCanvas.content} language={selectedCanvas.language} />
+                            </div>
+                          ) : (
+                            <pre className="p-4 text-xs font-mono text-foreground/80 overflow-auto max-h-[420px] whitespace-pre-wrap leading-relaxed">
+                              {selectedCanvas.content.slice(0, 3000)}{selectedCanvas.content.length > 3000 ? '\n…' : ''}
+                            </pre>
+                          )}
+                        </>
+                      )}
+                      {/* Deployed sites view */}
+                      {canvasDetailTab === "deployed" && (
+                        <div className="max-h-[420px] overflow-y-auto">
+                          <DeploysPanel />
                         </div>
-                      ) : (
-                        <pre className="p-4 text-xs font-mono text-foreground/80 overflow-auto max-h-[420px] whitespace-pre-wrap leading-relaxed">
-                          {selectedCanvas.content.slice(0, 3000)}{selectedCanvas.content.length > 3000 ? '\n…' : ''}
-                        </pre>
                       )}
                     </div>
                   </motion.div>
@@ -986,13 +1009,6 @@ useEffect(() => {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.div>
-          )}
-
-          {/* ====== DEPLOYS ====== */}
-          {activeTab === "deploys" && (
-            <motion.div key="deploys" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }}>
-              <DeploysPanel />
             </motion.div>
           )}
 
