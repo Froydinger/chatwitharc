@@ -390,16 +390,16 @@ useEffect(() => {
     const items: CanvasItem[] = [];
     chatSessions.forEach(s => {
       s.messages.forEach(m => {
-        if (m.type === 'code' || m.type === 'writing') {
+        if (m.type === 'code' || m.type === 'canvas') {
           items.push({
             id: m.id,
-            type: m.type,
+            type: m.type === 'canvas' ? 'writing' : 'code',
             content: typeof m.content === 'string' ? m.content : '',
-            language: m.language,
+            language: m.codeLanguage,
             sessionId: s.id,
             sessionTitle: s.title,
             timestamp: toDate(m.timestamp) || new Date(),
-            label: m.label || (m.type === 'code' ? 'Code Block' : 'Writing')
+            label: m.codeLabel || m.canvasLabel || (m.type === 'code' ? 'Code Block' : 'Writing')
           });
         }
       });
