@@ -197,9 +197,9 @@ useEffect(() => {
   // Lens magnification scale - animates from 1 to LENS_SCALE smoothly
   const lensScale = useMotionValue(1);
   const springLensScale = useSpring(lensScale, { stiffness: 320, damping: 20, mass: 0.4 });
-  // Lens positioning that scales with magnification
-  const lensLeftPos = useTransform([bubbleCX, springLensScale], ([cx, scale]) => BUBBLE_R - (cx as number) * (scale as number));
-  const lensTopPos = useTransform(springLensScale, (scale) => BUBBLE_R - (pillDims.h / 2) * (scale as number));
+  // Lens positioning that scales with magnification - keeps the point under bubbleCX centered
+  const lensLeftPos = useTransform([bubbleCX, springLensScale], ([cx, scale]) => (BUBBLE_R - (cx as number)) * (scale as number));
+  const lensTopPos = useTransform(springLensScale, (scale) => (BUBBLE_R - (pillDims.h / 2)) * (scale as number));
 
   // Callback ref — initializes bubble as soon as pill mounts
   const setPillRef = (el: HTMLDivElement | null) => {
@@ -1183,7 +1183,7 @@ useEffect(() => {
       <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none flex justify-center" style={{ paddingBottom: '20px' }}>
         <div
           ref={setPillRef}
-          className="flex items-center px-1 py-1.5 rounded-full pointer-events-auto relative sm:max-w-3xl md:max-w-4xl lg:max-w-5xl mx-[10px] sm:mx-4"
+          className="flex items-center px-1 py-1.5 rounded-full pointer-events-auto relative sm:max-w-4xl md:max-w-5xl lg:max-w-6xl mx-[10px] sm:mx-4"
           style={{
             background: 'hsl(var(--background) / 0.85)',
             backdropFilter: 'blur(24px) saturate(120%)',
