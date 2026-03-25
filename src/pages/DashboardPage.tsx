@@ -185,14 +185,11 @@ useEffect(() => {
   // Callback ref — initializes bubble as soon as pill mounts
   const setPillRef = (el: HTMLDivElement | null) => {
     (navPillRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-    if (el) {
-      setPillDims({ w: el.offsetWidth, h: el.offsetHeight });
-      if (bubbleCX.get() === -999) {
-        const contentW = el.offsetWidth - PILL_PAD * 2;
-        const tabW = contentW / tabs.length;
-        const idx = tabs.findIndex(t => t.key === activeTab);
-        bubbleCX.set(PILL_PAD + idx * tabW + tabW / 2);
-      }
+    if (el && bubbleCX.get() === -999) {
+      const contentW = el.offsetWidth - PILL_PAD * 2;
+      const tabW = contentW / tabs.length;
+      const idx = tabs.findIndex(t => t.key === activeTab);
+      bubbleCX.set(PILL_PAD + idx * tabW + tabW / 2);
     }
   };
 
