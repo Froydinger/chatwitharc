@@ -194,6 +194,7 @@ export const useArcStore = create<ArcState>()(
         }
 
         set({ isSyncing: true });
+        let currentUserId: string | null = null;
 
         try {
           const { data: { user } } = await supabase.auth.getUser();
@@ -202,21 +203,53 @@ export const useArcStore = create<ArcState>()(
             return;
           }
 
+          currentUserId = user.id;
           console.log('🔄 Starting metadata-first sync from Supabase for user:', user.id);
-          
-          // Use the new RPC to fetch only metadata (no messages payload)
-          const { data: sessionsMeta, error } = await supabase.rpc('list_chat_sessions_meta', {
+
+          let sessionsMeta: any[] = [];
+
+          // Primary path: metadata RPC (fastest)
+          const { data: rpcSessions, error: rpcError } = await supabase.rpc('list_chat_sessions_meta', {
             searching_user_id: user.id,
             max_sessions: 500
           });
 
-          if (error) {
-            console.error('❌ Sync error:', error);
-            set({ isOnline: false });
-            return;
+          if (rpcError) {
+            console.warn('⚠️ Metadata RPC failed, falling back to direct query:', rpcError.message);
+
+            // Fallback path: direct metadata query so UI is never stuck loading forever
+            const { data: fallbackRows, error: fallbackError } = await supabase
+              .from('chat_sessions')
+              .select('id, title, created_at, updated_at, canvas_content')
+              .eq('user_id', user.id)
+              .order('updated_at', { ascending: false })
+              .limit(500);
+
+            if (fallbackError) {
+              console.error('❌ Fallback sync error:', fallbackError);
+              set({
+                isOnline: false,
+                syncedUserId: user.id,
+                chatSessions: [],
+                messages: [],
+                allSessionsHydrated: true,
+              });
+              return;
+            }
+
+            sessionsMeta = (fallbackRows ?? []).map((row: any) => ({
+              id: row.id,
+              title: row.title,
+              created_at: row.created_at,
+              updated_at: row.updated_at,
+              canvas_content: row.canvas_content,
+              message_count: 0,
+            }));
+          } else {
+            sessionsMeta = rpcSessions ?? [];
           }
 
-          if (sessionsMeta && sessionsMeta.length > 0) {
+          if (sessionsMeta.length > 0) {
             const state = get();
 
             // Create lightweight sessions with empty messages arrays
@@ -235,7 +268,7 @@ export const useArcStore = create<ArcState>()(
 
             // If we have a current session, hydrate it immediately
             const currentSessionId = state.currentSessionId;
-            const currentSessionMeta = currentSessionId 
+            const currentSessionMeta = currentSessionId
               ? loadedSessions.find(s => s.id === currentSessionId)
               : null;
 
@@ -255,11 +288,22 @@ export const useArcStore = create<ArcState>()(
             }
           } else {
             console.log('📭 No sessions found in Supabase');
-            set({ syncedUserId: user.id });
+            set({
+              chatSessions: [],
+              messages: [],
+              isOnline: true,
+              lastSyncAt: new Date(),
+              syncedUserId: user.id,
+              allSessionsHydrated: true,
+            });
           }
         } catch (error) {
           console.error('❌ Failed to sync from Supabase:', error);
-          set({ isOnline: false });
+          set({
+            isOnline: false,
+            // Critical: unblock loading states even when sync fails
+            syncedUserId: currentUserId ?? get().syncedUserId,
+          });
         } finally {
           // CRITICAL: Always clear sync state to prevent stuck loading
           set({ isSyncing: false });
