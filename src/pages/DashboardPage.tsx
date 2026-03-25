@@ -448,9 +448,10 @@ useEffect(() => {
 
   // Stats for overview
   const stats = [
-    { label: "Chats", value: allChats.length, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
-    { label: "Images", value: totalImageCount ?? 0, loading: totalImageCount === null, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
-    { label: "Memories", value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
+    { label: "Chats", tab: "chats" as DashboardTab, value: allChats.length, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
+    { label: "Images", tab: "images" as DashboardTab, value: totalImageCount ?? 0, loading: totalImageCount === null, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
+    { label: "Canvases", tab: "canvases" as DashboardTab, value: filteredCanvases.length, icon: Layers, color: "35 90% 60%", tw: "text-orange-400" },
+    { label: "Memories", tab: "memories" as DashboardTab, value: contextBlocks.length, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
   const getIdxFromCX = (cx: number) => {
@@ -620,15 +621,15 @@ useEffect(() => {
             <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-6">
 
               {/* Stat cards — code-block style */}
-              <div className="grid grid-cols-3 gap-2">
-                {stats.map(({ label, icon: Icon, color, tw, value, loading }, i) => {
+              <div className="grid grid-cols-2 gap-2">
+                {stats.map(({ label, tab, icon: Icon, color, tw, value, loading }) => {
                   const isImages = label === "Images";
                   return (
                     <div
                       key={label}
                       className="relative overflow-hidden rounded-xl cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97] group"
                       style={{ border: `1px solid hsl(${color} / 0.25)`, background: `linear-gradient(160deg, hsl(${color} / 0.08) 0%, hsl(var(--background) / 0.9) 100%)` }}
-                      onClick={() => switchTab(tabs[i + 1]?.key || "overview")}
+                      onClick={() => switchTab(tab)}
                     >
                       <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b" style={{ borderColor: `hsl(${color} / 0.2)`, background: `hsl(${color} / 0.06)` }}>
                         <div className="h-1.5 w-1.5 rounded-full opacity-70" style={{ background: `hsl(${color})` }} />
@@ -636,23 +637,21 @@ useEffect(() => {
                       </div>
                       <div className="p-3 font-mono">
                         <Icon className={cn("absolute bottom-1 right-1 h-12 w-12 opacity-[0.06]", tw)} />
-                        {isImages ? (
-                          <>
-                            <p className="text-[10px] text-muted-foreground/60 mb-2">const images =</p>
-                            <div
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-sans font-semibold tracking-wide backdrop-blur-sm border transition-colors"
-                              style={{ borderColor: `hsl(${color} / 0.35)`, background: `hsl(${color} / 0.12)`, color: `hsl(${color})` }}
-                            >
-                              <Icon className="h-3 w-3" />
-                              All images
-                            </div>
-                          </>
+                        <p className="text-[10px] text-muted-foreground/60 mb-0.5">const {label.toLowerCase()} =</p>
+                        {loading ? (
+                          <div className="h-6 w-12 rounded bg-muted/20 animate-pulse" />
                         ) : (
-                          <>
-                            <p className="text-[10px] text-muted-foreground/60 mb-0.5">const {label.toLowerCase()} =</p>
-                            <p className={cn("text-2xl font-bold leading-none", tw)}>{value}</p>
-                            <Icon className={cn("h-3.5 w-3.5 mt-2 opacity-50", tw)} />
-                          </>
+                          <p className={cn("text-2xl font-bold leading-none", tw)}>{value ?? 0}</p>
+                        )}
+                        {isImages ? (
+                          <div className="mt-2">
+                            <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-[10px] text-primary font-medium hover:bg-primary/20 transition-colors">
+                              View all images
+                              <ArrowRight className="h-2.5 w-2.5" />
+                            </div>
+                          </div>
+                        ) : (
+                          <Icon className={cn("h-3.5 w-3.5 mt-2 opacity-50", tw)} />
                         )}
                       </div>
                     </div>
@@ -971,7 +970,7 @@ useEffect(() => {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input value={canvasSearch} onChange={e => setCanvasSearch(e.target.value)} placeholder="Search canvases…" className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
                     </div>
-                    {!allSessionsHydrated && isHydratingAll ? (
+                    {!allSessionsHydrated ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {[1,2,3,4].map(i => <div key={i} className="rounded-xl border border-border/30 bg-muted/20 overflow-hidden"><Skeleton className="h-32 w-full" /><div className="p-3"><Skeleton className="h-4 w-3/4 mb-1.5" /><Skeleton className="h-3 w-1/2" /></div></div>)}
                       </div>
