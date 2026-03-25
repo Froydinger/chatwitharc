@@ -27,7 +27,7 @@ export function DeploysPanel() {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setSites((data ?? []) as PublishedSite[]);
+      setSites((data ?? []) as unknown as PublishedSite[]);
     } catch (err) {
       toast.error('Failed to load sites');
     } finally {
