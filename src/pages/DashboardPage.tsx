@@ -154,6 +154,10 @@ useEffect(() => {
     }
     return null;
   });
+  const [quickCounts, setQuickCounts] = useState<{ chats: number | null; memories: number | null }>({
+    chats: null,
+    memories: null,
+  });
   const [appPage, setAppPage] = useState(1);
   const [memoryPage, setMemoryPage] = useState(1);
   const [canvasSearch, setCanvasSearch] = useState("");
