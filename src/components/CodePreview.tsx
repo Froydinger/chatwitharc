@@ -134,8 +134,8 @@ export function CodePreview({ code, language }: CodePreviewProps) {
   return (
     <div className="border-t border-border/40 h-full overflow-auto">
       <iframe
-        className="w-full min-h-[600px] h-full"
-        style={{ backgroundColor: isDark ? '#1e1e1e' : '#ffffff' }}
+        className="w-full h-full"
+        style={{ backgroundColor: isDark ? '#1e1e1e' : '#ffffff', minHeight: '300px' }}
         srcDoc={htmlContent}
         sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
         title="Code Preview"
