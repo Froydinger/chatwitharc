@@ -190,7 +190,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     setIsResettingPassword(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: 'https://askarc.chat/',
       });
       if (error) throw error;
       toast({ title: "Password reset sent", description: "Check your email" });

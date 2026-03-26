@@ -74,7 +74,7 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
         if (error) throw error;
         toast({ title: "Welcome back!", description: "Proceeding to checkout..." });
       } else {
-        const redirectUrl = `${window.location.origin}/`;
+        const redirectUrl = 'https://askarc.chat/';
         const { error } = await supabase.auth.signUp({
           email, password,
           options: { emailRedirectTo: redirectUrl },
