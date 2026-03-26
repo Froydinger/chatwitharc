@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Crown, MessageCircle, Mic, Image, Brain, Code, Globe, Sparkles, ArrowLeft, X } from "lucide-react";
 import { BackgroundGradients } from "@/components/BackgroundGradients";
@@ -29,13 +29,15 @@ export function PricingPage() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
   const pendingUpgrade = useRef(false);
+  const navigate = useNavigate();
 
-  // Auto-open checkout after user signs in from upgrade flow
+  // After sign-up/sign-in: redirect to chat and show upgrade modal
   useEffect(() => {
     if (user && pendingUpgrade.current) {
       pendingUpgrade.current = false;
       setShowAuth(false);
-      setShowCheckout(true);
+      navigate("/");
+      setTimeout(() => window.dispatchEvent(new Event('open-upgrade-modal')), 500);
     }
   }, [user]);
 
