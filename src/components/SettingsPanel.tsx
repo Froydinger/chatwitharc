@@ -306,7 +306,7 @@ export function SettingsPanel() {
     setIsResettingPassword(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: 'https://askarc.chat/',
       });
 
       if (error) throw error;
