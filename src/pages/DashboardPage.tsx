@@ -531,7 +531,7 @@ useEffect(() => {
   })();
 
   const tabs: { key: DashboardTab; label: string; icon: typeof MessageSquare }[] = [
-    { key: "canvases", label: "Canvases", icon: Layers },
+    { key: "canvases", label: "Canvas", icon: Layers },
     { key: "chats", label: "Chats", icon: MessageSquare },
     { key: "overview", label: "Dash", icon: LayoutDashboard },
     { key: "images", label: "Images", icon: Image },
