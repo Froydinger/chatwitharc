@@ -7,6 +7,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// All product/price IDs that grant Pro access
+const PRO_PRODUCT_IDS = [
+  "prod_UAtIOiu4df3Rso", // ArcAi Pro (current)
+  "prod_U4U5QGmibWU8wD", // ArcAi Pro (legacy)
+];
+const PRO_PRICE_IDS = [
+  "price_1TB5D3AB32948AKDJTYd74X4", // Win The Night "Pro Supporter"
+];
+
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
@@ -64,59 +73,72 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
-    // Check for active subscriptions first
+    // Fetch ALL active subscriptions (not limit 1)
     const activeSubscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
-      limit: 1,
+      limit: 100,
     });
 
-    // Also check for past_due subscriptions (payment failed but not yet canceled)
+    // Also check past_due subscriptions
     const pastDueSubscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "past_due",
-      limit: 1,
+      limit: 100,
     });
 
-    const hasActiveSub = activeSubscriptions.data.length > 0;
-    const hasPastDueSub = pastDueSubscriptions.data.length > 0;
-    const subscription = hasActiveSub 
-      ? activeSubscriptions.data[0] 
-      : hasPastDueSub 
-        ? pastDueSubscriptions.data[0] 
-        : null;
+    const allSubs = [...activeSubscriptions.data, ...pastDueSubscriptions.data];
+    logStep("Fetched subscriptions", { active: activeSubscriptions.data.length, pastDue: pastDueSubscriptions.data.length });
 
-    let productId = null;
-    let subscriptionEnd = null;
-    let paymentStatus: "ok" | "past_due" | "none" = "none";
+    // Find matching Pro subscription from any of our recognized products/prices
+    let matchedSub: typeof allSubs[0] | null = null;
+    let source: string | null = null;
 
-    if (subscription) {
-      try {
-        const periodEnd = subscription.current_period_end;
-        if (typeof periodEnd === 'number' && periodEnd > 0) {
-          subscriptionEnd = new Date(periodEnd * 1000).toISOString();
-        } else if (typeof periodEnd === 'string') {
-          subscriptionEnd = periodEnd;
-        }
-      } catch (e) {
-        logStep("Could not parse period end, skipping", { raw: subscription.current_period_end });
+    for (const sub of allSubs) {
+      const priceId = sub.items.data[0]?.price?.id;
+      const productId = sub.items.data[0]?.price?.product;
+
+      if (typeof productId === 'string' && PRO_PRODUCT_IDS.includes(productId)) {
+        matchedSub = sub;
+        source = productId === "prod_UAtIOiu4df3Rso" ? "arcai_pro" : "arcai_pro_legacy";
+        break;
       }
-
-      productId = subscription.items.data[0]?.price?.product || null;
-
-      if (hasActiveSub) {
-        paymentStatus = "ok";
-        logStep("Active subscription found", { subscriptionEnd, productId });
-      } else {
-        paymentStatus = "past_due";
-        logStep("Past due subscription found", { subscriptionEnd, productId });
+      if (typeof priceId === 'string' && PRO_PRICE_IDS.includes(priceId)) {
+        matchedSub = sub;
+        source = "wtn_pro_supporter";
+        break;
       }
-    } else {
-      logStep("No active or past_due subscription");
     }
 
+    if (!matchedSub) {
+      logStep("No matching Pro subscription found");
+      return new Response(JSON.stringify({ subscribed: false }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    const isActive = matchedSub.status === "active";
+    const paymentStatus: "ok" | "past_due" = isActive ? "ok" : "past_due";
+    const productId = matchedSub.items.data[0]?.price?.product || null;
+
+    let subscriptionEnd: string | null = null;
+    try {
+      const periodEnd = matchedSub.current_period_end;
+      if (typeof periodEnd === 'number' && periodEnd > 0) {
+        subscriptionEnd = new Date(periodEnd * 1000).toISOString();
+      } else if (typeof periodEnd === 'string') {
+        subscriptionEnd = periodEnd;
+      }
+    } catch (e) {
+      logStep("Could not parse period end", { raw: matchedSub.current_period_end });
+    }
+
+    logStep("Matched subscription", { source, productId, paymentStatus, subscriptionEnd });
+
     return new Response(JSON.stringify({
-      subscribed: hasActiveSub || hasPastDueSub, // Keep access during past_due (grace period)
+      subscribed: true,
+      source,
       product_id: productId,
       subscription_end: subscriptionEnd,
       payment_status: paymentStatus,

@@ -200,6 +200,10 @@ export function PricingPage() {
                   <p className="text-sm text-muted-foreground mt-2">
                     Unlimited everything. Includes Pro access to all current and future Win The Night™ Apps.
                   </p>
+                  <p className="text-xs text-primary/80 mt-1.5 flex items-center gap-1">
+                    <Crown className="w-3 h-3" />
+                    Get listed as a Pro Subscriber on winthenight.org/support
+                  </p>
                 </div>
 
                 <div className="h-px bg-border/50" />
@@ -211,6 +215,7 @@ export function PricingPage() {
                     { text: "Switch between AI models", bold: true },
                     { text: "ArcNotes™ Pro (Substack Note App)", bold: true },
                     { text: "Arcana™ Notes Pro (ArcAi Enhanced Writing App)", bold: true },
+                    { text: "Listed as Pro Subscriber on Win The Night™", bold: true },
                     { text: "Everything in Free", bold: false },
                     { text: "Priority support", bold: false },
                   ].map(({ text, bold }) => (
