@@ -75,7 +75,7 @@ export function ContextBlocksPanel({ isOpen, onClose }: ContextBlocksPanelProps)
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
             <div className="flex items-center gap-2">
               <Brain className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold text-foreground">Context</h3>
+              <h3 className="text-sm font-semibold text-foreground">Arc's Brain</h3>
               <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full">
                 {blocks.length}
               </span>
