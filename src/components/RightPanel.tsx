@@ -123,7 +123,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                       "h-9 px-3 rounded-lg text-xs font-medium transition-all bg-muted/50 text-foreground hover:bg-muted hover:text-primary"
                     )}
                   >
-                    <Quote className="h-3.5 w-3.5 mr-1.5" /> Quote
+                    <Quote className="h-3.5 w-3.5 mr-1.5" /> Daily Quote
                   </Button>
                   <Button
                     variant="ghost"
