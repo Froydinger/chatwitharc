@@ -576,9 +576,7 @@ useEffect(() => {
     const trackStart = PILL_PAD + NAV_EDGE_INSET;
     const trackW = Math.max(0, contentW - NAV_EDGE_INSET * 2);
     const dx = e.clientX - bubbleDragStartRef.current.pointerX;
-    const minCX = trackStart + BUBBLE_R;
-    const maxCX = Math.max(minCX, trackStart + trackW - BUBBLE_R);
-    const newCX = Math.max(minCX, Math.min(maxCX, bubbleDragStartRef.current.startCX + dx));
+    const newCX = bubbleDragStartRef.current.startCX + dx;
     bubbleCX.set(newCX);
     setBubbleHoverIdx(getIdxFromCX(newCX));
     // Velocity-based jelly deformation
