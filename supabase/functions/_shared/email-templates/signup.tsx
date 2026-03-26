@@ -10,6 +10,7 @@ import {
   Heading,
   Html,
   Img,
+  Link,
   Preview,
   Section,
   Text,
@@ -31,48 +32,44 @@ export const SignupEmail = ({
 }: SignupEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Welcome aboard ArcAI! ✨ Confirm your account to get started</Preview>
+    <Preview>Welcome to ArcAI — confirm your email to get started</Preview>
     <Body style={main}>
-      <Container style={outerContainer}>
-        <Section style={card}>
-          <Section style={logoSection}>
-            <Img
-              src="https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/email-assets/arc-logo-ui.png"
-              width="56"
-              height="56"
-              alt="ArcAI"
-              style={logo}
-            />
-          </Section>
+      <Container style={container}>
+        <Section style={header}>
+          <Img
+            src="https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/email-assets/arc-logo-ui.png"
+            width="48"
+            height="48"
+            alt="ArcAI"
+            style={logo}
+          />
+        </Section>
 
-          <Heading style={h1}>Welcome aboard! ✨</Heading>
-
-          <Text style={text}>
-            Thanks for joining ArcAI — your AI-powered assistant is ready.
-            Just confirm your email to get started.
+        <Section style={content}>
+          <Heading style={h1}>Welcome to ArcAI ✨</Heading>
+          <Text style={paragraph}>
+            Thanks for signing up — your AI-powered assistant is ready. Confirm your email to activate your account.
           </Text>
 
-          <Section style={buttonContainer}>
-            <Button style={primaryButton} href={confirmationUrl}>
+          <Section style={btnWrap}>
+            <Button style={btn} href={confirmationUrl}>
               Confirm My Account
             </Button>
           </Section>
-
-          <Hr style={divider} />
-
-          <Text style={footerNote}>
-            If the button doesn't work, copy and paste this link:
-          </Text>
-          <Text style={linkText}>{confirmationUrl}</Text>
         </Section>
 
-        <Section style={footerSection}>
+        <Hr style={hr} />
+
+        <Section style={footer}>
           <Text style={footerText}>
-            If you didn't create an account, you can safely ignore this email.
+            If you didn't create an account, ignore this email.
           </Text>
-          <Text style={copyright}>
-            © 2026 ArcAI by Win The Night Productions
+          <Text style={footerText}>
+            <Link href={confirmationUrl} style={footerLink}>
+              Or click here if the button doesn't work
+            </Link>
           </Text>
+          <Text style={copy}>© 2026 ArcAI by Win The Night Productions</Text>
         </Section>
       </Container>
     </Body>
@@ -81,70 +78,70 @@ export const SignupEmail = ({
 
 export default SignupEmail
 
-const colors = {
-  body: '#ffffff',
-  surface: '#1a1a2e',
-  primary: '#0080f0',
-  primaryGlow: '#2e9beb',
-  textLight: '#f0f0f5',
-  textSecondary: '#a8a8b3',
-  textMuted: '#71717a',
-  border: '#2e2e42',
-}
-
+/* ── Styles ── */
 const main = {
-  backgroundColor: colors.body,
+  backgroundColor: '#f6f6f6',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 }
 
-const outerContainer = {
+const container = {
   margin: '0 auto',
-  padding: '40px 20px',
-  maxWidth: '600px',
+  padding: '40px 0',
+  maxWidth: '520px',
 }
 
-const card = {
-  backgroundColor: colors.surface,
-  borderRadius: '16px',
-  padding: '40px 32px',
+const header = {
   textAlign: 'center' as const,
+  paddingBottom: '24px',
 }
 
-const logoSection = { marginBottom: '24px', textAlign: 'center' as const }
 const logo = { margin: '0 auto', borderRadius: '12px' }
 
-const h1 = {
-  color: colors.textLight,
-  fontSize: '26px',
-  fontWeight: '600' as const,
-  margin: '0 0 16px',
+const content = {
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  padding: '40px 32px',
+  textAlign: 'center' as const,
+  border: '1px solid #e5e5e5',
 }
 
-const text = {
-  color: colors.textSecondary,
+const h1 = {
+  color: '#111111',
+  fontSize: '24px',
+  fontWeight: '700' as const,
+  margin: '0 0 16px',
+  letterSpacing: '-0.3px',
+}
+
+const paragraph = {
+  color: '#555555',
   fontSize: '15px',
-  lineHeight: '24px',
+  lineHeight: '26px',
   margin: '0 0 28px',
 }
 
-const buttonContainer = { margin: '0 0 28px', textAlign: 'center' as const }
+const btnWrap = { textAlign: 'center' as const }
 
-const primaryButton = {
-  background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryGlow} 100%)`,
-  borderRadius: '12px',
+const btn = {
+  backgroundColor: '#0080f0',
+  borderRadius: '8px',
   color: '#ffffff',
-  fontSize: '16px',
+  fontSize: '15px',
   fontWeight: '600' as const,
   textDecoration: 'none',
   textAlign: 'center' as const,
   display: 'inline-block',
-  padding: '14px 40px',
+  padding: '12px 32px',
   border: 'none',
 }
 
-const divider = { borderColor: colors.border, margin: '0 0 20px' }
-const footerNote = { color: colors.textMuted, fontSize: '12px', margin: '0 0 8px' }
-const linkText = { color: colors.primary, fontSize: '11px', wordBreak: 'break-all' as const, margin: '0' }
-const footerSection = { paddingTop: '24px', textAlign: 'center' as const }
-const footerText = { color: colors.textMuted, fontSize: '13px', margin: '0 0 8px' }
-const copyright = { color: '#999999', fontSize: '12px', margin: '0' }
+const hr = { borderColor: '#eeeeee', margin: '0' }
+
+const footer = {
+  padding: '24px 32px',
+  textAlign: 'center' as const,
+}
+
+const footerText = { color: '#999999', fontSize: '12px', lineHeight: '20px', margin: '0 0 4px' }
+const footerLink = { color: '#0080f0', textDecoration: 'underline', fontSize: '12px' }
+const copy = { color: '#bbbbbb', fontSize: '11px', margin: '12px 0 0' }
