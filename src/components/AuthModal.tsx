@@ -16,6 +16,7 @@ interface AuthModalProps {
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [showEmailForm, setShowEmailForm] = useState(false);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -46,8 +47,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           options: { emailRedirectTo: redirectUrl },
         });
         if (error) throw error;
-        toast({ title: "Welcome to ArcAI!", description: "Your account has been created" });
-        onClose();
+        // Don't close modal — show email confirmation state
+        setShowEmailConfirmation(true);
       }
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "An error occurred", variant: "destructive" });
