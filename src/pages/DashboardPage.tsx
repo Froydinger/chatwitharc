@@ -535,7 +535,7 @@ useEffect(() => {
     { key: "chats", label: "Chats", icon: MessageSquare },
     { key: "overview", label: "Dash", icon: LayoutDashboard },
     { key: "images", label: "Images", icon: Image },
-    { key: "memories", label: "Memories", icon: Brain },
+    { key: "memories", label: "Brain", icon: Brain },
   ];
 
   const currentImage = viewingImageIndex !== null ? filteredImages[viewingImageIndex] : null;
