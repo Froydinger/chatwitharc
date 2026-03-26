@@ -1276,7 +1276,10 @@ useEffect(() => {
                 const tabW = trackW / tabs.length;
                 const iconCenterX = trackStart + i * tabW + tabW / 2;
                 const bCX = bubbleCX.get();
-                isHiddenByBubble = isBubbleDragging && Math.abs(bCX - iconCenterX) < BUBBLE_R;
+                // Always hide when dragging; at rest, hide only the active tab icon
+                isHiddenByBubble = isBubbleDragging
+                  ? Math.abs(bCX - iconCenterX) < BUBBLE_R
+                  : isActive;
               }
               return (
                 <button
