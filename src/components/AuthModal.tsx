@@ -123,6 +123,44 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               </motion.button>
 
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="space-y-6">
+                {showEmailConfirmation ? (
+                  /* Email Confirmation Screen */
+                  <div className="text-center py-4 space-y-5">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", duration: 0.5 }}
+                      className="flex justify-center"
+                    >
+                      <div className="w-20 h-20 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+                        <Mail className="w-10 h-10 text-primary" />
+                      </div>
+                    </motion.div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white mb-2">Check your email</h2>
+                      <p className="text-white/60 text-sm leading-relaxed">
+                        We sent a confirmation link to<br />
+                        <span className="text-white font-medium">{email}</span>
+                      </p>
+                    </div>
+                    <p className="text-white/40 text-xs">
+                      Click the link in your email to activate your account, then come back here to sign in.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setShowEmailConfirmation(false);
+                        setIsLogin(true);
+                        setEmail("");
+                        setPassword("");
+                        onClose();
+                      }}
+                      className="w-full py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium transition-colors"
+                    >
+                      Got it
+                    </button>
+                  </div>
+                ) : (
+                <>
                 {/* Logo */}
                 <div className="text-center">
                   <motion.div
