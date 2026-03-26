@@ -170,6 +170,7 @@ useEffect(() => {
   // Jelly nav bubble
   const BUBBLE_R = 28;
   const PILL_PAD = 8; // px-2 = 8px each side
+  const NAV_EDGE_INSET = 18; // extra inset so outer icons don't hug the bubble at edges
   const navPillRef = useRef<HTMLDivElement>(null);
   const [isBubbleDragging, setIsBubbleDragging] = useState(false);
   const [bubbleHoverIdx, setBubbleHoverIdx] = useState(-1);
@@ -206,9 +207,11 @@ useEffect(() => {
     (navPillRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
     if (el && bubbleCX.get() === -999) {
       const contentW = el.offsetWidth - PILL_PAD * 2;
-      const tabW = contentW / tabs.length;
+      const trackStart = PILL_PAD + NAV_EDGE_INSET;
+      const trackW = Math.max(0, contentW - NAV_EDGE_INSET * 2);
+      const tabW = trackW / tabs.length;
       const idx = tabs.findIndex(t => t.key === activeTab);
-      bubbleCX.set(PILL_PAD + idx * tabW + tabW / 2);
+      bubbleCX.set(trackStart + idx * tabW + tabW / 2);
     }
   };
 
@@ -246,8 +249,10 @@ useEffect(() => {
     // Move bubble to new tab position
     if (navPillRef.current) {
       const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
-      const tabW = contentW / tabs.length;
-      animate(bubbleCX, PILL_PAD + tabIndex * tabW + tabW / 2, { type: 'spring', stiffness: 420, damping: 20, mass: 0.7 });
+      const trackStart = PILL_PAD + NAV_EDGE_INSET;
+      const trackW = Math.max(0, contentW - NAV_EDGE_INSET * 2);
+      const tabW = trackW / tabs.length;
+      animate(bubbleCX, trackStart + tabIndex * tabW + tabW / 2, { type: 'spring', stiffness: 420, damping: 20, mass: 0.7 });
     }
 
     // Drop animation (delayed to happen after movement)
@@ -391,9 +396,11 @@ useEffect(() => {
   const snapBubble = (instant = false) => {
     if (!navPillRef.current) return;
     const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
-    const tabW = contentW / tabs.length;
+    const trackStart = PILL_PAD + NAV_EDGE_INSET;
+    const trackW = Math.max(0, contentW - NAV_EDGE_INSET * 2);
+    const tabW = trackW / tabs.length;
     const idx = tabs.findIndex(t => t.key === activeTab);
-    const cx = PILL_PAD + idx * tabW + tabW / 2;
+    const cx = trackStart + idx * tabW + tabW / 2;
     if (instant || bubbleCX.get() === -999) {
       bubbleCX.set(cx);
     } else {
@@ -544,8 +551,10 @@ useEffect(() => {
   const getIdxFromCX = (cx: number) => {
     if (!navPillRef.current) return 0;
     const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
-    const tabW = contentW / tabs.length;
-    return Math.min(tabs.length - 1, Math.max(0, Math.floor((cx - PILL_PAD) / tabW)));
+    const trackStart = PILL_PAD + NAV_EDGE_INSET;
+    const trackW = Math.max(0, contentW - NAV_EDGE_INSET * 2);
+    const tabW = trackW / tabs.length;
+    return Math.min(tabs.length - 1, Math.max(0, Math.floor((cx - trackStart) / tabW)));
   };
 
   const onBubblePtrDown = (e: React.PointerEvent) => {
@@ -564,8 +573,12 @@ useEffect(() => {
   const onBubblePtrMove = (e: React.PointerEvent) => {
     if (!isBubbleDragging || !navPillRef.current) return;
     const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
+    const trackStart = PILL_PAD + NAV_EDGE_INSET;
+    const trackW = Math.max(0, contentW - NAV_EDGE_INSET * 2);
     const dx = e.clientX - bubbleDragStartRef.current.pointerX;
-    const newCX = Math.max(PILL_PAD + BUBBLE_R, Math.min(PILL_PAD + contentW - BUBBLE_R, bubbleDragStartRef.current.startCX + dx));
+    const minCX = trackStart + BUBBLE_R;
+    const maxCX = Math.max(minCX, trackStart + trackW - BUBBLE_R);
+    const newCX = Math.max(minCX, Math.min(maxCX, bubbleDragStartRef.current.startCX + dx));
     bubbleCX.set(newCX);
     setBubbleHoverIdx(getIdxFromCX(newCX));
     // Velocity-based jelly deformation
@@ -583,11 +596,13 @@ useEffect(() => {
     setIsBubbleDragging(false);
     setBubbleHoverIdx(-1);
     const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
-    const tabW = contentW / tabs.length;
-    const cx = bubbleCX.get() - PILL_PAD;
+    const trackStart = PILL_PAD + NAV_EDGE_INSET;
+    const trackW = Math.max(0, contentW - NAV_EDGE_INSET * 2);
+    const tabW = trackW / tabs.length;
+    const cx = bubbleCX.get() - trackStart;
     const idx = Math.min(tabs.length - 1, Math.max(0, Math.floor(cx / tabW)));
     const target = tabs[idx]?.key || activeTab;
-    animate(bubbleCX, PILL_PAD + idx * tabW + tabW / 2, { type: 'spring', stiffness: 420, damping: 20, mass: 0.7 });
+    animate(bubbleCX, trackStart + idx * tabW + tabW / 2, { type: 'spring', stiffness: 420, damping: 20, mass: 0.7 });
     // Scale back down on putdown + landing jiggle
     rawBase.set(1.0);
     animate(rawSX, [1.15, 0.86, 1.08, 0.96, 1], { duration: 0.5 });
@@ -1232,7 +1247,7 @@ useEffect(() => {
                 pointerEvents: 'none',
               }}
             >
-              <div style={{ display: 'flex', width: '100%', height: '100%', alignItems: 'center' }}>
+              <div style={{ display: 'flex', width: '100%', height: '100%', alignItems: 'center', paddingLeft: PILL_PAD + NAV_EDGE_INSET, paddingRight: PILL_PAD + NAV_EDGE_INSET }}>
                 {tabs.map(({ key, icon: Icon }, i) => (
                   <div key={key} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 12, paddingRight: 12 }}>
                     <Icon
@@ -1251,26 +1266,28 @@ useEffect(() => {
             </motion.div>
           </motion.div>
 
-          {tabs.map(({ key, label, icon: Icon }, i) => {
-            const isActive = activeTab === key;
-            const isHiddenByBubble = isBubbleDragging && bubbleHoverIdx === i;
-            return (
-              <button
-                key={key}
-                onClick={() => switchTab(key)}
-                className={cn(
-                  "flex items-center justify-center px-3 py-3 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation",
-                  isActive ? "text-primary" : "text-muted-foreground/60 hover:text-muted-foreground"
-                )}
-                style={{ zIndex: 20, opacity: isHiddenByBubble ? 0 : 1, transitionProperty: 'opacity', transitionDuration: '0.1s' }}
-              >
-                <Icon className={cn(
-                  "h-5 w-5 transition-all duration-300",
-                  isActive && "drop-shadow-[0_0_12px_hsl(var(--primary)/0.6)]"
-                )} />
-              </button>
-            );
-          })}
+          <div className="flex flex-1 items-center" style={{ paddingLeft: NAV_EDGE_INSET, paddingRight: NAV_EDGE_INSET }}>
+            {tabs.map(({ key, label, icon: Icon }, i) => {
+              const isActive = activeTab === key;
+              const isHiddenByBubble = isBubbleDragging && bubbleHoverIdx === i;
+              return (
+                <button
+                  key={key}
+                  onClick={() => switchTab(key)}
+                  className={cn(
+                    "flex items-center justify-center px-3 py-3 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation",
+                    isActive ? "text-primary" : "text-muted-foreground/60 hover:text-muted-foreground"
+                  )}
+                  style={{ zIndex: 20, opacity: isHiddenByBubble ? 0 : 1, transitionProperty: 'opacity', transitionDuration: '0.1s' }}
+                >
+                  <Icon className={cn(
+                    "h-5 w-5 transition-all duration-300",
+                    isActive && "drop-shadow-[0_0_12px_hsl(var(--primary)/0.6)]"
+                  )} />
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
