@@ -41,7 +41,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         toast({ title: "Welcome back!", description: "You've been signed in successfully" });
         onClose();
       } else {
-        const redirectUrl = `${window.location.origin}/`;
+        const redirectUrl = 'https://askarc.chat/';
         const { error } = await supabase.auth.signUp({
           email, password,
           options: { emailRedirectTo: redirectUrl },
