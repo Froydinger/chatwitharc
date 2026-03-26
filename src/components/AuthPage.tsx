@@ -43,7 +43,7 @@ export function AuthPage() {
     setLoading(true);
     try {
       if (mode === 'magic-link') {
-        const redirectUrl = `${window.location.origin}/`;
+        const redirectUrl = 'https://askarc.chat/';
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: { emailRedirectTo: redirectUrl },
@@ -55,7 +55,7 @@ export function AuthPage() {
         });
         setEmail("");
       } else if (mode === 'forgot-password') {
-        const redirectUrl = `${window.location.origin}/`;
+        const redirectUrl = 'https://askarc.chat/';
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: redirectUrl,
         });
@@ -71,7 +71,7 @@ export function AuthPage() {
         if (error) throw error;
         toast({ title: "Welcome back!", description: "You've been signed in successfully" });
       } else {
-        const redirectUrl = `${window.location.origin}/`;
+        const redirectUrl = 'https://askarc.chat/';
         const { error, data } = await supabase.auth.signUp({
           email,
           password,
