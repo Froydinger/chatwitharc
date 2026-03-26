@@ -1196,7 +1196,7 @@ useEffect(() => {
       <div className="fixed bottom-0 left-0 right-0 sm:right-auto z-50 pointer-events-none flex justify-center sm:justify-start" style={{ paddingBottom: '20px' }}>
         <div
           ref={setPillRef}
-          className="flex items-center px-2 gap-1 py-3 rounded-full pointer-events-auto relative mx-5 sm:mx-8 sm:w-[420px] md:w-[480px]"
+          className="flex items-center px-2 gap-1 py-3 rounded-full pointer-events-auto relative mx-5 sm:mx-8 w-[calc(100%-40px)] sm:w-[420px] md:w-[480px]"
           style={{
             background: 'hsl(var(--background) / 0.85)',
             backdropFilter: 'blur(24px) saturate(120%)',
