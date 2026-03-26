@@ -169,7 +169,7 @@ useEffect(() => {
 
   // Jelly nav bubble
   const BUBBLE_R = 28;
-  const PILL_PAD = 20; // px-5 = 20px each side — extra room for outer icons
+  const PILL_PAD = 8; // px-2 = 8px each side
   const navPillRef = useRef<HTMLDivElement>(null);
   const [isBubbleDragging, setIsBubbleDragging] = useState(false);
   const [bubbleHoverIdx, setBubbleHoverIdx] = useState(-1);
