@@ -356,6 +356,60 @@ export type Database = {
         }
         Relationships: []
       }
+      published_sites: {
+        Row: {
+          code: string | null
+          code_language: string | null
+          created_at: string
+          favicon_data: string | null
+          favicon_svg: string | null
+          id: string
+          netlify_site_id: string
+          og_description: string | null
+          og_image_url: string | null
+          og_title: string | null
+          subdomain: string
+          title: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          code?: string | null
+          code_language?: string | null
+          created_at?: string
+          favicon_data?: string | null
+          favicon_svg?: string | null
+          id?: string
+          netlify_site_id: string
+          og_description?: string | null
+          og_image_url?: string | null
+          og_title?: string | null
+          subdomain: string
+          title?: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          code?: string | null
+          code_language?: string | null
+          created_at?: string
+          favicon_data?: string | null
+          favicon_svg?: string | null
+          id?: string
+          netlify_site_id?: string
+          og_description?: string | null
+          og_image_url?: string | null
+          og_title?: string | null
+          subdomain?: string
+          title?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       saved_links: {
         Row: {
           created_at: string

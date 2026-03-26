@@ -323,6 +323,9 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
                     <p className="text-sm text-muted-foreground">
                       Unlock the full ArcAi experience with Pro
                     </p>
+                    <p className="text-xs text-cyan-400/80 mt-1">
+                      + Get listed on winthenight.org/support as a Pro Subscriber
+                    </p>
                   </div>
 
                   <ul className="space-y-3">
