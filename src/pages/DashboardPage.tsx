@@ -169,7 +169,7 @@ useEffect(() => {
 
   // Jelly nav bubble
   const BUBBLE_R = 28;
-  const PILL_PAD = 20; // px-5 = 20px each side — extra room for outer icons
+  const PILL_PAD = 8; // px-2 = 8px each side
   const navPillRef = useRef<HTMLDivElement>(null);
   const [isBubbleDragging, setIsBubbleDragging] = useState(false);
   const [bubbleHoverIdx, setBubbleHoverIdx] = useState(-1);
@@ -1183,7 +1183,7 @@ useEffect(() => {
       <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none flex justify-center" style={{ paddingBottom: '20px' }}>
         <div
           ref={setPillRef}
-          className="flex items-center px-5 py-1.5 rounded-full pointer-events-auto relative sm:max-w-3xl md:max-w-4xl lg:max-w-5xl mx-[10px] sm:mx-4"
+          className="flex items-center px-2 gap-1 py-1.5 rounded-full pointer-events-auto relative sm:max-w-3xl md:max-w-4xl lg:max-w-5xl mx-5 sm:mx-8"
           style={{
             background: 'hsl(var(--background) / 0.85)',
             backdropFilter: 'blur(24px) saturate(120%)',
