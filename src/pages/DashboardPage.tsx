@@ -1276,7 +1276,7 @@ useEffect(() => {
                 const tabW = trackW / tabs.length;
                 const iconCenterX = trackStart + i * tabW + tabW / 2;
                 const bCX = bubbleCX.get();
-                isHiddenByBubble = Math.abs(bCX - iconCenterX) < BUBBLE_R;
+                isHiddenByBubble = isBubbleDragging && Math.abs(bCX - iconCenterX) < BUBBLE_R;
               }
               return (
                 <button
