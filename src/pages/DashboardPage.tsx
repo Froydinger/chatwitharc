@@ -170,7 +170,7 @@ useEffect(() => {
   // Jelly nav bubble
   const BUBBLE_R = 28;
   const PILL_PAD = 8; // px-2 = 8px each side
-  const NAV_EDGE_INSET = 38; // extra inset so outer icons don't hug the bubble at edges
+  const NAV_EDGE_INSET = 48; // extra inset so outer icons don't hug the bubble at edges
   const navPillRef = useRef<HTMLDivElement>(null);
   const [isBubbleDragging, setIsBubbleDragging] = useState(false);
   const [bubbleHoverIdx, setBubbleHoverIdx] = useState(-1);
