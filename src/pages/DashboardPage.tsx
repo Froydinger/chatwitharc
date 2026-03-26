@@ -1219,7 +1219,7 @@ useEffect(() => {
               cursor: isBubbleDragging ? 'grabbing' : 'grab',
               overflow: 'hidden',
               border: '2px solid hsl(var(--primary))',
-              background: 'transparent',
+              background: isBubbleDragging ? 'hsl(var(--background) / 0.9)' : 'transparent',
               boxShadow: isBubbleDragging
                 ? '0 0 12px 3px hsl(var(--primary) / 0.7), 0 0 32px 6px hsl(var(--primary) / 0.35), inset 0 0 16px 2px hsl(var(--primary) / 0.15)'
                 : '0 0 8px 2px hsl(var(--primary) / 0.55), 0 0 22px 4px hsl(var(--primary) / 0.25), inset 0 0 10px 1px hsl(var(--primary) / 0.08)',
@@ -1262,7 +1262,57 @@ useEffect(() => {
                 ))}
               </div>
             </motion.div>
+
+            {/* Desktop: label over icon inside bubble when dragging */}
+            {!isMobile && isBubbleDragging && bubbleHoverIdx >= 0 && bubbleHoverIdx < tabs.length && (
+              <div
+                className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                style={{ zIndex: 40 }}
+              >
+                <span
+                  className="text-[10px] font-semibold tracking-wide uppercase"
+                  style={{
+                    color: 'hsl(var(--primary))',
+                    textShadow: '0 0 8px hsl(var(--primary) / 0.5)',
+                  }}
+                >
+                  {tabs[bubbleHoverIdx].label}
+                </span>
+              </div>
+            )}
           </motion.div>
+
+          {/* Mobile: tooltip above bubble when dragging */}
+          {isMobile && isBubbleDragging && bubbleHoverIdx >= 0 && bubbleHoverIdx < tabs.length && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              className="absolute pointer-events-none"
+              style={{
+                left: bubbleLeft,
+                width: BUBBLE_R * 2,
+                bottom: '100%',
+                marginBottom: 8,
+                display: 'flex',
+                justifyContent: 'center',
+                zIndex: 50,
+              }}
+            >
+              <span
+                className="px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap"
+                style={{
+                  background: 'hsl(var(--background) / 0.9)',
+                  border: '1px solid hsl(var(--border) / 0.5)',
+                  color: 'hsl(var(--primary))',
+                  backdropFilter: 'blur(12px)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                }}
+              >
+                {tabs[bubbleHoverIdx].label}
+              </span>
+            </motion.div>
+          )}
 
           <div className="flex flex-1 items-center" style={{ paddingLeft: NAV_EDGE_INSET, paddingRight: NAV_EDGE_INSET }}>
             {tabs.map(({ key, label, icon: Icon }, i) => {
