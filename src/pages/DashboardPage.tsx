@@ -533,8 +533,8 @@ useEffect(() => {
   const tabs: { key: DashboardTab; label: string; icon: typeof MessageSquare }[] = [
     { key: "overview", label: "Overview", icon: LayoutDashboard },
     { key: "chats", label: "Chats", icon: MessageSquare },
-    { key: "images", label: "Images", icon: Image },
     { key: "canvases", label: "Canvases", icon: Layers },
+    { key: "images", label: "Images", icon: Image },
     { key: "memories", label: "Memories", icon: Brain },
   ];
 
@@ -1267,19 +1267,16 @@ useEffect(() => {
           <div className="flex flex-1 items-center" style={{ paddingLeft: NAV_EDGE_INSET, paddingRight: NAV_EDGE_INSET }}>
             {tabs.map(({ key, label, icon: Icon }, i) => {
               const isActive = activeTab === key;
-              // Hide any icon the bubble overlaps (within BUBBLE_R distance)
+              // Hide icons that the bubble overlaps — only while dragging
               let isHiddenByBubble = false;
-              if (navPillRef.current) {
+              if (isBubbleDragging && navPillRef.current) {
                 const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
                 const trackStart = PILL_PAD + NAV_EDGE_INSET;
                 const trackW = Math.max(0, contentW - NAV_EDGE_INSET * 2);
                 const tabW = trackW / tabs.length;
                 const iconCenterX = trackStart + i * tabW + tabW / 2;
                 const bCX = bubbleCX.get();
-                // Always hide when dragging; at rest, hide only the active tab icon
-                isHiddenByBubble = isBubbleDragging
-                  ? Math.abs(bCX - iconCenterX) < BUBBLE_R
-                  : isActive;
+                isHiddenByBubble = Math.abs(bCX - iconCenterX) < BUBBLE_R;
               }
               return (
                 <button
