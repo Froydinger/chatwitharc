@@ -480,10 +480,12 @@ useEffect(() => {
     chatSessions.forEach(s => {
       s.messages.forEach(m => {
         if (m.type === 'code' || m.type === 'canvas') {
+          // For writing canvases, use canvasContent; for code, use content
+          const canvasContent = m.type === 'canvas' ? (m.canvasContent || '') : (typeof m.content === 'string' ? m.content : '');
           items.push({
             id: m.id,
             type: m.type === 'canvas' ? 'writing' : 'code',
-            content: typeof m.content === 'string' ? m.content : '',
+            content: canvasContent,
             language: m.codeLanguage,
             sessionId: s.id,
             sessionTitle: s.title,
