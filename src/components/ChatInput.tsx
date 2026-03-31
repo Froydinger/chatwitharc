@@ -825,7 +825,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     if (!messageToSend.trim() && selectedImages.length === 0 && selectedDocuments.length === 0) return;
 
     // If Arc is currently thinking, queue the message instead of blocking
-    if (isLoading) {
+    // Check both React state AND direct store state to avoid stale closure races
+    const storeIsLoading = useArcStore.getState().isLoading;
+    const storeIsGenerating = useArcStore.getState().isGeneratingImage;
+    if (isLoading || storeIsLoading || storeIsGenerating) {
       if (messageToSend.trim()) {
         useMessageQueueStore.getState().addToQueue(messageToSend.trim());
         if (!messageOverride) setInputValue("");
@@ -1243,31 +1246,51 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         const cleanedMessage = extractPrefixPrompt(userMessage);
 
         // Build the message to send to AI
+        // Helper: truncate large content to stay within the 15k server message limit
+        // Keeps the first and last portions so the AI sees structure + ending
+        const MAX_CONTEXT_CHARS = 12000; // leave room for instructions + user message
+        const truncateForContext = (content: string, budget: number = MAX_CONTEXT_CHARS): string => {
+          if (content.length <= budget) return content;
+          const keepEach = Math.floor(budget / 2) - 50;
+          const lines = content.split('\n');
+          const totalLines = lines.length;
+          return content.slice(0, keepEach)
+            + `\n\n/* ... [${totalLines} lines total, middle truncated to fit message limit] ... */\n\n`
+            + content.slice(-keepEach);
+        };
+
         let messageToSend: string;
 
         if (shouldRouteToCodeCanvas && freshCanvasState.content) {
           // Code canvas is open and user wants to modify existing code
           const existingCode = freshCanvasState.content;
           const language = freshCanvasState.codeLanguage || 'html';
-          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CODE: The user has existing ${language} code. Modify it based on their request using the update_code tool. You MUST output the COMPLETE, FULL modified code - do NOT truncate, summarize, or cut off mid-way. Write EVERY line.
+          const userReq = cleanedMessage || userMessage;
+          // Budget: 15000 total - instructions (~500) - user request - safety margin
+          const codeBudget = Math.max(4000, 14000 - userReq.length - 500);
+          const safeCode = truncateForContext(existingCode, codeBudget);
+          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CODE: The user has existing ${language} code (${existingCode.split('\n').length} lines). Modify it based on their request using the update_code tool. You MUST output the COMPLETE, FULL modified code - do NOT truncate, summarize, or cut off mid-way. Write EVERY line.
 
 EXISTING CODE TO MODIFY:
 \`\`\`${language}
-${existingCode}
+${safeCode}
 \`\`\`
 
-USER'S REQUEST: ${cleanedMessage || userMessage}
+USER'S REQUEST: ${userReq}
 
 MANDATORY: Output the COMPLETE updated code. Never stop mid-sentence or mid-function. Include ALL code from start to finish.`;
         } else if (shouldRouteToCanvas && freshCanvasState.isOpen && freshCanvasState.content) {
           // Writing canvas is open with existing content - include it for modification
           const existingContent = freshCanvasState.content;
+          const userReq = cleanedMessage || userMessage;
+          const canvasBudget = Math.max(4000, 14000 - userReq.length - 500);
+          const safeContent = truncateForContext(existingContent, canvasBudget);
           messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: The user has existing writing in the canvas. Modify it based on their request using the update_canvas tool. You MUST output the COMPLETE, FULL modified markdown content - do NOT truncate, summarize, or cut off mid-way. Write EVERY paragraph.
 
 EXISTING CANVAS CONTENT TO MODIFY:
-${existingContent}
+${safeContent}
 
-USER'S REQUEST: ${cleanedMessage || userMessage}
+USER'S REQUEST: ${userReq}
 
 MANDATORY: Output the COMPLETE updated content. Never stop mid-sentence or mid-paragraph. Include ALL content from start to finish.`;
         } else if (shouldRouteToCanvas) {
@@ -1280,13 +1303,16 @@ MANDATORY: Output the COMPLETE updated content. Never stop mid-sentence or mid-p
           // Only provide code context for messages that might be related to the code
           const existingCode = freshCanvasState.content;
           const language = freshCanvasState.codeLanguage || 'html';
-          messageToSend = `${cleanedMessage || userMessage}
+          const userReq = cleanedMessage || userMessage;
+          const contextBudget = Math.max(4000, 14000 - userReq.length - 500);
+          const safeCode = truncateForContext(existingCode, contextBudget);
+          messageToSend = `${userReq}
 
-[CONTEXT: The user has a Code Canvas open with the following ${language} code. ONLY modify this code if the user is explicitly asking for changes. For casual conversation like "great!", "looks good", questions about how something works, etc. - just respond conversationally WITHOUT updating the code.]
+[CONTEXT: The user has a Code Canvas open with ${language} code (${existingCode.split('\n').length} lines). ONLY modify this code if the user is explicitly asking for changes. For casual conversation like "great!", "looks good", questions about how something works, etc. - just respond conversationally WITHOUT updating the code.]
 
 Current code (${existingCode.split('\n').length} lines):
 \`\`\`${language}
-${existingCode}
+${safeCode}
 \`\`\``;
         } else {
           // Conversational message or no canvas - just send as-is
@@ -1520,14 +1546,23 @@ ${existingCode}
   const prevLoadingRef = useRef(isLoading);
   useEffect(() => {
     if (prevLoadingRef.current && !isLoading) {
-      // Loading just finished - check queue
-      const { queue, isPaused, popNext } = useMessageQueueStore.getState();
-      if (queue.length > 0 && !isPaused) {
-        const next = popNext();
-        if (next) {
-          setTimeout(() => handleSend(next.content), 500);
+      // Loading just finished - check queue after a short delay
+      // Use a longer delay to ensure all state has settled
+      const timer = setTimeout(() => {
+        // Double-check loading state from the store directly (not stale closure)
+        const storeLoading = useArcStore.getState().isLoading;
+        const storeGenerating = useArcStore.getState().isGeneratingImage;
+        if (storeLoading || storeGenerating) return; // Still busy, don't send
+
+        const { queue, isPaused, popNext } = useMessageQueueStore.getState();
+        if (queue.length > 0 && !isPaused) {
+          const next = popNext();
+          if (next) {
+            handleSend(next.content);
+          }
         }
-      }
+      }, 800);
+      return () => clearTimeout(timer);
     }
     prevLoadingRef.current = isLoading;
   }, [isLoading]);
