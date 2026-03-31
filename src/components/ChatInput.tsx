@@ -24,7 +24,6 @@ import { useSearchStore } from "@/store/useSearchStore";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { cn } from "@/lib/utils";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
-import { MessageQueue } from "@/components/MessageQueue";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -319,6 +318,7 @@ type Props = {
 export interface ChatInputRef {
   handleImageUploadFiles: (files: File[]) => void;
   focusInput: () => void;
+  sendMessage: (content: string) => void;
 }
 
 export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ onImagesChange, rightPanelOpen = false, inline = false }, ref) {
@@ -407,13 +407,16 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cursorPositionRef = useRef<number | null>(null);
 
-  // Expose handleImageUploadFiles and focusInput via ref
+  // Expose handleImageUploadFiles, focusInput, and sendMessage via ref
   useImperativeHandle(ref, () => ({
     handleImageUploadFiles: (files: File[]) => {
       handleUploadFiles(files);
     },
     focusInput: () => {
       textareaRef.current?.focus();
+    },
+    sendMessage: (content: string) => {
+      handleSend(content);
     },
   }), [toast]);
 
@@ -1679,15 +1682,6 @@ ${safeCode}
         </div>,
         portalRoot,
       )}
-
-      {/* Message Queue - inline above input so it stays within the chat column in split-screen */}
-      <div className="w-full">
-        <MessageQueue
-          onSendMessage={(content) => handleSend(content)}
-          isLoading={isLoading}
-          isDashboard={isDashboard}
-        />
-      </div>
 
       {/* Input Row */}
       <div ref={inputBarRef} className="chat-input-halo flex items-center gap-3 rounded-full">

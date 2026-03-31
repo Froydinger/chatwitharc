@@ -33,6 +33,8 @@ import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 import { VoiceModeController } from "@/components/VoiceModeController";
 import { ContextBlocksPanel } from "@/components/ContextBlocksPanel";
 import { useSubscription } from "@/hooks/useSubscription";
+import { MessageQueue } from "@/components/MessageQueue";
+import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 
 /** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
@@ -751,6 +753,12 @@ export function MobileChatApp() {
                   transition={{ duration: 0.2 }}
                   className="fixed bottom-6 left-16 right-4 z-[75]"
                 >
+                  <div className="mb-2 px-1">
+                    <MessageQueue
+                      onSendMessage={(content) => chatInputRef.current?.sendMessage(content)}
+                      isLoading={isLoading}
+                    />
+                  </div>
                   <div className="glass-dock">
                     <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false} />
                   </div>
@@ -901,6 +909,13 @@ export function MobileChatApp() {
             )}
           >
             <div className="max-w-4xl mx-auto">
+              {/* Message Queue - rendered above the glass dock so it's outside the pill */}
+              <div className="pointer-events-auto mb-2 px-1">
+                <MessageQueue
+                  onSendMessage={(content) => chatInputRef.current?.sendMessage(content)}
+                  isLoading={isLoading}
+                />
+              </div>
               <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
                 <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
               </div>
