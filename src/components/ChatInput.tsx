@@ -616,7 +616,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
   /* ---------- Handle edited message resend ---------- */
   const handleEditedMessage = useCallback(async (newContent: string, editedMessageId: string) => {
-    if (!newContent.trim() || isLoading) return;
+    if (!newContent.trim()) return;
+    // If loading, queue the edited message instead of blocking
+    if (isLoading) {
+      useMessageQueueStore.getState().addToQueue(newContent.trim());
+      return;
+    }
 
     setLoading(true);
     let didSearchChats = false;
@@ -817,7 +822,16 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
   const handleSend = async (messageOverride?: string) => {
     const messageToSend = messageOverride ?? inputValue;
-    if ((!messageToSend.trim() && selectedImages.length === 0 && selectedDocuments.length === 0) || isLoading) return;
+    if (!messageToSend.trim() && selectedImages.length === 0 && selectedDocuments.length === 0) return;
+
+    // If Arc is currently thinking, queue the message instead of blocking
+    if (isLoading) {
+      if (messageToSend.trim()) {
+        useMessageQueueStore.getState().addToQueue(messageToSend.trim());
+        if (!messageOverride) setInputValue("");
+      }
+      return;
+    }
 
     // Guest mode: check if limit reached
     if (isGuestMode) {
@@ -1522,12 +1536,13 @@ ${existingCode}
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (e.ctrlKey || e.metaKey) {
-        // Ctrl/Cmd+Enter = add to queue
+        // Ctrl/Cmd+Enter = always explicitly add to queue
         if (inputValue.trim()) {
           useMessageQueueStore.getState().addToQueue(inputValue.trim());
           setInputValue("");
         }
       } else {
+        // Enter = send (or auto-queue if Arc is thinking)
         handleSend();
       }
     }
@@ -1762,8 +1777,8 @@ ${existingCode}
               handleInputFocus();
             }}
             onBlur={() => setIsActive(false)}
-            placeholder={selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe your image..." : shouldShowCodeMode ? "Describe what to code..." : shouldShowBuildMode ? "Describe your app..." : showCanvasIndicator ? (isCanvasAutoMode ? "Describe changes to your writing..." : "What should I write...") : shouldShowSearchMode ? "Search the web..." : "Ask"}
-            disabled={isLoading}
+            placeholder={isLoading ? "Type to queue next message..." : selectedImages.length > 0 ? "Add something..." : shouldShowBanana ? "Describe your image..." : shouldShowCodeMode ? "Describe what to code..." : shouldShowBuildMode ? "Describe your app..." : showCanvasIndicator ? (isCanvasAutoMode ? "Describe changes to your writing..." : "What should I write...") : shouldShowSearchMode ? "Search the web..." : "Ask"}
+            disabled={false}
             className="!border-0 !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 px-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
           />
@@ -1932,23 +1947,41 @@ ${existingCode}
           <Mic className="h-5 w-5" />
         </button>
 
-        {/* Send / Stop Button */}
+        {/* Send / Stop / Queue Buttons */}
         {isLoading ? (
-          <button
-            onClick={() => {
-              cancelCurrentRequest();
-              toast({ title: "Stopped", description: "Request cancelled" });
-            }}
-            className={[
-              "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-              accentColor === "noir"
-                ? "!bg-white/80 text-black ring-2 ring-white/60 !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
-                : "!bg-primary/80 text-primary-foreground ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]",
-            ].join(" ")}
-            aria-label="Stop"
-          >
-            <Square className="h-4 w-4 fill-current" />
-          </button>
+          <>
+            {/* While loading: show queue send button if there's input, plus stop button */}
+            {inputValue.trim() && (
+              <button
+                onClick={() => handleSend()}
+                className={[
+                  "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
+                  accentColor === "noir"
+                    ? "!bg-white/60 text-black ring-1 ring-white/40 hover:!bg-white/80 !shadow-[0_0_8px_rgba(255,255,255,0.2)]"
+                    : "!bg-primary/50 text-primary-foreground ring-1 ring-primary/60 hover:!bg-primary/70 !shadow-[0_0_8px_rgba(var(--primary-rgb),0.2)]",
+                ].join(" ")}
+                aria-label="Queue message"
+                title="Queue message (sent when Arc finishes)"
+              >
+                <ListPlus className="h-4.5 w-4.5" />
+              </button>
+            )}
+            <button
+              onClick={() => {
+                cancelCurrentRequest();
+                toast({ title: "Stopped", description: "Request cancelled" });
+              }}
+              className={[
+                "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
+                accentColor === "noir"
+                  ? "!bg-white/80 text-black ring-2 ring-white/60 !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
+                  : "!bg-primary/80 text-primary-foreground ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]",
+              ].join(" ")}
+              aria-label="Stop"
+            >
+              <Square className="h-4 w-4 fill-current" />
+            </button>
+          </>
         ) : (
           <>
             {/* Queue button - only show when there's input */}
