@@ -1585,7 +1585,7 @@ ${safeCode}
 
   /* ---------------- Render ---------------- */
   return (
-    <div className="space-y-4 relative">
+    <div className="space-y-2 relative">
       {/* Drag overlay — portaled to body so it escapes any transformed parent */}
       {portalRoot && createPortal(
         <AnimatePresence>
@@ -1680,20 +1680,14 @@ ${safeCode}
         portalRoot,
       )}
 
-      {/* Message Queue - portaled above dock for non-inline mode */}
-      {!inline && portalRoot && createPortal(
-        <div
-          className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[34]"
-          style={{ bottom: "calc(92px + env(safe-area-inset-bottom, 0px))" }}
-        >
-          <MessageQueue
-            onSendMessage={(content) => handleSend(content)}
-            isLoading={isLoading}
-            isDashboard={isDashboard}
-          />
-        </div>,
-        portalRoot,
-      )}
+      {/* Message Queue - inline above input so it stays within the chat column in split-screen */}
+      <div className="w-full">
+        <MessageQueue
+          onSendMessage={(content) => handleSend(content)}
+          isLoading={isLoading}
+          isDashboard={isDashboard}
+        />
+      </div>
 
       {/* Input Row */}
       <div ref={inputBarRef} className="chat-input-halo flex items-center gap-3 rounded-full">
