@@ -9,6 +9,7 @@ interface ThinkingIndicatorProps {
   accessingMemory?: boolean;
   searchingChats?: boolean;
   searchingWeb?: boolean;
+  fullSize?: boolean;
 }
 
 const ARC_PUNS = [
@@ -24,7 +25,7 @@ const ARC_PUNS = [
   "Arc and rolling...",
 ];
 
-export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemory, searchingChats, searchingWeb }: ThinkingIndicatorProps) {
+export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemory, searchingChats, searchingWeb, fullSize }: ThinkingIndicatorProps) {
   const showThinking = isLoading || isGeneratingImage || accessingMemory || searchingChats || searchingWeb;
   const [currentPunIndex, setCurrentPunIndex] = useState(0);
   const [showMusicButton, setShowMusicButton] = useState(false);
@@ -117,9 +118,92 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
     if (accessingMemory) return "Accessing memories...";
     return ARC_PUNS[currentPunIndex];
   };
-  
+
+  // Full-size loader for image generation
+  if (fullSize && isGeneratingImage) {
+    return (
+      <motion.div
+        className="w-full bg-muted/30 backdrop-blur-sm rounded-xl border border-border/40 overflow-hidden flex items-center justify-center"
+        style={{ aspectRatio: '16 / 9' }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative flex items-center justify-center" style={{ willChange: 'transform' }}>
+            <motion.div
+              className="h-20 w-20"
+              style={{
+                backfaceVisibility: 'hidden',
+                transform: 'translateZ(0)',
+                willChange: 'transform'
+              }}
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: 1,
+                scale: [1, 1.15, 1]
+              }}
+              transition={{
+                opacity: { duration: 0.4, ease: "easeOut" },
+                scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
+              }}
+            >
+              <ThemedLogo className="h-full w-full" alt="Generating" />
+            </motion.div>
+            <motion.div
+              className="absolute inset-0 rounded-full bg-primary/30"
+              style={{
+                filter: 'blur(24px)',
+                backfaceVisibility: 'hidden',
+                transform: 'translateZ(0)',
+                willChange: 'transform, opacity'
+              }}
+              initial={{ opacity: 0 }}
+              animate={{
+                scale: [0.8, 1.2, 0.8],
+                opacity: [0.3, 0.6, 0.3]
+              }}
+              transition={{
+                opacity: { duration: 0.4, ease: "easeOut" },
+                scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
+              }}
+            />
+            <motion.div
+              className="absolute -top-2 -right-2"
+              style={{
+                backfaceVisibility: 'hidden',
+                transform: 'translateZ(0)',
+                willChange: 'transform, opacity'
+              }}
+              animate={{
+                scale: [0, 1, 0],
+                opacity: [0, 1, 0]
+              }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <Sparkles className="h-5 w-5 text-primary" />
+            </motion.div>
+          </div>
+          <motion.span
+            className="text-lg font-medium text-foreground/80"
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {getMessage()}
+          </motion.span>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
-    <motion.div 
+    <motion.div
       className="flex flex-col items-start gap-2"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}

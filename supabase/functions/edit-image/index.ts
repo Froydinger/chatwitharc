@@ -52,32 +52,32 @@ function classifyError(status: number, rawText: string): { errorType: string; er
 function buildEditPrompt(userPrompt: string, imageCount: number): string {
   const lowerPrompt = userPrompt.toLowerCase();
   let finalPrompt = '';
-  
+
   if (imageCount > 1) {
     finalPrompt += "Combine or merge the provided images based on the instruction. ";
   }
-  
-  const isPortrait = lowerPrompt.includes('same person') || 
-                    lowerPrompt.includes('my face') || 
-                    lowerPrompt.includes('selfie') || 
-                    lowerPrompt.includes('headshot') || 
-                    lowerPrompt.includes('portrait') || 
+
+  const isPortrait = lowerPrompt.includes('same person') ||
+                    lowerPrompt.includes('my face') ||
+                    lowerPrompt.includes('selfie') ||
+                    lowerPrompt.includes('headshot') ||
+                    lowerPrompt.includes('portrait') ||
                     lowerPrompt.includes('look like me') ||
                     lowerPrompt.includes('me,') ||
                     lowerPrompt.includes('me ');
-  
+
   if (isPortrait) {
     finalPrompt += "Keep the same person and preserve facial identity. Maintain the face exactly as in the source image.\n\n";
   }
-  
+
   const keepMatches = userPrompt.match(/keep\s+(the\s+)?([^,.!?]+)/gi);
   if (keepMatches && keepMatches.length > 0) {
-    const preserveItems = keepMatches.map(match => 
+    const preserveItems = keepMatches.map(match =>
       match.replace(/keep\s+(the\s+)?/i, '').trim()
     ).join(', ');
     finalPrompt += `Preserve these elements: ${preserveItems}.\n\n`;
   }
-  
+
   finalPrompt += userPrompt;
   return finalPrompt;
 }
@@ -128,11 +128,8 @@ serve(async (req) => {
       );
     }
 
-    const selectedModel = 'google/gemini-3.1-flash-image-preview';
-    console.log('Using image model:', selectedModel);
-
     const imageArray = baseImageUrls || (baseImageUrl ? [baseImageUrl] : []);
-    
+
     if (imageArray.length === 0) {
       return new Response(
         JSON.stringify({ error: 'At least one base image URL is required for editing', errorType: 'invalid_request', success: false }),
@@ -162,36 +159,115 @@ serve(async (req) => {
       });
     }
 
-    console.log('Editing/combining images with prompt:', prompt);
+    console.log('Queuing image edit/combine with prompt:', prompt);
     console.log('Number of images:', imageArray.length);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: settingsData } = await supabase
-      .from('admin_settings')
-      .select('value')
-      .eq('key', 'image_restrictions')
-      .maybeSingle();
+    // Create a job record in the database
+    const { data: jobData, error: jobError } = await supabase
+      .from('image_generation_jobs')
+      .insert({
+        user_id: user.id,
+        job_type: 'edit',
+        prompt,
+        base_image_urls: imageArray,
+        aspect_ratio: aspectRatio || '16:9',
+        preferred_model: imageModel,
+        status: 'pending'
+      })
+      .select('id')
+      .single();
 
-    const imageRestrictions = settingsData?.value || '';
-    const editPrompt = buildEditPrompt(prompt, imageArray.length);
+    if (jobError || !jobData) {
+      console.error('Failed to create edit job:', jobError);
+      return new Response(JSON.stringify({
+        error: 'Failed to queue image editing',
+        errorType: 'queue_error',
+        success: false
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
-    const finalAspectRatio = aspectRatio || '16:9';
+    console.log('Image edit job created:', jobData.id);
+    return new Response(
+      JSON.stringify({
+        jobId: jobData.id,
+        status: 'pending',
+        success: true,
+        message: 'Image edit queued. You can close this tab and check back later.'
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: unknown) {
+    console.error('Error in edit-image function:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({
+      error: message,
+      errorType: 'provider_error',
+      success: false
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+});
+
+// Worker function to process pending edit jobs
+export async function processImageEditJobs() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+
+  if (!lovableApiKey) {
+    console.error('LOVABLE_API_KEY not configured');
+    return;
+  }
+
+  // Get next pending edit job
+  const { data: jobs, error: fetchError } = await supabase
+    .from('image_generation_jobs')
+    .select('*')
+    .eq('job_type', 'edit')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+    .limit(1);
+
+  if (fetchError) {
+    console.error('Error fetching pending edit jobs:', fetchError);
+    return;
+  }
+
+  if (!jobs || jobs.length === 0) {
+    return;
+  }
+
+  const job = jobs[0];
+  console.log('Processing edit job:', job.id);
+
+  try {
+    // Mark as processing
+    await supabase
+      .from('image_generation_jobs')
+      .update({ status: 'processing', last_attempt_at: new Date().toISOString() })
+      .eq('id', job.id);
+
+    const selectedModel = 'google/gemini-3.1-flash-image-preview';
+    const editPrompt = buildEditPrompt(job.prompt, job.base_image_urls?.length || 0);
+    const finalAspectRatio = job.aspect_ratio || '16:9';
     const aspectPrompt = `Output the image in ${finalAspectRatio} aspect ratio. ${editPrompt}`;
 
-    const finalEditPrompt = imageRestrictions
-      ? `${aspectPrompt}\n\nIMPORTANT RESTRICTIONS: ${imageRestrictions}`
-      : aspectPrompt;
-
-    console.log('Edit/combine prompt with restrictions:', finalEditPrompt);
-
     const contentArray: any[] = [
-      { type: 'text', text: finalEditPrompt }
+      { type: 'text', text: aspectPrompt }
     ];
-    
-    imageArray.forEach((url: string) => {
+
+    (job.base_image_urls || []).forEach((url: string) => {
       contentArray.push({ type: 'image_url', image_url: { url } });
     });
 
@@ -201,7 +277,6 @@ serve(async (req) => {
       modalities: ['image', 'text']
     });
 
-    // AbortController with 55-second timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 55000);
 
@@ -219,23 +294,25 @@ serve(async (req) => {
     } catch (fetchErr: any) {
       clearTimeout(timeoutId);
       if (fetchErr.name === 'AbortError') {
-        return new Response(JSON.stringify({
-          error: 'Image editing timed out. Try a simpler prompt or try again.',
-          errorType: 'timeout',
-          debugDetail: 'Request aborted after 55s timeout',
-          success: false
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        const { errorType, errorMessage } = classifyError(408, 'Request timeout');
+        await supabase
+          .from('image_generation_jobs')
+          .update({
+            status: 'failed',
+            error_message: errorMessage,
+            error_type: errorType,
+            attempts: (job.attempts || 0) + 1
+          })
+          .eq('id', job.id);
+        return;
       }
       throw fetchErr;
     }
     clearTimeout(timeoutId);
 
-    // Retry once on 429 after a short delay
+    // Retry once on 429 after 3s
     if (response.status === 429) {
-      console.log('Rate limited (429), retrying after 3s...');
+      console.log('Rate limited, retrying after 3s...');
       await new Promise(resolve => setTimeout(resolve, 3000));
       const retryController = new AbortController();
       const retryTimeoutId = setTimeout(() => retryController.abort(), 55000);
@@ -252,15 +329,17 @@ serve(async (req) => {
       } catch (retryErr: any) {
         clearTimeout(retryTimeoutId);
         if (retryErr.name === 'AbortError') {
-          return new Response(JSON.stringify({
-            error: 'Image editing timed out. Try a simpler prompt or try again.',
-            errorType: 'timeout',
-            debugDetail: 'Retry aborted after 55s timeout',
-            success: false
-          }), {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+          const { errorType, errorMessage } = classifyError(408, 'Retry timeout');
+          await supabase
+            .from('image_generation_jobs')
+            .update({
+              status: 'failed',
+              error_message: errorMessage,
+              error_type: errorType,
+              attempts: (job.attempts || 0) + 1
+            })
+            .eq('id', job.id);
+          return;
         }
         throw retryErr;
       }
@@ -269,80 +348,83 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Lovable AI error:', response.status, errorData);
+      const { errorType, errorMessage } = classifyError(response.status, errorData);
 
-      const { errorType, errorMessage, debugDetail } = classifyError(response.status, errorData);
-
-      return new Response(JSON.stringify({
-        error: errorMessage,
-        errorType,
-        debugDetail,
-        success: false
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      await supabase
+        .from('image_generation_jobs')
+        .update({
+          status: 'failed',
+          error_message: errorMessage,
+          error_type: errorType,
+          attempts: (job.attempts || 0) + 1
+        })
+        .eq('id', job.id);
+      return;
     }
 
     let data: any;
     try {
       const rawText = await response.text();
-      console.log('Image editing raw response length:', rawText.length);
       if (!rawText || rawText.trim() === '') {
-        return new Response(JSON.stringify({
-          error: 'The image model returned an empty response. Please try again.',
-          errorType: 'empty_response',
-          debugDetail: 'Response body was empty despite 200 status',
-          success: false
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        await supabase
+          .from('image_generation_jobs')
+          .update({
+            status: 'failed',
+            error_message: 'Empty response from model',
+            error_type: 'empty_response',
+            attempts: (job.attempts || 0) + 1
+          })
+          .eq('id', job.id);
+        return;
       }
       data = JSON.parse(rawText);
     } catch (parseErr) {
-      console.error('Failed to parse edit-image response:', parseErr);
-      return new Response(JSON.stringify({
-        error: 'The image model returned an invalid response. Please try again.',
-        errorType: 'parse_error',
-        debugDetail: `Response read/parse failed: ${parseErr instanceof Error ? parseErr.message : 'unknown'}`,
-        success: false
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      await supabase
+        .from('image_generation_jobs')
+        .update({
+          status: 'failed',
+          error_message: 'Failed to parse model response',
+          error_type: 'parse_error',
+          attempts: (job.attempts || 0) + 1
+        })
+        .eq('id', job.id);
+      return;
     }
-    console.log('Image editing response received');
 
     const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     if (!imageUrl) {
-      return new Response(JSON.stringify({
-        error: 'The model responded but produced no image. Please try again.',
-        errorType: 'no_image_returned',
-        debugDetail: JSON.stringify(data.choices?.[0]?.message || {}),
-        success: false
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      await supabase
+        .from('image_generation_jobs')
+        .update({
+          status: 'failed',
+          error_message: 'No image returned from model',
+          error_type: 'no_image_returned',
+          attempts: (job.attempts || 0) + 1
+        })
+        .eq('id', job.id);
+      return;
     }
 
-    return new Response(
-      JSON.stringify({ success: true, imageUrl, model: selectedModel }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    // Success!
+    await supabase
+      .from('image_generation_jobs')
+      .update({
+        status: 'completed',
+        result_image_url: imageUrl
+      })
+      .eq('id', job.id);
 
-  } catch (error: unknown) {
-    console.error('Error in edit-image function:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ 
-      error: message,
-      errorType: 'provider_error',
-      debugDetail: message,
-      success: false
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.log('Edit job completed:', job.id);
+  } catch (error) {
+    console.error('Error processing edit job:', error);
+    await supabase
+      .from('image_generation_jobs')
+      .update({
+        status: 'failed',
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        error_type: 'processing_error',
+        attempts: (job.attempts || 0) + 1
+      })
+      .eq('id', job.id);
   }
-});
+}
