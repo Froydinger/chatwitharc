@@ -112,7 +112,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
   if (!showThinking) return null;
 
   const getMessage = () => {
-    if (isGeneratingImage) return "Generating image...";
+    if (isGeneratingImage) return "Creating your image";
     if (searchingWeb) return "Searching the web...";
     if (searchingChats) return "Searching past chats...";
     if (accessingMemory) return "Accessing memories...";
@@ -123,17 +123,17 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
   if (fullSize && isGeneratingImage) {
     return (
       <motion.div
-        className="w-full bg-muted/30 backdrop-blur-sm rounded-xl border border-border/40 overflow-hidden flex items-center justify-center"
-        style={{ aspectRatio: '16 / 9' }}
+        className="w-full max-w-sm mx-auto bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 overflow-hidden flex items-center justify-center"
+        style={{ aspectRatio: '1 / 1', minHeight: '320px' }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
       >
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-6 p-8">
           <div className="relative flex items-center justify-center" style={{ willChange: 'transform' }}>
             <motion.div
-              className="h-20 w-20"
+              className="h-24 w-24"
               style={{
                 backfaceVisibility: 'hidden',
                 transform: 'translateZ(0)',
@@ -142,31 +142,31 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
               initial={{ opacity: 0 }}
               animate={{
                 opacity: 1,
-                scale: [1, 1.15, 1]
+                scale: [1, 1.1, 1]
               }}
               transition={{
                 opacity: { duration: 0.4, ease: "easeOut" },
-                scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
+                scale: { duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
               }}
             >
-              <ThemedLogo className="h-full w-full" alt="Generating" />
+              <ThemedLogo className="h-full w-full opacity-90" alt="Generating" />
             </motion.div>
             <motion.div
-              className="absolute inset-0 rounded-full bg-primary/30"
+              className="absolute inset-0 rounded-full bg-primary/20"
               style={{
-                filter: 'blur(24px)',
+                filter: 'blur(32px)',
                 backfaceVisibility: 'hidden',
                 transform: 'translateZ(0)',
                 willChange: 'transform, opacity'
               }}
               initial={{ opacity: 0 }}
               animate={{
-                scale: [0.8, 1.2, 0.8],
-                opacity: [0.3, 0.6, 0.3]
+                scale: [0.8, 1.3, 0.8],
+                opacity: [0.2, 0.5, 0.2]
               }}
               transition={{
                 opacity: { duration: 0.4, ease: "easeOut" },
-                scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
+                scale: { duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
               }}
             />
             <motion.div
@@ -181,16 +181,16 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
                 opacity: [0, 1, 0]
               }}
               transition={{
-                duration: 1.5,
+                duration: 2,
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
             >
-              <Sparkles className="h-5 w-5 text-primary" />
+              <Sparkles className="h-6 w-6 text-primary/80" />
             </motion.div>
           </div>
           <motion.span
-            className="text-lg font-medium text-foreground/80"
+            className="text-xl font-semibold text-foreground/90 tracking-tight"
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
