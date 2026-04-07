@@ -205,10 +205,10 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
   return (
     <motion.div
       className="flex flex-col items-start gap-2"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 10 }}
-      transition={{ duration: 0.2 }}
+      initial={{ opacity: 0, y: 14, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 10, scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 320, damping: 15, mass: 0.6 }}
     >
       <div 
         className="inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-muted/50 border border-border/40 backdrop-blur-sm"

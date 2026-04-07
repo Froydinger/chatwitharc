@@ -7,21 +7,22 @@ import { Variants, TargetAndTransition } from "framer-motion";
 
 // Duration standards (in seconds)
 export const ANIMATION_DURATION = {
-  INSTANT: 0.15,     // Very quick feedback (taps, hovers)
-  QUICK: 0.25,       // Quick UI responses
-  STANDARD: 0.4,     // Default entrance/exit animations
-  SMOOTH: 0.5,       // Smooth, noticeable transitions
-  SLOW: 0.6,         // Slower, more graceful animations
-  VERY_SLOW: 0.8,    // Deliberate, slow animations
+  INSTANT: 0.12,     // Very quick feedback (taps, hovers)
+  QUICK: 0.2,        // Quick UI responses
+  STANDARD: 0.35,    // Default entrance/exit animations
+  SMOOTH: 0.45,      // Smooth, noticeable transitions
+  SLOW: 0.55,        // Slower, more graceful animations
+  VERY_SLOW: 0.7,    // Deliberate, slow animations
 } as const;
 
-// Easing standards - optimized for smooth, polished feel
+// Easing standards - playful, bouncy, joyful feel
 export const EASING = {
-  // Spring easing - feels natural and responsive
-  SPRING_SMOOTH: { type: "spring", stiffness: 300, damping: 30, mass: 1 },
-  SPRING_BOUNCY: { type: "spring", stiffness: 400, damping: 20, mass: 0.8 },
-  SPRING_SNAPPY: { type: "spring", stiffness: 500, damping: 25, mass: 0.6 },
-  SPRING_GENTLE: { type: "spring", stiffness: 250, damping: 35, mass: 1.2 },
+  // Spring easing - bouncier & more alive
+  SPRING_SMOOTH: { type: "spring", stiffness: 280, damping: 24, mass: 0.9 },
+  SPRING_BOUNCY: { type: "spring", stiffness: 350, damping: 15, mass: 0.7 },
+  SPRING_SNAPPY: { type: "spring", stiffness: 500, damping: 22, mass: 0.5 },
+  SPRING_GENTLE: { type: "spring", stiffness: 200, damping: 28, mass: 1.1 },
+  SPRING_PLAYFUL: { type: "spring", stiffness: 320, damping: 12, mass: 0.6 },
 
   // Cubic bezier easing - for fine-tuned control
   EASE_OUT_SMOOTH: [0.25, 0.46, 0.45, 0.94],        // Natural deceleration
@@ -29,14 +30,15 @@ export const EASING = {
   EASE_OUT_QUART: [0.165, 0.84, 0.44, 1],           // Very smooth
   EASE_IN_OUT_CUBIC: [0.645, 0.045, 0.355, 1],      // Smooth both directions
   EASE_OUT_BACK: [0.175, 0.885, 0.32, 1.275],       // Slight overshoot
+  EASE_OUT_ELASTIC: [0.68, -0.55, 0.265, 1.55],     // Fun elastic feel
 } as const;
 
 // Stagger standards - consistent spacing between child animations
 export const STAGGER = {
-  TIGHT: 0.04,       // Very tight stagger (dense lists)
-  NORMAL: 0.06,      // Default stagger (most components)
+  TIGHT: 0.035,      // Very tight stagger (dense lists)
+  NORMAL: 0.055,     // Default stagger (most components)
   LOOSE: 0.08,       // Relaxed stagger (spacious layouts)
-  VERY_LOOSE: 0.1,   // Very loose stagger (special effects)
+  VERY_LOOSE: 0.12,  // Very loose stagger (special effects)
 } as const;
 
 // GPU acceleration base config - applied to all animated elements
@@ -69,26 +71,27 @@ export const animationConfig = {
 
 // Fade in - simple opacity fade with subtle scale
 export const fadeInVariants: Variants = {
-  initial: { opacity: 0, scale: 0.98, ...gpuAccelerate },
+  initial: { opacity: 0, scale: 0.95, ...gpuAccelerate },
   animate: {
     opacity: 1,
     scale: 1,
-    transition: { duration: ANIMATION_DURATION.STANDARD, ...EASING.SPRING_SMOOTH },
+    transition: { duration: ANIMATION_DURATION.STANDARD, ...EASING.SPRING_BOUNCY },
     ...gpuAccelerate,
   },
-  exit: { opacity: 0, scale: 0.98, transition: { duration: 0.2 } },
+  exit: { opacity: 0, scale: 0.96, transition: { duration: 0.18 } },
 };
 
 // Slide up - entrance from below with fade
 export const slideUpVariants: Variants = {
-  initial: { opacity: 0, y: 20, ...gpuAccelerate },
+  initial: { opacity: 0, y: 24, scale: 0.97, ...gpuAccelerate },
   animate: {
     opacity: 1,
     y: 0,
-    transition: { duration: ANIMATION_DURATION.SMOOTH, ...EASING.SPRING_SMOOTH },
+    scale: 1,
+    transition: { duration: ANIMATION_DURATION.SMOOTH, ...EASING.SPRING_BOUNCY },
     ...gpuAccelerate,
   },
-  exit: { opacity: 0, y: 10, transition: { duration: 0.15 } },
+  exit: { opacity: 0, y: 12, scale: 0.98, transition: { duration: 0.15 } },
 };
 
 // Slide down - entrance from above with fade
@@ -117,14 +120,15 @@ export const slideRightVariants: Variants = {
 
 // Scale in - entrance with scale and fade
 export const scaleInVariants: Variants = {
-  initial: { opacity: 0, scale: 0.9, ...gpuAccelerate },
+  initial: { opacity: 0, scale: 0.85, rotate: -2, ...gpuAccelerate },
   animate: {
     opacity: 1,
     scale: 1,
-    transition: { duration: ANIMATION_DURATION.STANDARD, ...EASING.SPRING_BOUNCY },
+    rotate: 0,
+    transition: { duration: ANIMATION_DURATION.STANDARD, ...EASING.SPRING_PLAYFUL },
     ...gpuAccelerate,
   },
-  exit: { opacity: 0, scale: 0.9, transition: { duration: 0.15 } },
+  exit: { opacity: 0, scale: 0.88, transition: { duration: 0.15 } },
 };
 
 // Stagger container - parent for staggered children
@@ -146,14 +150,15 @@ export const staggerContainerVariants: Variants = {
 
 // Stagger item - child of stagger container
 export const staggerItemVariants: Variants = {
-  initial: { opacity: 0, y: 12, ...gpuAccelerate },
+  initial: { opacity: 0, y: 16, scale: 0.96, ...gpuAccelerate },
   animate: {
     opacity: 1,
     y: 0,
-    transition: { duration: ANIMATION_DURATION.STANDARD, ...EASING.SPRING_SMOOTH },
+    scale: 1,
+    transition: { duration: ANIMATION_DURATION.STANDARD, ...EASING.SPRING_BOUNCY },
     ...gpuAccelerate,
   },
-  exit: { opacity: 0, y: -8, transition: { duration: 0.15 } },
+  exit: { opacity: 0, y: -8, scale: 0.97, transition: { duration: 0.15 } },
 };
 
 // Welcome text - special entrance for headers and titles
@@ -181,48 +186,49 @@ export const inputBarVariants: Variants = {
 
 // Card variants - interactive cards with hover state
 export const cardVariants: Variants = {
-  initial: { opacity: 0, scale: 0.95, y: 15, ...gpuAccelerate },
+  initial: { opacity: 0, scale: 0.93, y: 18, ...gpuAccelerate },
   animate: {
     opacity: 1,
     scale: 1,
     y: 0,
-    transition: { duration: ANIMATION_DURATION.SMOOTH, ...EASING.SPRING_SMOOTH },
+    transition: { duration: ANIMATION_DURATION.SMOOTH, ...EASING.SPRING_BOUNCY },
     ...gpuAccelerate,
   },
   hover: {
-    scale: 1.03,
-    y: -4,
-    transition: { duration: ANIMATION_DURATION.QUICK, ...EASING.SPRING_BOUNCY },
+    scale: 1.04,
+    y: -6,
+    transition: { duration: ANIMATION_DURATION.QUICK, ...EASING.SPRING_PLAYFUL },
     ...gpuAccelerate,
   },
   tap: {
-    scale: 0.97,
-    transition: { duration: ANIMATION_DURATION.INSTANT, ...EASING.SPRING_BOUNCY },
+    scale: 0.96,
+    transition: { duration: ANIMATION_DURATION.INSTANT, ...EASING.SPRING_SNAPPY },
   },
 };
 
 // Modal variants - for dialogs and popups
 export const modalVariants: Variants = {
-  initial: { opacity: 0, scale: 0.92, ...gpuAccelerate },
+  initial: { opacity: 0, scale: 0.88, y: 10, ...gpuAccelerate },
   animate: {
     opacity: 1,
     scale: 1,
-    transition: { duration: ANIMATION_DURATION.SMOOTH, ...EASING.SPRING_SMOOTH },
+    y: 0,
+    transition: { duration: ANIMATION_DURATION.SMOOTH, ...EASING.SPRING_BOUNCY },
     ...gpuAccelerate,
   },
-  exit: { opacity: 0, scale: 0.92, transition: { duration: 0.2 } },
+  exit: { opacity: 0, scale: 0.9, y: 5, transition: { duration: 0.18 } },
 };
 
 // Button variants - for interactive buttons
 export const buttonVariants: Variants = {
   initial: { opacity: 1 },
   hover: {
-    scale: 1.05,
-    transition: { duration: ANIMATION_DURATION.QUICK, ...EASING.SPRING_SNAPPY },
+    scale: 1.06,
+    transition: { duration: ANIMATION_DURATION.QUICK, ...EASING.SPRING_PLAYFUL },
   },
   tap: {
-    scale: 0.96,
-    transition: { duration: ANIMATION_DURATION.INSTANT, ...EASING.SPRING_BOUNCY },
+    scale: 0.94,
+    transition: { duration: ANIMATION_DURATION.INSTANT, ...EASING.SPRING_SNAPPY },
   },
 };
 
@@ -325,18 +331,18 @@ export const createTapVariants = (scale = 0.96): TargetAndTransition => ({
 
 // Hover and tap effects for buttons
 export const interactiveButtonAnimation = {
-  whileHover: createHoverVariants(1.05, -2),
-  whileTap: createTapVariants(0.96),
+  whileHover: createHoverVariants(1.06, -2),
+  whileTap: createTapVariants(0.94),
 };
 
 // Hover and tap effects for cards
 export const interactiveCardAnimation = {
-  whileHover: createHoverVariants(1.03, -4),
-  whileTap: createTapVariants(0.97),
+  whileHover: createHoverVariants(1.04, -6),
+  whileTap: createTapVariants(0.96),
 };
 
 // Quick feedback animations
 export const quickFeedbackAnimation = {
-  whileHover: { scale: 1.08, transition: { duration: ANIMATION_DURATION.INSTANT } },
-  whileTap: { scale: 0.94, transition: { duration: ANIMATION_DURATION.INSTANT } },
+  whileHover: { scale: 1.1, rotate: 1, transition: { duration: ANIMATION_DURATION.INSTANT, ...EASING.SPRING_PLAYFUL } },
+  whileTap: { scale: 0.92, rotate: -1, transition: { duration: ANIMATION_DURATION.INSTANT, ...EASING.SPRING_SNAPPY } },
 };

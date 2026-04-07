@@ -27,8 +27,8 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
           <motion.button
             key={prompt.label}
             variants={staggerItemVariants}
-            whileHover={createHoverVariants(1.05, 0)}
-            whileTap={createTapVariants(0.98)}
+            whileHover={createHoverVariants(1.07, -3)}
+            whileTap={createTapVariants(0.95)}
             onClick={() => handlePromptClick(prompt.prompt)}
             className="group relative px-4 py-2.5 rounded-full outline-shimmer hover:ring-1 hover:ring-primary/50 transition-all duration-200"
           >

@@ -305,6 +305,60 @@ export type Database = {
         }
         Relationships: []
       }
+      image_generation_jobs: {
+        Row: {
+          aspect_ratio: string | null
+          attempts: number | null
+          base_image_urls: string[] | null
+          created_at: string
+          error_message: string | null
+          error_type: string | null
+          id: string
+          job_type: string
+          last_attempt_at: string | null
+          preferred_model: string | null
+          prompt: string
+          result_image_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          attempts?: number | null
+          base_image_urls?: string[] | null
+          created_at?: string
+          error_message?: string | null
+          error_type?: string | null
+          id?: string
+          job_type: string
+          last_attempt_at?: string | null
+          preferred_model?: string | null
+          prompt: string
+          result_image_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aspect_ratio?: string | null
+          attempts?: number | null
+          base_image_urls?: string[] | null
+          created_at?: string
+          error_message?: string | null
+          error_type?: string | null
+          id?: string
+          job_type?: string
+          last_attempt_at?: string | null
+          preferred_model?: string | null
+          prompt?: string
+          result_image_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           accent_color: string | null
