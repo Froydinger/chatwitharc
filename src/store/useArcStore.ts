@@ -57,6 +57,7 @@ export interface MemoryAction {
   content?: string; // e.g., what was saved or searched
   sources?: WebSource[]; // For web search results
   query?: string; // The search query used
+  searchProvider?: 'perplexity' | 'tavily'; // Which search engine was used
 }
 
 export interface Message {

@@ -38,7 +38,11 @@ export const MemoryIndicator = ({ action, messageContent }: MemoryIndicatorProps
       case 'chats_searched':
         return 'Past chats searched';
       case 'web_searched':
-        return 'Web searched';
+        return action.searchProvider === 'perplexity' 
+          ? 'Searched with Perplexity' 
+          : action.searchProvider === 'tavily' 
+            ? 'Searched with Tavily' 
+            : 'Web searched';
     }
   };
 

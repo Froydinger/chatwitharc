@@ -679,7 +679,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       // Determine memory action based on what tools were used
       let memoryAction: any = undefined;
       if (didSearchWeb && result.webSources && result.webSources.length > 0) {
-        memoryAction = { type: 'web_searched' as const, sources: result.webSources, query: newContent };
+        memoryAction = { type: 'web_searched' as const, sources: result.webSources, query: newContent, searchProvider: result.searchProvider };
       } else if (didSearchChats) {
         memoryAction = { type: 'chats_searched' as const };
       }
@@ -1398,7 +1398,7 @@ ${safeCode}
               // Determine memory action
               let memoryAction: any = undefined;
               if (streamWebSources.length > 0) {
-                memoryAction = { type: 'web_searched' as const, sources: streamWebSources, query: userMessage };
+                memoryAction = { type: 'web_searched' as const, sources: streamWebSources, query: userMessage, searchProvider: (result as any).searchProvider };
               }
               
               // Get the FULL code - prefer streamedContent, fallback to result.content
@@ -1495,7 +1495,7 @@ ${safeCode}
               // Dispatch event so ContextBlocksPanel refreshes
               window.dispatchEvent(new CustomEvent('context-blocks-updated'));
             } else if (result.webSources && result.webSources.length > 0) {
-              memoryAction = { type: 'web_searched' as const, sources: result.webSources, query: userMessage };
+              memoryAction = { type: 'web_searched' as const, sources: result.webSources, query: userMessage, searchProvider: result.searchProvider };
             }
             
             // Add the complete response as a new message
