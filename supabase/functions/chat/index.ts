@@ -1469,6 +1469,7 @@ Output the complete, finished writing using the update_canvas tool.`;
       ...data,
       tool_calls_used: toolsUsed,
       web_sources: webSources.length > 0 ? webSources : undefined,
+      search_provider: searchProvider,
       canvas_update: canvasUpdate,
       code_update: codeUpdate,
       memory_saved: memorySaved
