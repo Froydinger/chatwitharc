@@ -1,17 +1,24 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, MessageSquare, AlertCircle, Clock, CheckCircle2, XCircle,
-  User, Crown, Search,
+  User, Crown, Search, Plus,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { TicketChat } from "./TicketChat";
+import { useToast } from "@/hooks/use-toast";
 import { staggerContainerVariants, staggerItemVariants, fadeInVariants } from "@/utils/animations";
 
 interface Ticket {
@@ -39,17 +46,38 @@ const statusConfig: Record<string, { icon: any; color: string }> = {
 
 export function AdminTicketList() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [userProfiles, setUserProfiles] = useState<Record<string, UserInfo>>({});
+  const [allUsers, setAllUsers] = useState<UserInfo[]>([]);
   const [userPlans, setUserPlans] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
 
+  // New ticket state
+  const [showNewTicket, setShowNewTicket] = useState(false);
+  const [newSubject, setNewSubject] = useState("");
+  const [newMessage, setNewMessage] = useState("");
+  const [assignUserId, setAssignUserId] = useState("");
+  const [newPriority, setNewPriority] = useState("medium");
+  const [creating, setCreating] = useState(false);
+
   useEffect(() => {
     fetchTickets();
+    fetchAllUsers();
   }, []);
+
+  const fetchAllUsers = async () => {
+    if (!supabase) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, display_name, avatar_url")
+      .order("display_name", { ascending: true });
+    setAllUsers(data || []);
+  };
 
   const fetchTickets = async () => {
     if (!supabase || !isSupabaseConfigured) return;
@@ -61,7 +89,6 @@ export function AdminTicketList() {
     const allTickets = data || [];
     setTickets(allTickets);
 
-    // Fetch user profiles for all unique user_ids
     const userIds = [...new Set(allTickets.map((t) => t.user_id))];
     if (userIds.length > 0) {
       const { data: profiles } = await supabase
@@ -72,7 +99,6 @@ export function AdminTicketList() {
       (profiles || []).forEach((p) => { profileMap[p.user_id] = p; });
       setUserProfiles(profileMap);
 
-      // Check subscriptions for each user
       const planMap: Record<string, string> = {};
       for (const uid of userIds) {
         try {
@@ -89,6 +115,37 @@ export function AdminTicketList() {
     setLoading(false);
   };
 
+  const createTicket = async () => {
+    if (!supabase || !user || !newSubject.trim() || !newMessage.trim() || !assignUserId) return;
+    setCreating(true);
+    const ticketId = crypto.randomUUID();
+    const { error } = await supabase.from("support_tickets").insert({
+      id: ticketId,
+      user_id: assignUserId,
+      subject: newSubject.trim(),
+      priority: newPriority,
+    });
+    if (error) {
+      toast({ title: "Error", description: "Failed to create ticket", variant: "destructive" });
+      setCreating(false);
+      return;
+    }
+    await supabase.from("ticket_messages").insert({
+      ticket_id: ticketId,
+      sender_id: user.id,
+      content: newMessage.trim(),
+      is_admin_reply: true,
+    });
+    toast({ title: "Ticket created", description: "Ticket assigned to user" });
+    setNewSubject("");
+    setNewMessage("");
+    setAssignUserId("");
+    setNewPriority("medium");
+    setShowNewTicket(false);
+    setCreating(false);
+    fetchTickets();
+  };
+
   if (selectedTicketId) {
     const ticket = tickets.find((t) => t.id === selectedTicketId);
     const ticketUser = ticket ? userProfiles[ticket.user_id] : null;
@@ -96,7 +153,6 @@ export function AdminTicketList() {
 
     return (
       <div className="min-h-screen">
-        {/* User info banner for admin */}
         {ticket && (
           <div className="bg-accent/20 border-b border-border/30 px-4 py-2 pt-16 sm:pt-20">
             <div className="max-w-3xl mx-auto flex items-center gap-3 flex-wrap">
@@ -106,7 +162,7 @@ export function AdminTicketList() {
               </span>
               <Badge variant="outline" className="text-xs">
                 {ticketPlan === "Pro" ? (
-                  <span className="flex items-center gap-1"><Crown className="w-3 h-3 text-yellow-400" /> Pro</span>
+                  <span className="flex items-center gap-1"><Crown className="w-3 h-3 text-amber-400" /> Pro</span>
                 ) : ticketPlan}
               </Badge>
               <span className="text-xs text-muted-foreground">
@@ -145,7 +201,73 @@ export function AdminTicketList() {
               {tickets.filter((t) => t.status === "open").length} open tickets
             </p>
           </div>
+          <GlassButton onClick={() => setShowNewTicket(true)} className="gap-2">
+            <Plus className="w-4 h-4" />
+            New Ticket
+          </GlassButton>
         </div>
+
+        {/* New Ticket Form (Admin - assign to user) */}
+        <AnimatePresence>
+          {showNewTicket && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden mb-6"
+            >
+              <GlassCard className="p-5 space-y-4">
+                <h3 className="font-semibold text-foreground">Create Ticket for User</h3>
+                <Select value={assignUserId} onValueChange={setAssignUserId}>
+                  <SelectTrigger className="bg-background/50">
+                    <SelectValue placeholder="Assign to user..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allUsers.map((u) => (
+                      <SelectItem key={u.user_id} value={u.user_id}>
+                        {u.display_name || "Unnamed"} ({u.user_id.slice(0, 8)}...)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Subject"
+                  value={newSubject}
+                  onChange={(e) => setNewSubject(e.target.value)}
+                  className="bg-background/50"
+                />
+                <div className="flex gap-3">
+                  <Select value={newPriority} onValueChange={setNewPriority}>
+                    <SelectTrigger className="w-[130px] bg-background/50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Textarea
+                  placeholder="Initial message..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  rows={3}
+                  className="bg-background/50"
+                />
+                <div className="flex gap-2 justify-end">
+                  <Button variant="ghost" onClick={() => setShowNewTicket(false)}>Cancel</Button>
+                  <GlassButton
+                    onClick={createTicket}
+                    disabled={creating || !newSubject.trim() || !newMessage.trim() || !assignUserId}
+                  >
+                    {creating ? "Creating..." : "Create & Assign"}
+                  </GlassButton>
+                </div>
+              </GlassCard>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Search */}
         <div className="relative mb-4">
@@ -199,7 +321,7 @@ export function AdminTicketList() {
                           </span>
                           {plan === "Pro" && (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                              <Crown className="w-2.5 h-2.5 text-yellow-400 mr-0.5" /> Pro
+                              <Crown className="w-2.5 h-2.5 text-amber-400 mr-0.5" /> Pro
                             </Badge>
                           )}
                           <span className="text-xs text-muted-foreground">
