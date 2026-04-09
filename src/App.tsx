@@ -28,6 +28,7 @@ import { PricingPage } from "./pages/PricingPage";
 import { AppsPage } from "./pages/AppsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DashboardSettingsPage } from "./pages/DashboardSettingsPage";
+import UnsubscribePage from "./pages/UnsubscribePage";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +96,7 @@ const App = () => {
                   <Route path="/apps" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/apps/:projectId" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/admin" element={<AdminPage />} />
+                  <Route path="/unsubscribe" element={<UnsubscribePage />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

@@ -40,15 +40,21 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
         throw new Error("Bug reporting is not available. Please try again later.");
       }
 
-      // Call Edge Function to send email
-      const { error: emailError } = await supabase.functions.invoke("send-bug-report", {
+      // Call Edge Function to send bug report email
+      const bugId = crypto.randomUUID();
+      const { error: emailError } = await supabase.functions.invoke("send-transactional-email", {
         body: {
-          userEmail: email,
-          errorMessage,
-          errorStack,
-          description,
-          url: window.location.href,
-          userAgent: navigator.userAgent,
+          templateName: 'bug-report',
+          recipientEmail: email,
+          idempotencyKey: `bug-report-${bugId}`,
+          templateData: {
+            userEmail: email,
+            errorMessage,
+            errorStack,
+            description,
+            url: window.location.href,
+            userAgent: navigator.userAgent,
+          },
         },
       });
 
