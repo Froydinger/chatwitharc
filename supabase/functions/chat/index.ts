@@ -93,29 +93,86 @@ interface WebSearchResult {
 interface WebSearchResponse {
   summary: string;
   sources: WebSearchResult[];
+  searchProvider: 'perplexity' | 'tavily';
 }
 
-// Web search tool using Tavily API
+// Web search using Perplexity (primary) with Tavily fallback
 async function webSearch(query: string): Promise<WebSearchResponse> {
+  // Try Perplexity first
+  const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
+  if (perplexityApiKey) {
+    try {
+      console.log('🔍 Performing Perplexity search for:', query);
+      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${perplexityApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'sonar',
+          messages: [
+            { role: 'system', content: 'Be precise, cite sources, and provide comprehensive answers. Format with clear structure.' },
+            { role: 'user', content: query }
+          ],
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content || '';
+        const citations: string[] = data.citations || [];
+
+        const sources: WebSearchResult[] = citations.map((url: string, index: number) => {
+          let domain = '';
+          try { domain = new URL(url).hostname.replace('www.', ''); } catch { domain = url; }
+          return { title: `${domain}`, url, content: '' };
+        });
+
+        // Build summary from Perplexity response + citations
+        let searchSummary = `Search Results (via Perplexity):\n${content}\n\n`;
+        if (citations.length > 0) {
+          searchSummary += 'Sources:\n';
+          citations.forEach((url: string, idx: number) => {
+            searchSummary += `${idx + 1}. ${url}\n`;
+          });
+        }
+
+        console.log('✅ Perplexity search successful, citations:', citations.length);
+        return { summary: searchSummary, sources, searchProvider: 'perplexity' };
+      } else {
+        console.warn('⚠️ Perplexity API error:', response.status, '- falling back to Tavily');
+      }
+    } catch (error) {
+      console.warn('⚠️ Perplexity search failed, falling back to Tavily:', error);
+    }
+  } else {
+    console.log('ℹ️ No Perplexity API key, using Tavily');
+  }
+
+  // Fallback to Tavily
+  return webSearchTavily(query);
+}
+
+// Tavily search (fallback)
+async function webSearchTavily(query: string): Promise<WebSearchResponse> {
   const tavilyApiKey = Deno.env.get('TAVILY_API_KEY');
   if (!tavilyApiKey) {
-    return { summary: "Web search is not configured. Please add TAVILY_API_KEY.", sources: [] };
+    return { summary: "Web search is not configured. Please add PERPLEXITY_API_KEY or TAVILY_API_KEY.", sources: [], searchProvider: 'tavily' };
   }
 
   try {
-    console.log('Performing web search for:', query);
+    console.log('🔍 Performing Tavily search for:', query);
     const response = await fetch('https://api.tavily.com/search', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         api_key: tavilyApiKey,
         query: query,
-        search_depth: 'advanced', // Changed from 'basic' for better quality
+        search_depth: 'advanced',
         max_results: 5,
         include_answer: true,
-        include_raw_content: true, // Now fetches full page content!
+        include_raw_content: true,
         include_images: false,
       }),
     });
@@ -123,16 +180,13 @@ async function webSearch(query: string): Promise<WebSearchResponse> {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Tavily API error:', response.status, errorText);
-      return { summary: `Search failed: ${response.status}`, sources: [] };
+      return { summary: `Search failed: ${response.status}`, sources: [], searchProvider: 'tavily' };
     }
 
     const data = await response.json();
     console.log('Search results received:', data.results?.length || 0, 'results');
     
-    // Extract sources for frontend display
     const sources: WebSearchResult[] = [];
-    
-    // Format results for the AI
     let searchSummary = '';
     if (data.answer) {
       searchSummary = `Quick Answer: ${data.answer}\n\n`;
@@ -142,28 +196,18 @@ async function webSearch(query: string): Promise<WebSearchResponse> {
       searchSummary += 'Search Results:\n';
       data.results.forEach((result: any, idx: number) => {
         searchSummary += `${idx + 1}. ${result.title}\n`;
-        // Use raw_content if available (full page text), otherwise fall back to snippet
         const pageContent = result.raw_content || result.content || '';
         searchSummary += `   ${pageContent}\n`;
         searchSummary += `   Source: ${result.url}\n\n`;
-
-        // Add to sources array for frontend (keep short snippet for display)
-        sources.push({
-          title: result.title,
-          url: result.url,
-          content: result.content?.slice(0, 200) || ''
-        });
+        sources.push({ title: result.title, url: result.url, content: result.content?.slice(0, 200) || '' });
       });
     }
     
-    return { 
-      summary: searchSummary || 'No relevant results found.',
-      sources 
-    };
+    return { summary: searchSummary || 'No relevant results found.', sources, searchProvider: 'tavily' };
   } catch (error: unknown) {
     console.error('Web search error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return { summary: `Search error: ${message}`, sources: [] };
+    return { summary: `Search error: ${message}`, sources: [], searchProvider: 'tavily' };
   }
 }
 
