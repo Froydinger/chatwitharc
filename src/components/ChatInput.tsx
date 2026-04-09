@@ -1398,7 +1398,7 @@ ${safeCode}
               // Determine memory action
               let memoryAction: any = undefined;
               if (streamWebSources.length > 0) {
-                memoryAction = { type: 'web_searched' as const, sources: streamWebSources, query: userMessage };
+                memoryAction = { type: 'web_searched' as const, sources: streamWebSources, query: userMessage, searchProvider: (result as any).searchProvider };
               }
               
               // Get the FULL code - prefer streamedContent, fallback to result.content
