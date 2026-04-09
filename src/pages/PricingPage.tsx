@@ -270,7 +270,7 @@ export function PricingPage() {
                 {/* Included Apps */}
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/15">
                   <div className="flex -space-x-2">
-                    <img src="/arc-logo-ui.png" alt="ArcAI" className="w-8 h-8 rounded-lg object-contain border-2 border-background z-30" />
+                    <img src="/arc-logo-ui.png" alt="ArcAI" className="w-8 h-8 rounded-lg object-cover border-2 border-background z-30 scale-125" />
                     <img src={maestroIcon} alt="" className="w-8 h-8 rounded-lg object-cover border-2 border-background z-20" />
                     <img src={arcanaLogo} alt="" className="w-8 h-8 rounded-lg object-cover border-2 border-background z-10" />
                   </div>
