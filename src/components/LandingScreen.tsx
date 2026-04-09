@@ -15,6 +15,8 @@ import { useAdminBanner } from "@/components/AdminBanner";
 import { LandingCanvasDemo } from "./LandingCanvasDemo";
 import { LandingVoiceDemo } from "./LandingVoiceDemo";
 import { useDownloadInfo } from "@/hooks/useDownloadInfo";
+import maestroIcon from "@/assets/maestro-icon.png";
+import arcanaLogo from "@/assets/arcana-logo.png";
 
 // Helper to detect Electron app
 const isElectron = () => {
@@ -1038,21 +1040,39 @@ export function LandingScreen() {
       <section className="relative z-10 py-20 px-6" id="pricing">
         <div className="max-w-5xl mx-auto">
           <motion.div
-            className="text-center mb-14 space-y-4"
+            className="text-center mb-10 space-y-4"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
             <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-              Stay free.{' '}
+              Three apps.{' '}
               <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                Or don't.
+                One price.
               </span>
             </h2>
             <p className="text-gray-400 max-w-xl mx-auto text-lg">
-              Arc is free forever. When you're ready for unlimited everything, Pro starts at <span className="text-white font-semibold">$9.60/mo</span>.
+              ArcAI Pro gives you unlimited everything — plus full access to Maestro's Studio and Arcana™. Starting at <span className="text-white font-semibold">$9.60/mo</span>.
             </p>
+          </motion.div>
+
+          {/* App logos row */}
+          <motion.div
+            className="flex items-center justify-center gap-4 mb-10"
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl glass-card">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                <Crown className="w-5 h-5 text-white" />
+              </div>
+              <img src={maestroIcon} alt="Maestro's Studio" className="w-10 h-10 rounded-xl object-cover" />
+              <img src={arcanaLogo} alt="Arcana" className="w-10 h-10 rounded-xl object-cover" />
+              <span className="text-sm text-gray-300 font-medium ml-1">All included</span>
+            </div>
           </motion.div>
 
           <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
