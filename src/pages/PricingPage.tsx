@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Crown, MessageCircle, Mic, Image, Brain, Code, Globe, Sparkles, ArrowLeft, X } from "lucide-react";
+import { Check, Crown, MessageCircle, Mic, Image, Brain, Code, Globe, Sparkles, ArrowLeft, X, Music, Pen } from "lucide-react";
 import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { AuthModal } from "@/components/AuthModal";
 import { EmbeddedCheckoutForm } from "@/components/EmbeddedCheckout";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
+import maestroIcon from "@/assets/maestro-icon.png";
+import arcanaLogo from "@/assets/arcana-logo.png";
 
 const features = [
   { name: "Image Analysis", free: true, pro: true, icon: Sparkles },
@@ -18,9 +20,64 @@ const features = [
   { name: "Voice Mode", free: "3 sessions/day", pro: "Unlimited", icon: Mic },
   { name: "Unlimited Image Generation", free: "5 images/day", pro: "Unlimited", icon: Image },
   { name: "Choose Your Model (GPT or Gemini)", free: false, pro: true, icon: Sparkles },
-  { name: "ArcNotes™ Pro (Substack Note App)", free: false, pro: true, icon: Sparkles },
-  { name: "Arcana™ Notes Pro (ArcAi Enhanced Writing App)", free: false, pro: true, icon: Sparkles },
+  { name: "Maestro's Studio (Music Creation App)", free: false, pro: true, icon: Music },
+  { name: "Arcana™ (Enhanced Writing App)", free: false, pro: true, icon: Pen },
 ];
+
+function AppBundleShowcase() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.25 }}
+      className="mb-16"
+    >
+      <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 via-card/60 to-card/60 backdrop-blur-md p-7 sm:p-10 relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-purple-500 to-pink-500" />
+
+        <div className="text-center mb-8">
+          <span className="text-xs font-bold uppercase tracking-widest text-primary">One Subscription</span>
+          <h3 className="text-2xl sm:text-3xl font-bold text-foreground mt-2">
+            Three powerful apps.{' '}
+            <span className="bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">One price.</span>
+          </h3>
+          <p className="text-muted-foreground mt-2 max-w-lg mx-auto">
+            ArcAI Pro unlocks premium access to every app in the Win The Night™ ecosystem — and every future app too.
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-5">
+          {/* ArcAI */}
+          <div className="rounded-xl bg-background/40 border border-border/50 p-5 text-center space-y-3">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
+              <Crown className="w-7 h-7 text-primary-foreground" />
+            </div>
+            <h4 className="font-semibold text-foreground">ArcAI Pro</h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">Unlimited AI chat, voice mode, image generation, research & more.</p>
+          </div>
+
+          {/* Maestro's Studio */}
+          <div className="rounded-xl bg-background/40 border border-border/50 p-5 text-center space-y-3">
+            <img src={maestroIcon} alt="Maestro's Studio" className="w-14 h-14 mx-auto rounded-2xl object-cover shadow-lg" />
+            <h4 className="font-semibold text-foreground">Maestro's Studio</h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">AI-powered music creation studio. Compose, produce, and export tracks.</p>
+          </div>
+
+          {/* Arcana */}
+          <div className="rounded-xl bg-background/40 border border-border/50 p-5 text-center space-y-3">
+            <img src={arcanaLogo} alt="Arcana" className="w-14 h-14 mx-auto rounded-2xl object-cover shadow-lg" />
+            <h4 className="font-semibold text-foreground">Arcana™</h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">Write what you love — an AI-enhanced writing app for creators and thinkers.</p>
+          </div>
+        </div>
+
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          Plus access to all future Win The Night™ apps — included at no extra cost.
+        </p>
+      </div>
+    </motion.div>
+  );
+}
 
 export function PricingPage() {
   const { user } = useAuth();
@@ -31,7 +88,6 @@ export function PricingPage() {
   const pendingUpgrade = useRef(false);
   const navigate = useNavigate();
 
-  // After sign-up/sign-in: redirect to chat and show upgrade modal
   useEffect(() => {
     if (user && pendingUpgrade.current) {
       pendingUpgrade.current = false;
@@ -71,9 +127,12 @@ export function PricingPage() {
             Simple, transparent pricing
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
-            Start free with generous limits. Upgrade when you need more.
+            Start free with generous limits. Upgrade to unlock three apps for one price.
           </p>
         </motion.div>
+
+        {/* App Bundle Showcase */}
+        <AppBundleShowcase />
 
         {/* Billing Toggle */}
         <div className="flex items-center justify-center gap-3 mb-10">
@@ -166,7 +225,7 @@ export function PricingPage() {
               {/* Popular badge */}
               <div className="absolute top-4 right-4">
                 <span className="text-xs font-semibold px-3 py-1 rounded-full bg-primary/15 text-primary border border-primary/30">
-                  Most Popular
+                  Best Value
                 </span>
               </div>
 
@@ -200,7 +259,7 @@ export function PricingPage() {
                     </p>
                   )}
                   <p className="text-sm text-muted-foreground mt-2">
-                    Unlimited everything. Includes Pro access to all current and future Win The Night™ Apps.
+                    Unlimited everything. Three apps included — ArcAI, Maestro's Studio & Arcana™.
                   </p>
                   <p className="text-xs text-primary/80 mt-1.5 flex items-center gap-1">
                     <Crown className="w-3 h-3" />
@@ -210,13 +269,25 @@ export function PricingPage() {
 
                 <div className="h-px bg-border/50" />
 
+                {/* Included Apps */}
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/15">
+                  <div className="flex -space-x-2">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center border-2 border-background z-30">
+                      <Crown className="w-4 h-4 text-primary-foreground" />
+                    </div>
+                    <img src={maestroIcon} alt="" className="w-8 h-8 rounded-lg object-cover border-2 border-background z-20" />
+                    <img src={arcanaLogo} alt="" className="w-8 h-8 rounded-lg object-cover border-2 border-background z-10" />
+                  </div>
+                  <span className="text-xs font-medium text-foreground">3 apps included</span>
+                </div>
+
                 <ul className="space-y-3">
                   {[
                     { text: "Unlimited messages", bold: true },
                     { text: "Unlimited voice sessions", bold: true },
                     { text: "Switch between AI models", bold: true },
-                    { text: "ArcNotes™ Pro (Substack Note App)", bold: true },
-                    { text: "Arcana™ Notes Pro (ArcAi Enhanced Writing App)", bold: true },
+                    { text: "Maestro's Studio — AI music creation", bold: true },
+                    { text: "Arcana™ — AI-enhanced writing", bold: true },
                     { text: "Listed as Pro Subscriber on Win The Night™", bold: true },
                     { text: "Everything in Free", bold: false },
                     { text: "Priority support", bold: false },
