@@ -108,16 +108,45 @@ export function TicketChat({ ticketId, onBack, isAdmin }: TicketChatProps) {
   const sendMessage = async () => {
     if (!supabase || !user || !newMessage.trim()) return;
     setSending(true);
+    const messageContent = newMessage.trim();
     const { error } = await supabase.from("ticket_messages").insert({
       ticket_id: ticketId,
       sender_id: user.id,
-      content: newMessage.trim(),
+      content: messageContent,
       is_admin_reply: isAdmin,
     });
     if (error) {
       toast({ title: "Error", description: "Failed to send message", variant: "destructive" });
     } else {
       setNewMessage("");
+      // Send email notification to ticket owner when admin replies
+      if (isAdmin && ticket) {
+        try {
+          // Look up the ticket owner's email
+          const { data: ownerProfile } = await supabase
+            .from("profiles")
+            .select("user_id")
+            .eq("user_id", ticket.user_id)
+            .single();
+          if (ownerProfile) {
+            // We need the user's email - fetch from admin-users edge function
+            await supabase.functions.invoke("send-transactional-email", {
+              body: {
+                templateName: "support-reply",
+                recipientUserId: ticket.user_id,
+                idempotencyKey: `support-reply-${ticketId}-${Date.now()}`,
+                templateData: {
+                  subject: ticket.subject,
+                  messagePreview: messageContent.length > 200 ? messageContent.slice(0, 200) + "…" : messageContent,
+                },
+              },
+            });
+          }
+        } catch (e) {
+          // Don't block the message send if email fails
+          console.error("Failed to send support reply email:", e);
+        }
+      }
     }
     setSending(false);
   };
