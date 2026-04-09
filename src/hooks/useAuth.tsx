@@ -39,9 +39,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase) return;
 
     try {
-      // Send welcome email
-      await supabase.functions.invoke('send-welcome-email', {
-        body: { user_name: displayName },
+      // Send welcome email via Lovable transactional emails
+      await supabase.functions.invoke('send-transactional-email', {
+        body: {
+          templateName: 'welcome',
+          recipientEmail: user?.email,
+          idempotencyKey: `welcome-${userId}`,
+          templateData: { displayName },
+        },
       });
       
       // Mark as sent in database
