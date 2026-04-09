@@ -125,8 +125,8 @@ serve(async (req) => {
       });
     }
 
-    const isActive = matchedSub.status === "active";
-    const paymentStatus: "ok" | "past_due" = isActive ? "ok" : "past_due";
+    const isActive = matchedSub.status === "active" || matchedSub.status === "trialing";
+    const paymentStatus: "ok" | "past_due" | "trialing" = matchedSub.status === "trialing" ? "trialing" : (isActive ? "ok" : "past_due");
     const productId = matchedSub.items.data[0]?.price?.product || null;
 
     let subscriptionEnd: string | null = null;
