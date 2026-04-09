@@ -49,9 +49,7 @@ function AppBundleShowcase() {
         <div className="grid sm:grid-cols-3 gap-5">
           {/* ArcAI */}
           <div className="rounded-xl bg-background/40 border border-border/50 p-5 text-center space-y-3">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
-              <Crown className="w-7 h-7 text-primary-foreground" />
-            </div>
+            <img src="/arc-logo-cropped.svg" alt="ArcAI" className="w-14 h-14 mx-auto rounded-2xl object-contain shadow-lg" />
             <h4 className="font-semibold text-foreground">ArcAI Pro</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">Unlimited AI chat, voice mode, image generation, research & more.</p>
           </div>
@@ -60,7 +58,7 @@ function AppBundleShowcase() {
           <div className="rounded-xl bg-background/40 border border-border/50 p-5 text-center space-y-3">
             <img src={maestroIcon} alt="Maestro's Studio" className="w-14 h-14 mx-auto rounded-2xl object-cover shadow-lg" />
             <h4 className="font-semibold text-foreground">Maestro's Studio</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">AI-powered music creation studio. Compose, produce, and export tracks.</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">A full-featured IDE — build apps and publish them to the web.</p>
           </div>
 
           {/* Arcana */}
@@ -272,9 +270,7 @@ export function PricingPage() {
                 {/* Included Apps */}
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/15">
                   <div className="flex -space-x-2">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center border-2 border-background z-30">
-                      <Crown className="w-4 h-4 text-primary-foreground" />
-                    </div>
+                    <img src="/arc-logo-cropped.svg" alt="ArcAI" className="w-8 h-8 rounded-lg object-contain border-2 border-background z-30" />
                     <img src={maestroIcon} alt="" className="w-8 h-8 rounded-lg object-cover border-2 border-background z-20" />
                     <img src={arcanaLogo} alt="" className="w-8 h-8 rounded-lg object-cover border-2 border-background z-10" />
                   </div>
@@ -286,7 +282,7 @@ export function PricingPage() {
                     { text: "Unlimited messages", bold: true },
                     { text: "Unlimited voice sessions", bold: true },
                     { text: "Switch between AI models", bold: true },
-                    { text: "Maestro's Studio — AI music creation", bold: true },
+                    { text: "Maestro's Studio — build & publish apps", bold: true },
                     { text: "Arcana™ — AI-enhanced writing", bold: true },
                     { text: "Listed as Pro Subscriber on Win The Night™", bold: true },
                     { text: "Everything in Free", bold: false },
