@@ -87,8 +87,15 @@ serve(async (req) => {
       limit: 100,
     });
 
-    const allSubs = [...activeSubscriptions.data, ...pastDueSubscriptions.data];
-    logStep("Fetched subscriptions", { active: activeSubscriptions.data.length, pastDue: pastDueSubscriptions.data.length });
+    // Also check trialing subscriptions
+    const trialingSubscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "trialing",
+      limit: 100,
+    });
+
+    const allSubs = [...activeSubscriptions.data, ...pastDueSubscriptions.data, ...trialingSubscriptions.data];
+    logStep("Fetched subscriptions", { active: activeSubscriptions.data.length, pastDue: pastDueSubscriptions.data.length, trialing: trialingSubscriptions.data.length });
 
     // Find matching Pro subscription from any of our recognized products/prices
     let matchedSub: typeof allSubs[0] | null = null;
@@ -118,8 +125,8 @@ serve(async (req) => {
       });
     }
 
-    const isActive = matchedSub.status === "active";
-    const paymentStatus: "ok" | "past_due" = isActive ? "ok" : "past_due";
+    const isActive = matchedSub.status === "active" || matchedSub.status === "trialing";
+    const paymentStatus: "ok" | "past_due" | "trialing" = matchedSub.status === "trialing" ? "trialing" : (isActive ? "ok" : "past_due");
     const productId = matchedSub.items.data[0]?.price?.product || null;
 
     let subscriptionEnd: string | null = null;
