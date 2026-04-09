@@ -57,6 +57,7 @@ Deno.serve(async (req) => {
   // Parse request body
   let templateName: string
   let recipientEmail: string
+  let recipientUserId: string | undefined
   let idempotencyKey: string
   let messageId: string
   let templateData: Record<string, any> = {}
@@ -64,6 +65,7 @@ Deno.serve(async (req) => {
     const body = await req.json()
     templateName = body.templateName || body.template_name
     recipientEmail = body.recipientEmail || body.recipient_email
+    recipientUserId = body.recipientUserId || body.recipient_user_id
     messageId = crypto.randomUUID()
     idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
     if (body.templateData && typeof body.templateData === 'object') {
@@ -77,6 +79,19 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
+  }
+
+  // If recipientUserId is provided but no email, look up the email from auth
+  if (!recipientEmail && recipientUserId) {
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false },
+    })
+    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(recipientUserId)
+    if (!userError && userData?.user?.email) {
+      recipientEmail = userData.user.email
+    } else {
+      console.error('Could not resolve recipientUserId to email', { recipientUserId, error: userError?.message })
+    }
   }
 
   if (!templateName) {
