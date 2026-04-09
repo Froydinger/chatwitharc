@@ -82,6 +82,23 @@ export function SupportPage() {
       content: newMessage.trim(),
       is_admin_reply: false,
     });
+    // Notify admin via email
+    try {
+      await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "ticket-opened",
+          idempotencyKey: `ticket-opened-${ticketId}`,
+          templateData: {
+            subject: newSubject.trim(),
+            userEmail: user.email,
+            userName: user.user_metadata?.full_name || user.email,
+            priority: "normal",
+          },
+        },
+      });
+    } catch (e) {
+      console.error("Failed to send ticket opened email:", e);
+    }
     toast({ title: "Ticket created", description: "We'll get back to you soon!" });
     setNewSubject("");
     setNewMessage("");
