@@ -1066,9 +1066,7 @@ export function LandingScreen() {
             transition={{ duration: 0.5, delay: 0.1 }}
           >
             <div className="flex items-center gap-3 px-5 py-3 rounded-2xl glass-card">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                <Crown className="w-5 h-5 text-white" />
-              </div>
+              <img src="/arc-logo-cropped.svg" alt="ArcAI" className="w-10 h-10 rounded-xl object-contain" />
               <img src={maestroIcon} alt="Maestro's Studio" className="w-10 h-10 rounded-xl object-cover" />
               <img src={arcanaLogo} alt="Arcana" className="w-10 h-10 rounded-xl object-cover" />
               <span className="text-sm text-gray-300 font-medium ml-1">All included</span>
