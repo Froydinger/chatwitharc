@@ -70,6 +70,7 @@ export interface CodeUpdate {
 export interface SendMessageResult {
   content: string;
   webSources?: WebSource[];
+  searchProvider?: 'perplexity' | 'tavily';
   canvasUpdate?: CanvasUpdate;
   codeUpdate?: CodeUpdate;
   memorySaved?: { content: string };
