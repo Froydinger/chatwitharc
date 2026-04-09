@@ -921,9 +921,7 @@ export function SettingsPanel() {
           <p className="text-xs opacity-60">Web Version v4.1</p>
           <div className="flex items-center justify-center gap-4">
             <a
-              href="https://winthenight.productions/support"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/support"
               className="hover:text-primary-glow transition-colors underline"
             >
               Support

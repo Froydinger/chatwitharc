@@ -539,6 +539,36 @@ export type Database = {
         }
         Relationships: []
       }
+      support_tickets: {
+        Row: {
+          created_at: string
+          id: string
+          priority: string
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          priority?: string
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          priority?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -562,6 +592,44 @@ export type Database = {
           reason?: string
         }
         Relationships: []
+      }
+      ticket_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          image_url: string | null
+          is_admin_reply: boolean
+          sender_id: string
+          ticket_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_admin_reply?: boolean
+          sender_id: string
+          ticket_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_admin_reply?: boolean
+          sender_id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
