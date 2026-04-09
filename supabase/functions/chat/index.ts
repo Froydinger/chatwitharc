@@ -1220,6 +1220,7 @@ Output the complete, finished writing using the update_canvas tool.`;
     // Track which tools were used and web sources
     const toolsUsed: string[] = [];
     let webSources: WebSearchResult[] = [];
+    let searchProvider: 'perplexity' | 'tavily' | undefined;
     let canvasUpdate: { content: string; label?: string } | null = null;
     let codeUpdate: { code: string; language: string; label?: string } | null = null;
     
@@ -1243,8 +1244,9 @@ Output the complete, finished writing using the update_canvas tool.`;
           const args = JSON.parse(toolCall.function.arguments);
           const searchResponse = await webSearch(args.query);
           
-          // Store sources for frontend
+          // Store sources and provider for frontend
           webSources = searchResponse.sources;
+          searchProvider = searchResponse.searchProvider;
           
           // Add tool response to conversation
           conversationMessages.push({
