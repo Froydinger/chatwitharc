@@ -49,7 +49,7 @@ function AppBundleShowcase() {
         <div className="grid sm:grid-cols-3 gap-5">
           {/* ArcAI */}
           <div className="rounded-xl bg-background/40 border border-border/50 p-5 text-center space-y-3">
-            <img src="/arc-logo-ui.png" alt="ArcAI" className="w-14 h-14 mx-auto rounded-2xl object-contain shadow-lg" />
+            <img src="/arc-logo-ui.png" alt="ArcAI" className="w-14 h-14 mx-auto rounded-2xl object-cover shadow-lg scale-125" style={{ objectPosition: 'center' }} />
             <h4 className="font-semibold text-foreground">ArcAI Pro</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">Unlimited AI chat, voice mode, image generation, research & more.</p>
           </div>
