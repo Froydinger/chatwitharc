@@ -1132,6 +1132,60 @@ useEffect(() => {
                 <Button
                   variant="outline"
                   size="icon"
+                  onClick={() => {
+                    const data = contextBlocks.map(b => ({ content: b.content, source: b.source }));
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `arc-memories-${new Date().toISOString().slice(0, 10)}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="rounded-full glass-shimmer"
+                  title="Export memories"
+                  disabled={contextBlocks.length === 0}
+                >
+                  <Download className="h-4 w-4 text-primary" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.json';
+                    input.onchange = async (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (!file) return;
+                      try {
+                        const text = await file.text();
+                        const imported = JSON.parse(text);
+                        if (!Array.isArray(imported)) throw new Error('Invalid format');
+                        let count = 0;
+                        for (const item of imported) {
+                          if (item.content && typeof item.content === 'string') {
+                            await addBlock(item.content);
+                            count++;
+                          }
+                        }
+                        const { toast } = await import("@/hooks/use-toast");
+                        toast({ title: `Imported ${count} memories` });
+                      } catch {
+                        const { toast } = await import("@/hooks/use-toast");
+                        toast({ title: "Invalid file", description: "Please select a valid memories JSON file.", variant: "destructive" });
+                      }
+                    };
+                    input.click();
+                  }}
+                  className="rounded-full glass-shimmer"
+                  title="Import memories"
+                >
+                  <Upload className="h-4 w-4 text-primary" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => { setIsAddingMemory(true); setNewMemoryContent(""); }}
                   className="rounded-full glass-shimmer"
                   title="Add memory"
