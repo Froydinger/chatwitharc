@@ -26,6 +26,7 @@ import {
   Stars,
 } from "lucide-react";
 import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
+import { lovable } from "@/integrations/lovable/index";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
 import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
