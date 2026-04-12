@@ -34,6 +34,7 @@ let lastSystemPrompt: string | null = null;
 let sessionReady = false; // Gate: true after session.created received
 // Deterministic errors that should NOT trigger reconnect
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key'];
+const OPENAI_REALTIME_MODEL = 'gpt-realtime-1.5';
 
 // Delayed phantom guard timer — gives Whisper time to confirm real speech
 let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;
@@ -564,7 +565,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   }, [sendFunctionResult, clearAudioBuffer]);
 
   const connect = useCallback(async (systemPrompt?: string) => {
-    const { setStatus, selectedVoice } = useVoiceModeStore.getState();
+    const { setStatus } = useVoiceModeStore.getState();
     
     if (systemPrompt) lastSystemPrompt = systemPrompt;
     if (globalWs?.readyState === WebSocket.OPEN) {
@@ -591,24 +592,40 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     setStatus('connecting');
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://jxywhodnndagbsmnbnnw.supabase.co";
-      const wsUrl = supabaseUrl.replace('https://', 'wss://').replace('http://', 'ws://');
       let didOpen = false;
       
-      // Get auth token for WebSocket authentication
       const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
-      if (!accessToken) {
+      if (!session?.access_token) {
         console.error('Not authenticated - cannot connect to voice mode');
         setStatus('idle');
         globalConnecting = false;
         optionsRef.current.onError?.('Please sign in to use Voice Mode.');
         return;
       }
+
+      const { selectedVoice: currentVoice } = useVoiceModeStore.getState();
+      const safeVoice = REALTIME_SUPPORTED_VOICES.includes(currentVoice) ? currentVoice : 'cedar';
+
+      const { data: realtimeSession, error: realtimeSessionError } = await supabase.functions.invoke('openai-realtime-proxy', {
+        body: {
+          voice: safeVoice,
+        },
+      });
+
+      if (realtimeSessionError || !realtimeSession?.client_secret) {
+        throw new Error(realtimeSessionError?.message || 'Failed to create a secure voice session.');
+      }
+
+      const realtimeModel = realtimeSession.model || OPENAI_REALTIME_MODEL;
       
-      // Use plain WebSocket handshake (no subprotocol auth) to avoid handshake failures.
-      // Token is sent immediately after open via an auth message.
-      const ws = new WebSocket(`${wsUrl}/functions/v1/openai-realtime-proxy`);
+      const ws = new WebSocket(
+        `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(realtimeModel)}`,
+        [
+          'realtime',
+          `openai-insecure-api-key.${realtimeSession.client_secret}`,
+          'openai-beta.realtime-v1',
+        ]
+      );
       globalWs = ws;
 
       const connectTimeout = setTimeout(() => {
@@ -626,25 +643,15 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       ws.onopen = () => {
         didOpen = true;
         clearTimeout(connectTimeout);
-        console.log('Connected to OpenAI Realtime proxy');
+        console.log('Connected to OpenAI Realtime');
         globalConnecting = false;
         reconnectAttempts = 0;
         setIsConnected(true);
         setStatus('listening');
-
-        // Authenticate immediately after socket open
-        ws.send(JSON.stringify({
-          type: 'auth',
-          token: accessToken,
-        }));
         
         // Periodic cleanup of stale tool calls during long sessions
         const cleanupInterval = setInterval(() => cleanupStaleToolCalls(), 30000);
         ws.addEventListener('close', () => clearInterval(cleanupInterval));
-        
-        // Get fresh voice selection, fallback to cedar if not realtime-compatible
-        const { selectedVoice: currentVoice } = useVoiceModeStore.getState();
-        const safeVoice = REALTIME_SUPPORTED_VOICES.includes(currentVoice) ? currentVoice : 'cedar';
         
         ws.send(JSON.stringify({
           type: 'session.update',
