@@ -432,7 +432,7 @@ export function SettingsPanel() {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-6 pb-20 pt-8 px-4 h-full overflow-y-auto scrollbar-hide">
+    <div className="w-full max-w-2xl lg:max-w-5xl mx-auto space-y-6 pb-20 pt-8 px-4 h-full overflow-y-auto scrollbar-hide">
       {/* Header */}
       <div className="text-center space-y-2">
         <div className="flex items-center justify-center gap-2">
@@ -452,7 +452,7 @@ export function SettingsPanel() {
         </TabsList>
 
         {/* Profile Tab */}
-        <TabsContent value="profile" className="space-y-6 mt-6">
+        <TabsContent value="profile" className="space-y-6 mt-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
           {/* Your Name */}
           <GlassCard variant="bubble" className="p-6 space-y-3">
             <div className="flex items-center gap-3">
@@ -594,7 +594,7 @@ export function SettingsPanel() {
         </TabsContent>
 
         {/* Account Tab */}
-        <TabsContent value="account" className="space-y-6 mt-6">
+        <TabsContent value="account" className="space-y-6 mt-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
           {/* Email Address */}
           <GlassCard variant="bubble" className="p-6">
             <div className="space-y-4">
@@ -850,7 +850,7 @@ export function SettingsPanel() {
         </TabsContent>
 
         {/* Subscription Tab */}
-        <TabsContent value="subscription" className="space-y-6 mt-6">
+        <TabsContent value="subscription" className="space-y-6 mt-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
           <GlassCard variant="bubble" className="p-6 space-y-4">
             <div className="flex items-center gap-3">
               <Crown className="h-5 w-5 text-primary-glow" />
