@@ -142,27 +142,22 @@ export function useAdminSettings() {
     if (!isAdmin || !supabase) throw new Error('Not authorized');
 
     try {
-      // First check if user exists by email in profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('user_id', user?.id) // This is a workaround since we can't query by email directly
-        .single();
+      // Use the admin-users edge function which has service role access
+      // to look up users by email via auth.admin API
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error('No session');
 
-      if (profileError) {
-        throw new Error('User not found. They must sign up first.');
-      }
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('admin-users', {
+        body: { action: 'add_by_email', email },
+      });
 
-      const { data, error } = await supabase
-        .from('admin_users')
-        .insert({ user_id: profileData.user_id, email })
-        .select()
-        .single();
+      if (fnError) throw new Error(fnError.message || 'Failed to add admin');
+      if (fnData?.error) throw new Error(fnData.error);
 
-      if (error) throw error;
-
-      setAdminUsers(prev => [...prev, data]);
-      return data;
+      // Refresh admin users list
+      await fetchAdminUsers();
+      return fnData;
     } catch (err) {
       console.error('Add admin user error:', err);
       throw err;
