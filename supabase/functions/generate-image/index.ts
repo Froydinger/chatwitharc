@@ -105,11 +105,11 @@ function buildImagePrompt(prompt: string, aspectRatio: string) {
 }
 
 async function updateJob(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   jobId: string,
   values: Record<string, unknown>,
 ) {
-  const { error } = await supabase.from("image_generation_jobs").update(values).eq("id", jobId);
+  const { error } = await supabase.from("image_generation_jobs").update(values as any).eq("id", jobId);
   if (error) {
     console.error("Failed to update image job:", jobId, error);
   }
