@@ -115,11 +115,131 @@ serve(async (req) => {
     }
 
     console.log('Image generation job created:', jobData.id);
+
+    // Process the job inline since there's no separate cron worker
+    const jobId = jobData.id;
+
+    // Mark as processing
+    await supabase.from('image_generation_jobs')
+      .update({ status: 'processing', last_attempt_at: new Date().toISOString() })
+      .eq('id', jobId);
+
+    const imageModel = 'google/gemini-3.1-flash-image-preview';
+    const finalAspectRatio = aspectRatio || '16:9';
+    const enhancedPrompt = `Generate this image in ${finalAspectRatio} aspect ratio: ${prompt}`;
+
+    const requestBody = JSON.stringify({
+      model: imageModel,
+      messages: [{ role: 'user', content: enhancedPrompt }],
+      modalities: ['image', 'text']
+    });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 55000);
+
+    let aiResponse: Response;
+    try {
+      aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: requestBody,
+        signal: controller.signal,
+      });
+    } catch (fetchErr: any) {
+      clearTimeout(timeoutId);
+      const isTimeout = fetchErr.name === 'AbortError';
+      const { errorType: et, errorMessage: em } = classifyError(isTimeout ? 408 : 500, isTimeout ? 'Request timeout' : fetchErr.message);
+      await supabase.from('image_generation_jobs')
+        .update({ status: 'failed', error_message: em, error_type: et, attempts: 1 })
+        .eq('id', jobId);
+      return new Response(JSON.stringify({ jobId, status: 'failed', error: em, errorType: et, success: false }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    clearTimeout(timeoutId);
+
+    // Retry once on 429
+    if (aiResponse.status === 429) {
+      console.log('Rate limited, retrying after 3s...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      const retryController = new AbortController();
+      const retryTimeout = setTimeout(() => retryController.abort(), 55000);
+      try {
+        aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${lovableApiKey}`, 'Content-Type': 'application/json' },
+          body: requestBody,
+          signal: retryController.signal,
+        });
+      } catch (retryErr: any) {
+        clearTimeout(retryTimeout);
+        const { errorType: et, errorMessage: em } = classifyError(429, 'Rate limit retry failed');
+        await supabase.from('image_generation_jobs')
+          .update({ status: 'failed', error_message: em, error_type: et, attempts: 1 })
+          .eq('id', jobId);
+        return new Response(JSON.stringify({ jobId, status: 'failed', error: em, errorType: et, success: false }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      clearTimeout(retryTimeout);
+    }
+
+    if (!aiResponse.ok) {
+      const errorData = await aiResponse.text();
+      const { errorType: et, errorMessage: em } = classifyError(aiResponse.status, errorData);
+      await supabase.from('image_generation_jobs')
+        .update({ status: 'failed', error_message: em, error_type: et, attempts: 1 })
+        .eq('id', jobId);
+      return new Response(JSON.stringify({ jobId, status: 'failed', error: em, errorType: et, success: false }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    let data: any;
+    try {
+      const rawText = await aiResponse.text();
+      if (!rawText || rawText.trim() === '') {
+        await supabase.from('image_generation_jobs')
+          .update({ status: 'failed', error_message: 'Empty response from model', error_type: 'empty_response', attempts: 1 })
+          .eq('id', jobId);
+        return new Response(JSON.stringify({ jobId, status: 'failed', error: 'Empty response from model', errorType: 'empty_response', success: false }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      data = JSON.parse(rawText);
+    } catch {
+      await supabase.from('image_generation_jobs')
+        .update({ status: 'failed', error_message: 'Failed to parse model response', error_type: 'parse_error', attempts: 1 })
+        .eq('id', jobId);
+      return new Response(JSON.stringify({ jobId, status: 'failed', error: 'Failed to parse response', errorType: 'parse_error', success: false }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    if (!imageUrl) {
+      await supabase.from('image_generation_jobs')
+        .update({ status: 'failed', error_message: 'No image returned from model', error_type: 'no_image_returned', attempts: 1 })
+        .eq('id', jobId);
+      return new Response(JSON.stringify({ jobId, status: 'failed', error: 'No image returned', errorType: 'no_image_returned', success: false }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Success
+    await supabase.from('image_generation_jobs')
+      .update({ status: 'completed', result_image_url: imageUrl })
+      .eq('id', jobId);
+
+    console.log('Job completed inline:', jobId);
     return new Response(JSON.stringify({
-      jobId: jobData.id,
-      status: 'pending',
-      success: true,
-      message: 'Image generation queued. You can close this tab and check back later.'
+      jobId,
+      status: 'completed',
+      imageUrl,
+      success: true
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
