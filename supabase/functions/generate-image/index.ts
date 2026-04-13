@@ -238,14 +238,14 @@ serve(async (req) => {
 
     if (!gatewayResult.ok) {
       const { errorType, errorMessage, debugDetail } = classifyError(gatewayResult.status, gatewayResult.rawText);
-      await updateJob(supabaseAdmin, jobId, {
+      await updateJob(supabaseAdmin, currentJobId, {
         status: "failed",
         error_message: errorMessage,
         error_type: errorType,
       });
 
       return jsonResponse({
-        jobId,
+        jobId: currentJobId,
         status: "failed",
         success: false,
         error: errorMessage,
@@ -256,14 +256,14 @@ serve(async (req) => {
     }
 
     if (!gatewayResult.rawText.trim()) {
-      await updateJob(supabaseAdmin, jobId, {
+      await updateJob(supabaseAdmin, currentJobId, {
         status: "failed",
         error_message: "Empty response from model",
         error_type: "empty_response",
       });
 
       return jsonResponse({
-        jobId,
+        jobId: currentJobId,
         status: "failed",
         success: false,
         error: "Empty response from model",
@@ -276,14 +276,14 @@ serve(async (req) => {
       parsed = JSON.parse(gatewayResult.rawText);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unexpected end of JSON input";
-      await updateJob(supabaseAdmin, jobId, {
+      await updateJob(supabaseAdmin, currentJobId, {
         status: "failed",
         error_message: `Failed to parse model response: ${message}`,
         error_type: "parse_error",
       });
 
       return jsonResponse({
-        jobId,
+        jobId: currentJobId,
         status: "failed",
         success: false,
         error: "Failed to parse model response",
@@ -295,14 +295,14 @@ serve(async (req) => {
 
     const imageUrl = parsed?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     if (!imageUrl) {
-      await updateJob(supabaseAdmin, jobId, {
+      await updateJob(supabaseAdmin, currentJobId, {
         status: "failed",
         error_message: "No image returned from model",
         error_type: "no_image_returned",
       });
 
       return jsonResponse({
-        jobId,
+        jobId: currentJobId,
         status: "failed",
         success: false,
         error: "No image returned from model",
@@ -311,7 +311,7 @@ serve(async (req) => {
       });
     }
 
-    await updateJob(supabaseAdmin, jobId, {
+    await updateJob(supabaseAdmin, currentJobId, {
       status: "completed",
       result_image_url: imageUrl,
       error_message: null,
@@ -319,7 +319,7 @@ serve(async (req) => {
     });
 
     return jsonResponse({
-      jobId,
+      jobId: currentJobId,
       status: "completed",
       success: true,
       imageUrl,
