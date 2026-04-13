@@ -257,7 +257,6 @@ serve(async (req) => {
   }
 });
 
-// Worker function to process pending jobs (can be called from cron or scheduler)
 export async function processImageGenerationJobs() {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
