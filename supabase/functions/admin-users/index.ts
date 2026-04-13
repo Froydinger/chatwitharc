@@ -118,6 +118,45 @@ serve(async (req) => {
       });
     }
 
+    if (action === "add_by_email") {
+      const { email } = params;
+      if (!email) throw new Error("email required");
+
+      // Look up user by email using admin API
+      const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+      if (listError) throw listError;
+
+      const targetUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+      if (!targetUser) throw new Error("User not found. They must sign up first.");
+
+      // Check if already an admin
+      const { data: existing } = await supabase
+        .from("admin_users")
+        .select("id")
+        .eq("user_id", targetUser.id)
+        .maybeSingle();
+
+      if (existing) throw new Error("User is already an admin");
+
+      const { data, error: insertError } = await supabase
+        .from("admin_users")
+        .insert({
+          user_id: targetUser.id,
+          email: targetUser.email || email,
+          role: "admin",
+          is_primary_admin: false,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      logStep("Admin added by email", { email, userId: targetUser.id });
+      return new Response(JSON.stringify({ success: true, admin: data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "toggle_admin") {
       const { userId, email } = params;
       if (!userId) throw new Error("userId required");
