@@ -231,7 +231,8 @@ serve(async (req) => {
     }
 
     jobId = jobData.id;
-    console.log("Processing image job inline:", { jobId, imageModel, aspectRatio });
+    const currentJobId = jobData.id;
+    console.log("Processing image job inline:", { jobId: currentJobId, imageModel, aspectRatio });
 
     const gatewayResult = await callImageGateway(buildImagePrompt(prompt, aspectRatio), imageModel);
 
