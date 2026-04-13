@@ -124,7 +124,12 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
     });
 
     if (!response.ok) {
-      throw new Error(`AI request failed: ${response.status}`);
+      const errText = await response.text().catch(() => '');
+      console.error('AI gateway error:', response.status, errText);
+      return new Response(
+        JSON.stringify({ prompts: [], fallback: true, error: `AI service temporarily unavailable (${response.status})` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const data = await response.json();
