@@ -1,42 +1,43 @@
 
 
-## Plan: Fix IDE / Build Flow + Build Error
+## Cascading Model Fallback for Image Generation & Editing
 
-### Problems Identified
+### Problem
+The current default model (`gemini-3.1-flash-image-preview`) is intermittently failing with error 1102. No fallback exists — if it fails, the user gets an error.
 
-1. **Build error in `process-email-queue/index.ts`** — `msg` and `id` parameters lack type annotations. This is unrelated to the IDE but blocks deployment.
+### Solution
+Add a cascading fallback chain in both edge functions: try the preferred model first, then automatically retry with the next model in the chain until one succeeds.
 
-2. **`/build` prompt never reaches the agent** — The flow is:
-   - ChatInput detects `/build`, navigates to `/apps?prompt=...`
-   - AppsPage creates a DB row, then navigates to `/apps/{id}?initialPrompt=...`
-   - `loadAndOpenProject` fetches the project (which has no files yet), calls `reopenIDECanvas`
-   - IDECanvasPanel mounts, the auto-run `useEffect` checks `ideAutoRunPrompt` — but `reopenIDECanvas` only sets `ideAutoRunPrompt: true` when `initialPrompt` is truthy AND the store field is `!!initialPrompt`. This part looks correct.
-   - **The real issue**: `messages.length > 0` guard on line 346 — if `storedMessages` from the store is populated from a previous session, the auto-run is skipped. Also, `didAutoRunInitialPromptRef` persists across re-renders if the component doesn't fully unmount between projects.
+**Fallback chain:** `gemini-3.1-flash-image-preview` → `gemini-3-pro-image-preview` → `gemini-2.5-flash-image`
 
-3. **Agent only sends the latest message, not conversation history** — `sendAgentMessage` hardcodes `messages: [{ role: 'user', content: userMessage }]` instead of forwarding the full chat history. Multi-turn conversations are broken; the agent has no context of prior exchanges.
+### Changes
 
-4. **"Done!" with no file changes** — When the agent edge function gets a request but the AI returns no tool calls (possibly due to missing context or model confusion), it falls through to `summary: "Done!"`. The client-side `sendAgentMessage` also has a fallback `summary || 'Done!'`. Combined with issue #3, the model likely gets confused with no context.
+**1. `supabase/functions/generate-image/index.ts`**
+- Extract the gateway call into a loop over the fallback chain
+- If the first model fails (5xx, 408, or error 1102), retry with the next model
+- Only return failure after all three models have been tried
+- Log which model ultimately succeeded
 
-### Fix Plan
+**2. `supabase/functions/edit-image/index.ts`**
+- Same cascading fallback logic: try preferred model → pro → 2.5 flash
+- Same retry-on-failure behavior across the chain
 
-**Step 1: Fix build error in `process-email-queue/index.ts`**
-- Add explicit types to the `.map((msg)` and `.filter((id)` callbacks (lines 125 and 130). Type `msg` as `any` and `id` as `string | null`.
+**3. `src/store/useModelStore.ts`**
+- No changes needed — the client still sends the preferred model, but the server now handles fallback automatically
 
-**Step 2: Fix `sendAgentMessage` to send full conversation history**
-- Change `src/services/agent.ts` to accept and forward the full message history instead of wrapping just the latest message.
-- Update the function signature to accept `chatHistory` array.
-- Send `messages: [...chatHistory, { role: 'user', content: userMessage }]` in the request body.
+### Technical Detail
 
-**Step 3: Fix `runAgent` in `IDECanvasPanel.tsx` to pass chat history**
-- Convert the `chatHistory` parameter (which is already passed but unused by `sendAgentMessage`) into the format the agent expects (`{ role, content }[]`).
-- Pass it through to `sendAgentMessage`.
+```text
+Client sends preferred model (e.g. gemini-3.1-flash-image-preview)
+  ↓
+Edge Function tries preferred model
+  ↓ fails (5xx / 408 / known error codes)
+Tries gemini-3-pro-image-preview
+  ↓ fails
+Tries gemini-2.5-flash-image
+  ↓ fails
+Returns error to client (all 3 exhausted)
+```
 
-**Step 4: Fix auto-run guard for `/build` prompts**
-- Reset `didAutoRunInitialPromptRef` when `ideProjectId` changes (new project).
-- Adjust the `messages.length > 0` check: only skip if messages contain actual user content (not just the empty assistant placeholder from a previous mount).
+Rate limit (429) retries stay within each model attempt. Content violations and invalid input errors skip the chain (no point retrying with a different model).
 
-**Step 5: Fix `ChatInput.tsx` navigation for `/build`**
-- Use `navigate()` from react-router instead of `window.location.href` to avoid a full page reload that could lose state.
-
-### Files to Edit
-1. `su
