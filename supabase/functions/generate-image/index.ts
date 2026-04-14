@@ -10,14 +10,14 @@ const corsHeaders = {
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const DEFAULT_IMAGE_MODEL = "google/gemini-3.1-flash-image-preview";
 const REQUEST_TIMEOUT_MS = 55_000;
 const RETRY_DELAY_MS = 3_000;
-const ALLOWED_IMAGE_MODELS = new Set([
-  "google/gemini-2.5-flash-image",
+
+const MODEL_FALLBACK_CHAIN = [
   "google/gemini-3.1-flash-image-preview",
   "google/gemini-3-pro-image-preview",
-]);
+  "google/gemini-2.5-flash-image",
+];
 
 type ErrorInfo = {
   errorType: string;
@@ -65,7 +65,7 @@ function classifyError(status: number, rawText: string): ErrorInfo {
       };
     }
   } catch {
-    // Raw text is not JSON; keep original text as debug detail.
+    // Raw text is not JSON
   }
 
   if (status === 408) {
@@ -88,11 +88,13 @@ function classifyError(status: number, rawText: string): ErrorInfo {
   return { errorType, errorMessage, debugDetail };
 }
 
-function normalizeModel(preferredModel?: unknown) {
-  if (typeof preferredModel === "string" && ALLOWED_IMAGE_MODELS.has(preferredModel)) {
-    return preferredModel;
-  }
-  return DEFAULT_IMAGE_MODEL;
+function isRetryableFailure(status: number, rawText: string): boolean {
+  // Don't retry content violations, invalid input, payment issues
+  if (status === 400 || status === 402 || status === 403) return false;
+  const lower = rawText.toLowerCase();
+  if (lower.includes("safety") || lower.includes("content policy") || lower.includes("blocked") || lower.includes("responsible ai") || lower.includes("content violation")) return false;
+  // Retry on 5xx, 408, 429, and known error codes like 1102
+  return status >= 500 || status === 408 || status === 429 || lower.includes("1102");
 }
 
 function normalizeAspectRatio(aspectRatio?: unknown) {
@@ -104,15 +106,9 @@ function buildImagePrompt(prompt: string, aspectRatio: string) {
   return `Generate an image in ${aspectRatio} aspect ratio: ${cleanedPrompt}`;
 }
 
-async function updateJob(
-  supabase: any,
-  jobId: string,
-  values: Record<string, unknown>,
-) {
+async function updateJob(supabase: any, jobId: string, values: Record<string, unknown>) {
   const { error } = await supabase.from("image_generation_jobs").update(values as any).eq("id", jobId);
-  if (error) {
-    console.error("Failed to update image job:", jobId, error);
-  }
+  if (error) console.error("Failed to update image job:", jobId, error);
 }
 
 async function callImageGateway(prompt: string, model: string) {
@@ -122,7 +118,7 @@ async function callImageGateway(prompt: string, model: string) {
     modalities: ["image", "text"],
   });
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -141,24 +137,35 @@ async function callImageGateway(prompt: string, model: string) {
       clearTimeout(timeoutId);
 
       if (response.status === 429 && attempt === 0) {
-        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
         continue;
       }
 
       return { ok: response.ok, status: response.status, rawText };
     } catch (error) {
       clearTimeout(timeoutId);
-
       if (error instanceof Error && error.name === "AbortError") {
         return { ok: false, status: 408, rawText: "Request timeout" };
       }
-
-      const message = error instanceof Error ? error.message : "Unknown fetch error";
-      return { ok: false, status: 500, rawText: message };
+      return { ok: false, status: 500, rawText: error instanceof Error ? error.message : "Unknown fetch error" };
     }
   }
 
   return { ok: false, status: 429, rawText: "Rate limit retry failed" };
+}
+
+function buildFallbackChain(preferredModel?: string): string[] {
+  // Start with preferred model, then append remaining models in order
+  const chain = [...MODEL_FALLBACK_CHAIN];
+  if (preferredModel && !chain.includes(preferredModel)) {
+    chain.unshift(preferredModel);
+  } else if (preferredModel && chain.includes(preferredModel)) {
+    // Move preferred to front
+    const idx = chain.indexOf(preferredModel);
+    chain.splice(idx, 1);
+    chain.unshift(preferredModel);
+  }
+  return chain;
 }
 
 serve(async (req) => {
@@ -167,28 +174,16 @@ serve(async (req) => {
   }
 
   if (!LOVABLE_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    return jsonResponse({
-      success: false,
-      error: "Image generation backend is not configured.",
-      errorType: "configuration_error",
-    });
+    return jsonResponse({ success: false, error: "Image generation backend is not configured.", errorType: "configuration_error" });
   }
 
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    return jsonResponse({ error: "Missing authorization header" }, 401);
-  }
+  if (!authHeader) return jsonResponse({ error: "Missing authorization header" }, 401);
 
   const token = authHeader.replace("Bearer ", "");
   const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  const {
-    data: { user },
-    error: authError,
-  } = await supabaseAdmin.auth.getUser(token);
-
-  if (authError || !user) {
-    return jsonResponse({ error: "Invalid or expired token" }, 401);
-  }
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !user) return jsonResponse({ error: "Invalid or expired token" }, 401);
 
   let jobId: string | null = null;
 
@@ -196,14 +191,10 @@ serve(async (req) => {
     const body = await req.json();
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = normalizeAspectRatio(body?.aspectRatio);
-    const imageModel = normalizeModel(body?.preferredModel);
+    const preferredModel = typeof body?.preferredModel === "string" ? body.preferredModel : undefined;
 
     if (!prompt) {
-      return jsonResponse({
-        success: false,
-        error: "Prompt is required.",
-        errorType: "invalid_request",
-      }, 400);
+      return jsonResponse({ success: false, error: "Prompt is required.", errorType: "invalid_request" }, 400);
     }
 
     const { data: jobData, error: jobError } = await supabaseAdmin
@@ -213,7 +204,7 @@ serve(async (req) => {
         job_type: "generate",
         prompt,
         aspect_ratio: aspectRatio,
-        preferred_model: imageModel,
+        preferred_model: preferredModel || MODEL_FALLBACK_CHAIN[0],
         status: "processing",
         last_attempt_at: new Date().toISOString(),
         attempts: 1,
@@ -223,124 +214,84 @@ serve(async (req) => {
 
     if (jobError || !jobData) {
       console.error("Failed to create image job:", jobError);
-      return jsonResponse({
-        success: false,
-        error: "Failed to start image generation.",
-        errorType: "queue_error",
-      });
+      return jsonResponse({ success: false, error: "Failed to start image generation.", errorType: "queue_error" });
     }
 
     jobId = jobData.id;
     const currentJobId = jobData.id;
-    console.log("Processing image job inline:", { jobId: currentJobId, imageModel, aspectRatio });
+    const fallbackChain = buildFallbackChain(preferredModel);
+    const imagePrompt = buildImagePrompt(prompt, aspectRatio);
 
-    const gatewayResult = await callImageGateway(buildImagePrompt(prompt, aspectRatio), imageModel);
+    let lastError: ErrorInfo | null = null;
+    let lastStatus = 500;
 
-    if (!gatewayResult.ok) {
-      const { errorType, errorMessage, debugDetail } = classifyError(gatewayResult.status, gatewayResult.rawText);
-      await updateJob(supabaseAdmin, currentJobId, {
-        status: "failed",
-        error_message: errorMessage,
-        error_type: errorType,
-      });
+    for (const model of fallbackChain) {
+      console.log(`Trying model ${model} for job ${currentJobId}`);
+      const result = await callImageGateway(imagePrompt, model);
 
-      return jsonResponse({
-        jobId: currentJobId,
-        status: "failed",
-        success: false,
-        error: errorMessage,
-        errorType,
-        debugDetail,
-        fallback: gatewayResult.status >= 500 || gatewayResult.status === 408,
-      });
+      if (!result.ok) {
+        const errorInfo = classifyError(result.status, result.rawText);
+        console.log(`Model ${model} failed: ${errorInfo.errorType} (${result.status})`);
+
+        if (!isRetryableFailure(result.status, result.rawText)) {
+          // Non-retryable error — return immediately
+          await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: errorInfo.errorMessage, error_type: errorInfo.errorType });
+          return jsonResponse({ jobId: currentJobId, status: "failed", success: false, error: errorInfo.errorMessage, errorType: errorInfo.errorType, debugDetail: errorInfo.debugDetail });
+        }
+
+        lastError = errorInfo;
+        lastStatus = result.status;
+        continue; // Try next model
+      }
+
+      if (!result.rawText.trim()) {
+        console.log(`Model ${model} returned empty response, trying next`);
+        lastError = { errorType: "empty_response", errorMessage: "Empty response from model", debugDetail: "Empty response" };
+        continue;
+      }
+
+      let parsed: any;
+      try {
+        parsed = JSON.parse(result.rawText);
+      } catch {
+        console.log(`Model ${model} returned unparseable response, trying next`);
+        lastError = { errorType: "parse_error", errorMessage: "Failed to parse model response", debugDetail: result.rawText.slice(0, 200) };
+        continue;
+      }
+
+      const imageUrl = parsed?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      if (!imageUrl) {
+        console.log(`Model ${model} returned no image, trying next`);
+        lastError = { errorType: "no_image_returned", errorMessage: "No image returned from model", debugDetail: result.rawText.slice(0, 500) };
+        continue;
+      }
+
+      // Success!
+      console.log(`Image generated successfully with model ${model} for job ${currentJobId}`);
+      await updateJob(supabaseAdmin, currentJobId, { status: "completed", result_image_url: imageUrl, error_message: null, error_type: null });
+      return jsonResponse({ jobId: currentJobId, status: "completed", success: true, imageUrl });
     }
 
-    if (!gatewayResult.rawText.trim()) {
-      await updateJob(supabaseAdmin, currentJobId, {
-        status: "failed",
-        error_message: "Empty response from model",
-        error_type: "empty_response",
-      });
-
-      return jsonResponse({
-        jobId: currentJobId,
-        status: "failed",
-        success: false,
-        error: "Empty response from model",
-        errorType: "empty_response",
-      });
-    }
-
-    let parsed: any;
-    try {
-      parsed = JSON.parse(gatewayResult.rawText);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unexpected end of JSON input";
-      await updateJob(supabaseAdmin, currentJobId, {
-        status: "failed",
-        error_message: `Failed to parse model response: ${message}`,
-        error_type: "parse_error",
-      });
-
-      return jsonResponse({
-        jobId: currentJobId,
-        status: "failed",
-        success: false,
-        error: "Failed to parse model response",
-        errorType: "parse_error",
-        debugDetail: message,
-        fallback: true,
-      });
-    }
-
-    const imageUrl = parsed?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    if (!imageUrl) {
-      await updateJob(supabaseAdmin, currentJobId, {
-        status: "failed",
-        error_message: "No image returned from model",
-        error_type: "no_image_returned",
-      });
-
-      return jsonResponse({
-        jobId: currentJobId,
-        status: "failed",
-        success: false,
-        error: "No image returned from model",
-        errorType: "no_image_returned",
-        debugDetail: gatewayResult.rawText.slice(0, 500),
-      });
-    }
-
+    // All models exhausted
     await updateJob(supabaseAdmin, currentJobId, {
-      status: "completed",
-      result_image_url: imageUrl,
-      error_message: null,
-      error_type: null,
+      status: "failed",
+      error_message: lastError?.errorMessage || "All models failed",
+      error_type: lastError?.errorType || "all_models_failed",
     });
 
     return jsonResponse({
       jobId: currentJobId,
-      status: "completed",
-      success: true,
-      imageUrl,
+      status: "failed",
+      success: false,
+      error: lastError?.errorMessage || "All image models failed",
+      errorType: lastError?.errorType || "all_models_failed",
+      debugDetail: lastError?.debugDetail,
+      fallback: lastStatus >= 500 || lastStatus === 408,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Error in generate-image function:", error);
-
-    if (jobId) {
-      await updateJob(supabaseAdmin, jobId, {
-        status: "failed",
-        error_message: message,
-        error_type: "processing_error",
-      });
-    }
-
-    return jsonResponse({
-      success: false,
-      error: message,
-      errorType: "processing_error",
-      fallback: true,
-    });
+    if (jobId) await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: message, error_type: "processing_error" });
+    return jsonResponse({ success: false, error: message, errorType: "processing_error", fallback: true });
   }
 });
