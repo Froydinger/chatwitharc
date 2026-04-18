@@ -400,11 +400,14 @@ export function VoiceModeController() {
     onError: (error) => {
       console.error('Voice mode error:', error);
       toast({
-        title: 'Voice Error',
+        title: 'Voice notice',
         description: error,
         variant: 'destructive',
       });
-      deactivateVoiceMode();
+      // Don't auto-deactivate on transient errors — the realtime hook handles
+      // reconnects and will only stay disconnected if the user closes the call.
+      // Tearing down the overlay here was the source of the "screen flashes
+      // back to chat" issue during long sessions.
     },
     onImageGenerate: handleImageGenerate,
     onImageDismiss: handleImageDismiss,
