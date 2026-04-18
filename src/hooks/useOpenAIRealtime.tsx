@@ -783,15 +783,27 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         globalConnecting = false;
         globalWs = null;
         globalSessionId = null;
+        sessionReady = false;
         resetTurnOrderingBuffer();
         toolCallsInFlight.clear();
+        // Tear down per-connection intervals so they don't accumulate across reconnects
+        if (cleanupInterval) {
+          clearInterval(cleanupInterval);
+          cleanupInterval = null;
+        }
+        if (keepaliveInterval) {
+          clearInterval(keepaliveInterval);
+          keepaliveInterval = null;
+        }
         setIsConnected(false);
-        
-        // If voice mode is still active, attempt auto-reconnect with exponential backoff
+
+        // If voice mode is still active, attempt auto-reconnect with exponential backoff.
+        // OpenAI Realtime caps sessions at ~30 minutes, so a long voice chat WILL
+        // hit a forced disconnect — we keep the overlay alive and reconnect silently.
         const { isActive, setStatus } = useVoiceModeStore.getState();
         if (isActive && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttempts++;
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 10000);
+          const delay = Math.min(500 * Math.pow(1.6, reconnectAttempts - 1), 8000);
           console.log(`Auto-reconnecting voice mode (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${delay}ms...`);
           setStatus('connecting');
           setTimeout(() => {
@@ -801,11 +813,18 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             }
           }, delay);
         } else if (isActive && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-          console.error('Max reconnect attempts reached, deactivating voice mode');
+          // Don't tear down the overlay — let the user decide. Stay in 'connecting'
+          // and schedule a longer cooldown attempt so transient outages can self-heal.
+          console.error('Max reconnect attempts reached — pausing reconnect loop, will retry after cooldown');
           reconnectAttempts = 0;
-          // Gracefully deactivate voice mode so overlay closes cleanly
-          useVoiceModeStore.getState().deactivateVoiceMode();
-          optionsRef.current.onError?.('Voice session ended — but don\'t worry, Arc remembers your conversation. Feel free to start a new call and pick up where you left off!');
+          setStatus('connecting');
+          optionsRef.current.onError?.('Connection unstable. Reconnecting in the background — keep talking when you see the orb pulse again, or tap X to end.');
+          setTimeout(() => {
+            const { isActive: stillActive } = useVoiceModeStore.getState();
+            if (stillActive && (!globalWs || globalWs.readyState !== WebSocket.OPEN)) {
+              connect(lastSystemPrompt || undefined);
+            }
+          }, 15000);
         } else {
           setStatus('idle');
         }
