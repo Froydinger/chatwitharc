@@ -29,9 +29,18 @@ let awaitingToolResponse = false;
 
 // Auto-reconnect state
 let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
+// Allow many reconnects — OpenAI Realtime sessions are capped at ~30 minutes,
+// so a long voice chat WILL hit at least one forced disconnect. We must keep
+// the overlay alive through it instead of tearing the user back to chat.
+const MAX_RECONNECT_ATTEMPTS = 20;
 let lastSystemPrompt: string | null = null;
 let sessionReady = false; // Gate: true after session.created received
+
+// Keepalive: OpenAI may idle-disconnect long sessions during silence or
+// long-running tool calls. Send a lightweight ping every 20s.
+let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
+// Cleanup interval reference (single source of truth — prevents duplicates on reconnect)
+let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 // Deterministic errors that should NOT trigger reconnect
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key'];
 const OPENAI_REALTIME_MODEL = 'gpt-realtime-1.5';
