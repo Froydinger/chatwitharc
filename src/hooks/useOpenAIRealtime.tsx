@@ -658,9 +658,27 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         setIsConnected(true);
         setStatus('listening');
         
-        // Periodic cleanup of stale tool calls during long sessions
-        const cleanupInterval = setInterval(() => cleanupStaleToolCalls(), 30000);
-        ws.addEventListener('close', () => clearInterval(cleanupInterval));
+        // Periodic cleanup of stale tool calls during long sessions.
+        // Use a single shared interval so reconnects don't accumulate timers.
+        if (cleanupInterval) {
+          clearInterval(cleanupInterval);
+        }
+        cleanupInterval = setInterval(() => cleanupStaleToolCalls(), 30000);
+
+        // Keepalive: OpenAI may close idle sessions. Send a no-op session.update
+        // every 20s to keep the WebSocket warm during silence or long tool calls.
+        if (keepaliveInterval) {
+          clearInterval(keepaliveInterval);
+        }
+        keepaliveInterval = setInterval(() => {
+          if (globalWs?.readyState === WebSocket.OPEN && sessionReady) {
+            try {
+              globalWs.send(JSON.stringify({ type: 'session.update', session: {} }));
+            } catch (err) {
+              console.warn('Keepalive ping failed:', err);
+            }
+          }
+        }, 20000);
         
         ws.send(JSON.stringify({
           type: 'session.update',
