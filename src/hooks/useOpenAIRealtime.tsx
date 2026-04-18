@@ -847,24 +847,35 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
     // Reset reconnect state — this is an intentional disconnect
     reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
-    
+
     // Clear phantom timer
     if (phantomCheckTimer) {
       clearTimeout(phantomCheckTimer);
       phantomCheckTimer = null;
     }
-    
+
+    // Clear keepalive + cleanup intervals
+    if (keepaliveInterval) {
+      clearInterval(keepaliveInterval);
+      keepaliveInterval = null;
+    }
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = null;
+    }
+
     if (globalWs) {
       globalWs.close();
       globalWs = null;
     }
     globalConnecting = false;
     globalSessionId = null;
+    sessionReady = false;
     resetTurnOrderingBuffer();
     toolCallsInFlight.clear();
     setIsConnected(false);
     setStatus('idle');
-    
+
     // Reset after close event has fired
     setTimeout(() => { reconnectAttempts = 0; }, 100);
   }, []);
