@@ -29,9 +29,18 @@ let awaitingToolResponse = false;
 
 // Auto-reconnect state
 let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
+// Allow many reconnects — OpenAI Realtime sessions are capped at ~30 minutes,
+// so a long voice chat WILL hit at least one forced disconnect. We must keep
+// the overlay alive through it instead of tearing the user back to chat.
+const MAX_RECONNECT_ATTEMPTS = 20;
 let lastSystemPrompt: string | null = null;
 let sessionReady = false; // Gate: true after session.created received
+
+// Keepalive: OpenAI may idle-disconnect long sessions during silence or
+// long-running tool calls. Send a lightweight ping every 20s.
+let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
+// Cleanup interval reference (single source of truth — prevents duplicates on reconnect)
+let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 // Deterministic errors that should NOT trigger reconnect
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key'];
 const OPENAI_REALTIME_MODEL = 'gpt-realtime-1.5';
@@ -649,9 +658,27 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         setIsConnected(true);
         setStatus('listening');
         
-        // Periodic cleanup of stale tool calls during long sessions
-        const cleanupInterval = setInterval(() => cleanupStaleToolCalls(), 30000);
-        ws.addEventListener('close', () => clearInterval(cleanupInterval));
+        // Periodic cleanup of stale tool calls during long sessions.
+        // Use a single shared interval so reconnects don't accumulate timers.
+        if (cleanupInterval) {
+          clearInterval(cleanupInterval);
+        }
+        cleanupInterval = setInterval(() => cleanupStaleToolCalls(), 30000);
+
+        // Keepalive: OpenAI may close idle sessions. Send a no-op session.update
+        // every 20s to keep the WebSocket warm during silence or long tool calls.
+        if (keepaliveInterval) {
+          clearInterval(keepaliveInterval);
+        }
+        keepaliveInterval = setInterval(() => {
+          if (globalWs?.readyState === WebSocket.OPEN && sessionReady) {
+            try {
+              globalWs.send(JSON.stringify({ type: 'session.update', session: {} }));
+            } catch (err) {
+              console.warn('Keepalive ping failed:', err);
+            }
+          }
+        }, 20000);
         
         ws.send(JSON.stringify({
           type: 'session.update',
@@ -756,15 +783,27 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         globalConnecting = false;
         globalWs = null;
         globalSessionId = null;
+        sessionReady = false;
         resetTurnOrderingBuffer();
         toolCallsInFlight.clear();
+        // Tear down per-connection intervals so they don't accumulate across reconnects
+        if (cleanupInterval) {
+          clearInterval(cleanupInterval);
+          cleanupInterval = null;
+        }
+        if (keepaliveInterval) {
+          clearInterval(keepaliveInterval);
+          keepaliveInterval = null;
+        }
         setIsConnected(false);
-        
-        // If voice mode is still active, attempt auto-reconnect with exponential backoff
+
+        // If voice mode is still active, attempt auto-reconnect with exponential backoff.
+        // OpenAI Realtime caps sessions at ~30 minutes, so a long voice chat WILL
+        // hit a forced disconnect — we keep the overlay alive and reconnect silently.
         const { isActive, setStatus } = useVoiceModeStore.getState();
         if (isActive && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttempts++;
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 10000);
+          const delay = Math.min(500 * Math.pow(1.6, reconnectAttempts - 1), 8000);
           console.log(`Auto-reconnecting voice mode (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${delay}ms...`);
           setStatus('connecting');
           setTimeout(() => {
@@ -774,11 +813,18 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             }
           }, delay);
         } else if (isActive && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-          console.error('Max reconnect attempts reached, deactivating voice mode');
+          // Don't tear down the overlay — let the user decide. Stay in 'connecting'
+          // and schedule a longer cooldown attempt so transient outages can self-heal.
+          console.error('Max reconnect attempts reached — pausing reconnect loop, will retry after cooldown');
           reconnectAttempts = 0;
-          // Gracefully deactivate voice mode so overlay closes cleanly
-          useVoiceModeStore.getState().deactivateVoiceMode();
-          optionsRef.current.onError?.('Voice session ended — but don\'t worry, Arc remembers your conversation. Feel free to start a new call and pick up where you left off!');
+          setStatus('connecting');
+          optionsRef.current.onError?.('Connection unstable. Reconnecting in the background — keep talking when you see the orb pulse again, or tap X to end.');
+          setTimeout(() => {
+            const { isActive: stillActive } = useVoiceModeStore.getState();
+            if (stillActive && (!globalWs || globalWs.readyState !== WebSocket.OPEN)) {
+              connect(lastSystemPrompt || undefined);
+            }
+          }, 15000);
         } else {
           setStatus('idle');
         }
@@ -801,24 +847,35 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
     // Reset reconnect state — this is an intentional disconnect
     reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
-    
+
     // Clear phantom timer
     if (phantomCheckTimer) {
       clearTimeout(phantomCheckTimer);
       phantomCheckTimer = null;
     }
-    
+
+    // Clear keepalive + cleanup intervals
+    if (keepaliveInterval) {
+      clearInterval(keepaliveInterval);
+      keepaliveInterval = null;
+    }
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = null;
+    }
+
     if (globalWs) {
       globalWs.close();
       globalWs = null;
     }
     globalConnecting = false;
     globalSessionId = null;
+    sessionReady = false;
     resetTurnOrderingBuffer();
     toolCallsInFlight.clear();
     setIsConnected(false);
     setStatus('idle');
-    
+
     // Reset after close event has fired
     setTimeout(() => { reconnectAttempts = 0; }, 100);
   }, []);
