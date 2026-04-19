@@ -56,6 +56,8 @@ const ignoredErrorPatterns = [
   'play() request was interrupted',
   'media was removed from the document',
   'The play() request was interrupted',
+  // Internal sync guard — not user-facing
+  'Cannot overwrite existing messages',
 ];
 
 // Check if an error should be ignored
