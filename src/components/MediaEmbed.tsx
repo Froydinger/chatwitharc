@@ -94,6 +94,7 @@ export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => 
             href={`https://www.youtube.com/watch?v=${youtubeId}`}
             target="_blank"
             rel="noopener noreferrer"
+            referrerPolicy="no-referrer"
             className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-400 transition-colors ml-auto shrink-0"
           >
             <ExternalLink className="h-3 w-3" />
