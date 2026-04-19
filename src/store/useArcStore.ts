@@ -82,6 +82,7 @@ export interface Message {
   ideFileCount?: number; // Number of files generated
   ideProjectId?: string; // Database project ID for cloud persistence
   memoryAction?: MemoryAction; // Track memory/search actions
+  sourceModel?: 'local' | 'cloud-chat' | 'cloud-image' | 'cloud-search' | 'cloud-vision' | 'cloud-voice' | 'cloud-code'; // Which model handled this response
 }
 
 export interface ArcState {
