@@ -23,6 +23,7 @@ import { IDEArtifactCard } from "@/components/IDEArtifactCard";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { MemoryIndicator } from "@/components/MemoryIndicator";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
+import { ModelSourceBadge } from "@/components/ModelSourceBadge";
 
 // Stable module-level constant — never recreated on re-render, so iframes never remount
 const markdownComponents = {
@@ -518,6 +519,13 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           {/* Memory/Search Action Indicator - persistent in chat */}
           {message.memoryAction && (
             <MemoryIndicator action={message.memoryAction} messageContent={message.content} />
+          )}
+
+          {/* Source model badge - shows which AI handled this response */}
+          {!isUser && message.sourceModel && message.type === 'text' && (
+            <div className="mt-2 ml-2">
+              <ModelSourceBadge source={message.sourceModel} />
+            </div>
           )}
           
           {/* Arc Logo - only show for latest assistant message */}
