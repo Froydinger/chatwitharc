@@ -37,8 +37,8 @@ export function LocalAIPanel() {
     isWebGPUSupported().then(setWebgpuSupported);
   }, [setWebgpuSupported]);
 
-  // Hide entirely on iOS — no point teasing a feature that can't run.
-  if (isIOS) return null;
+  // Note: Android Chrome supports WebGPU (Chrome 121+), so Android users get the full panel.
+  // Only iOS shows a "Desktop only" message below.
 
   const handleDownload = async () => {
     if (!isSubscribed) {
