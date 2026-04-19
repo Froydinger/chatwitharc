@@ -371,7 +371,7 @@ export function PricingPage() {
           <div className="flex items-center gap-2">
             <img src="/wtn-logo.webp" alt="Win The Night" className="h-5 w-5 object-contain rounded-sm opacity-50" />
             <p className="text-xs text-muted-foreground">
-              ArcAi by <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors underline">Win The Night</a>
+              ArcAi by <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-foreground transition-colors underline">Win The Night</a>
             </p>
           </div>
           <p className="text-xs text-muted-foreground text-center">All plans include access to all AI features. Limits reset daily at midnight.</p>

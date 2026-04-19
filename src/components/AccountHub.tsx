@@ -666,9 +666,9 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
             {/* Footer */}
             <div className="pt-4 border-t border-border/20">
               <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-                <a href="https://winthenight.productions/support" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors underline">Support</a>
+                <a href="https://winthenight.productions/support" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-primary transition-colors underline">Support</a>
                 <span>•</span>
-                <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors underline">Win the Night Productions</a>
+                <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-primary transition-colors underline">Win the Night Productions</a>
               </div>
               <p className="text-[10px] text-muted-foreground text-center mt-2">
                 © 2026 Win The Night Productions. All rights reserved.

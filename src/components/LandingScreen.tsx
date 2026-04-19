@@ -1102,7 +1102,7 @@ export function LandingScreen() {
       <footer className="relative z-10 py-12 px-6 border-t border-white/5 text-center text-gray-600 text-sm">
         <div className="flex items-center justify-center gap-3 mb-4">
           <img src="/wtn-logo.webp" alt="Win The Night" className="h-8 w-8 object-contain rounded-md opacity-60" />
-          <p>&copy; 2026 <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Win The Night Productions</a>. All rights reserved.</p>
+          <p>&copy; 2026 <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-white transition-colors">Win The Night Productions</a>. All rights reserved.</p>
         </div>
         <div className="space-x-6">
           <PrivacyTermsModal />

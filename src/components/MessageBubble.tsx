@@ -57,7 +57,7 @@ const markdownComponents = {
         </div>
       );
     }
-    return <a href={href} className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
+    return <a href={href} className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" {...props}>{children}</a>;
   },
   ul: ({node, ...props}: any) => <ul className="list-disc pl-5 mb-3 space-y-1 marker:text-primary/60" {...props} />,
   ol: ({node, ...props}: any) => <ol className="list-decimal pl-5 mb-3 space-y-1 marker:text-primary/60" {...props} />,

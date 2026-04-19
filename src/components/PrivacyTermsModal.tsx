@@ -75,7 +75,7 @@ export function PrivacyTermsModal({ trigger }: PrivacyTermsModalProps) {
                   <h3 className="font-medium mb-2">Updates & Changelogs</h3>
                   <p className="text-muted-foreground">
                     For the latest downloads and updates, visit our main site at{" "}
-                    <a href="https://chatwitharc.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                    <a href="https://chatwitharc.com" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="text-primary hover:underline">
                       chatwitharc.com
                     </a>. When we start listing changelogs, they will be available on both the main page and in your 
                     settings panel in a popup.
