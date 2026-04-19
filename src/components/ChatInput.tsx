@@ -1488,8 +1488,8 @@ ${safeCode}
                     ...aiMessages.map((m: any) => ({ role: m.role, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) })),
                   ],
                   (delta) => { streamed += delta; },
-                  abortSignal
-                );
+                  currentAbortController?.signal
+              );
 
                 if (cancelRequested) return;
 
