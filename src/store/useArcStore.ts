@@ -506,8 +506,8 @@ export const useArcStore = create<ArcState>()(
             : 0;
 
           if (existingMessageCount > 0 && newMessageCount === 0) {
-            console.error('🚨 PREVENTED DATA LOSS: Attempted to overwrite', existingMessageCount, 'messages with empty array for session:', session.id);
-            throw new Error('Cannot overwrite existing messages with empty array');
+            console.warn('⚠️ Skipped save: would overwrite', existingMessageCount, 'messages with empty array for session:', session.id);
+            return; // Silently skip — this is a guard, not an error
           }
 
           console.log('💾 Saving session:', session.id, '- Messages:', newMessageCount);
