@@ -62,6 +62,7 @@ export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => 
           href={url}
           target="_blank"
           rel="noopener noreferrer"
+          referrerPolicy="no-referrer"
           className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors group"
         >
           <Play className="h-3.5 w-3.5 text-red-500" />
