@@ -113,6 +113,7 @@ export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => 
           href={url}
           target="_blank"
           rel="noopener noreferrer"
+          referrerPolicy="no-referrer"
           className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors group"
         >
           <ImageIcon className="h-3.5 w-3.5 text-primary" />
