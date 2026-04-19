@@ -124,7 +124,19 @@ export function LocalAIPanel() {
         </div>
       </div>
 
-      {proLocked && (
+      {isIOS && (
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
+          <AlertTriangle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+          <div className="text-xs">
+            <p className="text-foreground font-medium">Available on desktop</p>
+            <p className="text-muted-foreground mt-0.5">
+              iOS Safari doesn't support WebGPU yet, so on-device AI can't run here. Open Arc on desktop (Chrome, Edge, Brave, Arc) to download Gemma 3 4B locally. Android Chrome works too.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!isIOS && proLocked && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
           <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
           <p className="text-xs text-muted-foreground">
