@@ -36,17 +36,34 @@ export function LocalAIPanel() {
       toast({ title: 'Pro feature', description: 'Arc Local requires a Pro subscription.' });
       return;
     }
+    // Immediate UI feedback the moment the button is clicked
     setStatus('loading');
     setError(null);
+    setProgress(0.01, 'Initializing WebGPU…');
+
+    // Heartbeat nudges the bar forward (cap 8%) while we wait for the first
+    // real WebLLM progress event — initial fetch can take 5-15s before any
+    // chunk arrives, so without this the bar appears frozen.
+    let lastReal = 0;
+    const heartbeat = setInterval(() => {
+      const cur = useLocalAIStore.getState().progress;
+      if (cur < 0.08 && cur === lastReal) {
+        useLocalAIStore.getState().setProgress(Math.min(0.08, cur + 0.005), 'Connecting to model registry…');
+      }
+      lastReal = useLocalAIStore.getState().progress;
+    }, 800);
+
     try {
       await loadLocalModel((e) => {
-        setProgress(e.progress, e.text);
+        setProgress(Math.max(e.progress, 0.01), e.text);
       });
+      clearInterval(heartbeat);
       setStatus('ready');
       setProgress(1, 'Ready');
       setActiveLabel(getActiveLocalModelLabel());
       toast({ title: 'Arc Local is ready', description: 'On-device AI is loaded and ready to chat.' });
     } catch (err: any) {
+      clearInterval(heartbeat);
       console.error('Local model load failed:', err);
       setError(err?.message || 'Failed to load local model');
       toast({ title: 'Load failed', description: err?.message || 'Could not load local model', variant: 'destructive' });
