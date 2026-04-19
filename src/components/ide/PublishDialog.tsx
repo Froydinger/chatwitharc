@@ -185,7 +185,7 @@ function PublishForm({
         <div className="py-6 text-center space-y-3">
           <CheckCircle2 className="h-10 w-10 text-primary mx-auto" />
           <p className="font-semibold text-sm">{isUpdate ? 'Updated successfully!' : 'Published successfully!'}</p>
-          <a href={publishedUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-primary hover:underline text-sm">
+          <a href={publishedUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="inline-flex items-center gap-1.5 text-primary hover:underline text-sm">
             <ExternalLink className="h-3.5 w-3.5" /> {publishedUrl}
           </a>
           <p className="text-xs text-muted-foreground">Your site is now live. Share this link with anyone!</p>

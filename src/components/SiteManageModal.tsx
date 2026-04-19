@@ -215,7 +215,7 @@ export function SiteManageModal({ open, onClose, site, onUpdated, onUnpublished 
             >
               {urlCopied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
             </button>
-            <a href={site.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
+            <a href={site.url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
               <ExternalLink className="w-4 h-4" />
             </a>
           </div>

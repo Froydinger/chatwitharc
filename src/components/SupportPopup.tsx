@@ -229,7 +229,7 @@ export function SupportPopup({ isOpen, onClose }: SupportPopupProps) {
 
           {/* Support Links */}
           <div className="space-y-2 pt-1">
-            <a href="https://winthenight.org/about" target="_blank" rel="noopener noreferrer" className="block">
+            <a href="https://winthenight.org/about" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="block">
               <Button variant="outline" className="w-full justify-between group glass border-glass-border text-sm h-9">
                 <span>More about Win The Night</span>
                 <ExternalLink className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />

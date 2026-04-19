@@ -62,6 +62,7 @@ export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => 
           href={url}
           target="_blank"
           rel="noopener noreferrer"
+          referrerPolicy="no-referrer"
           className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors group"
         >
           <Play className="h-3.5 w-3.5 text-red-500" />
@@ -93,6 +94,7 @@ export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => 
             href={`https://www.youtube.com/watch?v=${youtubeId}`}
             target="_blank"
             rel="noopener noreferrer"
+            referrerPolicy="no-referrer"
             className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-400 transition-colors ml-auto shrink-0"
           >
             <ExternalLink className="h-3 w-3" />
@@ -111,6 +113,7 @@ export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => 
           href={url}
           target="_blank"
           rel="noopener noreferrer"
+          referrerPolicy="no-referrer"
           className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors group"
         >
           <ImageIcon className="h-3.5 w-3.5 text-primary" />
