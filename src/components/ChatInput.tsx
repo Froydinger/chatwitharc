@@ -24,6 +24,8 @@ import { useSearchStore } from "@/store/useSearchStore";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { cn } from "@/lib/utils";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
+import { routeRequest } from "@/utils/routeRequest";
+import { streamLocalChat } from "@/services/localAI";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -1467,54 +1469,104 @@ ${safeCode}
           // We don't add a placeholder message - the thinking indicator handles UI
           
           try {
-            const ai = new AIService();
-            const result = await ai.sendMessage(
-              aiMessages,
-              profile,
-              (tools) => {
-                // Handle tool usage - show indicator if web search was used
-                if (tools.includes('web_search')) {
-                  didSearchWeb = true;
-                }
-              },
-              currentSessionId || undefined,
-              wasSearchMode, // forceWebSearch
-              false, // forceCanvas
-              false, // forceCode
-              false, // forceResearch
-              isGuestMode // guestMode
-            );
-            
-            // CRITICAL: If cancelled while waiting for response, discard everything
-            if (cancelRequested) return;
-            
-            // Determine memory action
-            let memoryAction: any = undefined;
-            if (result.memorySaved) {
-              memoryAction = { type: 'context_saved' as const, content: result.memorySaved.content };
-              // Dispatch event so ContextBlocksPanel refreshes
-              window.dispatchEvent(new CustomEvent('context-blocks-updated'));
-            } else if (result.webSources && result.webSources.length > 0) {
-              memoryAction = { type: 'web_searched' as const, sources: result.webSources, query: userMessage, searchProvider: result.searchProvider };
-            }
-            
-            // Add the complete response as a new message
-            await addMessage({
-              content: result.content,
-              role: 'assistant',
-              type: 'text',
-              memoryAction
+            // SMART ROUTING: decide if this can run on local Gemma
+            const route = routeRequest({
+              forceWebSearch: wasSearchMode,
+              forceCanvas: false,
+              forceCode: false,
+              hasImageAttachment: aiMessages.some((m: any) => Array.isArray(m.content)),
+              isImageGenerationRequest: false,
             });
-            
-            // Handle canvas/code updates if the AI decided to use those tools
-            if (result.codeUpdate) {
-              const { openCodeCanvas } = useCanvasStore.getState();
-              openCodeCanvas(result.codeUpdate.code, result.codeUpdate.language || 'html', result.codeUpdate.label);
-              await upsertCodeMessage(result.codeUpdate.code, result.codeUpdate.language || 'html', result.codeUpdate.label);
-            } else if (result.canvasUpdate) {
-              const { openCanvas } = useCanvasStore.getState();
-              openCanvas(result.canvasUpdate.content);
-              await upsertCanvasMessage(result.canvasUpdate.content, result.canvasUpdate.label);
+
+            if (route === 'local') {
+              // === LOCAL GEMMA PATH ===
+              try {
+                let streamed = '';
+                await streamLocalChat(
+                  [
+                    { role: 'system', content: 'You are ArcAI, a helpful, concise AI assistant.' },
+                    ...aiMessages.map((m: any) => ({ role: m.role, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) })),
+                  ],
+                  (delta) => { streamed += delta; },
+                  abortSignal
+                );
+
+                if (cancelRequested) return;
+
+                await addMessage({
+                  content: streamed || "I couldn't generate a response locally.",
+                  role: 'assistant',
+                  type: 'text',
+                  sourceModel: 'local',
+                });
+              } catch (localErr: any) {
+                console.warn('Local model failed, falling back to cloud:', localErr);
+                toast({ title: 'Local model error', description: 'Falling back to cloud.', variant: 'default' });
+                // Fall through to cloud path below
+                const ai = new AIService();
+                const result = await ai.sendMessage(
+                  aiMessages, profile, undefined,
+                  currentSessionId || undefined,
+                  false, false, false, false, isGuestMode
+                );
+                if (cancelRequested) return;
+                await addMessage({
+                  content: result.content,
+                  role: 'assistant',
+                  type: 'text',
+                  sourceModel: 'cloud-chat',
+                });
+              }
+            } else {
+              // === CLOUD PATH ===
+              const ai = new AIService();
+              const result = await ai.sendMessage(
+                aiMessages,
+                profile,
+                (tools) => {
+                  if (tools.includes('web_search')) {
+                    didSearchWeb = true;
+                  }
+                },
+                currentSessionId || undefined,
+                wasSearchMode, // forceWebSearch
+                false, // forceCanvas
+                false, // forceCode
+                false, // forceResearch
+                isGuestMode // guestMode
+              );
+              
+              // CRITICAL: If cancelled while waiting for response, discard everything
+              if (cancelRequested) return;
+              
+              // Determine memory action
+              let memoryAction: any = undefined;
+              if (result.memorySaved) {
+                memoryAction = { type: 'context_saved' as const, content: result.memorySaved.content };
+                window.dispatchEvent(new CustomEvent('context-blocks-updated'));
+              } else if (result.webSources && result.webSources.length > 0) {
+                memoryAction = { type: 'web_searched' as const, sources: result.webSources, query: userMessage, searchProvider: result.searchProvider };
+              }
+              
+              // Add the complete response with source tag
+              await addMessage({
+                content: result.content,
+                role: 'assistant',
+                type: 'text',
+                memoryAction,
+                sourceModel: route === 'cloud-search' || didSearchWeb ? 'cloud-search' : 'cloud-chat',
+              });
+              
+              // Handle canvas/code updates if the AI decided to use those tools
+              if (result.codeUpdate) {
+                const { openCodeCanvas } = useCanvasStore.getState();
+                openCodeCanvas(result.codeUpdate.code, result.codeUpdate.language || 'html', result.codeUpdate.label);
+                await upsertCodeMessage(result.codeUpdate.code, result.codeUpdate.language || 'html', result.codeUpdate.label);
+              } else if (result.canvasUpdate) {
+                const { openCanvas } = useCanvasStore.getState();
+                openCanvas(result.canvasUpdate.content);
+                await upsertCanvasMessage(result.canvasUpdate.content, result.canvasUpdate.label);
+              }
             }
           } catch (err: any) {
             // On error, add error message
