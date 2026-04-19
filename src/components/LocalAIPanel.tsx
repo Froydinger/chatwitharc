@@ -27,9 +27,18 @@ export function LocalAIPanel() {
   const { toast } = useToast();
   const [activeLabel, setActiveLabel] = useState<string>('Gemma 3 4B');
 
+  // iOS Safari/PWA has no WebGPU and no path to local LLMs in-browser.
+  const isIOS = typeof navigator !== 'undefined' && (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1)
+  );
+
   useEffect(() => {
     isWebGPUSupported().then(setWebgpuSupported);
   }, [setWebgpuSupported]);
+
+  // Hide entirely on iOS — no point teasing a feature that can't run.
+  if (isIOS) return null;
 
   const handleDownload = async () => {
     if (!isSubscribed) {
