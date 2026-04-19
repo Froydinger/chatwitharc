@@ -25,7 +25,7 @@ export function LocalAIPanel() {
     setStatus, setProgress, setError, setWebgpuSupported, reset,
   } = useLocalAIStore();
   const { toast } = useToast();
-  const [activeLabel, setActiveLabel] = useState<string>('Gemma 2');
+  const [activeLabel, setActiveLabel] = useState<string>('Gemma 3 4B');
 
   useEffect(() => {
     isWebGPUSupported().then(setWebgpuSupported);
@@ -78,7 +78,8 @@ export function LocalAIPanel() {
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Run Gemma on your device. Private, offline, zero tokens.
+              Run Gemma 3 4B on your device. Private, offline, zero tokens.
+              <span className="block mt-1 text-[10px] text-primary/80">Beta · text-only · falls back to Gemma 2 if needed</span>
             </p>
           </div>
         </div>
@@ -111,11 +112,11 @@ export function LocalAIPanel() {
           {status === 'idle' && (
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                One-time download (~2.5GB). Cached forever in your browser. Fully offline after that.
+                One-time download (~2.5GB for Gemma 3 4B). Cached forever in your browser. Fully offline after that. Image analysis still uses cloud.
               </p>
               <GlassButton onClick={handleDownload} className="w-full">
                 <Download className="h-4 w-4 mr-2" />
-                Download Gemma
+                Download Gemma 3 4B
               </GlassButton>
             </div>
           )}
