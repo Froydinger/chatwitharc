@@ -71,6 +71,7 @@ import {
 import { FileText, Shield, Crown, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
+import { LocalAIPanel } from "@/components/LocalAIPanel";
 
 function ModelFamilySelector({ isSubscribed }: { isSubscribed: boolean }) {
   const { modelFamily, setModelFamily } = useModelStore();
@@ -590,6 +591,9 @@ export function SettingsPanel() {
 
           {/* Model Family Selector */}
           <ModelFamilySelector isSubscribed={isSubscribed} />
+
+          {/* Arc Local — On-Device AI (Pro) */}
+          <LocalAIPanel />
 
         </TabsContent>
 
