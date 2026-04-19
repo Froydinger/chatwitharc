@@ -36,6 +36,19 @@ export function LocalAIPanel() {
       toast({ title: 'Pro feature', description: 'Arc Local requires a Pro subscription.' });
       return;
     }
+
+    // Re-check WebGPU at click time (iOS Safari/PWA reports false here)
+    const gpuOk = await isWebGPUSupported();
+    setWebgpuSupported(gpuOk);
+    if (!gpuOk) {
+      toast({
+        title: 'WebGPU not available',
+        description: 'iOS Safari and iOS PWAs don\'t support WebGPU yet. Use Chrome, Edge, Brave, or Arc on desktop.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Immediate UI feedback the moment the button is clicked
     setStatus('loading');
     setError(null);
