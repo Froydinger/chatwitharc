@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Cpu, Download, CheckCircle2, AlertTriangle, Crown, Trash2, Sparkles, Zap, Gem } from "lucide-react";
+import { Cpu, Download, CheckCircle2, AlertTriangle, Crown, Trash2, Sparkles, Zap, Gem, Feather } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import {
   deleteCachedLocalModel,
   FAST_MODEL,
   QUALITY_MODEL,
+  IOS_LITE_MODEL,
 } from "@/services/localAI";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,11 +24,17 @@ interface ModelOption {
   size: string;
   blurb: string;
   Icon: typeof Zap;
+  beta?: boolean;
+  iosOnly?: boolean;
 }
 
-const MODELS: ModelOption[] = [
+const DESKTOP_MODELS: ModelOption[] = [
   { id: FAST_MODEL,    name: "Llama 3.2 3B",  size: "~1.9 GB", blurb: "Fast, snappy replies. Best for most chats.",          Icon: Zap },
   { id: QUALITY_MODEL, name: "Gemma 2 9B",    size: "~5.0 GB", blurb: "Higher quality, slower. Best on M-series / strong GPU.", Icon: Gem },
+];
+
+const IOS_MODELS: ModelOption[] = [
+  { id: IOS_LITE_MODEL, name: "Qwen 2.5 0.5B", size: "~350 MB", blurb: "Tiny iOS-friendly model. Great for quick replies, not deep reasoning.", Icon: Feather, beta: true, iosOnly: true },
 ];
 
 export function LocalAIPanel() {
@@ -48,6 +55,8 @@ export function LocalAIPanel() {
     /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1)
   );
+
+  const MODELS: ModelOption[] = isIOS ? IOS_MODELS : DESKTOP_MODELS;
 
   useEffect(() => { isWebGPUSupported().then(setWebgpuSupported); }, [setWebgpuSupported]);
 
@@ -154,12 +163,19 @@ export function LocalAIPanel() {
       </div>
 
       {isIOS && (
-        <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
-          <AlertTriangle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 border border-primary/30">
+          <Feather className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
           <div className="text-xs">
-            <p className="text-foreground font-medium">Available on desktop</p>
-            <p className="text-muted-foreground mt-0.5">
-              iOS Safari doesn't support WebGPU yet. Open Arc on desktop (Chrome, Edge, Brave, Arc) or Android Chrome 121+.
+            <p className="text-foreground font-medium flex items-center gap-1.5">
+              iOS Lite — Beta
+              <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
+                Experimental
+              </span>
+            </p>
+            <p className="text-muted-foreground mt-0.5 leading-relaxed">
+              Safari on iOS 26 finally supports WebGPU, but with tight memory limits. We've enabled a tiny model
+              (Qwen 2.5 0.5B) so you can try local AI on iPhone — it's <em>way</em> smaller than our desktop models,
+              so expect simpler answers and the occasional weirdness. For full power, use Arc on desktop.
             </p>
           </div>
         </div>
@@ -172,21 +188,32 @@ export function LocalAIPanel() {
         </div>
       )}
 
-      {!isIOS && noWebGPU && !proLocked && (
+      {isIOS && proLocked && (
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
+          <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-muted-foreground">Upgrade to Pro to try iOS Lite (Beta).</p>
+        </div>
+      )}
+
+      {noWebGPU && !proLocked && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30">
           <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
           <div className="text-xs">
             <p className="text-foreground font-medium">WebGPU not available</p>
-            <p className="text-muted-foreground mt-0.5">Use Chrome, Edge, Brave, or Arc on desktop. Android Chrome 121+ also works.</p>
+            <p className="text-muted-foreground mt-0.5">
+              {isIOS
+                ? "Your iOS version doesn't expose WebGPU. Update to iOS 26 or newer, or use Arc on desktop."
+                : "Use Chrome, Edge, Brave, or Arc on desktop. Android Chrome 121+ also works."}
+            </p>
           </div>
         </div>
       )}
 
-      {!isIOS && !proLocked && !noWebGPU && (
+      {!proLocked && !noWebGPU && (
         <>
           {/* Per-model rows */}
           <div className="space-y-2">
-            {MODELS.map(({ id, name, size, blurb, Icon }) => {
+            {MODELS.map(({ id, name, size, blurb, Icon, beta }) => {
               const isCached = !!cached[id];
               const isActive = isCached && selectedModelId === id;
               const isDownloading = downloadingId === id;
@@ -205,6 +232,11 @@ export function LocalAIPanel() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium text-foreground">{name}</span>
                         <span className="text-[10px] text-muted-foreground">{size}</span>
+                        {beta && (
+                          <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
+                            Beta
+                          </span>
+                        )}
                         {isCached && (
                           <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30 flex items-center gap-1">
                             <CheckCircle2 className="h-2.5 w-2.5" /> Downloaded
