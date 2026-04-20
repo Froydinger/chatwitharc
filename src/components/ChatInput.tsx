@@ -1507,14 +1507,13 @@ ${safeCode}
 
                 const flush = () => {
                   rafScheduled = false;
-                  if (!pending && !lastTps) return;
+                  if (!pending) return;
                   const next = streamed;
-                  const tpsLabel = lastTps > 0 ? `\n\n<small style="opacity:0.5">${lastTps.toFixed(1)} tok/s</small>` : '';
                   useArcStore.setState((state) => {
                     const idx = state.messages.findIndex(m => m.id === placeholderId);
                     if (idx === -1) return state;
                     const updated = [...state.messages];
-                    updated[idx] = { ...updated[idx], content: next + tpsLabel };
+                    updated[idx] = { ...updated[idx], content: next };
                     return { messages: updated } as any;
                   });
                   pending = '';
