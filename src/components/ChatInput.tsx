@@ -1648,17 +1648,22 @@ ${safeCode}
                   });
                 }
 
-                // Final commit + attach memory action pill.
+                // Final commit. We MUST persist via editMessage (which writes
+                // to Supabase) — raw setState only updates memory, so the next
+                // chat-sync poll would wipe the local reply with an empty row.
                 const id = await ensurePlaceholder();
+                const finalContent = displayed || "I couldn't generate a response locally.";
+                editMessage(id, finalContent);
+                if (pendingMemoryAction) {
+                  updateMessageMemoryAction(id, pendingMemoryAction as any);
+                }
+                // Re-apply sourceModel since editMessage doesn't touch it but
+                // also doesn't strip it — defensive set in case of races.
                 useArcStore.setState((state) => {
                   const idx = state.messages.findIndex(m => m.id === id);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = {
-                    ...updated[idx],
-                    content: displayed || "I couldn't generate a response locally.",
-                    ...(pendingMemoryAction ? { memoryAction: pendingMemoryAction } : {}),
-                  } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: 'local' } as any;
                   return { messages: updated } as any;
                 });
                 setLoading(false);
