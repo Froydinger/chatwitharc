@@ -117,13 +117,13 @@ export function ChatHistoryPanel() {
   const corporateMode = useCorporateModeStore((s) => s.enabled);
 
   const sortedSessions = useMemo(() => {
-    // Corporate Mode hides cloud-synced chat history (privacy lockdown).
-    // Your real chats are safe — they just aren't shown while locked.
-    if (corporateMode) return [];
+    // In Corporate Mode, only show sessions created during corp mode (local-only).
+    // Cloud-synced chats are hidden behind the lock until corp mode is disabled.
+    const sourceSessions = corporateMode
+      ? chatSessions.filter(s => s.isLocalOnly)
+      : chatSessions;
 
-    // Convert chat sessions to unified format
-    // Use messageCount for unhydrated sessions, fall back to messages.length for hydrated ones
-    const chatItems: UnifiedSession[] = chatSessions
+    const chatItems: UnifiedSession[] = sourceSessions
       .filter(session => (session.messageCount ?? session.messages.length) > 0)
       .map(session => ({
         id: session.id,
@@ -133,7 +133,6 @@ export function ChatHistoryPanel() {
         itemCount: session.messageCount ?? session.messages.length,
       }));
 
-    // Only show chat sessions in main history (search sessions are in Search Mode tab)
     return chatItems.sort((a, b) => b.timestamp - a.timestamp);
   }, [chatSessions, corporateMode]);
 
@@ -262,11 +261,11 @@ export function ChatHistoryPanel() {
           <GlassCard className="p-8 max-w-md mx-auto">
             <MessageSquare className="h-12 w-12 text-primary-glow mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-foreground mb-2">
-              {corporateMode ? "Corporate Mode is on" : "No chat history yet"}
+              {corporateMode ? "No local chats yet" : "No chat history yet"}
             </h3>
             <p className="text-muted-foreground mb-6">
               {corporateMode
-                ? "Your saved cloud chats are hidden while Corporate Mode is active. Disable it in Settings → Privacy to see them again."
+                ? "Corporate Mode is on. Start a new chat — it'll be saved on this device only. Your cloud chats will reappear when you disable Corporate Mode."
                 : "Start your first conversation to see your chat history here."}
             </p>
             <div className="space-y-2">

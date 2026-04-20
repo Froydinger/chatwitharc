@@ -41,6 +41,7 @@ export interface ChatSession {
   resources?: ChatResource[]; // Multiple resources (search results, links) for context
   messageCount?: number; // Metadata-only count (used before hydration)
   isHydrated?: boolean; // Whether full messages have been fetched
+  isLocalOnly?: boolean; // Created during Corporate Mode — never synced to cloud
 }
 
 export type MemoryActionType = 'memory_saved' | 'memory_accessed' | 'chats_searched' | 'web_searched' | 'context_saved';
@@ -496,6 +497,10 @@ export const useArcStore = create<ArcState>()(
       },
 
       saveChatToSupabase: async (session: ChatSession) => {
+        if (session.isLocalOnly) {
+          // Corporate Mode session — stays on this device only.
+          return;
+        }
         if (!supabase || !isSupabaseConfigured) {
           console.log('⚠️ Supabase not configured, skipping save');
           return;
@@ -581,13 +586,20 @@ export const useArcStore = create<ArcState>()(
 
         // Generate a proper UUID for Supabase compatibility
         const sessionId = crypto.randomUUID();
+        // Detect Corporate Mode without importing the store (avoid circular deps)
+        let isLocalOnly = false;
+        try {
+          const raw = localStorage.getItem('arc-corporate-mode');
+          if (raw) isLocalOnly = !!JSON.parse(raw)?.state?.enabled;
+        } catch { /* ignore */ }
         const newSession: ChatSession = {
           id: sessionId,
           title: "New Chat",
           createdAt: new Date(),
           lastMessageAt: new Date(),
           messages: [],
-          canvasContent: ''
+          canvasContent: '',
+          isLocalOnly,
         };
 
         set((state) => ({
@@ -833,6 +845,11 @@ export const useArcStore = create<ArcState>()(
           if (!currentSessionId) {
             // Create new session if none exists
             currentSessionId = crypto.randomUUID();
+            let isLocalOnly = false;
+            try {
+              const raw = localStorage.getItem('arc-corporate-mode');
+              if (raw) isLocalOnly = !!JSON.parse(raw)?.state?.enabled;
+            } catch { /* ignore */ }
             sessionToSave = {
               id: currentSessionId,
               title: message.role === 'user' ? 
@@ -840,7 +857,8 @@ export const useArcStore = create<ArcState>()(
                 "New Chat",
               createdAt: new Date(),
               lastMessageAt: new Date(),
-              messages: updatedMessages
+              messages: updatedMessages,
+              isLocalOnly,
             };
             updatedSessions = [sessionToSave, ...state.chatSessions];
           } else {
@@ -853,7 +871,8 @@ export const useArcStore = create<ArcState>()(
                 (existingSession?.title || "New Chat"),
               createdAt: existingSession?.createdAt || new Date(),
               lastMessageAt: new Date(),
-              messages: updatedMessages
+              messages: updatedMessages,
+              isLocalOnly: existingSession?.isLocalOnly,
             };
             
             updatedSessions = state.chatSessions.map(session => 
