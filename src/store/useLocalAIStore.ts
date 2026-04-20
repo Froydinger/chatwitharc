@@ -38,7 +38,7 @@ export const useLocalAIStore = create<LocalAIState>()(
       setStatus: (s) => set({ status: s }),
       setProgress: (p, text) =>
         set((state) => ({ progress: p, progressText: text ?? state.progressText })),
-      setError: (msg) => set({ errorMessage: msg, status: msg ? 'error' : 'idle' }),
+      setError: (msg) => set((state) => ({ errorMessage: msg, status: msg ? 'error' : state.status })),
       setWebgpuSupported: (v) => set({ webgpuSupported: v }),
       reset: () => set({ status: 'idle', progress: 0, progressText: '', errorMessage: null }),
     }),
