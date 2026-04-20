@@ -845,6 +845,11 @@ export const useArcStore = create<ArcState>()(
           if (!currentSessionId) {
             // Create new session if none exists
             currentSessionId = crypto.randomUUID();
+            let isLocalOnly = false;
+            try {
+              const raw = localStorage.getItem('arc-corporate-mode');
+              if (raw) isLocalOnly = !!JSON.parse(raw)?.state?.enabled;
+            } catch { /* ignore */ }
             sessionToSave = {
               id: currentSessionId,
               title: message.role === 'user' ? 
@@ -852,7 +857,8 @@ export const useArcStore = create<ArcState>()(
                 "New Chat",
               createdAt: new Date(),
               lastMessageAt: new Date(),
-              messages: updatedMessages
+              messages: updatedMessages,
+              isLocalOnly,
             };
             updatedSessions = [sessionToSave, ...state.chatSessions];
           } else {
@@ -865,7 +871,8 @@ export const useArcStore = create<ArcState>()(
                 (existingSession?.title || "New Chat"),
               createdAt: existingSession?.createdAt || new Date(),
               lastMessageAt: new Date(),
-              messages: updatedMessages
+              messages: updatedMessages,
+              isLocalOnly: existingSession?.isLocalOnly,
             };
             
             updatedSessions = state.chatSessions.map(session => 
