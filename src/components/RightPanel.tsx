@@ -26,6 +26,30 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const isAdminBannerActive = useAdminBanner();
   const { isSubscribed } = useSubscription();
+  const corporateMode = useCorporateModeStore((s) => s.enabled);
+  const setCorporate = useCorporateModeStore((s) => s.setEnabled);
+  const accent = useAccentStore((s) => s.accentColor);
+  const { selectedModelId, status: localStatus } = useLocalAIStore();
+  const { toast } = useToast();
+
+  const handleToggleCorporate = () => {
+    const next = !corporateMode;
+    if (next && !(selectedModelId && localStatus === "ready")) {
+      setCorporate(true, accent);
+      toast({
+        title: "Download a local model first",
+        description: "Corporate Mode needs an on-device model. Open Settings → Arc Local to pick one.",
+      });
+      return;
+    }
+    setCorporate(next, accent);
+    toast({
+      title: next ? "Corporate Mode enabled" : "Corporate Mode disabled",
+      description: next
+        ? "Locked to on-device. Tools, attachments, and cloud chats are off."
+        : "All features and your previous theme are back.",
+    });
+  };
 
   useEffect(() => {
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
