@@ -41,6 +41,7 @@ export interface ChatSession {
   resources?: ChatResource[]; // Multiple resources (search results, links) for context
   messageCount?: number; // Metadata-only count (used before hydration)
   isHydrated?: boolean; // Whether full messages have been fetched
+  isLocalOnly?: boolean; // Created during Corporate Mode — never synced to cloud
 }
 
 export type MemoryActionType = 'memory_saved' | 'memory_accessed' | 'chats_searched' | 'web_searched' | 'context_saved';
@@ -496,6 +497,10 @@ export const useArcStore = create<ArcState>()(
       },
 
       saveChatToSupabase: async (session: ChatSession) => {
+        if (session.isLocalOnly) {
+          // Corporate Mode session — stays on this device only.
+          return;
+        }
         if (!supabase || !isSupabaseConfigured) {
           console.log('⚠️ Supabase not configured, skipping save');
           return;
