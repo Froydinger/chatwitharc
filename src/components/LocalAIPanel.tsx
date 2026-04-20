@@ -26,6 +26,7 @@ export function LocalAIPanel() {
   } = useLocalAIStore();
   const { toast } = useToast();
   const [activeLabel, setActiveLabel] = useState<string>('Gemma 2 9B');
+  const [isStarting, setIsStarting] = useState(false);
 
   // iOS Safari/PWA has no WebGPU and no path to local LLMs in-browser.
   const isIOS = typeof navigator !== 'undefined' && (
@@ -41,15 +42,23 @@ export function LocalAIPanel() {
   // Only iOS shows a "Desktop only" message below.
 
   const handleDownload = async () => {
+    if (status === 'loading' || isStarting) return;
+
     if (!isSubscribed) {
       toast({ title: 'Pro feature', description: 'Arc Local requires a Pro subscription.' });
       return;
     }
 
+    setIsStarting(true);
+    console.info('[Arc Local] Download requested');
+
     // Show immediate visual feedback before capability checks/imports complete.
     setStatus('loading');
     setError(null);
     setProgress(0.01, 'Checking device compatibility…');
+
+    // Let React paint the loading state before WebGPU/runtime work begins.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
     // Re-check WebGPU at click time (iOS Safari/PWA reports false here)
     const gpuOk = await isWebGPUSupported();
@@ -62,10 +71,11 @@ export function LocalAIPanel() {
         description: 'iOS Safari and iOS PWAs don\'t support WebGPU yet. Use Chrome, Edge, Brave, or Arc on desktop.',
         variant: 'destructive',
       });
+      setIsStarting(false);
       return;
     }
 
-    setProgress(0.01, 'Initializing WebGPU…');
+    setProgress(0.03, 'Initializing WebGPU…');
 
     // Heartbeat nudges the bar forward (cap 8%) while we wait for the first
     // real WebLLM progress event — initial fetch can take 5-15s before any
@@ -93,6 +103,8 @@ export function LocalAIPanel() {
       console.error('Local model load failed:', err);
       setError(err?.message || 'Failed to load local model');
       toast({ title: 'Load failed', description: err?.message || 'Could not load local model', variant: 'destructive' });
+    } finally {
+      setIsStarting(false);
     }
   };
 
@@ -169,10 +181,15 @@ export function LocalAIPanel() {
               <p className="text-xs text-muted-foreground">
                  One-time download for the local Gemma model. Exact size depends on the best model your browser can run. Cached in your browser for later offline use. Image analysis still uses cloud.
               </p>
-              <GlassButton onClick={handleDownload} className="w-full">
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={isStarting}
+                className="glass-shimmer inline-flex h-10 w-full items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-foreground transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+              >
                 <Download className="h-4 w-4 mr-2" />
-                 Download local model
-              </GlassButton>
+                 {isStarting ? 'Preparing download…' : 'Download local model'}
+              </button>
             </div>
           )}
 
@@ -229,9 +246,14 @@ export function LocalAIPanel() {
                 <AlertTriangle className="h-4 w-4 text-destructive mt-0.5" />
                 <p className="text-xs text-foreground">{errorMessage || 'Failed to load model'}</p>
               </div>
-              <GlassButton onClick={handleDownload} className="w-full">
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={isStarting}
+                className="glass-shimmer inline-flex h-10 w-full items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-foreground transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+              >
                 Try Again
-              </GlassButton>
+              </button>
             </div>
           )}
         </>
