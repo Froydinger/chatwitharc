@@ -16,20 +16,32 @@ export function useContextBlocks() {
   const [loading, setLoading] = useState(true);
 
   const fetchBlocks = useCallback(async () => {
-    if (!user || !supabase || !isSupabaseConfigured) {
+    if (!supabase || !isSupabaseConfigured) {
       setBlocks([]);
       setLoading(false);
       return;
     }
 
+    // Resolve user from auth directly to avoid race with useAuth context
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const activeUserId = user?.id || authUser?.id;
+
+    if (!activeUserId) {
+      setBlocks([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('context_blocks')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', activeUserId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log(`[useContextBlocks] Loaded ${data?.length || 0} memories for user ${activeUserId}`);
       setBlocks((data as any[]) || []);
     } catch (err) {
       console.error('Error fetching context blocks:', err);
