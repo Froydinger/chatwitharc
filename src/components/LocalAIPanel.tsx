@@ -24,7 +24,7 @@ export function LocalAIPanel() {
     setStatus, setProgress, setError, setWebgpuSupported, reset,
   } = useLocalAIStore();
   const { toast } = useToast();
-  const [activeLabel, setActiveLabel] = useState<string>('Gemma 2 9B');
+  const [activeLabel, setActiveLabel] = useState<string>('Llama 3.2 3B');
   const [isStarting, setIsStarting] = useState(false);
 
   // iOS Safari/PWA has no WebGPU and no path to local LLMs in-browser.
@@ -161,8 +161,8 @@ export function LocalAIPanel() {
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Run a local Gemma model on your device. Private, offline, zero tokens.
-              <span className="block mt-1 text-[10px] text-primary/80">Beta · starts with Gemma 2 9B · falls back to Gemma 2 2B if needed</span>
+              Run a fast on-device model. Private, offline, zero tokens.
+              <span className="block mt-1 text-[10px] text-primary/80">Beta · Llama 3.2 3B (~1.9GB) · falls back to Gemma 2 2B</span>
             </p>
           </div>
         </div>
@@ -207,7 +207,7 @@ export function LocalAIPanel() {
           {status === 'idle' && (
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                 One-time download for the local Gemma model. Exact size depends on the best model your browser can run. Cached in your browser for later offline use. Image analysis still uses cloud.
+                 One-time ~1.9GB download. Cached in your browser for offline use. Image analysis still uses cloud.
               </p>
               <button
                 type="button"
