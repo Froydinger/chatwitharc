@@ -27,6 +27,12 @@ import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 import { routeRequest } from "@/utils/routeRequest";
 import { streamLocalChat } from "@/services/localAI";
 import { buildLocalSystemPrompt } from "@/utils/localSystemPrompt";
+import {
+  findFirstToolCall,
+  executeLocalToolCall,
+  stripToolTags,
+  hasPartialOpenTag,
+} from "@/utils/localToolProtocol";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
