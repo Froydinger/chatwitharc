@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, MessageSquare, RefreshCw, Search, Layers } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
+import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
