@@ -56,6 +56,8 @@ export function LocalAIPanel() {
     (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1)
   );
 
+  const MODELS: ModelOption[] = isIOS ? IOS_MODELS : DESKTOP_MODELS;
+
   useEffect(() => { isWebGPUSupported().then(setWebgpuSupported); }, [setWebgpuSupported]);
 
   const refreshCache = useCallback(async () => {
