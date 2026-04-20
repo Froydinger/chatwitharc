@@ -47,8 +47,8 @@ export function useChatSync() {
     syncFromSupabase();
   }, [user?.id, syncFromSupabase, syncedUserId, isSyncing]);
 
-  // Calculate isLoaded: true if no user, or if sync completed for current user
-  const isLoaded = !user || (syncedUserId === user.id && !isSyncing);
+  // Calculate isLoaded: true if no user, in corporate mode, or sync completed for current user
+  const isLoaded = !user || corporateMode || (syncedUserId === user.id && !isSyncing);
 
   return {
     isLoaded
