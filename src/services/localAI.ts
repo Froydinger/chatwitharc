@@ -1,18 +1,19 @@
 /**
- * Local AI Service - Runs Gemma 3 4B in-browser via WebLLM (WebGPU).
- * Pro-only feature. Model downloads ~2.5GB once, cached in IndexedDB forever.
+ * Local AI Service - Runs an open-weights instruct model in-browser via WebLLM (WebGPU).
+ * Pro-only feature. Model downloads once, cached in IndexedDB forever.
+ *
+ * Default: Llama 3.2 3B Instruct (≈1.9GB) — fast TTFT on M-series Macs.
+ * Fallback (auto): Gemma 2 2B (≈1.5GB).
+ * Optional "Quality" tier: Gemma 2 9B (≈5GB) — user opt-in.
  */
 import type { MLCEngineInterface, InitProgressReport } from '@mlc-ai/web-llm';
 
-// WebLLM does not currently ship a browser runtime for Gemma 3 4B in this build.
-// Use the best supported Gemma target first, then fall back further if needed.
-export const LOCAL_MODEL_ID = 'gemma-2-9b-it-q4f16_1-MLC';
-export const LOCAL_MODEL_LABEL = 'Gemma 2 9B';
+export const FAST_MODEL = 'Llama-3.2-3B-Instruct-q4f16_1-MLC';
+export const FAST_FALLBACK = 'gemma-2-2b-it-q4f16_1-MLC';
+export const QUALITY_MODEL = 'gemma-2-9b-it-q4f16_1-MLC';
 
-const FALLBACK_MODEL_LARGE = 'gemma-2-9b-it-q4f16_1-MLC';
-const FALLBACK_MODEL_SMALL = 'gemma-2-2b-it-q4f16_1-MLC';
-
-const PREFERRED_MODEL = FALLBACK_MODEL_LARGE;
+export const LOCAL_MODEL_ID = FAST_MODEL;
+export const LOCAL_MODEL_LABEL = 'Llama 3.2 3B';
 
 let enginePromise: Promise<MLCEngineInterface> | null = null;
 let activeModelId: string | null = null;
@@ -23,13 +24,13 @@ export interface LoadProgressEvent {
 }
 
 /**
- * Check IndexedDB for an already-downloaded local model.
- * Returns the model id that is cached, or null if none.
+ * Probe IndexedDB for any already-downloaded local model.
+ * Returns the cached id, or null. Checks fast → fallback → quality.
  */
 export async function findCachedLocalModel(): Promise<string | null> {
   try {
     const { hasModelInCache } = await import('@mlc-ai/web-llm');
-    for (const id of [FALLBACK_MODEL_LARGE, FALLBACK_MODEL_SMALL]) {
+    for (const id of [FAST_MODEL, FAST_FALLBACK, QUALITY_MODEL]) {
       try {
         if (await hasModelInCache(id)) return id;
       } catch {}
@@ -51,10 +52,20 @@ export async function isWebGPUSupported(): Promise<boolean> {
 
 export async function loadLocalModel(
   onProgress?: (e: LoadProgressEvent) => void,
-  preferredModel: string = PREFERRED_MODEL
+  preferredModel: string = FAST_MODEL
 ): Promise<MLCEngineInterface> {
   if (enginePromise && activeModelId === preferredModel) {
     return enginePromise;
+  }
+
+  // If a different model is already loaded, unload it first.
+  if (enginePromise && activeModelId && activeModelId !== preferredModel) {
+    try {
+      const old = await enginePromise;
+      await old.unload?.();
+    } catch {}
+    enginePromise = null;
+    activeModelId = null;
   }
 
   const supported = await isWebGPUSupported();
@@ -71,7 +82,6 @@ export async function loadLocalModel(
     });
   };
 
-  // Try supported Gemma targets only.
   enginePromise = (async () => {
     const tryLoad = async (id: string, label: string) => {
       activeModelId = id;
@@ -79,27 +89,42 @@ export async function loadLocalModel(
       return await CreateMLCEngine(id, { initProgressCallback });
     };
 
-    try {
-      return await tryLoad(preferredModel, 'Gemma 2 9B');
-    } catch (err) {
-      console.warn('Gemma 2 9B failed, falling back to Gemma 2 2B:', err);
+    // Build per-request fallback chain: preferred → fast fallback (skip duplicates).
+    const chain: Array<{ id: string; label: string }> = [];
+    const labelFor = (id: string) =>
+      id === FAST_MODEL ? 'Llama 3.2 3B' :
+      id === QUALITY_MODEL ? 'Gemma 2 9B' :
+      id === FAST_FALLBACK ? 'Gemma 2 2B' : id;
+
+    chain.push({ id: preferredModel, label: labelFor(preferredModel) });
+    if (preferredModel !== FAST_FALLBACK) chain.push({ id: FAST_FALLBACK, label: labelFor(FAST_FALLBACK) });
+
+    let lastErr: any;
+    for (const { id, label } of chain) {
       try {
-        return await tryLoad(FALLBACK_MODEL_SMALL, 'Gemma 2 2B');
-      } catch (err2) {
-        enginePromise = null;
-        activeModelId = null;
-        throw err2;
+        return await tryLoad(id, label);
+      } catch (err) {
+        console.warn(`[Arc Local] ${label} failed:`, err);
+        lastErr = err;
       }
     }
+    enginePromise = null;
+    activeModelId = null;
+    throw lastErr;
   })();
 
   return enginePromise;
 }
 
 export function getActiveLocalModelLabel(): string {
-  if (activeModelId?.startsWith('gemma-2-9b')) return 'Gemma 2 9B';
-  if (activeModelId?.startsWith('gemma-2-2b')) return 'Gemma 2 2B (fallback)';
+  if (activeModelId === FAST_MODEL) return 'Llama 3.2 3B';
+  if (activeModelId === QUALITY_MODEL) return 'Gemma 2 9B';
+  if (activeModelId === FAST_FALLBACK) return 'Gemma 2 2B';
   return LOCAL_MODEL_LABEL;
+}
+
+export function getActiveLocalModelId(): string | null {
+  return activeModelId;
 }
 
 export async function unloadLocalModel(): Promise<void> {
@@ -120,14 +145,22 @@ export interface LocalChatMessage {
   content: string;
 }
 
+export interface LocalStreamStats {
+  tokensPerSecond: number;
+  totalDeltas: number;
+  elapsedMs: number;
+}
+
 /**
  * Stream a chat completion from the local model.
- * Mirrors the cloud streaming API for drop-in routing.
+ * `onDelta` fires for every token chunk. `onStats` fires periodically with
+ * a running tokens/sec estimate (delta count / elapsed seconds).
  */
 export async function streamLocalChat(
   messages: LocalChatMessage[],
   onDelta: (chunk: string) => void,
-  abortSignal?: AbortSignal
+  abortSignal?: AbortSignal,
+  onStats?: (s: LocalStreamStats) => void
 ): Promise<string> {
   const engine = await loadLocalModel();
 
@@ -135,10 +168,14 @@ export async function streamLocalChat(
     messages: messages as any,
     stream: true,
     temperature: 0.7,
-    max_tokens: 1024,
+    max_tokens: 512,
   });
 
   let full = '';
+  let deltas = 0;
+  const start = performance.now();
+  let lastStatsAt = start;
+
   for await (const chunk of completion as any) {
     if (abortSignal?.aborted) {
       try { (completion as any).controller?.abort?.(); } catch {}
@@ -147,8 +184,29 @@ export async function streamLocalChat(
     const delta = chunk.choices?.[0]?.delta?.content || '';
     if (delta) {
       full += delta;
+      deltas += 1;
       onDelta(delta);
+
+      const now = performance.now();
+      if (onStats && now - lastStatsAt > 250) {
+        const elapsedMs = now - start;
+        onStats({
+          tokensPerSecond: deltas / (elapsedMs / 1000),
+          totalDeltas: deltas,
+          elapsedMs,
+        });
+        lastStatsAt = now;
+      }
     }
+  }
+
+  if (onStats) {
+    const elapsedMs = performance.now() - start;
+    onStats({
+      tokensPerSecond: deltas / Math.max(elapsedMs / 1000, 0.001),
+      totalDeltas: deltas,
+      elapsedMs,
+    });
   }
   return full;
 }
