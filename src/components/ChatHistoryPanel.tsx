@@ -114,7 +114,13 @@ export function ChatHistoryPanel() {
     itemCount: number;
   };
 
+  const corporateMode = useCorporateModeStore((s) => s.enabled);
+
   const sortedSessions = useMemo(() => {
+    // Corporate Mode hides cloud-synced chat history (privacy lockdown).
+    // Your real chats are safe — they just aren't shown while locked.
+    if (corporateMode) return [];
+
     // Convert chat sessions to unified format
     // Use messageCount for unhydrated sessions, fall back to messages.length for hydrated ones
     const chatItems: UnifiedSession[] = chatSessions
@@ -129,7 +135,7 @@ export function ChatHistoryPanel() {
 
     // Only show chat sessions in main history (search sessions are in Search Mode tab)
     return chatItems.sort((a, b) => b.timestamp - a.timestamp);
-  }, [chatSessions]);
+  }, [chatSessions, corporateMode]);
 
   const totalMessages = useMemo(
     () => chatSessions.reduce((total, s) => total + (s.messageCount ?? s.messages.length), 0),
