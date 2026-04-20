@@ -36,6 +36,22 @@ export function LocalAIPanel() {
     isWebGPUSupported().then(setWebgpuSupported);
   }, [setWebgpuSupported]);
 
+  // If a previous session left status='ready', the model weights are still
+  // cached in IndexedDB — silently re-instantiate the engine so it's hot.
+  useEffect(() => {
+    if (status !== 'ready') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await loadLocalModel(() => {});
+        if (!cancelled) setActiveLabel(getActiveLocalModelLabel());
+      } catch (e) {
+        console.warn('[Arc Local] Failed to reattach cached model:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [status]);
+
   // Note: Android Chrome supports WebGPU (Chrome 121+), so Android users get the full panel.
   // Only iOS shows a "Desktop only" message below.
 
