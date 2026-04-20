@@ -1730,11 +1730,25 @@ ${safeCode}
               if (result.codeUpdate) {
                 const { openCodeCanvas } = useCanvasStore.getState();
                 openCodeCanvas(result.codeUpdate.code, result.codeUpdate.language || 'html', result.codeUpdate.label);
-                await upsertCodeMessage(result.codeUpdate.code, result.codeUpdate.language || 'html', result.codeUpdate.label);
+                const codeMsgId = await upsertCodeMessage(result.codeUpdate.code, result.codeUpdate.language || 'html', result.codeUpdate.label);
+                useArcStore.setState((state) => {
+                  const idx = state.messages.findIndex(m => m.id === codeMsgId);
+                  if (idx === -1) return state;
+                  const updated = [...state.messages];
+                  updated[idx] = { ...updated[idx], sourceModel: 'cloud-code' } as any;
+                  return { messages: updated } as any;
+                });
               } else if (result.canvasUpdate) {
                 const { openCanvas } = useCanvasStore.getState();
                 openCanvas(result.canvasUpdate.content);
-                await upsertCanvasMessage(result.canvasUpdate.content, result.canvasUpdate.label);
+                const canvasMsgId = await upsertCanvasMessage(result.canvasUpdate.content, result.canvasUpdate.label);
+                useArcStore.setState((state) => {
+                  const idx = state.messages.findIndex(m => m.id === canvasMsgId);
+                  if (idx === -1) return state;
+                  const updated = [...state.messages];
+                  updated[idx] = { ...updated[idx], sourceModel: 'cloud-canvas' } as any;
+                  return { messages: updated } as any;
+                });
               }
             }
           } catch (err: any) {
