@@ -1,12 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
 
+const MEMORY_CAP = 800;
+const CONTEXT_CAP = 600;
+const MAX_BLOCKS = 10;
+
+function clip(s: string, n: number): string {
+  const t = s.trim();
+  return t.length <= n ? t : t.slice(0, n - 1) + '…';
+}
+
 /**
- * Builds a rich system prompt for the local Gemma model that mirrors the
- * cloud `chat` edge function as closely as possible: identity, user profile,
- * memory_info, context_info, context_blocks, and admin system prompt.
+ * Tight system prompt for the local on-device model.
  *
- * Local models can't call tools (search, memory writes, etc.), so we strip
- * tool instructions and keep this focused on persona + user context.
+ * Local models are small and prefill-bound — every extra token in the system
+ * prompt slows down EVERY turn. So we:
+ *   - skip the long admin/cloud system prompt (it's tuned for tools we don't have)
+ *   - cap memory_info and context to short summaries
+ *   - keep only the 10 most recent context_blocks
  */
 export async function buildLocalSystemPrompt(profile?: {
   display_name?: string | null;
@@ -15,27 +25,11 @@ export async function buildLocalSystemPrompt(profile?: {
 } | null): Promise<string> {
   const parts: string[] = [];
 
-  // 1. Try admin system prompt (primary identity)
-  let adminPrompt = '';
-  try {
-    const { data } = await supabase
-      .from('admin_settings')
-      .select('value')
-      .eq('key', 'system_prompt')
-      .maybeSingle();
-    adminPrompt = (data?.value || '').trim();
-  } catch { /* ignore */ }
+  // Tight ArcAI persona — no tool talk, no preambles.
+  parts.push(
+    "You are ArcAI by Win The Night — a warm, concise on-device assistant. Keep answers short and natural. You are running fully offline so you cannot search the web, generate images, or use tools."
+  );
 
-  if (adminPrompt) {
-    parts.push(adminPrompt);
-  } else {
-    parts.push(
-      "You are ArcAI by Win The Night — a warm, concise, helpful AI assistant. " +
-      "Keep responses short and natural. You are currently running fully on-device (Arc Local) so you cannot search the web, generate images, or access tools."
-    );
-  }
-
-  // 2. Pull fresh profile + context_blocks from the DB
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
@@ -50,17 +44,17 @@ export async function buildLocalSystemPrompt(profile?: {
           .select('content')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(50),
+          .limit(MAX_BLOCKS),
       ]);
 
       const eff = { ...(profile || {}), ...(profileRes.data || {}) };
 
       if (eff.display_name) {
-        parts.push(`The user's name is ${eff.display_name}. Address them naturally when appropriate.`);
+        parts.push(`User's name: ${eff.display_name}.`);
       }
 
       if (eff.memory_info && eff.memory_info.trim()) {
-        parts.push(`# What you remember about the user (Arc's Brain)\n${eff.memory_info.trim()}`);
+        parts.push(`# Memory\n${clip(eff.memory_info, MEMORY_CAP)}`);
       }
 
       const blockText = (blocksRes.data || [])
@@ -70,17 +64,14 @@ export async function buildLocalSystemPrompt(profile?: {
 
       const ctx = [eff.context_info?.trim(), blockText].filter(Boolean).join('\n');
       if (ctx) {
-        parts.push(`# User context\n${ctx}`);
+        parts.push(`# Context\n${clip(ctx, CONTEXT_CAP)}`);
       }
     }
   } catch (e) {
-    console.warn('[Arc Local] Failed to load memory/context for system prompt:', e);
+    console.warn('[Arc Local] Failed to load memory/context:', e);
   }
 
-  // 3. Brevity reinforcement (matches cloud behavior)
-  parts.push(
-    "IMPORTANT: Keep responses concise and conversational. Avoid long preambles. Match the user's tone."
-  );
+  parts.push("Be brief. Match the user's tone.");
 
   return parts.join('\n\n');
 }
