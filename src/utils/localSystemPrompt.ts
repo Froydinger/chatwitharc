@@ -71,9 +71,10 @@ export async function buildLocalSystemPrompt(profile?: {
     );
   }
 
-  // 2. Local-only constraints — never mention unless asked.
+  // 2. Local capabilities — replace cloud's tool-call section with our text-tag protocol.
+  parts.push(LOCAL_TOOL_INSTRUCTIONS);
   parts.push(
-    "Capability note (do NOT mention unless directly asked): you are running without tools right now, so you cannot browse the web, search past chats, save memories, generate images, or write to a canvas. Just answer conversationally."
+    "You are running on-device, so you cannot browse the web, generate images, or write to a canvas — but you CAN recall past chats and save memories using the tags above. Never mention these limits unless directly asked."
   );
 
   // 3. Inject current date/time (cloud does this too).
