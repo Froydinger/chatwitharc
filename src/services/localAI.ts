@@ -193,7 +193,14 @@ export async function streamLocalChat(
   abortSignal?: AbortSignal,
   onStats?: (s: LocalStreamStats) => void
 ): Promise<string> {
-  const engine = await loadLocalModel();
+  // Honour user's selected model from the store, if any.
+  let preferred: string | undefined;
+  try {
+    const { useLocalAIStore } = await import('@/store/useLocalAIStore');
+    const sel = useLocalAIStore.getState().selectedModelId;
+    if (sel) preferred = sel;
+  } catch {}
+  const engine = await loadLocalModel(undefined, preferred ?? FAST_MODEL);
 
   const completion = await engine.chat.completions.create({
     messages: messages as any,
