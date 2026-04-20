@@ -13,7 +13,7 @@ import { FAST_MODEL, QUALITY_MODEL, FAST_FALLBACK, getActiveLocalModelId } from 
  */
 export type RouteDestination =
   | 'local'                     // On-device model (label resolved at render)
-  | 'cloud-chat'                // Gemini 2.5 Flash — default chat
+  | 'cloud-chat'                // Gemini 3 Flash — default chat
   | 'cloud-chat-pro'            // Gemini 2.5 Pro — heavier reasoning
   | 'cloud-search'              // Perplexity (sonar-pro)
   | 'cloud-search-tavily'       // Tavily fallback
@@ -78,7 +78,7 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
       };
     }
     case 'cloud-chat':
-      return { label: 'Cloud · Gemini 2.5 Flash', icon: 'cloud', tooltip: 'Default chat model — Google Gemini 2.5 Flash.' };
+      return { label: 'Cloud · Gemini 3 Flash', icon: 'cloud', tooltip: 'Default chat model — Google Gemini 3 Flash.' };
     case 'cloud-chat-pro':
       return { label: 'Cloud · Gemini 2.5 Pro', icon: 'cloud', tooltip: 'Heavier reasoning — Google Gemini 2.5 Pro.' };
     case 'cloud-search':

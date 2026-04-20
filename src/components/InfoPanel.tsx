@@ -14,7 +14,7 @@ export function InfoPanel() {
     {
       icon: MessageSquare,
       title: "Smart Text Chat",
-      description: "Powered by Google Gemini 2.5 Flash for lightning-fast, intelligent conversations"
+      description: "Powered by Google Gemini 3 Flash for lightning-fast, intelligent conversations"
     },
     {
       icon: ImagePlus,
