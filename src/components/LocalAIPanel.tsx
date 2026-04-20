@@ -46,10 +46,17 @@ export function LocalAIPanel() {
       return;
     }
 
+    // Show immediate visual feedback before capability checks/imports complete.
+    setStatus('loading');
+    setError(null);
+    setProgress(0.01, 'Checking device compatibility…');
+
     // Re-check WebGPU at click time (iOS Safari/PWA reports false here)
     const gpuOk = await isWebGPUSupported();
     setWebgpuSupported(gpuOk);
     if (!gpuOk) {
+      setStatus('idle');
+      setProgress(0, '');
       toast({
         title: 'WebGPU not available',
         description: 'iOS Safari and iOS PWAs don\'t support WebGPU yet. Use Chrome, Edge, Brave, or Arc on desktop.',
@@ -58,9 +65,6 @@ export function LocalAIPanel() {
       return;
     }
 
-    // Immediate UI feedback the moment the button is clicked
-    setStatus('loading');
-    setError(null);
     setProgress(0.01, 'Initializing WebGPU…');
 
     // Heartbeat nudges the bar forward (cap 8%) while we wait for the first
