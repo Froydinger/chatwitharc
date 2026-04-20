@@ -44,7 +44,13 @@ export const useLocalAIStore = create<LocalAIState>()(
     }),
     {
       name: 'arc-local-ai',
-      partialize: (state) => ({ enabled: state.enabled }),
+      partialize: (state) => ({
+        enabled: state.enabled,
+        // Persist 'ready' so a refresh after a successful download keeps the
+        // cached state; weights themselves live in IndexedDB via WebLLM.
+        status: state.status === 'ready' ? 'ready' : 'idle',
+        progress: state.status === 'ready' ? 1 : 0,
+      }),
     }
   )
 );
