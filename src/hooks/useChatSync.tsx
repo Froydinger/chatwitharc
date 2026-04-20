@@ -24,11 +24,17 @@ export function useChatSync() {
   }, [user?.id]);
 
   // Sync when user authenticates or user ID changes
+  const corporateMode = useCorporateModeStore((s) => s.enabled);
   useEffect(() => {
     const currentUserId = user?.id ?? null;
 
     // Skip if no user
     if (!currentUserId) {
+      return;
+    }
+
+    // Corporate Mode: don't pull cloud history at all (privacy lockdown).
+    if (corporateMode) {
       return;
     }
 
@@ -45,7 +51,7 @@ export function useChatSync() {
     // New user or different user - trigger sync
     console.log('🔄 useChatSync: Triggering sync for user:', currentUserId);
     syncFromSupabase();
-  }, [user?.id, syncFromSupabase, syncedUserId, isSyncing]);
+  }, [user?.id, syncFromSupabase, syncedUserId, isSyncing, corporateMode]);
 
   // Calculate isLoaded: true if no user, in corporate mode, or sync completed for current user
   const isLoaded = !user || corporateMode || (syncedUserId === user.id && !isSyncing);
