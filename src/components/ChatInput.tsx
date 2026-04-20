@@ -872,14 +872,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     }
 
     const userMessage = messageToSend.trim();
-    const images = [...selectedImages];
-    const documents = [...selectedDocuments];
+    let images = [...selectedImages];
+    let documents = [...selectedDocuments];
     // Capture mode states BEFORE clearing UI (they're needed in handleSendMessage)
-    const wasCanvasMode = shouldShowCanvasMode || checkForCanvasRequest(userMessage);
-    const wasCodingMode = shouldShowCodeMode || checkForCodingRequest(userMessage);
-    const wasImageMode = shouldShowBanana || checkForImageRequest(userMessage);
-    const wasSearchMode = shouldShowSearchMode || checkForSearchRequest(userMessage);
-    const wasBuildMode = checkForBuildRequest(userMessage);
+    let wasCanvasMode = shouldShowCanvasMode || checkForCanvasRequest(userMessage);
+    let wasCodingMode = shouldShowCodeMode || checkForCodingRequest(userMessage);
+    let wasImageMode = shouldShowBanana || checkForImageRequest(userMessage);
+    let wasSearchMode = shouldShowSearchMode || checkForSearchRequest(userMessage);
+    let wasBuildMode = checkForBuildRequest(userMessage);
 
     // Clear UI promptly
     setInputValue("");
@@ -893,34 +893,21 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
     // === CORPORATE MODE: hard-strip every cloud tool from this turn ===
     const corporateMode = useCorporateModeStore.getState().enabled;
-    let corpStrippedImages = images;
-    let corpStrippedDocs = documents;
-    let corpWasCanvasMode = wasCanvasMode;
-    let corpWasCodingMode = wasCodingMode;
-    let corpWasImageMode = wasImageMode;
-    let corpWasSearchMode = wasSearchMode;
-    let corpWasBuildMode = wasBuildMode;
     if (corporateMode) {
       if (images.length || documents.length || wasCanvasMode || wasCodingMode || wasImageMode || wasSearchMode || wasBuildMode) {
         toast({
           title: "Corporate Mode is on",
-          description: "Tools, attachments, and cloud features are disabled. Sending as plain on-device chat.",
+          description: "Tools and attachments are disabled. Sending as plain on-device chat.",
         });
       }
-      corpStrippedImages = [];
-      corpStrippedDocs = [];
-      corpWasCanvasMode = false;
-      corpWasCodingMode = false;
-      corpWasImageMode = false;
-      corpWasSearchMode = false;
-      corpWasBuildMode = false;
+      images = [];
+      documents = [];
+      wasCanvasMode = false;
+      wasCodingMode = false;
+      wasImageMode = false;
+      wasSearchMode = false;
+      wasBuildMode = false;
     }
-    // Re-bind so the rest of the function uses the corp-clean values without
-    // changing every reference downstream.
-    /* eslint-disable @typescript-eslint/no-unused-vars */
-    const _origImages = images;
-    const _origDocs = documents;
-    /* eslint-enable @typescript-eslint/no-unused-vars */
 
     // BUILD MODE: /build navigates to the App Builder
     if (wasBuildMode) {
