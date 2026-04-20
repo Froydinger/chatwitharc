@@ -946,7 +946,7 @@ export function SettingsPanel() {
       {/* Footer with Support Links */}
       <div className="mt-8 pt-6 border-t border-border/30">
         <div className="text-center space-y-2 text-sm text-muted-foreground">
-          <p className="text-xs opacity-60">Web Version v4.1</p>
+          <p className="text-xs opacity-60">Web Version v4.1.3</p>
           <div className="flex items-center justify-center gap-4">
             <a
               href="/support"
