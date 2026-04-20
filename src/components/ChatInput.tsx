@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 import { routeRequest } from "@/utils/routeRequest";
 import { streamLocalChat } from "@/services/localAI";
+import { buildLocalSystemPrompt } from "@/utils/localSystemPrompt";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -1481,10 +1482,14 @@ ${safeCode}
             if (route === 'local') {
               // === LOCAL GEMMA PATH ===
               try {
+                // Build a rich system prompt including admin prompt, profile,
+                // memory_info, context_info, and context_blocks — same context
+                // the cloud chat function gets, minus tool instructions.
+                const localSystem = await buildLocalSystemPrompt(profile as any);
                 let streamed = '';
                 await streamLocalChat(
                   [
-                    { role: 'system', content: 'You are ArcAI, a helpful, concise AI assistant.' },
+                    { role: 'system', content: localSystem },
                     ...aiMessages.map((m: any) => ({ role: m.role, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) })),
                   ],
                   (delta) => { streamed += delta; },
