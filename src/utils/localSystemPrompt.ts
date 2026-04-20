@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { LOCAL_TOOL_INSTRUCTIONS } from "@/utils/localToolProtocol";
+import { getLocalToolInstructions } from "@/utils/localToolProtocol";
+import { getActiveLocalModelId, IOS_LITE_MODEL } from "@/services/localAI";
 
 /**
  * System prompt builder for the on-device (local) model.
@@ -72,9 +73,12 @@ export async function buildLocalSystemPrompt(profile?: {
   }
 
   // 2. Local capabilities — replace cloud's tool-call section with our text-tag protocol.
-  parts.push(LOCAL_TOOL_INSTRUCTIONS);
+  const isLite = getActiveLocalModelId() === IOS_LITE_MODEL;
+  parts.push(getLocalToolInstructions());
   parts.push(
-    "You are running on-device, so you cannot browse the web, generate images, or write to a canvas — but you CAN recall past chats and save memories using the tags above. Never mention these limits unless directly asked."
+    isLite
+      ? "You are running on-device on iPhone (Qwen 2.5 0.5B). You CAN save memories about the user using the tag above, but you cannot browse the web, search past chats, generate images, or write to a canvas. Keep answers very short. Never mention these limits unless directly asked."
+      : "You are running on-device, so you cannot browse the web, generate images, or write to a canvas — but you CAN recall past chats and save memories using the tags above. Never mention these limits unless directly asked."
   );
 
   // 3. Inject current date/time (cloud does this too).

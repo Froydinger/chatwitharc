@@ -20,7 +20,26 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveLocalModelId, IOS_LITE_MODEL } from "@/services/localAI";
 
+/** Memory-only protocol used by tiny models (iOS Lite). No past-chat search. */
+export const LOCAL_TOOL_INSTRUCTIONS_MEMORY_ONLY = `
+=== ON-DEVICE TOOL (CRITICAL) ===
+You can use this inline tag in your reply. It will be EXECUTED and replaced with a result before the user sees it.
+
+1. <remember>FACT</remember>
+   Use to save a new fact about the user when they share personal info, preferences, or
+   ask you to remember something. Write in THIRD PERSON. Example:
+   <remember>The user's dog is named Luna and is a black lab.</remember>
+
+Rules:
+- Emit the tag, then STOP. Wait for the result before continuing.
+- Only use the tool when clearly relevant. Otherwise just answer.
+- Never read the tag out loud — it's a command, not part of your reply.
+- You CANNOT search past chats on this device — never claim to recall earlier conversations.
+`.trim();
+
+/** Full protocol for desktop-class models (Llama 3B, Gemma 9B). */
 export const LOCAL_TOOL_INSTRUCTIONS = `
 === ON-DEVICE TOOLS (CRITICAL) ===
 You can use these inline tags in your reply. They will be EXECUTED and replaced with results before the user sees them.
@@ -41,6 +60,13 @@ Rules:
 - Never invent past chats; if <recall> returns nothing, say so honestly.
 - Never read the tags out loud — they are commands, not part of your reply.
 `.trim();
+
+/** Returns the appropriate instruction block for the currently-loaded local model. */
+export function getLocalToolInstructions(): string {
+  return getActiveLocalModelId() === IOS_LITE_MODEL
+    ? LOCAL_TOOL_INSTRUCTIONS_MEMORY_ONLY
+    : LOCAL_TOOL_INSTRUCTIONS;
+}
 
 export type LocalToolName = 'recall' | 'remember';
 
@@ -84,7 +110,11 @@ export function stripToolTags(streamed: string): string {
 
 /** Run a parsed tool call and return a short result string to feed back to the model. */
 export async function executeLocalToolCall(call: LocalToolCall): Promise<string> {
+  // Block past-chat recall for tiny iOS Lite model — memory only.
   if (call.tool === 'recall') {
+    if (getActiveLocalModelId() === IOS_LITE_MODEL) {
+      return "Past-chat search isn't available on iOS Lite. Try asking the question directly.";
+    }
     return await runRecall(call.arg);
   }
   if (call.tool === 'remember') {

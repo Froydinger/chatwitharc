@@ -6,6 +6,7 @@ import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Mic, Code2, PenLine, Sea
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
+import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useToast } from "@/hooks/use-toast";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useProfile } from "@/hooks/useProfile";
@@ -871,14 +872,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     }
 
     const userMessage = messageToSend.trim();
-    const images = [...selectedImages];
-    const documents = [...selectedDocuments];
+    let images = [...selectedImages];
+    let documents = [...selectedDocuments];
     // Capture mode states BEFORE clearing UI (they're needed in handleSendMessage)
-    const wasCanvasMode = shouldShowCanvasMode || checkForCanvasRequest(userMessage);
-    const wasCodingMode = shouldShowCodeMode || checkForCodingRequest(userMessage);
-    const wasImageMode = shouldShowBanana || checkForImageRequest(userMessage);
-    const wasSearchMode = shouldShowSearchMode || checkForSearchRequest(userMessage);
-    const wasBuildMode = checkForBuildRequest(userMessage);
+    let wasCanvasMode = shouldShowCanvasMode || checkForCanvasRequest(userMessage);
+    let wasCodingMode = shouldShowCodeMode || checkForCodingRequest(userMessage);
+    let wasImageMode = shouldShowBanana || checkForImageRequest(userMessage);
+    let wasSearchMode = shouldShowSearchMode || checkForSearchRequest(userMessage);
+    let wasBuildMode = checkForBuildRequest(userMessage);
 
     // Clear UI promptly
     setInputValue("");
@@ -889,6 +890,24 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     setForceCanvasMode(false);
     setForceSearchMode(false);
     setShowMenu(false);
+
+    // === CORPORATE MODE: hard-strip every cloud tool from this turn ===
+    const corporateMode = useCorporateModeStore.getState().enabled;
+    if (corporateMode) {
+      if (images.length || documents.length || wasCanvasMode || wasCodingMode || wasImageMode || wasSearchMode || wasBuildMode) {
+        toast({
+          title: "Corporate Mode is on",
+          description: "Tools and attachments are disabled. Sending as plain on-device chat.",
+        });
+      }
+      images = [];
+      documents = [];
+      wasCanvasMode = false;
+      wasCodingMode = false;
+      wasImageMode = false;
+      wasSearchMode = false;
+      wasBuildMode = false;
+    }
 
     // BUILD MODE: /build navigates to the App Builder
     if (wasBuildMode) {
