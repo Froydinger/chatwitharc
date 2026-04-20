@@ -586,13 +586,20 @@ export const useArcStore = create<ArcState>()(
 
         // Generate a proper UUID for Supabase compatibility
         const sessionId = crypto.randomUUID();
+        // Detect Corporate Mode without importing the store (avoid circular deps)
+        let isLocalOnly = false;
+        try {
+          const raw = localStorage.getItem('arc-corporate-mode');
+          if (raw) isLocalOnly = !!JSON.parse(raw)?.state?.enabled;
+        } catch { /* ignore */ }
         const newSession: ChatSession = {
           id: sessionId,
           title: "New Chat",
           createdAt: new Date(),
           lastMessageAt: new Date(),
           messages: [],
-          canvasContent: ''
+          canvasContent: '',
+          isLocalOnly,
         };
 
         set((state) => ({
