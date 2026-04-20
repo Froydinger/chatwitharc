@@ -39,6 +39,37 @@ export async function findCachedLocalModel(): Promise<string | null> {
   return null;
 }
 
+/**
+ * Returns which of the known model ids are present in IndexedDB.
+ */
+export async function getCachedLocalModels(): Promise<Record<string, boolean>> {
+  const result: Record<string, boolean> = {
+    [FAST_MODEL]: false,
+    [QUALITY_MODEL]: false,
+  };
+  try {
+    const { hasModelInCache } = await import('@mlc-ai/web-llm');
+    await Promise.all(
+      Object.keys(result).map(async (id) => {
+        try { result[id] = await hasModelInCache(id); } catch {}
+      })
+    );
+  } catch {}
+  return result;
+}
+
+/**
+ * Delete a single cached model from IndexedDB.
+ */
+export async function deleteCachedLocalModel(modelId: string): Promise<void> {
+  try {
+    const { deleteModelInCache } = await import('@mlc-ai/web-llm');
+    await deleteModelInCache(modelId);
+  } catch (e) {
+    console.warn('[Arc Local] Failed to delete cached model:', modelId, e);
+  }
+}
+
 export async function isWebGPUSupported(): Promise<boolean> {
   if (typeof navigator === 'undefined' || !('gpu' in navigator)) return false;
   try {
