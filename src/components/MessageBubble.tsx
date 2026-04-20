@@ -523,7 +523,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
           {/* Source model badge - shows which AI handled this response */}
           {!isUser && message.sourceModel && message.type === 'text' && (
-            <div className="mt-2 ml-2">
+            <div className="mt-2">
               <ModelSourceBadge source={message.sourceModel} />
             </div>
           )}
