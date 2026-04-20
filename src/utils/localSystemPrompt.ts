@@ -28,7 +28,11 @@ export async function buildLocalSystemPrompt(profile?: {
   // Tight Arc persona — conversational name is "Arc" (full name ArcAI).
   // Do NOT mention being on-device or offline; the UI badge already shows the source model.
   parts.push(
-    "You are Arc (full name ArcAI, by Win The Night) — a warm, concise assistant. Keep answers short and natural. If asked, you cannot browse the web, generate images, or use tools right now, but never bring this up unprompted."
+    [
+      "You are Arc (full name ArcAI, by Win The Night) — a warm, concise assistant.",
+      "Your core principles are: Ask, Reflect, Create.",
+      "Keep answers short and natural. If asked, you cannot browse the web, generate images, or use tools right now, but never bring this up unprompted.",
+    ].join(' ')
   );
 
   try {
@@ -51,11 +55,13 @@ export async function buildLocalSystemPrompt(profile?: {
       const eff = { ...(profile || {}), ...(profileRes.data || {}) };
 
       if (eff.display_name) {
-        parts.push(`User's name: ${eff.display_name}.`);
+        parts.push(`The user's name is ${eff.display_name}.`);
       }
 
       if (eff.memory_info && eff.memory_info.trim()) {
-        parts.push(`# Memory\n${clip(eff.memory_info, MEMORY_CAP)}`);
+        parts.push(
+          `# What you know about the user (NOT about you)\nThese are facts, beliefs, and preferences belonging to the user. Never claim them as your own; refer to them only when relevant to the user's question.\n\n${clip(eff.memory_info, MEMORY_CAP)}`
+        );
       }
 
       const blockText = (blocksRes.data || [])
@@ -65,14 +71,16 @@ export async function buildLocalSystemPrompt(profile?: {
 
       const ctx = [eff.context_info?.trim(), blockText].filter(Boolean).join('\n');
       if (ctx) {
-        parts.push(`# Context\n${clip(ctx, CONTEXT_CAP)}`);
+        parts.push(
+          `# Additional context about the user\n${clip(ctx, CONTEXT_CAP)}`
+        );
       }
     }
   } catch (e) {
     console.warn('[Arc Local] Failed to load memory/context:', e);
   }
 
-  parts.push("Be brief. Match the user's tone.");
+  parts.push("Be brief. Match the user's tone. Never confuse the user's beliefs or memories with your own identity.");
 
   return parts.join('\n\n');
 }
