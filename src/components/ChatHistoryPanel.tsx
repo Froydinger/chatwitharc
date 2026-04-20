@@ -262,10 +262,12 @@ export function ChatHistoryPanel() {
           <GlassCard className="p-8 max-w-md mx-auto">
             <MessageSquare className="h-12 w-12 text-primary-glow mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-foreground mb-2">
-              No chat history yet
+              {corporateMode ? "Corporate Mode is on" : "No chat history yet"}
             </h3>
             <p className="text-muted-foreground mb-6">
-              Start your first conversation to see your chat history here.
+              {corporateMode
+                ? "Your saved cloud chats are hidden while Corporate Mode is active. Disable it in Settings → Privacy to see them again."
+                : "Start your first conversation to see your chat history here."}
             </p>
             <div className="space-y-2">
               <button
