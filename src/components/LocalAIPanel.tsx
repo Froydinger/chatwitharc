@@ -11,6 +11,7 @@ import {
   loadLocalModel,
   unloadLocalModel,
   getActiveLocalModelLabel,
+  findCachedLocalModel,
 } from "@/services/localAI";
 import { useToast } from "@/hooks/use-toast";
 
@@ -36,21 +37,32 @@ export function LocalAIPanel() {
     isWebGPUSupported().then(setWebgpuSupported);
   }, [setWebgpuSupported]);
 
-  // If a previous session left status='ready', the model weights are still
-  // cached in IndexedDB — silently re-instantiate the engine so it's hot.
+  // On mount: probe IndexedDB for a previously-downloaded model. If found,
+  // mark status as 'ready' and silently reattach the engine — even if the
+  // persisted store was wiped or this is a brand-new tab.
   useEffect(() => {
-    if (status !== 'ready') return;
     let cancelled = false;
     (async () => {
       try {
-        await loadLocalModel(() => {});
+        if (status === 'loading') return; // don't interfere with active download
+        const cachedId = await findCachedLocalModel();
+        if (!cachedId || cancelled) return;
+
+        // Mark ready immediately so UI reflects cached state.
+        if (status !== 'ready') {
+          setStatus('ready');
+          setProgress(1, 'Ready (cached)');
+        }
+        // Reattach engine using the exact cached model id (no re-download).
+        await loadLocalModel(() => {}, cachedId);
         if (!cancelled) setActiveLabel(getActiveLocalModelLabel());
       } catch (e) {
-        console.warn('[Arc Local] Failed to reattach cached model:', e);
+        console.warn('[Arc Local] Cache probe / reattach failed:', e);
       }
     })();
     return () => { cancelled = true; };
-  }, [status]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Note: Android Chrome supports WebGPU (Chrome 121+), so Android users get the full panel.
   // Only iOS shows a "Desktop only" message below.

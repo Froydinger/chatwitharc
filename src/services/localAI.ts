@@ -22,6 +22,22 @@ export interface LoadProgressEvent {
   text: string;
 }
 
+/**
+ * Check IndexedDB for an already-downloaded local model.
+ * Returns the model id that is cached, or null if none.
+ */
+export async function findCachedLocalModel(): Promise<string | null> {
+  try {
+    const { hasModelInCache } = await import('@mlc-ai/web-llm');
+    for (const id of [FALLBACK_MODEL_LARGE, FALLBACK_MODEL_SMALL]) {
+      try {
+        if (await hasModelInCache(id)) return id;
+      } catch {}
+    }
+  } catch {}
+  return null;
+}
+
 export async function isWebGPUSupported(): Promise<boolean> {
   if (typeof navigator === 'undefined' || !('gpu' in navigator)) return false;
   try {
