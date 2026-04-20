@@ -82,7 +82,23 @@ export interface Message {
   ideFileCount?: number; // Number of files generated
   ideProjectId?: string; // Database project ID for cloud persistence
   memoryAction?: MemoryAction; // Track memory/search actions
-  sourceModel?: 'local' | 'cloud-chat' | 'cloud-image' | 'cloud-search' | 'cloud-vision' | 'cloud-voice' | 'cloud-code'; // Which model handled this response
+  // Which model produced this response. Mirrors RouteDestination so the
+  // badge can show the exact model name (e.g. "Gemini 2.5 Pro" vs "Flash").
+  sourceModel?:
+    | 'local'
+    | 'cloud-chat'
+    | 'cloud-chat-pro'
+    | 'cloud-search'
+    | 'cloud-search-tavily'
+    | 'cloud-vision'
+    | 'cloud-document'
+    | 'cloud-voice'
+    | 'cloud-code'
+    | 'cloud-canvas'
+    | 'cloud-image'
+    | 'cloud-image-pro'
+    | 'cloud-image-edit'
+    | 'cloud-ide';
 }
 
 export interface ArcState {

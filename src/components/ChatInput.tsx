@@ -697,7 +697,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         content: result.content,
         role: "assistant",
         type: "text",
-        memoryAction
+        memoryAction,
+        sourceModel: didSearchWeb ? (result.searchProvider === 'tavily' ? 'cloud-search-tavily' : 'cloud-search') : 'cloud-chat',
       });
     } catch (err: any) {
       console.error('Chat error:', err);
@@ -710,6 +711,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         content: "Sorry, I encountered an error. Please try again.",
         role: "assistant",
         type: "text",
+        sourceModel: 'cloud-chat',
       });
     }
   }, [messages, isLoading, setLoading, addMessage, toast, setSearchingChats, setAccessingMemory]);
@@ -920,7 +922,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         await addMessage({
           content: "✨ Image generation, canvas, code, and document analysis features are available when you create a free account! Sign up to unlock all of Arc's capabilities.",
           role: "assistant",
-          type: "text"
+          type: "text",
+          sourceModel: 'cloud-chat',
         });
         setLoading(false);
         return;
@@ -950,7 +953,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               doc.name,
               doc.type || 'application/octet-stream'
             );
-            await addMessage({ content: response, role: "assistant", type: "text" });
+            await addMessage({ content: response, role: "assistant", type: "text", sourceModel: 'cloud-document' });
           }
         } catch (err: any) {
           toast({ title: "Error", description: err?.message || "Failed to analyze document", variant: "destructive" });
@@ -958,6 +961,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             content: "Sorry, I couldn't analyze the document. Please try again.",
             role: "assistant",
             type: "text",
+            sourceModel: 'cloud-document',
           });
         }
         return;
@@ -997,6 +1001,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             role: "assistant",
             type: "image-generating",
             imagePrompt: userMessage,
+            sourceModel: 'cloud-image-edit',
           });
           setGeneratingImage(true);
 
@@ -1026,6 +1031,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               role: "assistant",
               type: "image",
               imageUrl: finalUrl,
+              sourceModel: 'cloud-image-edit',
             });
           } catch (err: any) {
             const errMsg = err?.message || 'Image editing failed. Please try again.';
@@ -1033,6 +1039,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               content: errMsg,
               role: "assistant",
               type: "text",
+              sourceModel: 'cloud-image-edit',
             });
           } finally {
             setGeneratingImage(false);
@@ -1063,13 +1070,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           const analysisPrompt =
             userMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`;
           const response = await ai.sendMessageWithImage([{ role: "user", content: analysisPrompt }], base64s);
-          await addMessage({ content: response, role: "assistant", type: "text" });
+          await addMessage({ content: response, role: "assistant", type: "text", sourceModel: 'cloud-vision' });
         } catch {
           toast({ title: "Error", description: "Failed to analyze images", variant: "destructive" });
           await addMessage({
             content: "Sorry, I couldn't analyze these images. Please try again.",
             role: "assistant",
             type: "text",
+            sourceModel: 'cloud-vision',
           });
         }
         return;
@@ -1088,6 +1096,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           role: "assistant",
           type: "image-generating",
           imagePrompt,
+          sourceModel: 'cloud-image',
         });
         setGeneratingImage(true);
 
@@ -1118,6 +1127,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             role: "assistant",
             type: "image",
             imageUrl: finalUrl,
+            sourceModel: 'cloud-image',
           });
         } catch (err: any) {
           const errMsg = err?.message || 'Image generation failed. Please try again.';
@@ -1125,6 +1135,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             content: errMsg,
             role: "assistant",
             type: "text",
+            sourceModel: 'cloud-image',
           });
         } finally {
           setGeneratingImage(false);
@@ -1144,6 +1155,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             role: "assistant",
             type: "image-generating",
             imagePrompt: userMessage,
+            sourceModel: 'cloud-image-edit',
           });
           setGeneratingImage(true);
 
@@ -1171,6 +1183,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               role: "assistant",
               type: "image",
               imageUrl: finalUrl,
+              sourceModel: 'cloud-image-edit',
             });
           } catch (err: any) {
             const errMsg = err?.message || 'Image editing failed. Please try again.';
@@ -1178,6 +1191,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               content: errMsg,
               role: "assistant",
               type: "text",
+              sourceModel: 'cloud-image-edit',
             });
           } finally {
             setGeneratingImage(false);
@@ -1418,7 +1432,15 @@ ${safeCode}
 
               if (result.mode === 'code') {
                 // Save to history FIRST
-                await upsertCodeMessage(finalContent, lang, result.label, memoryAction);
+                const codeMsgId = await upsertCodeMessage(finalContent, lang, result.label, memoryAction);
+                // Tag the source model on the saved code tile
+                useArcStore.setState((state) => {
+                  const idx = state.messages.findIndex(m => m.id === codeMsgId);
+                  if (idx === -1) return state;
+                  const updated = [...state.messages];
+                  updated[idx] = { ...updated[idx], sourceModel: 'cloud-code' } as any;
+                  return { messages: updated } as any;
+                });
 
                 // Read content back from saved message (same source as tile click)
                 const messages = useArcStore.getState().messages;
@@ -1441,7 +1463,14 @@ ${safeCode}
                 }
               } else if (result.mode === 'canvas') {
                 // Save to history FIRST
-                await upsertCanvasMessage(finalContent, result.label, memoryAction);
+                const canvasMsgId = await upsertCanvasMessage(finalContent, result.label, memoryAction);
+                useArcStore.setState((state) => {
+                  const idx = state.messages.findIndex(m => m.id === canvasMsgId);
+                  if (idx === -1) return state;
+                  const updated = [...state.messages];
+                  updated[idx] = { ...updated[idx], sourceModel: 'cloud-canvas' } as any;
+                  return { messages: updated } as any;
+                });
 
                 // Read content back from saved message
                 const messages = useArcStore.getState().messages;
@@ -1692,18 +1721,34 @@ ${safeCode}
                 role: 'assistant',
                 type: 'text',
                 memoryAction,
-                sourceModel: route === 'cloud-search' || didSearchWeb ? 'cloud-search' : 'cloud-chat',
+                sourceModel: didSearchWeb
+                  ? (result.searchProvider === 'tavily' ? 'cloud-search-tavily' : 'cloud-search')
+                  : 'cloud-chat',
               });
               
               // Handle canvas/code updates if the AI decided to use those tools
               if (result.codeUpdate) {
                 const { openCodeCanvas } = useCanvasStore.getState();
                 openCodeCanvas(result.codeUpdate.code, result.codeUpdate.language || 'html', result.codeUpdate.label);
-                await upsertCodeMessage(result.codeUpdate.code, result.codeUpdate.language || 'html', result.codeUpdate.label);
+                const codeMsgId = await upsertCodeMessage(result.codeUpdate.code, result.codeUpdate.language || 'html', result.codeUpdate.label);
+                useArcStore.setState((state) => {
+                  const idx = state.messages.findIndex(m => m.id === codeMsgId);
+                  if (idx === -1) return state;
+                  const updated = [...state.messages];
+                  updated[idx] = { ...updated[idx], sourceModel: 'cloud-code' } as any;
+                  return { messages: updated } as any;
+                });
               } else if (result.canvasUpdate) {
                 const { openCanvas } = useCanvasStore.getState();
                 openCanvas(result.canvasUpdate.content);
-                await upsertCanvasMessage(result.canvasUpdate.content, result.canvasUpdate.label);
+                const canvasMsgId = await upsertCanvasMessage(result.canvasUpdate.content, result.canvasUpdate.label);
+                useArcStore.setState((state) => {
+                  const idx = state.messages.findIndex(m => m.id === canvasMsgId);
+                  if (idx === -1) return state;
+                  const updated = [...state.messages];
+                  updated[idx] = { ...updated[idx], sourceModel: 'cloud-canvas' } as any;
+                  return { messages: updated } as any;
+                });
               }
             }
           } catch (err: any) {
@@ -1711,7 +1756,8 @@ ${safeCode}
             await addMessage({
               content: 'Sorry, I encountered an error. Please try again.',
               role: 'assistant',
-              type: 'text'
+              type: 'text',
+              sourceModel: 'cloud-chat',
             });
             throw err; // Re-throw to be caught by outer catch
           }
@@ -1726,6 +1772,7 @@ ${safeCode}
           content: "Sorry, I encountered an error. Please try again.",
           role: "assistant",
           type: "text",
+          sourceModel: 'cloud-chat',
         });
       }
     } finally {
