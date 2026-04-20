@@ -4,18 +4,19 @@ import { persist } from 'zustand/middleware';
 export type LocalAIStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 interface LocalAIState {
-  // User preference: route to local when possible
   enabled: boolean;
   setEnabled: (v: boolean) => void;
 
-  // Runtime state
+  // Which downloaded model the user wants to use ('' = none picked yet)
+  selectedModelId: string;
+  setSelectedModelId: (id: string) => void;
+
   status: LocalAIStatus;
-  progress: number; // 0-1
+  progress: number;
   progressText: string;
   errorMessage: string | null;
   webgpuSupported: boolean | null;
 
-  // Actions
   setStatus: (s: LocalAIStatus) => void;
   setProgress: (p: number, text?: string) => void;
   setError: (msg: string | null) => void;
@@ -28,6 +29,9 @@ export const useLocalAIStore = create<LocalAIState>()(
     (set) => ({
       enabled: false,
       setEnabled: (v) => set({ enabled: v }),
+
+      selectedModelId: '',
+      setSelectedModelId: (id) => set({ selectedModelId: id }),
 
       status: 'idle',
       progress: 0,
@@ -46,8 +50,8 @@ export const useLocalAIStore = create<LocalAIState>()(
       name: 'arc-local-ai',
       partialize: (state) => ({
         enabled: state.enabled,
-        // Persist 'ready' so a refresh after a successful download keeps the
-        // cached state; weights themselves live in IndexedDB via WebLLM.
+        selectedModelId: state.selectedModelId,
+        // Persist 'ready' so weights remain marked-loaded across refresh.
         status: state.status === 'ready' ? 'ready' : 'idle',
         progress: state.status === 'ready' ? 1 : 0,
       }),

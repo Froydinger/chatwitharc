@@ -39,6 +39,37 @@ export async function findCachedLocalModel(): Promise<string | null> {
   return null;
 }
 
+/**
+ * Returns which of the known model ids are present in IndexedDB.
+ */
+export async function getCachedLocalModels(): Promise<Record<string, boolean>> {
+  const result: Record<string, boolean> = {
+    [FAST_MODEL]: false,
+    [QUALITY_MODEL]: false,
+  };
+  try {
+    const { hasModelInCache } = await import('@mlc-ai/web-llm');
+    await Promise.all(
+      Object.keys(result).map(async (id) => {
+        try { result[id] = await hasModelInCache(id); } catch {}
+      })
+    );
+  } catch {}
+  return result;
+}
+
+/**
+ * Delete a single cached model from IndexedDB.
+ */
+export async function deleteCachedLocalModel(modelId: string): Promise<void> {
+  try {
+    const { deleteModelInCache } = await import('@mlc-ai/web-llm');
+    await deleteModelInCache(modelId);
+  } catch (e) {
+    console.warn('[Arc Local] Failed to delete cached model:', modelId, e);
+  }
+}
+
 export async function isWebGPUSupported(): Promise<boolean> {
   if (typeof navigator === 'undefined' || !('gpu' in navigator)) return false;
   try {
@@ -162,7 +193,14 @@ export async function streamLocalChat(
   abortSignal?: AbortSignal,
   onStats?: (s: LocalStreamStats) => void
 ): Promise<string> {
-  const engine = await loadLocalModel();
+  // Honour user's selected model from the store, if any.
+  let preferred: string | undefined;
+  try {
+    const { useLocalAIStore } = await import('@/store/useLocalAIStore');
+    const sel = useLocalAIStore.getState().selectedModelId;
+    if (sel) preferred = sel;
+  } catch {}
+  const engine = await loadLocalModel(undefined, preferred ?? FAST_MODEL);
 
   const completion = await engine.chat.completions.create({
     messages: messages as any,
