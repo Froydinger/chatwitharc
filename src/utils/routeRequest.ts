@@ -4,6 +4,7 @@
  * or stay on the cloud (image gen, web search, voice, vision, code, etc).
  */
 import { useLocalAIStore } from '@/store/useLocalAIStore';
+import { FAST_MODEL, QUALITY_MODEL, FAST_FALLBACK, getActiveLocalModelId } from '@/services/localAI';
 
 export type RouteDestination =
   | 'local'           // Local Gemma — plain chat / reasoning / writing
