@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import { X, Crown, Quote, ChevronLeft } from "lucide-react";
+import { X, Crown, Quote, ChevronLeft, Lock, Unlock } from "lucide-react";
+import { useCorporateModeStore } from "@/store/useCorporateModeStore";
+import { useAccentStore } from "@/store/useAccentStore";
+import { useLocalAIStore } from "@/store/useLocalAIStore";
+import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
