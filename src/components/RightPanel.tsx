@@ -121,7 +121,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                 activeTab === "quote" ? "text-muted-foreground hover:text-foreground cursor-pointer" : "text-foreground cursor-default"
               )}
             >
-              Chat History
+              Chats
             </button>
             <div className="flex items-center gap-2">
               {activeTab === "quote" ? (
@@ -152,6 +152,20 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                     )}
                   >
                     <Quote className="h-3.5 w-3.5 mr-1.5" /> Daily Quote
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleToggleCorporate}
+                    title={corporateMode ? "Disable Corporate Mode" : "Enable Corporate Mode"}
+                    className={cn(
+                      "rounded-full transition-colors",
+                      corporateMode
+                        ? "bg-primary/15 text-primary hover:bg-primary/25"
+                        : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    )}
+                  >
+                    {corporateMode ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
                   </Button>
                   <Button
                     variant="ghost"
