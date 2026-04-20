@@ -1165,12 +1165,16 @@ useEffect(() => {
                         let count = 0;
                         for (const item of imported) {
                           if (item.content && typeof item.content === 'string') {
-                            await addBlock(item.content);
-                            count++;
+                            const saved = await addBlock(item.content);
+                            if (saved) count++;
                           }
                         }
                         const { toast } = await import("@/hooks/use-toast");
-                        toast({ title: `Imported ${count} memories` });
+                        toast({
+                          title: count > 0 ? `Imported ${count} memories` : "No memories were imported",
+                          description: count > 0 ? undefined : "Please wait a second after sign-in, then try again.",
+                          variant: count > 0 ? "default" : "destructive",
+                        });
                       } catch {
                         const { toast } = await import("@/hooks/use-toast");
                         toast({ title: "Invalid file", description: "Please select a valid memories JSON file.", variant: "destructive" });

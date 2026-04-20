@@ -15,6 +15,13 @@ export function useContextBlocks() {
   const [blocks, setBlocks] = useState<ContextBlock[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const getActiveUserId = useCallback(async () => {
+    if (!supabase || !isSupabaseConfigured) return null;
+
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    return user?.id || authUser?.id || null;
+  }, [user]);
+
   const fetchBlocks = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) {
       setBlocks([]);
@@ -23,8 +30,7 @@ export function useContextBlocks() {
     }
 
     // Resolve user from auth directly to avoid race with useAuth context
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    const activeUserId = user?.id || authUser?.id;
+    const activeUserId = await getActiveUserId();
 
     if (!activeUserId) {
       setBlocks([]);
@@ -48,7 +54,7 @@ export function useContextBlocks() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [getActiveUserId]);
 
   useEffect(() => {
     fetchBlocks();
@@ -75,12 +81,15 @@ export function useContextBlocks() {
   }, [fetchBlocks]);
 
   const addBlock = useCallback(async (content: string, source: 'manual' | 'memory' = 'manual') => {
-    if (!user || !supabase || !isSupabaseConfigured) return null;
+    if (!supabase || !isSupabaseConfigured) return null;
+
+    const activeUserId = await getActiveUserId();
+    if (!activeUserId) return null;
 
     try {
       const { data, error } = await supabase
         .from('context_blocks')
-        .insert({ user_id: user.id, content, source })
+        .insert({ user_id: activeUserId, content, source })
         .select()
         .single();
 
@@ -91,57 +100,66 @@ export function useContextBlocks() {
       console.error('Error adding context block:', err);
       return null;
     }
-  }, [user]);
+  }, [getActiveUserId]);
 
   const updateBlock = useCallback(async (id: string, content: string) => {
-    if (!user || !supabase || !isSupabaseConfigured) return;
+    if (!supabase || !isSupabaseConfigured) return;
+
+    const activeUserId = await getActiveUserId();
+    if (!activeUserId) return;
 
     try {
       const { error } = await supabase
         .from('context_blocks')
         .update({ content })
         .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('user_id', activeUserId);
 
       if (error) throw error;
       setBlocks(prev => prev.map(b => b.id === id ? { ...b, content } : b));
     } catch (err) {
       console.error('Error updating context block:', err);
     }
-  }, [user]);
+  }, [getActiveUserId]);
 
   const deleteBlock = useCallback(async (id: string) => {
-    if (!user || !supabase || !isSupabaseConfigured) return;
+    if (!supabase || !isSupabaseConfigured) return;
+
+    const activeUserId = await getActiveUserId();
+    if (!activeUserId) return;
 
     try {
       const { error } = await supabase
         .from('context_blocks')
         .delete()
         .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('user_id', activeUserId);
 
       if (error) throw error;
       setBlocks(prev => prev.filter(b => b.id !== id));
     } catch (err) {
       console.error('Error deleting context block:', err);
     }
-  }, [user]);
+  }, [getActiveUserId]);
 
   const clearAll = useCallback(async () => {
-    if (!user || !supabase || !isSupabaseConfigured) return;
+    if (!supabase || !isSupabaseConfigured) return;
+
+    const activeUserId = await getActiveUserId();
+    if (!activeUserId) return;
 
     try {
       const { error } = await supabase
         .from('context_blocks')
         .delete()
-        .eq('user_id', user.id);
+        .eq('user_id', activeUserId);
 
       if (error) throw error;
       setBlocks([]);
     } catch (err) {
       console.error('Error clearing context blocks:', err);
     }
-  }, [user]);
+  }, [getActiveUserId]);
 
   return { blocks, loading, addBlock, updateBlock, deleteBlock, clearAll, refetch: fetchBlocks };
 }
