@@ -697,7 +697,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         content: result.content,
         role: "assistant",
         type: "text",
-        memoryAction
+        memoryAction,
+        sourceModel: didSearchWeb ? (result.searchProvider === 'tavily' ? 'cloud-search-tavily' : 'cloud-search') : 'cloud-chat',
       });
     } catch (err: any) {
       console.error('Chat error:', err);
@@ -710,6 +711,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         content: "Sorry, I encountered an error. Please try again.",
         role: "assistant",
         type: "text",
+        sourceModel: 'cloud-chat',
       });
     }
   }, [messages, isLoading, setLoading, addMessage, toast, setSearchingChats, setAccessingMemory]);
