@@ -213,7 +213,7 @@ export function LocalAIPanel() {
         <>
           {/* Per-model rows */}
           <div className="space-y-2">
-            {MODELS.map(({ id, name, size, blurb, Icon }) => {
+            {MODELS.map(({ id, name, size, blurb, Icon, beta }) => {
               const isCached = !!cached[id];
               const isActive = isCached && selectedModelId === id;
               const isDownloading = downloadingId === id;
@@ -232,6 +232,11 @@ export function LocalAIPanel() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium text-foreground">{name}</span>
                         <span className="text-[10px] text-muted-foreground">{size}</span>
+                        {beta && (
+                          <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
+                            Beta
+                          </span>
+                        )}
                         {isCached && (
                           <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30 flex items-center gap-1">
                             <CheckCircle2 className="h-2.5 w-2.5" /> Downloaded
