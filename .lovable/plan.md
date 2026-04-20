@@ -1,43 +1,52 @@
 
 
-## Cascading Model Fallback for Image Generation & Editing
+## Make Arc Local fast on M4 Pro
 
-### Problem
-The current default model (`gemini-3.1-flash-image-preview`) is intermittently failing with error 1102. No fallback exists — if it fails, the user gets an error.
+Three real problems are stacking up to make local mode feel broken on your M4 Pro. I'll fix all three.
 
-### Solution
-Add a cascading fallback chain in both edge functions: try the preferred model first, then automatically retry with the next model in the chain until one succeeds.
+### 1. Switch default to a faster, better-suited model
 
-**Fallback chain:** `gemini-3.1-flash-image-preview` → `gemini-3-pro-image-preview` → `gemini-2.5-flash-image`
-
-### Changes
-
-**1. `supabase/functions/generate-image/index.ts`**
-- Extract the gateway call into a loop over the fallback chain
-- If the first model fails (5xx, 408, or error 1102), retry with the next model
-- Only return failure after all three models have been tried
-- Log which model ultimately succeeded
-
-**2. `supabase/functions/edit-image/index.ts`**
-- Same cascading fallback logic: try preferred model → pro → 2.5 flash
-- Same retry-on-failure behavior across the chain
-
-**3. `src/store/useModelStore.ts`**
-- No changes needed — the client still sends the preferred model, but the server now handles fallback automatically
-
-### Technical Detail
+`gemma-2-9b-it-q4f16_1` is ~5GB and prefill-heavy. On M4 Pro via WebGPU it's usable but punishing on first-token latency. I'll switch the **preferred** model to `Llama-3.2-3B-Instruct-q4f16_1-MLC` (≈1.9GB, 3-4× faster TTFT, excellent quality for chat) and keep Gemma 2 9B as an **opt-in** "Quality" tier. Fallback chain becomes:
 
 ```text
-Client sends preferred model (e.g. gemini-3.1-flash-image-preview)
-  ↓
-Edge Function tries preferred model
-  ↓ fails (5xx / 408 / known error codes)
-Tries gemini-3-pro-image-preview
-  ↓ fails
-Tries gemini-2.5-flash-image
-  ↓ fails
-Returns error to client (all 3 exhausted)
+Llama 3.2 3B  →  Gemma 2 2B  →  (optional) Gemma 2 9B if user picks "Quality"
 ```
 
-Rate limit (429) retries stay within each model attempt. Content violations and invalid input errors skip the chain (no point retrying with a different model).
+Already-cached Gemma users keep working — `findCachedLocalModel` will detect and reattach whatever is on disk.
+
+### 2. Stream tokens into the UI live (biggest perceived win)
+
+Right now `streamLocalChat` collects every delta into a string and only adds the message after the full response finishes. That's why it feels like "nothing's happening." I'll:
+
+- Add a placeholder assistant message the instant streaming starts.
+- Update its content on every delta (throttled to ~30ms via `requestAnimationFrame` to avoid React thrash).
+- Finalize on completion.
+
+This alone makes it feel 10× faster even if total time is identical.
+
+### 3. Trim the per-turn prefill (kills the real latency)
+
+We currently re-send the full system prompt + every message every turn, which forces WebLLM to re-prefill thousands of tokens on each reply.
+
+- **Shrink `buildLocalSystemPrompt`**: cap `memory_info` to ~800 chars, cap `context_blocks` to the 10 most recent (not 50), drop the long admin prompt for local mode (use a tight 2-sentence ArcAI persona instead — admin prompt is tuned for tool-using cloud model anyway).
+- **Cap message history** sent to local model to last 8 messages (was unbounded). Keeps the conversation coherent without forcing a 4k-token re-prefill every turn.
+- **Stop `JSON.stringify`-ing message content**. If a message has non-string content (image), skip it for local mode (local can't see images anyway) instead of injecting `[{"type":"image_url",...}]` garbage into the prompt.
+- Lower `max_tokens` from 1024 → 512 (plenty for chat; user can always say "continue").
+
+### 4. Surface real generation speed
+
+Add a tiny `tok/s` indicator under the streamed reply (computed from delta count + elapsed time) so you can see when something's actually wrong vs. just normal local speed.
+
+### Files touched
+
+- `src/services/localAI.ts` — new model id, fallback chain, expose `tokens/sec` callback, lower max_tokens.
+- `src/components/ChatInput.tsx` — placeholder message + live streaming updates, history cap, drop image messages for local path.
+- `src/utils/localSystemPrompt.ts` — trim memory/context, replace admin prompt with tight ArcAI persona for local.
+- `src/components/LocalAIPanel.tsx` — update copy from "Gemma 2 9B" → "Llama 3.2 3B (fast)" with optional quality toggle, update label helper.
+
+### Expected result on M4 Pro
+
+- First token: **~1-2s** (was 15-30s).
+- Streaming feels live (was: blank → wall of text).
+- Sustained ~25-40 tok/s with Llama 3.2 3B; ~10-15 tok/s if you opt into Gemma 9B.
 
