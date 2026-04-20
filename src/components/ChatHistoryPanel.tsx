@@ -117,13 +117,13 @@ export function ChatHistoryPanel() {
   const corporateMode = useCorporateModeStore((s) => s.enabled);
 
   const sortedSessions = useMemo(() => {
-    // Corporate Mode hides cloud-synced chat history (privacy lockdown).
-    // Your real chats are safe — they just aren't shown while locked.
-    if (corporateMode) return [];
+    // In Corporate Mode, only show sessions created during corp mode (local-only).
+    // Cloud-synced chats are hidden behind the lock until corp mode is disabled.
+    const sourceSessions = corporateMode
+      ? chatSessions.filter(s => s.isLocalOnly)
+      : chatSessions;
 
-    // Convert chat sessions to unified format
-    // Use messageCount for unhydrated sessions, fall back to messages.length for hydrated ones
-    const chatItems: UnifiedSession[] = chatSessions
+    const chatItems: UnifiedSession[] = sourceSessions
       .filter(session => (session.messageCount ?? session.messages.length) > 0)
       .map(session => ({
         id: session.id,
@@ -133,7 +133,6 @@ export function ChatHistoryPanel() {
         itemCount: session.messageCount ?? session.messages.length,
       }));
 
-    // Only show chat sessions in main history (search sessions are in Search Mode tab)
     return chatItems.sort((a, b) => b.timestamp - a.timestamp);
   }, [chatSessions, corporateMode]);
 
