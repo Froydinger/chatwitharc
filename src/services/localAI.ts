@@ -4,21 +4,15 @@
  */
 import type { MLCEngineInterface, InitProgressReport, AppConfig } from '@mlc-ai/web-llm';
 
-// Gemma 3 4B Instruct (text-only, vision PR not yet merged into WebLLM stable)
-export const LOCAL_MODEL_ID = 'gemma-3-4b-it-q4f16_1-MLC';
-export const LOCAL_MODEL_LABEL = 'Gemma 3 4B';
-
-// Side-loaded Gemma 3 4B via custom model_list (MLC HuggingFace build).
-// Falls back to stable Gemma 2 9B → 2B if Gemma 3 fails to load (WebGPU/LinkError).
-const GEMMA3_MODEL_ID = 'gemma-3-4b-it-q4f16_1-MLC';
-const GEMMA3_MODEL_URL = 'https://huggingface.co/mlc-ai/gemma-3-4b-it-q4f16_1-MLC/resolve/main/';
-const GEMMA3_LIB_URL =
-  'https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/web-llm-models/v0_2_80/gemma3-4b-it-q4f16_1-ctx4k_cs1k-webgpu.wasm';
+// WebLLM does not currently ship a browser runtime for Gemma 3 4B in this build.
+// Use the best supported Gemma target first, then fall back further if needed.
+export const LOCAL_MODEL_ID = 'gemma-2-9b-it-q4f16_1-MLC';
+export const LOCAL_MODEL_LABEL = 'Gemma 2 9B';
 
 const FALLBACK_MODEL_LARGE = 'gemma-2-9b-it-q4f16_1-MLC';
 const FALLBACK_MODEL_SMALL = 'gemma-2-2b-it-q4f16_1-MLC';
 
-const PREFERRED_MODEL = GEMMA3_MODEL_ID;
+const PREFERRED_MODEL = FALLBACK_MODEL_LARGE;
 
 let enginePromise: Promise<MLCEngineInterface> | null = null;
 let activeModelId: string | null = null;
@@ -52,7 +46,7 @@ export async function loadLocalModel(
     throw new Error('WebGPU is not supported in this browser. Try Chrome, Edge, or Brave on a desktop with a modern GPU.');
   }
 
-  const { CreateMLCEngine, prebuiltAppConfig } = await import('@mlc-ai/web-llm');
+  const { CreateMLCEngine } = await import('@mlc-ai/web-llm');
 
   const initProgressCallback = (report: InitProgressReport) => {
     onProgress?.({
@@ -61,37 +55,24 @@ export async function loadLocalModel(
     });
   };
 
-  // Custom AppConfig that side-loads Gemma 3 4B alongside the stable prebuilt list.
-  const customAppConfig: AppConfig = {
-    ...prebuiltAppConfig,
-    model_list: [
-      {
-        model: GEMMA3_MODEL_URL,
-        model_id: GEMMA3_MODEL_ID,
-        model_lib: GEMMA3_LIB_URL,
-        overrides: { context_window_size: 4096 },
-      },
-      ...prebuiltAppConfig.model_list,
-    ],
-  };
-
-  // Try Gemma 3 4B → Gemma 2 9B → Gemma 2 2B
+  // Try supported Gemma targets only.
   enginePromise = (async () => {
     const tryLoad = async (id: string, label: string) => {
       activeModelId = id;
       onProgress?.({ progress: 0, text: `Loading ${label}…` });
-      return await CreateMLCEngine(id, { appConfig: customAppConfig, initProgressCallback });
+      return await CreateMLCEngine(id, { initProgressCallback });
     };
 
     try {
-      return await tryLoad(preferredModel, 'Gemma 3 4B');
+      return await tryLoad(preferredModel, 'Gemma 2 9B');
     } catch (err) {
-      console.warn('Gemma 3 4B failed, falling back to Gemma 2 9B:', err);
+      console.warn('Gemma 2 9B failed, falling back to Gemma 2 2B:', err);
       try {
-        return await tryLoad(FALLBACK_MODEL_LARGE, 'Gemma 2 9B');
-      } catch (err2) {
-        console.warn('Gemma 2 9B failed, falling back to Gemma 2 2B:', err2);
         return await tryLoad(FALLBACK_MODEL_SMALL, 'Gemma 2 2B');
+      } catch (err2) {
+        enginePromise = null;
+        activeModelId = null;
+        throw err2;
       }
     }
   })();
@@ -100,8 +81,6 @@ export async function loadLocalModel(
 }
 
 export function getActiveLocalModelLabel(): string {
-  if (activeModelId?.startsWith('gemma-3-4b')) return 'Gemma 3 4B';
-  if (activeModelId?.startsWith('gemma-3')) return 'Gemma 3';
   if (activeModelId?.startsWith('gemma-2-9b')) return 'Gemma 2 9B (fallback)';
   if (activeModelId?.startsWith('gemma-2-2b')) return 'Gemma 2 2B (fallback)';
   return LOCAL_MODEL_LABEL;

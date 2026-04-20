@@ -25,7 +25,7 @@ export function LocalAIPanel() {
     setStatus, setProgress, setError, setWebgpuSupported, reset,
   } = useLocalAIStore();
   const { toast } = useToast();
-  const [activeLabel, setActiveLabel] = useState<string>('Gemma 3 4B');
+  const [activeLabel, setActiveLabel] = useState<string>('Gemma 2 9B');
 
   // iOS Safari/PWA has no WebGPU and no path to local LLMs in-browser.
   const isIOS = typeof navigator !== 'undefined' && (
@@ -121,8 +121,8 @@ export function LocalAIPanel() {
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Run Gemma 3 4B on your device. Private, offline, zero tokens.
-              <span className="block mt-1 text-[10px] text-primary/80">Beta · text-only · falls back to Gemma 2 if needed</span>
+              Run a local Gemma model on your device. Private, offline, zero tokens.
+              <span className="block mt-1 text-[10px] text-primary/80">Beta · starts with Gemma 2 9B · falls back to Gemma 2 2B if needed</span>
             </p>
           </div>
         </div>
@@ -134,7 +134,7 @@ export function LocalAIPanel() {
           <div className="text-xs">
             <p className="text-foreground font-medium">Available on desktop</p>
             <p className="text-muted-foreground mt-0.5">
-              iOS Safari doesn't support WebGPU yet, so on-device AI can't run here. Open Arc on desktop (Chrome, Edge, Brave, Arc) to download Gemma 3 4B locally. Android Chrome works too.
+               iOS Safari doesn't support WebGPU yet, so on-device AI can't run here. Open Arc on desktop (Chrome, Edge, Brave, Arc) to download the local Gemma model. Android Chrome works too.
             </p>
           </div>
         </div>
@@ -167,11 +167,11 @@ export function LocalAIPanel() {
           {status === 'idle' && (
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                One-time download (~2.5GB for Gemma 3 4B). Cached forever in your browser. Fully offline after that. Image analysis still uses cloud.
+                 One-time download for the local Gemma model. Exact size depends on the best model your browser can run. Cached in your browser for later offline use. Image analysis still uses cloud.
               </p>
               <GlassButton onClick={handleDownload} className="w-full">
                 <Download className="h-4 w-4 mr-2" />
-                Download Gemma 3 4B
+                 Download local model
               </GlassButton>
             </div>
           )}
@@ -184,7 +184,7 @@ export function LocalAIPanel() {
               </div>
               <Progress value={progress * 100} className="h-2" />
               <p className="text-[10px] text-muted-foreground">
-                Don't close this tab. Download resumes if interrupted.
+                 Downloading and compiling the local model for this browser. Don't close this tab.
               </p>
             </div>
           )}
