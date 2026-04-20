@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Cpu, Download, CheckCircle2, AlertTriangle, Crown, Trash2, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/glass-card";
-import { GlassButton } from "@/components/ui/glass-button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -55,7 +53,7 @@ export function LocalAIPanel() {
     // Show immediate visual feedback before capability checks/imports complete.
     setStatus('loading');
     setError(null);
-    setProgress(0.01, 'Checking device compatibility…');
+    setProgress(0.02, 'Checking device compatibility…');
 
     // Let React paint the loading state before WebGPU/runtime work begins.
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -75,7 +73,7 @@ export function LocalAIPanel() {
       return;
     }
 
-    setProgress(0.03, 'Initializing WebGPU…');
+    setProgress(0.06, 'Initializing WebGPU…');
 
     // Heartbeat nudges the bar forward (cap 8%) while we wait for the first
     // real WebLLM progress event — initial fetch can take 5-15s before any
@@ -83,15 +81,17 @@ export function LocalAIPanel() {
     let lastReal = 0;
     const heartbeat = setInterval(() => {
       const cur = useLocalAIStore.getState().progress;
-      if (cur < 0.08 && cur === lastReal) {
-        useLocalAIStore.getState().setProgress(Math.min(0.08, cur + 0.005), 'Connecting to model registry…');
+      if (cur < 0.15 && cur === lastReal) {
+        useLocalAIStore.getState().setProgress(Math.min(0.15, cur + 0.01), 'Downloading model files…');
       }
       lastReal = useLocalAIStore.getState().progress;
     }, 800);
 
     try {
+      setProgress(0.1, 'Starting model download…');
       await loadLocalModel((e) => {
-        setProgress(Math.max(e.progress, 0.01), e.text);
+        const nextProgress = Math.max(e.progress, 0.1);
+        setProgress(nextProgress, e.text || `Downloading model… ${Math.round(nextProgress * 100)}%`);
       });
       clearInterval(heartbeat);
       setStatus('ready');
@@ -201,7 +201,7 @@ export function LocalAIPanel() {
               </div>
               <Progress value={progress * 100} className="h-2" />
               <p className="text-[10px] text-muted-foreground">
-                 Downloading and compiling the local model for this browser. Don't close this tab.
+                 Downloading and compiling the local model for this browser. Don&apos;t close this tab.
               </p>
             </div>
           )}
