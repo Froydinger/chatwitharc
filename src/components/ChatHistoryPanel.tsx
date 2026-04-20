@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, MessageSquare, RefreshCw, Search, Layers } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
+import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -113,7 +114,13 @@ export function ChatHistoryPanel() {
     itemCount: number;
   };
 
+  const corporateMode = useCorporateModeStore((s) => s.enabled);
+
   const sortedSessions = useMemo(() => {
+    // Corporate Mode hides cloud-synced chat history (privacy lockdown).
+    // Your real chats are safe — they just aren't shown while locked.
+    if (corporateMode) return [];
+
     // Convert chat sessions to unified format
     // Use messageCount for unhydrated sessions, fall back to messages.length for hydrated ones
     const chatItems: UnifiedSession[] = chatSessions
@@ -128,7 +135,7 @@ export function ChatHistoryPanel() {
 
     // Only show chat sessions in main history (search sessions are in Search Mode tab)
     return chatItems.sort((a, b) => b.timestamp - a.timestamp);
-  }, [chatSessions]);
+  }, [chatSessions, corporateMode]);
 
   const totalMessages = useMemo(
     () => chatSessions.reduce((total, s) => total + (s.messageCount ?? s.messages.length), 0),
@@ -255,10 +262,12 @@ export function ChatHistoryPanel() {
           <GlassCard className="p-8 max-w-md mx-auto">
             <MessageSquare className="h-12 w-12 text-primary-glow mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-foreground mb-2">
-              No chat history yet
+              {corporateMode ? "Corporate Mode is on" : "No chat history yet"}
             </h3>
             <p className="text-muted-foreground mb-6">
-              Start your first conversation to see your chat history here.
+              {corporateMode
+                ? "Your saved cloud chats are hidden while Corporate Mode is active. Disable it in Settings → Privacy to see them again."
+                : "Start your first conversation to see your chat history here."}
             </p>
             <div className="space-y-2">
               <button
