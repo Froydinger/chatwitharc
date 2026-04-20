@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import { X, Crown, Quote, ChevronLeft } from "lucide-react";
+import { X, Crown, Quote, ChevronLeft, Lock, Unlock } from "lucide-react";
+import { useCorporateModeStore } from "@/store/useCorporateModeStore";
+import { useAccentStore } from "@/store/useAccentStore";
+import { useLocalAIStore } from "@/store/useLocalAIStore";
+import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
@@ -22,6 +26,30 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const isAdminBannerActive = useAdminBanner();
   const { isSubscribed } = useSubscription();
+  const corporateMode = useCorporateModeStore((s) => s.enabled);
+  const setCorporate = useCorporateModeStore((s) => s.setEnabled);
+  const accent = useAccentStore((s) => s.accentColor);
+  const { selectedModelId, status: localStatus } = useLocalAIStore();
+  const { toast } = useToast();
+
+  const handleToggleCorporate = () => {
+    const next = !corporateMode;
+    if (next && !(selectedModelId && localStatus === "ready")) {
+      setCorporate(true, accent);
+      toast({
+        title: "Download a local model first",
+        description: "Corporate Mode needs an on-device model. Open Settings → Arc Local to pick one.",
+      });
+      return;
+    }
+    setCorporate(next, accent);
+    toast({
+      title: next ? "Corporate Mode enabled" : "Corporate Mode disabled",
+      description: next
+        ? "Locked to on-device. Tools, attachments, and cloud chats are off."
+        : "All features and your previous theme are back.",
+    });
+  };
 
   useEffect(() => {
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
@@ -93,7 +121,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                 activeTab === "quote" ? "text-muted-foreground hover:text-foreground cursor-pointer" : "text-foreground cursor-default"
               )}
             >
-              Chat History
+              Chats
             </button>
             <div className="flex items-center gap-2">
               {activeTab === "quote" ? (
@@ -124,6 +152,20 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                     )}
                   >
                     <Quote className="h-3.5 w-3.5 mr-1.5" /> Daily Quote
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleToggleCorporate}
+                    title={corporateMode ? "Disable Corporate Mode" : "Enable Corporate Mode"}
+                    className={cn(
+                      "rounded-full transition-colors",
+                      corporateMode
+                        ? "bg-primary/15 text-primary hover:bg-primary/25"
+                        : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    )}
+                  >
+                    {corporateMode ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
                   </Button>
                   <Button
                     variant="ghost"
