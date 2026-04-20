@@ -11,6 +11,8 @@ import type { MLCEngineInterface, InitProgressReport } from '@mlc-ai/web-llm';
 export const FAST_MODEL = 'Llama-3.2-3B-Instruct-q4f16_1-MLC';
 export const FAST_FALLBACK = 'gemma-2-2b-it-q4f16_1-MLC';
 export const QUALITY_MODEL = 'gemma-2-9b-it-q4f16_1-MLC';
+// Tiny model for iOS Safari (memory-capped). Experimental — not as smart.
+export const IOS_LITE_MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
 
 export const LOCAL_MODEL_ID = FAST_MODEL;
 export const LOCAL_MODEL_LABEL = 'Llama 3.2 3B';
@@ -30,7 +32,7 @@ export interface LoadProgressEvent {
 export async function findCachedLocalModel(): Promise<string | null> {
   try {
     const { hasModelInCache } = await import('@mlc-ai/web-llm');
-    for (const id of [FAST_MODEL, FAST_FALLBACK, QUALITY_MODEL]) {
+    for (const id of [FAST_MODEL, FAST_FALLBACK, QUALITY_MODEL, IOS_LITE_MODEL]) {
       try {
         if (await hasModelInCache(id)) return id;
       } catch {}
@@ -46,6 +48,7 @@ export async function getCachedLocalModels(): Promise<Record<string, boolean>> {
   const result: Record<string, boolean> = {
     [FAST_MODEL]: false,
     [QUALITY_MODEL]: false,
+    [IOS_LITE_MODEL]: false,
   };
   try {
     const { hasModelInCache } = await import('@mlc-ai/web-llm');
@@ -125,10 +128,14 @@ export async function loadLocalModel(
     const labelFor = (id: string) =>
       id === FAST_MODEL ? 'Llama 3.2 3B' :
       id === QUALITY_MODEL ? 'Gemma 2 9B' :
-      id === FAST_FALLBACK ? 'Gemma 2 2B' : id;
+      id === FAST_FALLBACK ? 'Gemma 2 2B' :
+      id === IOS_LITE_MODEL ? 'Qwen 2.5 0.5B (iOS Lite)' : id;
 
     chain.push({ id: preferredModel, label: labelFor(preferredModel) });
-    if (preferredModel !== FAST_FALLBACK) chain.push({ id: FAST_FALLBACK, label: labelFor(FAST_FALLBACK) });
+    // For iOS Lite, don't fall back to bigger models (they'll OOM Safari).
+    if (preferredModel !== FAST_FALLBACK && preferredModel !== IOS_LITE_MODEL) {
+      chain.push({ id: FAST_FALLBACK, label: labelFor(FAST_FALLBACK) });
+    }
 
     let lastErr: any;
     for (const { id, label } of chain) {
@@ -151,6 +158,7 @@ export function getActiveLocalModelLabel(): string {
   if (activeModelId === FAST_MODEL) return 'Llama 3.2 3B';
   if (activeModelId === QUALITY_MODEL) return 'Gemma 2 9B';
   if (activeModelId === FAST_FALLBACK) return 'Gemma 2 2B';
+  if (activeModelId === IOS_LITE_MODEL) return 'Qwen 2.5 0.5B (iOS Lite)';
   return LOCAL_MODEL_LABEL;
 }
 
