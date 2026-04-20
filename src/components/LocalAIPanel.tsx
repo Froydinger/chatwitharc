@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Cpu, Download, CheckCircle2, AlertTriangle, Crown, Trash2, Sparkles, Zap, Gem } from "lucide-react";
+import { Cpu, Download, CheckCircle2, AlertTriangle, Crown, Trash2, Sparkles, Zap, Gem, Feather } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import {
   deleteCachedLocalModel,
   FAST_MODEL,
   QUALITY_MODEL,
+  IOS_LITE_MODEL,
 } from "@/services/localAI";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,11 +24,17 @@ interface ModelOption {
   size: string;
   blurb: string;
   Icon: typeof Zap;
+  beta?: boolean;
+  iosOnly?: boolean;
 }
 
-const MODELS: ModelOption[] = [
+const DESKTOP_MODELS: ModelOption[] = [
   { id: FAST_MODEL,    name: "Llama 3.2 3B",  size: "~1.9 GB", blurb: "Fast, snappy replies. Best for most chats.",          Icon: Zap },
   { id: QUALITY_MODEL, name: "Gemma 2 9B",    size: "~5.0 GB", blurb: "Higher quality, slower. Best on M-series / strong GPU.", Icon: Gem },
+];
+
+const IOS_MODELS: ModelOption[] = [
+  { id: IOS_LITE_MODEL, name: "Qwen 2.5 0.5B", size: "~350 MB", blurb: "Tiny iOS-friendly model. Great for quick replies, not deep reasoning.", Icon: Feather, beta: true, iosOnly: true },
 ];
 
 export function LocalAIPanel() {
