@@ -2,7 +2,7 @@
  * Local AI Service - Runs Gemma 3 4B in-browser via WebLLM (WebGPU).
  * Pro-only feature. Model downloads ~2.5GB once, cached in IndexedDB forever.
  */
-import type { MLCEngineInterface, InitProgressReport, AppConfig } from '@mlc-ai/web-llm';
+import type { MLCEngineInterface, InitProgressReport } from '@mlc-ai/web-llm';
 
 // WebLLM does not currently ship a browser runtime for Gemma 3 4B in this build.
 // Use the best supported Gemma target first, then fall back further if needed.
@@ -81,7 +81,7 @@ export async function loadLocalModel(
 }
 
 export function getActiveLocalModelLabel(): string {
-  if (activeModelId?.startsWith('gemma-2-9b')) return 'Gemma 2 9B (fallback)';
+  if (activeModelId?.startsWith('gemma-2-9b')) return 'Gemma 2 9B';
   if (activeModelId?.startsWith('gemma-2-2b')) return 'Gemma 2 2B (fallback)';
   return LOCAL_MODEL_LABEL;
 }
