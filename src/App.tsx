@@ -20,6 +20,7 @@ import { BugReportModal } from "@/components/BugReportModal";
 import { useBugReport } from "@/hooks/useBugReport";
 import { useVisibilityHandler } from "@/hooks/useVisibilityHandler";
 import { GlobalMusicPlayer } from "@/components/GlobalMusicPlayer";
+import { useCorporateModeEnforcer } from "@/hooks/useCorporateMode";
 import { Index } from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminPage } from "./pages/AdminPage";
@@ -51,6 +52,7 @@ const App = () => {
   const showStarfield = useStarfieldStore((s) => s.showStarfield);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   useVisibilityHandler();
+  useCorporateModeEnforcer();
 
   // Detect standalone mode on mount
   useEffect(() => {
