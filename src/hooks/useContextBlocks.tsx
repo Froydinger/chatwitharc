@@ -60,7 +60,18 @@ export function useContextBlocks() {
       fetchBlocks();
     };
     window.addEventListener('context-blocks-updated', handler);
-    return () => window.removeEventListener('context-blocks-updated', handler);
+
+    // Also refetch on auth state changes (sign-in, token refresh)
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+        fetchBlocks();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('context-blocks-updated', handler);
+      sub.subscription.unsubscribe();
+    };
   }, [fetchBlocks]);
 
   const addBlock = useCallback(async (content: string, source: 'manual' | 'memory' = 'manual') => {
