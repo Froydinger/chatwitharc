@@ -279,15 +279,17 @@ export function ChatHistoryPanel() {
                 <Plus className="h-4 w-4 mr-2 relative z-10" />
                 <span className="relative z-10">Create first chat</span>
               </button>
-              <Button 
-                onClick={handleManualSync} 
-                variant="outline"
-                className="w-full"
-                disabled={isSyncing}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                {isSyncing ? 'Syncing...' : 'Sync from cloud'}
-              </Button>
+              {!corporateMode && (
+                <Button
+                  onClick={handleManualSync}
+                  variant="outline"
+                  className="w-full"
+                  disabled={isSyncing}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                  {isSyncing ? 'Syncing...' : 'Sync from cloud'}
+                </Button>
+              )}
             </div>
           </GlassCard>
         </div>
