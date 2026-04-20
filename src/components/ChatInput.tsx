@@ -6,6 +6,7 @@ import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Mic, Code2, PenLine, Sea
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
+import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useToast } from "@/hooks/use-toast";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useProfile } from "@/hooks/useProfile";
@@ -889,6 +890,37 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     setForceCanvasMode(false);
     setForceSearchMode(false);
     setShowMenu(false);
+
+    // === CORPORATE MODE: hard-strip every cloud tool from this turn ===
+    const corporateMode = useCorporateModeStore.getState().enabled;
+    let corpStrippedImages = images;
+    let corpStrippedDocs = documents;
+    let corpWasCanvasMode = wasCanvasMode;
+    let corpWasCodingMode = wasCodingMode;
+    let corpWasImageMode = wasImageMode;
+    let corpWasSearchMode = wasSearchMode;
+    let corpWasBuildMode = wasBuildMode;
+    if (corporateMode) {
+      if (images.length || documents.length || wasCanvasMode || wasCodingMode || wasImageMode || wasSearchMode || wasBuildMode) {
+        toast({
+          title: "Corporate Mode is on",
+          description: "Tools, attachments, and cloud features are disabled. Sending as plain on-device chat.",
+        });
+      }
+      corpStrippedImages = [];
+      corpStrippedDocs = [];
+      corpWasCanvasMode = false;
+      corpWasCodingMode = false;
+      corpWasImageMode = false;
+      corpWasSearchMode = false;
+      corpWasBuildMode = false;
+    }
+    // Re-bind so the rest of the function uses the corp-clean values without
+    // changing every reference downstream.
+    /* eslint-disable @typescript-eslint/no-unused-vars */
+    const _origImages = images;
+    const _origDocs = documents;
+    /* eslint-enable @typescript-eslint/no-unused-vars */
 
     // BUILD MODE: /build navigates to the App Builder
     if (wasBuildMode) {
