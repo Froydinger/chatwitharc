@@ -1497,14 +1497,23 @@ ${safeCode}
                   .slice(-8)
                   .map((m: any) => ({ role: m.role, content: m.content as string }));
 
-                // Add placeholder assistant message immediately so the user
-                // sees "something happening" before first token arrives.
-                const placeholderId = await addMessage({
-                  content: '',
-                  role: 'assistant',
-                  type: 'text',
-                  sourceModel: 'local',
-                });
+                // Defer creating the assistant bubble until the first token
+                // arrives. While we wait, the global ThinkingIndicator (driven
+                // by isLoading + setSearchingChats/setAccessingMemory) is what
+                // the user sees — same UX as cloud Arc.
+                let placeholderId: string | null = null;
+                const ensurePlaceholder = async () => {
+                  if (placeholderId) return placeholderId;
+                  placeholderId = await addMessage({
+                    content: '',
+                    role: 'assistant',
+                    type: 'text',
+                    sourceModel: 'local',
+                  });
+                  // First token = thinking is over; clear the loader.
+                  setLoading(false);
+                  return placeholderId;
+                };
 
                 // Conversation we feed the local model. We may run multiple
                 // turns: model emits a <recall>/<remember> tag → we execute
@@ -1514,8 +1523,8 @@ ${safeCode}
                   ...localHistory,
                 ];
 
-                // The full reply we'll save (with tool tags stripped).
                 let displayed = '';
+                let pendingMemoryAction: { type: 'memory_saved' | 'memory_accessed' | 'chats_searched'; content?: string; query?: string } | null = null;
                 const MAX_TOOL_TURNS = 3;
 
                 for (let turn = 0; turn < MAX_TOOL_TURNS + 1; turn++) {
@@ -1525,16 +1534,17 @@ ${safeCode}
                   let pending = '';
                   let rafScheduled = false;
 
-                  const flush = () => {
+                  const flush = async () => {
                     rafScheduled = false;
                     if (!pending) return;
-                    // Hide partial tags + any complete tool tags from the bubble.
                     const visible = hasPartialOpenTag(streamed)
                       ? stripToolTags(streamed.slice(0, streamed.lastIndexOf('<')))
                       : stripToolTags(streamed);
                     const next = (displayed + (visible ? (displayed ? ' ' : '') + visible : '')).trim();
+                    if (!next) { pending = ''; return; }
+                    const id = await ensurePlaceholder();
                     useArcStore.setState((state) => {
-                      const idx = state.messages.findIndex(m => m.id === placeholderId);
+                      const idx = state.messages.findIndex(m => m.id === id);
                       if (idx === -1) return state;
                       const updated = [...state.messages];
                       updated[idx] = { ...updated[idx], content: next };
@@ -1543,14 +1553,10 @@ ${safeCode}
                     pending = '';
                   };
 
-                  // Detect a complete tool tag mid-stream and abort early so we
-                  // don't waste tokens on stuff after the tag.
-                  let earlyAbort: AbortController | null = null;
                   const localAbort = new AbortController();
                   if (currentAbortController) {
                     currentAbortController.signal.addEventListener('abort', () => localAbort.abort(), { once: true });
                   }
-                  earlyAbort = localAbort;
 
                   await streamLocalChat(
                     conversation,
@@ -1559,14 +1565,14 @@ ${safeCode}
                       pending += delta;
                       if (!rafScheduled) {
                         rafScheduled = true;
-                        requestAnimationFrame(flush);
+                        requestAnimationFrame(() => { flush(); });
                       }
                       // If a complete tag has arrived, stop this turn early.
                       if (turn < MAX_TOOL_TURNS && findFirstToolCall(streamed)) {
-                        earlyAbort?.abort();
+                        localAbort.abort();
                       }
                     },
-                    earlyAbort.signal,
+                    localAbort.signal,
                     () => {}
                   );
 
@@ -1581,8 +1587,15 @@ ${safeCode}
                   const call = turn < MAX_TOOL_TURNS ? findFirstToolCall(streamed) : null;
                   if (!call) break;
 
-                  // Push the model's partial turn (with the tag) into history,
-                  // then append a tool_result and let it continue.
+                  // Show the right thinking indicator while we run the tool.
+                  if (call.tool === 'recall') {
+                    setSearchingChats(true);
+                    setLoading(true);
+                  } else if (call.tool === 'remember') {
+                    setAccessingMemory(true);
+                    setLoading(true);
+                  }
+
                   conversation.push({ role: 'assistant', content: streamed });
                   let result = '';
                   try {
@@ -1590,37 +1603,38 @@ ${safeCode}
                   } catch (e: any) {
                     result = `Tool error: ${e?.message || 'unknown'}`;
                   }
+
+                  // Record the memory action for the bubble pill.
+                  if (call.tool === 'recall') {
+                    pendingMemoryAction = { type: 'chats_searched', query: call.arg, content: result };
+                    setSearchingChats(false);
+                  } else if (call.tool === 'remember') {
+                    pendingMemoryAction = { type: 'memory_saved', content: call.arg };
+                    setAccessingMemory(false);
+                  }
+
                   conversation.push({
                     role: 'user',
                     content: `<tool_result tool="${call.tool}">${result}</tool_result>\n\nContinue your reply to the user using this result. Do NOT emit another <${call.tool}> tag for the same query.`,
                   });
-
-                  // Tiny visible breadcrumb so the user knows something happened.
-                  if (call.tool === 'recall') {
-                    displayed = (displayed ? displayed + '\n\n' : '') + `_🔎 searched past chats for "${call.arg}"_`;
-                  } else if (call.tool === 'remember') {
-                    displayed = (displayed ? displayed + '\n\n' : '') + `_💾 saved to memory_`;
-                  }
-                  useArcStore.setState((state) => {
-                    const idx = state.messages.findIndex(m => m.id === placeholderId);
-                    if (idx === -1) return state;
-                    const updated = [...state.messages];
-                    updated[idx] = { ...updated[idx], content: displayed };
-                    return { messages: updated } as any;
-                  });
                 }
 
-                // Final commit.
+                // Final commit + attach memory action pill.
+                const id = await ensurePlaceholder();
                 useArcStore.setState((state) => {
-                  const idx = state.messages.findIndex(m => m.id === placeholderId);
+                  const idx = state.messages.findIndex(m => m.id === id);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
                   updated[idx] = {
                     ...updated[idx],
                     content: displayed || "I couldn't generate a response locally.",
-                  };
+                    ...(pendingMemoryAction ? { memoryAction: pendingMemoryAction } : {}),
+                  } as any;
                   return { messages: updated } as any;
                 });
+                setLoading(false);
+                setSearchingChats(false);
+                setAccessingMemory(false);
 
                 if (cancelRequested) return;
               } catch (localErr: any) {
