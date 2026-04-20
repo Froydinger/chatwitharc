@@ -1480,30 +1480,76 @@ ${safeCode}
             });
 
             if (route === 'local') {
-              // === LOCAL GEMMA PATH ===
+              // === LOCAL ON-DEVICE PATH ===
               try {
-                // Build a rich system prompt including admin prompt, profile,
-                // memory_info, context_info, and context_blocks — same context
-                // the cloud chat function gets, minus tool instructions.
                 const localSystem = await buildLocalSystemPrompt(profile as any);
-                let streamed = '';
-                await streamLocalChat(
-                  [
-                    { role: 'system', content: localSystem },
-                    ...aiMessages.map((m: any) => ({ role: m.role, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) })),
-                  ],
-                  (delta) => { streamed += delta; },
-                  currentAbortController?.signal
-              );
 
-                if (cancelRequested) return;
+                // Cap history: last 8 string-only messages. Local model can't
+                // see images, so drop array-content messages entirely.
+                const localHistory = aiMessages
+                  .filter((m: any) => typeof m.content === 'string' && m.content.trim())
+                  .slice(-8)
+                  .map((m: any) => ({ role: m.role, content: m.content as string }));
 
-                await addMessage({
-                  content: streamed || "I couldn't generate a response locally.",
+                // Add placeholder assistant message immediately so the user
+                // sees "something happening" before first token arrives.
+                const placeholderId = await addMessage({
+                  content: '',
                   role: 'assistant',
                   type: 'text',
                   sourceModel: 'local',
                 });
+
+                let streamed = '';
+                let pending = '';
+                let rafScheduled = false;
+                let lastTps = 0;
+
+                const flush = () => {
+                  rafScheduled = false;
+                  if (!pending && !lastTps) return;
+                  const next = streamed;
+                  const tpsLabel = lastTps > 0 ? `\n\n<small style="opacity:0.5">${lastTps.toFixed(1)} tok/s</small>` : '';
+                  useArcStore.setState((state) => {
+                    const idx = state.messages.findIndex(m => m.id === placeholderId);
+                    if (idx === -1) return state;
+                    const updated = [...state.messages];
+                    updated[idx] = { ...updated[idx], content: next + tpsLabel };
+                    return { messages: updated } as any;
+                  });
+                  pending = '';
+                };
+
+                await streamLocalChat(
+                  [
+                    { role: 'system', content: localSystem },
+                    ...localHistory,
+                  ],
+                  (delta) => {
+                    streamed += delta;
+                    pending += delta;
+                    if (!rafScheduled) {
+                      rafScheduled = true;
+                      requestAnimationFrame(flush);
+                    }
+                  },
+                  currentAbortController?.signal,
+                  (stats) => { lastTps = stats.tokensPerSecond; }
+                );
+
+                // Final flush WITHOUT the tok/s footer (clean final message).
+                useArcStore.setState((state) => {
+                  const idx = state.messages.findIndex(m => m.id === placeholderId);
+                  if (idx === -1) return state;
+                  const updated = [...state.messages];
+                  updated[idx] = {
+                    ...updated[idx],
+                    content: streamed || "I couldn't generate a response locally.",
+                  };
+                  return { messages: updated } as any;
+                });
+
+                if (cancelRequested) return;
               } catch (localErr: any) {
                 console.warn('Local model failed, falling back to cloud:', localErr);
                 toast({ title: 'Local model error', description: 'Falling back to cloud.', variant: 'default' });
