@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useArcStore } from '@/store/useArcStore';
 import { useAuth } from './useAuth';
+import { useCorporateModeStore } from '@/store/useCorporateModeStore';
 
 export function useChatSync() {
   const { user } = useAuth();
