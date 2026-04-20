@@ -48,17 +48,13 @@ export function routeRequest(ctx: RouteContext): RouteDestination {
 export function getRouteLabel(route: RouteDestination): { label: string; icon: 'local' | 'cloud'; tooltip: string } {
   switch (route) {
     case 'local': {
-      // Reflect the model the user actually has selected/loaded.
       let label = 'Local Model';
-      try {
-        const { FAST_MODEL, QUALITY_MODEL, FAST_FALLBACK, getActiveLocalModelId } = require('@/services/localAI');
-        const activeId = getActiveLocalModelId?.() as string | null;
-        const selectedId = useLocalAIStore.getState().selectedModelId;
-        const id = activeId || selectedId;
-        if (id === FAST_MODEL) label = 'Llama 3.2 3B';
-        else if (id === QUALITY_MODEL) label = 'Gemma 2 9B';
-        else if (id === FAST_FALLBACK) label = 'Gemma 2 2B';
-      } catch {}
+      const activeId = getActiveLocalModelId();
+      const selectedId = useLocalAIStore.getState().selectedModelId;
+      const id = activeId || selectedId;
+      if (id === FAST_MODEL) label = 'Llama 3.2 3B';
+      else if (id === QUALITY_MODEL) label = 'Gemma 2 9B';
+      else if (id === FAST_FALLBACK) label = 'Gemma 2 2B';
       return {
         label: `Local · ${label}`,
         icon: 'local',
