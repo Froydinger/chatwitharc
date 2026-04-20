@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { LOCAL_TOOL_INSTRUCTIONS } from "@/utils/localToolProtocol";
 
 /**
  * System prompt builder for the on-device (local) model.
