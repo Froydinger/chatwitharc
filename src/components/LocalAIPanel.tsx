@@ -163,12 +163,19 @@ export function LocalAIPanel() {
       </div>
 
       {isIOS && (
-        <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
-          <AlertTriangle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 border border-primary/30">
+          <Feather className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
           <div className="text-xs">
-            <p className="text-foreground font-medium">Available on desktop</p>
-            <p className="text-muted-foreground mt-0.5">
-              iOS Safari doesn't support WebGPU yet. Open Arc on desktop (Chrome, Edge, Brave, Arc) or Android Chrome 121+.
+            <p className="text-foreground font-medium flex items-center gap-1.5">
+              iOS Lite — Beta
+              <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
+                Experimental
+              </span>
+            </p>
+            <p className="text-muted-foreground mt-0.5 leading-relaxed">
+              Safari on iOS 26 finally supports WebGPU, but with tight memory limits. We've enabled a tiny model
+              (Qwen 2.5 0.5B) so you can try local AI on iPhone — it's <em>way</em> smaller than our desktop models,
+              so expect simpler answers and the occasional weirdness. For full power, use Arc on desktop.
             </p>
           </div>
         </div>
@@ -181,17 +188,28 @@ export function LocalAIPanel() {
         </div>
       )}
 
-      {!isIOS && noWebGPU && !proLocked && (
+      {isIOS && proLocked && (
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
+          <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-muted-foreground">Upgrade to Pro to try iOS Lite (Beta).</p>
+        </div>
+      )}
+
+      {noWebGPU && !proLocked && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30">
           <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
           <div className="text-xs">
             <p className="text-foreground font-medium">WebGPU not available</p>
-            <p className="text-muted-foreground mt-0.5">Use Chrome, Edge, Brave, or Arc on desktop. Android Chrome 121+ also works.</p>
+            <p className="text-muted-foreground mt-0.5">
+              {isIOS
+                ? "Your iOS version doesn't expose WebGPU. Update to iOS 26 or newer, or use Arc on desktop."
+                : "Use Chrome, Edge, Brave, or Arc on desktop. Android Chrome 121+ also works."}
+            </p>
           </div>
         </div>
       )}
 
-      {!isIOS && !proLocked && !noWebGPU && (
+      {!proLocked && !noWebGPU && (
         <>
           {/* Per-model rows */}
           <div className="space-y-2">
