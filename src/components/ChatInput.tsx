@@ -1432,7 +1432,15 @@ ${safeCode}
 
               if (result.mode === 'code') {
                 // Save to history FIRST
-                await upsertCodeMessage(finalContent, lang, result.label, memoryAction);
+                const codeMsgId = await upsertCodeMessage(finalContent, lang, result.label, memoryAction);
+                // Tag the source model on the saved code tile
+                useArcStore.setState((state) => {
+                  const idx = state.messages.findIndex(m => m.id === codeMsgId);
+                  if (idx === -1) return state;
+                  const updated = [...state.messages];
+                  updated[idx] = { ...updated[idx], sourceModel: 'cloud-code' } as any;
+                  return { messages: updated } as any;
+                });
 
                 // Read content back from saved message (same source as tile click)
                 const messages = useArcStore.getState().messages;
@@ -1455,7 +1463,14 @@ ${safeCode}
                 }
               } else if (result.mode === 'canvas') {
                 // Save to history FIRST
-                await upsertCanvasMessage(finalContent, result.label, memoryAction);
+                const canvasMsgId = await upsertCanvasMessage(finalContent, result.label, memoryAction);
+                useArcStore.setState((state) => {
+                  const idx = state.messages.findIndex(m => m.id === canvasMsgId);
+                  if (idx === -1) return state;
+                  const updated = [...state.messages];
+                  updated[idx] = { ...updated[idx], sourceModel: 'cloud-canvas' } as any;
+                  return { messages: updated } as any;
+                });
 
                 // Read content back from saved message
                 const messages = useArcStore.getState().messages;
