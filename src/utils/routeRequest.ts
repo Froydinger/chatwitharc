@@ -4,6 +4,7 @@
  * and exposes a precise, model-accurate label for the source badge.
  */
 import { useLocalAIStore } from '@/store/useLocalAIStore';
+import { useCorporateModeStore } from '@/store/useCorporateModeStore';
 import { FAST_MODEL, QUALITY_MODEL, FAST_FALLBACK, getActiveLocalModelId } from '@/services/localAI';
 
 /**
@@ -42,6 +43,11 @@ export interface RouteContext {
  */
 export function routeRequest(ctx: RouteContext): RouteDestination {
   const { enabled, status } = useLocalAIStore.getState();
+  const corporate = useCorporateModeStore.getState().enabled;
+
+  // Corporate Mode: hard-lock to local, ignore every cloud-bound flag.
+  // (The chat send path independently blocks tools before they reach here.)
+  if (corporate) return 'local';
 
   if (ctx.isVoiceMode) return 'cloud-voice';
   if (ctx.isImageGenerationRequest) return 'cloud-image';
