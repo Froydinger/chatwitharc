@@ -20,6 +20,34 @@ export const LOCAL_MODEL_LABEL = 'Llama 3.2 3B';
 let enginePromise: Promise<MLCEngineInterface> | null = null;
 let activeModelId: string | null = null;
 
+type LocalModelCacheBackend = 'cache' | 'indexeddb';
+
+const LOCAL_MODEL_IDS = [FAST_MODEL, FAST_FALLBACK, QUALITY_MODEL, IOS_LITE_MODEL] as const;
+
+async function getWebLLMAppConfig(useIndexedDBCache: boolean) {
+  const { prebuiltAppConfig } = await import('@mlc-ai/web-llm');
+  return {
+    ...prebuiltAppConfig,
+    useIndexedDBCache,
+  };
+}
+
+async function hasModelInBackend(modelId: string, backend: LocalModelCacheBackend): Promise<boolean> {
+  try {
+    const { hasModelInCache } = await import('@mlc-ai/web-llm');
+    const appConfig = await getWebLLMAppConfig(backend === 'indexeddb');
+    return await hasModelInCache(modelId, appConfig);
+  } catch {
+    return false;
+  }
+}
+
+async function getModelCacheBackend(modelId: string): Promise<LocalModelCacheBackend | null> {
+  if (await hasModelInBackend(modelId, 'indexeddb')) return 'indexeddb';
+  if (await hasModelInBackend(modelId, 'cache')) return 'cache';
+  return null;
+}
+
 export interface LoadProgressEvent {
   progress: number; // 0-1
   text: string;
