@@ -231,6 +231,11 @@ export function LocalAIPanel() {
 
       {!proLocked && !noWebGPU && (
         <>
+          {!cacheChecked && (
+            <div className="p-3 rounded-xl bg-muted/20 border border-border/40 text-xs text-muted-foreground">
+              Verifying on-device model…
+            </div>
+          )}
           {/* Per-model rows */}
           <div className="space-y-2">
             {MODELS.map(({ id, name, size, blurb, Icon, beta }) => {
