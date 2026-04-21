@@ -341,8 +341,8 @@ export const useArcStore = create<ArcState>()(
         const state = get();
         const session = state.chatSessions.find(s => s.id === sessionId);
         
-        // Skip if already hydrated or currently hydrating
-        if (session?.isHydrated || state.isHydratingSession === sessionId) {
+        // Skip if already hydrated, currently hydrating, or local-only (corp mode never hits cloud).
+        if (session?.isHydrated || session?.isLocalOnly || state.isHydratingSession === sessionId) {
           return;
         }
 
@@ -420,8 +420,8 @@ export const useArcStore = create<ArcState>()(
         // Skip if already hydrated or currently hydrating
         if (state.allSessionsHydrated || state.isHydratingAll) return;
 
-        // Skip if there are no unhydrated sessions
-        const unhydratedSessions = state.chatSessions.filter(s => !s.isHydrated);
+        // Skip if there are no unhydrated sessions (local-only never need cloud hydration).
+        const unhydratedSessions = state.chatSessions.filter(s => !s.isHydrated && !s.isLocalOnly);
         if (unhydratedSessions.length === 0) {
           set({ allSessionsHydrated: true });
           return;
@@ -481,6 +481,7 @@ export const useArcStore = create<ArcState>()(
           set(s => {
             const updatedSessions = s.chatSessions.map(cs => {
               if (cs.isHydrated) return cs; // Already hydrated, skip
+              if (cs.isLocalOnly) return { ...cs, isHydrated: true }; // Local-only stays local
               const fetched = sessionDataMap.get(cs.id);
               if (!fetched) return cs;
               // Don't overwrite a non-empty local copy with a stale empty remote.
@@ -907,7 +908,12 @@ export const useArcStore = create<ArcState>()(
               createdAt: existingSession?.createdAt || new Date(),
               lastMessageAt: new Date(),
               messages: updatedMessages,
+              canvasContent: existingSession?.canvasContent,
               isLocalOnly: existingSession?.isLocalOnly,
+              // Preserve hydration so local-only sessions don't get wiped by a
+              // cloud fetch on next load (the cloud row never exists for them).
+              isHydrated: existingSession?.isHydrated ?? true,
+              messageCount: updatedMessages.length,
             };
             
             updatedSessions = state.chatSessions.map(session => 
