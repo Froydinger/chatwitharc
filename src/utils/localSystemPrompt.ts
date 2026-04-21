@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalToolInstructions } from "@/utils/localToolProtocol";
 import { getActiveLocalModelId, IOS_LITE_MODEL } from "@/services/localAI";
+import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 
 /**
  * System prompt builder for the on-device (local) model.
