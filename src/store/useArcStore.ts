@@ -1272,10 +1272,24 @@ export const useArcStore = create<ArcState>()(
     }),
     {
       name: 'arc-ai-storage',
-      partialize: () => ({
-        // Cloud-only: no local storage backup needed
+      partialize: (state) => ({
+        // Persist ONLY corporate-mode (local-only) sessions to localStorage.
+        // Cloud sessions are restored from Supabase on login, so we don't
+        // double-store them. Corp-mode sessions never touch the cloud, so
+        // localStorage is their only home — without this, refresh wipes them.
+        chatSessions: (state.chatSessions || []).filter((s) => s.isLocalOnly),
         // currentSessionId intentionally NOT persisted — always start fresh on reload
-      })
+      }),
+      merge: (persisted: any, current: any) => {
+        // Merge persisted local-only sessions with the freshly-initialized state.
+        // Cloud sessions will be appended later by syncFromSupabase().
+        const persistedSessions = Array.isArray(persisted?.chatSessions) ? persisted.chatSessions : [];
+        return {
+          ...current,
+          ...persisted,
+          chatSessions: persistedSessions,
+        };
+      },
     }
   )
 );
