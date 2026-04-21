@@ -94,6 +94,7 @@ function ResearchUpgradeWall({ onClose }: { onClose: () => void }) {
 }
 
 export function SearchCanvas() {
+  const corporateMode = useCorporateModeStore((s) => s.enabled);
   const {
     sessions,
     activeSessionId,
