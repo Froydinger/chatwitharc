@@ -204,11 +204,15 @@ export function LocalAIPanel() {
         <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30">
           <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
           <div className="text-xs">
-            <p className="text-foreground font-medium">WebGPU not available</p>
+            <p className="text-foreground font-medium">WebGPU not available here</p>
             <p className="text-muted-foreground mt-0.5">
-              {isIOS
-                ? "Your iOS version doesn't expose WebGPU. Update to iOS 26 or newer, or use Arc on desktop."
-                : "Use Chrome, Edge, Brave, or Arc on desktop. Android Chrome 121+ also works."}
+              {inIframe
+                ? "WebGPU is blocked inside this preview frame. Open the app in its own tab (or install it as a PWA from your browser menu) and try again — it should work."
+                : isIOS
+                  ? "Your iOS version doesn't expose WebGPU. Update to iOS 26 or newer, or use Arc on desktop."
+                  : isAndroid
+                    ? "Use Chrome 121+ on Android (stock Chrome, not Samsung Internet). If you're inside an in-app browser, tap the menu → 'Open in Chrome'."
+                    : "Use Chrome, Edge, Brave, or Arc on desktop. Android Chrome 121+ also works."}
             </p>
           </div>
         </div>
