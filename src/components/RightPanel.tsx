@@ -3,6 +3,7 @@ import { X, Crown, Quote, ChevronLeft, Lock, Unlock } from "lucide-react";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useAccentStore } from "@/store/useAccentStore";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
+import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,15 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
 
   const handleToggleCorporate = () => {
     const next = !corporateMode;
+    const { isLoading, isGeneratingImage, messages, createNewSession } = useArcStore.getState();
+    if (isLoading || isGeneratingImage) {
+      toast({
+        title: "Finish the current message first",
+        description: "Wait for the response to complete before switching modes.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (next && !(selectedModelId && localStatus === "ready")) {
       setCorporate(true, accent);
       toast({
@@ -43,6 +53,10 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
       return;
     }
     setCorporate(next, accent);
+    // Histories diverge between modes — start a fresh chat if one is in progress.
+    if (messages.length > 0) {
+      createNewSession();
+    }
     toast({
       title: next ? "Corporate Mode enabled" : "Corporate Mode disabled",
       description: next

@@ -2098,14 +2098,16 @@ ${safeCode}
                   ? "bg-black/80 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,.5)]"
                   : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]"
               )}>
-                {[
-                  { label: "Image", icon: <ImagePlus className="h-3.5 w-3.5" />, color: "text-green-400", action: () => { setInputValue("image/"); textareaRef.current?.focus(); } },
-                  { label: "Search", icon: <Globe className="h-3.5 w-3.5" />, color: "text-cyan-400", action: () => { setInputValue("search/"); textareaRef.current?.focus(); } },
-                  { label: "Write", icon: <PenLine className="h-3.5 w-3.5" />, color: "text-purple-400", action: () => { setForceCanvasMode(true); setInputValue("write/ "); textareaRef.current?.focus(); } },
-                  { label: "Research", icon: <Search className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setInputValue(""); openSearchMode(); textareaRef.current?.focus(); } },
-                  { label: "Code", icon: <Code2 className="h-3.5 w-3.5" />, color: "text-blue-400", action: () => { setInputValue("code/"); textareaRef.current?.focus(); } },
-                  { label: "Build", icon: <Rocket className="h-3.5 w-3.5" />, color: "text-amber-400", action: () => { setInputValue("build/"); textareaRef.current?.focus(); } },
-                ].map((item, i) => (
+                {([
+                  { label: "Image", icon: <ImagePlus className="h-3.5 w-3.5" />, color: "text-green-400", action: () => { setInputValue("image/"); textareaRef.current?.focus(); }, hideInCorporate: true },
+                  { label: "Search", icon: <Globe className="h-3.5 w-3.5" />, color: "text-cyan-400", action: () => { setInputValue("search/"); textareaRef.current?.focus(); }, hideInCorporate: true },
+                  { label: "Write", icon: <PenLine className="h-3.5 w-3.5" />, color: "text-purple-400", action: () => { setForceCanvasMode(true); setInputValue("write/ "); textareaRef.current?.focus(); }, hideInCorporate: true },
+                  { label: "Research", icon: <Search className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setInputValue(""); openSearchMode(); textareaRef.current?.focus(); }, hideInCorporate: true },
+                  { label: "Code", icon: <Code2 className="h-3.5 w-3.5" />, color: "text-blue-400", action: () => { setInputValue("code/"); textareaRef.current?.focus(); }, hideInCorporate: true },
+                  { label: "Build", icon: <Rocket className="h-3.5 w-3.5" />, color: "text-amber-400", action: () => { setInputValue("build/"); textareaRef.current?.focus(); }, hideInCorporate: true },
+                ] as Array<{ label: string; icon: JSX.Element; color: string; action: () => void; hideInCorporate?: boolean }>)
+                  .filter((item) => !(useCorporateModeStore.getState().enabled && item.hideInCorporate))
+                  .map((item, i) => (
                   <motion.button
                     key={item.label}
                     initial={{ opacity: 0, scale: 0.9 }}
