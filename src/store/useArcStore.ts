@@ -341,8 +341,8 @@ export const useArcStore = create<ArcState>()(
         const state = get();
         const session = state.chatSessions.find(s => s.id === sessionId);
         
-        // Skip if already hydrated or currently hydrating
-        if (session?.isHydrated || state.isHydratingSession === sessionId) {
+        // Skip if already hydrated, currently hydrating, or local-only (corp mode never hits cloud).
+        if (session?.isHydrated || session?.isLocalOnly || state.isHydratingSession === sessionId) {
           return;
         }
 
