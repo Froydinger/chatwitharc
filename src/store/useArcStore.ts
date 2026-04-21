@@ -481,6 +481,7 @@ export const useArcStore = create<ArcState>()(
           set(s => {
             const updatedSessions = s.chatSessions.map(cs => {
               if (cs.isHydrated) return cs; // Already hydrated, skip
+              if (cs.isLocalOnly) return { ...cs, isHydrated: true }; // Local-only stays local
               const fetched = sessionDataMap.get(cs.id);
               if (!fetched) return cs;
               // Don't overwrite a non-empty local copy with a stale empty remote.
