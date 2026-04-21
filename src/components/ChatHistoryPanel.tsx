@@ -117,11 +117,11 @@ export function ChatHistoryPanel() {
   const corporateMode = useCorporateModeStore((s) => s.enabled);
 
   const sortedSessions = useMemo(() => {
-    // In Corporate Mode, only show sessions created during corp mode (local-only).
-    // Cloud-synced chats are hidden behind the lock until corp mode is disabled.
+    // In Corporate Mode, only show local-only sessions (created on-device).
+    // In normal mode, hide local-only sessions — they belong to corp mode only.
     const sourceSessions = corporateMode
       ? chatSessions.filter(s => s.isLocalOnly)
-      : chatSessions;
+      : chatSessions.filter(s => !s.isLocalOnly);
 
     const chatItems: UnifiedSession[] = sourceSessions
       .filter(session => (session.messageCount ?? session.messages.length) > 0)
