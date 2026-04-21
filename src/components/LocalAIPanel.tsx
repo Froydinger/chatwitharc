@@ -49,6 +49,7 @@ export function LocalAIPanel() {
   const { toast } = useToast();
 
   const [cached, setCached] = useState<Record<string, boolean>>({});
+  const [cacheChecked, setCacheChecked] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const isIOS = typeof navigator !== 'undefined' && (
@@ -68,19 +69,29 @@ export function LocalAIPanel() {
   const refreshCache = useCallback(async () => {
     const c = await getCachedLocalModels();
     setCached(c);
+    setCacheChecked(true);
     // Auto-pick a default selection if user has one cached but none selected.
-    if (!selectedModelId) {
-      const firstCached = MODELS.find(m => c[m.id])?.id;
+    const anyCached = Object.values(c).some(Boolean);
+    if (anyCached && (!selectedModelId || !c[selectedModelId])) {
+      const firstCached = MODELS.find(m => c[m.id])?.id ?? Object.keys(c).find(id => c[id]);
       if (firstCached) setSelectedModelId(firstCached);
     }
     // If anything is cached, surface "ready" state.
-    if (Object.values(c).some(Boolean) && status !== 'loading') {
+    if (anyCached && status !== 'loading') {
       setStatus('ready');
       setProgress(1, 'Ready (cached)');
     }
-  }, [selectedModelId, setSelectedModelId, setStatus, setProgress, status]);
+  }, [selectedModelId, setSelectedModelId, setStatus, setProgress, status, MODELS]);
 
-  useEffect(() => { refreshCache(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    refreshCache();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refreshCache();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+    /* eslint-disable-next-line */
+  }, []);
 
   const handleDownload = async (modelId: string) => {
     if (downloadingId) return;

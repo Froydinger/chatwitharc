@@ -1,28 +1,24 @@
 import { useEffect } from "react";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
-import {
-  findCachedLocalModel,
-  getCachedLocalModels,
-} from "@/services/localAI";
+import { getCachedLocalModels } from "@/services/localAI";
 
 /**
- * Keeps the local on-device model marked correctly across refreshes/PWA reloads.
+ * Keeps the local on-device model marked correctly across refreshes/PWA reloads
+ * and app resume (visibilitychange). Reconciles persisted Zustand state against
+ * what's actually in IndexedDB so the UI never shows a stale "not downloaded".
  *
- *   1. Asks the browser to mark this origin's storage as persistent so
- *      IndexedDB / Cache Storage (where WebLLM weights live) won't be evicted
- *      under storage pressure — the #1 cause of "I have to redownload".
- *   2. Reconciles the persisted Zustand state against what's actually in
- *      IndexedDB. If the store thinks a model is `ready` but the cache was
- *      evicted, flip back to `idle` so the UI prompts a redownload instead
- *      of silently failing. If a cached model exists but the store forgot,
- *      mark it ready.
+ *   - Probes IndexedDB on mount and every time the tab becomes visible.
+ *   - If ANY model is cached → status='ready', auto-select first cached if needed.
+ *   - Only flips to 'idle' when zero models are cached AND we previously thought
+ *     a model was ready (i.e. true eviction).
+ *   - Requests persistent storage; warns once if denied (Safari/Electron).
  */
 export function useLocalModelPersistence() {
   useEffect(() => {
     let cancelled = false;
+    let warnedAboutPersist = false;
 
-    (async () => {
-      // 1. Request persistent storage (no-op if already granted or unsupported).
+    const requestPersistOnce = async () => {
       try {
         if (
           typeof navigator !== "undefined" &&
@@ -33,13 +29,21 @@ export function useLocalModelPersistence() {
           if (!already) {
             const granted = await navigator.storage.persist();
             console.log("[LocalAI] Persistent storage granted:", granted);
+            if (!granted && !warnedAboutPersist) {
+              warnedAboutPersist = true;
+              console.warn(
+                "[LocalAI] Browser did not grant persistent storage. " +
+                  "On-device model weights may be evicted under storage pressure (Safari/iOS especially)."
+              );
+            }
           }
         }
       } catch (e) {
         console.warn("[LocalAI] persist() failed:", e);
       }
+    };
 
-      // 2. Reconcile store ↔ actual IndexedDB cache.
+    const reconcile = async () => {
       try {
         const {
           selectedModelId,
@@ -52,36 +56,48 @@ export function useLocalModelPersistence() {
         const cached = await getCachedLocalModels();
         if (cancelled) return;
 
+        const anyCached = Object.values(cached).some(Boolean);
         const selectedStillCached =
-          selectedModelId && cached[selectedModelId] === true;
+          !!selectedModelId && cached[selectedModelId] === true;
 
-        if (status === "ready" && !selectedStillCached) {
-          // Cache was wiped — show the download UI again.
-          console.warn(
-            "[LocalAI] Cached weights missing for",
-            selectedModelId,
-            "— resetting to idle."
-          );
-          setStatus("idle");
-          setProgress(0, "");
-        } else if (status !== "ready") {
-          // Store doesn't know we have weights — recover.
-          const found = selectedStillCached
-            ? selectedModelId
-            : await findCachedLocalModel();
-          if (!cancelled && found) {
-            setSelectedModelId(found);
+        if (anyCached) {
+          // We have weights on disk — make sure the UI knows.
+          if (!selectedStillCached) {
+            const firstCached = Object.keys(cached).find((id) => cached[id]);
+            if (firstCached) setSelectedModelId(firstCached);
+          }
+          if (status !== "ready" && status !== "loading") {
             setStatus("ready");
             setProgress(1, "Ready");
           }
+        } else if (status === "ready") {
+          // Truly evicted — show download UI again.
+          console.warn("[LocalAI] All cached weights are gone — resetting to idle.");
+          setStatus("idle");
+          setProgress(0, "");
         }
       } catch (e) {
         console.warn("[LocalAI] reconciliation failed:", e);
       }
-    })();
+    };
+
+    requestPersistOnce();
+    reconcile();
+
+    const onVisibility = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        reconcile();
+      }
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisibility);
+    }
 
     return () => {
       cancelled = true;
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibility);
+      }
     };
   }, []);
 }
