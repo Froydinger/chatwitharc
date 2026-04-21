@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
 import { useAccentStore } from "@/store/useAccentStore";
+import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
 
 /**
@@ -21,8 +22,16 @@ export function CorporateModePanel() {
   const hasLocalModel = !!selectedModelId && status === "ready";
 
   const handleToggle = (v: boolean) => {
+    const { isLoading, isGeneratingImage, messages, createNewSession } = useArcStore.getState();
+    if (isLoading || isGeneratingImage) {
+      toast({
+        title: "Finish the current message first",
+        description: "Wait for the response to complete before switching modes.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (v && !hasLocalModel) {
-      // Auto-prompt download path: scroll/focus the Local AI panel.
       setEnabled(true, accent);
       toast({
         title: "Download a local model first",
@@ -31,6 +40,9 @@ export function CorporateModePanel() {
       return;
     }
     setEnabled(v, accent);
+    if (messages.length > 0) {
+      createNewSession();
+    }
     toast({
       title: v ? "Corporate Mode enabled" : "Corporate Mode disabled",
       description: v
