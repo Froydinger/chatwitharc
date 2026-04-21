@@ -372,6 +372,19 @@ export const useArcStore = create<ArcState>()(
           console.log(`✅ Hydrated session with ${remoteMessages.length} messages`);
 
           set(s => {
+            // Safety net: if the local copy already has more messages than the
+            // remote, the remote is stale (eventual consistency / pending write).
+            // Skip overwrite to prevent the "user message vanishes on new chat" bug.
+            const localSession = s.chatSessions.find(cs => cs.id === sessionId);
+            const localCount = localSession?.messages?.length ?? 0;
+            if (localCount > remoteMessages.length) {
+              console.log(`⏭️ Skipping hydrate overwrite: local has ${localCount} msgs, remote ${remoteMessages.length}`);
+              const updatedSessions = s.chatSessions.map(cs =>
+                cs.id === sessionId ? { ...cs, isHydrated: true, canvasContent: cs.canvasContent || canvasContent } : cs
+              );
+              return { chatSessions: updatedSessions };
+            }
+
             const updatedSessions = s.chatSessions.map(cs => 
               cs.id === sessionId 
                 ? { 
@@ -470,6 +483,10 @@ export const useArcStore = create<ArcState>()(
               if (cs.isHydrated) return cs; // Already hydrated, skip
               const fetched = sessionDataMap.get(cs.id);
               if (!fetched) return cs;
+              // Don't overwrite a non-empty local copy with a stale empty remote.
+              if ((cs.messages?.length ?? 0) > fetched.messages.length) {
+                return { ...cs, isHydrated: true };
+              }
               return {
                 ...cs,
                 messages: fetched.messages,
@@ -606,6 +623,12 @@ export const useArcStore = create<ArcState>()(
           messages: [],
           canvasContent: '',
           isLocalOnly,
+          // Locally created → no remote copy is fresher than what we have.
+          // Without this, hydrateAllSessions can race in and overwrite the
+          // user's first message with the empty cloud copy from createNewSession's
+          // initial save (see bug: "user message disappears on new chats").
+          isHydrated: true,
+          messageCount: 0,
         };
 
         set((state) => ({
@@ -645,7 +668,10 @@ export const useArcStore = create<ArcState>()(
           lastMessageAt: new Date(),
           messages: [],
           canvasContent: '',
-          resources: resources
+          resources: resources,
+          // See note in createNewSession — prevent hydrate races.
+          isHydrated: true,
+          messageCount: 0,
         };
 
         set((state) => ({
@@ -865,6 +891,9 @@ export const useArcStore = create<ArcState>()(
               lastMessageAt: new Date(),
               messages: updatedMessages,
               isLocalOnly,
+              // Local is the source of truth — block hydrate races (see createNewSession).
+              isHydrated: true,
+              messageCount: updatedMessages.length,
             };
             updatedSessions = [sessionToSave, ...state.chatSessions];
           } else {
