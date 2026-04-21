@@ -54,6 +54,7 @@ export const useLocalAIStore = create<LocalAIState>()(
         // Persist 'ready' so weights remain marked-loaded across refresh.
         status: state.status === 'ready' ? 'ready' : 'idle',
         progress: state.status === 'ready' ? 1 : 0,
+        progressText: state.status === 'ready' ? 'Ready' : '',
       }),
     }
   )

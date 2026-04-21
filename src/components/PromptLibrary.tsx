@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MessageCircle, Lightbulb, PenTool, Code, Brain, RefreshCw } from "lucide-react";
+import { X, MessageCircle, Lightbulb, PenTool, Code, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask } from "@/store/useModelStore";
 import { toast } from "sonner";
 import { generatePromptsByCategory } from "@/utils/promptGenerator";
-import { getCachedPrompts, CACHE_KEY_PREFIX } from "@/hooks/usePromptPreload";
+import { getCachedPrompts } from "@/hooks/usePromptPreload";
 
 interface QuickPrompt {
   label: string;
@@ -21,12 +21,10 @@ interface PromptLibraryProps {
   onSelectPrompt: (prompt: string) => void;
 }
 
-type TabType = 'chat' | 'create' | 'write' | 'code' | 'smart';
+type TabType = 'chat' | 'create' | 'write' | 'code';
 
 export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: PromptLibraryProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('smart');
-  const [smartPrompts, setSmartPrompts] = useState<QuickPrompt[]>([]);
-  const [isLoadingSmartPrompts, setIsLoadingSmartPrompts] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('chat');
 
   // State for dynamically generated prompts
   const [chatPrompts, setChatPrompts] = useState<QuickPrompt[]>([]);
@@ -40,17 +38,10 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
   const [isLoadingWrite, setIsLoadingWrite] = useState(false);
   const [isLoadingCode, setIsLoadingCode] = useState(false);
 
-  // Generate initial prompts on mount; also pre-fill smart prompts from cache if available
+  // Generate initial prompts on mount
   useEffect(() => {
     if (isOpen) {
       refreshPrompts('all');
-      // Pre-fill smart prompts from cache so they appear instantly without waiting for tab click
-      if (smartPrompts.length === 0) {
-        const cached = getCachedPrompts('smart');
-        if (cached && cached.length > 0) {
-          setSmartPrompts(cached);
-        }
-      }
     }
   }, [isOpen]);
 
@@ -152,7 +143,6 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
       case 'create': return createPrompts;
       case 'write': return writePrompts;
       case 'code': return codePrompts;
-      case 'smart': return smartPrompts;
       default: return chatPrompts;
     }
   };
@@ -163,69 +153,16 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
       case 'create': return isLoadingCreate;
       case 'write': return isLoadingWrite;
       case 'code': return isLoadingCode;
-      case 'smart': return isLoadingSmartPrompts;
       default: return false;
     }
   };
 
   const tabs = [
-    { id: 'smart' as TabType, label: 'Smart', icon: Brain },
     { id: 'chat' as TabType, label: 'Chat', icon: MessageCircle },
     { id: 'create' as TabType, label: 'Create', icon: Lightbulb },
     { id: 'write' as TabType, label: 'Write', icon: PenTool },
     { id: 'code' as TabType, label: 'Code', icon: Code },
   ];
-
-  // Fetch smart prompts when Smart tab is clicked
-  useEffect(() => {
-    if (activeTab === 'smart' && smartPrompts.length === 0 && !isLoadingSmartPrompts) {
-      if (!supabase || !isSupabaseConfigured) {
-        setSmartPrompts([
-          { label: '💬 Continue our last conversation', prompt: 'Can we continue where we left off in our last conversation?' },
-          { label: '📝 Summarize recent chats', prompt: 'Can you summarize what we\'ve discussed recently?' },
-          { label: '🔍 Find something we discussed', prompt: 'Help me find something we talked about before' },
-        ]);
-        return;
-      }
-
-      // Check cache first - may already be generated in background
-      const cached = getCachedPrompts('smart');
-      if (cached && cached.length > 0) {
-        console.log('⚡ Using cached smart prompts (instant load)');
-        setSmartPrompts(cached);
-        return;
-      }
-
-      setIsLoadingSmartPrompts(true);
-
-      // Pass selected model for smart prompt generation
-      const selectedModel = getModelForTask('chat');
-      supabase.functions
-        .invoke('generate-smart-prompts', { body: { model: selectedModel } })
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('Failed to generate smart prompts:', error);
-            toast.error('Failed to generate smart suggestions');
-            setSmartPrompts([
-              { label: '💬 Continue our last conversation', prompt: 'Can we continue where we left off in our last conversation?' },
-              { label: '📝 Summarize recent chats', prompt: 'Can you summarize what we\'ve discussed recently?' },
-              { label: '🔍 Find something we discussed', prompt: 'Help me find something we talked about before' },
-            ]);
-          } else if (data?.prompts) {
-            setSmartPrompts(data.prompts);
-            // Cache so they're ready if panel is closed and reopened
-            try {
-              sessionStorage.setItem(CACHE_KEY_PREFIX + 'smart', JSON.stringify(data.prompts));
-            } catch (e) {
-              console.error('Failed to cache smart prompts:', e);
-            }
-          }
-        })
-        .finally(() => {
-          setIsLoadingSmartPrompts(false);
-        });
-    }
-  }, [activeTab]);
 
   return (
     <AnimatePresence>
@@ -296,7 +233,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {activeTab !== 'smart' && (
+                  {(
                     <motion.div
                       initial={{ scale: 0, rotate: -90 }}
                       animate={{ scale: 1, rotate: 0 }}
@@ -429,26 +366,8 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                           <Lightbulb className="h-10 w-10 text-primary" />
                         </motion.div>
                         <p className="text-sm text-muted-foreground font-medium">
-                          {activeTab === 'smart'
-                            ? 'Analyzing your conversations...'
-                            : 'Generating fresh prompts...'}
+                          Generating fresh prompts...
                         </p>
-                      </motion.div>
-                    </div>
-                  ) : getCurrentPrompts().length === 0 && activeTab === 'smart' ? (
-                    <div className="col-span-full flex items-center justify-center py-16">
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col items-center gap-4 text-center max-w-xs"
-                      >
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                          <Brain className="h-8 w-8 text-primary/70" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold mb-1">No smart suggestions yet</h4>
-                          <p className="text-sm text-muted-foreground">Start chatting to get personalized suggestions!</p>
-                        </div>
                       </motion.div>
                     </div>
                   ) : (

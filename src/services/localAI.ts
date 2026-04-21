@@ -62,6 +62,18 @@ export async function getCachedLocalModels(): Promise<Record<string, boolean>> {
 }
 
 /**
+ * Returns the id of any cached local model (first one found), or null.
+ * Canonical "do we have weights on disk" probe — independent of selectedModelId.
+ */
+export async function getAnyCachedModelId(): Promise<string | null> {
+  const cached = await getCachedLocalModels();
+  for (const id of Object.keys(cached)) {
+    if (cached[id]) return id;
+  }
+  return null;
+}
+
+/**
  * Delete a single cached model from IndexedDB.
  */
 export async function deleteCachedLocalModel(modelId: string): Promise<void> {
