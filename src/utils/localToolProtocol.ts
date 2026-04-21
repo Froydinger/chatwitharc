@@ -72,6 +72,16 @@ Rules:
 
 /** Returns the appropriate instruction block for the currently-loaded local model. */
 export function getLocalToolInstructions(): string {
+  // In Corporate Mode, ALL tools require the network — strip them entirely so
+  // the model doesn't promise to recall past chats or save memories it can't.
+  if (useCorporateModeStore.getState().enabled) {
+    return `=== ON-DEVICE MODE (CRITICAL) ===
+You are running fully offline on this device. You have NO tools available:
+- You CANNOT search past chats.
+- You CANNOT save new memories.
+- You CANNOT browse the web, generate images, or write files.
+Just answer the user directly using what you already know and the context provided. Never claim to look things up or remember new facts.`.trim();
+  }
   return getActiveLocalModelId() === IOS_LITE_MODEL
     ? LOCAL_TOOL_INSTRUCTIONS_MEMORY_ONLY
     : LOCAL_TOOL_INSTRUCTIONS;
