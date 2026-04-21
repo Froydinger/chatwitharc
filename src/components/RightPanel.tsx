@@ -3,6 +3,7 @@ import { X, Crown, Quote, ChevronLeft, Lock, Unlock } from "lucide-react";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useAccentStore } from "@/store/useAccentStore";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
+import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
