@@ -21,6 +21,15 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveLocalModelId, IOS_LITE_MODEL } from "@/services/localAI";
+import { useCorporateModeStore } from "@/store/useCorporateModeStore";
+
+/** Promise-with-timeout helper. Rejects if the inner promise doesn't settle in `ms`. */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+  });
+}
 
 /** Memory-only protocol used by tiny models (iOS Lite). No past-chat search. */
 export const LOCAL_TOOL_INSTRUCTIONS_MEMORY_ONLY = `
@@ -63,6 +72,16 @@ Rules:
 
 /** Returns the appropriate instruction block for the currently-loaded local model. */
 export function getLocalToolInstructions(): string {
+  // In Corporate Mode, ALL tools require the network — strip them entirely so
+  // the model doesn't promise to recall past chats or save memories it can't.
+  if (useCorporateModeStore.getState().enabled) {
+    return `=== ON-DEVICE MODE (CRITICAL) ===
+You are running fully offline on this device. You have NO tools available:
+- You CANNOT search past chats.
+- You CANNOT save new memories.
+- You CANNOT browse the web, generate images, or write files.
+Just answer the user directly using what you already know and the context provided. Never claim to look things up or remember new facts.`.trim();
+  }
   return getActiveLocalModelId() === IOS_LITE_MODEL
     ? LOCAL_TOOL_INSTRUCTIONS_MEMORY_ONLY
     : LOCAL_TOOL_INSTRUCTIONS;
@@ -110,15 +129,29 @@ export function stripToolTags(streamed: string): string {
 
 /** Run a parsed tool call and return a short result string to feed back to the model. */
 export async function executeLocalToolCall(call: LocalToolCall): Promise<string> {
+  // Corporate Mode: all tools are network-bound, so refuse politely.
+  if (useCorporateModeStore.getState().enabled) {
+    return "Tools are disabled in Corporate Mode. Just answer directly using what you already know.";
+  }
   // Block past-chat recall for tiny iOS Lite model — memory only.
   if (call.tool === 'recall') {
     if (getActiveLocalModelId() === IOS_LITE_MODEL) {
       return "Past-chat search isn't available on iOS Lite. Try asking the question directly.";
     }
-    return await runRecall(call.arg);
+    try {
+      return await withTimeout(runRecall(call.arg), 12000, 'recall');
+    } catch (e: any) {
+      console.warn('[Local tools] recall timed out:', e);
+      return 'Search timed out — answer directly without recalling past chats.';
+    }
   }
   if (call.tool === 'remember') {
-    return await runRemember(call.arg);
+    try {
+      return await withTimeout(runRemember(call.arg), 8000, 'remember');
+    } catch (e: any) {
+      console.warn('[Local tools] remember timed out:', e);
+      return 'Could not save memory (timed out).';
+    }
   }
   return 'Unknown tool.';
 }
