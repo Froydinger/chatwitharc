@@ -1,52 +1,78 @@
 
 
-## Make Arc Local fast on M4 Pro
+## Plan
 
-Three real problems are stacking up to make local mode feel broken on your M4 Pro. I'll fix all three.
+Two unrelated cleanups in one pass.
 
-### 1. Switch default to a faster, better-suited model
+---
 
-`gemma-2-9b-it-q4f16_1` is ~5GB and prefill-heavy. On M4 Pro via WebGPU it's usable but punishing on first-token latency. I'll switch the **preferred** model to `Llama-3.2-3B-Instruct-q4f16_1-MLC` (≈1.9GB, 3-4× faster TTFT, excellent quality for chat) and keep Gemma 2 9B as an **opt-in** "Quality" tier. Fallback chain becomes:
+### 1. Remove Smart suggestions from the Ideas modal
 
-```text
-Llama 3.2 3B  →  Gemma 2 2B  →  (optional) Gemma 2 9B if user picks "Quality"
-```
+The "Smart" tab in `PromptLibrary` calls `generate-smart-prompts` (and is preloaded by `usePromptPreload` + `smartPrompts.ts`). The user reports it consistently fails. Rip out the AI-driven smart generation entirely; keep the four working static-AI tabs (Chat, Create, Write, Code).
 
-Already-cached Gemma users keep working — `findCachedLocalModel` will detect and reattach whatever is on disk.
+**Edits**
 
-### 2. Stream tokens into the UI live (biggest perceived win)
+- `src/components/PromptLibrary.tsx`
+  - Drop `'smart'` from `TabType`; remove the Smart tab from the `tabs` array.
+  - Default `activeTab` to `'chat'`.
+  - Delete `smartPrompts`, `isLoadingSmartPrompts`, the smart-fetch `useEffect`, the cached-smart prefill, and the `smart` branch in `getCurrentPrompts` / `isCurrentTabLoading`.
+  - Drop the `Brain` icon import.
 
-Right now `streamLocalChat` collects every delta into a string and only adds the message after the full response finishes. That's why it feels like "nothing's happening." I'll:
+- `src/hooks/usePromptPreload.tsx`
+  - Delete `generateSmartPromptsBackground()` and remove it from the parallel preload `Promise.all`.
 
-- Add a placeholder assistant message the instant streaming starts.
-- Update its content on every delta (throttled to ~30ms via `requestAnimationFrame` to avoid React thrash).
-- Finalize on completion.
+- `src/utils/smartPrompts.ts` — **delete the file** (no remaining imports after cleanup; only `selectSmartPrompts`/`fetchPersonalizedPrompts` lived here and they're unused).
 
-This alone makes it feel 10× faster even if total time is identical.
+- Verify no other imports of `smartPrompts.ts` or `'generate-smart-prompts'` remain in `src/` (already scanned: only the modal + preload reference it).
 
-### 3. Trim the per-turn prefill (kills the real latency)
+The edge functions `generate-smart-prompts` / `generate-personalized-prompts` stay deployed but become dormant — no client traffic. Not deleting them so we can revisit later without redeploy churn.
 
-We currently re-send the full system prompt + every message every turn, which forces WebLLM to re-prefill thousands of tokens on each reply.
+---
 
-- **Shrink `buildLocalSystemPrompt`**: cap `memory_info` to ~800 chars, cap `context_blocks` to the 10 most recent (not 50), drop the long admin prompt for local mode (use a tight 2-sentence ArcAI persona instead — admin prompt is tuned for tool-using cloud model anyway).
-- **Cap message history** sent to local model to last 8 messages (was unbounded). Keeps the conversation coherent without forcing a 4k-token re-prefill every turn.
-- **Stop `JSON.stringify`-ing message content**. If a message has non-string content (image), skip it for local mode (local can't see images anyway) instead of injecting `[{"type":"image_url",...}]` garbage into the prompt.
-- Lower `max_tokens` from 1024 → 512 (plenty for chat; user can always say "continue").
+### 2. Make local model downloads stick across app close/reopen everywhere
 
-### 4. Surface real generation speed
+The "model deleted on reopen" symptom is actually a **stale UI state**, not real eviction in most cases. Three converging problems:
 
-Add a tiny `tok/s` indicator under the streamed reply (computed from delta count + elapsed time) so you can see when something's actually wrong vs. just normal local speed.
+**a. `getCachedLocalModels()` doesn't probe the iOS Lite model in some flows** — actually it does. ✅
 
-### Files touched
+**b. The store's `partialize` downgrades `status: 'loading'` → `'idle'` on every reload, but never restores to `'ready'` if reconciliation hasn't fired yet.** First paint of `LocalAIPanel` shows "no model" until the async `getCachedLocalModels()` resolves. On slow IndexedDB (cold app launch, especially Electron `.dmg`), that's a visible flash that looks like the model is gone.
 
-- `src/services/localAI.ts` — new model id, fallback chain, expose `tokens/sec` callback, lower max_tokens.
-- `src/components/ChatInput.tsx` — placeholder message + live streaming updates, history cap, drop image messages for local path.
-- `src/utils/localSystemPrompt.ts` — trim memory/context, replace admin prompt with tight ArcAI persona for local.
-- `src/components/LocalAIPanel.tsx` — update copy from "Gemma 2 9B" → "Llama 3.2 3B (fast)" with optional quality toggle, update label helper.
+**c. `useLocalModelPersistence` only runs once at App mount and races with the panel's own `refreshCache()`. If the persistence hook resets to `idle` because `selectedModelId` is empty (user never explicitly selected, just downloaded), we wipe the `ready` flag even though weights are present.** This is the actual bug: the reconciliation logic at line 58 does `if (status === "ready" && !selectedStillCached) → setStatus("idle")`, and `selectedStillCached` is false whenever `selectedModelId === ''`.
 
-### Expected result on M4 Pro
+**d. Browser eviction is still possible (especially Safari/iOS PWAs and Electron without persistent storage granted).** `navigator.storage.persist()` in Electron returns false silently; we never retry or warn.
 
-- First token: **~1-2s** (was 15-30s).
-- Streaming feels live (was: blank → wall of text).
-- Sustained ~25-40 tok/s with Llama 3.2 3B; ~10-15 tok/s if you opt into Gemma 9B.
+**Fixes**
+
+- `src/services/localAI.ts`
+  - `getCachedLocalModels()` already includes all four models — no change.
+  - Add `getAnyCachedModelId()` helper that returns the first cached model id (or null), used as the canonical "we have a model" probe.
+
+- `src/hooks/useLocalModelPersistence.tsx` — rewrite reconciliation:
+  1. Run on mount **and** on `visibilitychange` → 'visible' (re-check when app is reopened from background, critical for PWAs/Electron).
+  2. Always probe the cache first, ignore `selectedModelId` for the "is anything downloaded" check.
+  3. If any model is cached: set `status='ready'`, `progress=1`, and if `selectedModelId` is empty or stale (not in cache), auto-select the first cached model.
+  4. Only flip to `idle` if **zero** models are cached AND status was `ready` (truly evicted).
+  5. Request `navigator.storage.persist()` and log/toast a one-time warning if it returns false on iOS/Electron so the user knows storage may be evicted.
+
+- `src/store/useLocalAIStore.ts`
+  - Change `partialize` to also persist `selectedModelId` and `progressText` so the panel doesn't visibly reset between paints. (selectedModelId is already persisted — confirmed.) Persist `progress` always when `status === 'ready'` (already done). Add `progressText: 'Ready'` when ready. Minor cosmetic.
+
+- `src/components/LocalAIPanel.tsx`
+  - In `refreshCache()`, also auto-mark `status='ready'` when any model is cached even if `selectedModelId` is empty (currently it does, but only if `status !== 'loading'`). Tighten so the panel never shows the "Download" button for a model that `cached[id] === true`, even mid-reconciliation.
+  - Show a small "Verifying on-device model…" placeholder for the brief moment before the first `getCachedLocalModels()` resolves so users don't see a flash of "not downloaded" on a cold launch (especially in the `.dmg` build).
+
+**Coverage by platform**
+
+- **Desktop web (Chrome/Edge)** — `navigator.storage.persist()` works, IndexedDB sticks. Fix (c) eliminates the false "not downloaded" UI.
+- **Desktop `.dmg` (Electron)** — `navigator.storage.persist()` may return false, but Electron never evicts IndexedDB on its own. Fix (c) + visibilitychange re-probe handles this.
+- **PWA (mobile/desktop)** — persist() granted, plus visibilitychange re-probe handles app-resume case.
+- **iOS Safari** — most aggressive eviction. We can't guarantee IndexedDB survives long pressure, but we (i) request persist, (ii) detect on resume, (iii) show real status instead of stale.
+
+---
+
+### Out of scope
+
+- Not touching the chat default model (separate memory: gemini-3-flash-preview already correct).
+- Not removing the personalized-prompts edge function — only the client wiring.
+- Not touching `WelcomeSection` quick-idea chips (per user's "Modal only").
 
