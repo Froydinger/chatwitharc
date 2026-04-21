@@ -372,6 +372,19 @@ export const useArcStore = create<ArcState>()(
           console.log(`✅ Hydrated session with ${remoteMessages.length} messages`);
 
           set(s => {
+            // Safety net: if the local copy already has more messages than the
+            // remote, the remote is stale (eventual consistency / pending write).
+            // Skip overwrite to prevent the "user message vanishes on new chat" bug.
+            const localSession = s.chatSessions.find(cs => cs.id === sessionId);
+            const localCount = localSession?.messages?.length ?? 0;
+            if (localCount > remoteMessages.length) {
+              console.log(`⏭️ Skipping hydrate overwrite: local has ${localCount} msgs, remote ${remoteMessages.length}`);
+              const updatedSessions = s.chatSessions.map(cs =>
+                cs.id === sessionId ? { ...cs, isHydrated: true, canvasContent: cs.canvasContent || canvasContent } : cs
+              );
+              return { chatSessions: updatedSessions };
+            }
+
             const updatedSessions = s.chatSessions.map(cs => 
               cs.id === sessionId 
                 ? { 
@@ -470,6 +483,10 @@ export const useArcStore = create<ArcState>()(
               if (cs.isHydrated) return cs; // Already hydrated, skip
               const fetched = sessionDataMap.get(cs.id);
               if (!fetched) return cs;
+              // Don't overwrite a non-empty local copy with a stale empty remote.
+              if ((cs.messages?.length ?? 0) > fetched.messages.length) {
+                return { ...cs, isHydrated: true };
+              }
               return {
                 ...cs,
                 messages: fetched.messages,
