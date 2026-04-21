@@ -1606,23 +1606,35 @@ ${safeCode}
                     currentAbortController.signal.addEventListener('abort', () => localAbort.abort(), { once: true });
                   }
 
-                  await streamLocalChat(
-                    conversation,
-                    (delta) => {
-                      streamed += delta;
-                      pending += delta;
-                      if (!rafScheduled) {
-                        rafScheduled = true;
-                        requestAnimationFrame(() => { flush(); });
-                      }
-                      // If a complete tag has arrived, stop this turn early.
-                      if (turn < MAX_TOOL_TURNS && findFirstToolCall(streamed)) {
-                        localAbort.abort();
-                      }
-                    },
-                    localAbort.signal,
-                    () => {}
-                  );
+                  // Hard per-turn timeout — local model should never hang the UI.
+                  // 90s is generous for a slow first-token on a cold engine.
+                  const TURN_TIMEOUT_MS = 90_000;
+                  const turnTimeout = setTimeout(() => {
+                    console.warn('[Arc Local] turn timed out, aborting stream');
+                    localAbort.abort();
+                  }, TURN_TIMEOUT_MS);
+
+                  try {
+                    await streamLocalChat(
+                      conversation,
+                      (delta) => {
+                        streamed += delta;
+                        pending += delta;
+                        if (!rafScheduled) {
+                          rafScheduled = true;
+                          requestAnimationFrame(() => { flush(); });
+                        }
+                        // If a complete tag has arrived, stop this turn early.
+                        if (turn < MAX_TOOL_TURNS && findFirstToolCall(streamed)) {
+                          localAbort.abort();
+                        }
+                      },
+                      localAbort.signal,
+                      () => {}
+                    );
+                  } finally {
+                    clearTimeout(turnTimeout);
+                  }
 
                   // Final flush of this turn's visible content.
                   const visibleNow = stripToolTags(streamed).trim();
