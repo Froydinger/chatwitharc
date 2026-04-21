@@ -874,6 +874,9 @@ export const useArcStore = create<ArcState>()(
               lastMessageAt: new Date(),
               messages: updatedMessages,
               isLocalOnly,
+              // Local is the source of truth — block hydrate races (see createNewSession).
+              isHydrated: true,
+              messageCount: updatedMessages.length,
             };
             updatedSessions = [sessionToSave, ...state.chatSessions];
           } else {
