@@ -29,7 +29,7 @@ export async function fetchCorporateMemorySnapshot(): Promise<CorporateMemorySna
         .limit(50),
     ]);
 
-    const profile = profileRes.data || {};
+    const profile = (profileRes.data || {}) as { display_name?: string | null; context_info?: string | null; memory_info?: string | null };
     const blocks = (blocksRes.data || [])
       .map((b: any) => (b.content || '').trim())
       .filter(Boolean);
