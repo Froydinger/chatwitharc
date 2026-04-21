@@ -80,6 +80,9 @@ export function LocalAIPanel() {
     if (anyCached && status !== 'loading') {
       setStatus('ready');
       setProgress(1, 'Ready (cached)');
+    } else if (!anyCached && status === 'ready') {
+      setStatus('idle');
+      setProgress(0, '');
     }
   }, [selectedModelId, setSelectedModelId, setStatus, setProgress, status, MODELS]);
 
