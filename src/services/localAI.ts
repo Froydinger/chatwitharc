@@ -20,6 +20,34 @@ export const LOCAL_MODEL_LABEL = 'Llama 3.2 3B';
 let enginePromise: Promise<MLCEngineInterface> | null = null;
 let activeModelId: string | null = null;
 
+type LocalModelCacheBackend = 'cache' | 'indexeddb';
+
+const LOCAL_MODEL_IDS = [FAST_MODEL, FAST_FALLBACK, QUALITY_MODEL, IOS_LITE_MODEL] as const;
+
+async function getWebLLMAppConfig(useIndexedDBCache: boolean) {
+  const { prebuiltAppConfig } = await import('@mlc-ai/web-llm');
+  return {
+    ...prebuiltAppConfig,
+    useIndexedDBCache,
+  };
+}
+
+async function hasModelInBackend(modelId: string, backend: LocalModelCacheBackend): Promise<boolean> {
+  try {
+    const { hasModelInCache } = await import('@mlc-ai/web-llm');
+    const appConfig = await getWebLLMAppConfig(backend === 'indexeddb');
+    return await hasModelInCache(modelId, appConfig);
+  } catch {
+    return false;
+  }
+}
+
+async function getModelCacheBackend(modelId: string): Promise<LocalModelCacheBackend | null> {
+  if (await hasModelInBackend(modelId, 'indexeddb')) return 'indexeddb';
+  if (await hasModelInBackend(modelId, 'cache')) return 'cache';
+  return null;
+}
+
 export interface LoadProgressEvent {
   progress: number; // 0-1
   text: string;
@@ -30,14 +58,9 @@ export interface LoadProgressEvent {
  * Returns the cached id, or null. Checks fast → fallback → quality.
  */
 export async function findCachedLocalModel(): Promise<string | null> {
-  try {
-    const { hasModelInCache } = await import('@mlc-ai/web-llm');
-    for (const id of [FAST_MODEL, FAST_FALLBACK, QUALITY_MODEL, IOS_LITE_MODEL]) {
-      try {
-        if (await hasModelInCache(id)) return id;
-      } catch {}
-    }
-  } catch {}
+  for (const id of LOCAL_MODEL_IDS) {
+    if (await getModelCacheBackend(id)) return id;
+  }
   return null;
 }
 
@@ -47,17 +70,15 @@ export async function findCachedLocalModel(): Promise<string | null> {
 export async function getCachedLocalModels(): Promise<Record<string, boolean>> {
   const result: Record<string, boolean> = {
     [FAST_MODEL]: false,
+    [FAST_FALLBACK]: false,
     [QUALITY_MODEL]: false,
     [IOS_LITE_MODEL]: false,
   };
-  try {
-    const { hasModelInCache } = await import('@mlc-ai/web-llm');
-    await Promise.all(
-      Object.keys(result).map(async (id) => {
-        try { result[id] = await hasModelInCache(id); } catch {}
-      })
-    );
-  } catch {}
+  await Promise.all(
+    Object.keys(result).map(async (id) => {
+      result[id] = (await getModelCacheBackend(id)) !== null;
+    })
+  );
   return result;
 }
 
@@ -79,7 +100,12 @@ export async function getAnyCachedModelId(): Promise<string | null> {
 export async function deleteCachedLocalModel(modelId: string): Promise<void> {
   try {
     const { deleteModelInCache } = await import('@mlc-ai/web-llm');
-    await deleteModelInCache(modelId);
+    const indexedDbConfig = await getWebLLMAppConfig(true);
+    const cacheApiConfig = await getWebLLMAppConfig(false);
+    await Promise.allSettled([
+      deleteModelInCache(modelId, indexedDbConfig),
+      deleteModelInCache(modelId, cacheApiConfig),
+    ]);
   } catch (e) {
     console.warn('[Arc Local] Failed to delete cached model:', modelId, e);
   }
@@ -120,6 +146,9 @@ export async function loadLocalModel(
   }
 
   const { CreateMLCEngine } = await import('@mlc-ai/web-llm');
+  const existingBackend = await getModelCacheBackend(preferredModel);
+  const useIndexedDBCache = existingBackend ? existingBackend === 'indexeddb' : true;
+  const appConfig = await getWebLLMAppConfig(useIndexedDBCache);
 
   const initProgressCallback = (report: InitProgressReport) => {
     onProgress?.({
@@ -130,9 +159,11 @@ export async function loadLocalModel(
 
   enginePromise = (async () => {
     const tryLoad = async (id: string, label: string) => {
+      const backend = id === preferredModel ? existingBackend : await getModelCacheBackend(id);
+      const perModelAppConfig = await getWebLLMAppConfig(backend ? backend === 'indexeddb' : true);
       activeModelId = id;
       onProgress?.({ progress: 0, text: `Loading ${label}…` });
-      return await CreateMLCEngine(id, { initProgressCallback });
+      return await CreateMLCEngine(id, { initProgressCallback, appConfig: perModelAppConfig });
     };
 
     // Build per-request fallback chain: preferred → fast fallback (skip duplicates).
