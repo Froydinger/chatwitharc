@@ -907,7 +907,12 @@ export const useArcStore = create<ArcState>()(
               createdAt: existingSession?.createdAt || new Date(),
               lastMessageAt: new Date(),
               messages: updatedMessages,
+              canvasContent: existingSession?.canvasContent,
               isLocalOnly: existingSession?.isLocalOnly,
+              // Preserve hydration so local-only sessions don't get wiped by a
+              // cloud fetch on next load (the cloud row never exists for them).
+              isHydrated: existingSession?.isHydrated ?? true,
+              messageCount: updatedMessages.length,
             };
             
             updatedSessions = state.chatSessions.map(session => 
