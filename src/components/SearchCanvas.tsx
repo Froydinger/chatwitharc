@@ -26,7 +26,10 @@ import {
   Lock,
   Crown,
   Sparkles,
+  Globe,
+  ShieldCheck,
 } from "lucide-react";
+import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
