@@ -420,8 +420,8 @@ export const useArcStore = create<ArcState>()(
         // Skip if already hydrated or currently hydrating
         if (state.allSessionsHydrated || state.isHydratingAll) return;
 
-        // Skip if there are no unhydrated sessions
-        const unhydratedSessions = state.chatSessions.filter(s => !s.isHydrated);
+        // Skip if there are no unhydrated sessions (local-only never need cloud hydration).
+        const unhydratedSessions = state.chatSessions.filter(s => !s.isHydrated && !s.isLocalOnly);
         if (unhydratedSessions.length === 0) {
           set({ allSessionsHydrated: true });
           return;
