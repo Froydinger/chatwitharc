@@ -55,8 +55,13 @@ export function LocalAIPanel() {
     /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1)
   );
+  const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+  const inIframe = typeof window !== 'undefined' && (() => {
+    try { return window.self !== window.top; } catch { return true; }
+  })();
 
-  const MODELS: ModelOption[] = isIOS ? IOS_MODELS : DESKTOP_MODELS;
+  // Android gets the same lite-friendly list as iOS — phones don't have RAM for 3B/9B.
+  const MODELS: ModelOption[] = (isIOS || isAndroid) ? IOS_MODELS : DESKTOP_MODELS;
 
   useEffect(() => { isWebGPUSupported().then(setWebgpuSupported); }, [setWebgpuSupported]);
 
