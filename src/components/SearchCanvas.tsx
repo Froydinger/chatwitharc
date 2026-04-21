@@ -26,7 +26,6 @@ import {
   Lock,
   Crown,
   Sparkles,
-  Globe,
   ShieldCheck,
 } from "lucide-react";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
