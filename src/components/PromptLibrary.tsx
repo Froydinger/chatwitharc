@@ -366,26 +366,8 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                           <Lightbulb className="h-10 w-10 text-primary" />
                         </motion.div>
                         <p className="text-sm text-muted-foreground font-medium">
-                          {activeTab === 'smart'
-                            ? 'Analyzing your conversations...'
-                            : 'Generating fresh prompts...'}
+                          Generating fresh prompts...
                         </p>
-                      </motion.div>
-                    </div>
-                  ) : getCurrentPrompts().length === 0 && activeTab === 'smart' ? (
-                    <div className="col-span-full flex items-center justify-center py-16">
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col items-center gap-4 text-center max-w-xs"
-                      >
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                          <Brain className="h-8 w-8 text-primary/70" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold mb-1">No smart suggestions yet</h4>
-                          <p className="text-sm text-muted-foreground">Start chatting to get personalized suggestions!</p>
-                        </div>
                       </motion.div>
                     </div>
                   ) : (
