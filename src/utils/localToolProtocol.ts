@@ -21,6 +21,15 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveLocalModelId, IOS_LITE_MODEL } from "@/services/localAI";
+import { useCorporateModeStore } from "@/store/useCorporateModeStore";
+
+/** Promise-with-timeout helper. Rejects if the inner promise doesn't settle in `ms`. */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+  });
+}
 
 /** Memory-only protocol used by tiny models (iOS Lite). No past-chat search. */
 export const LOCAL_TOOL_INSTRUCTIONS_MEMORY_ONLY = `
