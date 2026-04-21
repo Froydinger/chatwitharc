@@ -5,7 +5,7 @@
  */
 import { useLocalAIStore } from '@/store/useLocalAIStore';
 import { useCorporateModeStore } from '@/store/useCorporateModeStore';
-import { FAST_MODEL, QUALITY_MODEL, FAST_FALLBACK, getActiveLocalModelId } from '@/services/localAI';
+import { FAST_MODEL, QUALITY_MODEL, FAST_FALLBACK, IOS_LITE_MODEL, getActiveLocalModelId } from '@/services/localAI';
 
 /**
  * Specific destinations. Each value maps to ONE concrete model so users
@@ -71,6 +71,7 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
       if (id === FAST_MODEL) label = 'Llama 3.2 3B';
       else if (id === QUALITY_MODEL) label = 'Gemma 2 9B';
       else if (id === FAST_FALLBACK) label = 'Gemma 2 2B';
+      else if (id === IOS_LITE_MODEL) label = 'Qwen 2.5 0.5B (iOS Lite)';
       return {
         label: `Local · ${label}`,
         icon: 'local',
