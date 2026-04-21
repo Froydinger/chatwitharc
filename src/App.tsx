@@ -22,6 +22,7 @@ import { useVisibilityHandler } from "@/hooks/useVisibilityHandler";
 import { GlobalMusicPlayer } from "@/components/GlobalMusicPlayer";
 import { useCorporateModeEnforcer } from "@/hooks/useCorporateMode";
 import { useLocalModelPersistence } from "@/hooks/useLocalModelPersistence";
+import { CorporateMemoryConsentGate } from "@/components/CorporateMemoryConsentModal";
 import { Index } from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminPage } from "./pages/AdminPage";
@@ -109,6 +110,7 @@ const App = () => {
               </PageTransition>
             </BrowserRouter>
             <GlobalMusicPlayer />
+            <CorporateMemoryConsentGate />
             <UpgradeModal
               isOpen={showUpgradeModal}
               onClose={() => setShowUpgradeModal(false)}

@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalToolInstructions } from "@/utils/localToolProtocol";
 import { getActiveLocalModelId, IOS_LITE_MODEL } from "@/services/localAI";
+import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 
 /**
  * System prompt builder for the on-device (local) model.
@@ -86,48 +87,75 @@ export async function buildLocalSystemPrompt(profile?: {
   parts.push(`Current date and time: ${nowString}`);
 
   // 4. User identity / memory / context — clearly labelled as ABOUT THE USER.
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const [profileRes, blocksRes] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('display_name, context_info, memory_info')
-          .eq('user_id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('context_blocks')
-          .select('content')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(20),
-      ]);
+  const corp = useCorporateModeStore.getState();
 
-      const eff = { ...(profile || {}), ...(profileRes.data || {}) };
-
+  if (corp.enabled) {
+    // === Corporate Mode: NEVER touch the network here. ===
+    // Use only the persisted snapshot (if the user opted in).
+    if (corp.memoriesEnabled === true && corp.memorySnapshot) {
+      const snap = corp.memorySnapshot;
       const userBits: string[] = [];
-      if (eff.display_name) userBits.push(`Name: ${eff.display_name}`);
-      if (eff.context_info?.trim()) userBits.push(`Context: ${eff.context_info.trim()}`);
+      if (snap.display_name) userBits.push(`Name: ${snap.display_name}`);
+      if (snap.context_info?.trim()) userBits.push(`Context: ${snap.context_info.trim()}`);
       if (userBits.length) {
         parts.push(`# About the user (these facts describe the USER, not you)\n${userBits.join('\n')}`);
       }
-
-      if (eff.memory_info && eff.memory_info.trim()) {
+      if (snap.memory_info?.trim()) {
         parts.push(
-          `# 📝 Memories about the user (NOT your beliefs)\nThese are facts, beliefs, and preferences belonging to the user. Reference them only when relevant — never claim them as your own.\n\n${eff.memory_info.trim()}`
+          `# 📝 Memories about the user (NOT your beliefs)\nThese are facts, beliefs, and preferences belonging to the user. Reference them only when relevant — never claim them as your own.\n\n${snap.memory_info.trim()}`
         );
       }
-
-      const blockText = (blocksRes.data || [])
-        .map((b: any) => (b.content || '').trim())
-        .filter(Boolean)
-        .join('\n');
+      const blockText = (snap.context_blocks || []).join('\n').trim();
       if (blockText) {
         parts.push(`# Additional context blocks about the user\n${blockText}`);
       }
     }
-  } catch (e) {
-    console.warn('[Arc Local] Failed to load user memory/context:', e);
+    // If memoriesEnabled is false or null, omit the entire memory section.
+  } else {
+    // Normal (non-corporate) mode: pull live from the cloud.
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const [profileRes, blocksRes] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('display_name, context_info, memory_info')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+          supabase
+            .from('context_blocks')
+            .select('content')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(20),
+        ]);
+
+        const eff = { ...(profile || {}), ...(profileRes.data || {}) };
+
+        const userBits: string[] = [];
+        if (eff.display_name) userBits.push(`Name: ${eff.display_name}`);
+        if (eff.context_info?.trim()) userBits.push(`Context: ${eff.context_info.trim()}`);
+        if (userBits.length) {
+          parts.push(`# About the user (these facts describe the USER, not you)\n${userBits.join('\n')}`);
+        }
+
+        if (eff.memory_info && eff.memory_info.trim()) {
+          parts.push(
+            `# 📝 Memories about the user (NOT your beliefs)\nThese are facts, beliefs, and preferences belonging to the user. Reference them only when relevant — never claim them as your own.\n\n${eff.memory_info.trim()}`
+          );
+        }
+
+        const blockText = (blocksRes.data || [])
+          .map((b: any) => (b.content || '').trim())
+          .filter(Boolean)
+          .join('\n');
+        if (blockText) {
+          parts.push(`# Additional context blocks about the user\n${blockText}`);
+        }
+      }
+    } catch (e) {
+      console.warn('[Arc Local] Failed to load user memory/context:', e);
+    }
   }
 
   // 5. Global admin context (e.g. seasonal notes, announcements).
