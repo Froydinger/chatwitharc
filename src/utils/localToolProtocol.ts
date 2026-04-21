@@ -129,15 +129,29 @@ export function stripToolTags(streamed: string): string {
 
 /** Run a parsed tool call and return a short result string to feed back to the model. */
 export async function executeLocalToolCall(call: LocalToolCall): Promise<string> {
+  // Corporate Mode: all tools are network-bound, so refuse politely.
+  if (useCorporateModeStore.getState().enabled) {
+    return "Tools are disabled in Corporate Mode. Just answer directly using what you already know.";
+  }
   // Block past-chat recall for tiny iOS Lite model — memory only.
   if (call.tool === 'recall') {
     if (getActiveLocalModelId() === IOS_LITE_MODEL) {
       return "Past-chat search isn't available on iOS Lite. Try asking the question directly.";
     }
-    return await runRecall(call.arg);
+    try {
+      return await withTimeout(runRecall(call.arg), 12000, 'recall');
+    } catch (e: any) {
+      console.warn('[Local tools] recall timed out:', e);
+      return 'Search timed out — answer directly without recalling past chats.';
+    }
   }
   if (call.tool === 'remember') {
-    return await runRemember(call.arg);
+    try {
+      return await withTimeout(runRemember(call.arg), 8000, 'remember');
+    } catch (e: any) {
+      console.warn('[Local tools] remember timed out:', e);
+      return 'Could not save memory (timed out).';
+    }
   }
   return 'Unknown tool.';
 }
