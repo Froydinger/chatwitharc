@@ -26,7 +26,9 @@ import {
   Lock,
   Crown,
   Sparkles,
+  ShieldCheck,
 } from "lucide-react";
+import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
@@ -92,6 +94,7 @@ function ResearchUpgradeWall({ onClose }: { onClose: () => void }) {
 }
 
 export function SearchCanvas() {
+  const corporateMode = useCorporateModeStore((s) => s.enabled);
   const {
     sessions,
     activeSessionId,
@@ -667,6 +670,29 @@ export function SearchCanvas() {
           )}
         </div>
       </header>
+
+      {/* Corporate Mode notice — Research is the ONE place that goes online,
+          but it never sees personal memories or context. */}
+      {corporateMode && (
+        <div
+          className="flex items-start gap-3 mx-4 mt-3 px-4 py-3 rounded-xl border border-primary/30 bg-primary/10 backdrop-blur-md"
+          role="note"
+          aria-label="Corporate Mode notice"
+        >
+          <ShieldCheck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+          <div className="flex-1 text-sm">
+            <p className="font-semibold text-foreground">
+              Research connects to the internet
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+              Corporate Mode keeps chat fully on-device, but Research queries the
+              web via Perplexity. Your saved memories and context are
+              <span className="font-medium text-foreground"> never sent</span> —
+              only the search query you type leaves this device.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Last Search Preview - click to open full history */}
       {!showHistory && sessions.length > 0 && !activeSessionId && (
