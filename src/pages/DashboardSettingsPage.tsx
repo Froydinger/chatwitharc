@@ -41,7 +41,7 @@ export function DashboardSettingsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-3 mb-6"
         >
-          <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="rounded-full glass-shimmer">
+          <Button variant="outline" size="icon" onClick={() => navigate("/dashboard")} className="rounded-full glass-shimmer">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <ThemedLogo className="h-8 w-8" />
