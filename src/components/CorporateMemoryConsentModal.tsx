@@ -125,7 +125,11 @@ export function CorporateMemoryConsentModal({
           <Button variant="ghost" onClick={handleDeny} disabled={busy}>
             Don't use memories
           </Button>
-          <Button onClick={handleAllow} disabled={busy}>
+          <Button
+            onClick={handleAllow}
+            disabled={busy}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 font-medium shadow-lg shadow-primary/20"
+          >
             {busy ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
