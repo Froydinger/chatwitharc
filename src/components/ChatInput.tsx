@@ -1898,6 +1898,20 @@ ${safeCode}
         portalRoot,
       )}
 
+      {/* Image options dock — visible whenever the user is in image-gen mode */}
+      {!inline && shouldShowBanana && (
+        <ImageOptionsDock
+          portalRoot={portalRoot}
+          bottomOffset={
+            selectedDocuments.length > 0 && selectedImages.length > 0
+              ? "calc(310px + env(safe-area-inset-bottom, 0px))"
+              : selectedDocuments.length > 0 || selectedImages.length > 0
+                ? "calc(210px + env(safe-area-inset-bottom, 0px))"
+                : "calc(110px + env(safe-area-inset-bottom, 0px))"
+          }
+        />
+      )}
+
       {/* Selected Documents preview - for non-inline, portal above dock */}
       {!inline && selectedDocuments.length > 0 && portalRoot && createPortal(
         <div
