@@ -42,7 +42,7 @@ export interface RouteContext {
  * AND the request is plain text (no images, search, voice, code, canvas).
  */
 export function routeRequest(ctx: RouteContext): RouteDestination {
-  const { enabled, status } = useLocalAIStore.getState();
+  const { enabled, status, preferCloud } = useLocalAIStore.getState();
   const corporate = useCorporateModeStore.getState().enabled;
 
   // Corporate Mode: hard-lock to local, ignore every cloud-bound flag.
@@ -55,6 +55,9 @@ export function routeRequest(ctx: RouteContext): RouteDestination {
   if (ctx.forceWebSearch) return 'cloud-search';
   if (ctx.forceCode) return 'cloud-code';
   if (ctx.forceCanvas) return 'cloud-canvas';
+
+  // User explicitly opted to use cloud models for plain chat even when local is ready.
+  if (preferCloud) return 'cloud-chat';
 
   if (enabled && status === 'ready') return 'local';
   return 'cloud-chat';
