@@ -34,6 +34,8 @@ import {
   stripToolTags,
   hasPartialOpenTag,
 } from "@/utils/localToolProtocol";
+import { ImageOptionsDock } from "@/components/ImageOptionsDock";
+import { useImageGenStore } from "@/store/useImageGenStore";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -385,6 +387,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const shouldShowCanvasMode = forceCanvasMode || (!!inputValue && checkForCanvasRequest(inputValue));
   const shouldShowSearchMode = forceSearchMode || (!!inputValue && checkForSearchRequest(inputValue));
   const shouldShowBuildMode = !!inputValue && checkForBuildRequest(inputValue);
+
+  // Persisted user-chosen image model + aspect ratio (for /image, "draw…", etc.)
+  const { model: imageGenModel, aspectRatio: imageGenAspect } = useImageGenStore();
 
   // When a /write canvas is open, auto-show canvas mode indicator so user knows
   // their messages will modify the canvas (not go to chat)
@@ -1025,7 +1030,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           setGeneratingImage(true);
 
           try {
-            const editedUrl = await ai.editImage(userMessage, imageUrls, undefined);
+            const editedUrl = await ai.editImage(userMessage, imageUrls, imageGenModel);
             let finalUrl = editedUrl;
             try {
               const resp = await fetch(editedUrl);
@@ -1121,7 +1126,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
         try {
           const apiPrompt = `Generate an image: ${imagePrompt}`;
-          const genUrl = await ai.generateImage(apiPrompt);
+          const genUrl = await ai.generateImage(apiPrompt, imageGenModel, imageGenAspect);
           let finalUrl = genUrl;
           try {
             const resp = await fetch(genUrl);
@@ -1179,7 +1184,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           setGeneratingImage(true);
 
           try {
-            const editedUrl = await ai.editImage(userMessage, [lastMsg.imageUrl]);
+            const editedUrl = await ai.editImage(userMessage, [lastMsg.imageUrl], imageGenModel);
             let finalUrl = editedUrl;
             try {
               const resp = await fetch(editedUrl);
@@ -1892,6 +1897,21 @@ ${safeCode}
         </AnimatePresence>,
         portalRoot,
       )}
+
+      {/* Image options dock — visible whenever the user is in image-gen mode.
+          Stacked above any selected-images / selected-documents previews. */}
+      {!inline && shouldShowBanana && (() => {
+        const hasImages = selectedImages.length > 0;
+        const hasDocs = selectedDocuments.length > 0;
+        // Each preview row adds ~100px above the input bar.
+        const stackPx = 110 + (hasImages ? 100 : 0) + (hasDocs ? 100 : 0);
+        return (
+          <ImageOptionsDock
+            portalRoot={portalRoot}
+            bottomOffset={`calc(${stackPx}px + env(safe-area-inset-bottom, 0px))`}
+          />
+        );
+      })()}
 
       {/* Selected Documents preview - for non-inline, portal above dock */}
       {!inline && selectedDocuments.length > 0 && portalRoot && createPortal(
