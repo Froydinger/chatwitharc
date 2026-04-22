@@ -39,6 +39,7 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
 
   const { isSubscribed } = useSubscription();
   const popupRef = useRef<HTMLDivElement>(null);
+  const [seekingValue, setSeekingValue] = useState<number | null>(null);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => { if (e.key === "Escape" && isOpen) onClose(); };
