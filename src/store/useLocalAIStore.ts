@@ -7,6 +7,10 @@ interface LocalAIState {
   enabled: boolean;
   setEnabled: (v: boolean) => void;
 
+  /** When true, route everything to cloud even if a local model is ready. */
+  preferCloud: boolean;
+  setPreferCloud: (v: boolean) => void;
+
   // Which downloaded model the user wants to use ('' = none picked yet)
   selectedModelId: string;
   setSelectedModelId: (id: string) => void;
