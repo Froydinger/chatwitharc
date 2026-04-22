@@ -88,6 +88,86 @@ const SECTIONS: { id: SectionId; label: string; icon: LucideIcon; subtitle: stri
   { id: "plan",       label: "Plan & Usage",  icon: CreditCard,  subtitle: "Subscription" },
 ];
 
+// ---------- Shared tile primitives (matches Arc Local look) ----------
+
+function SectionCard({
+  icon: Icon,
+  title,
+  subtitle,
+  children,
+  className,
+}: {
+  icon: LucideIcon;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <GlassCard className={cn("p-5 space-y-4", className)}>
+      <div className="flex items-start gap-3">
+        <div className="p-2 rounded-xl bg-primary/15 border border-primary/30">
+          <Icon className="h-5 w-5 text-primary" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="font-semibold text-foreground">{title}</h3>
+          {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+        </div>
+      </div>
+      <div className="space-y-2">{children}</div>
+    </GlassCard>
+  );
+}
+
+function Tile({
+  icon: Icon,
+  title,
+  description,
+  right,
+  active = false,
+  onClick,
+  className,
+  children,
+}: {
+  icon?: LucideIcon;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  right?: React.ReactNode;
+  active?: boolean;
+  onClick?: () => void;
+  className?: string;
+  children?: React.ReactNode;
+}) {
+  const Comp: any = onClick ? "button" : "div";
+  return (
+    <Comp
+      onClick={onClick}
+      className={cn(
+        "w-full text-left p-3 rounded-xl border transition-colors",
+        active ? "bg-primary/10 border-primary/40" : "bg-muted/20 border-border/40",
+        onClick && "hover:bg-muted/30 cursor-pointer",
+        className
+      )}
+    >
+      {(Icon || title || description || right) && (
+        <div className="flex items-start gap-3">
+          {Icon && (
+            <div className="p-1.5 rounded-lg bg-primary/15 border border-primary/30 shrink-0">
+              <Icon className="h-4 w-4 text-primary" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            {title && <div className="text-sm font-medium text-foreground">{title}</div>}
+            {description && <div className="text-[11px] text-muted-foreground mt-0.5">{description}</div>}
+          </div>
+          {right && <div className="shrink-0 flex items-center gap-2">{right}</div>}
+        </div>
+      )}
+      {children && <div className={cn(Icon || title || description || right ? "mt-3" : "")}>{children}</div>}
+    </Comp>
+  );
+}
+
 function ModelFamilySelector({ isSubscribed }: { isSubscribed: boolean }) {
   const { modelFamily, setModelFamily } = useModelStore();
   const { updateProfile } = useProfile();
@@ -104,107 +184,71 @@ function ModelFamilySelector({ isSubscribed }: { isSubscribed: boolean }) {
   };
 
   return (
-    <GlassCard variant="bubble" className={`p-6 space-y-4 ${!isSubscribed ? 'opacity-60' : ''}`}>
-      <div className="flex items-center gap-3">
-        <Sparkles className="h-5 w-5 text-primary-glow" />
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-foreground">AI Model</h3>
-            {!isSubscribed && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary">PRO</span>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground">Choose between GPT and Gemini</p>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        {([
-          { id: 'gemini' as ModelFamily, label: 'Gemini', desc: 'Google AI' },
-          { id: 'gpt' as ModelFamily, label: 'GPT', desc: 'OpenAI' },
-        ]).map((opt) => (
-          <button
-            key={opt.id}
-            onClick={() => handleChange(opt.id)}
-            disabled={!isSubscribed}
-            className={`relative p-4 rounded-xl border transition-all text-left ${
-              modelFamily === opt.id
-                ? 'border-primary bg-primary/10 shadow-[0_0_15px_hsl(var(--primary)/0.15)]'
-                : 'border-border/40 bg-muted/20 hover:border-border/60'
-            } ${!isSubscribed ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-          >
-            <div className="font-semibold text-foreground">{opt.label}</div>
-            <div className="text-xs text-muted-foreground">{opt.desc}</div>
-            {modelFamily === opt.id && (
-              <Check className="absolute top-3 right-3 w-4 h-4 text-primary" />
-            )}
-          </button>
-        ))}
-      </div>
-    </GlassCard>
+    <SectionCard
+      icon={Sparkles}
+      title="AI Model"
+      subtitle={isSubscribed ? "Choose between GPT and Gemini" : "Pro required"}
+      className={!isSubscribed ? "opacity-60" : ""}
+    >
+      {([
+        { id: 'gemini' as ModelFamily, label: 'Gemini', desc: 'Google AI — fast, multimodal' },
+        { id: 'gpt' as ModelFamily, label: 'GPT', desc: 'OpenAI — strong reasoning' },
+      ]).map((opt) => (
+        <Tile
+          key={opt.id}
+          title={opt.label}
+          description={opt.desc}
+          active={modelFamily === opt.id}
+          onClick={isSubscribed ? () => handleChange(opt.id) : undefined}
+          right={modelFamily === opt.id ? <Check className="h-4 w-4 text-primary" /> : null}
+          className={!isSubscribed ? "cursor-not-allowed" : ""}
+        />
+      ))}
+    </SectionCard>
   );
 }
 
 function ImageDefaultsCard() {
   const { model, aspectRatio, setModel, setAspectRatio } = useImageGenStore();
   return (
-    <GlassCard variant="bubble" className="p-6 space-y-5">
-      <div className="flex items-center gap-3">
-        <ImageIcon className="h-5 w-5 text-primary-glow" />
-        <div>
-          <h3 className="text-lg font-semibold text-foreground">Image Defaults</h3>
-          <p className="text-sm text-muted-foreground">Used when generating images</p>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-foreground font-medium text-sm">Model</Label>
-        <div className="grid gap-2">
-          {IMAGE_MODEL_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => setModel(opt.id as ImageModelId)}
-              className={cn(
-                "relative p-3 rounded-xl border text-left transition-all",
-                model === opt.id
-                  ? "border-primary bg-primary/10 shadow-[0_0_15px_hsl(var(--primary)/0.15)]"
-                  : "border-border/40 bg-muted/20 hover:border-border/60"
-              )}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="font-semibold text-foreground text-sm">{opt.label}</div>
-                {opt.pro && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary">PRO</span>
-                )}
-              </div>
-              <div className="text-xs text-muted-foreground">{opt.blurb}</div>
-              {model === opt.id && (
-                <Check className="absolute top-3 right-3 w-4 h-4 text-primary" />
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-foreground font-medium text-sm">Aspect Ratio</Label>
-        <div className="grid grid-cols-2 gap-2">
-          {IMAGE_ASPECT_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => setAspectRatio(opt.id as ImageAspectRatio)}
-              className={cn(
-                "px-3 py-2 rounded-lg border text-xs font-medium transition-all",
-                aspectRatio === opt.id
-                  ? "border-primary bg-primary/10 text-foreground"
-                  : "border-border/40 bg-muted/20 text-muted-foreground hover:border-border/60"
-              )}
-            >
+    <SectionCard icon={ImageIcon} title="Image Defaults" subtitle="Used when generating images">
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1 pt-1">Model</div>
+      {IMAGE_MODEL_OPTIONS.map((opt) => (
+        <Tile
+          key={opt.id}
+          title={
+            <div className="flex items-center gap-2">
               {opt.label}
-            </button>
-          ))}
-        </div>
+              {opt.pro && (
+                <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">Pro</span>
+              )}
+            </div>
+          }
+          description={opt.blurb}
+          active={model === opt.id}
+          onClick={() => setModel(opt.id as ImageModelId)}
+          right={model === opt.id ? <Check className="h-4 w-4 text-primary" /> : null}
+        />
+      ))}
+
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1 pt-3">Aspect Ratio</div>
+      <div className="grid grid-cols-2 gap-2">
+        {IMAGE_ASPECT_OPTIONS.map((opt) => (
+          <button
+            key={opt.id}
+            onClick={() => setAspectRatio(opt.id as ImageAspectRatio)}
+            className={cn(
+              "px-3 py-2 rounded-lg border text-xs font-medium transition-all",
+              aspectRatio === opt.id
+                ? "border-primary bg-primary/10 text-foreground"
+                : "border-border/40 bg-muted/20 text-muted-foreground hover:border-border/60"
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
-    </GlassCard>
+    </SectionCard>
   );
 }
 
