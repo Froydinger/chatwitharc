@@ -153,7 +153,12 @@ export const useMusicStore = create<MusicState>()(
         if (!audioRef) return;
         const dur = audioRef.duration;
         if (!dur || !isFinite(dur)) return;
-        audioRef.currentTime = Math.min(Math.max(0, time), dur);
+        // Clamp slightly under duration so a looping <audio> doesn't wrap to 0.
+        const target = Math.min(Math.max(0, time), Math.max(0, dur - 0.25));
+        try {
+          audioRef.currentTime = target;
+          set({ currentTime: target });
+        } catch {}
       },
 
       handleVolumeChange: (newVolume: number) => {
