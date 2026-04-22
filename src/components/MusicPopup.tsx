@@ -162,9 +162,18 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
 
               {/* Progress */}
               <div className="px-1 mt-3 space-y-2">
-                <Slider value={[currentTime]} onValueChange={(val) => seek(val[0])} max={duration || 100} min={0} step={1} className="w-full cursor-pointer" disabled={!duration} />
+                <Slider
+                  value={[seekingValue ?? currentTime]}
+                  onValueChange={(val) => setSeekingValue(val[0])}
+                  onValueCommit={(val) => { seek(val[0]); setSeekingValue(null); }}
+                  max={duration && isFinite(duration) ? duration : 100}
+                  min={0}
+                  step={0.1}
+                  className="w-full cursor-pointer"
+                  disabled={!duration || !isFinite(duration)}
+                />
                 <div className="flex justify-between text-xs text-muted-foreground font-mono">
-                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(seekingValue ?? currentTime)}</span>
                   <span>{formatTime(duration)}</span>
                 </div>
               </div>
