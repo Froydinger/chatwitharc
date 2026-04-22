@@ -163,31 +163,18 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
                 <p className="text-sm text-muted-foreground">{track.artist}</p>
               </div>
 
-              {/* Progress */}
+              {/* Progress (read-only) */}
               <div className="px-1 mt-3 space-y-2">
-                <Slider
-                  value={[Math.min(displayTime, safeDuration || displayTime)]}
-                  onValueChange={(val) => {
-                    // Lock UI to scrub state; do NOT seek the audio yet.
-                    if (!isScrubbing) setIsScrubbing(true);
-                    setScrubValue(val[0]);
-                  }}
-                  onValueCommit={(val) => {
-                    // Commit the seek once on release (click or drag end).
-                    seek(val[0]);
-                    setScrubValue(val[0]);
-                    // Release the lock after the next timeupdate has a chance
-                    // to reflect the new position.
-                    setTimeout(() => setIsScrubbing(false), 200);
-                  }}
-                  max={safeDuration || 100}
-                  min={0}
-                  step={0.1}
-                  className="w-full cursor-pointer"
-                  disabled={!safeDuration}
-                />
+                <div className="relative h-1.5 w-full rounded-full bg-muted/40 overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-primary rounded-full transition-[width] duration-200"
+                    style={{
+                      width: safeDuration ? `${Math.min(100, (currentTime / safeDuration) * 100)}%` : "0%",
+                    }}
+                  />
+                </div>
                 <div className="flex justify-between text-xs text-muted-foreground font-mono">
-                  <span>{formatTime(displayTime)}</span>
+                  <span>{formatTime(currentTime)}</span>
                   <span>{formatTime(duration)}</span>
                 </div>
               </div>
@@ -197,16 +184,37 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
                 <Button variant="ghost" size="icon" onClick={cyclePlaybackMode} className="h-9 w-9 rounded-full hover:bg-muted/50" title={PLAYBACK_MODE_LABELS[playbackMode]}>
                   <ModeIcon className={cn("h-4 w-4", playbackMode !== 'sequential' && "text-primary")} />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={prevTrack} className="h-10 w-10 rounded-full hover:bg-muted/50">
+                <Button variant="ghost" size="icon" onClick={prevTrack} className="h-10 w-10 rounded-full hover:bg-muted/50" title="Previous track">
                   <SkipBack className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => seek(Math.max(0, currentTime - 10))}
+                  disabled={!safeDuration}
+                  className="h-10 w-10 rounded-full hover:bg-muted/50 relative flex items-center justify-center"
+                  title="Back 10 seconds"
+                >
+                  <RotateCcw className="h-5 w-5" />
+                  <span className="absolute text-[8px] font-bold text-foreground/80 leading-none">10</span>
                 </Button>
                 <Button variant="ghost" size="icon" onClick={togglePlay} className="h-14 w-14 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 text-foreground shadow-lg" style={{ boxShadow: isPlaying ? "0 0 20px hsl(var(--primary) / 0.4)" : undefined }}>
                   {isLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground border-t-transparent" /> : isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />}
                 </Button>
-                <Button variant="ghost" size="icon" onClick={nextTrack} className="h-10 w-10 rounded-full hover:bg-muted/50">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => seek(Math.min(safeDuration - 0.1, currentTime + 10))}
+                  disabled={!safeDuration}
+                  className="h-10 w-10 rounded-full hover:bg-muted/50 relative flex items-center justify-center"
+                  title="Forward 10 seconds"
+                >
+                  <RotateCw className="h-5 w-5" />
+                  <span className="absolute text-[8px] font-bold text-foreground/80 leading-none">10</span>
+                </Button>
+                <Button variant="ghost" size="icon" onClick={nextTrack} className="h-10 w-10 rounded-full hover:bg-muted/50" title="Next track">
                   <SkipForward className="h-5 w-5" />
                 </Button>
-                <span className="text-[10px] text-muted-foreground w-9 text-center leading-tight">{PLAYBACK_MODE_LABELS[playbackMode].split(' ').join('\n')}</span>
               </div>
 
               {/* Volume */}
