@@ -34,6 +34,8 @@ import {
   stripToolTags,
   hasPartialOpenTag,
 } from "@/utils/localToolProtocol";
+import { ImageOptionsDock } from "@/components/ImageOptionsDock";
+import { useImageGenStore } from "@/store/useImageGenStore";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
