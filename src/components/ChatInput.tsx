@@ -388,6 +388,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const shouldShowSearchMode = forceSearchMode || (!!inputValue && checkForSearchRequest(inputValue));
   const shouldShowBuildMode = !!inputValue && checkForBuildRequest(inputValue);
 
+  // Persisted user-chosen image model + aspect ratio (for /image, "draw…", etc.)
+  const { model: imageGenModel, aspectRatio: imageGenAspect } = useImageGenStore();
+
   // When a /write canvas is open, auto-show canvas mode indicator so user knows
   // their messages will modify the canvas (not go to chat)
   const showCanvasIndicator = shouldShowCanvasMode || isWriteCanvasOpen;
