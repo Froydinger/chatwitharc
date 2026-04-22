@@ -7,6 +7,10 @@ interface LocalAIState {
   enabled: boolean;
   setEnabled: (v: boolean) => void;
 
+  /** When true, route everything to cloud even if a local model is ready. */
+  preferCloud: boolean;
+  setPreferCloud: (v: boolean) => void;
+
   // Which downloaded model the user wants to use ('' = none picked yet)
   selectedModelId: string;
   setSelectedModelId: (id: string) => void;
@@ -30,6 +34,9 @@ export const useLocalAIStore = create<LocalAIState>()(
       enabled: false,
       setEnabled: (v) => set({ enabled: v }),
 
+      preferCloud: false,
+      setPreferCloud: (v) => set({ preferCloud: v }),
+
       selectedModelId: '',
       setSelectedModelId: (id) => set({ selectedModelId: id }),
 
@@ -50,6 +57,7 @@ export const useLocalAIStore = create<LocalAIState>()(
       name: 'arc-local-ai',
       partialize: (state) => ({
         enabled: state.enabled,
+        preferCloud: state.preferCloud,
         selectedModelId: state.selectedModelId,
         // Persist 'ready' so weights remain marked-loaded across refresh.
         status: state.status === 'ready' ? 'ready' : 'idle',

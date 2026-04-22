@@ -41,6 +41,7 @@ export function LocalAIPanel() {
   const { isSubscribed } = useSubscription();
   const {
     enabled, setEnabled,
+    preferCloud, setPreferCloud,
     status, progress, progressText, errorMessage,
     webgpuSupported,
     selectedModelId, setSelectedModelId,
@@ -329,14 +330,26 @@ export function LocalAIPanel() {
 
           {/* Master toggle: only meaningful once at least one model is downloaded */}
           {anyCached && (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
-              <Label htmlFor="local-toggle" className="flex flex-col cursor-pointer">
-                <span className="text-sm font-medium">Use local model when possible</span>
-                <span className="text-[11px] text-muted-foreground mt-0.5">
-                  Auto-switches to cloud for image gen, search & voice.
-                </span>
-              </Label>
-              <Switch id="local-toggle" checked={enabled} onCheckedChange={setEnabled} />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
+                <Label htmlFor="local-toggle" className="flex flex-col cursor-pointer">
+                  <span className="text-sm font-medium">Use local model when possible</span>
+                  <span className="text-[11px] text-muted-foreground mt-0.5">
+                    Auto-switches to cloud for image gen, search & voice.
+                  </span>
+                </Label>
+                <Switch id="local-toggle" checked={enabled && !preferCloud} onCheckedChange={(v) => { setEnabled(v); if (v) setPreferCloud(false); }} />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
+                <Label htmlFor="prefer-cloud-toggle" className="flex flex-col cursor-pointer">
+                  <span className="text-sm font-medium">Always use cloud models</span>
+                  <span className="text-[11px] text-muted-foreground mt-0.5">
+                    Keep your local model installed but route every chat to the cloud.
+                  </span>
+                </Label>
+                <Switch id="prefer-cloud-toggle" checked={preferCloud} onCheckedChange={setPreferCloud} />
+              </div>
             </div>
           )}
 
