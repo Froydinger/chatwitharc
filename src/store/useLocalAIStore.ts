@@ -34,6 +34,9 @@ export const useLocalAIStore = create<LocalAIState>()(
       enabled: false,
       setEnabled: (v) => set({ enabled: v }),
 
+      preferCloud: false,
+      setPreferCloud: (v) => set({ preferCloud: v }),
+
       selectedModelId: '',
       setSelectedModelId: (id) => set({ selectedModelId: id }),
 
