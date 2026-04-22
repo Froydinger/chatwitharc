@@ -57,6 +57,7 @@ export const useLocalAIStore = create<LocalAIState>()(
       name: 'arc-local-ai',
       partialize: (state) => ({
         enabled: state.enabled,
+        preferCloud: state.preferCloud,
         selectedModelId: state.selectedModelId,
         // Persist 'ready' so weights remain marked-loaded across refresh.
         status: state.status === 'ready' ? 'ready' : 'idle',
