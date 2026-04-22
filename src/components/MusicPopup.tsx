@@ -164,11 +164,20 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
               <div className="px-1 mt-3 space-y-2">
                 <Slider
                   value={[seekingValue ?? currentTime]}
-                  onValueChange={(val) => setSeekingValue(val[0])}
-                  onValueCommit={(val) => { seek(val[0]); setSeekingValue(null); }}
-                  max={duration && isFinite(duration) ? duration : 100}
+                  onValueChange={(val) => {
+                    // Reflect the user's drag immediately and seek live so a
+                    // simple click also moves playback (no commit required).
+                    setSeekingValue(val[0]);
+                    seek(val[0]);
+                  }}
+                  onValueCommit={(val) => {
+                    seek(val[0]);
+                    // Clear shortly after so incoming timeupdate doesn't snap back.
+                    setTimeout(() => setSeekingValue(null), 120);
+                  }}
+                  max={duration && isFinite(duration) ? Math.floor(duration) : 100}
                   min={0}
-                  step={0.1}
+                  step={1}
                   className="w-full cursor-pointer"
                   disabled={!duration || !isFinite(duration)}
                 />
