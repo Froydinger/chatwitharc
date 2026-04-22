@@ -1898,19 +1898,20 @@ ${safeCode}
         portalRoot,
       )}
 
-      {/* Image options dock — visible whenever the user is in image-gen mode */}
-      {!inline && shouldShowBanana && (
-        <ImageOptionsDock
-          portalRoot={portalRoot}
-          bottomOffset={
-            selectedDocuments.length > 0 && selectedImages.length > 0
-              ? "calc(310px + env(safe-area-inset-bottom, 0px))"
-              : selectedDocuments.length > 0 || selectedImages.length > 0
-                ? "calc(210px + env(safe-area-inset-bottom, 0px))"
-                : "calc(110px + env(safe-area-inset-bottom, 0px))"
-          }
-        />
-      )}
+      {/* Image options dock — visible whenever the user is in image-gen mode.
+          Stacked above any selected-images / selected-documents previews. */}
+      {!inline && shouldShowBanana && (() => {
+        const hasImages = selectedImages.length > 0;
+        const hasDocs = selectedDocuments.length > 0;
+        // Each preview row adds ~100px above the input bar.
+        const stackPx = 110 + (hasImages ? 100 : 0) + (hasDocs ? 100 : 0);
+        return (
+          <ImageOptionsDock
+            portalRoot={portalRoot}
+            bottomOffset={`calc(${stackPx}px + env(safe-area-inset-bottom, 0px))`}
+          />
+        );
+      })()}
 
       {/* Selected Documents preview - for non-inline, portal above dock */}
       {!inline && selectedDocuments.length > 0 && portalRoot && createPortal(
