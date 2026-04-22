@@ -151,10 +151,13 @@ export const useMusicStore = create<MusicState>()(
       seek: (time: number) => {
         const { audioRef } = get();
         if (!audioRef) return;
+        if (typeof time !== 'number' || !isFinite(time) || isNaN(time)) return;
         const dur = audioRef.duration;
-        if (!dur || !isFinite(dur)) return;
-        // Clamp slightly under duration so a looping <audio> doesn't wrap to 0.
-        const target = Math.min(Math.max(0, time), Math.max(0, dur - 0.25));
+        if (!dur || !isFinite(dur) || dur <= 0) return;
+        if (audioRef.readyState < 1) return; // metadata not ready
+        // Tiny epsilon below duration so a looping <audio> doesn't wrap to 0.
+        const epsilon = 0.05;
+        const target = Math.min(Math.max(0, time), Math.max(0, dur - epsilon));
         try {
           audioRef.currentTime = target;
           set({ currentTime: target });
