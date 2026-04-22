@@ -41,6 +41,7 @@ export function LocalAIPanel() {
   const { isSubscribed } = useSubscription();
   const {
     enabled, setEnabled,
+    preferCloud, setPreferCloud,
     status, progress, progressText, errorMessage,
     webgpuSupported,
     selectedModelId, setSelectedModelId,
