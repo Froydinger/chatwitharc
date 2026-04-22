@@ -1030,7 +1030,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           setGeneratingImage(true);
 
           try {
-            const editedUrl = await ai.editImage(userMessage, imageUrls, undefined);
+            const editedUrl = await ai.editImage(userMessage, imageUrls, imageGenModel);
             let finalUrl = editedUrl;
             try {
               const resp = await fetch(editedUrl);
