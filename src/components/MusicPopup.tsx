@@ -39,7 +39,10 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
 
   const { isSubscribed } = useSubscription();
   const popupRef = useRef<HTMLDivElement>(null);
-  const [seekingValue, setSeekingValue] = useState<number | null>(null);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [scrubValue, setScrubValue] = useState(0);
+  const displayTime = isScrubbing ? scrubValue : currentTime;
+  const safeDuration = duration && isFinite(duration) && duration > 0 ? duration : 0;
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => { if (e.key === "Escape" && isOpen) onClose(); };
@@ -163,26 +166,28 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
               {/* Progress */}
               <div className="px-1 mt-3 space-y-2">
                 <Slider
-                  value={[seekingValue ?? currentTime]}
+                  value={[Math.min(displayTime, safeDuration || displayTime)]}
                   onValueChange={(val) => {
-                    // Reflect the user's drag immediately and seek live so a
-                    // simple click also moves playback (no commit required).
-                    setSeekingValue(val[0]);
-                    seek(val[0]);
+                    // Lock UI to scrub state; do NOT seek the audio yet.
+                    if (!isScrubbing) setIsScrubbing(true);
+                    setScrubValue(val[0]);
                   }}
                   onValueCommit={(val) => {
+                    // Commit the seek once on release (click or drag end).
                     seek(val[0]);
-                    // Clear shortly after so incoming timeupdate doesn't snap back.
-                    setTimeout(() => setSeekingValue(null), 120);
+                    setScrubValue(val[0]);
+                    // Release the lock after the next timeupdate has a chance
+                    // to reflect the new position.
+                    setTimeout(() => setIsScrubbing(false), 200);
                   }}
-                  max={duration && isFinite(duration) ? Math.floor(duration) : 100}
+                  max={safeDuration || 100}
                   min={0}
-                  step={1}
+                  step={0.1}
                   className="w-full cursor-pointer"
-                  disabled={!duration || !isFinite(duration)}
+                  disabled={!safeDuration}
                 />
                 <div className="flex justify-between text-xs text-muted-foreground font-mono">
-                  <span>{formatTime(seekingValue ?? currentTime)}</span>
+                  <span>{formatTime(displayTime)}</span>
                   <span>{formatTime(duration)}</span>
                 </div>
               </div>
