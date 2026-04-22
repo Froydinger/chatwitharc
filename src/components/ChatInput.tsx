@@ -1126,7 +1126,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
         try {
           const apiPrompt = `Generate an image: ${imagePrompt}`;
-          const genUrl = await ai.generateImage(apiPrompt);
+          const genUrl = await ai.generateImage(apiPrompt, imageGenModel, imageGenAspect);
           let finalUrl = genUrl;
           try {
             const resp = await fetch(genUrl);
