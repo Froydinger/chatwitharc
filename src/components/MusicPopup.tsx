@@ -39,9 +39,6 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
 
   const { isSubscribed } = useSubscription();
   const popupRef = useRef<HTMLDivElement>(null);
-  const [isScrubbing, setIsScrubbing] = useState(false);
-  const [scrubValue, setScrubValue] = useState(0);
-  const displayTime = isScrubbing ? scrubValue : currentTime;
   const safeDuration = duration && isFinite(duration) && duration > 0 ? duration : 0;
 
   useEffect(() => {
