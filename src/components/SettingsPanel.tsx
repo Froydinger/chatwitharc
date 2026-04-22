@@ -860,29 +860,69 @@ export function SettingsPanel() {
 
   return (
     <div className="w-full max-w-7xl mx-auto pb-20 pt-2 h-full overflow-y-auto scrollbar-hide">
-      {/* Mobile pill bar */}
-      <div className="lg:hidden sticky top-0 z-10 -mx-1 px-1 pt-1 pb-3 bg-background/40 backdrop-blur-md">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
-          {SECTIONS.map((s) => {
-            const Icon = s.icon;
-            const active = section === s.id;
-            return (
-              <button
-                key={s.id}
-                onClick={() => setSection(s.id)}
-                className={cn(
-                  "snap-start shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all border",
-                  active
-                    ? "bg-primary/15 text-foreground border-primary/40 shadow-[0_0_20px_hsl(var(--primary)/0.25)]"
-                    : "bg-muted/20 text-muted-foreground border-border/40 hover:text-foreground"
-                )}
+      {/* Mobile dropdown */}
+      <div className="lg:hidden sticky top-0 z-20 -mx-1 px-1 pt-1 pb-3 bg-background/60 backdrop-blur-md">
+        {(() => {
+          const current = SECTIONS.find((s) => s.id === section)!;
+          const CurrentIcon = current.icon;
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={cn(
+                    "w-full inline-flex items-center justify-between gap-2 px-4 py-3 rounded-2xl text-sm font-medium transition-all border",
+                    "bg-primary/10 text-foreground border-primary/40 shadow-[0_0_20px_hsl(var(--primary)/0.18)]"
+                  )}
+                >
+                  <span className="flex items-center gap-2.5 min-w-0">
+                    <span className="h-7 w-7 rounded-lg bg-primary/20 text-primary flex items-center justify-center shrink-0">
+                      <CurrentIcon className="h-4 w-4" />
+                    </span>
+                    <span className="flex flex-col items-start min-w-0">
+                      <span className="text-sm font-semibold truncate">{current.label}</span>
+                      <span className="text-[11px] text-muted-foreground truncate">{current.subtitle}</span>
+                    </span>
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                sideOffset={8}
+                className="glass border-glass-border w-[calc(100vw-2rem)] max-w-[420px] p-1.5"
               >
-                <Icon className="h-4 w-4" />
-                {s.label}
-              </button>
-            );
-          })}
-        </div>
+                {SECTIONS.map((s) => {
+                  const Icon = s.icon;
+                  const active = section === s.id;
+                  return (
+                    <DropdownMenuItem
+                      key={s.id}
+                      onSelect={() => setSection(s.id)}
+                      className={cn(
+                        "flex items-center gap-3 px-2.5 py-2.5 rounded-lg cursor-pointer",
+                        active && "bg-primary/10 text-foreground"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                          active ? "bg-primary/20 text-primary" : "bg-muted/30 text-muted-foreground"
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-medium truncate">{s.label}</span>
+                        <span className="block text-[11px] text-muted-foreground truncate">{s.subtitle}</span>
+                      </span>
+                      {active && <Check className="h-4 w-4 text-primary shrink-0" />}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        })()}
       </div>
 
       <div className="lg:grid lg:grid-cols-[240px_1fr] lg:gap-8 px-4">
