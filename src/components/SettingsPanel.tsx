@@ -24,8 +24,15 @@ import {
   CreditCard,
   Lock,
   Cpu,
+  ChevronDown,
   type LucideIcon,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { lovable } from "@/integrations/lovable/index";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
