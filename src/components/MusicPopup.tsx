@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ArrowRight, Crown } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ArrowRight, Crown, RotateCcw, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
