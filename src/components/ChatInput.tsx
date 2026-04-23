@@ -740,9 +740,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       } catch {}
     };
     const editHandler = (ev: Event) => {
-      const e = ev as CustomEvent<{ content: string; baseImageUrl: string | string[]; additionalImages?: string[]; editInstruction: string; imageModel?: string }>;
+      const e = ev as CustomEvent<{ content: string; baseImageUrl: string | string[]; additionalImages?: string[]; editInstruction: string; imageModel?: string; aspectRatio?: string }>;
       if (!e?.detail) return;
-      handleExternalImageEditRef.current(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction, e.detail.imageModel, e.detail.additionalImages);
+      handleExternalImageEditRef.current(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction, e.detail.imageModel, e.detail.additionalImages, e.detail.aspectRatio);
     };
     const editedMessageHandler = (ev: Event) => {
       const e = ev as CustomEvent<{ content: string; editedMessageId: string }>;
@@ -768,6 +768,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     editInstruction: string,
     imageModel?: string,
     additionalImages?: string[],
+    aspectRatio?: string,
   ) => {
     // Read fresh from store to avoid stale closure issues
     if (useArcStore.getState().isGeneratingImage) return;
@@ -795,7 +796,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         imagePrompt: editInstruction,
       });
 
-      const url = await ai.editImage(editInstruction, allImageUrls, imageModel);
+      const url = await ai.editImage(editInstruction, allImageUrls, imageModel, aspectRatio);
 
       // persist best-effort
       let finalUrl = url;
@@ -1030,7 +1031,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           setGeneratingImage(true);
 
           try {
-            const editedUrl = await ai.editImage(userMessage, imageUrls, imageGenModel);
+            const editedUrl = await ai.editImage(userMessage, imageUrls, imageGenModel, imageGenAspect);
             let finalUrl = editedUrl;
             try {
               const resp = await fetch(editedUrl);
@@ -1184,7 +1185,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           setGeneratingImage(true);
 
           try {
-            const editedUrl = await ai.editImage(userMessage, [lastMsg.imageUrl], imageGenModel);
+            const editedUrl = await ai.editImage(userMessage, [lastMsg.imageUrl], imageGenModel, imageGenAspect);
             let finalUrl = editedUrl;
             try {
               const resp = await fetch(editedUrl);

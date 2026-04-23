@@ -576,7 +576,7 @@ export class AIService {
     }
   }
 
-  async editImage(prompt: string, baseImageUrls: string | string[], imageModel?: string): Promise<string> {
+  async editImage(prompt: string, baseImageUrls: string | string[], imageModel?: string, aspectRatio?: string): Promise<string> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Image editing service is not available. Please configure Supabase.');
     }
@@ -596,7 +596,8 @@ export class AIService {
         body: { 
           prompt, 
           baseImageUrls: images,
-          imageModel: modelToUse
+          imageModel: modelToUse,
+          aspectRatio,
         }
       });
 
