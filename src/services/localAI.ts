@@ -204,7 +204,7 @@ export function getActiveLocalModelLabel(): string {
   if (activeModelId === FAST_MODEL) return 'Llama 3.2 3B';
   if (activeModelId === QUALITY_MODEL) return 'Gemma 2 9B';
   if (activeModelId === FAST_FALLBACK) return 'Gemma 2 2B';
-  if (activeModelId === IOS_LITE_MODEL) return 'Llama 3.2 1B (iOS)';
+  if (activeModelId === IOS_LITE_MODEL) return 'Qwen 2.5 0.5B (iOS)';
   return LOCAL_MODEL_LABEL;
 }
 
