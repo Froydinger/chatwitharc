@@ -193,9 +193,9 @@ export function LocalAIPanel() {
               </span>
             </p>
             <p className="text-muted-foreground mt-0.5 leading-relaxed">
-              Safari on iOS 26 finally supports WebGPU, but with tight memory limits. We've enabled a tiny model
-              (Qwen 2.5 0.5B) so you can try local AI on iPhone — it's <em>way</em> smaller than our desktop models,
-              so expect simpler answers and the occasional weirdness. For full power, use Arc on desktop.
+              Safari on iOS 26 finally supports WebGPU, but with tight memory limits. We've enabled a compact model
+              (Llama 3.2 1B) so you can try local AI on iPhone — much smaller than our desktop models,
+              so expect simpler answers. For full power, use Arc on desktop.
             </p>
           </div>
         </div>
