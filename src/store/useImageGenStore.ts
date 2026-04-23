@@ -47,7 +47,7 @@ interface ImageGenState {
 export const useImageGenStore = create<ImageGenState>()(
   persist(
     (set) => ({
-      model: 'google/gemini-3.1-flash-image-preview',
+      model: 'google/gemini-2.5-flash-image',
       aspectRatio: '1:1',
       setModel: (m) => set({ model: m }),
       setAspectRatio: (a) => set({ aspectRatio: a }),
