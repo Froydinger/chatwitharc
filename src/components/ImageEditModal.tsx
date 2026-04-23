@@ -176,6 +176,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
           additionalImages: additionalBase64s, // Pass additional images as base64
           editInstruction: textWithChips,
           imageModel: selectedModel, // Pass selected model
+          aspectRatio: selectedAspect, // Pass selected aspect ratio
         },
       });
       window.dispatchEvent(editEvent);
