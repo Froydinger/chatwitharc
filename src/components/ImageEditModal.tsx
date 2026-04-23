@@ -6,8 +6,17 @@ import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
 import { SmoothImage } from "@/components/ui/smooth-image";
-import { X, Sparkles, Zap, Brain, ImagePlus, Mic } from "lucide-react";
+import { X, Sparkles, Zap, Brain, ImagePlus, Mic, ChevronDown, Crown, Check, Ratio } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
+import {
+  useImageGenStore,
+  IMAGE_MODEL_OPTIONS,
+  IMAGE_ASPECT_OPTIONS,
+  type ImageModelId,
+  type ImageAspectRatio,
+} from "@/store/useImageGenStore";
+import { useSubscription } from "@/hooks/useSubscription";
+import { cn } from "@/lib/utils";
 
 interface ImageEditModalProps {
   isOpen: boolean;
@@ -40,9 +49,41 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { addMessage } = useArcStore();
   const { toast } = useToast();
   
-  // Always use Gemini 3 Pro for image editing - no exceptions
-  const selectedModel = 'google/gemini-3.1-flash-image-preview';
-  
+  const { isSubscribed } = useSubscription();
+  const { model: selectedModel, aspectRatio: selectedAspect, setModel, setAspectRatio } = useImageGenStore();
+  const [openMenu, setOpenMenu] = useState<null | "model" | "aspect">(null);
+
+  // If a lastUsedModel was passed and it differs from the current store, prime the store once on open.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (lastUsedModel && IMAGE_MODEL_OPTIONS.some((m) => m.id === lastUsedModel) && lastUsedModel !== selectedModel) {
+      setModel(lastUsedModel as ImageModelId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const activeModel = IMAGE_MODEL_OPTIONS.find((m) => m.id === selectedModel) ?? IMAGE_MODEL_OPTIONS[0];
+  const activeAspect = IMAGE_ASPECT_OPTIONS.find((a) => a.id === selectedAspect) ?? IMAGE_ASPECT_OPTIONS[0];
+
+  const handlePickModel = (m: ImageModelId) => {
+    const target = IMAGE_MODEL_OPTIONS.find((o) => o.id === m);
+    if (target?.pro && !isSubscribed) {
+      toast({
+        title: "Pro feature",
+        description: `${target.label} is available with Pro. Sticking with ${activeModel.label}.`,
+      });
+      setOpenMenu(null);
+      return;
+    }
+    setModel(m);
+    setOpenMenu(null);
+  };
+
+  const handlePickAspect = (a: ImageAspectRatio) => {
+    setAspectRatio(a);
+    setOpenMenu(null);
+  };
+
   // Normalize imageUrl to always be an array for easier handling
   const imageUrls = Array.isArray(imageUrl) ? imageUrl : [imageUrl];
   const isMultipleImages = imageUrls.length > 1;
