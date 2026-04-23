@@ -11,11 +11,13 @@ import type { MLCEngineInterface, InitProgressReport } from '@mlc-ai/web-llm';
 export const FAST_MODEL = 'Llama-3.2-3B-Instruct-q4f16_1-MLC';
 export const FAST_FALLBACK = 'gemma-2-2b-it-q4f16_1-MLC';
 export const QUALITY_MODEL = 'gemma-2-9b-it-q4f16_1-MLC';
-// Tiny model for iOS Safari (memory-capped). The only WebLLM model
-// that reliably loads in iOS Safari WebGPU without crashing.
-// Llama 3.2 1B was tested but OOMs on real iPhones despite WebLLM's
-// "low_resource_required" flag — Safari's WebGPU buffer limits are stricter.
-export const IOS_LITE_MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+// Small model for iOS Safari. Llama 3.2 1B is significantly smarter than
+// Qwen 0.5B but sits near Safari's WebGPU memory ceiling — we pair it with
+// a reduced context window (see IOS_LITE_CONTEXT_WINDOW) to keep KV cache
+// pressure low and avoid OOM crashes.
+export const IOS_LITE_MODEL = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+/** Context window cap applied to the iOS Lite model to fit Safari memory. */
+export const IOS_LITE_CONTEXT_WINDOW = 2048;
 
 export const LOCAL_MODEL_ID = FAST_MODEL;
 export const LOCAL_MODEL_LABEL = 'Llama 3.2 3B';
