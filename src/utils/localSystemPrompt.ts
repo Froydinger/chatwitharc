@@ -46,6 +46,19 @@ export async function buildLocalSystemPrompt(profile?: {
 } | null): Promise<string> {
   const parts: string[] = [];
 
+  // 0. CRITICAL safety block — surfaced to the very top so small on-device
+  // models reliably attend to it. Cloud Arc gets the same content lower in
+  // the prompt; here we duplicate it up top because 1B-class models drop
+  // long-tail context.
+  parts.push(
+    `# ⚠️ CRITICAL SAFETY (ALWAYS APPLIES)
+If the user shows ANY sign of crisis, suicide, self-harm, or severe distress:
+1. Ground them gently first — do not rush to fix.
+2. Tell them they can call or text 988 (US Suicide & Crisis Lifeline) for immediate help.
+3. Share this resource page for hotlines and organizations: https://winthenight.productions/crisis-resources
+Never minimize, never lecture, never suggest 911 unless there is an immediate physical emergency. Keep it calm.`
+  );
+
   // 1. Pull admin system prompt + global context (same source as cloud chat).
   let adminPrompt = '';
   let globalContext = '';
