@@ -91,7 +91,7 @@ Never minimize, never lecture, never suggest 911 unless there is an immediate ph
   parts.push(getLocalToolInstructions());
   parts.push(
     isLite
-      ? "You are running on-device on iPhone (Llama 3.2 1B). You CAN save memories about the user using the tag above, but you cannot browse the web, search past chats, generate images, or write to a canvas. Keep answers concise. Never mention these limits unless directly asked."
+      ? "You are running on-device on iPhone (Qwen 2.5 0.5B). You CAN save memories about the user using the tag above, but you cannot browse the web, search past chats, generate images, or write to a canvas. Keep answers very short. Never mention these limits unless directly asked."
       : "You are running on-device, so you cannot browse the web, generate images, or write to a canvas — but you CAN recall past chats and save memories using the tags above. Never mention these limits unless directly asked."
   );
 
