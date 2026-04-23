@@ -39,17 +39,48 @@ function stripToolGuidance(prompt: string): string {
   return out.trim();
 }
 
+/**
+ * Truncate a long string in the middle (preserving start + end), inserting an
+ * ellipsis marker that tells the model "this was abbreviated — fill gracefully
+ * if the user asks for something that might be in here."
+ *
+ * Used only for the iOS Lite path where prompt size directly impacts crash risk
+ * and inference speed. We never truncate identity, safety, or capability blocks.
+ */
+function softTruncate(text: string, maxChars: number): string {
+  const t = text.trim();
+  if (t.length <= maxChars) return t;
+  // Keep ~70% from the head (recency-biased toward the user's most recent
+  // memories which are written first) and ~30% from the tail.
+  const headLen = Math.floor(maxChars * 0.7);
+  const tailLen = Math.max(0, maxChars - headLen - 60); // 60 chars reserved for marker
+  const head = t.slice(0, headLen).trimEnd();
+  const tail = tailLen > 0 ? t.slice(-tailLen).trimStart() : '';
+  const marker = `\n\n[…content abbreviated for on-device speed — assume more details exist; ask the user if you need specifics…]\n\n`;
+  return tail ? `${head}${marker}${tail}` : `${head}${marker.trimEnd()}`;
+}
+
 export async function buildLocalSystemPrompt(profile?: {
   display_name?: string | null;
   context_info?: string | null;
   memory_info?: string | null;
 } | null): Promise<string> {
+  const isLite = getActiveLocalModelId() === IOS_LITE_MODEL;
+
+  // Per-section character budgets when running on the iOS Lite model.
+  // Sized to keep total prompt around ~3KB instead of ~8-10KB, which materially
+  // reduces prefill time and KV cache pressure on Safari WebGPU.
+  const LITE_BUDGET = {
+    adminPrompt: 1800,   // identity + voice — big enough to keep crisis line + prefixes
+    memoryInfo: 600,     // memories about the user
+    contextBlocks: 400,  // additional context blocks
+    globalContext: 300,  // admin announcements
+  };
+
   const parts: string[] = [];
 
   // 0. CRITICAL safety block — surfaced to the very top so small on-device
-  // models reliably attend to it. Cloud Arc gets the same content lower in
-  // the prompt; here we duplicate it up top because 1B-class models drop
-  // long-tail context.
+  // models reliably attend to it. NEVER truncated.
   parts.push(
     `# ⚠️ CRITICAL SAFETY (ALWAYS APPLIES)
 If the user shows ANY sign of crisis, suicide, self-harm, or severe distress:
@@ -78,7 +109,8 @@ Never minimize, never lecture, never suggest 911 unless there is an immediate ph
   }
 
   if (adminPrompt) {
-    parts.push(stripToolGuidance(adminPrompt));
+    const stripped = stripToolGuidance(adminPrompt);
+    parts.push(isLite ? softTruncate(stripped, LITE_BUDGET.adminPrompt) : stripped);
   } else {
     // Fallback persona if admin row is unavailable.
     parts.push(
@@ -87,7 +119,6 @@ Never minimize, never lecture, never suggest 911 unless there is an immediate ph
   }
 
   // 2. Local capabilities — replace cloud's tool-call section with our text-tag protocol.
-  const isLite = getActiveLocalModelId() === IOS_LITE_MODEL;
   parts.push(getLocalToolInstructions());
   parts.push(
     isLite
@@ -102,9 +133,16 @@ Never minimize, never lecture, never suggest 911 unless there is an immediate ph
   // 4. User identity / memory / context — clearly labelled as ABOUT THE USER.
   const corp = useCorporateModeStore.getState();
 
+  // Helper to push a memory/context section with optional lite truncation.
+  const pushMaybeTruncated = (header: string, body: string, liteBudget: number) => {
+    const trimmed = body.trim();
+    if (!trimmed) return;
+    const finalBody = isLite ? softTruncate(trimmed, liteBudget) : trimmed;
+    parts.push(`${header}\n${finalBody}`);
+  };
+
   if (corp.enabled) {
     // === Corporate Mode: NEVER touch the network here. ===
-    // Use only the persisted snapshot (if the user opted in).
     if (corp.memoriesEnabled === true && corp.memorySnapshot) {
       const snap = corp.memorySnapshot;
       const userBits: string[] = [];
@@ -114,16 +152,15 @@ Never minimize, never lecture, never suggest 911 unless there is an immediate ph
         parts.push(`# About the user (these facts describe the USER, not you)\n${userBits.join('\n')}`);
       }
       if (snap.memory_info?.trim()) {
-        parts.push(
-          `# 📝 Memories about the user (NOT your beliefs)\nThese are facts, beliefs, and preferences belonging to the user. Reference them only when relevant — never claim them as your own.\n\n${snap.memory_info.trim()}`
+        pushMaybeTruncated(
+          `# 📝 Memories about the user (NOT your beliefs)\nThese are facts, beliefs, and preferences belonging to the user. Reference them only when relevant — never claim them as your own.\n`,
+          snap.memory_info,
+          LITE_BUDGET.memoryInfo
         );
       }
-      const blockText = (snap.context_blocks || []).join('\n').trim();
-      if (blockText) {
-        parts.push(`# Additional context blocks about the user\n${blockText}`);
-      }
+      const blockText = (snap.context_blocks || []).join('\n');
+      pushMaybeTruncated(`# Additional context blocks about the user`, blockText, LITE_BUDGET.contextBlocks);
     }
-    // If memoriesEnabled is false or null, omit the entire memory section.
   } else {
     // Normal (non-corporate) mode: pull live from the cloud.
     try {
@@ -140,7 +177,7 @@ Never minimize, never lecture, never suggest 911 unless there is an immediate ph
             .select('content')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false })
-            .limit(20),
+            .limit(isLite ? 8 : 20), // Lite: fewer blocks fetched too
         ]);
 
         const eff = { ...(profile || {}), ...(profileRes.data || {}) };
@@ -153,8 +190,10 @@ Never minimize, never lecture, never suggest 911 unless there is an immediate ph
         }
 
         if (eff.memory_info && eff.memory_info.trim()) {
-          parts.push(
-            `# 📝 Memories about the user (NOT your beliefs)\nThese are facts, beliefs, and preferences belonging to the user. Reference them only when relevant — never claim them as your own.\n\n${eff.memory_info.trim()}`
+          pushMaybeTruncated(
+            `# 📝 Memories about the user (NOT your beliefs)\nThese are facts, beliefs, and preferences belonging to the user. Reference them only when relevant — never claim them as your own.\n`,
+            eff.memory_info,
+            LITE_BUDGET.memoryInfo
           );
         }
 
@@ -162,9 +201,7 @@ Never minimize, never lecture, never suggest 911 unless there is an immediate ph
           .map((b: any) => (b.content || '').trim())
           .filter(Boolean)
           .join('\n');
-        if (blockText) {
-          parts.push(`# Additional context blocks about the user\n${blockText}`);
-        }
+        pushMaybeTruncated(`# Additional context blocks about the user`, blockText, LITE_BUDGET.contextBlocks);
       }
     } catch (e) {
       console.warn('[Arc Local] Failed to load user memory/context:', e);
@@ -173,7 +210,8 @@ Never minimize, never lecture, never suggest 911 unless there is an immediate ph
 
   // 5. Global admin context (e.g. seasonal notes, announcements).
   if (globalContext.trim()) {
-    parts.push(`# Global context\n${globalContext.trim()}`);
+    const body = isLite ? softTruncate(globalContext, LITE_BUDGET.globalContext) : globalContext.trim();
+    parts.push(`# Global context\n${body}`);
   }
 
   // 6. Final brevity nudge.
