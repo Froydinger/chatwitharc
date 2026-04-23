@@ -11,8 +11,10 @@ import type { MLCEngineInterface, InitProgressReport } from '@mlc-ai/web-llm';
 export const FAST_MODEL = 'Llama-3.2-3B-Instruct-q4f16_1-MLC';
 export const FAST_FALLBACK = 'gemma-2-2b-it-q4f16_1-MLC';
 export const QUALITY_MODEL = 'gemma-2-9b-it-q4f16_1-MLC';
-// Tiny model for iOS Safari (memory-capped). Experimental — not as smart.
-export const IOS_LITE_MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+// Small model for iOS Safari (memory-capped ~1.5GB VRAM).
+// Llama 3.2 1B: 879 MB VRAM, marked low_resource_required by WebLLM,
+// meaningfully smarter than Qwen 0.5B and uses *less* memory.
+export const IOS_LITE_MODEL = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
 
 export const LOCAL_MODEL_ID = FAST_MODEL;
 export const LOCAL_MODEL_LABEL = 'Llama 3.2 3B';
@@ -172,7 +174,7 @@ export async function loadLocalModel(
       id === FAST_MODEL ? 'Llama 3.2 3B' :
       id === QUALITY_MODEL ? 'Gemma 2 9B' :
       id === FAST_FALLBACK ? 'Gemma 2 2B' :
-      id === IOS_LITE_MODEL ? 'Qwen 2.5 0.5B (iOS Lite)' : id;
+      id === IOS_LITE_MODEL ? 'Llama 3.2 1B (iOS)' : id;
 
     chain.push({ id: preferredModel, label: labelFor(preferredModel) });
     // For iOS Lite, don't fall back to bigger models (they'll OOM Safari).
@@ -201,7 +203,7 @@ export function getActiveLocalModelLabel(): string {
   if (activeModelId === FAST_MODEL) return 'Llama 3.2 3B';
   if (activeModelId === QUALITY_MODEL) return 'Gemma 2 9B';
   if (activeModelId === FAST_FALLBACK) return 'Gemma 2 2B';
-  if (activeModelId === IOS_LITE_MODEL) return 'Qwen 2.5 0.5B (iOS Lite)';
+  if (activeModelId === IOS_LITE_MODEL) return 'Llama 3.2 1B (iOS)';
   return LOCAL_MODEL_LABEL;
 }
 

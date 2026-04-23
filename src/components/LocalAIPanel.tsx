@@ -34,7 +34,7 @@ const DESKTOP_MODELS: ModelOption[] = [
 ];
 
 const IOS_MODELS: ModelOption[] = [
-  { id: IOS_LITE_MODEL, name: "Qwen 2.5 0.5B", size: "~350 MB", blurb: "Tiny iOS-friendly model. Great for quick replies, not deep reasoning.", Icon: Feather, beta: true, iosOnly: true },
+  { id: IOS_LITE_MODEL, name: "Llama 3.2 1B", size: "~700 MB", blurb: "Compact iOS-friendly model. Solid for quick chats; not deep reasoning.", Icon: Feather, beta: true, iosOnly: true },
 ];
 
 export function LocalAIPanel() {
@@ -193,9 +193,9 @@ export function LocalAIPanel() {
               </span>
             </p>
             <p className="text-muted-foreground mt-0.5 leading-relaxed">
-              Safari on iOS 26 finally supports WebGPU, but with tight memory limits. We've enabled a tiny model
-              (Qwen 2.5 0.5B) so you can try local AI on iPhone — it's <em>way</em> smaller than our desktop models,
-              so expect simpler answers and the occasional weirdness. For full power, use Arc on desktop.
+              Safari on iOS 26 finally supports WebGPU, but with tight memory limits. We've enabled a compact model
+              (Llama 3.2 1B) so you can try local AI on iPhone — much smaller than our desktop models,
+              so expect simpler answers. For full power, use Arc on desktop.
             </p>
           </div>
         </div>
