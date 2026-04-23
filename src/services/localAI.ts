@@ -168,7 +168,16 @@ export async function loadLocalModel(
       const perModelAppConfig = await getWebLLMAppConfig(backend ? backend === 'indexeddb' : true);
       activeModelId = id;
       onProgress?.({ progress: 0, text: `Loading ${label}…` });
-      return await CreateMLCEngine(id, { initProgressCallback, appConfig: perModelAppConfig });
+      // Cap context window for the iOS Lite model to keep KV cache within
+      // Safari's WebGPU memory budget (otherwise Llama 1B OOMs on iPhone).
+      const chatOpts = id === IOS_LITE_MODEL
+        ? { context_window_size: IOS_LITE_CONTEXT_WINDOW }
+        : undefined;
+      return await CreateMLCEngine(id, {
+        initProgressCallback,
+        appConfig: perModelAppConfig,
+        ...(chatOpts ? { chatOpts } : {}),
+      } as any);
     };
 
     // Build per-request fallback chain: preferred → fast fallback (skip duplicates).
