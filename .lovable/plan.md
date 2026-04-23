@@ -1,99 +1,44 @@
-# Settings Page Rehaul
-
-A full restructure of `/dashboard/settings` to make it scannable, organized by intent, and consistent across desktop and mobile. Today everything lives in 3 tabs (Profile / Plan / Account) with an inconsistent grid that mixes profile, appearance, voice, model, privacy, on-device AI, exports, sign out, delete, admin all together.
-
-## New Tab Structure
-
-Replace the 3 generic tabs with **5 intent-driven sections**, navigated via a sticky sidebar on desktop and a horizontal scrollable pill row on mobile.
-
-```text
-1. Account          – Identity, email, connected accounts, password, sign out, delete
-2. Appearance       – Accent color, starfield, (future: theme bits)
-3. AI & Models      – Model family, voice, on-device AI, image defaults
-4. Privacy & Data   – Corporate Mode, memory link, export, clear chats, sync status
-5. Plan & Usage     – Subscription state, usage meters, upgrade/manage
-```
-
-Admin Panel link remains conditional, surfaced inside **Account** at the bottom.
-
-## Layout
-
-**Desktop (≥ lg):**
-
-```text
-┌─────────────────────────────────────────────────────────┐
-│  Settings                            [Web v4.1.3]       │
-├──────────────┬──────────────────────────────────────────┤
-│  Account     │                                          │
-│  Appearance  │   <Active Section>                       │
-│ ▸AI & Models │   (2-column responsive card grid)        │
-│  Privacy     │                                          │
-│  Plan        │                                          │
-│              │                                          │
-│  Support •   │                                          │
-│  WTN         │                                          │
-└──────────────┴──────────────────────────────────────────┘
-```
-
-- Sticky left rail (220px) with vertical nav, accent-glow on active item.
-- Right pane: section header + responsive 2-column grid of `GlassCard`s (1-col under lg, 2-col at lg+). Cards keep current glass-bubble style and `staggerItemVariants` animation.
-
-**Mobile (< lg):**
-
-- Top: horizontal scroll pill bar of the 5 sections (snap-scroll, current pill highlighted with glass-shimmer + accent ring).
-- Below: single-column stack of cards for the active section.
-- Footer (Support / WTN / version) lives at the bottom of the scroll, not the rail.
-
-## Card Reorganization
 
 
-| Section            | Cards                                                                                                                           |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| **Account**        | Profile (name + avatar combined), Email, Connected Accounts (Google/Apple/Email+pw), Sign Out, Delete Account, Admin (if admin) |
-| **Appearance**     | Accent Color (full row), Starfield toggle                                                                                       |
-| **AI & Models**    | Model Family (Gemini/GPT), Voice, Image Defaults (model + aspect ratio – pulled from `useImageGenStore`), On-Device AI          |
-| **Privacy & Data** | Corporate Mode, Memory (link to Brain), Export Chats, Clear Chat History, Sync Status                                           |
-| **Plan & Usage**   | Plan card, Today's Usage (free only), Manage Subscription / Upgrade                                                             |
+# Image Edit: Model + Aspect Ratio Controls
 
+Bring the same model + aspect-ratio picker UX from `/image` generation into both image-editing entry points.
 
-Improvements per card:
+## Two entry points to update
 
-- Consistent header pattern: `<Icon> <Title> + <one-line subtitle>` already used; standardize spacing.
-- Combine "Your Name" + Avatar upload into one **Profile** card so identity edits live together.
-- Add Image Defaults card so users can set model + aspect ratio outside chat (mirrors `ImageOptionsDock`).
+1. **ImageEditModal** (opened from a generated/existing image's "Edit" action)
+2. **Attached image with "Edit" mode selected** in the chat input (instead of Analyze)
 
-## Technical Details
+Both currently hardcode the model and ignore aspect ratio.
 
-**Files to update**
+## Behavior
 
-- `src/components/SettingsPanel.tsx` – full restructure: extract each card into local subcomponents (`ProfileCard`, `AppearanceCards`, `ModelsCards`, `PrivacyCards`, `PlanCards`), build new shell with `useState<SectionId>` instead of `<Tabs>`. Keep all existing logic (handlers, hooks, modals) intact – only reorganize JSX. No behavior regressions.
-- `src/pages/DashboardSettingsPage.tsx` – remove the page-level header (logo/title/back) duplication if the new shell renders its own; keep back button. Adjust max-width container to support sidebar layout (`max-w-6xl` → `max-w-7xl`, remove inner padding fight).
+- Both flows reuse `useImageGenStore` (`model`, `aspectRatio`) as the source of truth — same store the `/image` dock uses, so the user's last choice persists across generation and editing.
+- The picker UI mirrors `ImageOptionsDock` (same labels, Pro lock, aspect list).
+- Pro-locked model = Nano Banana Pro; gated by `useSubscription` exactly like in the dock.
 
-**New small pieces inside `SettingsPanel.tsx**`
+## Changes
 
-```ts
-type SectionId = 'account' | 'appearance' | 'ai' | 'privacy' | 'plan';
-const SECTIONS: { id: SectionId; label: string; icon: LucideIcon }[] = [...];
-const [section, setSection] = useState<SectionId>('account');
-```
+### 1. `src/components/ImageEditModal.tsx`
+- Remove the hardcoded `selectedModel = 'google/gemini-3.1-flash-image-preview'`.
+- Read `model` and `aspectRatio` from `useImageGenStore` (defaulting to whatever is already set; if `lastUsedModel` prop is passed and the store is on the default, prime the store with `lastUsedModel`).
+- Add a compact two-button row above the textarea:
+  - **Model** button → popover listing `IMAGE_MODEL_OPTIONS` with Pro crown + lock toast (same as dock).
+  - **Aspect** button → popover listing `IMAGE_ASPECT_OPTIONS`.
+- Include `imageModel` and `aspectRatio` in the `processImageEdit` CustomEvent detail.
 
-- Sidebar nav: vertical buttons on `lg:flex`, hidden under lg.
-- Mobile pill bar: `lg:hidden` horizontal `overflow-x-auto` row, snap-x, with the existing glass styling from `tabs.tsx`.
-- Section content rendered via a switch on `section`, each branch returning a `motion.div` with `staggerContainerVariants` and a `grid lg:grid-cols-2 gap-6` layout.
-- New **Image Defaults** card consumes `useImageGenStore` (already exists) and renders the same selectors used in `ImageOptionsDock` (compact variant).
+### 2. `src/components/ChatInput.tsx`
+- Extend the `processImageEdit` listener type and `handleExternalImageEditRef` signature to accept `aspectRatio?: string`.
+- Update the call to `ai.editImage(...)` in both code paths (modal-driven edit at ~line 798 and attached-image edit at ~line 1033) to pass the current `aspectRatio` from `useImageGenStore`.
+- When at least one attached image is in **Edit mode** (`allImagesEditMode` true, or any image flagged edit), render the existing `<ImageOptionsDock />` above the input — same trigger pattern already used for `/image` mode. This gives users the same model + aspect ratio dock when toggling an attached image to Edit.
 
-**Preserved**
+### 3. `src/services/ai.ts`
+- `editImage(prompt, baseImageUrls, imageModel?, aspectRatio?)` — add `aspectRatio` param and forward it to the `edit-image` edge function body (the function already accepts `aspectRatio`, so no edge changes needed).
 
-- All current handlers (`handleSaveDisplayName`, `handleAvatarUpload`, `handleSignOut`, `handlePasswordReset`, `handleDeleteAccount`, `handleClearMessages`, `handleAccentClick`, sync status logic).
-- `LocalAIPanel`, `CorporateModePanel`, `VoiceSelector`, `ModelFamilySelector`, `DeleteDataModal` reused as-is.
-- Footer (version + support links) moved into the sidebar bottom on desktop, kept at the page bottom on mobile.
+### 4. `supabase/functions/edit-image/index.ts`
+- No code change required; it already reads `aspectRatio` and passes it to the gateway. (Verified.)
 
-**Out of scope**
+## Out of scope
+- No changes to generation flow, the `/image` dock itself, or Voice edit.
+- No new persisted state — reuses `useImageGenStore`.
 
-- No changes to memory/Brain UI, Corporate Mode internals, or subscription logic.
-- No theming changes beyond layout.  
-  
-  
-  
-**ALSO:** 
-  **also can't seek at all on music, let's do a 10 sec forward and back to reconcile this once and for all with this fix.** 
