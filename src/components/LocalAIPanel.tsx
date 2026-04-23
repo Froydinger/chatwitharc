@@ -73,7 +73,9 @@ export function LocalAIPanel() {
     setCacheChecked(true);
     // Auto-pick a default selection if user has one cached but none selected.
     const anyCached = Object.values(c).some(Boolean);
-    if (anyCached && (!selectedModelId || !c[selectedModelId])) {
+    const selectedIsLegacyQwen = selectedModelId.toLowerCase().includes('qwen');
+    if (selectedIsLegacyQwen) setSelectedModelId('');
+    if (anyCached && (!selectedModelId || selectedIsLegacyQwen || !c[selectedModelId])) {
       const firstCached = MODELS.find(m => c[m.id])?.id ?? Object.keys(c).find(id => c[id]);
       if (firstCached) setSelectedModelId(firstCached);
     }
