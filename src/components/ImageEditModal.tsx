@@ -341,6 +341,91 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
             </div>
 
 
+            {/* Model + Aspect Ratio pickers */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Output options</label>
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Model picker */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setOpenMenu(openMenu === "model" ? null : "model")}
+                    disabled={isSubmitting}
+                    className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    <span className="font-medium">{activeModel.label}</span>
+                    {activeModel.pro && <Crown className="h-3 w-3 text-primary" />}
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                  {openMenu === "model" && (
+                    <div className="absolute bottom-full mb-2 left-0 w-64 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20">
+                      {IMAGE_MODEL_OPTIONS.map((m) => {
+                        const isActive = m.id === selectedModel;
+                        const locked = !!m.pro && !isSubscribed;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => handlePickModel(m.id)}
+                            className={cn(
+                              "w-full flex items-start gap-2 px-3 py-2 rounded-xl text-left transition-colors",
+                              isActive ? "bg-primary/10" : "hover:bg-muted/40",
+                              locked && "opacity-70"
+                            )}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-medium text-foreground truncate">{m.label}</span>
+                                {m.pro && <Crown className="h-3 w-3 text-primary shrink-0" />}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">{m.blurb}</p>
+                            </div>
+                            {isActive && <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Aspect picker */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setOpenMenu(openMenu === "aspect" ? null : "aspect")}
+                    disabled={isSubmitting}
+                    className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
+                  >
+                    <Ratio className="h-3.5 w-3.5 text-primary" />
+                    <span className="font-medium">{activeAspect.id}</span>
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                  {openMenu === "aspect" && (
+                    <div className="absolute bottom-full mb-2 left-0 w-56 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20 max-h-72 overflow-y-auto">
+                      {IMAGE_ASPECT_OPTIONS.map((a) => {
+                        const isActive = a.id === selectedAspect;
+                        return (
+                          <button
+                            key={a.id}
+                            type="button"
+                            onClick={() => handlePickAspect(a.id)}
+                            className={cn(
+                              "w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-sm transition-colors",
+                              isActive ? "bg-primary/10 text-foreground" : "hover:bg-muted/40 text-foreground"
+                            )}
+                          >
+                            <span>{a.label}</span>
+                            {isActive && <Check className="h-4 w-4 text-primary" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Main Edit Textarea */}
             <div>
               <label className="text-sm font-medium mb-2 block">
