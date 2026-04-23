@@ -21,9 +21,9 @@ export type ImageAspectRatio =
   | '21:9';
 
 export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb: string; pro?: boolean }> = [
-  { id: 'google/gemini-3.1-flash-image-preview', label: 'Nano Banana 2', blurb: 'Fast • Pro-level quality (default)' },
+  { id: 'google/gemini-2.5-flash-image',         label: 'Nano Banana',     blurb: 'Fast everyday image model' },
+  { id: 'google/gemini-3.1-flash-image-preview', label: 'Nano Banana 2',   blurb: 'Fast • Pro-level quality', pro: true },
   { id: 'google/gemini-3-pro-image-preview',     label: 'Nano Banana Pro', blurb: 'Highest quality • slower', pro: true },
-  { id: 'google/gemini-2.5-flash-image',         label: 'Nano Banana',     blurb: 'Classic fast tier' },
 ];
 
 export const IMAGE_ASPECT_OPTIONS: Array<{ id: ImageAspectRatio; label: string }> = [
@@ -47,7 +47,7 @@ interface ImageGenState {
 export const useImageGenStore = create<ImageGenState>()(
   persist(
     (set) => ({
-      model: 'google/gemini-3.1-flash-image-preview',
+      model: 'google/gemini-2.5-flash-image',
       aspectRatio: '1:1',
       setModel: (m) => set({ model: m }),
       setAspectRatio: (a) => set({ aspectRatio: a }),
