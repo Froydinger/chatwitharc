@@ -1901,7 +1901,7 @@ ${safeCode}
 
       {/* Image options dock — visible whenever the user is in image-gen mode.
           Stacked above any selected-images / selected-documents previews. */}
-      {!inline && shouldShowBanana && (() => {
+      {!inline && (shouldShowBanana || (selectedImages.length > 0 && allImagesEditMode)) && (() => {
         const hasImages = selectedImages.length > 0;
         const hasDocs = selectedDocuments.length > 0;
         // Each preview row adds ~100px above the input bar.
