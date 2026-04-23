@@ -6,8 +6,17 @@ import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
 import { SmoothImage } from "@/components/ui/smooth-image";
-import { X, Sparkles, Zap, Brain, ImagePlus, Mic } from "lucide-react";
+import { X, Sparkles, Zap, Brain, ImagePlus, Mic, ChevronDown, Crown, Check, Ratio } from "lucide-react";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
+import {
+  useImageGenStore,
+  IMAGE_MODEL_OPTIONS,
+  IMAGE_ASPECT_OPTIONS,
+  type ImageModelId,
+  type ImageAspectRatio,
+} from "@/store/useImageGenStore";
+import { useSubscription } from "@/hooks/useSubscription";
+import { cn } from "@/lib/utils";
 
 interface ImageEditModalProps {
   isOpen: boolean;
@@ -40,9 +49,41 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { addMessage } = useArcStore();
   const { toast } = useToast();
   
-  // Always use Gemini 3 Pro for image editing - no exceptions
-  const selectedModel = 'google/gemini-3.1-flash-image-preview';
-  
+  const { isSubscribed } = useSubscription();
+  const { model: selectedModel, aspectRatio: selectedAspect, setModel, setAspectRatio } = useImageGenStore();
+  const [openMenu, setOpenMenu] = useState<null | "model" | "aspect">(null);
+
+  // If a lastUsedModel was passed and it differs from the current store, prime the store once on open.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (lastUsedModel && IMAGE_MODEL_OPTIONS.some((m) => m.id === lastUsedModel) && lastUsedModel !== selectedModel) {
+      setModel(lastUsedModel as ImageModelId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const activeModel = IMAGE_MODEL_OPTIONS.find((m) => m.id === selectedModel) ?? IMAGE_MODEL_OPTIONS[0];
+  const activeAspect = IMAGE_ASPECT_OPTIONS.find((a) => a.id === selectedAspect) ?? IMAGE_ASPECT_OPTIONS[0];
+
+  const handlePickModel = (m: ImageModelId) => {
+    const target = IMAGE_MODEL_OPTIONS.find((o) => o.id === m);
+    if (target?.pro && !isSubscribed) {
+      toast({
+        title: "Pro feature",
+        description: `${target.label} is available with Pro. Sticking with ${activeModel.label}.`,
+      });
+      setOpenMenu(null);
+      return;
+    }
+    setModel(m);
+    setOpenMenu(null);
+  };
+
+  const handlePickAspect = (a: ImageAspectRatio) => {
+    setAspectRatio(a);
+    setOpenMenu(null);
+  };
+
   // Normalize imageUrl to always be an array for easier handling
   const imageUrls = Array.isArray(imageUrl) ? imageUrl : [imageUrl];
   const isMultipleImages = imageUrls.length > 1;
@@ -135,6 +176,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
           additionalImages: additionalBase64s, // Pass additional images as base64
           editInstruction: textWithChips,
           imageModel: selectedModel, // Pass selected model
+          aspectRatio: selectedAspect, // Pass selected aspect ratio
         },
       });
       window.dispatchEvent(editEvent);
@@ -298,6 +340,91 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
               </div>
             </div>
 
+
+            {/* Model + Aspect Ratio pickers */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Output options</label>
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Model picker */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setOpenMenu(openMenu === "model" ? null : "model")}
+                    disabled={isSubmitting}
+                    className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    <span className="font-medium">{activeModel.label}</span>
+                    {activeModel.pro && <Crown className="h-3 w-3 text-primary" />}
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                  {openMenu === "model" && (
+                    <div className="absolute bottom-full mb-2 left-0 w-64 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20">
+                      {IMAGE_MODEL_OPTIONS.map((m) => {
+                        const isActive = m.id === selectedModel;
+                        const locked = !!m.pro && !isSubscribed;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => handlePickModel(m.id)}
+                            className={cn(
+                              "w-full flex items-start gap-2 px-3 py-2 rounded-xl text-left transition-colors",
+                              isActive ? "bg-primary/10" : "hover:bg-muted/40",
+                              locked && "opacity-70"
+                            )}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-medium text-foreground truncate">{m.label}</span>
+                                {m.pro && <Crown className="h-3 w-3 text-primary shrink-0" />}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">{m.blurb}</p>
+                            </div>
+                            {isActive && <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Aspect picker */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setOpenMenu(openMenu === "aspect" ? null : "aspect")}
+                    disabled={isSubmitting}
+                    className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
+                  >
+                    <Ratio className="h-3.5 w-3.5 text-primary" />
+                    <span className="font-medium">{activeAspect.id}</span>
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                  {openMenu === "aspect" && (
+                    <div className="absolute bottom-full mb-2 left-0 w-56 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20 max-h-72 overflow-y-auto">
+                      {IMAGE_ASPECT_OPTIONS.map((a) => {
+                        const isActive = a.id === selectedAspect;
+                        return (
+                          <button
+                            key={a.id}
+                            type="button"
+                            onClick={() => handlePickAspect(a.id)}
+                            className={cn(
+                              "w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-sm transition-colors",
+                              isActive ? "bg-primary/10 text-foreground" : "hover:bg-muted/40 text-foreground"
+                            )}
+                          >
+                            <span>{a.label}</span>
+                            {isActive && <Check className="h-4 w-4 text-primary" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
 
             {/* Main Edit Textarea */}
             <div>
