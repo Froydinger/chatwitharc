@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
-import { getCachedLocalModels } from "@/services/localAI";
+import { getCachedLocalModels, IOS_LITE_MODEL } from "@/services/localAI";
 
 /**
  * Keeps the local on-device model marked correctly across refreshes/PWA reloads
@@ -57,22 +57,26 @@ export function useLocalModelPersistence() {
         if (cancelled) return;
 
         const anyCached = Object.values(cached).some(Boolean);
+        const selectedIsLegacyQwen = selectedModelId.toLowerCase().includes("qwen");
         const selectedStillCached =
-          !!selectedModelId && cached[selectedModelId] === true;
+          !!selectedModelId && !selectedIsLegacyQwen && cached[selectedModelId] === true;
 
         if (anyCached) {
           // We have weights on disk — make sure the UI knows.
           if (!selectedStillCached) {
-            const firstCached = Object.keys(cached).find((id) => cached[id]);
+            const firstCached = cached[IOS_LITE_MODEL]
+              ? IOS_LITE_MODEL
+              : Object.keys(cached).find((id) => cached[id]);
             if (firstCached) setSelectedModelId(firstCached);
           }
           if (status !== "ready" && status !== "loading") {
             setStatus("ready");
             setProgress(1, "Ready");
           }
-        } else if (status === "ready") {
+        } else if (status === "ready" || selectedIsLegacyQwen) {
           // Truly evicted — show download UI again.
-          console.warn("[LocalAI] All cached weights are gone — resetting to idle.");
+          console.warn("[LocalAI] No current Llama weights found — resetting local model state.");
+          if (selectedIsLegacyQwen) setSelectedModelId("");
           setStatus("idle");
           setProgress(0, "");
         }
