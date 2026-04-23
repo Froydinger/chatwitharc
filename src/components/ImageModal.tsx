@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { useToast } from "@/hooks/use-toast";
+import { useArcStore } from "@/store/useArcStore";
 
 interface ImageModalProps {
   isOpen: boolean;
@@ -15,6 +16,20 @@ interface ImageModalProps {
 export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image" }: ImageModalProps) {
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
+  const rightPanelOpen = useArcStore((s) => s.rightPanelOpen);
+
+  // Track viewport width to compute sidebar offset (sidebar is on the left, lg:w-80 xl:w-96)
+  const [vw, setVw] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
+  useEffect(() => {
+    const onResize = () => setVw(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Sidebar overlay width (only when open on >= lg). 0 otherwise.
+  const sidebarOffset = rightPanelOpen && vw >= 1024 ? (vw >= 1280 ? 384 : 320) : 0;
+  // Available content width to center the modal in
+  const availableWidth = vw - sidebarOffset;
 
   const handleDownload = async () => {
     try {
