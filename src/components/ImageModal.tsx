@@ -80,16 +80,18 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image" }: ImageMo
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ 
             backgroundColor: "rgba(0, 0, 0, 0.85)",
-            backdropFilter: "blur(8px)"
+            backdropFilter: "blur(8px)",
+            paddingLeft: sidebarOffset ? `${sidebarOffset + 16}px` : undefined,
           }}
         >
-          {/* Modal Content */}
+          {/* Modal Content — sized to fit the visible (non-sidebar) area */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-fit max-w-[min(90vw,1100px)] max-h-[90vh]"
+            className="relative w-fit max-h-[90vh]"
+            style={{ maxWidth: `min(${availableWidth - 32}px, 1100px)` }}
           >
             {/* Action Bar */}
             <div className="absolute top-4 right-4 z-10 flex gap-2">
