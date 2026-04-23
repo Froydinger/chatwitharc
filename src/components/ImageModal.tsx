@@ -74,7 +74,7 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image" }: ImageMo
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative max-w-[90vw] max-h-[90vh] w-fit"
+            className="relative w-fit max-w-[min(90vw,1100px)] max-h-[90vh]"
           >
             {/* Action Bar */}
             <div className="absolute top-4 right-4 z-10 flex gap-2">
@@ -98,11 +98,11 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image" }: ImageMo
             </div>
 
             {/* Image Container */}
-            <div className="rounded-2xl overflow-hidden border border-white/10 bg-black/20 backdrop-blur-md shadow-2xl">
+            <div className="rounded-2xl overflow-hidden border border-white/10 bg-black/20 backdrop-blur-md shadow-2xl flex items-center justify-center">
               <SmoothImage
                 src={imageUrl}
                 alt={alt}
-                className="max-w-[85vw] max-h-[80vh] w-auto h-auto object-contain"
+                className="max-w-full max-h-[85vh] w-auto h-auto object-contain"
                 loadingClassName="w-96 h-96"
               />
             </div>
