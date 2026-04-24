@@ -133,6 +133,10 @@ export async function loadLocalModel(
   onProgress?: (e: LoadProgressEvent) => void,
   preferredModel: string = FAST_MODEL
 ): Promise<MLCEngineInterface> {
+  if (isMobileLocalDevice()) {
+    preferredModel = IOS_LITE_MODEL;
+  }
+
   if (enginePromise && activeModelId === preferredModel) {
     return enginePromise;
   }
@@ -267,6 +271,7 @@ export async function streamLocalChat(
     const sel = useLocalAIStore.getState().selectedModelId;
     if (sel) preferred = sel;
   } catch {}
+  if (isMobileLocalDevice()) preferred = IOS_LITE_MODEL;
   const engine = await loadLocalModel(undefined, preferred ?? FAST_MODEL);
 
   const isMobileLite = getActiveLocalModelId() === IOS_LITE_MODEL && isMobileLocalDevice();
