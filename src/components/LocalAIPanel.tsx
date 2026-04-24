@@ -186,36 +186,35 @@ export function LocalAIPanel() {
         </div>
       </div>
 
-      {isIOS && (
+      {isMobileLocal && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 border border-primary/30">
           <Feather className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
           <div className="text-xs">
             <p className="text-foreground font-medium flex items-center gap-1.5">
-              iOS Lite — Beta
+              Mobile Local — Beta
               <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
                 Experimental
               </span>
             </p>
             <p className="text-muted-foreground mt-0.5 leading-relaxed">
-              Safari on iOS 26 finally supports WebGPU, but with tight memory limits. We've enabled a compact model
-              (Llama 3.2 1B with a 2K context window) so you can try local AI on iPhone — it's smaller than our desktop
-              models, so expect shorter answers and the occasional weirdness. For full power, use Arc on desktop.
+              Llama 3.2 1B runs with a compact 1K context window on mobile. It is reserved for Corporate Mode/private
+              offline chats only; normal mobile chat stays cloud-backed so memories and the main Arc flow keep working.
             </p>
           </div>
         </div>
       )}
 
-      {!isIOS && proLocked && (
+      {!isMobileLocal && proLocked && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
           <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
           <p className="text-xs text-muted-foreground">Upgrade to Pro to unlock on-device AI.</p>
         </div>
       )}
 
-      {isIOS && proLocked && (
+      {isMobileLocal && proLocked && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
           <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-muted-foreground">Upgrade to Pro to try iOS Lite (Beta).</p>
+          <p className="text-xs text-muted-foreground">Upgrade to Pro to try Mobile Local (Beta).</p>
         </div>
       )}
 
