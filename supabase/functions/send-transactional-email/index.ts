@@ -3,6 +3,8 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 // Configuration baked in at scaffold time — do NOT change these manually.
 // To update, re-run the email domain setup flow.
 const SITE_NAME = "chatwitharc"
@@ -124,6 +126,16 @@ Deno.serve(async (req) => {
   // the caller-provided recipientEmail. This allows notification templates
   // to always send to a fixed address (e.g., site owner from env var).
   const effectiveRecipient = template.to || recipientEmail
+
+  if (typeof effectiveRecipient !== 'string' || !EMAIL_RE.test(effectiveRecipient) || effectiveRecipient.length > 254) {
+    return new Response(
+      JSON.stringify({ error: 'recipientEmail must be a valid email address' }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
 
   if (!effectiveRecipient) {
     return new Response(

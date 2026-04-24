@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
-import { Cpu, Download, CheckCircle2, AlertTriangle, Crown, Trash2, Sparkles, Zap, Gem, Feather } from "lucide-react";
+import { Cpu, Download, CheckCircle2, AlertTriangle, Crown, Trash2, Sparkles, Zap, Gem, Feather, Mail, Loader2 } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
 import { useSubscription } from "@/hooks/useSubscription";
 import {
@@ -18,6 +20,8 @@ import {
 } from "@/services/localAI";
 import { useToast } from "@/hooks/use-toast";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ModelOption {
   id: string;
@@ -40,6 +44,7 @@ const IOS_MODELS: ModelOption[] = [
 
 export function LocalAIPanel() {
   const { isSubscribed } = useSubscription();
+  const { user, profile } = useAuth();
   const {
     enabled, setEnabled,
     preferCloud, setPreferCloud,
@@ -53,6 +58,8 @@ export function LocalAIPanel() {
   const [cached, setCached] = useState<Record<string, boolean>>({});
   const [cacheChecked, setCacheChecked] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [desktopEmail, setDesktopEmail] = useState("");
+  const [sendingDesktopLink, setSendingDesktopLink] = useState(false);
 
   const isIOS = typeof navigator !== 'undefined' && (
     /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -66,6 +73,10 @@ export function LocalAIPanel() {
 
   // Android gets the same lite-friendly list as iOS — phones don't have RAM for 3B/9B.
   const MODELS: ModelOption[] = isMobileLocal ? IOS_MODELS : DESKTOP_MODELS;
+
+  useEffect(() => {
+    if (user?.email) setDesktopEmail(user.email);
+  }, [user?.email]);
 
   useEffect(() => { isWebGPUSupported().then(setWebgpuSupported); }, [setWebgpuSupported]);
 
@@ -163,6 +174,38 @@ export function LocalAIPanel() {
     try { await loadLocalModel(() => {}, modelId); } catch {}
   };
 
+  const handleSendDesktopLink = async () => {
+    const email = desktopEmail.trim().toLowerCase();
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254;
+    if (!emailOk) {
+      toast({ title: 'Enter a valid email', description: 'Please use a valid email address.', variant: 'destructive' });
+      return;
+    }
+
+    setSendingDesktopLink(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-transactional-email', {
+        body: {
+          templateName: 'desktop-link',
+          recipientEmail: email,
+          idempotencyKey: `desktop-link-${email}-${new Date().toISOString().slice(0, 10)}`,
+          templateData: {
+            displayName: profile?.display_name || user?.user_metadata?.full_name || undefined,
+            desktopUrl: 'https://askarc.chat/',
+          },
+        },
+      });
+
+      if (error) throw error;
+      toast({ title: 'Desktop link sent', description: 'Check your inbox for the desktop link.' });
+    } catch (error: any) {
+      console.error('Desktop link email failed:', error);
+      toast({ title: 'Could not send email', description: error?.message || 'Please try again.', variant: 'destructive' });
+    } finally {
+      setSendingDesktopLink(false);
+    }
+  };
+
   const proLocked = !isSubscribed;
   const noWebGPU = webgpuSupported === false;
   const anyCached = Object.values(cached).some(Boolean);
@@ -187,19 +230,56 @@ export function LocalAIPanel() {
       </div>
 
       {isMobileLocal && (
-        <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 border border-primary/30">
-          <Feather className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-          <div className="text-xs">
-            <p className="text-foreground font-medium flex items-center gap-1.5">
-              Mobile Local — Beta
-              <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
-                Experimental
-              </span>
-            </p>
-            <p className="text-muted-foreground mt-0.5 leading-relaxed">
-              Llama 3.2 1B runs with a compact 1K context window on mobile. It is reserved for Corporate Mode/private
-              offline chats only; normal mobile chat stays cloud-backed so memories and the main Arc flow keep working.
-            </p>
+        <div className="space-y-3">
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 border border-primary/30">
+            <Feather className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <div className="text-xs">
+              <p className="text-foreground font-medium flex items-center gap-1.5">
+                Mobile Local — Beta
+                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
+                  Experimental
+                </span>
+              </p>
+              <p className="text-muted-foreground mt-0.5 leading-relaxed">
+                Llama 3.2 1B runs with a compact 1K context window on mobile. If you want the full local experience,
+                email yourself a desktop link below and open Arc on desktop.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-muted/20 border border-border/40 space-y-3">
+            <div className="flex items-start gap-2">
+              <Mail className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Email me a desktop link</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  We’ll send you a quick link to open Arc on desktop with this same account.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Input
+                type="email"
+                inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={desktopEmail}
+                onChange={(e) => setDesktopEmail(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="glass"
+                className="w-full"
+                onClick={handleSendDesktopLink}
+                disabled={sendingDesktopLink}
+              >
+                {sendingDesktopLink ? <Loader2 className="animate-spin" /> : <Mail />}
+                {sendingDesktopLink ? 'Sending…' : 'Send desktop link'}
+              </Button>
+            </div>
           </div>
         </div>
       )}
