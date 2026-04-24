@@ -1,44 +1,87 @@
 
+Goal: keep Llama 3.2 1B on mobile, but reduce crash risk by making mobile Arc Local use a rewritten, compact context block instead of passing/truncating the full desktop context. Desktop local remains unchanged.
 
-# Image Edit: Model + Aspect Ratio Controls
+## Updated implementation plan
 
-Bring the same model + aspect-ratio picker UX from `/image` generation into both image-editing entry points.
+1. Add a shared mobile-local detector
+   - Create a small utility for “mobile/tablet local mode” detection covering iPhone, iPad, Android, and touch-tablet cases.
+   - Reuse it across prompt building, routing, model loading, local tools, and the Arc Local settings UI.
 
-## Two entry points to update
+2. Make mobile local available only through Corporate Mode
+   - On desktop: keep current Arc Local behavior.
+   - On mobile: normal chat stays cloud-backed so memory/search/main-chat flow remains intact.
+   - Mobile local only routes when Corporate Mode is enabled, treating it as the explicit private/offline mode.
+   - This prevents the main mobile chat from accidentally using a fragile local model path.
 
-1. **ImageEditModal** (opened from a generated/existing image's "Edit" action)
-2. **Attached image with "Edit" mode selected** in the chat input (instead of Analyze)
+3. Replace mobile prompt truncation with a rewritten compact context block
+   - In `buildLocalSystemPrompt`, add a mobile-specific context compressor instead of only `softTruncate`.
+   - The compressor will transform the current full context into one succinct “Arc Mobile Local Brief” block:
+     - Arc identity: ArcAI by Win The Night.
+     - Core behavior: Ask, Reflect, Create; warm, concise, direct.
+     - Critical crisis guidance.
+     - Current date/time.
+     - Offline/mobile limitations.
+     - Any allowed Corporate Mode snapshot facts, rewritten into short bullets only if explicitly enabled.
+   - It will not include raw admin prompt walls, raw memory blobs, raw context blocks, or long global context.
+   - This is a deterministic rewrite/compression step in app code, not a cloud call, so Corporate Mode stays private/offline.
 
-Both currently hardcode the model and ignore aspect ratio.
+4. Strip mobile local memory/tools completely
+   - For mobile local:
+     - Do not fetch `profiles.memory_info`.
+     - Do not fetch `context_blocks`.
+     - Do not inject normal saved memories.
+     - Do not include `<recall>` or `<remember>` instructions.
+     - Hard-block `executeLocalToolCall` on mobile as a safety net.
+   - Desktop local keeps recall/remember behavior.
 
-## Behavior
+5. Use a tiny mobile-local prompt profile
+   - Mobile local prompt will target roughly 700–1200 characters instead of multi-section context.
+   - It will contain only the rewritten brief plus a final brevity rule.
+   - It will tell Llama to answer from the current conversation only and ask for clarification instead of pretending to remember missing details.
 
-- Both flows reuse `useImageGenStore` (`model`, `aspectRatio`) as the source of truth — same store the `/image` dock uses, so the user's last choice persists across generation and editing.
-- The picker UI mirrors `ImageOptionsDock` (same labels, Pro lock, aspect list).
-- Pro-locked model = Nano Banana Pro; gated by `useSubscription` exactly like in the dock.
+6. Further reduce Llama memory pressure
+   - Keep `IOS_LITE_MODEL = Llama-3.2-1B-Instruct-q4f16_1-MLC`.
+   - Lower `IOS_LITE_CONTEXT_WINDOW` from `2048` to a safer `1024`.
+   - Reduce `max_tokens` only for the mobile Llama path, likely to `256` or `320`.
+   - Keep “no fallback model” behavior on mobile so it never tries to load another model after Llama fails.
 
-## Changes
+7. Update Arc Local settings copy
+   - On mobile, explain that Llama 3.2 1B is for Corporate Mode/private offline chats only.
+   - Hide or disable “Use local model when possible” on mobile.
+   - Keep normal desktop Arc Local settings unchanged.
+   - Update labels from “2K context window” to the new smaller mobile context window.
 
-### 1. `src/components/ImageEditModal.tsx`
-- Remove the hardcoded `selectedModel = 'google/gemini-3.1-flash-image-preview'`.
-- Read `model` and `aspectRatio` from `useImageGenStore` (defaulting to whatever is already set; if `lastUsedModel` prop is passed and the store is on the default, prime the store with `lastUsedModel`).
-- Add a compact two-button row above the textarea:
-  - **Model** button → popover listing `IMAGE_MODEL_OPTIONS` with Pro crown + lock toast (same as dock).
-  - **Aspect** button → popover listing `IMAGE_ASPECT_OPTIONS`.
-- Include `imageModel` and `aspectRatio` in the `processImageEdit` CustomEvent detail.
+## Main files to update
 
-### 2. `src/components/ChatInput.tsx`
-- Extend the `processImageEdit` listener type and `handleExternalImageEditRef` signature to accept `aspectRatio?: string`.
-- Update the call to `ai.editImage(...)` in both code paths (modal-driven edit at ~line 798 and attached-image edit at ~line 1033) to pass the current `aspectRatio` from `useImageGenStore`.
-- When at least one attached image is in **Edit mode** (`allImagesEditMode` true, or any image flagged edit), render the existing `<ImageOptionsDock />` above the input — same trigger pattern already used for `/image` mode. This gives users the same model + aspect ratio dock when toggling an attached image to Edit.
+- `src/services/localAI.ts`
+  - Mobile context window cap.
+  - Mobile `max_tokens` cap.
+  - Keep no fallback for iOS/mobile Llama.
 
-### 3. `src/services/ai.ts`
-- `editImage(prompt, baseImageUrls, imageModel?, aspectRatio?)` — add `aspectRatio` param and forward it to the `edit-image` edge function body (the function already accepts `aspectRatio`, so no edge changes needed).
+- `src/utils/localSystemPrompt.ts`
+  - Add mobile-local compact context rewrite.
+  - Bypass raw memories/context on mobile.
+  - Keep full desktop prompt behavior.
 
-### 4. `supabase/functions/edit-image/index.ts`
-- No code change required; it already reads `aspectRatio` and passes it to the gateway. (Verified.)
+- `src/utils/localToolProtocol.ts`
+  - Disable local tool instructions on mobile.
+  - Block local tool execution on mobile.
+
+- `src/utils/routeRequest.ts`
+  - Mobile local routes only in Corporate Mode.
+  - Normal mobile chat remains cloud-backed.
+
+- `src/hooks/useLocalModelPersistence.tsx`
+  - Keep cached mobile model ready, but do not let it hijack normal mobile chat.
+
+- `src/components/LocalAIPanel.tsx`
+  - Mobile-specific copy and toggles.
+  - Corporate Mode guidance.
+  - Updated Llama memory/context wording.
 
 ## Out of scope
-- No changes to generation flow, the `/image` dock itself, or Voice edit.
-- No new persisted state — reuses `useImageGenStore`.
 
+- No backend/database changes.
+- No cloud memory changes.
+- No desktop local behavior changes.
+- No return to Qwen.
