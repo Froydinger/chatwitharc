@@ -84,6 +84,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { LocalAIPanel } from "@/components/LocalAIPanel";
 import { CorporateModePanel } from "@/components/CorporateModePanel";
 import { cn } from "@/lib/utils";
+import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
 type SectionId = "account" | "appearance" | "ai" | "privacy" | "plan";
 
@@ -288,6 +289,7 @@ export function SettingsPanel() {
   const showStarfield = useStarfieldStore((s) => s.showStarfield);
   const setShowStarfield = useStarfieldStore((s) => s.setShowStarfield);
   const { isAdmin } = useAdminSettings();
+  const isMobileLocal = isMobileLocalDevice();
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -829,7 +831,7 @@ export function SettingsPanel() {
       case "privacy":
         return (
           <>
-            <CorporateModePanel />
+            {!isMobileLocal && <CorporateModePanel />}
             {MemoryCard}
             {ExportCard}
             {SyncCard}
