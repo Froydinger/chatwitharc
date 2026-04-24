@@ -11,6 +11,7 @@ import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
 import { CorporateMemoryConsentModal } from "@/components/CorporateMemoryConsentModal";
 import { fetchCorporateMemorySnapshot } from "@/utils/corporateMemorySnapshot";
+import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
 /**
  * Privacy / Corporate Mode panel.
@@ -31,6 +32,7 @@ export function CorporateModePanel() {
   const [refreshing, setRefreshing] = useState(false);
 
   const hasLocalModel = !!selectedModelId && status === "ready";
+  const isMobileLocal = isMobileLocalDevice();
 
   const handleToggle = (v: boolean) => {
     const { isLoading, isGeneratingImage, messages, createNewSession } = useArcStore.getState();
@@ -62,7 +64,7 @@ export function CorporateModePanel() {
     });
 
     // When enabling, prompt for memory consent if we've never asked.
-    if (v && memoriesEnabled === null) {
+    if (v && memoriesEnabled === null && !isMobileLocal) {
       setTimeout(() => setConsentOpen(true), 300);
     }
   };
