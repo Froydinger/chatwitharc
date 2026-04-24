@@ -6,6 +6,7 @@
 import { useLocalAIStore } from '@/store/useLocalAIStore';
 import { useCorporateModeStore } from '@/store/useCorporateModeStore';
 import { FAST_MODEL, QUALITY_MODEL, FAST_FALLBACK, IOS_LITE_MODEL, getActiveLocalModelId } from '@/services/localAI';
+import { isMobileLocalDevice } from '@/utils/mobileLocal';
 
 /**
  * Specific destinations. Each value maps to ONE concrete model so users
@@ -44,6 +45,7 @@ export interface RouteContext {
 export function routeRequest(ctx: RouteContext): RouteDestination {
   const { enabled, status, preferCloud } = useLocalAIStore.getState();
   const corporate = useCorporateModeStore.getState().enabled;
+  const mobileLocal = isMobileLocalDevice();
 
   // Corporate Mode: hard-lock to local, ignore every cloud-bound flag.
   // (The chat send path independently blocks tools before they reach here.)
@@ -59,7 +61,9 @@ export function routeRequest(ctx: RouteContext): RouteDestination {
   // User explicitly opted to use cloud models for plain chat even when local is ready.
   if (preferCloud) return 'cloud-chat';
 
-  if (enabled && status === 'ready') return 'local';
+  // Mobile local is only allowed in Corporate Mode; normal mobile chat stays cloud-backed
+  // so the main memory/search/tool flow remains intact.
+  if (enabled && status === 'ready' && !mobileLocal) return 'local';
   return 'cloud-chat';
 }
 
