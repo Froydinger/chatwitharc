@@ -233,17 +233,13 @@ export function LocalAIPanel() {
       {isMobileLocal && (
         <div className="space-y-3">
           <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 border border-primary/30">
-            <Feather className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <Cpu className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
             <div className="text-xs">
               <p className="text-foreground font-medium flex items-center gap-1.5">
-                Mobile Local — Beta
-                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
-                  Experimental
-                </span>
+                Desktop required for Arc Local
               </p>
               <p className="text-muted-foreground mt-0.5 leading-relaxed">
-                Llama 3.2 1B runs with a compact 1K context window on mobile. If you want the full local experience,
-                email yourself a desktop link below and open Arc on desktop.
+                Mobile devices no longer offer Corporate Mode, local model downloads, or on-device Llama. Email yourself a desktop link below.
               </p>
             </div>
           </div>
@@ -292,14 +288,7 @@ export function LocalAIPanel() {
         </div>
       )}
 
-      {isMobileLocal && proLocked && (
-        <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
-          <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-muted-foreground">Upgrade to Pro to try Mobile Local (Beta).</p>
-        </div>
-      )}
-
-      {noWebGPU && !proLocked && (
+      {!isMobileLocal && noWebGPU && !proLocked && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30">
           <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
           <div className="text-xs">
@@ -317,7 +306,7 @@ export function LocalAIPanel() {
         </div>
       )}
 
-      {!proLocked && !noWebGPU && (
+      {!isMobileLocal && !proLocked && !noWebGPU && (
         <>
           {!cacheChecked && (
             <div className="p-3 rounded-xl bg-muted/20 border border-border/40 text-xs text-muted-foreground">
