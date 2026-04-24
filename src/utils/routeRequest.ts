@@ -47,9 +47,9 @@ export function routeRequest(ctx: RouteContext): RouteDestination {
   const corporate = useCorporateModeStore.getState().enabled;
   const mobileLocal = isMobileLocalDevice();
 
-  // Corporate Mode: hard-lock to local, ignore every cloud-bound flag.
+  // Corporate Mode: hard-lock to local on desktop only, ignore every cloud-bound flag.
   // (The chat send path independently blocks tools before they reach here.)
-  if (corporate) return 'local';
+  if (corporate && !mobileLocal) return 'local';
 
   if (ctx.isVoiceMode) return 'cloud-voice';
   if (ctx.isImageGenerationRequest) return 'cloud-image';
