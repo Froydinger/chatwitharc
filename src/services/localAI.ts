@@ -7,6 +7,7 @@
  * Optional "Quality" tier: Gemma 2 9B (≈5GB) — user opt-in.
  */
 import type { MLCEngineInterface, InitProgressReport } from '@mlc-ai/web-llm';
+import { isMobileLocalDevice } from '@/utils/mobileLocal';
 
 export const FAST_MODEL = 'Llama-3.2-3B-Instruct-q4f16_1-MLC';
 export const FAST_FALLBACK = 'gemma-2-2b-it-q4f16_1-MLC';
@@ -16,8 +17,9 @@ export const QUALITY_MODEL = 'gemma-2-9b-it-q4f16_1-MLC';
 // a reduced context window (see IOS_LITE_CONTEXT_WINDOW) to keep KV cache
 // pressure low and avoid OOM crashes.
 export const IOS_LITE_MODEL = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
-/** Context window cap applied to the iOS Lite model to fit Safari memory. */
-export const IOS_LITE_CONTEXT_WINDOW = 2048;
+/** Context window cap applied to the mobile Lite model to fit phone/tablet memory. */
+export const IOS_LITE_CONTEXT_WINDOW = 1024;
+export const IOS_LITE_MAX_TOKENS = 320;
 
 export const LOCAL_MODEL_ID = FAST_MODEL;
 export const LOCAL_MODEL_LABEL = 'Llama 3.2 3B';
@@ -168,8 +170,8 @@ export async function loadLocalModel(
       const perModelAppConfig = await getWebLLMAppConfig(backend ? backend === 'indexeddb' : true);
       activeModelId = id;
       onProgress?.({ progress: 0, text: `Loading ${label}…` });
-      // Cap context window for the iOS Lite model to keep KV cache within
-      // Safari's WebGPU memory budget (otherwise Llama 1B OOMs on iPhone).
+      // Cap context window for the mobile Lite model to keep KV cache within
+      // phone/tablet WebGPU memory budgets.
       const chatOpts = id === IOS_LITE_MODEL
         ? { context_window_size: IOS_LITE_CONTEXT_WINDOW }
         : undefined;
@@ -267,11 +269,12 @@ export async function streamLocalChat(
   } catch {}
   const engine = await loadLocalModel(undefined, preferred ?? FAST_MODEL);
 
+  const isMobileLite = getActiveLocalModelId() === IOS_LITE_MODEL && isMobileLocalDevice();
   const completion = await engine.chat.completions.create({
     messages: messages as any,
     stream: true,
     temperature: 0.7,
-    max_tokens: 512,
+    max_tokens: isMobileLite ? IOS_LITE_MAX_TOKENS : 512,
   });
 
   let full = '';
