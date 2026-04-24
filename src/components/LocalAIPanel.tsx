@@ -17,6 +17,7 @@ import {
   IOS_LITE_MODEL,
 } from "@/services/localAI";
 import { useToast } from "@/hooks/use-toast";
+import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
 interface ModelOption {
   id: string;
@@ -34,7 +35,7 @@ const DESKTOP_MODELS: ModelOption[] = [
 ];
 
 const IOS_MODELS: ModelOption[] = [
-  { id: IOS_LITE_MODEL, name: "Llama 3.2 1B", size: "~880 MB", blurb: "Compact iOS-friendly Llama. Smarter than tiny models, with a 2K context window to fit Safari memory.", Icon: Feather, beta: true, iosOnly: true },
+  { id: IOS_LITE_MODEL, name: "Llama 3.2 1B", size: "~880 MB", blurb: "Compact mobile Llama for Corporate Mode/private offline chats only, with a 1K context window to fit phone memory.", Icon: Feather, beta: true, iosOnly: true },
 ];
 
 export function LocalAIPanel() {
@@ -58,12 +59,13 @@ export function LocalAIPanel() {
     (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1)
   );
   const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+  const isMobileLocal = isMobileLocalDevice();
   const inIframe = typeof window !== 'undefined' && (() => {
     try { return window.self !== window.top; } catch { return true; }
   })();
 
   // Android gets the same lite-friendly list as iOS — phones don't have RAM for 3B/9B.
-  const MODELS: ModelOption[] = (isIOS || isAndroid) ? IOS_MODELS : DESKTOP_MODELS;
+  const MODELS: ModelOption[] = isMobileLocal ? IOS_MODELS : DESKTOP_MODELS;
 
   useEffect(() => { isWebGPUSupported().then(setWebgpuSupported); }, [setWebgpuSupported]);
 

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
 import { getCachedLocalModels, IOS_LITE_MODEL } from "@/services/localAI";
+import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
 /**
  * Keeps the local on-device model marked correctly across refreshes/PWA reloads
@@ -50,8 +51,10 @@ export function useLocalModelPersistence() {
           status,
           setStatus,
           setSelectedModelId,
+          setPreferCloud,
           setProgress,
         } = useLocalAIStore.getState();
+        const mobileLocal = isMobileLocalDevice();
 
         const cached = await getCachedLocalModels();
         if (cancelled) return;
@@ -72,6 +75,9 @@ export function useLocalModelPersistence() {
           if (status !== "ready" && status !== "loading") {
             setStatus("ready");
             setProgress(1, "Ready");
+          }
+          if (mobileLocal) {
+            setPreferCloud(true);
           }
         } else if (status === "ready" || selectedIsLegacyQwen) {
           // Truly evicted — show download UI again.
