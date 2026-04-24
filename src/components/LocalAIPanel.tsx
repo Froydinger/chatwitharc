@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Cpu, Download, CheckCircle2, AlertTriangle, Crown, Trash2, Sparkles, Zap, Gem, Feather, Mail, Loader2 } from "lucide-react";
+import { Cpu, Download, CheckCircle2, AlertTriangle, Crown, Trash2, Sparkles, Zap, Gem, Mail, Loader2 } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,6 @@ import {
   deleteCachedLocalModel,
   FAST_MODEL,
   QUALITY_MODEL,
-  IOS_LITE_MODEL,
 } from "@/services/localAI";
 import { useToast } from "@/hooks/use-toast";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
@@ -36,10 +35,6 @@ interface ModelOption {
 const DESKTOP_MODELS: ModelOption[] = [
   { id: FAST_MODEL,    name: "Llama 3.2 3B",  size: "~1.9 GB", blurb: "Fast, snappy replies. Best for most chats.",          Icon: Zap },
   { id: QUALITY_MODEL, name: "Gemma 2 9B",    size: "~5.0 GB", blurb: "Higher quality, slower. Best on M-series / strong GPU.", Icon: Gem },
-];
-
-const IOS_MODELS: ModelOption[] = [
-  { id: IOS_LITE_MODEL, name: "Llama 3.2 1B", size: "~880 MB", blurb: "Compact mobile Llama for Corporate Mode/private offline chats only, with a 1K context window to fit phone memory.", Icon: Feather, beta: true, iosOnly: true },
 ];
 
 export function LocalAIPanel() {
@@ -71,16 +66,22 @@ export function LocalAIPanel() {
     try { return window.self !== window.top; } catch { return true; }
   })();
 
-  // Android gets the same lite-friendly list as iOS — phones don't have RAM for 3B/9B.
-  const MODELS: ModelOption[] = isMobileLocal ? IOS_MODELS : DESKTOP_MODELS;
+  const MODELS: ModelOption[] = DESKTOP_MODELS;
 
   useEffect(() => {
     if (user?.email) setDesktopEmail(user.email);
   }, [user?.email]);
 
-  useEffect(() => { isWebGPUSupported().then(setWebgpuSupported); }, [setWebgpuSupported]);
+  useEffect(() => {
+    if (isMobileLocal) return;
+    isWebGPUSupported().then(setWebgpuSupported);
+  }, [isMobileLocal, setWebgpuSupported]);
 
   const refreshCache = useCallback(async () => {
+    if (isMobileLocal) {
+      setCacheChecked(true);
+      return;
+    }
     const c = await getCachedLocalModels();
     setCached(c);
     setCacheChecked(true);
@@ -100,7 +101,7 @@ export function LocalAIPanel() {
       setStatus('idle');
       setProgress(0, '');
     }
-  }, [selectedModelId, setSelectedModelId, setStatus, setProgress, status, MODELS]);
+  }, [isMobileLocal, selectedModelId, setSelectedModelId, setStatus, setProgress, status, MODELS]);
 
   useEffect(() => {
     refreshCache();
