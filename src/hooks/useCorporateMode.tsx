@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useCorporateModeStore } from '@/store/useCorporateModeStore';
 import { useAccentStore, type AccentColor } from '@/store/useAccentStore';
+import { isMobileLocalDevice } from '@/utils/mobileLocal';
 
 /**
  * Mounted once at the app root. Watches the Corporate Mode flag and:
@@ -21,6 +22,12 @@ export function useCorporateModeEnforcer() {
   const wasEnabled = useRef<boolean | null>(null);
 
   useEffect(() => {
+    if (isMobileLocalDevice()) {
+      if (enabled) setEnabled(false, prevAccent);
+      wasEnabled.current = false;
+      return;
+    }
+
     // First mount: align without snapshotting.
     if (wasEnabled.current === null) {
       if (enabled && accent !== 'noir') setAccent('noir');

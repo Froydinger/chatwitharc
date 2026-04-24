@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Cpu, Download, CheckCircle2, AlertTriangle, Crown, Trash2, Sparkles, Zap, Gem, Feather, Mail, Loader2 } from "lucide-react";
+import { Cpu, Download, CheckCircle2, AlertTriangle, Crown, Trash2, Sparkles, Zap, Gem, Mail, Loader2 } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,6 @@ import {
   deleteCachedLocalModel,
   FAST_MODEL,
   QUALITY_MODEL,
-  IOS_LITE_MODEL,
 } from "@/services/localAI";
 import { useToast } from "@/hooks/use-toast";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
@@ -36,10 +35,6 @@ interface ModelOption {
 const DESKTOP_MODELS: ModelOption[] = [
   { id: FAST_MODEL,    name: "Llama 3.2 3B",  size: "~1.9 GB", blurb: "Fast, snappy replies. Best for most chats.",          Icon: Zap },
   { id: QUALITY_MODEL, name: "Gemma 2 9B",    size: "~5.0 GB", blurb: "Higher quality, slower. Best on M-series / strong GPU.", Icon: Gem },
-];
-
-const IOS_MODELS: ModelOption[] = [
-  { id: IOS_LITE_MODEL, name: "Llama 3.2 1B", size: "~880 MB", blurb: "Compact mobile Llama for Corporate Mode/private offline chats only, with a 1K context window to fit phone memory.", Icon: Feather, beta: true, iosOnly: true },
 ];
 
 export function LocalAIPanel() {
@@ -71,16 +66,22 @@ export function LocalAIPanel() {
     try { return window.self !== window.top; } catch { return true; }
   })();
 
-  // Android gets the same lite-friendly list as iOS — phones don't have RAM for 3B/9B.
-  const MODELS: ModelOption[] = isMobileLocal ? IOS_MODELS : DESKTOP_MODELS;
+  const MODELS: ModelOption[] = DESKTOP_MODELS;
 
   useEffect(() => {
     if (user?.email) setDesktopEmail(user.email);
   }, [user?.email]);
 
-  useEffect(() => { isWebGPUSupported().then(setWebgpuSupported); }, [setWebgpuSupported]);
+  useEffect(() => {
+    if (isMobileLocal) return;
+    isWebGPUSupported().then(setWebgpuSupported);
+  }, [isMobileLocal, setWebgpuSupported]);
 
   const refreshCache = useCallback(async () => {
+    if (isMobileLocal) {
+      setCacheChecked(true);
+      return;
+    }
     const c = await getCachedLocalModels();
     setCached(c);
     setCacheChecked(true);
@@ -100,7 +101,7 @@ export function LocalAIPanel() {
       setStatus('idle');
       setProgress(0, '');
     }
-  }, [selectedModelId, setSelectedModelId, setStatus, setProgress, status, MODELS]);
+  }, [isMobileLocal, selectedModelId, setSelectedModelId, setStatus, setProgress, status, MODELS]);
 
   useEffect(() => {
     refreshCache();
@@ -210,6 +211,47 @@ export function LocalAIPanel() {
   const noWebGPU = webgpuSupported === false;
   const anyCached = Object.values(cached).some(Boolean);
 
+  if (isMobileLocal) {
+    return (
+      <GlassCard className="p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-primary/15 border border-primary/30">
+            <Mail className="h-5 w-5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-semibold text-foreground">Open Arc on desktop</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Local models and Corporate Mode are desktop-only. Send yourself a link to use Arc Local on a computer.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Input
+            type="email"
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={desktopEmail}
+            onChange={(e) => setDesktopEmail(e.target.value)}
+          />
+          <Button
+            type="button"
+            variant="glass"
+            className="w-full"
+            onClick={handleSendDesktopLink}
+            disabled={sendingDesktopLink}
+          >
+            {sendingDesktopLink ? <Loader2 className="animate-spin" /> : <Mail />}
+            {sendingDesktopLink ? 'Sending…' : 'Send desktop link'}
+          </Button>
+        </div>
+      </GlassCard>
+    );
+  }
+
   return (
     <GlassCard className="p-5 space-y-4">
       <div className="flex items-start gap-3">
@@ -232,17 +274,13 @@ export function LocalAIPanel() {
       {isMobileLocal && (
         <div className="space-y-3">
           <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 border border-primary/30">
-            <Feather className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <Cpu className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
             <div className="text-xs">
               <p className="text-foreground font-medium flex items-center gap-1.5">
-                Mobile Local — Beta
-                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
-                  Experimental
-                </span>
+                Desktop required for Arc Local
               </p>
               <p className="text-muted-foreground mt-0.5 leading-relaxed">
-                Llama 3.2 1B runs with a compact 1K context window on mobile. If you want the full local experience,
-                email yourself a desktop link below and open Arc on desktop.
+                Mobile devices no longer offer Corporate Mode, local model downloads, or on-device Llama. Email yourself a desktop link below.
               </p>
             </div>
           </div>
@@ -291,14 +329,7 @@ export function LocalAIPanel() {
         </div>
       )}
 
-      {isMobileLocal && proLocked && (
-        <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
-          <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-muted-foreground">Upgrade to Pro to try Mobile Local (Beta).</p>
-        </div>
-      )}
-
-      {noWebGPU && !proLocked && (
+      {!isMobileLocal && noWebGPU && !proLocked && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30">
           <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
           <div className="text-xs">
@@ -316,7 +347,7 @@ export function LocalAIPanel() {
         </div>
       )}
 
-      {!proLocked && !noWebGPU && (
+      {!isMobileLocal && !proLocked && !noWebGPU && (
         <>
           {!cacheChecked && (
             <div className="p-3 rounded-xl bg-muted/20 border border-border/40 text-xs text-muted-foreground">

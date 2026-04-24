@@ -12,6 +12,7 @@ import { QuotePanel } from "@/components/QuotePanel";
 import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useSubscription } from "@/hooks/useSubscription";
+import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
 export type RightPanelTab = "history" | "quote" | "settings";
 
@@ -32,8 +33,10 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
   const accent = useAccentStore((s) => s.accentColor);
   const { selectedModelId, status: localStatus } = useLocalAIStore();
   const { toast } = useToast();
+  const isMobileLocal = isMobileLocalDevice();
 
   const handleToggleCorporate = () => {
+    if (isMobileLocal) return;
     const next = !corporateMode;
     const { isLoading, isGeneratingImage, messages, createNewSession } = useArcStore.getState();
     if (isLoading || isGeneratingImage) {
@@ -167,20 +170,22 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                   >
                     <Quote className="h-3.5 w-3.5 mr-1.5" /> Daily Quote
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleToggleCorporate}
-                    title={corporateMode ? "Disable Corporate Mode" : "Enable Corporate Mode"}
-                    className={cn(
-                      "rounded-full transition-colors",
-                      corporateMode
-                        ? "bg-primary/15 text-primary hover:bg-primary/25"
-                        : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-                    )}
-                  >
-                    {corporateMode ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-                  </Button>
+                  {!isMobileLocal && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleToggleCorporate}
+                      title={corporateMode ? "Disable Corporate Mode" : "Enable Corporate Mode"}
+                      className={cn(
+                        "rounded-full transition-colors",
+                        corporateMode
+                          ? "bg-primary/15 text-primary hover:bg-primary/25"
+                          : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+                      )}
+                    >
+                      {corporateMode ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
