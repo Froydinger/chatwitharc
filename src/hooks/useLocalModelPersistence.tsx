@@ -49,12 +49,22 @@ export function useLocalModelPersistence() {
         const {
           selectedModelId,
           status,
+          setEnabled,
           setStatus,
           setSelectedModelId,
           setPreferCloud,
           setProgress,
         } = useLocalAIStore.getState();
         const mobileLocal = isMobileLocalDevice();
+
+        if (mobileLocal) {
+          setEnabled(false);
+          setPreferCloud(true);
+          setSelectedModelId("");
+          setStatus("idle");
+          setProgress(0, "");
+          return;
+        }
 
         const cached = await getCachedLocalModels();
         if (cancelled) return;
