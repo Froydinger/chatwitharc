@@ -334,17 +334,26 @@ export function LocalAIPanel() {
           {/* Master toggle: only meaningful once at least one model is downloaded */}
           {anyCached && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
-                <Label htmlFor="local-toggle" className="flex flex-col cursor-pointer">
-                  <span className="text-sm font-medium">Use local model when possible</span>
-                  <span className="text-[11px] text-muted-foreground mt-0.5">
-                    Auto-switches to cloud for image gen, search & voice.
-                  </span>
-                </Label>
-                <Switch id="local-toggle" checked={enabled && !preferCloud} onCheckedChange={(v) => { setEnabled(v); if (v) setPreferCloud(false); }} />
-              </div>
+              {isMobileLocal ? (
+                <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
+                  <p className="text-sm font-medium text-foreground">Available in Corporate Mode</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Mobile local stays private/offline and uses a compact prompt. Turn on Corporate Mode to use this model.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
+                  <Label htmlFor="local-toggle" className="flex flex-col cursor-pointer">
+                    <span className="text-sm font-medium">Use local model when possible</span>
+                    <span className="text-[11px] text-muted-foreground mt-0.5">
+                      Auto-switches to cloud for image gen, search & voice.
+                    </span>
+                  </Label>
+                  <Switch id="local-toggle" checked={enabled && !preferCloud} onCheckedChange={(v) => { setEnabled(v); if (v) setPreferCloud(false); }} />
+                </div>
+              )}
 
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
+              {!isMobileLocal && <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
                 <Label htmlFor="prefer-cloud-toggle" className="flex flex-col cursor-pointer">
                   <span className="text-sm font-medium">Always use cloud models</span>
                   <span className="text-[11px] text-muted-foreground mt-0.5">
@@ -352,7 +361,7 @@ export function LocalAIPanel() {
                   </span>
                 </Label>
                 <Switch id="prefer-cloud-toggle" checked={preferCloud} onCheckedChange={setPreferCloud} />
-              </div>
+              </div>}
             </div>
           )}
 
