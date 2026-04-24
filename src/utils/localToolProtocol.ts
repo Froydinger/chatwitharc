@@ -22,6 +22,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveLocalModelId, IOS_LITE_MODEL } from "@/services/localAI";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
+import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
 /** Promise-with-timeout helper. Rejects if the inner promise doesn't settle in `ms`. */
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
@@ -74,7 +75,7 @@ Rules:
 export function getLocalToolInstructions(): string {
   // In Corporate Mode, ALL tools require the network — strip them entirely so
   // the model doesn't promise to recall past chats or save memories it can't.
-  if (useCorporateModeStore.getState().enabled) {
+  if (useCorporateModeStore.getState().enabled || isMobileLocalDevice()) {
     return `=== ON-DEVICE MODE (CRITICAL) ===
 You are running fully offline on this device. You have NO tools available:
 - You CANNOT search past chats.
@@ -130,8 +131,8 @@ export function stripToolTags(streamed: string): string {
 /** Run a parsed tool call and return a short result string to feed back to the model. */
 export async function executeLocalToolCall(call: LocalToolCall): Promise<string> {
   // Corporate Mode: all tools are network-bound, so refuse politely.
-  if (useCorporateModeStore.getState().enabled) {
-    return "Tools are disabled in Corporate Mode. Just answer directly using what you already know.";
+  if (useCorporateModeStore.getState().enabled || isMobileLocalDevice()) {
+    return "Tools are disabled in mobile local mode. Just answer directly from the current conversation.";
   }
   // Block past-chat recall for tiny iOS Lite model — memory only.
   if (call.tool === 'recall') {

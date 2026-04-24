@@ -17,6 +17,7 @@ import {
   IOS_LITE_MODEL,
 } from "@/services/localAI";
 import { useToast } from "@/hooks/use-toast";
+import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
 interface ModelOption {
   id: string;
@@ -34,7 +35,7 @@ const DESKTOP_MODELS: ModelOption[] = [
 ];
 
 const IOS_MODELS: ModelOption[] = [
-  { id: IOS_LITE_MODEL, name: "Llama 3.2 1B", size: "~880 MB", blurb: "Compact iOS-friendly Llama. Smarter than tiny models, with a 2K context window to fit Safari memory.", Icon: Feather, beta: true, iosOnly: true },
+  { id: IOS_LITE_MODEL, name: "Llama 3.2 1B", size: "~880 MB", blurb: "Compact mobile Llama for Corporate Mode/private offline chats only, with a 1K context window to fit phone memory.", Icon: Feather, beta: true, iosOnly: true },
 ];
 
 export function LocalAIPanel() {
@@ -58,12 +59,13 @@ export function LocalAIPanel() {
     (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1)
   );
   const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+  const isMobileLocal = isMobileLocalDevice();
   const inIframe = typeof window !== 'undefined' && (() => {
     try { return window.self !== window.top; } catch { return true; }
   })();
 
   // Android gets the same lite-friendly list as iOS — phones don't have RAM for 3B/9B.
-  const MODELS: ModelOption[] = (isIOS || isAndroid) ? IOS_MODELS : DESKTOP_MODELS;
+  const MODELS: ModelOption[] = isMobileLocal ? IOS_MODELS : DESKTOP_MODELS;
 
   useEffect(() => { isWebGPUSupported().then(setWebgpuSupported); }, [setWebgpuSupported]);
 
@@ -184,36 +186,35 @@ export function LocalAIPanel() {
         </div>
       </div>
 
-      {isIOS && (
+      {isMobileLocal && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/10 border border-primary/30">
           <Feather className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
           <div className="text-xs">
             <p className="text-foreground font-medium flex items-center gap-1.5">
-              iOS Lite — Beta
+              Mobile Local — Beta
               <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
                 Experimental
               </span>
             </p>
             <p className="text-muted-foreground mt-0.5 leading-relaxed">
-              Safari on iOS 26 finally supports WebGPU, but with tight memory limits. We've enabled a compact model
-              (Llama 3.2 1B with a 2K context window) so you can try local AI on iPhone — it's smaller than our desktop
-              models, so expect shorter answers and the occasional weirdness. For full power, use Arc on desktop.
+              Llama 3.2 1B runs with a compact 1K context window on mobile. It is reserved for Corporate Mode/private
+              offline chats only; normal mobile chat stays cloud-backed so memories and the main Arc flow keep working.
             </p>
           </div>
         </div>
       )}
 
-      {!isIOS && proLocked && (
+      {!isMobileLocal && proLocked && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
           <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
           <p className="text-xs text-muted-foreground">Upgrade to Pro to unlock on-device AI.</p>
         </div>
       )}
 
-      {isIOS && proLocked && (
+      {isMobileLocal && proLocked && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
           <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-muted-foreground">Upgrade to Pro to try iOS Lite (Beta).</p>
+          <p className="text-xs text-muted-foreground">Upgrade to Pro to try Mobile Local (Beta).</p>
         </div>
       )}
 
@@ -333,17 +334,26 @@ export function LocalAIPanel() {
           {/* Master toggle: only meaningful once at least one model is downloaded */}
           {anyCached && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
-                <Label htmlFor="local-toggle" className="flex flex-col cursor-pointer">
-                  <span className="text-sm font-medium">Use local model when possible</span>
-                  <span className="text-[11px] text-muted-foreground mt-0.5">
-                    Auto-switches to cloud for image gen, search & voice.
-                  </span>
-                </Label>
-                <Switch id="local-toggle" checked={enabled && !preferCloud} onCheckedChange={(v) => { setEnabled(v); if (v) setPreferCloud(false); }} />
-              </div>
+              {isMobileLocal ? (
+                <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
+                  <p className="text-sm font-medium text-foreground">Available in Corporate Mode</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Mobile local stays private/offline and uses a compact prompt. Turn on Corporate Mode to use this model.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
+                  <Label htmlFor="local-toggle" className="flex flex-col cursor-pointer">
+                    <span className="text-sm font-medium">Use local model when possible</span>
+                    <span className="text-[11px] text-muted-foreground mt-0.5">
+                      Auto-switches to cloud for image gen, search & voice.
+                    </span>
+                  </Label>
+                  <Switch id="local-toggle" checked={enabled && !preferCloud} onCheckedChange={(v) => { setEnabled(v); if (v) setPreferCloud(false); }} />
+                </div>
+              )}
 
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
+              {!isMobileLocal && <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
                 <Label htmlFor="prefer-cloud-toggle" className="flex flex-col cursor-pointer">
                   <span className="text-sm font-medium">Always use cloud models</span>
                   <span className="text-[11px] text-muted-foreground mt-0.5">
@@ -351,7 +361,7 @@ export function LocalAIPanel() {
                   </span>
                 </Label>
                 <Switch id="prefer-cloud-toggle" checked={preferCloud} onCheckedChange={setPreferCloud} />
-              </div>
+              </div>}
             </div>
           )}
 

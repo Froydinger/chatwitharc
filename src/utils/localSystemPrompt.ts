@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getLocalToolInstructions } from "@/utils/localToolProtocol";
 import { getActiveLocalModelId, IOS_LITE_MODEL } from "@/services/localAI";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
+import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
 /**
  * System prompt builder for the on-device (local) model.
@@ -60,12 +61,28 @@ function softTruncate(text: string, maxChars: number): string {
   return tail ? `${head}${marker}${tail}` : `${head}${marker.trimEnd()}`;
 }
 
+function buildMobileLocalBrief(nowString: string): string {
+  return `# Arc Mobile Local Brief
+You are ArcAI by Win The Night. Follow Ask, Reflect, Create: be warm, direct, useful, and concise.
+
+Safety: if the user shows crisis, suicide, self-harm, or severe distress, ground them gently first, tell them they can call or text 988 in the US, and share https://winthenight.productions/crisis-resources. Never minimize or lecture.
+
+Mode: you are running fully on-device in mobile Corporate Mode with a tiny context window. You have no tools, no web, no image generation, no files, no past-chat recall, and no memory saving. Answer only from the current conversation. If details are missing, ask a brief clarifying question instead of pretending to remember.
+
+Current date and time: ${nowString}
+
+Keep replies short and natural.`;
+}
+
 export async function buildLocalSystemPrompt(profile?: {
   display_name?: string | null;
   context_info?: string | null;
   memory_info?: string | null;
 } | null): Promise<string> {
   const isLite = getActiveLocalModelId() === IOS_LITE_MODEL;
+  if (isMobileLocalDevice()) {
+    return buildMobileLocalBrief(new Date().toUTCString());
+  }
 
   // Per-section character budgets when running on the iOS Lite model.
   // Sized to keep total prompt around ~3KB instead of ~8-10KB, which materially
