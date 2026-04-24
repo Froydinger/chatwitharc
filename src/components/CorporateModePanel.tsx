@@ -11,6 +11,7 @@ import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
 import { CorporateMemoryConsentModal } from "@/components/CorporateMemoryConsentModal";
 import { fetchCorporateMemorySnapshot } from "@/utils/corporateMemorySnapshot";
+import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
 /**
  * Privacy / Corporate Mode panel.
@@ -31,6 +32,7 @@ export function CorporateModePanel() {
   const [refreshing, setRefreshing] = useState(false);
 
   const hasLocalModel = !!selectedModelId && status === "ready";
+  const isMobileLocal = isMobileLocalDevice();
 
   const handleToggle = (v: boolean) => {
     const { isLoading, isGeneratingImage, messages, createNewSession } = useArcStore.getState();
@@ -62,7 +64,7 @@ export function CorporateModePanel() {
     });
 
     // When enabling, prompt for memory consent if we've never asked.
-    if (v && memoriesEnabled === null) {
+    if (v && memoriesEnabled === null && !isMobileLocal) {
       setTimeout(() => setConsentOpen(true), 300);
     }
   };
@@ -144,8 +146,7 @@ export function CorporateModePanel() {
           <Switch id="corp-toggle" checked={enabled} onCheckedChange={handleToggle} />
         </div>
 
-        {/* Memory snapshot controls — only meaningful when corp mode is on (or has been). */}
-        <div className="space-y-3 p-3 rounded-xl bg-muted/20 border border-border/40">
+        {!isMobileLocal && <div className="space-y-3 p-3 rounded-xl bg-muted/20 border border-border/40">
           <div className="flex items-start gap-3">
             <BrainCircuit className="h-4 w-4 text-primary mt-1 shrink-0" />
             <div className="flex-1">
@@ -198,7 +199,7 @@ export function CorporateModePanel() {
               </Button>
             </div>
           )}
-        </div>
+        </div>}
 
         {enabled && !hasLocalModel && (
           <div className="text-xs text-muted-foreground p-3 rounded-xl bg-destructive/10 border border-destructive/30">

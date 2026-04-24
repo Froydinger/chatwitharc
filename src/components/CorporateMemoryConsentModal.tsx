@@ -12,6 +12,7 @@ import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { fetchCorporateMemorySnapshot } from "@/utils/corporateMemorySnapshot";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
 interface CorporateMemoryConsentModalProps {
   open: boolean;
@@ -156,6 +157,10 @@ export function CorporateMemoryConsentGate() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    if (isMobileLocalDevice()) {
+      setOpen(false);
+      return;
+    }
     // Only prompt when corp mode is active, user is logged in, and we've never asked.
     if (enabled && memoriesEnabled === null && user) {
       // Small delay so it doesn't fight other boot UI for attention.
