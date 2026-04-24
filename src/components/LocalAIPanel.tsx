@@ -211,6 +211,47 @@ export function LocalAIPanel() {
   const noWebGPU = webgpuSupported === false;
   const anyCached = Object.values(cached).some(Boolean);
 
+  if (isMobileLocal) {
+    return (
+      <GlassCard className="p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-primary/15 border border-primary/30">
+            <Mail className="h-5 w-5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-semibold text-foreground">Open Arc on desktop</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Local models and Corporate Mode are desktop-only. Send yourself a link to use Arc Local on a computer.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Input
+            type="email"
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={desktopEmail}
+            onChange={(e) => setDesktopEmail(e.target.value)}
+          />
+          <Button
+            type="button"
+            variant="glass"
+            className="w-full"
+            onClick={handleSendDesktopLink}
+            disabled={sendingDesktopLink}
+          >
+            {sendingDesktopLink ? <Loader2 className="animate-spin" /> : <Mail />}
+            {sendingDesktopLink ? 'Sending…' : 'Send desktop link'}
+          </Button>
+        </div>
+      </GlassCard>
+    );
+  }
+
   return (
     <GlassCard className="p-5 space-y-4">
       <div className="flex items-start gap-3">
