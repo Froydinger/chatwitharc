@@ -78,7 +78,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Shield, Crown, Sparkles } from "lucide-react";
+import { Shield, Crown, Sparkles, Activity, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { LocalAIPanel } from "@/components/LocalAIPanel";
