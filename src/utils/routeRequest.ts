@@ -100,7 +100,7 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
     case 'cloud-voice':
       return { label: 'Cloud · OpenAI Realtime', icon: 'cloud', tooltip: 'Voice mode — OpenAI Realtime API.' };
     case 'cloud-code':
-      return { label: 'Cloud · Gemini 2.5 Pro (Code)', icon: 'cloud', tooltip: 'Code generation — Google Gemini 2.5 Pro.' };
+      return { label: 'Cloud · Gemini 3.1 Pro (Code)', icon: 'cloud', tooltip: 'Code generation — Google Gemini 3.1 Pro Preview.' };
     case 'cloud-canvas':
       return { label: 'Cloud · Gemini 2.5 Pro (Canvas)', icon: 'cloud', tooltip: 'Long-form writing canvas — Google Gemini 2.5 Pro.' };
     case 'cloud-image':
