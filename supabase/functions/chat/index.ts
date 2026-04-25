@@ -1021,9 +1021,20 @@ Output the complete, finished writing using the update_canvas tool.`;
                             }
                           }
 
-                          const raw = i < bufferStr.length
+                          let raw = i < bufferStr.length
                             ? bufferStr.slice(quoteIdx + 1, i)
                             : bufferStr.slice(quoteIdx + 1); // Unterminated string, take to end
+
+                          // If the string is unterminated and ends with an odd number of
+                          // trailing backslashes, the next character is part of an escape
+                          // sequence we haven't received yet (e.g. "\n", "\""). Trim those
+                          // dangling backslashes so we don't emit half-decoded content and
+                          // lose the newline/quote when the next chunk arrives.
+                          if (i >= bufferStr.length) {
+                            let trailing = 0;
+                            for (let j = raw.length - 1; j >= 0 && raw[j] === '\\'; j--) trailing++;
+                            if (trailing % 2 === 1) raw = raw.slice(0, -1);
+                          }
 
                           return raw
                             .replace(/\\n/g, '\n')
