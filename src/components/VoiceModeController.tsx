@@ -245,6 +245,25 @@ function summarizeRecentChats(messages: Message[], maxMessages = 20): string {
   return `Here's what was discussed recently in our text chat (you can reference this naturally if relevant):\n${summary}`;
 }
 
+/**
+ * Build a brief summary of the current voice conversation turns so it can be
+ * injected into the system prompt of a fresh session after a reconnect. This
+ * lets the AI maintain conversational continuity across the 15-minute session
+ * boundary without losing context.
+ */
+function summarizeVoiceTurns(turns: Array<{ role: string; transcript: string }>, maxTurns = 30): string {
+  if (!turns || turns.length === 0) return '';
+  const recent = turns.slice(-maxTurns);
+  const lines = recent.map(t => {
+    const role = t.role === 'user' ? 'User' : 'You';
+    const content = t.transcript.length > 300
+      ? t.transcript.substring(0, 300) + '...'
+      : t.transcript;
+    return `${role}: ${content}`;
+  }).join('\n');
+  return `--- VOICE CONVERSATION SO FAR (session resumed) ---\nYou are continuing a voice conversation. Here is what was discussed before the session refreshed:\n${lines}\n--- END OF PRIOR CONTEXT ---`;
+}
+
 // How many turns we've already persisted (incremental save pointer)
 let savedTurnIndex = 0;
 
@@ -264,7 +283,7 @@ export function VoiceModeController() {
     setIsSearching,
   } = useVoiceModeStore();
 
-  // Sync preferred_voice from profile to store on load
+  // Sync preferred_voice from profile on mount
   useEffect(() => {
     if (profile?.preferred_voice && profile.preferred_voice !== selectedVoice) {
       if (REALTIME_SUPPORTED_VOICES.includes(profile.preferred_voice as any)) {
@@ -282,6 +301,12 @@ export function VoiceModeController() {
   
   // Auto-save interval ref
   const autoSaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Keep a stable ref to profile and messages for use inside callbacks
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   // Audio playback for AI responses
   const { queueAudio, stopPlayback, clearQueue } = useAudioPlayback();
@@ -388,6 +413,127 @@ export function VoiceModeController() {
     }
   }, [setIsSearching]);
 
+  // Incremental save: persist new turns since last save
+  const saveNewTurns = useCallback(async (final: boolean = false) => {
+    const { conversationTurns, attachImageToLastAssistantTurn } = useVoiceModeStore.getState();
+    
+    if (final) attachImageToLastAssistantTurn();
+    
+    const { conversationTurns: currentTurns } = useVoiceModeStore.getState();
+    const turnsToSave = currentTurns
+      .slice(savedTurnIndex)
+      .filter(turn => turn.transcript.trim() || turn.imageUrl);
+    
+    if (turnsToSave.length === 0) return 0;
+    
+    console.log(`💾 Saving ${turnsToSave.length} new voice turns (index ${savedTurnIndex}→${savedTurnIndex + turnsToSave.length})`);
+    
+    const savePromises = turnsToSave.map(async (turn) => {
+      try {
+        if (turn.imageUrl) {
+          await addMessage({
+            content: turn.transcript || 'Generated image',
+            role: turn.role,
+            type: 'image',
+            imageUrl: turn.imageUrl,
+          });
+        } else if (turn.transcript.trim()) {
+          await addMessage({
+            content: turn.transcript,
+            role: turn.role,
+            type: 'text',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to save voice turn:', error);
+      }
+    });
+    
+    await Promise.all(savePromises);
+    savedTurnIndex = currentTurns.length;
+    return turnsToSave.length;
+  }, [addMessage]);
+
+  /**
+   * Called by the realtime hook just before a proactive session refresh.
+   * We save any unsaved turns, then return an updated system prompt that
+   * includes a summary of the voice conversation so far. The fresh session
+   * will receive this context so the AI doesn't lose memory.
+   */
+  const handleSessionExpired = useCallback(async (): Promise<string | undefined> => {
+    console.log('🔄 Session refresh: saving turns and building context-aware prompt');
+
+    // Save any unsaved turns before the reconnect
+    await saveNewTurns(false);
+
+    // Build an updated prompt with the voice conversation history injected
+    const { conversationTurns } = useVoiceModeStore.getState();
+    const voiceSummary = summarizeVoiceTurns(conversationTurns);
+    const recentChatSummary = summarizeRecentChats(messagesRef.current);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const [settingsResult, contextBlocksResult] = await Promise.all([
+        supabase
+          .from('admin_settings')
+          .select('key, value')
+          .in('key', ['system_prompt', 'global_context']),
+        user ? supabase
+          .from('context_blocks')
+          .select('content')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50) : Promise.resolve({ data: null })
+      ]);
+
+      const settings = (settingsResult.data || []).reduce((acc: Record<string, string>, s: any) => {
+        acc[s.key] = s.value;
+        return acc;
+      }, {});
+
+      let prompt = settings.system_prompt || 'You are Arc AI, a helpful assistant.';
+      const globalContext = settings.global_context || '';
+
+      prompt += `\n\n--- VOICE MODE ---
+This is a chill voice chat. Drop the formality, just talk like you're hanging with a friend:
+- Be casual and real - say "yeah" not "yes", "gonna" not "going to", etc.
+- Keep it brief - like 1-2 sentences max unless they want more
+- React naturally: "oh that's cool", "hm interesting", "wait really?"
+- Match their vibe - if they're hyped, get hyped. If they're chill, be chill.
+- Don't over-explain or be preachy. Just chat.
+- Silence is fine. You don't need to fill every gap.`;
+
+      const p = profileRef.current;
+      if (p?.display_name) prompt += `\n\nUser: ${p.display_name}`;
+      if (p?.context_info?.trim()) prompt += ` | Context: ${p.context_info}`;
+      if (contextBlocksResult.data && contextBlocksResult.data.length > 0) {
+        const blocksText = contextBlocksResult.data.map((b: any) => b.content).join('\n');
+        prompt += `\n\n🧠 Remembered Context:\n${blocksText}`;
+      }
+      if (p?.memory_info?.trim()) prompt += `\n\n📝 Memories: ${p.memory_info}`;
+      if (globalContext) prompt += `\n\nGlobal: ${globalContext}`;
+      if (recentChatSummary) prompt += `\n\n--- CURRENT SESSION CONTEXT ---\n${recentChatSummary}`;
+
+      // Inject the voice conversation history so the AI remembers what was said
+      if (voiceSummary) prompt += `\n\n${voiceSummary}`;
+
+      prompt += `\n\n--- VOICE TOOLS ---
+CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
+
+• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image.
+• WEB SEARCH: Say "Let me look that up" FIRST, then use web_search.
+• SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats.`;
+
+      prompt += `\n\n--- VISION CAPABILITIES ---
+When the user shares their camera or attaches an image, describe what you see naturally and conversationally.`;
+
+      return prompt;
+    } catch (err) {
+      console.warn('handleSessionExpired: failed to build updated prompt, using last known prompt:', err);
+      return undefined; // fall back to lastSystemPrompt in the hook
+    }
+  }, [saveNewTurns]);
+
   // OpenAI Realtime connection
   const { isConnected, connect, disconnect, sendAudio, sendImage, cancelResponse, commitAudioAndRespond } = useOpenAIRealtime({
     onAudioData: (audioData) => {
@@ -413,6 +559,7 @@ export function VoiceModeController() {
     onImageDismiss: handleImageDismiss,
     onWebSearch: handleWebSearch,
     onSearchPastChats: handleSearchPastChats,
+    onSessionExpired: handleSessionExpired,
   });
 
   // Track when we last sent a camera frame to throttle
@@ -479,47 +626,6 @@ export function VoiceModeController() {
     setGlobalSwitchCameraHandler(switchCamera);
     return () => { setGlobalSwitchCameraHandler(null); };
   }, [switchCamera]);
-
-  // Incremental save: persist new turns since last save
-  const saveNewTurns = useCallback(async (final: boolean = false) => {
-    const { conversationTurns, attachImageToLastAssistantTurn } = useVoiceModeStore.getState();
-    
-    if (final) attachImageToLastAssistantTurn();
-    
-    const { conversationTurns: currentTurns } = useVoiceModeStore.getState();
-    const turnsToSave = currentTurns
-      .slice(savedTurnIndex)
-      .filter(turn => turn.transcript.trim() || turn.imageUrl);
-    
-    if (turnsToSave.length === 0) return 0;
-    
-    console.log(`💾 Saving ${turnsToSave.length} new voice turns (index ${savedTurnIndex}→${savedTurnIndex + turnsToSave.length})`);
-    
-    const savePromises = turnsToSave.map(async (turn) => {
-      try {
-        if (turn.imageUrl) {
-          await addMessage({
-            content: turn.transcript || 'Generated image',
-            role: turn.role,
-            type: 'image',
-            imageUrl: turn.imageUrl,
-          });
-        } else if (turn.transcript.trim()) {
-          await addMessage({
-            content: turn.transcript,
-            role: turn.role,
-            type: 'text',
-          });
-        }
-      } catch (error) {
-        console.error('Failed to save voice turn:', error);
-      }
-    });
-    
-    await Promise.all(savePromises);
-    savedTurnIndex = currentTurns.length;
-    return turnsToSave.length;
-  }, [addMessage]);
 
   // Voice switch handler: save turns, deactivate, switch voice, reactivate
   const handleVoiceSwitch = useCallback(async (newVoice: VoiceName) => {
@@ -601,8 +707,8 @@ export function VoiceModeController() {
         try {
           console.log('Initializing voice mode...');
 
-          const recentChatSummary = summarizeRecentChats(messages);
-          const voiceSystemPrompt = await buildVoiceSystemPrompt(profile, recentChatSummary);
+          const recentChatSummary = summarizeRecentChats(messagesRef.current);
+          const voiceSystemPrompt = await buildVoiceSystemPrompt(profileRef.current, recentChatSummary);
           console.log('Voice mode using unified system prompt with dynamic chat search');
 
           await connect(voiceSystemPrompt);
@@ -662,16 +768,17 @@ export function VoiceModeController() {
         savedTurnIndex = 0;
       });
     }
-  }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, addMessage, toast, deactivateVoiceMode, messages, profile, saveNewTurns]);
+  }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, addMessage, toast, deactivateVoiceMode, saveNewTurns]);
 
-  // Periodic auto-save every 60s during active voice mode
+  // Periodic auto-save every 30s during active voice mode (reduced from 60s to
+  // minimise data loss if a crash occurs between saves)
   useEffect(() => {
     if (isActive) {
       autoSaveIntervalRef.current = setInterval(() => {
         saveNewTurns(false).then((count) => {
           if (count > 0) console.log(`⏱️ Auto-saved ${count} voice turns`);
         });
-      }, 60000);
+      }, 30000);
       
       return () => {
         if (autoSaveIntervalRef.current) {
@@ -704,13 +811,16 @@ export function VoiceModeController() {
       }
     };
 
-    window.addEventListener('pagehide', handlePageHide);
-    document.addEventListener('visibilitychange', () => {
+    const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') handlePageHide();
-    });
+    };
+
+    window.addEventListener('pagehide', handlePageHide);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('pagehide', handlePageHide);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [addMessage]);
 
