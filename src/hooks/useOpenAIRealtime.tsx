@@ -11,6 +11,9 @@ interface UseOpenAIRealtimeOptions {
   onImageDismiss?: () => void;
   onWebSearch?: (query: string) => Promise<string>;
   onSearchPastChats?: (query: string) => Promise<string>;
+  // Called when a session expires so the controller can inject conversation
+  // context into the fresh session's system prompt.
+  onSessionExpired?: () => Promise<string | undefined>;
 }
 
 // Singleton WebSocket instance to prevent duplicates
@@ -29,7 +32,7 @@ let awaitingToolResponse = false;
 
 // Auto-reconnect state
 let reconnectAttempts = 0;
-// Allow many reconnects — OpenAI Realtime sessions are capped at ~30 minutes,
+// Allow many reconnects — OpenAI Realtime sessions are capped at ~15–30 minutes,
 // so a long voice chat WILL hit at least one forced disconnect. We must keep
 // the overlay alive through it instead of tearing the user back to chat.
 const MAX_RECONNECT_ATTEMPTS = 20;
@@ -41,6 +44,12 @@ let sessionReady = false; // Gate: true after session.created received
 let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
 // Cleanup interval reference (single source of truth — prevents duplicates on reconnect)
 let cleanupInterval: ReturnType<typeof setInterval> | null = null;
+
+// Proactive session refresh: OpenAI Realtime sessions expire after ~15 minutes.
+// We schedule a reconnect at 13 minutes so the user never hits the hard limit.
+let proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+const PROACTIVE_REFRESH_MS = 13 * 60 * 1000; // 13 minutes
+
 // Deterministic errors that should NOT trigger reconnect
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key'];
 const OPENAI_REALTIME_MODEL = 'gpt-realtime-1.5';
@@ -160,6 +169,22 @@ const isGarbledTranscription = (text: string): boolean => {
   const phantomPhrases = ['thank you', 'thanks', 'you', 'bye', 'hmm', 'um', 'uh', 'oh', 'the', 'a', 'i', 'it'];
   if (phantomPhrases.includes(trimmed.toLowerCase())) return true;
   return false;
+};
+
+// Clear all per-connection timers (keepalive, cleanup, proactive refresh)
+const clearConnectionTimers = () => {
+  if (keepaliveInterval) {
+    clearInterval(keepaliveInterval);
+    keepaliveInterval = null;
+  }
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+  }
+  if (proactiveRefreshTimer) {
+    clearTimeout(proactiveRefreshTimer);
+    proactiveRefreshTimer = null;
+  }
 };
 
 export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
@@ -543,6 +568,21 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           console.warn('Upstream closed:', event.error?.message);
           return;
         }
+
+        // Session expired — OpenAI hard-kills sessions after ~15 minutes.
+        // This is expected during long calls. Reconnect seamlessly without
+        // tearing down the overlay or losing conversation history.
+        if (event.error?.code === 'session_expired') {
+          console.warn('OpenAI session expired (15-min limit) — reconnecting seamlessly');
+          // The WebSocket will close immediately after this error event.
+          // onclose will handle the reconnect; we just need to make sure
+          // reconnectAttempts is low enough to allow it.
+          if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            reconnectAttempts = 0;
+          }
+          // Don't surface this as a user-visible error — it's expected behaviour.
+          return;
+        }
         
         const isTransientError =
           event.error?.message?.includes('Connection to AI service failed') ||
@@ -679,6 +719,38 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             }
           }
         }, 20000);
+
+        // Proactive session refresh: schedule a reconnect just before the
+        // 15-minute hard limit so the user never experiences a forced drop.
+        // We close the current WS cleanly at 13 minutes; onclose then
+        // reconnects with an updated system prompt that includes conversation
+        // context so the AI remembers what was discussed.
+        if (proactiveRefreshTimer) {
+          clearTimeout(proactiveRefreshTimer);
+        }
+        proactiveRefreshTimer = setTimeout(async () => {
+          proactiveRefreshTimer = null;
+          const { isActive } = useVoiceModeStore.getState();
+          if (!isActive || !globalWs || globalWs.readyState !== WebSocket.OPEN) return;
+
+          console.log('Proactive session refresh at 13-min mark — reconnecting before expiry');
+
+          // Ask the controller for an updated system prompt that includes
+          // a summary of the conversation so far.
+          let updatedPrompt: string | undefined;
+          try {
+            updatedPrompt = await optionsRef.current.onSessionExpired?.();
+          } catch (e) {
+            console.warn('onSessionExpired callback failed, using last prompt:', e);
+          }
+          if (updatedPrompt) lastSystemPrompt = updatedPrompt;
+
+          // Reset reconnect counter so the onclose handler will reconnect.
+          reconnectAttempts = 0;
+
+          // Close cleanly — onclose will reconnect.
+          globalWs.close(1000, 'proactive_refresh');
+        }, PROACTIVE_REFRESH_MS);
         
         ws.send(JSON.stringify({
           type: 'session.update',
@@ -752,7 +824,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                   properties: {
                     query: {
                       type: 'string',
-                      description: 'The topic, question, or information to search for in past conversations. Be specific about what you\'re looking for.'
+                      description: 'The topic, question, or information to search for in past conversations'
                     }
                   },
                   required: ['query']
@@ -787,18 +859,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         resetTurnOrderingBuffer();
         toolCallsInFlight.clear();
         // Tear down per-connection intervals so they don't accumulate across reconnects
-        if (cleanupInterval) {
-          clearInterval(cleanupInterval);
-          cleanupInterval = null;
-        }
-        if (keepaliveInterval) {
-          clearInterval(keepaliveInterval);
-          keepaliveInterval = null;
-        }
+        clearConnectionTimers();
         setIsConnected(false);
 
         // If voice mode is still active, attempt auto-reconnect with exponential backoff.
-        // OpenAI Realtime caps sessions at ~30 minutes, so a long voice chat WILL
+        // OpenAI Realtime caps sessions at ~15 minutes, so a long voice chat WILL
         // hit a forced disconnect — we keep the overlay alive and reconnect silently.
         const { isActive, setStatus } = useVoiceModeStore.getState();
         if (isActive && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
@@ -854,15 +919,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       phantomCheckTimer = null;
     }
 
-    // Clear keepalive + cleanup intervals
-    if (keepaliveInterval) {
-      clearInterval(keepaliveInterval);
-      keepaliveInterval = null;
-    }
-    if (cleanupInterval) {
-      clearInterval(cleanupInterval);
-      cleanupInterval = null;
-    }
+    // Clear all connection timers
+    clearConnectionTimers();
 
     if (globalWs) {
       globalWs.close();
