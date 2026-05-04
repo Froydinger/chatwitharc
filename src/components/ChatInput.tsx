@@ -1019,7 +1019,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         // Check if images are in edit mode
         const isEditMode = allImagesEditMode;
 
-        if (isEditMode || (userMessage && isImageEditRequest(userMessage))) {
+        if (isEditMode) {
           await addMessage({ content: userMessage, role: "user", type: "image", imageUrls });
           await addMessage({
             content: `Editing image: ${userMessage}`,
