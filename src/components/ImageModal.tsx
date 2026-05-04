@@ -43,11 +43,13 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image" }: ImageMo
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       
-      // Generate filename
+      // Generate filename — detect from blob's actual MIME, fall back to png (Gemini default)
       const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
-      const extension = imageUrl.includes('data:image/webp') ? 'webp' : 
-                       imageUrl.includes('data:image/png') ? 'png' : 'jpg';
-      
+      const mime = blob.type || '';
+      const extension = mime.includes('webp') ? 'webp'
+                      : mime.includes('jpeg') || mime.includes('jpg') ? 'jpg'
+                      : 'png';
+
       link.href = url;
       link.download = `arcai-image-${timestamp}.${extension}`;
       document.body.appendChild(link);
