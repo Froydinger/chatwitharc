@@ -195,11 +195,18 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     optionsRef.current = options;
   }, [options]);
 
-  // Send function call result back to the session
-  const sendFunctionResult = useCallback((callId: string, result: string) => {
+  // Send function call result back to the session.
+  // `reasoningEffort` lets specific tools opt into deeper thinking
+  // (e.g. web search synthesis, past-chat lookup). Default 'low' keeps the
+  // conversational flow snappy.
+  const sendFunctionResult = useCallback((
+    callId: string,
+    result: string,
+    reasoningEffort: 'minimal' | 'low' | 'medium' | 'high' = 'low'
+  ) => {
     if (globalWs?.readyState !== WebSocket.OPEN) return;
     
-    console.log('Sending function result:', { callId, result });
+    console.log('Sending function result:', { callId, reasoningEffort });
     
     globalWs.send(JSON.stringify({
       type: 'conversation.item.create',
@@ -213,7 +220,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     awaitingToolResponse = true;
     
     globalWs.send(JSON.stringify({
-      type: 'response.create'
+      type: 'response.create',
+      response: {
+        reasoning: { effort: reasoningEffort },
+      },
     }));
   }, []);
 
