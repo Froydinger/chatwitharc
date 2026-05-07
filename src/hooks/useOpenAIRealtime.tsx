@@ -406,10 +406,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 optionsRef.current.onWebSearch(query)
                   .then((results) => {
                     console.log('Web search completed');
+                    // Synthesizing fresh web results benefits from real reasoning.
                     sendFunctionResult(call_id, JSON.stringify({
                       success: true,
                       results: results
-                    }));
+                    }), 'medium');
                     cleanupToolCall();
                   })
                   .catch((error) => {
@@ -445,10 +446,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 optionsRef.current.onSearchPastChats(query)
                   .then((results) => {
                     console.log('Past chat search completed');
+                    // Recalling and weaving past context together needs deeper thinking.
                     sendFunctionResult(call_id, JSON.stringify({
                       success: true,
                       context: results
-                    }));
+                    }), 'medium');
                     cleanupToolCall();
                   })
                   .catch((error) => {
