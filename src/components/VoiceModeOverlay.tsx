@@ -366,8 +366,8 @@ export function VoiceModeOverlay() {
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = (reader.result as string).split(',')[1];
-      setAttachedImage(base64, previewUrl);
-      console.log('Image attached:', file.name);
+      setAttachedImage(base64, previewUrl, file.type || 'image/jpeg');
+      console.log('Image attached:', file.name, file.type);
     };
     reader.readAsDataURL(file);
     e.target.value = '';

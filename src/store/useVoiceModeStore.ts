@@ -54,6 +54,7 @@ interface VoiceModeState {
   // Attachment state (new)
   attachedImage: string | null; // Base64 image data
   attachedImagePreview: string | null; // Preview URL for display
+  attachedImageMime: string | null; // MIME type of attached image (e.g. 'image/png')
   
   // Actions
   activateVoiceMode: () => void;
@@ -84,7 +85,7 @@ interface VoiceModeState {
   toggleCameraFacing: () => void;
   
   // Attachment actions (new)
-  setAttachedImage: (base64: string, previewUrl: string) => void;
+  setAttachedImage: (base64: string, previewUrl: string, mimeType?: string) => void;
   clearAttachment: () => void;
 }
 
@@ -113,6 +114,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   // Attachment initial state
   attachedImage: null,
   attachedImagePreview: null,
+  attachedImageMime: null,
   
   // Actions
   activateVoiceMode: () => {
@@ -131,7 +133,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       // Reset camera/attachment on new session
       isCameraActive: false,
       attachedImage: null,
-      attachedImagePreview: null
+      attachedImagePreview: null,
+      attachedImageMime: null
     });
   },
   
@@ -153,7 +156,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       // Clean up camera/attachment
       isCameraActive: false,
       attachedImage: null,
-      attachedImagePreview: null
+      attachedImagePreview: null,
+      attachedImageMime: null
     });
   },
   
@@ -249,13 +253,15 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   })),
   
   // Attachment actions
-  setAttachedImage: (base64, previewUrl) => set({ 
+  setAttachedImage: (base64, previewUrl, mimeType) => set({ 
     attachedImage: base64, 
-    attachedImagePreview: previewUrl 
+    attachedImagePreview: previewUrl,
+    attachedImageMime: mimeType ?? 'image/jpeg'
   }),
   
   clearAttachment: () => set({ 
     attachedImage: null, 
-    attachedImagePreview: null 
+    attachedImagePreview: null,
+    attachedImageMime: null
   })
 }));
