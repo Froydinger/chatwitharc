@@ -670,20 +670,20 @@ When the user shares their camera or attaches an image, describe what you see na
   }, [handleVoiceSwitch]);
 
   // Handle attached image
-  const { attachedImage, clearAttachment } = useVoiceModeStore();
+  const { attachedImage, attachedImageMime, clearAttachment } = useVoiceModeStore();
   const sentAttachmentRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (attachedImage && attachedImage !== sentAttachmentRef.current && isConnected) {
-      console.log('Sending attached image to AI');
-      sendImage(attachedImage, false);
+      console.log('Sending attached image to AI', attachedImageMime);
+      sendImage(attachedImage, false, attachedImageMime || 'image/jpeg');
       sentAttachmentRef.current = attachedImage;
     }
     
     if (!attachedImage) {
       sentAttachmentRef.current = null;
     }
-  }, [attachedImage, isConnected, sendImage]);
+  }, [attachedImage, attachedImageMime, isConnected, sendImage]);
 
   // Audio capture from microphone
   const { startCapture, stopCapture } = useAudioCapture({
