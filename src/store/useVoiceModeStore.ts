@@ -84,7 +84,7 @@ interface VoiceModeState {
   toggleCameraFacing: () => void;
   
   // Attachment actions (new)
-  setAttachedImage: (base64: string, previewUrl: string) => void;
+  setAttachedImage: (base64: string, previewUrl: string, mimeType?: string) => void;
   clearAttachment: () => void;
 }
 
