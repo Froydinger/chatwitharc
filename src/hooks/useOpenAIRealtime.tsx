@@ -52,7 +52,7 @@ const PROACTIVE_REFRESH_MS = 13 * 60 * 1000; // 13 minutes
 
 // Deterministic errors that should NOT trigger reconnect
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key'];
-const OPENAI_REALTIME_MODEL = 'gpt-realtime-1.5';
+const OPENAI_REALTIME_MODEL = 'gpt-realtime-2';
 
 // Delayed phantom guard timer — gives Whisper time to confirm real speech
 let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;

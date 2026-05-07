@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const ALLOWED_VOICES = new Set(['alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin']);
-const OPENAI_REALTIME_MODEL = 'gpt-realtime-1.5';
+const OPENAI_REALTIME_MODEL = 'gpt-realtime-2';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -73,6 +73,10 @@ serve(async (req) => {
     body: JSON.stringify({
       model: OPENAI_REALTIME_MODEL,
       voice: requestedVoice,
+      // GPT-Realtime-2 supports configurable reasoning. 'low' keeps latency
+      // snappy for conversational voice while still unlocking GPT-5 reasoning
+      // gains for tool calls (image gen, web search, chat history).
+      reasoning: { effort: 'low' },
     }),
   });
 

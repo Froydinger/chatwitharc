@@ -1,42 +1,33 @@
-## Problem
+## Voice Model Upgrade — Options
 
-When you upload an image with the mode toggle set to "Analyze 🔍" (the default), Arc still routes to the image **editing** flow instead of analyzing. This happens because of an OR fallback in the send handler:
+OpenAI just shipped **GPT-Realtime-2** (the post in your screenshot). Per their docs, here's what it actually brings vs. our current `gpt-realtime-1.5`:
 
-```ts
-// src/components/ChatInput.tsx line 1022
-if (isEditMode || (userMessage && isImageEditRequest(userMessage))) {
-  // → routes to edit-image (generates a new image)
-}
-```
+### What's new in gpt-realtime-2
+- **GPT-5-class reasoning** with **configurable `reasoning_effort`** (`minimal` / `low` / `medium` / `high`) — model can "think before it speaks"
+- **Stronger instruction following** + more reliable **tool/function calling** (big win for our `generate_image`, `web_search`, `search_past_chats` tools)
+- **Image input** in the same realtime session (text + audio + image in, text + audio out) — pairs perfectly with our existing camera/attachment flow in `useVoiceModeStore`
+- **128k context window**, **32k max output tokens** (up from 1.5)
+- Same voices (cedar, marin, etc.) — no breaking changes to our voice picker
+- Same session shape, same WebSocket protocol — drop-in compatible
+- Pricing identical to 1.5 on text input ($4/M); audio in/out same tier
 
-`isImageEditRequest` returns `true` for very common words like `add`, `remove`, `change`, `update`, `make it`, `put`, `combine`, etc. So almost any caption you type alongside an uploaded image (e.g. "what's in this, and add any details you notice") incorrectly triggers the edit flow — producing a generated image instead of a chat analysis.
+### Companion models also released
+- `gpt-realtime-translate` — live speech translation
+- `gpt-realtime-whisper` — new streaming transcription model
 
-Since there is now an explicit user-facing toggle ("Mode: Analyze 🔍" / "Mode: Edit ✏️"), the keyword-sniffing fallback is both unnecessary and the source of the bug.
+We don't need these right now (our voice mode is conversational, not translation/dictation), so I'll **skip them** unless you say otherwise.
 
-## Fix
+### Proposed changes
 
-Single-line change in `src/components/ChatInput.tsx`:
+1. **Bump the model id** in both spots:
+   - `supabase/functions/openai-realtime-proxy/index.ts` → `OPENAI_REALTIME_MODEL = 'gpt-realtime-2'`
+   - `src/hooks/useOpenAIRealtime.tsx` → same constant
 
-- Line 1022: change
-  ```ts
-  if (isEditMode || (userMessage && isImageEditRequest(userMessage))) {
-  ```
-  to
-  ```ts
-  if (isEditMode) {
-  ```
+2. **Enable reasoning at `low` effort** in the proxy session creation. `low` keeps latency snappy for conversational use while still unlocking the GPT-5 reasoning gains for tool calls. (Higher = smarter but slower; we can crank it later if you want.)
 
-This makes the toggle the sole source of truth:
-- Default (Analyze) → uses `analyze-image` / vision flow → Arc chats about the image.
-- User flips to Edit → uses `edit-image` flow → Nano Banana edits the image.
+3. **No UI changes needed.** Voice picker, camera/attachment, tool-call plumbing, transcript ordering — all stay as-is. Image-input via realtime can be a follow-up if you want to push attached images directly into the realtime session instead of the current side-channel.
 
-## What stays the same
-
-- Image generation from text (no uploads) — unchanged.
-- Auto-edit detection on follow-up messages **after** an AI-generated image — unchanged (that's a separate path via the `processImageEdit` event, not this branch).
-- The Edit/Analyze toggle UI — unchanged.
-- All other flows (canvas, code, search, voice, docs) — unchanged.
-
-## Risk
-
-Minimal. One conditional simplified; behavior now matches the visible toggle the user already controls.
+### Want any of these as well? (just say the word)
+- **Expose reasoning effort as a setting** (low/medium/high toggle in voice settings)
+- **Wire image attachments directly into the realtime session** instead of the separate analyze flow
+- **Add `gpt-realtime-translate`** as a "Translate Mode" toggle in voice
