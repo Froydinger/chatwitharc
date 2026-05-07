@@ -999,27 +999,53 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     return true;
   }, []);
 
-  // Send an image to the conversation for vision analysis
-  const sendImage = useCallback((base64Image: string, isLiveCamera: boolean = false) => {
+  // Send an image to the conversation for vision analysis.
+  // - `mimeType` defaults to JPEG (camera frames). Attached files pass their real MIME.
+  // - `isLiveCamera=true` adds the image silently as ambient context (no response).
+  // - `isLiveCamera=false` adds the image AND requests a response with medium reasoning
+  //   so the model actually thinks about what it's seeing.
+  const sendImage = useCallback((
+    base64Image: string,
+    isLiveCamera: boolean = false,
+    mimeType: string = 'image/jpeg'
+  ) => {
     if (globalWs?.readyState !== WebSocket.OPEN) return;
-    
-    console.log(`Sending ${isLiveCamera ? 'camera frame' : 'attached image'} to conversation`);
-    
+
+    console.log(`Sending ${isLiveCamera ? 'camera frame' : 'attached image'} (${mimeType}) to conversation`);
+
+    // Realtime API expects input_image content. Pair with a brief text nudge so the
+    // model knows the image is part of the user's current turn, not just ambient.
+    const content: any[] = [
+      {
+        type: 'input_image',
+        image_url: `data:${mimeType};base64,${base64Image}`,
+      },
+    ];
+
+    if (!isLiveCamera) {
+      content.push({
+        type: 'input_text',
+        text: 'I just attached this image. Take a look and respond to what you see.',
+      });
+    }
+
     globalWs.send(JSON.stringify({
       type: 'conversation.item.create',
       item: {
         type: 'message',
         role: 'user',
-        content: [{
-          type: 'input_image',
-          image_url: `data:image/jpeg;base64,${base64Image}`
-        }]
-      }
+        content,
+      },
     }));
-    
+
     if (!isLiveCamera) {
+      // Vision needs more thought than casual chat — bump reasoning effort just
+      // for this response. Subsequent turns fall back to the session default.
       globalWs.send(JSON.stringify({
-        type: 'response.create'
+        type: 'response.create',
+        response: {
+          reasoning: { effort: 'medium' },
+        },
       }));
     }
   }, []);
