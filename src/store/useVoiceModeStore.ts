@@ -259,6 +259,31 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   
   setIsSearching: (searching) => set({ isSearching: searching }),
   
+  setSearchSummary: (summary) => set({
+    searchSummary: summary,
+    // Mutual exclusion: clear other tool panels
+    generatedImage: summary ? null : (get() as any).generatedImage,
+    weatherData: summary ? null : (get() as any).weatherData,
+  }),
+  
+  setIsFetchingWeather: (fetching) => set({ isFetchingWeather: fetching }),
+  
+  setWeatherData: (data) => set({
+    weatherData: data,
+    // Mutual exclusion
+    generatedImage: data ? null : (get() as any).generatedImage,
+    searchSummary: data ? null : (get() as any).searchSummary,
+  }),
+  
+  clearToolPanels: () => set({
+    generatedImage: null,
+    isGeneratingImage: false,
+    isSearching: false,
+    searchSummary: null,
+    isFetchingWeather: false,
+    weatherData: null,
+  }),
+  
   setHasPendingSpeech: (pending) => set({ hasPendingSpeech: pending }),
   
   setIsVoiceSwapping: (swapping) => set({ isVoiceSwapping: swapping }),
