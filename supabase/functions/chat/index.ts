@@ -1531,8 +1531,8 @@ Output the complete, finished writing using the update_canvas tool.`;
       search_provider: searchProvider,
       canvas_update: canvasUpdate,
       code_update: codeUpdate,
-      memory_saved: memorySaved
-    };
+      memory_saved: memorySaved,
+      weather_data: weatherData,
     
     // NOTE: We no longer save from the backend - the frontend handles all persistence.
     // This prevents race conditions and duplicate messages that occurred when both
