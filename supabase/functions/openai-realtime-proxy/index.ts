@@ -64,18 +64,21 @@ serve(async (req) => {
     });
   }
 
-  const sessionResponse = await fetch('https://api.openai.com/v1/realtime/sessions', {
+  // GA Realtime API endpoint (required for gpt-realtime-2)
+  const sessionResponse = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${openaiApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: OPENAI_REALTIME_MODEL,
-      voice: requestedVoice,
-      // Reasoning effort is configured per-response via response.create
-      // (see useOpenAIRealtime.tsx). The session-create endpoint does not
-      // accept a `reasoning` parameter.
+      session: {
+        type: 'realtime',
+        model: OPENAI_REALTIME_MODEL,
+        audio: {
+          output: { voice: requestedVoice },
+        },
+      },
     }),
   });
 
@@ -99,8 +102,12 @@ serve(async (req) => {
     });
   }
 
-  if (!sessionData?.client_secret?.value) {
-    console.error('[openai-realtime-proxy] Missing client secret in realtime session response');
+  // GA endpoint returns { value, expires_at } at top level
+  const clientSecret = sessionData?.value ?? sessionData?.client_secret?.value;
+  const expiresAt = sessionData?.expires_at ?? sessionData?.client_secret?.expires_at ?? null;
+
+  if (!clientSecret) {
+    console.error('[openai-realtime-proxy] Missing client secret in realtime session response', responseText);
     return new Response(JSON.stringify({ error: 'Voice session token missing' }), {
       status: 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -108,8 +115,8 @@ serve(async (req) => {
   }
 
   return new Response(JSON.stringify({
-    client_secret: sessionData.client_secret.value,
-    expires_at: sessionData.client_secret.expires_at ?? null,
+    client_secret: clientSecret,
+    expires_at: expiresAt,
     model: OPENAI_REALTIME_MODEL,
   }), {
     status: 200,
