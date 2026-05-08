@@ -5,6 +5,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const US_STATES: Record<string, string> = {
+  AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',
+  FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',
+  LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',
+  MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',
+  ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',
+  TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming',DC:'District of Columbia'
+};
+
 const CODE_LABELS: Record<number, string> = {
   0: 'Clear', 1: 'Mostly clear', 2: 'Partly cloudy', 3: 'Overcast',
   45: 'Foggy', 48: 'Foggy',
@@ -34,12 +43,47 @@ function buildQueryVariants(raw: string): string[] {
   return Array.from(variants).filter(Boolean);
 }
 
-async function geocode(query: string): Promise<any | null> {
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
+// Extract state hint (full name or 2-letter code) from query
+function extractStateHint(raw: string): string | null {
+  const parts = raw.split(',').map(p => p.trim()).filter(Boolean);
+  for (const p of parts) {
+    const upper = p.toUpperCase().replace(/\./g, '');
+    if (US_STATES[upper]) return US_STATES[upper];
+    const match = Object.values(US_STATES).find(s => s.toLowerCase() === p.toLowerCase());
+    if (match) return match;
+  }
+  // Also check inline tokens like "Plainfield IL"
+  const tokens = raw.replace(/[,.]/g, ' ').split(/\s+/).filter(Boolean);
+  for (const t of tokens) {
+    const upper = t.toUpperCase();
+    if (upper.length === 2 && US_STATES[upper]) return US_STATES[upper];
+  }
+  return null;
+}
+
+function buildQueryVariants(raw: string): string[] {
+  const cleaned = raw.trim();
+  const variants = new Set<string>();
+  variants.add(cleaned);
+  const noZip = cleaned.replace(/\b\d{5}(-\d{4})?\b/g, '').replace(/,\s*,/g, ',').replace(/,\s*$/, '').trim();
+  if (noZip) variants.add(noZip);
+  const firstPart = noZip.split(',')[0]?.trim();
+  if (firstPart) variants.add(firstPart);
+  return Array.from(variants).filter(Boolean);
+}
+
+async function geocode(query: string, stateHint: string | null): Promise<any | null> {
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json`;
   try {
     const res = await fetch(url);
     const data = await res.json();
-    return data?.results?.[0] || null;
+    const results: any[] = data?.results || [];
+    if (results.length === 0) return null;
+    if (stateHint) {
+      const matched = results.find(r => (r.admin1 || '').toLowerCase() === stateHint.toLowerCase());
+      if (matched) return matched;
+    }
+    return results[0];
   } catch {
     return null;
   }
@@ -56,10 +100,10 @@ serve(async (req) => {
       });
     }
 
-    // Try multiple variants
+    const stateHint = extractStateHint(location);
     let place: any = null;
     for (const q of buildQueryVariants(location)) {
-      place = await geocode(q);
+      place = await geocode(q, stateHint);
       if (place) break;
     }
 
