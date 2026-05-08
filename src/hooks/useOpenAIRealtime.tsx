@@ -724,7 +724,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         keepaliveInterval = setInterval(() => {
           if (globalWs?.readyState === WebSocket.OPEN && sessionReady) {
             try {
-              globalWs.send(JSON.stringify({ type: 'session.update', session: {} }));
+              globalWs.send(JSON.stringify({ type: 'session.update', session: { type: 'realtime' } }));
             } catch (err) {
               console.warn('Keepalive ping failed:', err);
             }
