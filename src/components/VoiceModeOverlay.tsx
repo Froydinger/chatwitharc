@@ -944,25 +944,6 @@ export function VoiceModeOverlay() {
                 <span className="text-sm font-medium">{getStatusText()}</span>
               </motion.div>
 
-              {/* Interrupt Button */}
-              <AnimatePresence>
-                {showInterruptButton && (
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.8, y: 10 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    onClick={handleInterrupt}
-                    className="mt-4 px-4 py-2.5 rounded-full glass-shimmer border border-primary/40
-                               flex items-center gap-2 hover:bg-primary/10 active:scale-95 transition-all"
-                    aria-label="Interrupt"
-                  >
-                    <Hand className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-medium text-primary">Interrupt</span>
-                  </motion.button>
-                )}
-              </AnimatePresence>
-
             </div>
           </motion.div>
 
