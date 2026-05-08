@@ -21,9 +21,9 @@ function sanitizeLeakedToolCalls(text: string): string {
   // Match JSON objects that look like tool calls: {"name": "tool_name", "arguments": ...}
   // or {"type": "function", "function": ...}
   const toolCallPatterns = [
-    /\{[\s\n]*"name"\s*:\s*"(?:web_search|search_past_chats|save_memory|generate_file|update_canvas|update_code)"[\s\S]*?"arguments"\s*:\s*\{[\s\S]*?\}\s*\}/g,
+    /\{[\s\n]*"name"\s*:\s*"(?:web_search|search_past_chats|save_memory|generate_file|update_canvas|update_code|get_weather)"[\s\S]*?"arguments"\s*:\s*\{[\s\S]*?\}\s*\}/g,
     /\{[\s\n]*"type"\s*:\s*"function"[\s\S]*?"function"\s*:\s*\{[\s\S]*?\}\s*\}/g,
-    /```(?:json)?\s*\{[\s\n]*"(?:name|type)"\s*:\s*"(?:web_search|search_past_chats|save_memory|generate_file|update_canvas|update_code|function)"[\s\S]*?\}\s*```/g,
+    /```(?:json)?\s*\{[\s\n]*"(?:name|type)"\s*:\s*"(?:web_search|search_past_chats|save_memory|generate_file|update_canvas|update_code|get_weather|function)"[\s\S]*?\}\s*```/g,
     // Catch leaked DALL-E / image generation tool call patterns
     /\{[\s\n]*"action"\s*:\s*"[^"]*"[\s\S]*?"action_input"\s*:\s*[\s\S]*?\}\s*\}?\s*$/gm,
     /\{[\s\n]*"action"\s*:\s*"[^"]*"[\s\S]*?"thought"\s*:\s*"[\s\S]*?"\s*\}/g,
