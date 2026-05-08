@@ -149,9 +149,13 @@ serve(async (req) => {
     const data = await response.json();
     console.log('Perplexity response received, citations:', data.citations?.length || 0);
 
-    // Extract content and citations
+    // Extract content and citations — enforce 3-5 source range (cap at 5)
     let content = data.choices?.[0]?.message?.content || '';
-    const citations: string[] = data.citations || [];
+    const allCitations: string[] = data.citations || [];
+    const citations: string[] = allCitations.slice(0, 5);
+
+    // Strip inline citation refs > 5 (e.g. [6], [7]) from content
+    content = content.replace(/\[(\d+)\]/g, (m: string, n: string) => (parseInt(n) > 5 ? '' : m));
 
     // Convert citations to SearchResult format
     const sources: SearchResult[] = citations.map((url: string, index: number) => {
