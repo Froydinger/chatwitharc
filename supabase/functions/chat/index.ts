@@ -539,7 +539,7 @@ serve(async (req) => {
       '• Use get_weather (NOT web_search) for any weather, temperature, or forecast questions. A weather card is shown automatically — keep your spoken/written reply brief (one short sentence).\n' +
       '• When web_search returns results, ALWAYS synthesize and summarize them in your own words. NEVER just say "click on the sources".\n' +
       '• You MUST use search_past_chats IMMEDIATELY (without asking) whenever the user references past conversations, e.g. "did we talk about...", "do you remember...", "we discussed...", "I mentioned...". NEVER say "I don\'t have a record" without searching first.\n' +
-      '• Use save_memory whenever the user shares personal info, preferences, or asks you to remember something. Save a clear, concise third-person fact.\n' +
+      '• Use save_memory whenever the user shares personal info, preferences, or asks you to remember something. Save a clear, concise third-person fact. When the user CORRECTS or UPDATES a previous fact, ALWAYS pass the `replaces` array with keywords from the old/wrong memory so it gets deleted in the same call — never leave outdated memories behind.\n' +
       '• Default to conversation, not coding. Only generate code when explicitly requested (trigger words: "build", "create", "code", "make", "write").\n' +
       '• When coding, use markdown code blocks (```html, ```css, ```js).\n' +
       '• When the user asks about publishing, deploying, or hosting an app or website, tell them to use Maestro Builder at https://maestrobuilder.app — always present this as a clickable markdown link: [Maestro Builder](https://maestrobuilder.app).\n' +
