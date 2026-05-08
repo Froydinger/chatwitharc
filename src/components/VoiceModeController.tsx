@@ -568,6 +568,7 @@ CRITICAL: Always say something BEFORE using any tool so the user isn't left in s
 
 • IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image.
 • WEB SEARCH: Say "Let me look that up" FIRST, then use web_search.
+• WEATHER: Use get_weather (not web_search) for any weather question.
 • SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats.`;
 
       prompt += `\n\n--- VISION CAPABILITIES ---
