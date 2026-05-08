@@ -231,9 +231,19 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   
   toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
   
-  setGeneratedImage: (url) => set({ generatedImage: url }),
+  setGeneratedImage: (url) => set((state) => ({
+    generatedImage: url,
+    // Mutual exclusion when a new image arrives
+    searchSummary: url ? null : state.searchSummary,
+    weatherData: url ? null : state.weatherData,
+  })),
   
-  setIsGeneratingImage: (generating) => set({ isGeneratingImage: generating }),
+  setIsGeneratingImage: (generating) => set((state) => ({
+    isGeneratingImage: generating,
+    // When starting to generate, clear competing panels
+    searchSummary: generating ? null : state.searchSummary,
+    weatherData: generating ? null : state.weatherData,
+  })),
   
   setLastGeneratedImageUrl: (url) => set({ lastGeneratedImageUrl: url }),
   
