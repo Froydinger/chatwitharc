@@ -480,6 +480,44 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               }));
               cleanupToolCall();
             }
+          } else if (name === 'get_weather') {
+            try {
+              const args = JSON.parse(argsStr || '{}');
+              const location = args.location || '';
+              console.log('Getting weather for:', location);
+
+              if (optionsRef.current.onGetWeather) {
+                optionsRef.current.onGetWeather(location)
+                  .then((result) => {
+                    sendFunctionResult(call_id, JSON.stringify({
+                      success: true,
+                      weather: result
+                    }));
+                    cleanupToolCall();
+                  })
+                  .catch((error) => {
+                    console.error('Weather lookup failed:', error);
+                    sendFunctionResult(call_id, JSON.stringify({
+                      success: false,
+                      error: error.message || 'Failed to fetch weather'
+                    }));
+                    cleanupToolCall();
+                  });
+              } else {
+                sendFunctionResult(call_id, JSON.stringify({
+                  success: false,
+                  error: 'Weather not available'
+                }));
+                cleanupToolCall();
+              }
+            } catch (e) {
+              console.error('Failed to parse weather args:', e);
+              sendFunctionResult(call_id, JSON.stringify({
+                success: false,
+                error: 'Invalid location'
+              }));
+              cleanupToolCall();
+            }
           } else {
             cleanupToolCall();
           }
