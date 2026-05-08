@@ -485,42 +485,27 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'response.created':
         // Clear accumulated transcript so AI deltas start fresh
         setCurrentTranscript('');
-        
+
         // Allow tool-triggered responses through the phantom guard
         if (awaitingToolResponse) {
           console.log('Allowing tool-triggered response through phantom guard');
           awaitingToolResponse = false;
           break;
         }
-        
-        // If we already have confirmed transcription, allow immediately
-        if (hasRealTranscription) {
-          console.log('Allowing response — real transcription confirmed');
+
+        // Trust server VAD: if we got speech_started since the last response,
+        // this is a real user turn — let it through. Whisper transcription
+        // often arrives AFTER response.created, so we cannot wait on it.
+        if (userSpokeAfterLastResponse || hasRealTranscription) {
+          console.log('Allowing response — user speech detected by server VAD');
           break;
         }
-        
-        // No speech detected at all — cancel immediately
-        if (!userSpokeAfterLastResponse) {
-          console.log('Cancelling phantom response — no speech detected and no transcription');
-          if (globalWs?.readyState === WebSocket.OPEN) {
-            globalWs.send(JSON.stringify({ type: 'response.cancel' }));
-          }
-          break;
+
+        // No speech detected at all — cancel immediately (true phantom)
+        console.log('Cancelling phantom response — no speech_started fired');
+        if (globalWs?.readyState === WebSocket.OPEN) {
+          globalWs.send(JSON.stringify({ type: 'response.cancel' }));
         }
-        
-        // VAD fired but no transcription yet — start delayed verification
-        // Give Whisper 2 seconds to confirm real speech before cancelling
-        console.log('VAD detected speech but no transcription yet — starting 2s phantom timer');
-        if (phantomCheckTimer) clearTimeout(phantomCheckTimer);
-        phantomCheckTimer = setTimeout(() => {
-          phantomCheckTimer = null;
-          if (!hasRealTranscription) {
-            console.log('Phantom timer expired — no transcription arrived, cancelling response');
-            if (globalWs?.readyState === WebSocket.OPEN) {
-              globalWs.send(JSON.stringify({ type: 'response.cancel' }));
-            }
-          }
-        }, 2000);
         break;
 
       case 'response.done':
