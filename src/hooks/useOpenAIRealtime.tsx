@@ -1020,10 +1020,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
     const base64Audio = btoa(binary);
     
-    globalWs.send(JSON.stringify({
+    sendRealtimeEvent({
       type: 'input_audio_buffer.append',
       audio: base64Audio
-    }));
+    });
   }, []);
 
   // Sync connection state
@@ -1037,7 +1037,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     if (globalWs?.readyState !== WebSocket.OPEN) return;
     
     console.log('Manually cancelling AI response');
-    globalWs.send(JSON.stringify({ type: 'response.cancel' }));
+    sendRealtimeEvent({ type: 'response.cancel' });
   }, []);
 
   // Commit the current audio buffer and trigger AI response
@@ -1060,8 +1060,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
     console.log('Committing audio buffer and triggering response (mute handoff)');
 
-    globalWs.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
-    globalWs.send(JSON.stringify({ type: 'response.create' }));
+    const committed = sendRealtimeEvent({ type: 'input_audio_buffer.commit' });
+    if (!committed) return false;
+    sendRealtimeEvent({ type: 'response.create' });
 
     setStatus('thinking');
     setHasPendingSpeech(false);
@@ -1099,24 +1100,24 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       });
     }
 
-    globalWs.send(JSON.stringify({
+    sendRealtimeEvent({
       type: 'conversation.item.create',
       item: {
         type: 'message',
         role: 'user',
         content,
       },
-    }));
+    });
 
     if (!isLiveCamera) {
       // Vision needs more thought than casual chat — bump reasoning effort just
       // for this response. Subsequent turns fall back to the session default.
-      globalWs.send(JSON.stringify({
+      sendRealtimeEvent({
         type: 'response.create',
         response: {
           reasoning: { effort: 'medium' },
         },
-      }));
+      });
     }
   }, []);
 
