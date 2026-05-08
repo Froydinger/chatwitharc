@@ -73,10 +73,9 @@ serve(async (req) => {
     body: JSON.stringify({
       model: OPENAI_REALTIME_MODEL,
       voice: requestedVoice,
-      // GPT-Realtime-2 supports configurable reasoning. 'low' keeps latency
-      // snappy for conversational voice while still unlocking GPT-5 reasoning
-      // gains for tool calls (image gen, web search, chat history).
-      reasoning: { effort: 'low' },
+      // Reasoning effort is configured per-response via response.create
+      // (see useOpenAIRealtime.tsx). The session-create endpoint does not
+      // accept a `reasoning` parameter.
     }),
   });
 
