@@ -91,6 +91,10 @@ interface VoiceModeState {
   setLastGeneratedImageUrl: (url: string | null) => void;
   attachImageToLastAssistantTurn: () => void;
   setIsSearching: (searching: boolean) => void;
+  setSearchSummary: (summary: VoiceModeState['searchSummary']) => void;
+  setIsFetchingWeather: (fetching: boolean) => void;
+  setWeatherData: (data: VoiceModeState['weatherData']) => void;
+  clearToolPanels: () => void;
   setHasPendingSpeech: (pending: boolean) => void;
   setIsVoiceSwapping: (swapping: boolean) => void;
   interruptAI: () => void;
