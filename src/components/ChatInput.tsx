@@ -1763,6 +1763,7 @@ ${safeCode}
                 role: 'assistant',
                 type: 'text',
                 memoryAction,
+                weatherData: result.weatherData,
                 sourceModel: didSearchWeb
                   ? (result.searchProvider === 'tavily' ? 'cloud-search-tavily' : 'cloud-search')
                   : 'cloud-chat',
