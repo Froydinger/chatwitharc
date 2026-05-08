@@ -1371,10 +1371,28 @@ Output the complete, finished writing using the update_canvas tool.`;
         } else if (toolCall.function.name === 'save_memory') {
           const args = JSON.parse(toolCall.function.arguments);
           const memoryContent = args.memory?.trim();
+          const replaces: string[] = Array.isArray(args.replaces) ? args.replaces.filter((s: any) => typeof s === 'string' && s.trim().length > 0) : [];
           
           if (memoryContent) {
             try {
-              // Save to context_blocks table
+              // Delete any existing memories that match the `replaces` substrings (case-insensitive)
+              let deletedCount = 0;
+              if (replaces.length > 0) {
+                const { data: existing } = await supabase
+                  .from('context_blocks')
+                  .select('id, content')
+                  .eq('user_id', user.id);
+                const toDelete = (existing || []).filter((row: any) => {
+                  const c = (row.content || '').toLowerCase();
+                  return replaces.some(r => c.includes(r.toLowerCase()));
+                }).map((r: any) => r.id);
+                if (toDelete.length > 0) {
+                  await supabase.from('context_blocks').delete().in('id', toDelete);
+                  deletedCount = toDelete.length;
+                  console.log(`🗑️ Replaced ${deletedCount} outdated memory block(s)`);
+                }
+              }
+
               const { error: insertError } = await supabase
                 .from('context_blocks')
                 .insert({
@@ -1393,10 +1411,11 @@ Output the complete, finished writing using the update_canvas tool.`;
               } else {
                 console.log('💾 Memory saved:', memoryContent);
                 memorySaved = { content: memoryContent };
+                const replaceNote = deletedCount > 0 ? ` (replaced ${deletedCount} outdated entry/entries)` : '';
                 conversationMessages.push({
                   role: 'tool',
                   tool_call_id: toolCall.id,
-                  content: `Memory saved successfully: "${memoryContent}". Briefly acknowledge you'll remember this, then continue the conversation naturally.`
+                  content: `Memory saved successfully${replaceNote}: "${memoryContent}". Briefly acknowledge you'll remember this, then continue the conversation naturally.`
                 });
               }
             } catch (err) {
