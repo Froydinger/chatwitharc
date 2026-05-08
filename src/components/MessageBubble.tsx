@@ -232,6 +232,18 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 />
               )}
 
+              {/* Weather Card */}
+              {!isUser && message.weatherData && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mb-3 relative z-10 flex justify-start"
+                >
+                  <WeatherCard weather={message.weatherData} />
+                </motion.div>
+              )}
+
               {/* Images */}
               {message.type === "image" &&
                 (message.imageUrl || message.imageUrls) && (
