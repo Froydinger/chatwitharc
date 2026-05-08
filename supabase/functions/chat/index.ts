@@ -737,13 +737,18 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "save_memory",
-          description: "Save a personal fact or preference about the user to long-term memory. Use this when the user shares personal information (preferences, facts, interests, work details) or explicitly asks you to remember something. Save a clear third-person statement like 'Jake likes soda' or 'Jake works at Google'. Do NOT save trivial or temporary information.",
+          description: "Save or UPDATE a personal fact about the user to long-term memory. Use this when the user shares info, asks you to remember something, OR corrects a previous memory. When correcting/replacing outdated info (e.g. user says 'actually it's X, not Y' or 'update that'), ALWAYS pass the `replaces` array with distinctive keywords from the OLD fact so it gets removed — otherwise the old wrong memory will keep resurfacing. Save a clear third-person statement like 'Jake uses a Galaxy Flip 7'.",
           parameters: {
             type: "object",
             properties: {
               memory: {
                 type: "string",
                 description: "A clear, concise third-person fact about the user to remember. Use the user's actual name if known."
+              },
+              replaces: {
+                type: "array",
+                items: { type: "string" },
+                description: "Optional. Distinctive keywords/phrases from any OLD memory that this new fact replaces or contradicts (e.g. ['Galaxy S7', 'S7 on a $50 plan']). Any existing memory containing these substrings will be deleted before saving the new one. Use this on EVERY correction."
               }
             },
             required: ["memory"],
