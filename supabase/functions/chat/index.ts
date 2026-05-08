@@ -1397,7 +1397,35 @@ Output the complete, finished writing using the update_canvas tool.`;
               });
             }
           }
+        } else if (toolCall.function.name === 'get_weather') {
+          const args = JSON.parse(toolCall.function.arguments);
+          try {
+            const wxResp = await supabase.functions.invoke('get-weather', {
+              body: { location: args.location },
+            });
+            if (wxResp.error || wxResp.data?.error) {
+              conversationMessages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: `Weather lookup failed for "${args.location}": ${wxResp.data?.error || wxResp.error?.message || 'unknown error'}. Apologize briefly.`,
+              });
+            } else {
+              weatherData = wxResp.data;
+              conversationMessages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: `Weather card displayed for ${weatherData.location}: ${weatherData.temperature}°F, ${weatherData.condition}, H ${weatherData.high}°/L ${weatherData.low}°. Acknowledge briefly in one short sentence — do NOT repeat all the numbers since the card shows them.`,
+              });
+            }
+          } catch (e: any) {
+            conversationMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: `Weather lookup error: ${e?.message || 'unknown'}.`,
+            });
+          }
         }
+      }
       }
       
       // For code/canvas updates, skip the second API call entirely - we already have the output!
