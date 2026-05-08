@@ -1258,11 +1258,11 @@ useEffect(() => {
           ref={setPillRef}
           className="flex items-center px-2 gap-1 py-3 rounded-full pointer-events-auto relative mx-5 sm:mx-8 w-[calc(100%-40px)] sm:w-[420px] md:w-[480px]"
           style={{
-            background: 'hsl(var(--background) / 0.85)',
-            backdropFilter: 'blur(24px) saturate(120%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(120%)',
-            border: '1px solid hsl(var(--border) / 0.5)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 hsl(var(--foreground) / 0.08)',
+            background: 'linear-gradient(135deg, hsl(var(--primary) / 0.14) 0%, hsl(var(--primary) / 0.08) 50%, hsl(var(--primary) / 0.14) 100%), hsl(var(--background) / 0.55)',
+            backdropFilter: 'blur(24px) saturate(140%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(140%)',
+            border: '1px solid hsl(var(--primary) / 0.28)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 18px hsl(var(--primary) / 0.12), inset 0 1px 0 hsl(var(--foreground) / 0.08)',
           }}
         >
           {/* Jelly bubble — rendered first so tabs stack above it visually but bubble captures pointer via z-index */}
