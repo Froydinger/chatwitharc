@@ -177,6 +177,11 @@ export function VoiceModeOverlay() {
     isGeneratingImage,
     setGeneratedImage,
     isSearching,
+    searchSummary,
+    setSearchSummary,
+    isFetchingWeather,
+    weatherData,
+    setWeatherData,
     selectedVoice,
     setSelectedVoice,
     // Camera state
