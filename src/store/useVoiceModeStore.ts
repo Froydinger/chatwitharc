@@ -174,6 +174,9 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       isGeneratingImage: false,
       lastGeneratedImageUrl: null,
       isSearching: false,
+      searchSummary: null,
+      isFetchingWeather: false,
+      weatherData: null,
       hasPendingSpeech: false,
       isVoiceSwapping: false,
       // Clean up camera/attachment
