@@ -874,6 +874,21 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                   },
                   required: ['query']
                 }
+              },
+              {
+                type: 'function',
+                name: 'get_weather',
+                description: 'Get the current weather for a specific location. Use when the user asks about the weather, temperature, forecast, or conditions for any city or place. Prefer this over web_search for weather questions — it returns structured data and shows a nice weather card to the user.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    location: {
+                      type: 'string',
+                      description: 'City name, optionally with state/country (e.g. "Austin, TX", "Tokyo", "Paris, France")'
+                    }
+                  },
+                  required: ['location']
+                }
               }
             ]
           }
