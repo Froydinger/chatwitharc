@@ -758,19 +758,19 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               input: {
                 format: { type: 'audio/pcm', rate: 24000 },
                 transcription: { model: 'whisper-1' },
+                turn_detection: {
+                  type: 'server_vad',
+                  threshold: 0.5,
+                  prefix_padding_ms: 300,
+                  silence_duration_ms: 700,
+                  create_response: true,
+                  interrupt_response: true,
+                },
               },
               output: {
                 format: { type: 'audio/pcm', rate: 24000 },
                 voice: safeVoice,
               },
-            },
-            turn_detection: {
-              type: 'server_vad',
-              threshold: 0.5,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 700,
-              create_response: true,
-              interrupt_response: true,
             },
             tool_choice: 'auto',
             tools: [
