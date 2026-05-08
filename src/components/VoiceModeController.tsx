@@ -587,8 +587,12 @@ When the user shares their camera or attaches an image, describe what you see na
       queueAudio(audioData);
     },
     onInterrupt: () => {
-      console.log('Clearing audio queue due to interruption');
+      console.log('User interrupted — stopping playback and listening');
       clearQueue();
+      stopPlayback();
+      const store = useVoiceModeStore.getState();
+      store.setStatus('listening');
+      store.setIsAudioPlaying(false);
     },
     onError: (error) => {
       console.error('Voice mode error:', error);

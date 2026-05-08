@@ -272,6 +272,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         console.log('VAD: User speech detected');
         userSpokeAfterLastResponse = true;
         useVoiceModeStore.getState().setHasPendingSpeech(true);
+        // Natural interruption: if AI is currently speaking, stop playback
+        // immediately so the user isn't talked over. Server VAD has
+        // interrupt_response:true so it will also cancel the response.
+        try {
+          optionsRef.current.onInterrupt?.();
+        } catch (err) {
+          console.warn('onInterrupt handler threw:', err);
+        }
         break;
 
       case 'input_audio_buffer.speech_stopped':
