@@ -24,6 +24,7 @@ import { ThemedLogo } from "@/components/ThemedLogo";
 import { MemoryIndicator } from "@/components/MemoryIndicator";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
 import { ModelSourceBadge } from "@/components/ModelSourceBadge";
+import { WeatherCard } from "@/components/WeatherCard";
 
 // Stable module-level constant — never recreated on re-render, so iframes never remount
 const markdownComponents = {
