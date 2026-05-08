@@ -1432,7 +1432,6 @@ Output the complete, finished writing using the update_canvas tool.`;
           }
         }
       }
-      }
       
       // For code/canvas updates, skip the second API call entirely - we already have the output!
       // This dramatically reduces latency for /code and /write commands (saves 30-60+ seconds)
