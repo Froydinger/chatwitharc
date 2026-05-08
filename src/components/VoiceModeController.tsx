@@ -281,6 +281,9 @@ export function VoiceModeController() {
     setIsGeneratingImage,
     setLastGeneratedImageUrl,
     setIsSearching,
+    setSearchSummary,
+    setIsFetchingWeather,
+    setWeatherData,
   } = useVoiceModeStore();
 
   // Sync preferred_voice from profile on mount
