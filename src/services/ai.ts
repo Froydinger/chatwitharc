@@ -241,7 +241,8 @@ export class AIService {
             searchProvider: data.search_provider,
             canvasUpdate: data.canvas_update,
             codeUpdate: data.code_update,
-            memorySaved: data.memory_saved
+            memorySaved: data.memory_saved,
+            weatherData: data.weather_data
           };
         } catch (err: any) {
           lastError = err;
