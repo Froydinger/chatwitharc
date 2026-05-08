@@ -380,6 +380,23 @@ export function VoiceModeController() {
       }
       
       const response = data?.choices?.[0]?.message?.content || 'No results found for that search.';
+      const sources = (data?.sources || data?.choices?.[0]?.message?.sources || [])
+        .slice(0, 6)
+        .map((s: any) => ({
+          url: typeof s === 'string' ? s : (s?.url || ''),
+          title: typeof s === 'string' ? s : (s?.title || s?.url || ''),
+        }))
+        .filter((s: any) => s.url);
+      
+      // Build a short summary (first ~280 chars, strip markdown noise)
+      const cleanSummary = response
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // strip markdown links
+        .replace(/[#*`>]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 320);
+      
+      setSearchSummary({ query, summary: cleanSummary, sources });
       console.log('VoiceModeController: Web search complete');
       return response;
     } catch (error: any) {
@@ -391,7 +408,32 @@ export function VoiceModeController() {
       }
       return `I ran into a problem searching for that: ${error.message || 'Unknown error'}. Want me to try again?`;
     }
-  }, [setIsSearching]);
+  }, [setIsSearching, setSearchSummary]);
+
+  // Weather handler
+  const handleGetWeather = useCallback(async (location: string): Promise<string> => {
+    console.log('VoiceModeController: Get weather for:', location);
+    if (!useVoiceModeStore.getState().isActive) return 'Cancelled.';
+    setIsFetchingWeather(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-weather', {
+        body: { location },
+      });
+      setIsFetchingWeather(false);
+      if (error) {
+        console.error('Weather error:', error);
+        return `I couldn't get the weather: ${error.message}`;
+      }
+      if (data?.error) return `I couldn't find weather for "${location}": ${data.error}`;
+      
+      setWeatherData(data);
+      return `Weather in ${data.location}: ${data.temperature}°F (feels like ${data.feelsLike}°F), ${data.condition}. High ${data.high}°, low ${data.low}°. Humidity ${data.humidity}%, wind ${data.wind} mph. Briefly tell the user what it's like — keep it casual and short.`;
+    } catch (e: any) {
+      console.error('Weather lookup failed:', e);
+      setIsFetchingWeather(false);
+      return `Weather lookup failed: ${e?.message || 'Unknown error'}`;
+    }
+  }, [setIsFetchingWeather, setWeatherData]);
 
   // Past chats search handler
   const handleSearchPastChats = useCallback(async (query: string): Promise<string> => {
