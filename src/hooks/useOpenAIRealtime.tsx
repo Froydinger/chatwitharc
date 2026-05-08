@@ -300,6 +300,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.audio_transcript.done':
+      case 'response.output_audio_transcript.done':
         const aiTranscript = event.transcript || '';
         if (!aiTranscript.trim()) return;
         console.log('AI said:', aiTranscript);
