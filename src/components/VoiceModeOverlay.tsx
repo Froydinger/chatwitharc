@@ -212,7 +212,7 @@ export function VoiceModeOverlay() {
 
   // Auto-play elevator music during search and image generation
   useEffect(() => {
-    const isTasking = isSearching || isGeneratingImage;
+    const isTasking = isSearching || isGeneratingImage || isFetchingWeather;
     
     if (isTasking && !startedElevatorMusicRef.current) {
       const { currentTrack, isPlaying, handleTrackChange, setIsPlaying, audioRef } = useMusicStore.getState();
