@@ -848,7 +848,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               {
                 type: 'function',
                 name: 'web_search',
-                description: 'Search the web for real-time information. Use when user asks about current events, news, recent movies, sports scores, weather, latest updates, breaking news, or anything that requires up-to-date information from the internet. IMPORTANT: Listen carefully to exact names - "Win the Night" is different from "Wind of Change". Repeat back the exact search term you heard before searching.',
+                description: 'Search the web for real-time information. Use when user asks about current events, news, recent movies, sports scores, latest updates, breaking news, or anything that requires up-to-date information from the internet. For WEATHER questions, use get_weather instead. IMPORTANT: Listen carefully to exact names - "Win the Night" is different from "Wind of Change". Repeat back the exact search term you heard before searching.',
                 parameters: {
                   type: 'object',
                   properties: {
