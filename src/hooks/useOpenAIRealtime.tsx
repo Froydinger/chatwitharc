@@ -290,6 +290,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.audio_transcript.delta':
+      case 'response.output_audio_transcript.delta':
         setStatus('speaking');
         const partialTranscript = event.delta || '';
         // Accumulate AI transcript separately — reset on each new response
@@ -299,6 +300,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.audio_transcript.done':
+      case 'response.output_audio_transcript.done':
         const aiTranscript = event.transcript || '';
         if (!aiTranscript.trim()) return;
         console.log('AI said:', aiTranscript);
@@ -319,6 +321,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.audio.delta':
+      case 'response.output_audio.delta':
         if (event.delta) {
           const binaryString = atob(event.delta);
           const bytes = new Uint8Array(binaryString.length);
