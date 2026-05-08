@@ -74,6 +74,7 @@ export interface SendMessageResult {
   canvasUpdate?: CanvasUpdate;
   codeUpdate?: CodeUpdate;
   memorySaved?: { content: string };
+  weatherData?: import('@/components/WeatherCard').WeatherData;
 }
 
 export class AIService {
