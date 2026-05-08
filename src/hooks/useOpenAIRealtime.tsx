@@ -546,6 +546,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (awaitingToolResponse) {
           console.log('Allowing tool-triggered response through phantom guard');
           awaitingToolResponse = false;
+          setStatus('thinking');
           break;
         }
 
@@ -554,6 +555,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // often arrives AFTER response.created, so we cannot wait on it.
         if (userSpokeAfterLastResponse || hasRealTranscription) {
           console.log('Allowing response — user speech detected by server VAD');
+          setStatus('thinking');
           break;
         }
 
