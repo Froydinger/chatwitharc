@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera, CameraOff, Paperclip, SwitchCamera, Check } from "lucide-react";
+import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera, CameraOff, Paperclip, SwitchCamera, Check, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, Moon, CloudFog, CloudDrizzle, ExternalLink } from "lucide-react";
 import { useVoiceModeStore, VoiceName } from "@/store/useVoiceModeStore";
 import { useMusicStore } from "@/store/useMusicStore";
 import { useCallback, useRef, useEffect, useMemo, useState } from "react";
@@ -161,6 +161,65 @@ function WaveformBar({ index, total, amplitude, status, isMuted }: {
   );
 }
 
+function WeatherIcon({ code, isDay, className }: { code: number; isDay: boolean; className?: string }) {
+  const cls = className || "w-16 h-16";
+  if (code === 0 || code === 1) return isDay ? <Sun className={cls} /> : <Moon className={cls} />;
+  if (code === 2 || code === 3) return <Cloud className={cls} />;
+  if (code === 45 || code === 48) return <CloudFog className={cls} />;
+  if (code >= 51 && code <= 57) return <CloudDrizzle className={cls} />;
+  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return <CloudRain className={cls} />;
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return <CloudSnow className={cls} />;
+  if (code >= 95) return <CloudLightning className={cls} />;
+  return <Cloud className={cls} />;
+}
+
+function WeatherCard({ weather, onClose }: {
+  weather: NonNullable<ReturnType<typeof useVoiceModeStore.getState>['weatherData']>;
+  onClose: () => void;
+}) {
+  const gradient = weather.isDay
+    ? 'from-sky-500/30 via-blue-500/20 to-indigo-500/30'
+    : 'from-indigo-900/40 via-slate-800/30 to-purple-900/40';
+  return (
+    <div className={`relative w-full max-w-[300px] rounded-2xl border border-primary/20 bg-gradient-to-br ${gradient} backdrop-blur-xl shadow-2xl overflow-hidden`}>
+      <button
+        onClick={onClose}
+        className="absolute top-2 right-2 p-1.5 rounded-full bg-background/70 border border-border shadow hover:bg-muted transition-colors z-10"
+        aria-label="Close weather"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+      <div className="p-5">
+        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">{weather.location}</p>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <p className="text-5xl font-light text-foreground tabular-nums">{weather.temperature}°</p>
+            <p className="text-sm text-foreground/80 mt-1">{weather.condition}</p>
+          </div>
+          <div className="text-primary/90">
+            <WeatherIcon code={weather.code} isDay={weather.isDay} />
+          </div>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
+          <span>Feels like {weather.feelsLike}°</span>
+          <span>·</span>
+          <span>H {weather.high}° L {weather.low}°</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border/40">
+          <div className="text-xs">
+            <span className="text-muted-foreground">Humidity</span>
+            <p className="text-foreground font-medium">{weather.humidity}%</p>
+          </div>
+          <div className="text-xs">
+            <span className="text-muted-foreground">Wind</span>
+            <p className="text-foreground font-medium">{weather.wind} mph</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function VoiceModeOverlay() {
   const {
     isActive,
@@ -177,6 +236,11 @@ export function VoiceModeOverlay() {
     isGeneratingImage,
     setGeneratedImage,
     isSearching,
+    searchSummary,
+    setSearchSummary,
+    isFetchingWeather,
+    weatherData,
+    setWeatherData,
     selectedVoice,
     setSelectedVoice,
     // Camera state
@@ -207,7 +271,7 @@ export function VoiceModeOverlay() {
 
   // Auto-play elevator music during search and image generation
   useEffect(() => {
-    const isTasking = isSearching || isGeneratingImage;
+    const isTasking = isSearching || isGeneratingImage || isFetchingWeather;
     
     if (isTasking && !startedElevatorMusicRef.current) {
       const { currentTrack, isPlaying, handleTrackChange, setIsPlaying, audioRef } = useMusicStore.getState();
@@ -251,7 +315,7 @@ export function VoiceModeOverlay() {
       previousTrackRef.current = null;
       wasPlayingRef.current = false;
     }
-  }, [isSearching, isGeneratingImage]);
+  }, [isSearching, isGeneratingImage, isFetchingWeather]);
 
   // Handle interrupt button press
   const handleInterrupt = useCallback(() => {
@@ -715,9 +779,9 @@ export function VoiceModeOverlay() {
                 )}
               </AnimatePresence>
 
-              {/* Search Loading Indicator */}
+              {/* Search Result Card (loading or summary) */}
               <AnimatePresence>
-                {isSearching && !generatedImage && !isGeneratingImage && (
+                {(isSearching || searchSummary) && !generatedImage && !isGeneratingImage && !weatherData && !isFetchingWeather && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -725,31 +789,86 @@ export function VoiceModeOverlay() {
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
                     className="mb-8 flex justify-center w-full"
                   >
-                    <div className="flex flex-col items-center w-full max-w-[200px]">
-                      <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-muted/30 border border-primary/20">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="flex flex-col items-center gap-3">
-                            <motion.div
-                              animate={{ scale: [1, 1.2, 1] }}
-                              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                            >
-                              <Search className="w-8 h-8 text-primary/50" />
-                            </motion.div>
-                            <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                    <div className="relative w-full max-w-[320px] rounded-2xl border border-primary/20 bg-background/60 backdrop-blur-xl shadow-2xl overflow-hidden">
+                      {searchSummary && !isSearching ? (
+                        <>
+                          <button
+                            onClick={() => setSearchSummary(null)}
+                            className="absolute top-2 right-2 p-1.5 rounded-full bg-background/90 border border-border shadow hover:bg-muted transition-colors z-10"
+                            aria-label="Close search"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                          <div className="p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Search className="w-4 h-4 text-primary" />
+                              <span className="text-xs uppercase tracking-wider text-muted-foreground">Web result</span>
+                            </div>
+                            <p className="text-sm font-medium text-foreground mb-2 line-clamp-1">{searchSummary.query}</p>
+                            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-5">{searchSummary.summary}</p>
+                            {searchSummary.sources.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-1.5">
+                                {searchSummary.sources.slice(0, 4).map((s, i) => {
+                                  let domain = '';
+                                  try { domain = new URL(s.url).hostname.replace('www.', ''); } catch { domain = s.url; }
+                                  return (
+                                    <a
+                                      key={i}
+                                      href={s.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 hover:bg-primary/20 text-xs text-primary transition-colors"
+                                    >
+                                      <ExternalLink className="w-3 h-3" />
+                                      {domain}
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
+                        </>
+                      ) : (
+                        <div className="p-6 flex flex-col items-center gap-3">
+                          <motion.div
+                            animate={{ scale: [1, 1.15, 1] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                          >
+                            <Search className="w-8 h-8 text-primary/60" />
+                          </motion.div>
+                          <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                          <p className="text-sm text-muted-foreground">Searching the web...</p>
                         </div>
-                        <motion.div
-                          className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent"
-                          animate={{ x: ['-100%', '100%'] }}
-                          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                        />
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-3">Searching the web...</p>
+                      )}
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
+              {/* Weather Card */}
+              <AnimatePresence>
+                {(isFetchingWeather || weatherData) && !generatedImage && !isGeneratingImage && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="mb-8 flex justify-center w-full"
+                  >
+                    {isFetchingWeather && !weatherData ? (
+                      <div className="w-full max-w-[280px] p-6 flex flex-col items-center gap-3 rounded-2xl border border-primary/20 bg-background/60 backdrop-blur-xl shadow-2xl">
+                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>
+                          <Cloud className="w-8 h-8 text-primary/60" />
+                        </motion.div>
+                        <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                        <p className="text-sm text-muted-foreground">Checking the weather...</p>
+                      </div>
+                    ) : weatherData ? (
+                      <WeatherCard weather={weatherData} onClose={() => setWeatherData(null)} />
+                    ) : null}
+                  </motion.div>
+                )}
+              </AnimatePresence>
               {/* Generated Image Display */}
               <AnimatePresence>
                 {(generatedImage || isGeneratingImage) && (

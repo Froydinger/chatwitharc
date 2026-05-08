@@ -11,6 +11,7 @@ interface UseOpenAIRealtimeOptions {
   onImageDismiss?: () => void;
   onWebSearch?: (query: string) => Promise<string>;
   onSearchPastChats?: (query: string) => Promise<string>;
+  onGetWeather?: (location: string) => Promise<string>;
   // Called when a session expires so the controller can inject conversation
   // context into the fresh session's system prompt.
   onSessionExpired?: () => Promise<string | undefined>;
@@ -479,6 +480,44 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               }));
               cleanupToolCall();
             }
+          } else if (name === 'get_weather') {
+            try {
+              const args = JSON.parse(argsStr || '{}');
+              const location = args.location || '';
+              console.log('Getting weather for:', location);
+
+              if (optionsRef.current.onGetWeather) {
+                optionsRef.current.onGetWeather(location)
+                  .then((result) => {
+                    sendFunctionResult(call_id, JSON.stringify({
+                      success: true,
+                      weather: result
+                    }));
+                    cleanupToolCall();
+                  })
+                  .catch((error) => {
+                    console.error('Weather lookup failed:', error);
+                    sendFunctionResult(call_id, JSON.stringify({
+                      success: false,
+                      error: error.message || 'Failed to fetch weather'
+                    }));
+                    cleanupToolCall();
+                  });
+              } else {
+                sendFunctionResult(call_id, JSON.stringify({
+                  success: false,
+                  error: 'Weather not available'
+                }));
+                cleanupToolCall();
+              }
+            } catch (e) {
+              console.error('Failed to parse weather args:', e);
+              sendFunctionResult(call_id, JSON.stringify({
+                success: false,
+                error: 'Invalid location'
+              }));
+              cleanupToolCall();
+            }
           } else {
             cleanupToolCall();
           }
@@ -809,7 +848,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               {
                 type: 'function',
                 name: 'web_search',
-                description: 'Search the web for real-time information. Use when user asks about current events, news, recent movies, sports scores, weather, latest updates, breaking news, or anything that requires up-to-date information from the internet. IMPORTANT: Listen carefully to exact names - "Win the Night" is different from "Wind of Change". Repeat back the exact search term you heard before searching.',
+                description: 'Search the web for real-time information. Use when user asks about current events, news, recent movies, sports scores, latest updates, breaking news, or anything that requires up-to-date information from the internet. For WEATHER questions, use get_weather instead. IMPORTANT: Listen carefully to exact names - "Win the Night" is different from "Wind of Change". Repeat back the exact search term you heard before searching.',
                 parameters: {
                   type: 'object',
                   properties: {
@@ -834,6 +873,21 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                     }
                   },
                   required: ['query']
+                }
+              },
+              {
+                type: 'function',
+                name: 'get_weather',
+                description: 'Get the current weather for a specific location. Use when the user asks about the weather, temperature, forecast, or conditions for any city or place. Prefer this over web_search for weather questions — it returns structured data and shows a nice weather card to the user.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    location: {
+                      type: 'string',
+                      description: 'City name, optionally with state/country (e.g. "Austin, TX", "Tokyo", "Paris, France")'
+                    }
+                  },
+                  required: ['location']
                 }
               }
             ]

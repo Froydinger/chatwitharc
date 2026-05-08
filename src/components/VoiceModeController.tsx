@@ -199,8 +199,9 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
 CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
 
 • IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image. When done, use close_image if user is done with it.
-• WEB SEARCH: Say "Let me look that up" or "I'll search for that" FIRST, then use web_search. Summarize results conversationally after.
+• WEB SEARCH: Say "Let me look that up" or "I'll search for that" FIRST, then use web_search. Summarize results conversationally after — the user already sees a result card, so don't repeat it verbatim.
   IMPORTANT: Listen carefully to exact names and titles. If unsure, confirm before searching.
+• WEATHER: For ANY weather question (current weather, temperature, forecast, conditions for a city), use get_weather — NOT web_search. Say "Let me check" first, then call get_weather. A weather card appears for the user; just give a short, casual spoken summary.
 • SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats when they ask about:
   - Something they mentioned before
   - Their preferences, interests, or patterns
@@ -281,6 +282,9 @@ export function VoiceModeController() {
     setIsGeneratingImage,
     setLastGeneratedImageUrl,
     setIsSearching,
+    setSearchSummary,
+    setIsFetchingWeather,
+    setWeatherData,
   } = useVoiceModeStore();
 
   // Sync preferred_voice from profile on mount
@@ -377,6 +381,23 @@ export function VoiceModeController() {
       }
       
       const response = data?.choices?.[0]?.message?.content || 'No results found for that search.';
+      const sources = (data?.sources || data?.choices?.[0]?.message?.sources || [])
+        .slice(0, 6)
+        .map((s: any) => ({
+          url: typeof s === 'string' ? s : (s?.url || ''),
+          title: typeof s === 'string' ? s : (s?.title || s?.url || ''),
+        }))
+        .filter((s: any) => s.url);
+      
+      // Build a short summary (first ~280 chars, strip markdown noise)
+      const cleanSummary = response
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // strip markdown links
+        .replace(/[#*`>]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 320);
+      
+      setSearchSummary({ query, summary: cleanSummary, sources });
       console.log('VoiceModeController: Web search complete');
       return response;
     } catch (error: any) {
@@ -388,7 +409,32 @@ export function VoiceModeController() {
       }
       return `I ran into a problem searching for that: ${error.message || 'Unknown error'}. Want me to try again?`;
     }
-  }, [setIsSearching]);
+  }, [setIsSearching, setSearchSummary]);
+
+  // Weather handler
+  const handleGetWeather = useCallback(async (location: string): Promise<string> => {
+    console.log('VoiceModeController: Get weather for:', location);
+    if (!useVoiceModeStore.getState().isActive) return 'Cancelled.';
+    setIsFetchingWeather(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-weather', {
+        body: { location },
+      });
+      setIsFetchingWeather(false);
+      if (error) {
+        console.error('Weather error:', error);
+        return `I couldn't get the weather: ${error.message}`;
+      }
+      if (data?.error) return `I couldn't find weather for "${location}": ${data.error}`;
+      
+      setWeatherData(data);
+      return `Weather in ${data.location}: ${data.temperature}°F (feels like ${data.feelsLike}°F), ${data.condition}. High ${data.high}°, low ${data.low}°. Humidity ${data.humidity}%, wind ${data.wind} mph. Briefly tell the user what it's like — keep it casual and short.`;
+    } catch (e: any) {
+      console.error('Weather lookup failed:', e);
+      setIsFetchingWeather(false);
+      return `Weather lookup failed: ${e?.message || 'Unknown error'}`;
+    }
+  }, [setIsFetchingWeather, setWeatherData]);
 
   // Past chats search handler
   const handleSearchPastChats = useCallback(async (query: string): Promise<string> => {
@@ -522,6 +568,7 @@ CRITICAL: Always say something BEFORE using any tool so the user isn't left in s
 
 • IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image.
 • WEB SEARCH: Say "Let me look that up" FIRST, then use web_search.
+• WEATHER: Use get_weather (not web_search) for any weather question.
 • SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats.`;
 
       prompt += `\n\n--- VISION CAPABILITIES ---
@@ -559,6 +606,7 @@ When the user shares their camera or attaches an image, describe what you see na
     onImageDismiss: handleImageDismiss,
     onWebSearch: handleWebSearch,
     onSearchPastChats: handleSearchPastChats,
+    onGetWeather: handleGetWeather,
     onSessionExpired: handleSessionExpired,
   });
 

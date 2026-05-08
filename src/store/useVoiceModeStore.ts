@@ -40,6 +40,22 @@ interface VoiceModeState {
   
   // Web search state
   isSearching: boolean;
+  searchSummary: { query: string; summary: string; sources: { url: string; title: string }[] } | null;
+  
+  // Weather state
+  isFetchingWeather: boolean;
+  weatherData: {
+    location: string;
+    temperature: number;
+    feelsLike: number;
+    condition: string;
+    code: number;
+    high: number;
+    low: number;
+    humidity: number;
+    wind: number;
+    isDay: boolean;
+  } | null;
   
   // Track if user has spoken since unmuting (for mute-to-handoff)
   hasPendingSpeech: boolean;
@@ -75,6 +91,10 @@ interface VoiceModeState {
   setLastGeneratedImageUrl: (url: string | null) => void;
   attachImageToLastAssistantTurn: () => void;
   setIsSearching: (searching: boolean) => void;
+  setSearchSummary: (summary: VoiceModeState['searchSummary']) => void;
+  setIsFetchingWeather: (fetching: boolean) => void;
+  setWeatherData: (data: VoiceModeState['weatherData']) => void;
+  clearToolPanels: () => void;
   setHasPendingSpeech: (pending: boolean) => void;
   setIsVoiceSwapping: (swapping: boolean) => void;
   interruptAI: () => void;
@@ -104,6 +124,9 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   isGeneratingImage: false,
   lastGeneratedImageUrl: null,
   isSearching: false,
+  searchSummary: null,
+  isFetchingWeather: false,
+  weatherData: null,
   hasPendingSpeech: false,
   isVoiceSwapping: false,
   
@@ -128,6 +151,9 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       isGeneratingImage: false,
       lastGeneratedImageUrl: null,
       isSearching: false,
+      searchSummary: null,
+      isFetchingWeather: false,
+      weatherData: null,
       hasPendingSpeech: false,
       isVoiceSwapping: false,
       // Reset camera/attachment on new session
@@ -151,6 +177,9 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       isGeneratingImage: false,
       lastGeneratedImageUrl: null,
       isSearching: false,
+      searchSummary: null,
+      isFetchingWeather: false,
+      weatherData: null,
       hasPendingSpeech: false,
       isVoiceSwapping: false,
       // Clean up camera/attachment
@@ -208,9 +237,19 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   
   toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
   
-  setGeneratedImage: (url) => set({ generatedImage: url }),
+  setGeneratedImage: (url) => set((state) => ({
+    generatedImage: url,
+    // Mutual exclusion when a new image arrives
+    searchSummary: url ? null : state.searchSummary,
+    weatherData: url ? null : state.weatherData,
+  })),
   
-  setIsGeneratingImage: (generating) => set({ isGeneratingImage: generating }),
+  setIsGeneratingImage: (generating) => set((state) => ({
+    isGeneratingImage: generating,
+    // When starting to generate, clear competing panels
+    searchSummary: generating ? null : state.searchSummary,
+    weatherData: generating ? null : state.weatherData,
+  })),
   
   setLastGeneratedImageUrl: (url) => set({ lastGeneratedImageUrl: url }),
   
@@ -234,7 +273,37 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
     };
   }),
   
-  setIsSearching: (searching) => set({ isSearching: searching }),
+  setIsSearching: (searching) => set((state) => ({
+    isSearching: searching,
+    // When starting a search, clear competing panels
+    generatedImage: searching ? null : state.generatedImage,
+    weatherData: searching ? null : state.weatherData,
+  })),
+  
+  setSearchSummary: (summary) => set({
+    searchSummary: summary,
+    // Mutual exclusion: clear other tool panels
+    generatedImage: summary ? null : (get() as any).generatedImage,
+    weatherData: summary ? null : (get() as any).weatherData,
+  }),
+  
+  setIsFetchingWeather: (fetching) => set({ isFetchingWeather: fetching }),
+  
+  setWeatherData: (data) => set({
+    weatherData: data,
+    // Mutual exclusion
+    generatedImage: data ? null : (get() as any).generatedImage,
+    searchSummary: data ? null : (get() as any).searchSummary,
+  }),
+  
+  clearToolPanels: () => set({
+    generatedImage: null,
+    isGeneratingImage: false,
+    isSearching: false,
+    searchSummary: null,
+    isFetchingWeather: false,
+    weatherData: null,
+  }),
   
   setHasPendingSpeech: (pending) => set({ hasPendingSpeech: pending }),
   
