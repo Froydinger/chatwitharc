@@ -1,33 +1,26 @@
-## Voice Model Upgrade — Options
+## Root cause
 
-OpenAI just shipped **GPT-Realtime-2** (the post in your screenshot). Per their docs, here's what it actually brings vs. our current `gpt-realtime-1.5`:
+OpenAI's GA Realtime API (which `gpt-realtime-2` requires) rejects the legacy `openai-beta.realtime-v1` WebSocket subprotocol with `api_version_mismatch`. The proxy was correctly switched to the GA `/v1/realtime/client_secrets` endpoint last turn, but the client still sends the beta subprotocol — so every connection opens then immediately closes with code 4000.
 
-### What's new in gpt-realtime-2
-- **GPT-5-class reasoning** with **configurable `reasoning_effort`** (`minimal` / `low` / `medium` / `high`) — model can "think before it speaks"
-- **Stronger instruction following** + more reliable **tool/function calling** (big win for our `generate_image`, `web_search`, `search_past_chats` tools)
-- **Image input** in the same realtime session (text + audio + image in, text + audio out) — pairs perfectly with our existing camera/attachment flow in `useVoiceModeStore`
-- **128k context window**, **32k max output tokens** (up from 1.5)
-- Same voices (cedar, marin, etc.) — no breaking changes to our voice picker
-- Same session shape, same WebSocket protocol — drop-in compatible
-- Pricing identical to 1.5 on text input ($4/M); audio in/out same tier
+Console confirms: `"You cannot start a Realtime beta session with a GA client secret... omit the 'openai-beta: realtime=v1' header."`
 
-### Companion models also released
-- `gpt-realtime-translate` — live speech translation
-- `gpt-realtime-whisper` — new streaming transcription model
+## Fix
 
-We don't need these right now (our voice mode is conversational, not translation/dictation), so I'll **skip them** unless you say otherwise.
+In `src/hooks/useOpenAIRealtime.tsx` (line 682–689), remove the `'openai-beta.realtime-v1'` subprotocol from the `WebSocket` constructor:
 
-### Proposed changes
+```ts
+const ws = new WebSocket(
+  `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(realtimeModel)}`,
+  [
+    'realtime',
+    `openai-insecure-api-key.${realtimeSession.client_secret}`,
+    // removed: 'openai-beta.realtime-v1'
+  ]
+);
+```
 
-1. **Bump the model id** in both spots:
-   - `supabase/functions/openai-realtime-proxy/index.ts` → `OPENAI_REALTIME_MODEL = 'gpt-realtime-2'`
-   - `src/hooks/useOpenAIRealtime.tsx` → same constant
+That's the only change needed. The proxy (GA `/v1/realtime/client_secrets` with `session.type: 'realtime'`) is already correct from the previous turn.
 
-2. **Enable reasoning at `low` effort** in the proxy session creation. `low` keeps latency snappy for conversational use while still unlocking the GPT-5 reasoning gains for tool calls. (Higher = smarter but slower; we can crank it later if you want.)
+## Verification
 
-3. **No UI changes needed.** Voice picker, camera/attachment, tool-call plumbing, transcript ordering — all stay as-is. Image-input via realtime can be a follow-up if you want to push attached images directly into the realtime session instead of the current side-channel.
-
-### Want any of these as well? (just say the word)
-- **Expose reasoning effort as a setting** (low/medium/high toggle in voice settings)
-- **Wire image attachments directly into the realtime session** instead of the separate analyze flow
-- **Add `gpt-realtime-translate`** as a "Translate Mode" toggle in voice
+After applying, voice mode should connect, stay open, and auto-listen (server VAD is on by default in GA sessions). I'll watch the console for the absence of the `api_version_mismatch` close and confirm the orb transitions to "listening".

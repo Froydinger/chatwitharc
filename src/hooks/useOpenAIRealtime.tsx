@@ -684,7 +684,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         [
           'realtime',
           `openai-insecure-api-key.${realtimeSession.client_secret}`,
-          'openai-beta.realtime-v1',
         ]
       );
       globalWs = ws;
