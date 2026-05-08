@@ -604,6 +604,7 @@ When the user shares their camera or attaches an image, describe what you see na
     onImageDismiss: handleImageDismiss,
     onWebSearch: handleWebSearch,
     onSearchPastChats: handleSearchPastChats,
+    onGetWeather: handleGetWeather,
     onSessionExpired: handleSessionExpired,
   });
 
