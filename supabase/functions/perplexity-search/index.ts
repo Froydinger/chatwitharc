@@ -47,7 +47,7 @@ serve(async (req) => {
       );
     }
 
-    const { query, messages, model = 'sonar-pro', stream = false } = await req.json();
+    const { query, messages, model = 'sonar', stream = false } = await req.json();
 
     if (!query && (!messages || messages.length === 0)) {
       return new Response(

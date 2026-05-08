@@ -90,7 +90,7 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
     case 'cloud-chat-pro':
       return { label: 'Cloud · Gemini 2.5 Pro', icon: 'cloud', tooltip: 'Heavier reasoning — Google Gemini 2.5 Pro.' };
     case 'cloud-search':
-      return { label: 'Cloud · Perplexity Sonar Pro', icon: 'cloud', tooltip: 'Web search via Perplexity sonar-pro.' };
+      return { label: 'Cloud · Perplexity Sonar', icon: 'cloud', tooltip: 'Web search via Perplexity sonar.' };
     case 'cloud-search-tavily':
       return { label: 'Cloud · Tavily Search', icon: 'cloud', tooltip: 'Web search via Tavily (fallback provider).' };
     case 'cloud-vision':

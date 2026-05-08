@@ -806,9 +806,15 @@ serve(async (req) => {
       toolsToUse = tools.filter(t => t.function.name === 'update_canvas');
       console.log('🔧 Forcing update_canvas tool (canvas editing mode) - limiting to canvas tool only');
     } else if (forceWebSearch) {
-      // Web search only when not doing canvas/code editing
-      toolChoice = { type: "function", function: { name: "web_search" } };
-      console.log('🔧 Forcing web_search tool (forceWebSearch=true)');
+      // Weather queries should ALWAYS use get_weather, even if web search is forced
+      const weatherRegex = /\b(weather|forecast|temperature|temp|rain(ing|y)?|snow(ing|y)?|sunny|cloudy|humidity|wind|storm|hot|cold|degrees?|°[FC]?)\b/i;
+      if (weatherRegex.test(lastUserMessage)) {
+        toolChoice = { type: "function", function: { name: "get_weather" } };
+        console.log('🌤️ Weather query detected — forcing get_weather over web_search');
+      } else {
+        toolChoice = { type: "function", function: { name: "web_search" } };
+        console.log('🔧 Forcing web_search tool (forceWebSearch=true)');
+      }
     }
     
     // For canvas/code mode, use a trimmed system prompt for better performance
