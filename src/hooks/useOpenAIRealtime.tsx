@@ -321,6 +321,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.audio.delta':
+      case 'response.output_audio.delta':
         if (event.delta) {
           const binaryString = atob(event.delta);
           const bytes = new Uint8Array(binaryString.length);
