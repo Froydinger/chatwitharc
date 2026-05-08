@@ -720,9 +720,9 @@ export function VoiceModeOverlay() {
                 )}
               </AnimatePresence>
 
-              {/* Search Loading Indicator */}
+              {/* Search Result Card (loading or summary) */}
               <AnimatePresence>
-                {isSearching && !generatedImage && !isGeneratingImage && (
+                {(isSearching || searchSummary) && !generatedImage && !isGeneratingImage && !weatherData && !isFetchingWeather && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -730,30 +730,87 @@ export function VoiceModeOverlay() {
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
                     className="mb-8 flex justify-center w-full"
                   >
-                    <div className="flex flex-col items-center w-full max-w-[200px]">
-                      <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-muted/30 border border-primary/20">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="flex flex-col items-center gap-3">
-                            <motion.div
-                              animate={{ scale: [1, 1.2, 1] }}
-                              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                            >
-                              <Search className="w-8 h-8 text-primary/50" />
-                            </motion.div>
-                            <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                    <div className="relative w-full max-w-[320px] rounded-2xl border border-primary/20 bg-background/60 backdrop-blur-xl shadow-2xl overflow-hidden">
+                      {searchSummary && !isSearching ? (
+                        <>
+                          <button
+                            onClick={() => setSearchSummary(null)}
+                            className="absolute top-2 right-2 p-1.5 rounded-full bg-background/90 border border-border shadow hover:bg-muted transition-colors z-10"
+                            aria-label="Close search"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                          <div className="p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Search className="w-4 h-4 text-primary" />
+                              <span className="text-xs uppercase tracking-wider text-muted-foreground">Web result</span>
+                            </div>
+                            <p className="text-sm font-medium text-foreground mb-2 line-clamp-1">{searchSummary.query}</p>
+                            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-5">{searchSummary.summary}</p>
+                            {searchSummary.sources.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-1.5">
+                                {searchSummary.sources.slice(0, 4).map((s, i) => {
+                                  let domain = '';
+                                  try { domain = new URL(s.url).hostname.replace('www.', ''); } catch { domain = s.url; }
+                                  return (
+                                    <a
+                                      key={i}
+                                      href={s.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 hover:bg-primary/20 text-xs text-primary transition-colors"
+                                    >
+                                      <ExternalLink className="w-3 h-3" />
+                                      {domain}
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
+                        </>
+                      ) : (
+                        <div className="p-6 flex flex-col items-center gap-3">
+                          <motion.div
+                            animate={{ scale: [1, 1.15, 1] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                          >
+                            <Search className="w-8 h-8 text-primary/60" />
+                          </motion.div>
+                          <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                          <p className="text-sm text-muted-foreground">Searching the web...</p>
                         </div>
-                        <motion.div
-                          className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent"
-                          animate={{ x: ['-100%', '100%'] }}
-                          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                        />
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-3">Searching the web...</p>
+                      )}
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Weather Card */}
+              <AnimatePresence>
+                {(isFetchingWeather || weatherData) && !generatedImage && !isGeneratingImage && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="mb-8 flex justify-center w-full"
+                  >
+                    {isFetchingWeather && !weatherData ? (
+                      <div className="w-full max-w-[280px] p-6 flex flex-col items-center gap-3 rounded-2xl border border-primary/20 bg-background/60 backdrop-blur-xl shadow-2xl">
+                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>
+                          <Cloud className="w-8 h-8 text-primary/60" />
+                        </motion.div>
+                        <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                        <p className="text-sm text-muted-foreground">Checking the weather...</p>
+                      </div>
+                    ) : weatherData ? (
+                      <WeatherCard weather={weatherData} onClose={() => setWeatherData(null)} />
+                    ) : null}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
 
               {/* Generated Image Display */}
               <AnimatePresence>
