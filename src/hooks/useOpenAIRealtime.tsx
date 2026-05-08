@@ -290,6 +290,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.audio_transcript.delta':
+      case 'response.output_audio_transcript.delta':
         setStatus('speaking');
         const partialTranscript = event.delta || '';
         // Accumulate AI transcript separately — reset on each new response
