@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera, CameraOff, Paperclip, SwitchCamera, Check } from "lucide-react";
+import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera, CameraOff, Paperclip, SwitchCamera, Check, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, Moon, CloudFog, CloudDrizzle, ExternalLink } from "lucide-react";
 import { useVoiceModeStore, VoiceName } from "@/store/useVoiceModeStore";
 import { useMusicStore } from "@/store/useMusicStore";
 import { useCallback, useRef, useEffect, useMemo, useState } from "react";
