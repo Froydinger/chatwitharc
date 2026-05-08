@@ -535,7 +535,8 @@ serve(async (req) => {
 
     // Tool usage behavioral instructions (tools are defined via the API tools parameter - do NOT describe their schemas here)
     enhancedSystemPrompt += '\n\n--- BEHAVIORAL GUIDELINES ---\n' +
-      'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
+      'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
+      '• Use get_weather (NOT web_search) for any weather, temperature, or forecast questions. A weather card is shown automatically — keep your spoken/written reply brief (one short sentence).\n' +
       '• When web_search returns results, ALWAYS synthesize and summarize them in your own words. NEVER just say "click on the sources".\n' +
       '• You MUST use search_past_chats IMMEDIATELY (without asking) whenever the user references past conversations, e.g. "did we talk about...", "do you remember...", "we discussed...", "I mentioned...". NEVER say "I don\'t have a record" without searching first.\n' +
       '• Use save_memory whenever the user shares personal info, preferences, or asks you to remember something. Save a clear, concise third-person fact.\n' +
