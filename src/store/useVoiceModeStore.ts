@@ -40,6 +40,22 @@ interface VoiceModeState {
   
   // Web search state
   isSearching: boolean;
+  searchSummary: { query: string; summary: string; sources: { url: string; title: string }[] } | null;
+  
+  // Weather state
+  isFetchingWeather: boolean;
+  weatherData: {
+    location: string;
+    temperature: number;
+    feelsLike: number;
+    condition: string;
+    code: number;
+    high: number;
+    low: number;
+    humidity: number;
+    wind: number;
+    isDay: boolean;
+  } | null;
   
   // Track if user has spoken since unmuting (for mute-to-handoff)
   hasPendingSpeech: boolean;
