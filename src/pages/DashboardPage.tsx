@@ -720,57 +720,29 @@ useEffect(() => {
         <AnimatePresence mode="wait" initial={false}>
           {/* ====== OVERVIEW ====== */}
           {activeTab === "overview" && (
-            <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-6">
+            <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-5">
 
-              {/* Stat cards — code-block style */}
-              <div className="grid grid-cols-2 gap-2">
-                {stats.map(({ label, tab, icon: Icon, color, tw, value }) => {
-                  const isImages = label === "Images";
-                  return (
-                    <div
-                      key={label}
-                      className="relative overflow-hidden rounded-xl cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97] group"
-                      style={{ border: `1px solid hsl(${color} / 0.25)`, background: `linear-gradient(160deg, hsl(${color} / 0.08) 0%, hsl(var(--background) / 0.9) 100%)` }}
-                      onClick={() => switchTab(tab)}
-                    >
-                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b" style={{ borderColor: `hsl(${color} / 0.2)`, background: `hsl(${color} / 0.06)` }}>
-                        <div className="h-1.5 w-1.5 rounded-full opacity-70" style={{ background: `hsl(${color})` }} />
-                        <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">{label}.arc</span>
-                      </div>
-                      <div className="p-3 font-mono">
-                        <Icon className={cn("absolute bottom-1 right-1 h-12 w-12 opacity-[0.06]", tw)} />
-                        <p className="text-[10px] text-muted-foreground/60 mb-0.5">const {label.toLowerCase()} =</p>
-                        {isImages ? (
-                          <>
-                            {value !== null && <p className={cn("text-2xl font-bold leading-none", tw)}>{value}</p>}
-                            <div className={value !== null ? "mt-2" : "mt-1"}>
-                              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-[10px] text-primary font-medium hover:bg-primary/20 transition-colors">
-                                <Icon className="h-2.5 w-2.5" />
-                                View all images
-                                <ArrowRight className="h-2.5 w-2.5" />
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <p className={cn("text-2xl font-bold leading-none", tw)}>{value ?? 0}</p>
-                            <div className="mt-2">
-                              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-[10px] text-primary font-medium hover:bg-primary/20 transition-colors">
-                                <Icon className="h-2.5 w-2.5" />
-                                View all
-                                <ArrowRight className="h-2.5 w-2.5" />
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
+              {/* Quick stat chips — single clean row */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {stats.map(({ label, tab, icon: Icon, value }) => (
+                  <button
+                    key={label}
+                    onClick={() => switchTab(tab)}
+                    className="group flex items-center gap-3 px-3.5 py-3 rounded-2xl border border-primary/15 bg-primary/[0.04] hover:bg-primary/10 hover:border-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all text-left"
+                  >
+                    <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 group-hover:bg-primary/15 transition-colors">
+                      <Icon className="h-4 w-4 text-primary" />
                     </div>
-                  );
-                })}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-lg font-semibold text-foreground leading-none tabular-nums">{value ?? 0}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1 uppercase tracking-wider truncate">{label}</p>
+                    </div>
+                  </button>
+                ))}
               </div>
 
-              {/* Insight tip */}
-              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-primary/15 bg-primary/5">
+              {/* Insight tip — subtle inline */}
+              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-primary/15 bg-primary/[0.04]">
                 <Sparkles className="h-4 w-4 text-primary shrink-0" />
                 <p className="text-sm text-foreground/80">{insightTip}</p>
               </div>
@@ -781,34 +753,31 @@ useEffect(() => {
                   <EmptyState icon={MessageSquare} text="No chats yet" sub="Start a conversation above!" />
                 ) : (
                   <div className="space-y-1.5">
-                    {allChats.slice(0, 3).map((session, i) => (
+                    {allChats.slice(0, 5).map((session, i) => (
                       <ChatCard key={session.id} session={session} timeAgo={timeAgo} onClick={() => { loadSession(session.id); navigate(`/chat/${session.id}`); }} index={i} />
                     ))}
                   </div>
                 )}
               </Section>
 
-
               {/* Memories */}
-              <div className="grid grid-cols-1 gap-4">
-                <Section title="Memories" icon={Brain} action={() => switchTab("memories")} actionLabel="See all" count={contextBlocks.length}>
-                  {blocksLoading ? <SkeletonList count={3} /> : contextBlocks.length === 0 ? (
-                    <EmptyState icon={Brain} text="No memories yet" sub='Say "remember that..."' />
-                  ) : (
-                    <div className="space-y-1.5">
-                      {contextBlocks.slice(0, 3).map((block, i) => (
-                        <div
-                          key={block.id}
-                          className="group p-3 rounded-xl border border-border/30 bg-muted/20 hover:border-primary/20 hover:bg-primary/5 transition-all"
-                        >
-                          <p className="text-sm text-foreground/90 line-clamp-2 leading-relaxed">{block.content}</p>
-                          <span className="text-[10px] text-muted-foreground mt-1.5 block uppercase tracking-wider">{timeAgo(block.created_at)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </Section>
-              </div>
+              <Section title="Memories" icon={Brain} action={() => switchTab("memories")} actionLabel="See all" count={contextBlocks.length}>
+                {blocksLoading ? <SkeletonList count={3} /> : contextBlocks.length === 0 ? (
+                  <EmptyState icon={Brain} text="No memories yet" sub='Say "remember that..."' />
+                ) : (
+                  <div className="space-y-1.5">
+                    {contextBlocks.slice(0, 4).map((block) => (
+                      <div
+                        key={block.id}
+                        className="group p-3 rounded-xl border border-border/30 bg-muted/15 hover:border-primary/25 hover:bg-primary/5 transition-all"
+                      >
+                        <p className="text-sm text-foreground/90 line-clamp-2 leading-relaxed">{block.content}</p>
+                        <span className="text-[10px] text-muted-foreground mt-1.5 block uppercase tracking-wider">{timeAgo(block.created_at)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Section>
             </motion.div>
           )}
 
@@ -1258,11 +1227,11 @@ useEffect(() => {
           ref={setPillRef}
           className="flex items-center px-2 gap-1 py-3 rounded-full pointer-events-auto relative mx-5 sm:mx-8 w-[calc(100%-40px)] sm:w-[420px] md:w-[480px]"
           style={{
-            background: 'hsl(var(--background) / 0.85)',
-            backdropFilter: 'blur(24px) saturate(120%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(120%)',
-            border: '1px solid hsl(var(--border) / 0.5)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 hsl(var(--foreground) / 0.08)',
+            background: 'linear-gradient(135deg, hsl(var(--primary) / 0.14) 0%, hsl(var(--primary) / 0.08) 50%, hsl(var(--primary) / 0.14) 100%), hsl(var(--background) / 0.55)',
+            backdropFilter: 'blur(24px) saturate(140%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(140%)',
+            border: '1px solid hsl(var(--primary) / 0.28)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 18px hsl(var(--primary) / 0.12), inset 0 1px 0 hsl(var(--foreground) / 0.08)',
           }}
         >
           {/* Jelly bubble — rendered first so tabs stack above it visually but bubble captures pointer via z-index */}
