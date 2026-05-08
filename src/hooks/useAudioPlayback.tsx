@@ -86,6 +86,11 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     if (isInterruptedRef.current) return;
     
     const audioContext = initAudioContext();
+    if (audioContext.state === 'suspended') {
+      audioContext.resume().catch((error) => {
+        console.warn('Unable to resume playback AudioContext:', error);
+      });
+    }
     
     // Convert Int16 to Float32
     const float32Data = new Float32Array(audioData.length);
@@ -108,11 +113,19 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
       source.connect(audioContext.destination);
     }
     
-    // Schedule gapless playback
-    const now = audioContext.currentTime;
-    const startTime = Math.max(now, nextStartTimeRef.current);
-    source.start(startTime);
-    nextStartTimeRef.current = startTime + audioBuffer.duration;
+    // Schedule gapless playback. Browser audio can throw if the context is
+    // closed/suspended during a reconnect or page lifecycle transition; contain
+    // that so one bad chunk never crashes the whole app.
+    try {
+      const now = audioContext.currentTime;
+      const startTime = Math.max(now, nextStartTimeRef.current);
+      source.start(startTime);
+      nextStartTimeRef.current = startTime + audioBuffer.duration;
+    } catch (error) {
+      console.warn('Failed to schedule voice audio chunk; dropping chunk:', error);
+      try { source.disconnect(); } catch (_) {}
+      return;
+    }
     
     // Track active source for cleanup
     activeSourcesRef.current.add(source);

@@ -8,6 +8,7 @@ interface UseAudioCaptureOptions {
 
 export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
   const { sampleRate = 24000 } = options;
+  const optionsRef = useRef(options);
   
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -20,6 +21,10 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   
   const { setInputAmplitude } = useVoiceModeStore();
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
   
   // Resume AudioContext when app returns from background (iOS/Android)
   const handleVisibilityChange = useCallback(() => {
@@ -118,7 +123,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
           int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
         }
         
-        options.onAudioData?.(int16Data);
+        optionsRef.current.onAudioData?.(int16Data);
       };
 
       source.connect(scriptProcessor);
@@ -165,7 +170,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
 
       throw error;
     }
-  }, [sampleRate, options, setInputAmplitude]);
+  }, [sampleRate, setInputAmplitude, handleVisibilityChange]);
 
   const stopCapture = useCallback(() => {
     // Stop animation frame

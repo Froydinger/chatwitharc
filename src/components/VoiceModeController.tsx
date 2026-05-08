@@ -759,8 +759,8 @@ When the user shares their camera or attaches an image, describe what you see na
           const voiceSystemPrompt = await buildVoiceSystemPrompt(profileRef.current, recentChatSummary);
           console.log('Voice mode using unified system prompt with dynamic chat search');
 
-          await connect(voiceSystemPrompt);
           await startCapture();
+          await connect(voiceSystemPrompt);
           console.log('Voice mode initialized');
         } catch (error: any) {
           console.error('Failed to initialize voice mode:', error);
@@ -816,7 +816,7 @@ When the user shares their camera or attaches an image, describe what you see na
         savedTurnIndex = 0;
       });
     }
-  }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, addMessage, toast, deactivateVoiceMode, saveNewTurns]);
+  }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, toast, deactivateVoiceMode, saveNewTurns]);
 
   // Periodic auto-save every 30s during active voice mode (reduced from 60s to
   // minimise data loss if a crash occurs between saves)

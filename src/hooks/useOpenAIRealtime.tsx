@@ -188,6 +188,19 @@ const clearConnectionTimers = () => {
   }
 };
 
+const sendRealtimeEvent = (payload: Record<string, unknown>): boolean => {
+  const ws = globalWs;
+  if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+
+  try {
+    ws.send(JSON.stringify(payload));
+    return true;
+  } catch (error) {
+    console.warn('Realtime send failed; connection likely changed state:', error);
+    return false;
+  }
+};
+
 export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   const [isConnected, setIsConnected] = useState(false);
   
@@ -209,30 +222,31 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     
     console.log('Sending function result:', { callId, reasoningEffort });
     
-    globalWs.send(JSON.stringify({
+    const outputSent = sendRealtimeEvent({
       type: 'conversation.item.create',
       item: {
         type: 'function_call_output',
         call_id: callId,
         output: result
       }
-    }));
+    });
+    if (!outputSent) return;
     
     awaitingToolResponse = true;
     
-    globalWs.send(JSON.stringify({
+    sendRealtimeEvent({
       type: 'response.create',
       response: {
         reasoning: { effort: reasoningEffort },
       },
-    }));
+    });
   }, []);
 
   // Clear audio buffer to prevent leftover audio from previous turns
   const clearAudioBuffer = useCallback(() => {
     if (globalWs?.readyState === WebSocket.OPEN) {
       console.log('Clearing input audio buffer');
-      globalWs.send(JSON.stringify({ type: 'input_audio_buffer.clear' }));
+      sendRealtimeEvent({ type: 'input_audio_buffer.clear' });
     }
   }, []);
 
@@ -532,6 +546,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (awaitingToolResponse) {
           console.log('Allowing tool-triggered response through phantom guard');
           awaitingToolResponse = false;
+          setStatus('thinking');
           break;
         }
 
@@ -540,13 +555,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // often arrives AFTER response.created, so we cannot wait on it.
         if (userSpokeAfterLastResponse || hasRealTranscription) {
           console.log('Allowing response — user speech detected by server VAD');
+          setStatus('thinking');
           break;
         }
 
         // No speech detected at all — cancel immediately (true phantom)
         console.log('Cancelling phantom response — no speech_started fired');
         if (globalWs?.readyState === WebSocket.OPEN) {
-          globalWs.send(JSON.stringify({ type: 'response.cancel' }));
+          sendRealtimeEvent({ type: 'response.cancel' });
         }
         break;
 
@@ -750,11 +766,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         keepaliveInterval = setInterval(() => {
           if (globalWs?.readyState === WebSocket.OPEN && sessionReady) {
-            try {
-              globalWs.send(JSON.stringify({ type: 'session.update', session: { type: 'realtime' } }));
-            } catch (err) {
-              console.warn('Keepalive ping failed:', err);
-            }
+            sendRealtimeEvent({ type: 'session.update', session: { type: 'realtime' } });
           }
         }, 20000);
 
@@ -790,7 +802,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           globalWs.close(1000, 'proactive_refresh');
         }, PROACTIVE_REFRESH_MS);
         
-        ws.send(JSON.stringify({
+        sendRealtimeEvent({
           type: 'session.update',
           session: {
             type: 'realtime',
@@ -892,7 +904,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               }
             ]
           }
-        }));
+        });
       };
 
       ws.onmessage = (event) => {
@@ -1010,10 +1022,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
     const base64Audio = btoa(binary);
     
-    globalWs.send(JSON.stringify({
+    sendRealtimeEvent({
       type: 'input_audio_buffer.append',
       audio: base64Audio
-    }));
+    });
   }, []);
 
   // Sync connection state
@@ -1027,7 +1039,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     if (globalWs?.readyState !== WebSocket.OPEN) return;
     
     console.log('Manually cancelling AI response');
-    globalWs.send(JSON.stringify({ type: 'response.cancel' }));
+    sendRealtimeEvent({ type: 'response.cancel' });
   }, []);
 
   // Commit the current audio buffer and trigger AI response
@@ -1050,8 +1062,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
     console.log('Committing audio buffer and triggering response (mute handoff)');
 
-    globalWs.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
-    globalWs.send(JSON.stringify({ type: 'response.create' }));
+    const committed = sendRealtimeEvent({ type: 'input_audio_buffer.commit' });
+    if (!committed) return false;
+    sendRealtimeEvent({ type: 'response.create' });
 
     setStatus('thinking');
     setHasPendingSpeech(false);
@@ -1089,24 +1102,24 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       });
     }
 
-    globalWs.send(JSON.stringify({
+    sendRealtimeEvent({
       type: 'conversation.item.create',
       item: {
         type: 'message',
         role: 'user',
         content,
       },
-    }));
+    });
 
     if (!isLiveCamera) {
       // Vision needs more thought than casual chat — bump reasoning effort just
       // for this response. Subsequent turns fall back to the session default.
-      globalWs.send(JSON.stringify({
+      sendRealtimeEvent({
         type: 'response.create',
         response: {
           reasoning: { effort: 'medium' },
         },
-      }));
+      });
     }
   }, []);
 
