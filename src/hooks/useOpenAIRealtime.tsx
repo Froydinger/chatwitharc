@@ -11,6 +11,7 @@ interface UseOpenAIRealtimeOptions {
   onImageDismiss?: () => void;
   onWebSearch?: (query: string) => Promise<string>;
   onSearchPastChats?: (query: string) => Promise<string>;
+  onGetWeather?: (location: string) => Promise<string>;
   // Called when a session expires so the controller can inject conversation
   // context into the fresh session's system prompt.
   onSessionExpired?: () => Promise<string | undefined>;
