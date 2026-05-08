@@ -749,6 +749,24 @@ serve(async (req) => {
             additionalProperties: false
           }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "get_weather",
+          description: "Get current weather conditions for a specific location. Use this whenever the user asks about weather, temperature, forecast, or conditions for a place. A weather card will be displayed to the user automatically.",
+          parameters: {
+            type: "object",
+            properties: {
+              location: {
+                type: "string",
+                description: "City name, e.g. 'Chicago', 'Oak Forest, IL', 'Tokyo, Japan'"
+              }
+            },
+            required: ["location"],
+            additionalProperties: false
+          }
+        }
       }
     ];
 
