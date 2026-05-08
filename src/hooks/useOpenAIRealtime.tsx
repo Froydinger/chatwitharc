@@ -188,6 +188,19 @@ const clearConnectionTimers = () => {
   }
 };
 
+const sendRealtimeEvent = (payload: Record<string, unknown>): boolean => {
+  const ws = globalWs;
+  if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+
+  try {
+    ws.send(JSON.stringify(payload));
+    return true;
+  } catch (error) {
+    console.warn('Realtime send failed; connection likely changed state:', error);
+    return false;
+  }
+};
+
 export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   const [isConnected, setIsConnected] = useState(false);
   
@@ -209,30 +222,31 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     
     console.log('Sending function result:', { callId, reasoningEffort });
     
-    globalWs.send(JSON.stringify({
+    const outputSent = sendRealtimeEvent({
       type: 'conversation.item.create',
       item: {
         type: 'function_call_output',
         call_id: callId,
         output: result
       }
-    }));
+    });
+    if (!outputSent) return;
     
     awaitingToolResponse = true;
     
-    globalWs.send(JSON.stringify({
+    sendRealtimeEvent({
       type: 'response.create',
       response: {
         reasoning: { effort: reasoningEffort },
       },
-    }));
+    });
   }, []);
 
   // Clear audio buffer to prevent leftover audio from previous turns
   const clearAudioBuffer = useCallback(() => {
     if (globalWs?.readyState === WebSocket.OPEN) {
       console.log('Clearing input audio buffer');
-      globalWs.send(JSON.stringify({ type: 'input_audio_buffer.clear' }));
+      sendRealtimeEvent({ type: 'input_audio_buffer.clear' });
     }
   }, []);
 
