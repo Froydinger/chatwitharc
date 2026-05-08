@@ -724,7 +724,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         keepaliveInterval = setInterval(() => {
           if (globalWs?.readyState === WebSocket.OPEN && sessionReady) {
             try {
-              globalWs.send(JSON.stringify({ type: 'session.update', session: {} }));
+              globalWs.send(JSON.stringify({ type: 'session.update', session: { type: 'realtime' } }));
             } catch (err) {
               console.warn('Keepalive ping failed:', err);
             }
@@ -766,21 +766,27 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         ws.send(JSON.stringify({
           type: 'session.update',
           session: {
-            modalities: ['text', 'audio'],
+            type: 'realtime',
             instructions: systemPrompt || `You're Arc - a calm, friendly voice assistant. Be warm, conversational, and genuine. Keep responses concise. CRITICAL RULE: NEVER speak unless the user has spoken first. Do NOT say things like "no rush", "take your time", "I'm here whenever you're ready", or any filler when there is silence. Simply wait quietly until the user speaks. When generating an image, say something casual and friendly first like "Hold on one sec while I whip that up for you" or "Let me create that for you real quick" before calling the generate_image function.`,
-            voice: safeVoice,
-            input_audio_format: 'pcm16',
-            output_audio_format: 'pcm16',
-            input_audio_transcription: {
-              model: 'whisper-1'
+            output_modalities: ['audio'],
+            audio: {
+              input: {
+                format: { type: 'audio/pcm', rate: 24000 },
+                transcription: { model: 'whisper-1' },
+                turn_detection: {
+                  type: 'server_vad',
+                  threshold: 0.5,
+                  prefix_padding_ms: 300,
+                  silence_duration_ms: 700,
+                  create_response: true,
+                },
+              },
+              output: {
+                format: { type: 'audio/pcm', rate: 24000 },
+                voice: safeVoice,
+              },
             },
-            turn_detection: {
-              type: 'server_vad',
-              threshold: 0.97,
-              prefix_padding_ms: 600,
-              silence_duration_ms: 2000,
-              create_response: true
-            },
+            tool_choice: 'auto',
             tools: [
                 {
                 type: 'function',
