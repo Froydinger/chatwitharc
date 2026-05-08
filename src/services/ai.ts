@@ -502,8 +502,8 @@ export class AIService {
       // Support both single image and array of images
       const images = Array.isArray(base64Images) ? base64Images : [base64Images];
 
-      if (images.length > 4) {
-        throw new Error('Maximum 4 images allowed for analysis');
+      if (images.length > 16) {
+        throw new Error('Maximum 16 images allowed for analysis');
       }
 
       // Use model family's image analysis model
