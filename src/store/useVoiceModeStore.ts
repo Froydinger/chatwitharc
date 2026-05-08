@@ -267,7 +267,12 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
     };
   }),
   
-  setIsSearching: (searching) => set({ isSearching: searching }),
+  setIsSearching: (searching) => set((state) => ({
+    isSearching: searching,
+    // When starting a search, clear competing panels
+    generatedImage: searching ? null : state.generatedImage,
+    weatherData: searching ? null : state.weatherData,
+  })),
   
   setSearchSummary: (summary) => set({
     searchSummary: summary,
