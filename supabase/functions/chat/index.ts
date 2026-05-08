@@ -539,7 +539,7 @@ serve(async (req) => {
       '• Use get_weather (NOT web_search) for any weather, temperature, or forecast questions. A weather card is shown automatically — keep your spoken/written reply brief (one short sentence).\n' +
       '• When web_search returns results, ALWAYS synthesize and summarize them in your own words. NEVER just say "click on the sources".\n' +
       '• You MUST use search_past_chats IMMEDIATELY (without asking) whenever the user references past conversations, e.g. "did we talk about...", "do you remember...", "we discussed...", "I mentioned...". NEVER say "I don\'t have a record" without searching first.\n' +
-      '• Use save_memory whenever the user shares personal info, preferences, or asks you to remember something. Save a clear, concise third-person fact.\n' +
+      '• Use save_memory whenever the user shares personal info, preferences, or asks you to remember something. Save a clear, concise third-person fact. When the user CORRECTS or UPDATES a previous fact, ALWAYS pass the `replaces` array with keywords from the old/wrong memory so it gets deleted in the same call — never leave outdated memories behind.\n' +
       '• Default to conversation, not coding. Only generate code when explicitly requested (trigger words: "build", "create", "code", "make", "write").\n' +
       '• When coding, use markdown code blocks (```html, ```css, ```js).\n' +
       '• When the user asks about publishing, deploying, or hosting an app or website, tell them to use Maestro Builder at https://maestrobuilder.app — always present this as a clickable markdown link: [Maestro Builder](https://maestrobuilder.app).\n' +
@@ -737,13 +737,18 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "save_memory",
-          description: "Save a personal fact or preference about the user to long-term memory. Use this when the user shares personal information (preferences, facts, interests, work details) or explicitly asks you to remember something. Save a clear third-person statement like 'Jake likes soda' or 'Jake works at Google'. Do NOT save trivial or temporary information.",
+          description: "Save or UPDATE a personal fact about the user to long-term memory. Use this when the user shares info, asks you to remember something, OR corrects a previous memory. When correcting/replacing outdated info (e.g. user says 'actually it's X, not Y' or 'update that'), ALWAYS pass the `replaces` array with distinctive keywords from the OLD fact so it gets removed — otherwise the old wrong memory will keep resurfacing. Save a clear third-person statement like 'Jake uses a Galaxy Flip 7'.",
           parameters: {
             type: "object",
             properties: {
               memory: {
                 type: "string",
                 description: "A clear, concise third-person fact about the user to remember. Use the user's actual name if known."
+              },
+              replaces: {
+                type: "array",
+                items: { type: "string" },
+                description: "Optional. Distinctive keywords/phrases from any OLD memory that this new fact replaces or contradicts (e.g. ['Galaxy S7', 'S7 on a $50 plan']). Any existing memory containing these substrings will be deleted before saving the new one. Use this on EVERY correction."
               }
             },
             required: ["memory"],
@@ -1366,10 +1371,28 @@ Output the complete, finished writing using the update_canvas tool.`;
         } else if (toolCall.function.name === 'save_memory') {
           const args = JSON.parse(toolCall.function.arguments);
           const memoryContent = args.memory?.trim();
+          const replaces: string[] = Array.isArray(args.replaces) ? args.replaces.filter((s: any) => typeof s === 'string' && s.trim().length > 0) : [];
           
           if (memoryContent) {
             try {
-              // Save to context_blocks table
+              // Delete any existing memories that match the `replaces` substrings (case-insensitive)
+              let deletedCount = 0;
+              if (replaces.length > 0) {
+                const { data: existing } = await supabase
+                  .from('context_blocks')
+                  .select('id, content')
+                  .eq('user_id', user.id);
+                const toDelete = (existing || []).filter((row: any) => {
+                  const c = (row.content || '').toLowerCase();
+                  return replaces.some(r => c.includes(r.toLowerCase()));
+                }).map((r: any) => r.id);
+                if (toDelete.length > 0) {
+                  await supabase.from('context_blocks').delete().in('id', toDelete);
+                  deletedCount = toDelete.length;
+                  console.log(`🗑️ Replaced ${deletedCount} outdated memory block(s)`);
+                }
+              }
+
               const { error: insertError } = await supabase
                 .from('context_blocks')
                 .insert({
@@ -1388,10 +1411,11 @@ Output the complete, finished writing using the update_canvas tool.`;
               } else {
                 console.log('💾 Memory saved:', memoryContent);
                 memorySaved = { content: memoryContent };
+                const replaceNote = deletedCount > 0 ? ` (replaced ${deletedCount} outdated entry/entries)` : '';
                 conversationMessages.push({
                   role: 'tool',
                   tool_call_id: toolCall.id,
-                  content: `Memory saved successfully: "${memoryContent}". Briefly acknowledge you'll remember this, then continue the conversation naturally.`
+                  content: `Memory saved successfully${replaceNote}: "${memoryContent}". Briefly acknowledge you'll remember this, then continue the conversation naturally.`
                 });
               }
             } catch (err) {
