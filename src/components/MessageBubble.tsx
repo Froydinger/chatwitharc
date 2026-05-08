@@ -24,6 +24,7 @@ import { ThemedLogo } from "@/components/ThemedLogo";
 import { MemoryIndicator } from "@/components/MemoryIndicator";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
 import { ModelSourceBadge } from "@/components/ModelSourceBadge";
+import { WeatherCard } from "@/components/WeatherCard";
 
 // Stable module-level constant — never recreated on re-render, so iframes never remount
 const markdownComponents = {
@@ -229,6 +230,18 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   prompt={message.imagePrompt || message.content}
                   onComplete={() => {}}
                 />
+              )}
+
+              {/* Weather Card */}
+              {!isUser && message.weatherData && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mb-3 relative z-10 flex justify-start"
+                >
+                  <WeatherCard weather={message.weatherData} />
+                </motion.div>
               )}
 
               {/* Images */}

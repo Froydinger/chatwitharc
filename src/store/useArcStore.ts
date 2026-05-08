@@ -83,6 +83,7 @@ export interface Message {
   ideFileCount?: number; // Number of files generated
   ideProjectId?: string; // Database project ID for cloud persistence
   memoryAction?: MemoryAction; // Track memory/search actions
+  weatherData?: import('@/components/WeatherCard').WeatherData; // Inline weather card
   // Which model produced this response. Mirrors RouteDestination so the
   // badge can show the exact model name (e.g. "Gemini 2.5 Pro" vs "Flash").
   sourceModel?:

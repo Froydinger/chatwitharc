@@ -21,9 +21,9 @@ function sanitizeLeakedToolCalls(text: string): string {
   // Match JSON objects that look like tool calls: {"name": "tool_name", "arguments": ...}
   // or {"type": "function", "function": ...}
   const toolCallPatterns = [
-    /\{[\s\n]*"name"\s*:\s*"(?:web_search|search_past_chats|save_memory|generate_file|update_canvas|update_code)"[\s\S]*?"arguments"\s*:\s*\{[\s\S]*?\}\s*\}/g,
+    /\{[\s\n]*"name"\s*:\s*"(?:web_search|search_past_chats|save_memory|generate_file|update_canvas|update_code|get_weather)"[\s\S]*?"arguments"\s*:\s*\{[\s\S]*?\}\s*\}/g,
     /\{[\s\n]*"type"\s*:\s*"function"[\s\S]*?"function"\s*:\s*\{[\s\S]*?\}\s*\}/g,
-    /```(?:json)?\s*\{[\s\n]*"(?:name|type)"\s*:\s*"(?:web_search|search_past_chats|save_memory|generate_file|update_canvas|update_code|function)"[\s\S]*?\}\s*```/g,
+    /```(?:json)?\s*\{[\s\n]*"(?:name|type)"\s*:\s*"(?:web_search|search_past_chats|save_memory|generate_file|update_canvas|update_code|get_weather|function)"[\s\S]*?\}\s*```/g,
     // Catch leaked DALL-E / image generation tool call patterns
     /\{[\s\n]*"action"\s*:\s*"[^"]*"[\s\S]*?"action_input"\s*:\s*[\s\S]*?\}\s*\}?\s*$/gm,
     /\{[\s\n]*"action"\s*:\s*"[^"]*"[\s\S]*?"thought"\s*:\s*"[\s\S]*?"\s*\}/g,
@@ -535,7 +535,8 @@ serve(async (req) => {
 
     // Tool usage behavioral instructions (tools are defined via the API tools parameter - do NOT describe their schemas here)
     enhancedSystemPrompt += '\n\n--- BEHAVIORAL GUIDELINES ---\n' +
-      'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
+      'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
+      '• Use get_weather (NOT web_search) for any weather, temperature, or forecast questions. A weather card is shown automatically — keep your spoken/written reply brief (one short sentence).\n' +
       '• When web_search returns results, ALWAYS synthesize and summarize them in your own words. NEVER just say "click on the sources".\n' +
       '• You MUST use search_past_chats IMMEDIATELY (without asking) whenever the user references past conversations, e.g. "did we talk about...", "do you remember...", "we discussed...", "I mentioned...". NEVER say "I don\'t have a record" without searching first.\n' +
       '• Use save_memory whenever the user shares personal info, preferences, or asks you to remember something. Save a clear, concise third-person fact.\n' +
@@ -746,6 +747,24 @@ serve(async (req) => {
               }
             },
             required: ["memory"],
+            additionalProperties: false
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "get_weather",
+          description: "Get current weather conditions for a specific location. Use this whenever the user asks about weather, temperature, forecast, or conditions for a place. A weather card will be displayed to the user automatically.",
+          parameters: {
+            type: "object",
+            properties: {
+              location: {
+                type: "string",
+                description: "City name, e.g. 'Chicago', 'Oak Forest, IL', 'Tokyo, Japan'"
+              }
+            },
+            required: ["location"],
             additionalProperties: false
           }
         }
@@ -1234,6 +1253,7 @@ Output the complete, finished writing using the update_canvas tool.`;
     let searchProvider: 'perplexity' | 'tavily' | undefined;
     let canvasUpdate: { content: string; label?: string } | null = null;
     let codeUpdate: { code: string; language: string; label?: string } | null = null;
+    let weatherData: any = null;
     
     // Check if the AI wants to use tools (web search or chat search)
     let memorySaved: { content: string } | null = null;
@@ -1377,7 +1397,35 @@ Output the complete, finished writing using the update_canvas tool.`;
               });
             }
           }
+        } else if (toolCall.function.name === 'get_weather') {
+          const args = JSON.parse(toolCall.function.arguments);
+          try {
+            const wxResp = await supabase.functions.invoke('get-weather', {
+              body: { location: args.location },
+            });
+            if (wxResp.error || wxResp.data?.error) {
+              conversationMessages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: `Weather lookup failed for "${args.location}": ${wxResp.data?.error || wxResp.error?.message || 'unknown error'}. Apologize briefly.`,
+              });
+            } else {
+              weatherData = wxResp.data;
+              conversationMessages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: `Weather card displayed for ${weatherData.location}: ${weatherData.temperature}°F, ${weatherData.condition}, H ${weatherData.high}°/L ${weatherData.low}°. Acknowledge briefly in one short sentence — do NOT repeat all the numbers since the card shows them.`,
+              });
+            }
+          } catch (e: any) {
+            conversationMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: `Weather lookup error: ${e?.message || 'unknown'}.`,
+            });
+          }
         }
+      }
       }
       
       // For code/canvas updates, skip the second API call entirely - we already have the output!
@@ -1483,7 +1531,8 @@ Output the complete, finished writing using the update_canvas tool.`;
       search_provider: searchProvider,
       canvas_update: canvasUpdate,
       code_update: codeUpdate,
-      memory_saved: memorySaved
+      memory_saved: memorySaved,
+      weather_data: weatherData,
     };
     
     // NOTE: We no longer save from the backend - the frontend handles all persistence.

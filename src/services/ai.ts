@@ -74,6 +74,7 @@ export interface SendMessageResult {
   canvasUpdate?: CanvasUpdate;
   codeUpdate?: CodeUpdate;
   memorySaved?: { content: string };
+  weatherData?: import('@/components/WeatherCard').WeatherData;
 }
 
 export class AIService {
@@ -240,7 +241,8 @@ export class AIService {
             searchProvider: data.search_provider,
             canvasUpdate: data.canvas_update,
             codeUpdate: data.code_update,
-            memorySaved: data.memory_saved
+            memorySaved: data.memory_saved,
+            weatherData: data.weather_data
           };
         } catch (err: any) {
           lastError = err;
