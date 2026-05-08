@@ -256,7 +256,7 @@ export function VoiceModeOverlay() {
       previousTrackRef.current = null;
       wasPlayingRef.current = false;
     }
-  }, [isSearching, isGeneratingImage]);
+  }, [isSearching, isGeneratingImage, isFetchingWeather]);
 
   // Handle interrupt button press
   const handleInterrupt = useCallback(() => {
