@@ -68,8 +68,8 @@ serve(async (req) => {
       });
     }
 
-    if (imageArray.length > 4) {
-      return new Response(JSON.stringify({ error: 'Maximum 4 images allowed for analysis' }), {
+    if (imageArray.length > 16) {
+      return new Response(JSON.stringify({ error: 'Maximum 16 images allowed for analysis' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
