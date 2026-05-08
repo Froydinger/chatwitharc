@@ -560,7 +560,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // No speech detected at all — cancel immediately (true phantom)
         console.log('Cancelling phantom response — no speech_started fired');
         if (globalWs?.readyState === WebSocket.OPEN) {
-          globalWs.send(JSON.stringify({ type: 'response.cancel' }));
+          sendRealtimeEvent({ type: 'response.cancel' });
         }
         break;
 
@@ -764,11 +764,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         keepaliveInterval = setInterval(() => {
           if (globalWs?.readyState === WebSocket.OPEN && sessionReady) {
-            try {
-              globalWs.send(JSON.stringify({ type: 'session.update', session: { type: 'realtime' } }));
-            } catch (err) {
-              console.warn('Keepalive ping failed:', err);
-            }
+            sendRealtimeEvent({ type: 'session.update', session: { type: 'realtime' } });
           }
         }, 20000);
 
@@ -804,7 +800,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           globalWs.close(1000, 'proactive_refresh');
         }, PROACTIVE_REFRESH_MS);
         
-        ws.send(JSON.stringify({
+        sendRealtimeEvent({
           type: 'session.update',
           session: {
             type: 'realtime',
@@ -906,7 +902,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               }
             ]
           }
-        }));
+        });
       };
 
       ws.onmessage = (event) => {
