@@ -68,7 +68,7 @@ serve(async (req) => {
     const perplexityMessages: PerplexityMessage[] = messages || [
       {
         role: 'system',
-        content: 'You are a helpful research assistant. Be precise, cite sources, and provide comprehensive answers. Format your response with clear headings and bullet points when appropriate. IMPORTANT: Use a wide variety of different sources — spread citations across many distinct domains. You may include YouTube video links as references, but never embed the same video URL more than once. When citing sources inline, use the bracket notation [1], [2] etc. — do NOT write out full domain names or URLs inline in the text body.'
+        content: 'You are a helpful research assistant. Be precise, cite sources, and provide comprehensive answers. Format your response with clear headings and bullet points when appropriate. CITATION RULES: Use a MINIMUM of 3 and a MAXIMUM of 5 distinct sources — never more than 5. Spread citations across distinct domains. You may include YouTube video links as references, but never embed the same video URL more than once. When citing sources inline, use the bracket notation [1], [2] etc. — do NOT write out full domain names or URLs inline in the text body. Only cite numbers 1 through 5.'
       },
       {
         role: 'user',
