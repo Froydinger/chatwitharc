@@ -43,12 +43,47 @@ function buildQueryVariants(raw: string): string[] {
   return Array.from(variants).filter(Boolean);
 }
 
-async function geocode(query: string): Promise<any | null> {
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
+// Extract state hint (full name or 2-letter code) from query
+function extractStateHint(raw: string): string | null {
+  const parts = raw.split(',').map(p => p.trim()).filter(Boolean);
+  for (const p of parts) {
+    const upper = p.toUpperCase().replace(/\./g, '');
+    if (US_STATES[upper]) return US_STATES[upper];
+    const match = Object.values(US_STATES).find(s => s.toLowerCase() === p.toLowerCase());
+    if (match) return match;
+  }
+  // Also check inline tokens like "Plainfield IL"
+  const tokens = raw.replace(/[,.]/g, ' ').split(/\s+/).filter(Boolean);
+  for (const t of tokens) {
+    const upper = t.toUpperCase();
+    if (upper.length === 2 && US_STATES[upper]) return US_STATES[upper];
+  }
+  return null;
+}
+
+function buildQueryVariants(raw: string): string[] {
+  const cleaned = raw.trim();
+  const variants = new Set<string>();
+  variants.add(cleaned);
+  const noZip = cleaned.replace(/\b\d{5}(-\d{4})?\b/g, '').replace(/,\s*,/g, ',').replace(/,\s*$/, '').trim();
+  if (noZip) variants.add(noZip);
+  const firstPart = noZip.split(',')[0]?.trim();
+  if (firstPart) variants.add(firstPart);
+  return Array.from(variants).filter(Boolean);
+}
+
+async function geocode(query: string, stateHint: string | null): Promise<any | null> {
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json`;
   try {
     const res = await fetch(url);
     const data = await res.json();
-    return data?.results?.[0] || null;
+    const results: any[] = data?.results || [];
+    if (results.length === 0) return null;
+    if (stateHint) {
+      const matched = results.find(r => (r.admin1 || '').toLowerCase() === stateHint.toLowerCase());
+      if (matched) return matched;
+    }
+    return results[0];
   } catch {
     return null;
   }
@@ -65,10 +100,10 @@ serve(async (req) => {
       });
     }
 
-    // Try multiple variants
+    const stateHint = extractStateHint(location);
     let place: any = null;
     for (const q of buildQueryVariants(location)) {
-      place = await geocode(q);
+      place = await geocode(q, stateHint);
       if (place) break;
     }
 
