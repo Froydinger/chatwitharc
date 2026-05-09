@@ -273,6 +273,16 @@ const deliverFunctionResult = (
   result: string,
   reasoningEffort: ReasoningEffort = 'low'
 ): boolean => {
+  if (!toolCallsInFlight.has(callId)) {
+    logVoiceDiagnostic({
+      event_type: 'stale_tool_result_dropped',
+      message: 'Tool result belonged to an old or closed realtime session',
+      tool_call_id: callId,
+      details: { resultLength: result.length, reasoningEffort },
+    });
+    return false;
+  }
+
   if (globalWs?.readyState !== WebSocket.OPEN) {
     logVoiceDiagnostic({
       event_type: 'tool_result_dropped',
