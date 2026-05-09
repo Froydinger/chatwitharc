@@ -1466,6 +1466,7 @@ Output the complete, finished writing using the update_canvas tool.`;
           body: JSON.stringify({
             model: model || 'google/gemini-3-flash-preview',
             messages: synthesisMessages,
+            temperature: 0.6,
             ...tokenParam,
           }),
         });
