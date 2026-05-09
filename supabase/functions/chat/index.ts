@@ -96,61 +96,8 @@ interface WebSearchResponse {
   searchProvider: 'perplexity' | 'tavily';
 }
 
-// Web search using Perplexity (primary) with Tavily fallback
+// Web search using Tavily
 async function webSearch(query: string): Promise<WebSearchResponse> {
-  // Try Perplexity first
-  const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
-  if (perplexityApiKey) {
-    try {
-      console.log('🔍 Performing Perplexity search for:', query);
-      const response = await fetch('https://api.perplexity.ai/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${perplexityApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'sonar',
-          messages: [
-            { role: 'system', content: 'Be precise, cite sources, and provide comprehensive answers. Format with clear structure.' },
-            { role: 'user', content: query }
-          ],
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content || '';
-        const citations: string[] = data.citations || [];
-
-        const sources: WebSearchResult[] = citations.map((url: string, index: number) => {
-          let domain = '';
-          try { domain = new URL(url).hostname.replace('www.', ''); } catch { domain = url; }
-          return { title: `${domain}`, url, content: '' };
-        });
-
-        // Build summary from Perplexity response + citations
-        let searchSummary = `Search Results (via Perplexity):\n${content}\n\n`;
-        if (citations.length > 0) {
-          searchSummary += 'Sources:\n';
-          citations.forEach((url: string, idx: number) => {
-            searchSummary += `${idx + 1}. ${url}\n`;
-          });
-        }
-
-        console.log('✅ Perplexity search successful, citations:', citations.length);
-        return { summary: searchSummary, sources, searchProvider: 'perplexity' };
-      } else {
-        console.warn('⚠️ Perplexity API error:', response.status, '- falling back to Tavily');
-      }
-    } catch (error) {
-      console.warn('⚠️ Perplexity search failed, falling back to Tavily:', error);
-    }
-  } else {
-    console.log('ℹ️ No Perplexity API key, using Tavily');
-  }
-
-  // Fallback to Tavily
   return webSearchTavily(query);
 }
 
