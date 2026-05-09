@@ -1382,6 +1382,33 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     setTimeout(() => { reconnectAttempts = 0; }, 100);
   }, []);
 
+  const reconnectNow = useCallback(async () => {
+    const { isActive, setStatus } = useVoiceModeStore.getState();
+    if (!isActive || globalConnecting) return;
+
+    logVoiceDiagnostic({
+      event_type: 'manual_reconnect_requested',
+      message: 'User requested voice reconnect',
+      details: { connectionState: getConnectionStateLabel() },
+    });
+
+    reconnectAttempts = 0;
+    setStatus('connecting');
+
+    if (globalWs) {
+      try {
+        globalWs.close(1000, 'manual_reconnect');
+      } catch (_) {}
+      globalWs = null;
+    }
+
+    clearConnectionTimers();
+    resetTurnOrderingBuffer();
+    toolCallsInFlight.clear();
+    resetPendingFunctionResults();
+    await connect(await buildReconnectPrompt());
+  }, [connect]);
+
   const sendAudio = useCallback((audioData: Int16Array) => {
     if (globalWs?.readyState !== WebSocket.OPEN || !sessionReady) return;
     
@@ -1502,6 +1529,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     sendAudio,
     sendImage,
     cancelResponse,
-    commitAudioAndRespond
+    commitAudioAndRespond,
+    reconnectNow
   };
 }
