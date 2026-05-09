@@ -264,6 +264,10 @@ type PendingFunctionResult = {
   queuedAt: number;
 };
 
+// Tool calls in flight to prevent duplicate executions
+const toolCallsInFlight = new Map<string, number>();
+const TOOL_CALL_TIMEOUT_MS = 60000;
+
 let responseInProgress = false;
 let pendingFunctionResults: PendingFunctionResult[] = [];
 let pendingFunctionFlushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -410,10 +414,6 @@ const buildReconnectPrompt = async () => {
 };
 
 let optionsRefForReconnect: { current: UseOpenAIRealtimeOptions } | null = null;
-
-// Tool calls in flight to prevent duplicate executions
-const toolCallsInFlight = new Map<string, number>();
-const TOOL_CALL_TIMEOUT_MS = 60000;
 
 // Cleanup stale tool calls periodically
 const cleanupStaleToolCalls = () => {
