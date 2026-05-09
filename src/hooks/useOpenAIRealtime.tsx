@@ -1013,7 +1013,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         });
         optionsRef.current.onError?.('Voice hit a realtime error — reconnecting with context.');
         if (globalWs?.readyState === WebSocket.OPEN) {
-          globalWs.close(1011, 'server_error_reconnect');
+          globalWs.close(4001, 'server_error_reconnect');
         }
         return;
     }
