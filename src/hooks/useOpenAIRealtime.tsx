@@ -1324,7 +1324,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         globalWs = null;
         globalSessionId = null;
         sessionReady = false;
-        resetTurnOrderingBuffer();
+        forceFlushTurnOrderingBuffer();
         toolCallsInFlight.clear();
         resetPendingFunctionResults();
         // Tear down per-connection intervals so they don't accumulate across reconnects
@@ -1369,7 +1369,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       globalConnecting = false;
       globalWs = null;
       globalSessionId = null;
-      resetTurnOrderingBuffer();
+      forceFlushTurnOrderingBuffer();
       toolCallsInFlight.clear();
       resetPendingFunctionResults();
       logVoiceDiagnostic({
