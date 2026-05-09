@@ -361,6 +361,14 @@ export function VoiceModeOverlay() {
     }
   }, []);
 
+  const handleReconnect = useCallback(() => {
+    if (globalReconnectHandler) {
+      console.log('Manual voice reconnect requested');
+      if (navigator.vibrate) navigator.vibrate(35);
+      globalReconnectHandler();
+    }
+  }, []);
+
   // Handle attachment button click
   const handleAttachClick = useCallback(() => {
     fileInputRef.current?.click();
