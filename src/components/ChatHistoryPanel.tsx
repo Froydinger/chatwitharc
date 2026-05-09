@@ -157,6 +157,16 @@ export function ChatHistoryPanel() {
     return sortedSessions.slice(startIndex, endIndex);
   }, [sortedSessions, currentPage]);
 
+  // Auto-jump to the page containing the currently active session so the
+  // highlighted active chat stays visible without "bumping" sort order.
+  useEffect(() => {
+    if (!currentSessionId) return;
+    const idx = sortedSessions.findIndex(s => s.id === currentSessionId);
+    if (idx < 0) return;
+    const targetPage = Math.floor(idx / ITEMS_PER_PAGE) + 1;
+    setCurrentPage(prev => (prev === targetPage ? prev : targetPage));
+  }, [currentSessionId, sortedSessions]);
+
   const PaginationButtons = () => {
     if (totalPages <= 1) return null;
 
