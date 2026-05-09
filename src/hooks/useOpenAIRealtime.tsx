@@ -356,6 +356,7 @@ const flushPendingFunctionResults = (force = false) => {
   while (pendingFunctionResults.length > 0 && (!responseInProgress || force)) {
     const item = pendingFunctionResults.shift();
     if (!item) break;
+    pendingFunctionResultCallIds.delete(item.callId);
     logVoiceDiagnostic({
       event_type: force ? 'tool_result_force_flushed' : 'tool_result_flushed',
       tool_call_id: item.callId,
