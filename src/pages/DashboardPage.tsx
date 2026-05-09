@@ -1071,22 +1071,42 @@ useEffect(() => {
                         {filteredCanvases.slice((canvasPage - 1) * ITEMS_PER_PAGE, canvasPage * ITEMS_PER_PAGE).map((item) => (
                           <div
                             key={item.id}
-                            className="group p-4 rounded-xl border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all cursor-pointer"
+                            className="group rounded-xl border border-border/30 bg-muted/15 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer overflow-hidden flex flex-col"
                             onClick={() => setSelectedCanvas(item)}
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-center gap-2 min-w-0">
-                                {item.type === 'code' ? <FileCode className="h-4 w-4 text-primary shrink-0" /> : <PenLine className="h-4 w-4 text-primary shrink-0" />}
-                                <p className="font-semibold text-foreground truncate text-sm">{item.label}</p>
-                              </div>
-                              <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo(item.timestamp)}</span>
+                            {/* Mini preview */}
+                            <div className="relative w-full h-40 bg-background/40 border-b border-border/20 overflow-hidden">
+                              {item.type === 'code' && item.language && canPreview(item.language) ? (
+                                <>
+                                  <div className="absolute inset-0 pointer-events-none origin-top-left scale-[0.5] w-[200%] h-[200%]">
+                                    <CodePreview code={item.content} language={item.language} />
+                                  </div>
+                                  <div className="absolute inset-0 z-10" />
+                                </>
+                              ) : item.type === 'writing' ? (
+                                <div className="absolute inset-0 p-3 overflow-hidden text-[10px] leading-snug text-foreground/70 whitespace-pre-wrap font-sans">
+                                  {item.content.slice(0, 400)}
+                                </div>
+                              ) : (
+                                <pre className="absolute inset-0 p-3 overflow-hidden text-[9px] leading-snug font-mono text-foreground/60 whitespace-pre-wrap">
+                                  {item.content.slice(0, 400)}
+                                </pre>
+                              )}
+                              <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-background/90 to-transparent pointer-events-none z-20" />
                             </div>
-                            <p className="text-xs text-muted-foreground/70 mt-2 line-clamp-3 font-mono bg-black/10 p-2 rounded-lg border border-border/10">
-                              {item.content.slice(0, 200)}
-                            </p>
-                            <div className="flex items-center justify-between mt-3">
-                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.sessionTitle}</span>
-                              <ArrowRight className="h-3 w-3 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                            {/* Footer */}
+                            <div className="p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {item.type === 'code' ? <FileCode className="h-4 w-4 text-primary shrink-0" /> : <PenLine className="h-4 w-4 text-primary shrink-0" />}
+                                  <p className="font-semibold text-foreground truncate text-sm">{item.label}</p>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo(item.timestamp)}</span>
+                              </div>
+                              <div className="flex items-center justify-between mt-2">
+                                <span className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">{item.sessionTitle}</span>
+                                <ArrowRight className="h-3 w-3 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                              </div>
                             </div>
                           </div>
                         ))}
