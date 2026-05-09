@@ -323,6 +323,8 @@ const deliverFunctionResult = (
       message: 'Failed to request realtime response after tool output',
       tool_call_id: callId,
     });
+  } else {
+    responseInProgress = true;
   }
 
   return responseCreateSent;
@@ -336,15 +338,17 @@ const flushPendingFunctionResults = (force = false) => {
     pendingFunctionFlushTimer = null;
   }
 
-  const pending = pendingFunctionResults.splice(0);
-  pending.forEach((item) => {
+  while (pendingFunctionResults.length > 0 && (!responseInProgress || force)) {
+    const item = pendingFunctionResults.shift();
+    if (!item) break;
     logVoiceDiagnostic({
       event_type: force ? 'tool_result_force_flushed' : 'tool_result_flushed',
       tool_call_id: item.callId,
       details: { queuedMs: Date.now() - item.queuedAt, reasoningEffort: item.reasoningEffort },
     });
-    deliverFunctionResult(item.callId, item.result, item.reasoningEffort);
-  });
+    const sent = deliverFunctionResult(item.callId, item.result, item.reasoningEffort);
+    if (sent) break;
+  }
 };
 
 const queueFunctionResult = (
