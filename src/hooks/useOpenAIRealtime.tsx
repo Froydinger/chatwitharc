@@ -1060,7 +1060,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
 
     if (globalWs) {
-      globalWs.close();
+      const staleWs = globalWs;
+      staleWs.onclose = null;
+      staleWs.onerror = null;
+      staleWs.onmessage = null;
+      staleWs.close();
       globalWs = null;
     }
 
@@ -1313,6 +1317,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       ws.onclose = (event) => {
         clearTimeout(connectTimeout);
+        if (globalWs && globalWs !== ws) {
+          console.log('Ignoring stale realtime close from an older socket:', event.code, event.reason || '(no reason)');
+          return;
+        }
         console.log('Disconnected from OpenAI Realtime:', event.code, event.reason || '(no reason)');
         logVoiceDiagnostic({
           event_type: 'websocket_close',
