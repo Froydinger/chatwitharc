@@ -399,7 +399,7 @@ const buildReconnectPrompt = async () => {
   return lastSystemPrompt || undefined;
 };
 
-let optionsRefForReconnect: React.MutableRefObject<UseOpenAIRealtimeOptions> | null = null;
+let optionsRefForReconnect: { current: UseOpenAIRealtimeOptions } | null = null;
 
 // Tool calls in flight to prevent duplicate executions
 const toolCallsInFlight = new Map<string, number>();
