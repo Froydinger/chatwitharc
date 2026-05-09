@@ -278,7 +278,7 @@ export async function streamLocalChat(
   const completion = await engine.chat.completions.create({
     messages: messages as any,
     stream: true,
-    temperature: 0.7,
+    temperature: 0.6,
     max_tokens: isMobileLite ? IOS_LITE_MAX_TOKENS : 512,
   });
 
