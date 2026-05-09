@@ -141,6 +141,120 @@ const scheduleTurnFlush = () => {
   turnFlushTimer = setTimeout(flushTurnOrderingBuffer, TURN_ORDER_GRACE_MS);
 };
 
+
+type VoiceDiagnosticPayload = {
+  event_type: string;
+  message?: string;
+  session_id?: string | null;
+  tool_name?: string;
+  tool_call_id?: string;
+  connection_state?: string;
+  details?: Record<string, unknown>;
+};
+
+let cachedDiagnosticUserId: string | null = null;
+let diagnosticWriteQueue: Promise<unknown> = Promise.resolve();
+
+const getConnectionStateLabel = () => {
+  const state = globalWs?.readyState;
+  if (state === WebSocket.CONNECTING) return 'connecting';
+  if (state === WebSocket.OPEN) return 'open';
+  if (state === WebSocket.CLOSING) return 'closing';
+  if (state === WebSocket.CLOSED) return 'closed';
+  return 'none';
+};
+
+const sanitizeDiagnosticDetails = (value: unknown, depth = 0): unknown => {
+  if (value == null) return value;
+  if (typeof value === 'string') return value.length > 1200 ? `${value.slice(0, 1200)}…` : value;
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  if (depth >= 3) return '[truncated]';
+  if (Array.isArray(value)) return value.slice(0, 20).map((item) => sanitizeDiagnosticDetails(item, depth + 1));
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .slice(0, 30)
+        .map(([key, item]) => [key, sanitizeDiagnosticDetails(item, depth + 1)])
+    );
+  }
+  return String(value);
+};
+
+const logVoiceDiagnostic = (payload: VoiceDiagnosticPayload) => {
+  diagnosticWriteQueue = diagnosticWriteQueue
+    .catch(() => undefined)
+    .then(async () => {
+      try {
+        if (!cachedDiagnosticUserId) {
+          const { data: { user } } = await supabase.auth.getUser();
+          cachedDiagnosticUserId = user?.id ?? null;
+        }
+        if (!cachedDiagnosticUserId) return;
+
+        const details = sanitizeDiagnosticDetails({
+          ...(payload.details || {}),
+          url: window.location.pathname,
+          visibility: document.visibilityState,
+          online: navigator.onLine,
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString(),
+        }) as Record<string, unknown>;
+
+        await (supabase as any).from('voice_diagnostics').insert({
+          user_id: cachedDiagnosticUserId,
+          session_id: payload.session_id ?? globalSessionId,
+          event_type: payload.event_type,
+          message: payload.message,
+          tool_name: payload.tool_name,
+          tool_call_id: payload.tool_call_id,
+          connection_state: payload.connection_state ?? getConnectionStateLabel(),
+          details,
+        });
+      } catch (error) {
+        console.warn('Voice diagnostic write failed:', error);
+      }
+    });
+};
+
+class VoiceToolTimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'VoiceToolTimeoutError';
+  }
+}
+
+const withToolTimeout = async <T,>(
+  toolName: string,
+  callId: string,
+  promise: Promise<T>,
+  timeoutMs: number
+): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new VoiceToolTimeoutError(`${toolName} timed out after ${Math.round(timeoutMs / 1000)}s`));
+        }, timeoutMs);
+      }),
+    ]);
+  } catch (error) {
+    if (error instanceof VoiceToolTimeoutError) {
+      logVoiceDiagnostic({
+        event_type: 'tool_timeout',
+        message: error.message,
+        tool_name: toolName,
+        tool_call_id: callId,
+        details: { timeoutMs },
+      });
+    }
+    throw error;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
 // Tool calls in flight to prevent duplicate executions
 const toolCallsInFlight = new Map<string, number>();
 const TOOL_CALL_TIMEOUT_MS = 60000;
