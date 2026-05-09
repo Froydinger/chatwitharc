@@ -1309,10 +1309,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           const delay = Math.min(500 * Math.pow(1.6, reconnectAttempts - 1), 8000);
           console.log(`Auto-reconnecting voice mode (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${delay}ms...`);
           setStatus('connecting');
-          setTimeout(() => {
+          setTimeout(async () => {
             const { isActive: stillActive } = useVoiceModeStore.getState();
             if (stillActive) {
-              connect(lastSystemPrompt || undefined);
+              connect(await buildReconnectPrompt());
             }
           }, delay);
         } else if (isActive && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
@@ -1322,10 +1322,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           reconnectAttempts = 0;
           setStatus('connecting');
           optionsRef.current.onError?.('Connection unstable. Reconnecting in the background — keep talking when you see the orb pulse again, or tap X to end.');
-          setTimeout(() => {
+          setTimeout(async () => {
             const { isActive: stillActive } = useVoiceModeStore.getState();
             if (stillActive && (!globalWs || globalWs.readyState !== WebSocket.OPEN)) {
-              connect(lastSystemPrompt || undefined);
+              connect(await buildReconnectPrompt());
             }
           }, 15000);
         } else {
