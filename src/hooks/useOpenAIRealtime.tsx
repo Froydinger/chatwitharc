@@ -467,6 +467,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   const optionsRef = useRef(options);
   useEffect(() => {
     optionsRef.current = options;
+    optionsRefForReconnect = optionsRef;
   }, [options]);
 
   // Send function call result back to the session.
