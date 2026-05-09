@@ -1153,6 +1153,7 @@ Output the complete, finished writing using the update_canvas tool.`;
           messages: conversationMessages,
           tools: toolsToUse,
           tool_choice: toolChoice,
+          temperature: 0.6,
           ...tokenParam,
         }),
       });
