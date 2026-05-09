@@ -61,17 +61,6 @@ function extractStateHint(raw: string): string | null {
   return null;
 }
 
-function buildQueryVariants(raw: string): string[] {
-  const cleaned = raw.trim();
-  const variants = new Set<string>();
-  variants.add(cleaned);
-  const noZip = cleaned.replace(/\b\d{5}(-\d{4})?\b/g, '').replace(/,\s*,/g, ',').replace(/,\s*$/, '').trim();
-  if (noZip) variants.add(noZip);
-  const firstPart = noZip.split(',')[0]?.trim();
-  if (firstPart) variants.add(firstPart);
-  return Array.from(variants).filter(Boolean);
-}
-
 async function geocode(query: string, stateHint: string | null): Promise<any | null> {
   const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json`;
   try {
