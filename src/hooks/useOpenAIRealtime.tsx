@@ -141,6 +141,30 @@ const scheduleTurnFlush = () => {
   turnFlushTimer = setTimeout(flushTurnOrderingBuffer, TURN_ORDER_GRACE_MS);
 };
 
+const forceFlushTurnOrderingBuffer = () => {
+  if (turnFlushTimer) {
+    clearTimeout(turnFlushTimer);
+    turnFlushTimer = null;
+  }
+
+  const { addConversationTurn } = useVoiceModeStore.getState();
+  while (pendingUserTurns.length > 0) {
+    const turn = pendingUserTurns.shift();
+    if (turn) addConversationTurn({ role: 'user', transcript: turn.transcript, timestamp: new Date() });
+  }
+  while (pendingAssistantTurns.length > 0) {
+    const turn = pendingAssistantTurns.shift();
+    if (turn) {
+      addConversationTurn({
+        role: 'assistant',
+        transcript: turn.transcript,
+        timestamp: new Date(),
+        imageUrl: turn.imageUrl,
+      });
+    }
+  }
+};
+
 
 type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high';
 
