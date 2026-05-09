@@ -1434,7 +1434,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
 
     clearConnectionTimers();
-    resetTurnOrderingBuffer();
+    forceFlushTurnOrderingBuffer();
     toolCallsInFlight.clear();
     resetPendingFunctionResults();
     await connect(await buildReconnectPrompt());
