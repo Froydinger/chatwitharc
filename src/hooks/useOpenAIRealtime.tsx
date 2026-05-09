@@ -270,6 +270,7 @@ const TOOL_CALL_TIMEOUT_MS = 60000;
 
 let responseInProgress = false;
 let pendingFunctionResults: PendingFunctionResult[] = [];
+let pendingFunctionResultCallIds = new Set<string>();
 let pendingFunctionFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
 const deliverFunctionResult = (
@@ -277,7 +278,7 @@ const deliverFunctionResult = (
   result: string,
   reasoningEffort: ReasoningEffort = 'low'
 ): boolean => {
-  if (!toolCallsInFlight.has(callId)) {
+  if (!toolCallsInFlight.has(callId) && !pendingFunctionResultCallIds.has(callId)) {
     logVoiceDiagnostic({
       event_type: 'stale_tool_result_dropped',
       message: 'Tool result belonged to an old or closed realtime session',
@@ -372,6 +373,7 @@ const queueFunctionResult = (
 ) => {
   pendingFunctionResults = pendingFunctionResults.filter((item) => item.callId !== callId);
   pendingFunctionResults.push({ callId, result, reasoningEffort, queuedAt: Date.now() });
+  pendingFunctionResultCallIds.add(callId);
   logVoiceDiagnostic({
     event_type: 'tool_result_queued',
     message: 'Tool result queued until current realtime response finishes',
@@ -396,6 +398,7 @@ const resetPendingFunctionResults = () => {
     pendingFunctionFlushTimer = null;
   }
   pendingFunctionResults = [];
+  pendingFunctionResultCallIds.clear();
   responseInProgress = false;
 };
 
