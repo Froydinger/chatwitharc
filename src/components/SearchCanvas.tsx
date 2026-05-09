@@ -288,7 +288,7 @@ export function SearchCanvas() {
 
       toast({
         title: `Found ${results.length} sources`,
-        description: "Powered by Perplexity AI",
+        description: "Research complete",
       });
     } catch (error: any) {
       console.error("Search error:", error);
