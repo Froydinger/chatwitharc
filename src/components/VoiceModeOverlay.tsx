@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera, CameraOff, Paperclip, SwitchCamera, Check, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, Moon, CloudFog, CloudDrizzle, ExternalLink } from "lucide-react";
+import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera, CameraOff, Paperclip, SwitchCamera, Check, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, Moon, CloudFog, CloudDrizzle, ExternalLink, RotateCw } from "lucide-react";
 import { WeatherCard } from "@/components/WeatherCard";
 import { useVoiceModeStore, VoiceName } from "@/store/useVoiceModeStore";
 import { useMusicStore } from "@/store/useMusicStore";
@@ -19,6 +19,8 @@ let globalVideoRef: React.RefObject<HTMLVideoElement> | null = null;
 let globalSwitchCameraHandler: (() => void) | null = null;
 // Global ref for voice switch handler (save, deactivate, switch, reactivate)
 let globalVoiceSwitchHandler: ((voiceId: VoiceName) => Promise<void>) | null = null;
+// Global ref for reconnect handler - set by VoiceModeController
+let globalReconnectHandler: (() => void | Promise<void>) | null = null;
 
 export function setGlobalInterruptHandler(handler: (() => void) | null) {
   globalInterruptHandler = handler;
@@ -38,6 +40,10 @@ export function setGlobalSwitchCameraHandler(handler: (() => void) | null) {
 
 export function setGlobalVoiceSwitchHandler(handler: ((voiceId: VoiceName) => Promise<void>) | null) {
   globalVoiceSwitchHandler = handler;
+}
+
+export function setGlobalReconnectHandler(handler: (() => void | Promise<void>) | null) {
+  globalReconnectHandler = handler;
 }
 
 // Waveform bar component for the audio visualizer
@@ -355,6 +361,14 @@ export function VoiceModeOverlay() {
     }
   }, []);
 
+  const handleReconnect = useCallback(() => {
+    if (globalReconnectHandler) {
+      console.log('Manual voice reconnect requested');
+      if (navigator.vibrate) navigator.vibrate(35);
+      globalReconnectHandler();
+    }
+  }, []);
+
   // Handle attachment button click
   const handleAttachClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -534,6 +548,20 @@ export function VoiceModeOverlay() {
               ) : (
                 <Mic className="w-6 h-6 text-foreground" />
               )}
+            </motion.button>
+
+            {/* Manual reconnect button */}
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ delay: 0.16 }}
+              onClick={handleReconnect}
+              className="absolute left-20 z-10 p-3 rounded-full glass-shimmer hover:bg-muted/50 transition-colors"
+              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)' }}
+              aria-label="Reconnect voice mode"
+            >
+              <RotateCw className={`w-5 h-5 text-foreground ${status === 'connecting' ? 'animate-spin' : ''}`} />
             </motion.button>
 
             {/* Voice picker button - bottom-left */}

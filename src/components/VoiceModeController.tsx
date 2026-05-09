@@ -14,7 +14,8 @@ import {
   setGlobalMuteHandoffHandler, 
   setGlobalVideoRef,
   setGlobalSwitchCameraHandler,
-  setGlobalVoiceSwitchHandler
+  setGlobalVoiceSwitchHandler,
+  setGlobalReconnectHandler
 } from './VoiceModeOverlay';
 
 const aiService = new AIService();
@@ -582,7 +583,7 @@ When the user shares their camera or attaches an image, describe what you see na
   }, [saveNewTurns]);
 
   // OpenAI Realtime connection
-  const { isConnected, connect, disconnect, sendAudio, sendImage, cancelResponse, commitAudioAndRespond } = useOpenAIRealtime({
+  const { isConnected, connect, disconnect, sendAudio, sendImage, cancelResponse, commitAudioAndRespond, reconnectNow } = useOpenAIRealtime({
     onAudioData: (audioData) => {
       queueAudio(audioData);
     },
@@ -666,6 +667,12 @@ When the user shares their camera or attaches an image, describe what you see na
     setGlobalMuteHandoffHandler(commitAudioAndRespond);
     return () => { setGlobalMuteHandoffHandler(null); };
   }, [commitAudioAndRespond]);
+
+  // Register the reconnect handler globally
+  useLayoutEffect(() => {
+    setGlobalReconnectHandler(reconnectNow);
+    return () => { setGlobalReconnectHandler(null); };
+  }, [reconnectNow]);
 
   // Register the video ref globally for the overlay to display
   useLayoutEffect(() => {

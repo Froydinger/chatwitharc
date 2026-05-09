@@ -141,6 +141,30 @@ const scheduleTurnFlush = () => {
   turnFlushTimer = setTimeout(flushTurnOrderingBuffer, TURN_ORDER_GRACE_MS);
 };
 
+const forceFlushTurnOrderingBuffer = () => {
+  if (turnFlushTimer) {
+    clearTimeout(turnFlushTimer);
+    turnFlushTimer = null;
+  }
+
+  const { addConversationTurn } = useVoiceModeStore.getState();
+  while (pendingUserTurns.length > 0) {
+    const turn = pendingUserTurns.shift();
+    if (turn) addConversationTurn({ role: 'user', transcript: turn.transcript, timestamp: new Date() });
+  }
+  while (pendingAssistantTurns.length > 0) {
+    const turn = pendingAssistantTurns.shift();
+    if (turn) {
+      addConversationTurn({
+        role: 'assistant',
+        transcript: turn.transcript,
+        timestamp: new Date(),
+        imageUrl: turn.imageUrl,
+      });
+    }
+  }
+};
+
 
 type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high';
 
@@ -264,8 +288,13 @@ type PendingFunctionResult = {
   queuedAt: number;
 };
 
+// Tool calls in flight to prevent duplicate executions
+const toolCallsInFlight = new Map<string, number>();
+const TOOL_CALL_TIMEOUT_MS = 60000;
+
 let responseInProgress = false;
 let pendingFunctionResults: PendingFunctionResult[] = [];
+let pendingFunctionResultCallIds = new Set<string>();
 let pendingFunctionFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
 const deliverFunctionResult = (
@@ -273,6 +302,16 @@ const deliverFunctionResult = (
   result: string,
   reasoningEffort: ReasoningEffort = 'low'
 ): boolean => {
+  if (!toolCallsInFlight.has(callId) && !pendingFunctionResultCallIds.has(callId)) {
+    logVoiceDiagnostic({
+      event_type: 'stale_tool_result_dropped',
+      message: 'Tool result belonged to an old or closed realtime session',
+      tool_call_id: callId,
+      details: { resultLength: result.length, reasoningEffort },
+    });
+    return false;
+  }
+
   if (globalWs?.readyState !== WebSocket.OPEN) {
     logVoiceDiagnostic({
       event_type: 'tool_result_dropped',
@@ -341,6 +380,7 @@ const flushPendingFunctionResults = (force = false) => {
   while (pendingFunctionResults.length > 0 && (!responseInProgress || force)) {
     const item = pendingFunctionResults.shift();
     if (!item) break;
+    pendingFunctionResultCallIds.delete(item.callId);
     logVoiceDiagnostic({
       event_type: force ? 'tool_result_force_flushed' : 'tool_result_flushed',
       tool_call_id: item.callId,
@@ -358,6 +398,7 @@ const queueFunctionResult = (
 ) => {
   pendingFunctionResults = pendingFunctionResults.filter((item) => item.callId !== callId);
   pendingFunctionResults.push({ callId, result, reasoningEffort, queuedAt: Date.now() });
+  pendingFunctionResultCallIds.add(callId);
   logVoiceDiagnostic({
     event_type: 'tool_result_queued',
     message: 'Tool result queued until current realtime response finishes',
@@ -382,12 +423,25 @@ const resetPendingFunctionResults = () => {
     pendingFunctionFlushTimer = null;
   }
   pendingFunctionResults = [];
+  pendingFunctionResultCallIds.clear();
   responseInProgress = false;
 };
 
-// Tool calls in flight to prevent duplicate executions
-const toolCallsInFlight = new Map<string, number>();
-const TOOL_CALL_TIMEOUT_MS = 60000;
+const buildReconnectPrompt = async () => {
+  try {
+    const updatedPrompt = await optionsRefForReconnect?.current.onSessionExpired?.();
+    if (updatedPrompt) lastSystemPrompt = updatedPrompt;
+  } catch (error) {
+    console.warn('Reconnect prompt refresh failed, using last prompt:', error);
+    logVoiceDiagnostic({
+      event_type: 'reconnect_prompt_failed',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+  return lastSystemPrompt || undefined;
+};
+
+let optionsRefForReconnect: { current: UseOpenAIRealtimeOptions } | null = null;
 
 // Cleanup stale tool calls periodically
 const cleanupStaleToolCalls = () => {
@@ -451,6 +505,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   const optionsRef = useRef(options);
   useEffect(() => {
     optionsRef.current = options;
+    optionsRefForReconnect = optionsRef;
   }, [options]);
 
   // Send function call result back to the session.
@@ -980,8 +1035,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           message: event.error?.message || 'Server error',
           details: { code: event.error?.code, error: event.error },
         });
-        optionsRef.current.onError?.(event.error?.message || 'Server error');
-        break;
+        optionsRef.current.onError?.('Voice hit a realtime error — reconnecting with context.');
+        if (globalWs?.readyState === WebSocket.OPEN) {
+          globalWs.close(4001, 'server_error_reconnect');
+        }
+        return;
     }
   }, [sendFunctionResult, clearAudioBuffer]);
 
@@ -1002,7 +1060,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
 
     if (globalWs) {
-      globalWs.close();
+      const staleWs = globalWs;
+      staleWs.onclose = null;
+      staleWs.onerror = null;
+      staleWs.onmessage = null;
+      staleWs.close();
       globalWs = null;
     }
 
@@ -1255,6 +1317,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       ws.onclose = (event) => {
         clearTimeout(connectTimeout);
+        if (globalWs && globalWs !== ws) {
+          console.log('Ignoring stale realtime close from an older socket:', event.code, event.reason || '(no reason)');
+          return;
+        }
         console.log('Disconnected from OpenAI Realtime:', event.code, event.reason || '(no reason)');
         logVoiceDiagnostic({
           event_type: 'websocket_close',
@@ -1266,7 +1332,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         globalWs = null;
         globalSessionId = null;
         sessionReady = false;
-        resetTurnOrderingBuffer();
+        forceFlushTurnOrderingBuffer();
         toolCallsInFlight.clear();
         resetPendingFunctionResults();
         // Tear down per-connection intervals so they don't accumulate across reconnects
@@ -1282,10 +1348,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           const delay = Math.min(500 * Math.pow(1.6, reconnectAttempts - 1), 8000);
           console.log(`Auto-reconnecting voice mode (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${delay}ms...`);
           setStatus('connecting');
-          setTimeout(() => {
+          setTimeout(async () => {
             const { isActive: stillActive } = useVoiceModeStore.getState();
             if (stillActive) {
-              connect(lastSystemPrompt || undefined);
+              connect(await buildReconnectPrompt());
             }
           }, delay);
         } else if (isActive && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
@@ -1295,10 +1361,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           reconnectAttempts = 0;
           setStatus('connecting');
           optionsRef.current.onError?.('Connection unstable. Reconnecting in the background — keep talking when you see the orb pulse again, or tap X to end.');
-          setTimeout(() => {
+          setTimeout(async () => {
             const { isActive: stillActive } = useVoiceModeStore.getState();
             if (stillActive && (!globalWs || globalWs.readyState !== WebSocket.OPEN)) {
-              connect(lastSystemPrompt || undefined);
+              connect(await buildReconnectPrompt());
             }
           }, 15000);
         } else {
@@ -1311,7 +1377,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       globalConnecting = false;
       globalWs = null;
       globalSessionId = null;
-      resetTurnOrderingBuffer();
+      forceFlushTurnOrderingBuffer();
       toolCallsInFlight.clear();
       resetPendingFunctionResults();
       logVoiceDiagnostic({
@@ -1354,6 +1420,37 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     // Reset after close event has fired
     setTimeout(() => { reconnectAttempts = 0; }, 100);
   }, []);
+
+  const reconnectNow = useCallback(async () => {
+    const { isActive, setStatus } = useVoiceModeStore.getState();
+    if (!isActive || globalConnecting) return;
+
+    logVoiceDiagnostic({
+      event_type: 'manual_reconnect_requested',
+      message: 'User requested voice reconnect',
+      details: { connectionState: getConnectionStateLabel() },
+    });
+
+    reconnectAttempts = 0;
+    setStatus('connecting');
+
+    if (globalWs) {
+      try {
+        const staleWs = globalWs;
+        staleWs.onclose = null;
+        staleWs.onerror = null;
+        staleWs.onmessage = null;
+        staleWs.close(1000, 'manual_reconnect');
+      } catch (_) {}
+      globalWs = null;
+    }
+
+    clearConnectionTimers();
+    forceFlushTurnOrderingBuffer();
+    toolCallsInFlight.clear();
+    resetPendingFunctionResults();
+    await connect(await buildReconnectPrompt());
+  }, [connect]);
 
   const sendAudio = useCallback((audioData: Int16Array) => {
     if (globalWs?.readyState !== WebSocket.OPEN || !sessionReady) return;
@@ -1475,6 +1572,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     sendAudio,
     sendImage,
     cancelResponse,
-    commitAudioAndRespond
+    commitAudioAndRespond,
+    reconnectNow
   };
 }
