@@ -686,7 +686,7 @@ export function SearchCanvas() {
             </p>
             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
               Corporate Mode keeps chat fully on-device, but Research queries the
-              web via Perplexity. Your saved memories and context are
+              web. Your saved memories and context are
               <span className="font-medium text-foreground"> never sent</span> —
               only the search query you type leaves this device.
             </p>
