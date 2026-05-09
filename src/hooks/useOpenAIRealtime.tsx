@@ -1436,7 +1436,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
     if (globalWs) {
       try {
-        globalWs.close(1000, 'manual_reconnect');
+        const staleWs = globalWs;
+        staleWs.onclose = null;
+        staleWs.onerror = null;
+        staleWs.onmessage = null;
+        staleWs.close(1000, 'manual_reconnect');
       } catch (_) {}
       globalWs = null;
     }
