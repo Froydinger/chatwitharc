@@ -550,6 +550,20 @@ export function VoiceModeOverlay() {
               )}
             </motion.button>
 
+            {/* Manual reconnect button */}
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ delay: 0.16 }}
+              onClick={handleReconnect}
+              className="absolute left-20 z-10 p-3 rounded-full glass-shimmer hover:bg-muted/50 transition-colors"
+              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)' }}
+              aria-label="Reconnect voice mode"
+            >
+              <RotateCw className={`w-5 h-5 text-foreground ${status === 'connecting' ? 'animate-spin' : ''}`} />
+            </motion.button>
+
             {/* Voice picker button - bottom-left */}
             <Popover open={voicePickerOpen} onOpenChange={(open) => {
               setVoicePickerOpen(open);
