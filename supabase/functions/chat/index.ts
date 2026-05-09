@@ -509,6 +509,13 @@ serve(async (req) => {
       '• NEVER remove CSS or functionality unless explicitly asked\n' +
       '• NEVER truncate, summarize, or say "rest of code here" - output EVERYTHING';
 
+    // CRITICAL anti-hallucination guard
+    enhancedSystemPrompt += '\n\n=== GROUNDING RULES (CRITICAL) ===\n' +
+      '• NEVER invent facts, names, products, dates, or details the user did not mention. If something is not in this conversation, the saved memories above, or a tool result — you do NOT know it.\n' +
+      '• Do NOT introduce new objects, products, or topics ("irons", "steamers", random items) the user never brought up. Stay strictly on the user\'s actual subject.\n' +
+      '• If you are not sure, ask a short clarifying question instead of guessing.\n' +
+      '• Use the "Current date and time" above as the only source of truth for "today" / "now". Never reference a different year or month from memory.';
+
     // Prepare messages with enhanced system prompt
     let conversationMessages = [
       { role: 'system', content: enhancedSystemPrompt },
@@ -548,6 +555,7 @@ serve(async (req) => {
           body: JSON.stringify({
             model: 'google/gemini-3-flash-preview',
             messages: conversationMessages,
+            temperature: 0.6,
             max_tokens: 2000,
           }),
         }
@@ -856,6 +864,7 @@ Output the complete, finished writing using the update_canvas tool.`;
           messages: conversationMessages,
           tools: toolsToUse,
           tool_choice: toolChoice,
+          temperature: 0.6,
           stream: true,
           ...tokenParam,
         }),
@@ -1144,6 +1153,7 @@ Output the complete, finished writing using the update_canvas tool.`;
           messages: conversationMessages,
           tools: toolsToUse,
           tool_choice: toolChoice,
+          temperature: 0.6,
           ...tokenParam,
         }),
       });
@@ -1170,6 +1180,7 @@ Output the complete, finished writing using the update_canvas tool.`;
             messages: conversationMessages,
             tools: toolsToUse,
             tool_choice: toolChoice,
+            temperature: 0.6,
             ...fallbackTokenParam,
           }),
         });
@@ -1455,6 +1466,7 @@ Output the complete, finished writing using the update_canvas tool.`;
           body: JSON.stringify({
             model: model || 'google/gemini-3-flash-preview',
             messages: synthesisMessages,
+            temperature: 0.6,
             ...tokenParam,
           }),
         });
