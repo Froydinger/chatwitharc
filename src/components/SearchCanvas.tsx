@@ -1394,7 +1394,7 @@ export function SearchCanvas() {
 
                 <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Research anything</h2>
                 <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Get instant answers with real-time web search powered by Perplexity AI
+                  Get instant answers with real-time web search and cited sources
                 </p>
 
                 {/* Smart Suggestion Cards */}
