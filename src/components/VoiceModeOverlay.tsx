@@ -19,6 +19,8 @@ let globalVideoRef: React.RefObject<HTMLVideoElement> | null = null;
 let globalSwitchCameraHandler: (() => void) | null = null;
 // Global ref for voice switch handler (save, deactivate, switch, reactivate)
 let globalVoiceSwitchHandler: ((voiceId: VoiceName) => Promise<void>) | null = null;
+// Global ref for reconnect handler - set by VoiceModeController
+let globalReconnectHandler: (() => void | Promise<void>) | null = null;
 
 export function setGlobalInterruptHandler(handler: (() => void) | null) {
   globalInterruptHandler = handler;
@@ -38,6 +40,10 @@ export function setGlobalSwitchCameraHandler(handler: (() => void) | null) {
 
 export function setGlobalVoiceSwitchHandler(handler: ((voiceId: VoiceName) => Promise<void>) | null) {
   globalVoiceSwitchHandler = handler;
+}
+
+export function setGlobalReconnectHandler(handler: (() => void | Promise<void>) | null) {
+  globalReconnectHandler = handler;
 }
 
 // Waveform bar component for the audio visualizer
