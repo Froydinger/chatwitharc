@@ -631,6 +631,45 @@ export type Database = {
           },
         ]
       }
+      voice_diagnostics: {
+        Row: {
+          connection_state: string | null
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+          message: string | null
+          session_id: string | null
+          tool_call_id: string | null
+          tool_name: string | null
+          user_id: string
+        }
+        Insert: {
+          connection_state?: string | null
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+          message?: string | null
+          session_id?: string | null
+          tool_call_id?: string | null
+          tool_name?: string | null
+          user_id: string
+        }
+        Update: {
+          connection_state?: string | null
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+          message?: string | null
+          session_id?: string | null
+          tool_call_id?: string | null
+          tool_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
