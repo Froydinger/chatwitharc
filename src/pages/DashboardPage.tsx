@@ -1025,9 +1025,19 @@ useEffect(() => {
                       {canvasDetailTab === "canvas" && (
                         <>
                           {selectedCanvas.type === 'code' && selectedCanvas.language && canPreview(selectedCanvas.language) ? (
-                            <div className="relative w-full" style={{ height: '420px' }}>
-                              <CodePreview code={selectedCanvas.content} language={selectedCanvas.language} />
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => { loadSession(selectedCanvas.sessionId); navigate(`/chat/${selectedCanvas.sessionId}`); openWithContent(selectedCanvas.content, selectedCanvas.type, selectedCanvas.language || 'text'); }}
+                              className="relative w-full block group cursor-pointer"
+                              style={{ height: '420px' }}
+                              title="Open canvas"
+                            >
+                              <div className="absolute inset-0 pointer-events-none">
+                                <CodePreview code={selectedCanvas.content} language={selectedCanvas.language} />
+                              </div>
+                              {/* Click overlay — blocks iframe interaction so click opens canvas */}
+                              <div className="absolute inset-0 z-10 bg-transparent group-hover:bg-foreground/5 transition-colors" />
+                            </button>
                           ) : (
                             <pre className="p-4 text-xs font-mono text-foreground/80 overflow-auto max-h-[420px] whitespace-pre-wrap leading-relaxed">
                               {selectedCanvas.content.slice(0, 3000)}{selectedCanvas.content.length > 3000 ? '\n…' : ''}
