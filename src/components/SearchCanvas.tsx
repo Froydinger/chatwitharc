@@ -288,7 +288,7 @@ export function SearchCanvas() {
 
       toast({
         title: `Found ${results.length} sources`,
-        description: "Powered by Perplexity AI",
+        description: "Research complete",
       });
     } catch (error: any) {
       console.error("Search error:", error);
@@ -686,7 +686,7 @@ export function SearchCanvas() {
             </p>
             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
               Corporate Mode keeps chat fully on-device, but Research queries the
-              web via Perplexity. Your saved memories and context are
+              web. Your saved memories and context are
               <span className="font-medium text-foreground"> never sent</span> —
               only the search query you type leaves this device.
             </p>
@@ -1394,7 +1394,7 @@ export function SearchCanvas() {
 
                 <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Research anything</h2>
                 <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Get instant answers with real-time web search powered by Perplexity AI
+                  Get instant answers with real-time web search and cited sources
                 </p>
 
                 {/* Smart Suggestion Cards */}

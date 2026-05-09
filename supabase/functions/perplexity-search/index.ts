@@ -1,3 +1,6 @@
+// Research search endpoint.
+// Uses Tavily for live web results and Lovable AI to synthesize a
+// Perplexity-style cited answer. Response shape preserved for the frontend.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -5,11 +8,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-interface PerplexityMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
 
 interface SearchResult {
   title: string;
@@ -23,7 +21,6 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -39,7 +36,6 @@ serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
     if (authError || !user) {
       return new Response(
         JSON.stringify({ error: 'Invalid or expired token' }),
@@ -47,155 +43,145 @@ serve(async (req) => {
       );
     }
 
-    const { query, messages, model = 'sonar', stream = false } = await req.json();
-
-    if (!query && (!messages || messages.length === 0)) {
+    const { query, messages } = await req.json();
+    const userQuery: string = query || messages?.filter((m: any) => m.role === 'user').slice(-1)[0]?.content || '';
+    if (!userQuery) {
       return new Response(
-        JSON.stringify({ error: 'Query or messages required' }),
+        JSON.stringify({ error: 'Query required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
-    if (!PERPLEXITY_API_KEY) {
+    const TAVILY_API_KEY = Deno.env.get('TAVILY_API_KEY');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!TAVILY_API_KEY) {
       return new Response(
-        JSON.stringify({ error: 'Perplexity API key not configured' }),
+        JSON.stringify({ error: 'Search is not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Build messages for Perplexity
-    const perplexityMessages: PerplexityMessage[] = messages || [
-      {
-        role: 'system',
-        content: 'You are a helpful research assistant. Be precise, cite sources, and provide comprehensive answers. Format your response with clear headings and bullet points when appropriate. CITATION RULES: Use a MINIMUM of 3 and a MAXIMUM of 5 distinct sources — never more than 5. Spread citations across distinct domains. You may include YouTube video links as references, but never embed the same video URL more than once. When citing sources inline, use the bracket notation [1], [2] etc. — do NOT write out full domain names or URLs inline in the text body. Only cite numbers 1 through 5.'
-      },
-      {
-        role: 'user',
-        content: query
-      }
-    ];
+    console.log('Research search:', { query: userQuery });
 
-    console.log('Perplexity search:', { query, model, messageCount: perplexityMessages.length });
-
-    if (stream) {
-      // Streaming response
-      const response = await fetch('https://api.perplexity.ai/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model,
-          messages: perplexityMessages,
-          stream: true,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Perplexity API error:', response.status, errorText);
-        
-        if (response.status === 429) {
-          return new Response(
-            JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        
-        return new Response(
-          JSON.stringify({ error: `Perplexity API error: ${response.status}` }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Return the stream directly
-      return new Response(response.body, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
-      });
-    }
-
-    // Non-streaming response
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    // 1. Tavily search — pull rich results
+    const tavilyResp = await fetch('https://api.tavily.com/search', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model,
-        messages: perplexityMessages,
+        api_key: TAVILY_API_KEY,
+        query: userQuery,
+        search_depth: 'advanced',
+        max_results: 8,
+        include_answer: true,
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Perplexity API error:', response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
+    if (!tavilyResp.ok) {
+      const errText = await tavilyResp.text();
+      console.error('Tavily error:', tavilyResp.status, errText);
       return new Response(
-        JSON.stringify({ error: `Perplexity API error: ${response.status}` }),
+        JSON.stringify({ error: `Search failed: ${tavilyResp.status}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const data = await response.json();
-    console.log('Perplexity response received, citations:', data.citations?.length || 0);
+    const tavilyData = await tavilyResp.json();
+    const rawResults: any[] = tavilyData.results || [];
 
-    // Extract content and citations — enforce 3-5 source range (cap at 5)
-    let content = data.choices?.[0]?.message?.content || '';
-    const allCitations: string[] = data.citations || [];
-    const citations: string[] = allCitations.slice(0, 5);
+    // Dedupe by domain so we get diverse citations, cap at 5
+    const seenDomains = new Set<string>();
+    const picked: any[] = [];
+    for (const r of rawResults) {
+      if (!r.url) continue;
+      let domain = '';
+      try { domain = new URL(r.url).hostname.replace('www.', ''); } catch { domain = r.url; }
+      if (seenDomains.has(domain)) continue;
+      seenDomains.add(domain);
+      picked.push({ ...r, _domain: domain });
+      if (picked.length >= 5) break;
+    }
 
-    // Strip inline citation refs > 5 (e.g. [6], [7]) from content
+    if (picked.length === 0) {
+      return new Response(
+        JSON.stringify({
+          content: `No results found for "${userQuery}".`,
+          sources: [],
+          citations: [],
+          model: 'arc-research',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const citations: string[] = picked.map((r) => r.url);
+    const sources: SearchResult[] = picked.map((r, i) => ({
+      title: r.title || `Source ${i + 1} - ${r._domain}`,
+      url: r.url,
+      snippet: r.content || '',
+    }));
+
+    // 2. Synthesize a cited answer with Lovable AI (Gemini 3 Flash)
+    let content = '';
+    if (LOVABLE_API_KEY) {
+      const sourceBlock = picked.map((r, i) => (
+        `[${i + 1}] ${r.title}\nURL: ${r.url}\nExcerpt: ${(r.content || '').slice(0, 800)}`
+      )).join('\n\n');
+
+      const synthSystem = `You are a research assistant. Write a precise, comprehensive answer to the user's query using ONLY the provided sources. Use clear headings, short paragraphs, and bullet points where helpful. CITATION RULES: Cite inline with bracket notation [1], [2] etc. corresponding to source numbers. Use a MINIMUM of 3 and a MAXIMUM of 5 distinct sources — never more than 5 and never invent a source number. Do NOT write out full domain names or URLs inline. Do not mention which search engine or AI was used.`;
+
+      const synthUser = `Query: ${userQuery}\n\nSources:\n${sourceBlock}\n\nWrite the cited answer now.`;
+
+      try {
+        const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: synthSystem },
+              { role: 'user', content: synthUser },
+            ],
+          }),
+        });
+        if (aiResp.ok) {
+          const aiData = await aiResp.json();
+          content = aiData.choices?.[0]?.message?.content || '';
+        } else {
+          console.warn('AI synth failed:', aiResp.status, await aiResp.text());
+        }
+      } catch (e) {
+        console.warn('AI synth error:', e);
+      }
+    }
+
+    // Fallback content if synthesis unavailable
+    if (!content) {
+      const tavilyAnswer = tavilyData.answer || '';
+      content = tavilyAnswer
+        ? `${tavilyAnswer}\n\n` + picked.map((r, i) => `[${i + 1}] ${r.title}`).join('\n')
+        : picked.map((r, i) => `[${i + 1}] ${r.title}\n${(r.content || '').slice(0, 300)}`).join('\n\n');
+    }
+
+    // Strip any inline refs > 5
     content = content.replace(/\[(\d+)\]/g, (m: string, n: string) => (parseInt(n) > 5 ? '' : m));
 
-    // Convert citations to SearchResult format
-    const sources: SearchResult[] = citations.map((url: string, index: number) => {
-      // Extract domain for title fallback
-      let domain = '';
-      try {
-        domain = new URL(url).hostname.replace('www.', '');
-      } catch {
-        domain = url;
-      }
-
-      return {
-        title: `Source ${index + 1} - ${domain}`,
-        url,
-        snippet: '', // Perplexity doesn't provide snippets directly
-      };
-    });
-
-    // Replace citation references [1], [2], etc. with small superscript-style links
-    // Each citation number maps to a URL; we convert [n] to a compact linked superscript
-    citations.forEach((url: string, index: number) => {
-      const citationNum = index + 1;
-      // Unicode superscript digits for clean inline display
+    // Convert [n] markers to superscript markdown links pointing at the citation URL
+    citations.forEach((url, index) => {
+      const num = index + 1;
       const superDigits = '⁰¹²³⁴⁵⁶⁷⁸⁹';
-      const superNum = String(citationNum).split('').map(d => superDigits[parseInt(d)]).join('');
-      
+      const superNum = String(num).split('').map((d) => superDigits[parseInt(d)]).join('');
       const patterns = [
-        new RegExp(`\\[\\[${citationNum}\\]\\]`, 'g'),
-        new RegExp(`\\[${citationNum}\\]`, 'g'),
+        new RegExp(`\\[\\[${num}\\]\\]`, 'g'),
+        new RegExp(`\\[${num}\\]`, 'g'),
       ];
-      
-      patterns.forEach(pattern => {
-        content = content.replace(pattern, `[${superNum}](${url})`);
-      });
+      patterns.forEach((p) => { content = content.replace(p, `[${superNum}](${url})`); });
     });
 
-    // Add commas between consecutive superscript citation links e.g. [¹](url)[²](url) → [¹](url), [²](url)
+    // Add commas between consecutive superscript citations
     content = content.replace(/(\]\([^)]+\))(\[)/g, '$1, $2');
-    
-    // Clean up any double spaces
     content = content.replace(/  +/g, ' ');
 
     return new Response(
@@ -203,14 +189,12 @@ serve(async (req) => {
         content,
         sources,
         citations,
-        model: data.model,
-        usage: data.usage,
+        model: 'arc-research',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error: unknown) {
-    console.error('Perplexity search error:', error);
+    console.error('Research search error:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     return new Response(
       JSON.stringify({ error: message }),
