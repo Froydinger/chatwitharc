@@ -385,6 +385,22 @@ const resetPendingFunctionResults = () => {
   responseInProgress = false;
 };
 
+const buildReconnectPrompt = async () => {
+  try {
+    const updatedPrompt = await optionsRefForReconnect?.current.onSessionExpired?.();
+    if (updatedPrompt) lastSystemPrompt = updatedPrompt;
+  } catch (error) {
+    console.warn('Reconnect prompt refresh failed, using last prompt:', error);
+    logVoiceDiagnostic({
+      event_type: 'reconnect_prompt_failed',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+  return lastSystemPrompt || undefined;
+};
+
+let optionsRefForReconnect: React.MutableRefObject<UseOpenAIRealtimeOptions> | null = null;
+
 // Tool calls in flight to prevent duplicate executions
 const toolCallsInFlight = new Map<string, number>();
 const TOOL_CALL_TIMEOUT_MS = 60000;
