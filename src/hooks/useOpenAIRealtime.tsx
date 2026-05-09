@@ -142,6 +142,8 @@ const scheduleTurnFlush = () => {
 };
 
 
+type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high';
+
 type VoiceDiagnosticPayload = {
   event_type: string;
   message?: string;
@@ -255,6 +257,130 @@ const withToolTimeout = async <T,>(
   }
 };
 
+type PendingFunctionResult = {
+  callId: string;
+  result: string;
+  reasoningEffort: ReasoningEffort;
+  queuedAt: number;
+};
+
+let responseInProgress = false;
+let pendingFunctionResults: PendingFunctionResult[] = [];
+let pendingFunctionFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+const deliverFunctionResult = (
+  callId: string,
+  result: string,
+  reasoningEffort: ReasoningEffort = 'low'
+): boolean => {
+  if (globalWs?.readyState !== WebSocket.OPEN) {
+    logVoiceDiagnostic({
+      event_type: 'tool_result_dropped',
+      message: 'WebSocket was not open when a tool result was ready',
+      tool_call_id: callId,
+      details: { resultLength: result.length, reasoningEffort },
+    });
+    return false;
+  }
+
+  console.log('Sending function result:', { callId, reasoningEffort });
+  logVoiceDiagnostic({
+    event_type: 'tool_result_sending',
+    tool_call_id: callId,
+    details: { resultLength: result.length, reasoningEffort, responseInProgress },
+  });
+
+  const outputSent = sendRealtimeEvent({
+    type: 'conversation.item.create',
+    item: {
+      type: 'function_call_output',
+      call_id: callId,
+      output: result,
+    },
+  });
+
+  if (!outputSent) {
+    logVoiceDiagnostic({
+      event_type: 'tool_result_send_failed',
+      message: 'Failed to send function_call_output to realtime session',
+      tool_call_id: callId,
+    });
+    return false;
+  }
+
+  awaitingToolResponse = true;
+
+  const responseCreateSent = sendRealtimeEvent({
+    type: 'response.create',
+    response: {
+      reasoning: { effort: reasoningEffort },
+    },
+  });
+
+  if (!responseCreateSent) {
+    logVoiceDiagnostic({
+      event_type: 'tool_response_create_failed',
+      message: 'Failed to request realtime response after tool output',
+      tool_call_id: callId,
+    });
+  }
+
+  return responseCreateSent;
+};
+
+const flushPendingFunctionResults = (force = false) => {
+  if (responseInProgress && !force) return;
+
+  if (pendingFunctionFlushTimer) {
+    clearTimeout(pendingFunctionFlushTimer);
+    pendingFunctionFlushTimer = null;
+  }
+
+  const pending = pendingFunctionResults.splice(0);
+  pending.forEach((item) => {
+    logVoiceDiagnostic({
+      event_type: force ? 'tool_result_force_flushed' : 'tool_result_flushed',
+      tool_call_id: item.callId,
+      details: { queuedMs: Date.now() - item.queuedAt, reasoningEffort: item.reasoningEffort },
+    });
+    deliverFunctionResult(item.callId, item.result, item.reasoningEffort);
+  });
+};
+
+const queueFunctionResult = (
+  callId: string,
+  result: string,
+  reasoningEffort: ReasoningEffort = 'low'
+) => {
+  pendingFunctionResults = pendingFunctionResults.filter((item) => item.callId !== callId);
+  pendingFunctionResults.push({ callId, result, reasoningEffort, queuedAt: Date.now() });
+  logVoiceDiagnostic({
+    event_type: 'tool_result_queued',
+    message: 'Tool result queued until current realtime response finishes',
+    tool_call_id: callId,
+    details: { resultLength: result.length, reasoningEffort },
+  });
+
+  if (pendingFunctionFlushTimer) clearTimeout(pendingFunctionFlushTimer);
+  pendingFunctionFlushTimer = setTimeout(() => {
+    logVoiceDiagnostic({
+      event_type: 'tool_result_queue_timeout',
+      message: 'Tool result waited too long for response.done; force flushing',
+      details: { pendingCount: pendingFunctionResults.length, responseInProgress },
+    });
+    flushPendingFunctionResults(true);
+  }, 4000);
+};
+
+const resetPendingFunctionResults = () => {
+  if (pendingFunctionFlushTimer) {
+    clearTimeout(pendingFunctionFlushTimer);
+    pendingFunctionFlushTimer = null;
+  }
+  pendingFunctionResults = [];
+  responseInProgress = false;
+};
+
 // Tool calls in flight to prevent duplicate executions
 const toolCallsInFlight = new Map<string, number>();
 const TOOL_CALL_TIMEOUT_MS = 60000;
@@ -330,50 +456,17 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   const sendFunctionResult = useCallback((
     callId: string,
     result: string,
-    reasoningEffort: 'minimal' | 'low' | 'medium' | 'high' = 'low'
+    reasoningEffort: ReasoningEffort = 'low'
   ) => {
-    if (globalWs?.readyState !== WebSocket.OPEN) {
-      logVoiceDiagnostic({
-        event_type: 'tool_result_dropped',
-        message: 'WebSocket was not open when a tool result was ready',
-        tool_call_id: callId,
-        details: { resultLength: result.length, reasoningEffort },
-      });
+    // Tool calls can finish before the model emits response.done. Calling
+    // response.create during that tiny overlap is a common realtime crash path,
+    // especially for fast tools like weather. Queue until response.done.
+    if (responseInProgress) {
+      queueFunctionResult(callId, result, reasoningEffort);
       return;
     }
-    
-    console.log('Sending function result:', { callId, reasoningEffort });
-    logVoiceDiagnostic({
-      event_type: 'tool_result_sending',
-      tool_call_id: callId,
-      details: { resultLength: result.length, reasoningEffort },
-    });
-    
-    const outputSent = sendRealtimeEvent({
-      type: 'conversation.item.create',
-      item: {
-        type: 'function_call_output',
-        call_id: callId,
-        output: result
-      }
-    });
-    if (!outputSent) {
-      logVoiceDiagnostic({
-        event_type: 'tool_result_send_failed',
-        message: 'Failed to send function_call_output to realtime session',
-        tool_call_id: callId,
-      });
-      return;
-    }
-    
-    awaitingToolResponse = true;
-    
-    sendRealtimeEvent({
-      type: 'response.create',
-      response: {
-        reasoning: { effort: reasoningEffort },
-      },
-    });
+
+    deliverFunctionResult(callId, result, reasoningEffort);
   }, []);
 
   // Clear audio buffer to prevent leftover audio from previous turns
@@ -741,6 +834,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.created':
+        responseInProgress = true;
         // Clear accumulated transcript so AI deltas start fresh
         setCurrentTranscript('');
 
@@ -769,6 +863,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.done':
+        responseInProgress = false;
+        flushPendingFunctionResults();
         setCurrentTranscript('');
         
         // Clear phantom timer
@@ -1168,6 +1264,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         sessionReady = false;
         resetTurnOrderingBuffer();
         toolCallsInFlight.clear();
+        resetPendingFunctionResults();
         // Tear down per-connection intervals so they don't accumulate across reconnects
         clearConnectionTimers();
         setIsConnected(false);
@@ -1212,6 +1309,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       globalSessionId = null;
       resetTurnOrderingBuffer();
       toolCallsInFlight.clear();
+      resetPendingFunctionResults();
+      logVoiceDiagnostic({
+        event_type: 'connect_failed',
+        message: error instanceof Error ? error.message : String(error),
+      });
       optionsRef.current.onError?.('Failed to connect to voice service');
       setStatus('idle');
     }
@@ -1241,6 +1343,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     sessionReady = false;
     resetTurnOrderingBuffer();
     toolCallsInFlight.clear();
+    resetPendingFunctionResults();
     setIsConnected(false);
     setStatus('idle');
 
