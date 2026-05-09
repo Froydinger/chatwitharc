@@ -1011,8 +1011,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           message: event.error?.message || 'Server error',
           details: { code: event.error?.code, error: event.error },
         });
-        optionsRef.current.onError?.(event.error?.message || 'Server error');
-        break;
+        optionsRef.current.onError?.('Voice hit a realtime error — reconnecting with context.');
+        if (globalWs?.readyState === WebSocket.OPEN) {
+          globalWs.close(1011, 'server_error_reconnect');
+        }
+        return;
     }
   }, [sendFunctionResult, clearAudioBuffer]);
 
