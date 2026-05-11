@@ -43,6 +43,11 @@ let sessionReady = false; // Gate: true after session.created received
 // Keepalive: OpenAI may idle-disconnect long sessions during silence or
 // long-running tool calls. Send a lightweight ping every 20s.
 let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
+// Watchdog: detect zombie WebSockets where the connection appears open
+// but no server events have arrived in a long time. Forces a clean reconnect.
+let watchdogInterval: ReturnType<typeof setInterval> | null = null;
+let lastServerEventAt: number = 0;
+const ZOMBIE_TIMEOUT_MS = 35000; // No server activity for 35s = zombie
 // Cleanup interval reference (single source of truth — prevents duplicates on reconnect)
 let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
