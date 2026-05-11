@@ -1827,25 +1827,37 @@ ${safeCode}
 
   // Auto-send next queued message when loading finishes
   const prevLoadingRef = useRef(isLoading);
+  const queueDrainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (prevLoadingRef.current && !isLoading) {
-      // Loading just finished - check queue after a short delay
-      // Use a longer delay to ensure all state has settled
-      const timer = setTimeout(() => {
-        // Double-check loading state from the store directly (not stale closure)
+      // Loading just finished — wait for state to settle, then poll until truly idle
+      // before dispatching the next queued message. Polling avoids the race where
+      // isLoading flickers false->true and the queued send gets re-queued silently.
+      let attempts = 0;
+      const tryDrain = () => {
+        attempts++;
         const storeLoading = useArcStore.getState().isLoading;
         const storeGenerating = useArcStore.getState().isGeneratingImage;
-        if (storeLoading || storeGenerating) return; // Still busy, don't send
-
+        if (storeLoading || storeGenerating) {
+          if (attempts < 20) {
+            queueDrainTimerRef.current = setTimeout(tryDrain, 250);
+          }
+          return;
+        }
         const { queue, isPaused, popNext } = useMessageQueueStore.getState();
         if (queue.length > 0 && !isPaused) {
           const next = popNext();
           if (next) {
-            handleSend(next.content);
+            // Slight defer so React has flushed the previous turn's renders
+            // (user/assistant bubbles) before we kick off the next handleSend.
+            queueDrainTimerRef.current = setTimeout(() => handleSend(next.content), 50);
           }
         }
-      }, 800);
-      return () => clearTimeout(timer);
+      };
+      queueDrainTimerRef.current = setTimeout(tryDrain, 600);
+      return () => {
+        if (queueDrainTimerRef.current) clearTimeout(queueDrainTimerRef.current);
+      };
     }
     prevLoadingRef.current = isLoading;
   }, [isLoading]);
