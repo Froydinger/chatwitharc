@@ -489,6 +489,10 @@ const clearConnectionTimers = () => {
     clearTimeout(proactiveRefreshTimer);
     proactiveRefreshTimer = null;
   }
+  if (watchdogInterval) {
+    clearInterval(watchdogInterval);
+    watchdogInterval = null;
+  }
 };
 
 const sendRealtimeEvent = (payload: Record<string, unknown>): boolean => {
