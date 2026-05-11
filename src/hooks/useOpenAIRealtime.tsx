@@ -1164,6 +1164,29 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           }
         }, 20000);
 
+        // Watchdog: if no server events arrive for 35s, the WebSocket is a
+        // zombie (connection appears OPEN but the relay is dead). Force-close
+        // it so onclose triggers a clean reconnect with full context.
+        lastServerEventAt = Date.now();
+        if (watchdogInterval) {
+          clearInterval(watchdogInterval);
+        }
+        watchdogInterval = setInterval(() => {
+          if (!globalWs || globalWs.readyState !== WebSocket.OPEN) return;
+          const silentFor = Date.now() - lastServerEventAt;
+          if (silentFor > ZOMBIE_TIMEOUT_MS) {
+            console.warn(`Zombie WebSocket detected (${silentFor}ms silent) — forcing reconnect`);
+            logVoiceDiagnostic({
+              event_type: 'zombie_ws_detected',
+              message: `No server events for ${silentFor}ms — forcing reconnect`,
+              details: { silentMs: silentFor },
+            });
+            // Reset attempts so onclose reconnects immediately.
+            reconnectAttempts = 0;
+            try { globalWs.close(4002, 'zombie_watchdog'); } catch {}
+          }
+        }, 10000);
+
         // Proactive session refresh: schedule a reconnect just before the
         // 15-minute hard limit so the user never experiences a forced drop.
         // We close the current WS cleanly at 13 minutes; onclose then
