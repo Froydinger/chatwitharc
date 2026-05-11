@@ -546,6 +546,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   }, []);
 
   const handleServerEvent = useCallback((event: any) => {
+    lastServerEventAt = Date.now();
     const { setStatus, setCurrentTranscript } = useVoiceModeStore.getState();
     
     switch (event.type) {
