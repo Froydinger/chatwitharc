@@ -1092,8 +1092,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                 }),
             ),
           );
-          const analysisPrompt =
-            userMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`;
+          const isSvgRequest = /\bsvg\b|as\s+svg|to\s+svg|make.{0,20}svg|svg.{0,20}version|convert.{0,20}svg|vector\s+graphic/i.test(userMessage);
+          const analysisPrompt = isSvgRequest
+            ? `You are an SVG artist. Carefully analyze this image and recreate it as a complete, valid SVG. Use shapes (rect, circle, ellipse, path, polygon), gradients, and accurate colors to faithfully represent the image. Set a viewBox and width/height attributes. Output ONLY the SVG markup inside a single \`\`\`svg code block with absolutely no other text, explanation, or commentary outside the code block.`
+            : (userMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`);
           const response = await ai.sendMessageWithImage([{ role: "user", content: analysisPrompt }], base64s);
           await addMessage({ content: response, role: "assistant", type: "text", sourceModel: 'cloud-vision' });
         } catch {

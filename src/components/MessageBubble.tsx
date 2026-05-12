@@ -25,6 +25,7 @@ import { MemoryIndicator } from "@/components/MemoryIndicator";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
 import { ModelSourceBadge } from "@/components/ModelSourceBadge";
 import { WeatherCard } from "@/components/WeatherCard";
+import { SvgArtifact } from "@/components/SvgArtifact";
 
 // Stable module-level constant — never recreated on re-render, so iframes never remount
 const markdownComponents = {
@@ -87,6 +88,9 @@ const markdownComponents = {
     const codeContent = String(children).replace(/\n$/, '');
     const isInline = !className && !match;
     if (!isInline && match) {
+      if (match[1].toLowerCase() === 'svg') {
+        return <SvgArtifact svgCode={codeContent} />;
+      }
       return <CodeBlock code={codeContent} language={match[1]} />;
     }
     return (

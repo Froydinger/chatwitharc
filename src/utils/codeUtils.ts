@@ -117,6 +117,7 @@ export function getFileExtension(lang: string): string {
     scala: 'scala',
     dockerfile: 'Dockerfile',
     makefile: 'Makefile',
+    svg: 'svg',
   };
   return extensions[lang.toLowerCase()] || 'txt';
 }
