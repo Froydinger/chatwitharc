@@ -12,6 +12,7 @@ import { UpdateNotification } from "@/components/UpdateNotification";
 import { AdminBanner } from "@/components/AdminBanner";
 import { PageTransition } from "@/components/PageTransition";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { RouteSEO } from "@/components/RouteSEO";
 import { FingerPopupContainer } from "@/components/FingerPopup";
 import { Starfield } from "@/components/Starfield";
 import { useStarfieldStore } from "@/store/useStarfieldStore";
