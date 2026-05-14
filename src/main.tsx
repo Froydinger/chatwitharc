@@ -115,9 +115,11 @@ try {
   }
 
   createRoot(rootElement).render(
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <HelmetProvider>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </HelmetProvider>
   );
 } catch (error) {
   console.error('Failed to render app:', error);
