@@ -91,6 +91,7 @@ const App = () => {
             />
             <BrowserRouter>
               <ScrollToTop />
+              <RouteSEO />
               <PageTransition>
                 <Routes>
                   <Route path="/" element={<Index />} />
