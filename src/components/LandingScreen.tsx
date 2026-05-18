@@ -1029,7 +1029,10 @@ export function LandingScreen() {
           <img src="/wtn-logo.webp" alt="Win The Night" className="h-8 w-8 object-contain rounded-md opacity-60" />
           <p>&copy; 2026 <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-white transition-colors">Win The Night Productions</a>. All rights reserved.</p>
         </div>
-        <div className="space-x-6">
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+          <Link to="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link>
+          <Link to="/privacy" className="hover:text-white transition-colors">Privacy Notice</Link>
+          <Link to="/refund-policy" className="hover:text-white transition-colors">Refund Policy</Link>
           <PrivacyTermsModal />
         </div>
       </footer>
