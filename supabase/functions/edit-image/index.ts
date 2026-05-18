@@ -136,7 +136,8 @@ serve(async (req) => {
   let jobId: string | null = null;
 
   try {
-    const { prompt, baseImageUrl, baseImageUrls, aspectRatio } = await req.json();
+    const { prompt, baseImageUrl, baseImageUrls, aspectRatio, imageModel } = await req.json();
+    const selectedModel = pickModel(imageModel);
 
     if (!prompt) return jsonResponse({ error: 'Prompt is required', errorType: 'invalid_request', success: false });
 
