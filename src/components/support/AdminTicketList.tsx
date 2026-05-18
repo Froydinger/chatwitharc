@@ -102,10 +102,8 @@ export function AdminTicketList() {
       const planMap: Record<string, string> = {};
       for (const uid of userIds) {
         try {
-          const { data: subData } = await supabase.functions.invoke("check-subscription", {
-            body: { userId: uid },
-          });
-          planMap[uid] = subData?.subscribed ? "Pro" : "Free";
+          const { data: hasPro } = await supabase.rpc("user_has_pro_access", { check_user_id: uid });
+          planMap[uid] = hasPro ? "Pro" : "Free";
         } catch {
           planMap[uid] = "Unknown";
         }
