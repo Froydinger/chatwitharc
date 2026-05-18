@@ -15,8 +15,6 @@ import { useAdminBanner } from "@/components/AdminBanner";
 import { LandingCanvasDemo } from "./LandingCanvasDemo";
 import { LandingVoiceDemo } from "./LandingVoiceDemo";
 import { useDownloadInfo } from "@/hooks/useDownloadInfo";
-import maestroIcon from "@/assets/maestro-icon.png";
-import arcanaLogo from "@/assets/arcana-logo.png";
 
 // Helper to detect Electron app
 const isElectron = () => {
@@ -994,30 +992,14 @@ export function LandingScreen() {
             transition={{ duration: 0.5 }}
           >
             <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-              Three apps.{' '}
+              Unlimited everything.{' '}
               <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                 One price.
               </span>
             </h2>
             <p className="text-gray-400 max-w-xl mx-auto text-lg">
-              ArcAI Pro gives you unlimited everything — plus full access to Maestro's Studio and Arcana™. Starting at <span className="text-white font-semibold">$9.60/mo</span>.
+              ArcAI Pro unlocks unlimited chats, images, voice, research and more for <span className="text-white font-semibold">$12/mo</span>.
             </p>
-          </motion.div>
-
-          {/* App logos row */}
-          <motion.div
-            className="flex items-center justify-center gap-4 mb-10"
-            initial={{ opacity: 0, y: 15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl glass-card">
-              <img src="/arc-logo-ui.png" alt="ArcAI" className="w-10 h-10 rounded-xl object-cover scale-125" />
-              <img src={maestroIcon} alt="Maestro's Studio" className="w-10 h-10 rounded-xl object-cover" />
-              <img src={arcanaLogo} alt="Arcana" className="w-10 h-10 rounded-xl object-cover" />
-              <span className="text-sm text-gray-300 font-medium ml-1">All included</span>
-            </div>
           </motion.div>
 
           <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
@@ -1035,10 +1017,6 @@ export function LandingScreen() {
               Get Started Free
             </button>
           </div>
-
-          <p className="text-center text-xs text-gray-500 mt-6">
-            7-day free trial on monthly · 20% off yearly · no catch.
-          </p>
         </div>
       </section>
 
@@ -1051,7 +1029,10 @@ export function LandingScreen() {
           <img src="/wtn-logo.webp" alt="Win The Night" className="h-8 w-8 object-contain rounded-md opacity-60" />
           <p>&copy; 2026 <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-white transition-colors">Win The Night Productions</a>. All rights reserved.</p>
         </div>
-        <div className="space-x-6">
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+          <Link to="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link>
+          <Link to="/privacy" className="hover:text-white transition-colors">Privacy Notice</Link>
+          <Link to="/refund-policy" className="hover:text-white transition-colors">Refund Policy</Link>
           <PrivacyTermsModal />
         </div>
       </footer>
