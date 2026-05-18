@@ -684,6 +684,11 @@ export function LandingScreen() {
             />
           </div>
 
+          {/* App Showcase - framed between logo and headline */}
+          <div className="mb-10">
+            <AppMockup />
+          </div>
+
           <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight leading-tight">
             Your mind, <span className="gradient-text">amplified.</span>
           </h1>
@@ -758,10 +763,8 @@ export function LandingScreen() {
             )}
           </div>
         </div>
-
-        {/* App Showcase */}
-        <AppMockup />
       </main>
+
 
       {/* Section 1: Speed & Intelligence */}
       <section className="relative z-10 py-24 px-6 max-w-4xl mx-auto text-center" id="features">
