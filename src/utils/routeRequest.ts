@@ -23,9 +23,9 @@ export type RouteDestination =
   | 'cloud-voice'               // OpenAI Realtime
   | 'cloud-code'                // Gemini 2.5 Pro — /code, canvas code edits
   | 'cloud-canvas'              // Gemini 2.5 Pro — writing canvas
-  | 'cloud-image'               // Gemini 3.1 Flash Image (Nano Banana)
-  | 'cloud-image-pro'           // Gemini 3 Pro Image
-  | 'cloud-image-edit'          // Gemini 3.1 Flash Image — edit pass
+  | 'cloud-image'               // Nano Banana 2 — locked image model
+  | 'cloud-image-pro'           // Deprecated alias — also maps to Nano Banana 2
+  | 'cloud-image-edit'          // Nano Banana 2 — edit pass
   | 'cloud-ide';                // App Builder / IDE agent
 
 export interface RouteContext {
@@ -104,11 +104,10 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
     case 'cloud-canvas':
       return { label: 'Cloud · Gemini 2.5 Pro (Canvas)', icon: 'cloud', tooltip: 'Long-form writing canvas — Google Gemini 2.5 Pro.' };
     case 'cloud-image':
-      return { label: 'Cloud · Gemini 3.1 Flash Image', icon: 'cloud', tooltip: 'Image generation — Google Gemini 3.1 Flash Image (Nano Banana).' };
     case 'cloud-image-pro':
-      return { label: 'Cloud · Gemini 3 Pro Image', icon: 'cloud', tooltip: 'High-quality image generation — Google Gemini 3 Pro Image.' };
+      return { label: 'Cloud · Nano Banana 2', icon: 'cloud', tooltip: 'Image generation — Google Gemini 3.1 Flash Image (Nano Banana 2).' };
     case 'cloud-image-edit':
-      return { label: 'Cloud · Gemini 3.1 Flash Image (Edit)', icon: 'cloud', tooltip: 'Image editing — Google Gemini 3.1 Flash Image.' };
+      return { label: 'Cloud · Nano Banana 2 (Edit)', icon: 'cloud', tooltip: 'Image editing — Google Gemini 3.1 Flash Image (Nano Banana 2).' };
     case 'cloud-ide':
       return { label: 'Cloud · Gemini 2.5 Pro (App Builder)', icon: 'cloud', tooltip: 'App Builder agent — Google Gemini 2.5 Pro.' };
   }
