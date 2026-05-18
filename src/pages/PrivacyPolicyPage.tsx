@@ -7,8 +7,7 @@ export default function PrivacyPolicyPage() {
 
         <h2>1. Data controller</h2>
         <p>
-          The data controller for personal data processed through ArcAI is J Freudinger, sole
-          proprietor doing business as Win The Night ("the Seller"). Contact:
+          The data controller for personal data processed through ArcAI is <strong>Win The Night™ Productions | Froydinger™ Design Systems</strong> ("the Seller"). Contact:
           <a href="mailto:support@askarc.chat"> support@askarc.chat</a>.
         </p>
 

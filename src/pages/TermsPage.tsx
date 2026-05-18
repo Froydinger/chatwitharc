@@ -7,8 +7,7 @@ export default function TermsPage() {
 
         <h2>1. Who we are</h2>
         <p>
-          ArcAI ("ArcAI", "we", "us") is operated by J Freudinger, a sole proprietor doing business as
-          Win The Night ("the Seller"). Contact: <a href="mailto:support@askarc.chat">support@askarc.chat</a>.
+          ArcAI ("ArcAI", "we", "us") is operated by <strong>Win The Night™ Productions | Froydinger™ Design Systems</strong> ("the Seller"). Contact: <a href="mailto:support@askarc.chat">support@askarc.chat</a>.
         </p>
 
         <h2>2. Merchant of Record</h2>
