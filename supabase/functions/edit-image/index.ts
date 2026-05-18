@@ -136,7 +136,7 @@ serve(async (req) => {
   let jobId: string | null = null;
 
   try {
-    const { prompt, baseImageUrl, baseImageUrls, imageModel, aspectRatio } = await req.json();
+    const { prompt, baseImageUrl, baseImageUrls, aspectRatio } = await req.json();
 
     if (!prompt) return jsonResponse({ error: 'Prompt is required', errorType: 'invalid_request', success: false });
 
@@ -157,7 +157,7 @@ serve(async (req) => {
         prompt,
         base_image_urls: imageArray,
         aspect_ratio: aspectRatio || '16:9',
-        preferred_model: imageModel || MODEL_FALLBACK_CHAIN[0],
+        preferred_model: IMAGE_MODEL,
         status: 'processing',
         last_attempt_at: new Date().toISOString(),
         attempts: 1,
@@ -173,55 +173,34 @@ serve(async (req) => {
     jobId = jobData.id;
     const currentJobId = jobData.id;
     const editPrompt = buildEditPrompt(prompt, imageArray.length);
-    const fallbackChain = buildFallbackChain(imageModel);
 
-    let lastError: { errorType: string; errorMessage: string; debugDetail: string } | null = null;
+    console.log(`Editing image with ${IMAGE_MODEL} for job ${currentJobId}`);
+    const result = await callEditGateway(editPrompt, imageArray, IMAGE_MODEL, aspectRatio || '16:9');
 
-    for (const model of fallbackChain) {
-      console.log(`Trying model ${model} for edit job ${currentJobId}`);
-      const result = await callEditGateway(editPrompt, imageArray, model, aspectRatio || '16:9');
-
-      if (!result.ok) {
-        const err = classifyError(result.status, result.rawText);
-        console.log(`Model ${model} failed: ${err.errorType} (${result.status})`);
-
-        if (!isRetryableFailure(result.status, result.rawText)) {
-          await updateJob(supabase, currentJobId, { status: 'failed', error_message: err.errorMessage, error_type: err.errorType });
-          return jsonResponse({ jobId: currentJobId, status: 'failed', success: false, error: err.errorMessage, errorType: err.errorType, debugDetail: err.debugDetail });
-        }
-
-        lastError = err;
-        continue;
-      }
-
-      if (!result.rawText.trim()) {
-        lastError = { errorType: 'empty_response', errorMessage: 'Empty response', debugDetail: 'Empty response' };
-        continue;
-      }
-
-      let parsed: any;
-      try {
-        parsed = JSON.parse(result.rawText);
-      } catch {
-        lastError = { errorType: 'parse_error', errorMessage: 'Failed to parse response', debugDetail: result.rawText.slice(0, 200) };
-        continue;
-      }
-
-      const imageUrl = parsed?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-      if (!imageUrl) {
-        lastError = { errorType: 'no_image_returned', errorMessage: 'No image returned', debugDetail: result.rawText.slice(0, 500) };
-        continue;
-      }
-
-      // Success!
-      console.log(`Edit succeeded with model ${model} for job ${currentJobId}`);
-      await updateJob(supabase, currentJobId, { status: 'completed', result_image_url: imageUrl, error_message: null, error_type: null });
-      return jsonResponse({ jobId: currentJobId, status: 'completed', success: true, imageUrl });
+    if (!result.ok) {
+      const err = classifyError(result.status, result.rawText);
+      console.log(`Edit failed: ${err.errorType} (${result.status})`);
+      await updateJob(supabase, currentJobId, { status: 'failed', error_message: err.errorMessage, error_type: err.errorType });
+      return jsonResponse({ jobId: currentJobId, status: 'failed', success: false, error: err.errorMessage, errorType: err.errorType, debugDetail: err.debugDetail });
     }
 
-    // All models exhausted
-    await updateJob(supabase, currentJobId, { status: 'failed', error_message: lastError?.errorMessage || 'All models failed', error_type: lastError?.errorType || 'all_models_failed' });
-    return jsonResponse({ jobId: currentJobId, status: 'failed', success: false, error: lastError?.errorMessage || 'All image models failed', errorType: lastError?.errorType || 'all_models_failed' });
+    let parsed: any;
+    try {
+      parsed = JSON.parse(result.rawText);
+    } catch {
+      await updateJob(supabase, currentJobId, { status: 'failed', error_message: 'Failed to parse response', error_type: 'parse_error' });
+      return jsonResponse({ jobId: currentJobId, status: 'failed', success: false, error: 'Failed to parse response', errorType: 'parse_error', debugDetail: result.rawText.slice(0, 200) });
+    }
+
+    const imageUrl = parsed?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    if (!imageUrl) {
+      await updateJob(supabase, currentJobId, { status: 'failed', error_message: 'No image returned', error_type: 'no_image_returned' });
+      return jsonResponse({ jobId: currentJobId, status: 'failed', success: false, error: 'No image returned', errorType: 'no_image_returned', debugDetail: result.rawText.slice(0, 500) });
+    }
+
+    console.log(`Edit succeeded for job ${currentJobId}`);
+    await updateJob(supabase, currentJobId, { status: 'completed', result_image_url: imageUrl, error_message: null, error_type: null });
+    return jsonResponse({ jobId: currentJobId, status: 'completed', success: true, imageUrl });
 
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
