@@ -342,64 +342,6 @@ const AppMockup = () => {
             </motion.div>
           </div>
 
-          {/* Center Cards */}
-          <div className="flex gap-3 md:gap-6 mb-8 md:mb-12 scale-90 md:scale-100 relative">
-            {/* Popup Message */}
-            <AnimatePresence mode="wait">
-              {activeCardPopup && (
-                <motion.div
-                  key={activeCardPopup}
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="absolute -top-20 md:-top-16 left-0 right-0 z-20 flex justify-center px-4"
-                >
-                  <div className="bg-gradient-to-r from-blue-600 to-cyan-600 backdrop-blur-xl border-2 border-cyan-400/60 text-white px-5 py-3 rounded-2xl text-sm md:text-base font-medium text-center shadow-[0_0_32px_rgba(59,130,246,0.5)] max-w-xs md:max-w-md">
-                    {cardMessages[activeCardPopup as keyof typeof cardMessages]}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              onClick={() => handleCardClick('prompts')}
-              className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-purple-500/30 hover:border-purple-500/60 transition-all cursor-pointer group hover:scale-105"
-            >
-              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:text-purple-300">
-                <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
-              </div>
-              <span className="text-[10px] md:text-xs font-medium text-gray-300">Prompts</span>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              onClick={() => handleCardClick('image')}
-              className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-green-500/30 hover:border-green-500/60 transition-all cursor-pointer group bg-white/5 relative hover:scale-105"
-            >
-              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 group-hover:text-green-300">
-                <Image className="w-4 h-4 md:w-5 md:h-5" />
-              </div>
-              <span className="text-[10px] md:text-xs font-medium text-gray-300">Image</span>
-              <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse"></div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-              onClick={() => handleCardClick('attach')}
-              className="w-20 h-28 md:w-32 md:h-40 rounded-xl md:rounded-2xl glass-card flex flex-col items-center justify-center space-y-1.5 md:space-y-2 border border-blue-500/30 hover:border-blue-500/60 transition-all cursor-pointer group hover:scale-105"
-            >
-              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:text-blue-300">
-                <Paperclip className="w-4 h-4 md:w-5 md:h-5" />
-              </div>
-              <span className="text-[10px] md:text-xs font-medium text-gray-300">Attach</span>
-            </motion.div>
-          </div>
 
           {/* Bottom Input Bar */}
           <motion.div
