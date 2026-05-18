@@ -189,7 +189,7 @@ serve(async (req) => {
         job_type: "generate",
         prompt,
         aspect_ratio: aspectRatio,
-        preferred_model: IMAGE_MODEL,
+        preferred_model: selectedModel,
         status: "processing",
         last_attempt_at: new Date().toISOString(),
         attempts: 1,
