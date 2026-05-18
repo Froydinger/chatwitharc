@@ -748,57 +748,24 @@ export function SettingsPanel() {
     <SectionCard
       icon={Crown}
       title="Your Plan"
-      subtitle={isSubscribed ? "You're on ArcAI Pro" : "You're on the Free plan"}
+      subtitle="ArcAI is free for everyone"
     >
-      {isSubscribed ? (
-        <>
-          <Tile
-            icon={Crown}
-            title="Pro Plan — Active"
-            description={subscriptionEnd ? `Next billing: ${new Date(subscriptionEnd).toLocaleDateString()}` : "Thanks for supporting Arc"}
-            right={
-              <GlassButton variant="ghost" size="sm" onClick={() => openCustomerPortal()} className="gap-1.5">
-                <SettingsIcon className="h-4 w-4" /> Manage
-              </GlassButton>
-            }
-          />
-        </>
-      ) : (
-        <>
-          <Tile
-            title="Free plan"
-            description={`${FREE_DAILY_MESSAGE_LIMIT} messages • ${FREE_DAILY_VOICE_LIMIT} voice • ${FREE_DAILY_IMAGE_LIMIT} images per day`}
-          />
-          <Tile
-            title="Pro unlocks"
-            description="Unlimited messages, voice & images • Model selection • Music player"
-            right={
-              <GlassButton size="sm" onClick={() => openCheckout()} className="gap-1.5">
-                <Sparkles className="h-4 w-4" /> Upgrade
-              </GlassButton>
-            }
-          />
-        </>
-      )}
+      <Tile
+        icon={Crown}
+        title="Free forever"
+        description="Unlimited chats and voice. 10 image generations per day."
+      />
     </SectionCard>
   );
 
-  const UsageCard = !isSubscribed ? (
-    <SectionCard icon={Stars} title="Today's Usage" subtitle="Your free-tier activity">
-      <Tile
-        title="Messages"
-        right={<span className="font-mono text-foreground text-sm">{dailyMessagesUsed} / {FREE_DAILY_MESSAGE_LIMIT}</span>}
-      />
-      <Tile
-        title="Voice Sessions"
-        right={<span className="font-mono text-foreground text-sm">{dailyVoiceSessionsUsed} / {FREE_DAILY_VOICE_LIMIT}</span>}
-      />
+  const UsageCard = (
+    <SectionCard icon={Stars} title="Today's Usage" subtitle="Image limit resets daily">
       <Tile
         title="Image Generations"
         right={<span className="font-mono text-foreground text-sm">{dailyImagesUsed} / {FREE_DAILY_IMAGE_LIMIT}</span>}
       />
     </SectionCard>
-  ) : null;
+  );
 
   const renderSection = () => {
     switch (section) {

@@ -1,14 +1,6 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Crown, MessageCircle, Mic, Image as ImageIcon, Sparkles, X, ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
-import { GlassCard } from "@/components/ui/glass-card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { GlassButton } from "@/components/ui/glass-button";
-import { useAuth } from "@/hooks/useAuth";
-import { useSubscription } from "@/hooks/useSubscription";
-import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { Sparkles, Check } from "lucide-react";
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -16,346 +8,41 @@ interface UpgradeModalProps {
   userName?: string;
 }
 
-export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
-  const [step, setStep] = useState<'info' | 'auth'>('info');
-  const [isLogin, setIsLogin] = useState(false);
-  const [showEmailForm, setShowEmailForm] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
-  const { openCheckout } = useSubscription();
-  const { toast } = useToast();
-
-  // After auth completes, immediately open Paddle overlay then close modal
-  useEffect(() => {
-    if (user && step === 'auth') {
-      openCheckout();
-      handleClose();
-    }
-  }, [user, step]);
-
-  const handleClose = () => {
-    setStep('info');
-    setEmail("");
-    setPassword("");
-    setShowEmailForm(false);
-    onClose();
-  };
-
-  const handleUpgradeClick = () => {
-    if (user) {
-      openCheckout();
-      handleClose();
-    } else {
-      setStep('auth');
-    }
-  };
-
-  const handleBack = () => {
-    if (step === 'auth') setStep('info');
-  };
-
-  const handleAuth = async () => {
-    if (!supabase || !isSupabaseConfigured) {
-      toast({ title: "Error", description: "Authentication is not available.", variant: "destructive" });
-      return;
-    }
-    if (!email || !password) {
-      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast({ title: "Welcome back!", description: "Opening checkout..." });
-      } else {
-        const redirectUrl = 'https://askarc.chat/';
-        const { error } = await supabase.auth.signUp({
-          email, password,
-          options: { emailRedirectTo: redirectUrl },
-        });
-        if (error) throw error;
-        toast({ title: "Account created!", description: "Opening checkout..." });
-      }
-    } catch (error: any) {
-      toast({ title: "Error", description: error?.message || "An error occurred", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleAuth = async () => {
-    setLoading(true);
-    try {
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      toast({ title: "Error", description: error?.message || "An error occurred", variant: "destructive" });
-      setLoading(false);
-    }
-  };
-
-  const handleAppleAuth = async () => {
-    setLoading(true);
-    try {
-      const { error } = await lovable.auth.signInWithOAuth("apple", {
-        redirect_uri: window.location.origin,
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      toast({ title: "Error", description: error?.message || "An error occurred", variant: "destructive" });
-      setLoading(false);
-    }
-  };
-
-  const onSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
-    e.preventDefault();
-    if (!loading) handleAuth();
-  };
-
+// ArcAI is free for everyone. This modal now celebrates that and explains
+// the only soft limit (10 images/day for non-admins). All previous upgrade /
+// checkout flows are gone.
+export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-          onClick={handleClose}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md"
-          >
-            <GlassCard variant="bubble" glow className="p-8 relative overflow-hidden rounded-3xl border border-primary/30 animate-[neon-pulse_2s_ease-in-out_infinite]">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-primary/80 to-primary/40" />
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md glass-card border-white/10">
+        <div className="text-center pt-2">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/15 mb-4">
+            <Sparkles className="h-7 w-7 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">ArcAI is free for everyone</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            No subscription, no checkout. Just sign in and you're in.
+          </p>
 
-              <button
-                onClick={handleClose}
-                className="absolute top-4 right-4 p-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-4 h-4" />
-              </button>
+          <ul className="text-left space-y-2.5 mb-6">
+            {[
+              "Unlimited chats with every model",
+              "Unlimited voice mode",
+              "10 image generations per day",
+              "Web search, files, memory, canvases — all included",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-2.5 text-sm">
+                <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
 
-              {step === 'auth' ? (
-                <div className="space-y-5">
-                  <button onClick={handleBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    <ArrowLeft className="w-4 h-4" /> Back
-                  </button>
-
-                  <div className="text-center space-y-1">
-                    <h2 className="text-xl font-bold text-foreground">Create an account to subscribe</h2>
-                    <p className="text-sm text-muted-foreground">Quick sign-up, then straight to checkout</p>
-                  </div>
-
-                  <div className="flex p-1 rounded-full bg-white/5 border border-white/10">
-                    <button
-                      type="button"
-                      onClick={() => { setIsLogin(false); setShowEmailForm(false); }}
-                      className={cn(
-                        "flex-1 py-2 px-4 rounded-full text-sm font-medium transition-all duration-200",
-                        !isLogin ? "bg-white/10 text-white shadow-[0_0_12px_rgba(255,255,255,0.06)]" : "text-white/50 hover:text-white/70"
-                      )}
-                      disabled={loading}
-                    >
-                      Sign Up
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setIsLogin(true); setShowEmailForm(false); }}
-                      className={cn(
-                        "flex-1 py-2 px-4 rounded-full text-sm font-medium transition-all duration-200",
-                        isLogin ? "bg-white/10 text-white shadow-[0_0_12px_rgba(255,255,255,0.06)]" : "text-white/50 hover:text-white/70"
-                      )}
-                      disabled={loading}
-                    >
-                      Sign In
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    <GlassButton
-                      variant="ghost"
-                      onClick={handleGoogleAuth}
-                      disabled={loading}
-                      className="w-full h-11 rounded-xl border border-white/10 hover:border-white/20 text-sm"
-                      type="button"
-                    >
-                      <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
-                        <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                        <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                        <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                        <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                      </svg>
-                      Continue with Google
-                    </GlassButton>
-
-                    <GlassButton
-                      variant="ghost"
-                      onClick={handleAppleAuth}
-                      disabled={loading}
-                      className="w-full h-11 rounded-xl border border-white/10 hover:border-white/20 text-sm"
-                      type="button"
-                    >
-                      <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                      </svg>
-                      Continue with Apple
-                    </GlassButton>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                    <button
-                      type="button"
-                      onClick={() => setShowEmailForm(!showEmailForm)}
-                      className="text-xs text-white/40 hover:text-white/70 font-medium transition-colors whitespace-nowrap"
-                    >
-                      {showEmailForm ? "Hide email form" : "Use email instead"}
-                    </button>
-                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                  </div>
-
-                  <AnimatePresence>
-                    {showEmailForm && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.25, ease: "easeInOut" }}
-                        className="overflow-hidden"
-                      >
-                        <form onSubmit={onSubmit} className="space-y-3">
-                          <div className="relative group">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 transition-colors group-focus-within:text-primary" />
-                            <input
-                              type="email"
-                              inputMode="email"
-                              autoCapitalize="none"
-                              autoCorrect="off"
-                              spellCheck={false}
-                              placeholder="Email"
-                              value={email}
-                              onChange={(e) => setEmail(e.target.value)}
-                              className={cn(
-                                "w-full h-11 pl-10 pr-4 rounded-xl",
-                                "bg-white/5 border border-white/10",
-                                "backdrop-blur-sm text-white placeholder:text-white/40",
-                                "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50",
-                                "transition-all duration-200"
-                              )}
-                              disabled={loading}
-                              required
-                            />
-                          </div>
-                          <div className="relative group">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 transition-colors group-focus-within:text-primary" />
-                            <input
-                              type={showPassword ? "text" : "password"}
-                              placeholder="Password"
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              className={cn(
-                                "w-full h-11 pl-10 pr-10 rounded-xl",
-                                "bg-white/5 border border-white/10",
-                                "backdrop-blur-sm text-white placeholder:text-white/40",
-                                "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50",
-                                "transition-all duration-200"
-                              )}
-                              disabled={loading}
-                              autoComplete={isLogin ? "current-password" : "new-password"}
-                              required
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
-                              tabIndex={-1}
-                            >
-                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
-                          </div>
-                          <GlassButton variant="glow" type="submit" disabled={loading} className="w-full h-11 rounded-xl text-sm font-medium">
-                            {loading ? "Loading..." : isLogin ? "Sign In & Continue" : "Sign Up & Continue"}
-                          </GlassButton>
-                        </form>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="text-center space-y-2">
-                    <motion.div
-                      animate={{ rotate: [0, 5, -5, 0] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                      className="flex justify-center"
-                    >
-                      <div className="p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
-                        <Crown className="w-8 h-8 text-primary" />
-                      </div>
-                    </motion.div>
-                    <h2 className="text-xl font-bold text-foreground">
-                      {userName ? `Welcome, ${userName}!` : "Welcome to ArcAi!"}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      One subscription. Unlimited everything.
-                    </p>
-                  </div>
-
-                  <ul className="space-y-3">
-                    {[
-                      { icon: MessageCircle, text: <span><strong>Unlimited</strong> messages — no daily caps</span> },
-                      { icon: Mic, text: <span><strong>Unlimited</strong> voice sessions</span> },
-                      { icon: ImageIcon, text: <span><strong>Unlimited</strong> image generation</span> },
-                      { icon: Sparkles, text: "Switch between AI models" },
-                    ].map(({ icon: Icon, text }, i) => (
-                      <li key={i} className="flex items-center gap-3 text-sm text-foreground">
-                        <div className="p-1 rounded-full bg-primary/10">
-                          <Icon className="w-3.5 h-3.5 text-primary" />
-                        </div>
-                        {text}
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="text-center">
-                    <span className="text-3xl font-bold text-foreground">$12</span>
-                    <span className="text-muted-foreground text-sm"> /month</span>
-                  </div>
-
-                  <div className="space-y-3">
-                    <button
-                      onClick={handleUpgradeClick}
-                      className="w-full px-6 py-3.5 rounded-full font-semibold bg-primary text-primary-foreground hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-[0_0_20px_hsl(var(--primary)/0.3)]"
-                    >
-                      <Crown className="w-4 h-4" />
-                      Upgrade to Pro
-                    </button>
-                    <button
-                      onClick={handleClose}
-                      className="w-full px-6 py-2.5 rounded-full text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      Maybe later — continue free
-                    </button>
-                  </div>
-                </div>
-              )}
-            </GlassCard>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          <GlassButton className="w-full" onClick={onClose}>
+            Got it
+          </GlassButton>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

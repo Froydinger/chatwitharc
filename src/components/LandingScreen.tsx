@@ -981,7 +981,7 @@ export function LandingScreen() {
       {/* Canvas Demo Section */}
       <LandingCanvasDemo />
 
-      {/* Pricing Section */}
+      {/* Pricing Section — ArcAI is free for everyone */}
       <section className="relative z-10 py-20 px-6" id="pricing">
         <div className="max-w-5xl mx-auto">
           <motion.div
@@ -992,30 +992,30 @@ export function LandingScreen() {
             transition={{ duration: 0.5 }}
           >
             <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-              Unlimited everything.{' '}
+              100% free.{' '}
               <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                One price.
+                Forever.
               </span>
             </h2>
             <p className="text-gray-400 max-w-xl mx-auto text-lg">
-              ArcAI Pro unlocks unlimited chats, images, voice, research and more for <span className="text-white font-semibold">$12/mo</span>.
+              No subscription, no credit card, no paywalls. Unlimited chats and voice, plus 10 image generations every day.
             </p>
           </motion.div>
 
           <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
-            <Link
-              to="/pricing"
+            <button
+              onClick={() => setShowAuthModal(true)}
               className="w-full px-8 py-4 rounded-full font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity text-center flex items-center justify-center gap-2"
             >
               <Crown className="w-5 h-5" />
-              See Plans & Pricing
-            </Link>
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="px-6 py-3 rounded-full font-semibold border border-white/10 text-white hover:bg-white/5 transition-colors"
-            >
               Get Started Free
             </button>
+            <Link
+              to="/pricing"
+              className="px-6 py-3 rounded-full font-semibold border border-white/10 text-white hover:bg-white/5 transition-colors"
+            >
+              See what's included
+            </Link>
           </div>
         </div>
       </section>
