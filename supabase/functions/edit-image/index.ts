@@ -13,8 +13,15 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '
 const REQUEST_TIMEOUT_MS = 55_000;
 const RETRY_DELAY_MS = 3_000;
 
-// Locked to a single image model. No fallback chain.
-const IMAGE_MODEL = 'google/gemini-3.1-flash-image-preview';
+// Allowed image models — client may pick between these. No fallback chain.
+const DEFAULT_IMAGE_MODEL = 'google/gemini-3.1-flash-image-preview';
+const ALLOWED_IMAGE_MODELS = new Set<string>([
+  'google/gemini-3.1-flash-image-preview',
+  'google/gemini-2.5-flash-image',
+]);
+function pickModel(requested?: string): string {
+  return requested && ALLOWED_IMAGE_MODELS.has(requested) ? requested : DEFAULT_IMAGE_MODEL;
+}
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
