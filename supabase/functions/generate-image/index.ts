@@ -206,8 +206,8 @@ serve(async (req) => {
     const currentJobId = jobData.id;
     const imagePrompt = buildImagePrompt(prompt, aspectRatio);
 
-    console.log(`Generating image with ${IMAGE_MODEL} for job ${currentJobId}`);
-    const result = await callImageGateway(imagePrompt, IMAGE_MODEL);
+    console.log(`Generating image with ${selectedModel} for job ${currentJobId}`);
+    const result = await callImageGateway(imagePrompt, selectedModel);
 
     if (!result.ok) {
       const errorInfo = classifyError(result.status, result.rawText);
