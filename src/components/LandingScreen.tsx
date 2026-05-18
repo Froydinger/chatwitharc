@@ -15,8 +15,6 @@ import { useAdminBanner } from "@/components/AdminBanner";
 import { LandingCanvasDemo } from "./LandingCanvasDemo";
 import { LandingVoiceDemo } from "./LandingVoiceDemo";
 import { useDownloadInfo } from "@/hooks/useDownloadInfo";
-import maestroIcon from "@/assets/maestro-icon.png";
-import arcanaLogo from "@/assets/arcana-logo.png";
 
 // Helper to detect Electron app
 const isElectron = () => {
