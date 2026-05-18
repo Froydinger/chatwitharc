@@ -1,30 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  Download,
-  Sparkles,
-  Image,
-  Paperclip,
-  Brain,
-  ArrowRight,
-  Zap,
-  Code,
-  Menu,
-  Mail,
-  Crown,
-  Check,
-  MessageCircle,
-  Mic,
-  Headphones,
-  Heart,
-  Search,
-  Globe,
-  Lock,
-  Plus,
-  Clock,
-  Send,
-  Music,
-  Pen,
-} from "lucide-react";
+import { Download, Sparkles, Image, Paperclip, Brain, ArrowRight, Zap, Code, Menu, Mail, Crown, Check, MessageCircle, Mic, Headphones, Heart, Search, Globe, Lock, Plus, Clock, Send, Music, Pen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
@@ -40,8 +15,6 @@ import { useAdminBanner } from "@/components/AdminBanner";
 import { LandingCanvasDemo } from "./LandingCanvasDemo";
 import { LandingVoiceDemo } from "./LandingVoiceDemo";
 import { useDownloadInfo } from "@/hooks/useDownloadInfo";
-import maestroIcon from "@/assets/maestro-icon.png";
-import arcanaLogo from "@/assets/arcana-logo.png";
 
 // Helper to detect Electron app
 const isElectron = () => {
@@ -50,7 +23,8 @@ const isElectron = () => {
 
 // Helper to detect PWA mode
 const isPWA = () => {
-  return window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
+  return window.matchMedia('(display-mode: standalone)').matches || 
+         (window.navigator as any).standalone === true;
 };
 
 // Helper to detect mobile device
@@ -68,14 +42,14 @@ function ModelToggleDemo() {
   const [isGPT, setIsGPT] = useState(false);
 
   useEffect(() => {
-    const interval = setInterval(() => setIsGPT((prev) => !prev), 3000);
+    const interval = setInterval(() => setIsGPT(prev => !prev), 3000);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div
       className="relative inline-flex items-center rounded-full p-1 cursor-pointer glass-card w-[220px] h-[46px]"
-      onClick={() => setIsGPT((prev) => !prev)}
+      onClick={() => setIsGPT(prev => !prev)}
     >
       {/* Sliding background pill */}
       <motion.div
@@ -83,17 +57,15 @@ function ModelToggleDemo() {
         animate={{ x: isGPT ? 3 : 107 }}
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
         style={{
-          background: isGPT ? "linear-gradient(135deg, #10a37f, #1a7f5a)" : "linear-gradient(135deg, #4285f4, #34a8eb)",
+          background: isGPT
+            ? "linear-gradient(135deg, #10a37f, #1a7f5a)"
+            : "linear-gradient(135deg, #4285f4, #34a8eb)",
         }}
       />
-      <span
-        className={`relative z-10 flex-1 text-center text-sm font-semibold transition-colors duration-200 ${isGPT ? "text-white" : "text-gray-400"}`}
-      >
+      <span className={`relative z-10 flex-1 text-center text-sm font-semibold transition-colors duration-200 ${isGPT ? "text-white" : "text-gray-400"}`}>
         GPT
       </span>
-      <span
-        className={`relative z-10 flex-1 text-center text-sm font-semibold transition-colors duration-200 ${!isGPT ? "text-white" : "text-gray-400"}`}
-      >
+      <span className={`relative z-10 flex-1 text-center text-sm font-semibold transition-colors duration-200 ${!isGPT ? "text-white" : "text-gray-400"}`}>
         Gemini
       </span>
     </div>
@@ -102,15 +74,14 @@ function ModelToggleDemo() {
 
 // Fake Research Animation for landing page
 function ResearchDemo() {
-  const [phase, setPhase] = useState<"typing" | "searching" | "results">("typing");
+  const [phase, setPhase] = useState<'typing' | 'searching' | 'results'>('typing');
   const [typedChars, setTypedChars] = useState(0);
   const [step, setStep] = useState(0);
 
   const data = [
     {
       query: "How does quantum computing work?",
-      summary:
-        "Quantum computers use qubits that can exist in superposition, enabling parallel computation. Unlike classical bits, qubits leverage entanglement to solve problems exponentially faster¹.",
+      summary: "Quantum computers use qubits that can exist in superposition, enabling parallel computation. Unlike classical bits, qubits leverage entanglement to solve problems exponentially faster¹.",
       sources: [
         { title: "Quantum Computing Explained", domain: "nature.com" },
         { title: "IBM's 1000-Qubit Processor", domain: "arxiv.org" },
@@ -119,8 +90,7 @@ function ResearchDemo() {
     },
     {
       query: "Latest breakthroughs in fusion energy",
-      summary:
-        "NIF achieved net energy gain in late 2025, marking a historic milestone. Several startups are now racing to build compact fusion reactors for commercial deployment².",
+      summary: "NIF achieved net energy gain in late 2025, marking a historic milestone. Several startups are now racing to build compact fusion reactors for commercial deployment².",
       sources: [
         { title: "NIF Achieves Net Energy Gain", domain: "science.org" },
         { title: "Compact Fusion Reactors", domain: "reuters.com" },
@@ -129,8 +99,7 @@ function ResearchDemo() {
     },
     {
       query: "Best productivity frameworks 2026",
-      summary:
-        "The most effective frameworks combine deep work blocks with time-boxing. Research shows the Pomodoro technique paired with weekly reviews increases output by 37%³.",
+      summary: "The most effective frameworks combine deep work blocks with time-boxing. Research shows the Pomodoro technique paired with weekly reviews increases output by 37%³.",
       sources: [
         { title: "Deep Work by Cal Newport", domain: "goodreads.com" },
         { title: "GTD Methodology Guide", domain: "todoist.com" },
@@ -144,18 +113,18 @@ function ResearchDemo() {
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
 
-    if (phase === "typing") {
+    if (phase === 'typing') {
       if (typedChars < current.query.length) {
-        timeout = setTimeout(() => setTypedChars((prev) => prev + 1), 45);
+        timeout = setTimeout(() => setTypedChars(prev => prev + 1), 45);
       } else {
-        timeout = setTimeout(() => setPhase("searching"), 600);
+        timeout = setTimeout(() => setPhase('searching'), 600);
       }
-    } else if (phase === "searching") {
-      timeout = setTimeout(() => setPhase("results"), 1500);
+    } else if (phase === 'searching') {
+      timeout = setTimeout(() => setPhase('results'), 1500);
     } else {
       timeout = setTimeout(() => {
-        setStep((prev) => (prev + 1) % 3);
-        setPhase("typing");
+        setStep(prev => (prev + 1) % 3);
+        setPhase('typing');
         setTypedChars(0);
       }, 5000);
     }
@@ -187,77 +156,78 @@ function ResearchDemo() {
           <Search className="w-3.5 h-3.5 text-gray-500 shrink-0" />
           <span className="text-sm text-gray-300 truncate">
             {current.query.slice(0, typedChars)}
-            {phase === "typing" && (
-              <span className="inline-block w-0.5 h-4 bg-emerald-400 ml-0.5 animate-pulse align-middle" />
-            )}
+            {phase === 'typing' && <span className="inline-block w-0.5 h-4 bg-emerald-400 ml-0.5 animate-pulse align-middle" />}
           </span>
         </div>
       </div>
 
       {/* Searching state */}
       <div className="flex-1 overflow-hidden">
-        <AnimatePresence mode="wait">
-          {phase === "searching" && (
+      <AnimatePresence mode="wait">
+        {phase === 'searching' && (
+          <motion.div
+            key="scanning"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="px-4 py-6 flex flex-col items-center gap-3"
+          >
             <motion.div
-              key="scanning"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="px-4 py-6 flex flex-col items-center gap-3"
-            >
-              <motion.div
-                className="w-full h-0.5 rounded-full bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
-                animate={{ opacity: [0.3, 1, 0.3], scaleX: [0.3, 1, 0.3] }}
-                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <span className="text-xs text-gray-500">Searching the web...</span>
-            </motion.div>
-          )}
+              className="w-full h-0.5 rounded-full bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
+              animate={{ opacity: [0.3, 1, 0.3], scaleX: [0.3, 1, 0.3] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <span className="text-xs text-gray-500">Searching the web...</span>
+          </motion.div>
+        )}
 
-          {/* Results state — mimics real UI with summary + sources */}
-          {phase === "results" && (
-            <motion.div
-              key="results"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="px-4 pb-4 pt-1 space-y-3"
-            >
-              {/* AI Summary */}
-              <div className="text-sm text-gray-300 leading-relaxed">{current.summary}</div>
+        {/* Results state — mimics real UI with summary + sources */}
+        {phase === 'results' && (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="px-4 pb-4 pt-1 space-y-3"
+          >
+            {/* AI Summary */}
+            <div className="text-sm text-gray-300 leading-relaxed">
+              {current.summary}
+            </div>
 
-              {/* Source chips — like the real UI */}
-              <div className="flex flex-wrap gap-1.5">
-                {current.sources.map((s, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[10px]"
-                  >
-                    <Globe className="w-3 h-3 text-emerald-400 shrink-0" />
-                    <span className="text-gray-400 truncate max-w-[100px]">{s.title}</span>
-                    <span className="text-gray-600">·</span>
-                    <span className="text-gray-500">{s.domain}</span>
-                  </motion.div>
-                ))}
+            {/* Source chips — like the real UI */}
+            <div className="flex flex-wrap gap-1.5">
+              {current.sources.map((s, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[10px]"
+                >
+                  <Globe className="w-3 h-3 text-emerald-400 shrink-0" />
+                  <span className="text-gray-400 truncate max-w-[100px]">{s.title}</span>
+                  <span className="text-gray-600">·</span>
+                  <span className="text-gray-500">{s.domain}</span>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Follow-up input — mimics real UI */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 mt-2">
+              <span className="text-xs text-gray-500">Ask a follow-up...</span>
+              <div className="ml-auto w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <Send className="w-2.5 h-2.5 text-emerald-400" />
               </div>
-
-              {/* Follow-up input — mimics real UI */}
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 mt-2">
-                <span className="text-xs text-gray-500">Ask a follow-up...</span>
-                <div className="ml-auto w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                  <Send className="w-2.5 h-2.5 text-emerald-400" />
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       </div>
     </div>
   );
 }
+
 
 const PromptPill = ({ icon, text }: { icon: string; text: string }) => (
   <div className="flex items-center space-x-2 px-4 py-2 rounded-full glass-card cursor-pointer hover:bg-white/10 text-sm text-gray-300">
@@ -271,7 +241,7 @@ const FeatureCard = ({
   icon: Icon,
   title,
   description,
-  color,
+  color
 }: {
   icon: React.ComponentType<any>;
   title: string;
@@ -279,9 +249,7 @@ const FeatureCard = ({
   color: string;
 }) => (
   <div className="glass-card p-6 rounded-2xl flex flex-col items-start space-y-3 h-full group">
-    <div
-      className={`p-3 rounded-xl bg-gradient-to-br ${color} bg-opacity-10 group-hover:scale-110 transition-transform duration-300`}
-    >
+    <div className={`p-3 rounded-xl bg-gradient-to-br ${color} bg-opacity-10 group-hover:scale-110 transition-transform duration-300`}>
       <Icon className="w-5 h-5" />
     </div>
     <h3 className="text-xl font-semibold text-white">{title}</h3>
@@ -313,7 +281,7 @@ const AppMockup = () => {
   const cardMessages = {
     prompts: "Generate fresh prompts to get the convo going",
     image: "Generate images with Gemini 3 Pro",
-    attach: "Attach images to analyze and dig deeper or edit",
+    attach: "Attach images to analyze and dig deeper or edit"
   };
 
   return (
@@ -326,14 +294,13 @@ const AppMockup = () => {
             <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-yellow-500/80"></div>
             <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-green-500/80"></div>
           </div>
-          <div className="flex-1 text-center text-[9px] md:text-xs text-gray-500 font-medium">
-            ArcAi <span className="text-gray-600">by Win The Night</span>
-          </div>
+          <div className="flex-1 text-center text-[9px] md:text-xs text-gray-500 font-medium">ArcAi <span className="text-gray-600">by Win The Night</span></div>
           <div className="w-6 md:w-10"></div>
         </div>
 
         {/* Main Content Area */}
         <div className="px-4 pt-8 pb-5 md:px-12 md:pt-16 md:pb-10 flex flex-col items-center justify-center min-h-[200px] md:min-h-[460px] relative">
+
           {/* Hero Text inside App */}
           <h2 className="text-2xl md:text-4xl font-bold mb-6 md:mb-8 text-center text-white tracking-tight">
             Arc and shine.
@@ -346,23 +313,33 @@ const AppMockup = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <PromptPill icon="💬" text="Ask" />
+              <PromptPill
+                icon="💬"
+                text="Ask"
+              />
             </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <PromptPill icon="💭" text="Reflect" />
+              <PromptPill
+                icon="💭"
+                text="Reflect"
+              />
             </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              <PromptPill icon="✨" text="Create" />
+              <PromptPill
+                icon="✨"
+                text="Create"
+              />
             </motion.div>
           </div>
+
 
           {/* Bottom Input Bar - mirrors real ChatInput glass-dock */}
           <motion.div
@@ -374,11 +351,16 @@ const AppMockup = () => {
             <div className="shrink-0 h-8 w-8 md:h-9 md:w-9 rounded-full flex items-center justify-center text-muted-foreground">
               <Sparkles className="h-4 w-4 md:h-4.5 md:w-4.5" />
             </div>
-            <div className="flex-1 text-left text-muted-foreground/70 font-light text-sm truncate">Ask anything...</div>
+            <div className="flex-1 text-left text-muted-foreground/70 font-light text-sm truncate">
+              Ask anything...
+            </div>
             <div className="shrink-0 h-8 w-8 md:h-9 md:w-9 rounded-full flex items-center justify-center bg-primary/80 text-primary-foreground ring-2 ring-primary shadow-[0_0_12px_hsl(var(--primary)/0.3)]">
               <ArrowRight className="h-4 w-4 md:h-4.5 md:w-4.5" />
             </div>
           </motion.div>
+
+
+
         </div>
       </div>
 
@@ -416,8 +398,8 @@ export function LandingScreen() {
       setShowStickyHeader(window.scrollY > 100);
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Cleanup timeout on unmount
@@ -438,12 +420,12 @@ export function LandingScreen() {
       particleCount: 100,
       spread: 70,
       origin: { x, y },
-      colors: ["#ff0000", "#00ff00", "#0000ff", "#ffff00"],
+      colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00'],
       ticks: 200,
       gravity: 1.5,
       drift: 0,
       startVelocity: 30,
-      shapes: ["square"],
+      shapes: ['square'],
       scalar: 1.2,
     });
 
@@ -460,7 +442,7 @@ export function LandingScreen() {
     <div
       className="dark relative min-h-screen w-full selection:bg-purple-500 selection:text-white"
       style={{
-        paddingTop: `calc(${isPWAMode || isElectronApp ? "env(safe-area-inset-top, 0px)" : "0px"} + ${isAdminBannerActive ? "var(--admin-banner-height, 0px)" : "0px"})`,
+        paddingTop: `calc(${(isPWAMode || isElectronApp) ? 'env(safe-area-inset-top, 0px)' : '0px'} + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'})`,
       }}
     >
       {/* Background Image */}
@@ -476,7 +458,7 @@ export function LandingScreen() {
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
             className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/10 backdrop-blur-xl"
             style={{
-              paddingTop: `calc(${isPWAMode || isElectronApp ? "env(safe-area-inset-top, 0px)" : "0px"} + ${isAdminBannerActive ? "var(--admin-banner-height, 0px)" : "0px"})`,
+              paddingTop: `calc(${(isPWAMode || isElectronApp) ? 'env(safe-area-inset-top, 0px)' : '0px'} + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'})`
             }}
           >
             <div className="flex items-center justify-between px-4 py-3 md:px-8 max-w-7xl mx-auto">
@@ -487,27 +469,13 @@ export function LandingScreen() {
                   <span className="font-light">Ai</span>
                   <span className="hidden sm:flex items-center ml-2 gap-1 text-xs text-gray-500 font-light">
                     by
-                    <img
-                      src="/wtn-logo.webp"
-                      alt="Win The Night"
-                      className="h-4 w-4 object-contain rounded-sm opacity-70"
-                    />
+                    <img src="/wtn-logo.webp" alt="Win The Night" className="h-4 w-4 object-contain rounded-sm opacity-70" />
                   </span>
                 </span>
               </div>
               <div className="flex items-center space-x-4">
-                <a
-                  href="#features"
-                  className="hidden md:block text-sm font-medium text-gray-400 hover:text-white transition-colors"
-                >
-                  Features
-                </a>
-                <a
-                  href="#pricing"
-                  className="hidden md:block text-sm font-medium text-gray-400 hover:text-white transition-colors"
-                >
-                  Pricing
-                </a>
+                <a href="#features" className="hidden md:block text-sm font-medium text-gray-400 hover:text-white transition-colors">Features</a>
+                <a href="#pricing" className="hidden md:block text-sm font-medium text-gray-400 hover:text-white transition-colors">Pricing</a>
                 <button
                   onClick={() => setShowAuthModal(true)}
                   className="px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity"
@@ -527,7 +495,7 @@ export function LandingScreen() {
           <div className="relative">
             <button
               className="rounded-full backdrop-blur-2xl bg-background/60 hover:bg-background/80 transition-all overflow-hidden shadow-lg p-2 cursor-pointer"
-              style={{ border: "none" }}
+              style={{ border: 'none' }}
               onClick={() => {
                 // Clear any existing timeout
                 if (snarkyTimeoutRef.current) {
@@ -615,12 +583,8 @@ export function LandingScreen() {
           </span>
         </div>
         <div className="hidden md:flex items-center space-x-6">
-          <a href="#features" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
-            Features
-          </a>
-          <a href="#pricing" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
-            Pricing
-          </a>
+          <a href="#features" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Features</a>
+          <a href="#pricing" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Pricing</a>
           <button
             onClick={() => setShowAuthModal(true)}
             className="px-5 py-2.5 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity"
@@ -628,7 +592,10 @@ export function LandingScreen() {
             Sign In / Sign Up
           </button>
         </div>
-        <button className="md:hidden text-white" onClick={() => setShowMobileMenu(!showMobileMenu)}>
+        <button
+          className="md:hidden text-white"
+          onClick={() => setShowMobileMenu(!showMobileMenu)}
+        >
           <Menu className="w-6 h-6" />
         </button>
       </nav>
@@ -636,25 +603,10 @@ export function LandingScreen() {
       {/* Mobile Menu */}
       {showMobileMenu && (
         <div className="md:hidden fixed top-20 right-6 z-50 glass-panel rounded-2xl p-4 space-y-3 min-w-[200px]">
-          <a
-            href="#features"
-            onClick={() => setShowMobileMenu(false)}
-            className="block text-gray-400 hover:text-white transition-colors"
-          >
-            Features
-          </a>
-          <a
-            href="#pricing"
-            onClick={() => setShowMobileMenu(false)}
-            className="block text-gray-400 hover:text-white transition-colors"
-          >
-            Pricing
-          </a>
+          <a href="#features" onClick={() => setShowMobileMenu(false)} className="block text-gray-400 hover:text-white transition-colors">Features</a>
+          <a href="#pricing" onClick={() => setShowMobileMenu(false)} className="block text-gray-400 hover:text-white transition-colors">Pricing</a>
           <button
-            onClick={() => {
-              setShowAuthModal(true);
-              setShowMobileMenu(false);
-            }}
+            onClick={() => { setShowAuthModal(true); setShowMobileMenu(false); }}
             className="w-full px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-center"
           >
             Sign In / Sign Up
@@ -683,8 +635,7 @@ export function LandingScreen() {
             Your mind, <span className="gradient-text">amplified.</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-400 mb-8 max-w-xl mx-auto leading-relaxed">
-            The intelligent AI companion that adapts to you. Create, code, and think with fluid, intuitive
-            conversations.
+            The intelligent AI companion that adapts to you. Create, code, and think with fluid, intuitive conversations.
           </p>
 
           <div className="flex flex-col items-center justify-center space-y-4">
@@ -697,12 +648,7 @@ export function LandingScreen() {
                   <Sparkles className="w-6 h-6" />
                   <span>Get Started</span>
                 </button>
-                <button
-                  onClick={() => setShowAuthModal(true)}
-                  className="text-sm text-gray-400 hover:text-white transition-colors underline underline-offset-4"
-                >
-                  Already have an account? Sign in
-                </button>
+                <button onClick={() => setShowAuthModal(true)} className="text-sm text-gray-400 hover:text-white transition-colors underline underline-offset-4">Already have an account? Sign in</button>
               </>
             ) : isPWAMode ? (
               <>
@@ -713,12 +659,7 @@ export function LandingScreen() {
                   <Sparkles className="w-6 h-6" />
                   <span>Get Started</span>
                 </button>
-                <button
-                  onClick={() => setShowAuthModal(true)}
-                  className="text-sm text-gray-400 hover:text-white transition-colors underline underline-offset-4"
-                >
-                  Already have an account? Sign in
-                </button>
+                <button onClick={() => setShowAuthModal(true)} className="text-sm text-gray-400 hover:text-white transition-colors underline underline-offset-4">Already have an account? Sign in</button>
               </>
             ) : (
               <>
@@ -739,7 +680,7 @@ export function LandingScreen() {
                       <AppleLogo className="w-5 h-5" />
                       <span>Send to Mac</span>
                     </a>
-                  ) : isWindowsDevice ? (
+                   ) : isWindowsDevice ? (
                     <button
                       onClick={handleWindowsClick}
                       className="w-full sm:w-auto px-8 py-4 bg-white text-black rounded-full font-bold text-lg flex items-center justify-center space-x-2 cursor-default shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
@@ -758,17 +699,14 @@ export function LandingScreen() {
                   )}
                 </div>
                 <span className="text-xs text-gray-500">
-                  {isMobile
-                    ? "Free Forever • Email Mac app link"
-                    : isWindowsDevice
-                      ? "Free Forever • Windows app in beta"
-                      : "Free Forever • Native Mac app available"}
+                  {isMobile ? 'Free & paid plans • Email Mac app link' : isWindowsDevice ? 'Free & paid plans • Windows app coming soon' : 'Free & paid plans • Native Mac app available'}
                 </span>
               </>
             )}
           </div>
         </div>
       </main>
+
 
       {/* Section 1: Speed & Intelligence */}
       <section className="relative z-10 py-24 px-6 max-w-4xl mx-auto text-center" id="features">
@@ -784,15 +722,11 @@ export function LandingScreen() {
             Built for speed
           </div>
           <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-            Think fast.
-            <br />
-            <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-              Type faster.
-            </span>
+            Think fast.<br />
+            <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">Type faster.</span>
           </h2>
           <p className="text-gray-400 text-lg leading-relaxed max-w-lg">
-            Instant responses powered by cutting-edge models. Switch between speed and depth on the fly — your AI, your
-            rules.
+            Instant responses powered by cutting-edge models. Switch between speed and depth on the fly — your AI, your rules.
           </p>
 
           {/* GPT / Gemini animated toggle */}
@@ -814,8 +748,7 @@ export function LandingScreen() {
               <h3 className="text-lg font-bold text-white">Personal Memory</h3>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
-              ArcAi remembers your preferences, context, and style. Every conversation picks up right where you left
-              off.
+              ArcAi remembers your preferences, context, and style. Every conversation picks up right where you left off.
             </p>
           </div>
 
@@ -846,13 +779,13 @@ export function LandingScreen() {
             <Heart className="w-6 h-6 text-white" />
           </div>
           <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-            Real Life,
-            <br />
-            <span className="bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">Real Talk.</span>
+            Real Life,<br />
+            <span className="bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">
+              Real Talk.
+            </span>
           </h2>
           <p className="text-gray-400 text-lg leading-relaxed max-w-lg">
-            More than a chatbot. ArcAi helps you think through life's real moments — and knows when to point you to a
-            real professional.
+            More than a chatbot. ArcAi helps you think through life's real moments — and knows when to point you to a real professional.
           </p>
         </motion.div>
 
@@ -865,16 +798,12 @@ export function LandingScreen() {
         >
           <div className="glass-card rounded-3xl p-6 space-y-4 relative overflow-hidden text-left">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-pink-500" />
-
+            
             {[
               { role: "user" as const, text: "I'm thinking about quitting my job. Am I crazy?", delay: 0 },
               { role: "ai" as const, text: "Maybe. What's the job and what's the exit plan?", delay: 0.2 },
               { role: "user" as const, text: "No exit plan. I just hate the politics.", delay: 0.4 },
-              {
-                role: "ai" as const,
-                text: "Politics won't disappear. But you can pick which kind. What would you build if you had six months?",
-                delay: 0.6,
-              },
+              { role: "ai" as const, text: "Politics won't disappear. But you can pick which kind. What would you build if you had six months?", delay: 0.6 },
             ].map((msg, i) => (
               <motion.div
                 key={i}
@@ -884,13 +813,11 @@ export function LandingScreen() {
                 transition={{ delay: 0.3 + msg.delay, duration: 0.4 }}
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                <div
-                  className={`rounded-2xl px-4 py-2.5 text-sm max-w-[85%] ${
-                    msg.role === "user"
-                      ? "bg-rose-500/15 text-gray-200 rounded-tr-md"
-                      : "bg-white/[0.06] text-gray-300 rounded-tl-md"
-                  }`}
-                >
+                <div className={`rounded-2xl px-4 py-2.5 text-sm max-w-[85%] ${
+                  msg.role === "user"
+                    ? "bg-rose-500/15 text-gray-200 rounded-tr-md"
+                    : "bg-white/[0.06] text-gray-300 rounded-tl-md"
+                }`}>
                   {msg.text}
                 </div>
               </motion.div>
@@ -912,20 +839,16 @@ export function LandingScreen() {
             <Search className="w-6 h-6 text-white" />
           </div>
           <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-            Know more.
-            <br />
+            Know more.<br />
             <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
               Guess less.
             </span>
           </h2>
           <p className="text-gray-400 text-lg leading-relaxed max-w-lg">
-            Research Mode searches the web, summarizes sources, and gives you answers with citations — not
-            hallucinations.
+            Research Mode searches the web, summarizes sources, and gives you answers with citations — not hallucinations.
           </p>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
-              Pro
-            </span>
+            <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">Pro</span>
             <span className="text-xs text-gray-500">Included with Pro plan</span>
           </div>
         </motion.div>
@@ -954,20 +877,16 @@ export function LandingScreen() {
             <Headphones className="w-6 h-6 text-white" />
           </div>
           <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-            Set the mood.
-            <br />
+            Set the mood.<br />
             <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               Skip the ads.
             </span>
           </h2>
           <p className="text-gray-400 text-lg leading-relaxed max-w-lg">
-            Lo-fi beats, jazz, ambient — curated focus music built right into ArcAi. No tab switching, no interruptions.
-            Just vibes.
+            Lo-fi beats, jazz, ambient — curated focus music built right into ArcAi. No tab switching, no interruptions. Just vibes.
           </p>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
-              Pro
-            </span>
+            <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">Pro</span>
             <span className="text-xs text-gray-500">Included with Pro plan</span>
           </div>
         </motion.div>
@@ -981,7 +900,7 @@ export function LandingScreen() {
         >
           <div className="glass-card rounded-3xl p-6 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500" />
-
+            
             {/* Now Playing header */}
             <div className="flex items-center gap-2 mb-5">
               <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
@@ -1000,10 +919,7 @@ export function LandingScreen() {
                   alt="Album art"
                   className="w-16 h-16 rounded-full object-cover border-2 border-white/10 shadow-xl shadow-purple-500/20"
                 />
-                <div
-                  className="absolute inset-0 rounded-full"
-                  style={{ background: "radial-gradient(circle at center, rgba(0,0,0,0.4) 30%, transparent 31%)" }}
-                />
+                <div className="absolute inset-0 rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(0,0,0,0.4) 30%, transparent 31%)' }} />
               </motion.div>
               <div className="min-w-0 flex-1 text-left">
                 <p className="text-white font-semibold truncate">Still Steam in My Mug</p>
@@ -1031,33 +947,24 @@ export function LandingScreen() {
             {/* Controls */}
             <div className="flex items-center justify-center gap-6">
               <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z" />
-                </svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z"/></svg>
               </div>
               <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-black shadow-lg shadow-white/20">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-                </svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
               </div>
               <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M5 4l10 8-10 8V4zm12-1v18h2V3h-2z" />
-                </svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4l10 8-10 8V4zm12-1v18h2V3h-2z"/></svg>
               </div>
             </div>
 
             {/* Track list peek */}
             <div className="mt-5 pt-4 border-t border-white/5 space-y-2 text-left">
               {[
-                { name: "Soft Corners of the Day", art: "/lovable-uploads/jazz-cartoon-album.jpg" },
-                { name: "Velvet Evening Loop", art: "/lovable-uploads/ambient-cartoon-album.jpg" },
-                { name: "Midnight Desk Lamp", art: "/lovable-uploads/lofi-cartoon-album.jpg" },
+                { name: 'Soft Corners of the Day', art: '/lovable-uploads/jazz-cartoon-album.jpg' },
+                { name: 'Velvet Evening Loop', art: '/lovable-uploads/ambient-cartoon-album.jpg' },
+                { name: 'Midnight Desk Lamp', art: '/lovable-uploads/lofi-cartoon-album.jpg' },
               ].map((track, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
-                >
+                <div key={i} className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
                   <img src={track.art} alt="" className="w-8 h-8 rounded-md object-cover border border-white/5" />
                   <span className="text-sm text-gray-300 truncate">{track.name}</span>
                   <span className="ml-auto text-[10px] text-gray-500">Arc AI</span>
@@ -1074,7 +981,7 @@ export function LandingScreen() {
       {/* Canvas Demo Section */}
       <LandingCanvasDemo />
 
-      {/* Pricing Section */}
+      {/* Pricing Section — ArcAI is free for everyone */}
       <section className="relative z-10 py-20 px-6" id="pricing">
         <div className="max-w-5xl mx-auto">
           <motion.div
@@ -1085,80 +992,56 @@ export function LandingScreen() {
             transition={{ duration: 0.5 }}
           >
             <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-              Three apps.{" "}
+              100% free.{' '}
               <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                One price.
+                Forever.
               </span>
             </h2>
             <p className="text-gray-400 max-w-xl mx-auto text-lg">
-              ArcAI Pro gives you unlimited everything — plus full access to Maestro's Studio and Arcana™. Starting at{" "}
-              <span className="text-white font-semibold">$9.60/mo</span>.
+              No subscription, no credit card, no paywalls. Unlimited chats and voice, plus 10 image generations every day.
             </p>
           </motion.div>
 
-          {/* App logos row */}
-          <motion.div
-            className="flex items-center justify-center gap-4 mb-10"
-            initial={{ opacity: 0, y: 15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl glass-card">
-              <img src="/arc-logo-ui.png" alt="ArcAI" className="w-10 h-10 rounded-xl object-cover scale-125" />
-              <img src={maestroIcon} alt="Maestro's Studio" className="w-10 h-10 rounded-xl object-cover" />
-              <img src={arcanaLogo} alt="Arcana" className="w-10 h-10 rounded-xl object-cover" />
-              <span className="text-sm text-gray-300 font-medium ml-1">All included</span>
-            </div>
-          </motion.div>
-
           <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
-            <Link
-              to="/pricing"
+            <button
+              onClick={() => setShowAuthModal(true)}
               className="w-full px-8 py-4 rounded-full font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity text-center flex items-center justify-center gap-2"
             >
               <Crown className="w-5 h-5" />
-              See Plans & Pricing
-            </Link>
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="px-6 py-3 rounded-full font-semibold border border-white/10 text-white hover:bg-white/5 transition-colors"
-            >
               Get Started Free
             </button>
+            <Link
+              to="/pricing"
+              className="px-6 py-3 rounded-full font-semibold border border-white/10 text-white hover:bg-white/5 transition-colors"
+            >
+              See what's included
+            </Link>
           </div>
-
-          <p className="text-center text-xs text-gray-500 mt-6">
-            7-day free trial on monthly · 20% off yearly · no catch.
-          </p>
         </div>
       </section>
+
+
+
 
       {/* Footer */}
       <footer className="relative z-10 py-12 px-6 border-t border-white/5 text-center text-gray-600 text-sm">
         <div className="flex items-center justify-center gap-3 mb-4">
           <img src="/wtn-logo.webp" alt="Win The Night" className="h-8 w-8 object-contain rounded-md opacity-60" />
-          <p>
-            &copy; 2026{" "}
-            <a
-              href="https://winthenight.productions"
-              target="_blank"
-              rel="noopener noreferrer"
-              referrerPolicy="no-referrer"
-              className="hover:text-white transition-colors"
-            >
-              Win The Night Productions
-            </a>
-            . All rights reserved.
-          </p>
+          <p>&copy; 2026 <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-white transition-colors">Win The Night Productions</a>. All rights reserved.</p>
         </div>
-        <div className="space-x-6">
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+          <Link to="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link>
+          <Link to="/privacy" className="hover:text-white transition-colors">Privacy Notice</Link>
+          <Link to="/refund-policy" className="hover:text-white transition-colors">Refund Policy</Link>
           <PrivacyTermsModal />
         </div>
       </footer>
 
       {/* Auth Modal */}
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </div>
   );
 }
