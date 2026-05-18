@@ -175,8 +175,8 @@ serve(async (req) => {
     const currentJobId = jobData.id;
     const editPrompt = buildEditPrompt(prompt, imageArray.length);
 
-    console.log(`Editing image with ${IMAGE_MODEL} for job ${currentJobId}`);
-    const result = await callEditGateway(editPrompt, imageArray, IMAGE_MODEL, aspectRatio || '16:9');
+    console.log(`Editing image with ${selectedModel} for job ${currentJobId}`);
+    const result = await callEditGateway(editPrompt, imageArray, selectedModel, aspectRatio || '16:9');
 
     if (!result.ok) {
       const err = classifyError(result.status, result.rawText);
