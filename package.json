@@ -18,6 +18,7 @@
     "@lovable.dev/cloud-auth-js": "^1.0.0",
     "@mlc-ai/web-llm": "^0.2.82",
     "@monaco-editor/react": "^4.7.0",
+    "@paddle/paddle-js": "^1.6.4",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-aspect-ratio": "^1.1.7",
