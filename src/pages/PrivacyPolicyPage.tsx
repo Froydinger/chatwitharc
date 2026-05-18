@@ -30,6 +30,14 @@ export default function PrivacyPolicyPage() {
           <li>To comply with legal obligations.</li>
         </ul>
 
+        <h2>3a. Legal basis for processing</h2>
+        <ul>
+          <li><strong>Performance of a contract</strong> — to deliver the service you subscribe to (account, content, billing).</li>
+          <li><strong>Legitimate interests</strong> — to secure the service, prevent fraud and abuse, improve features, and operate our business.</li>
+          <li><strong>Legal obligation</strong> — to keep tax, accounting, and compliance records.</li>
+          <li><strong>Consent</strong> — for optional cookies and any marketing communications, where required by law. You can withdraw consent at any time.</li>
+        </ul>
+
         <h2>4. Recipients & sharing</h2>
         <p>We share personal data only with these categories of recipients, acting as processors:</p>
         <ul>
