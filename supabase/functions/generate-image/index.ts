@@ -176,6 +176,7 @@ serve(async (req) => {
     const body = await req.json();
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = normalizeAspectRatio(body?.aspectRatio);
+    const selectedModel = pickImageModel(body?.preferredModel);
 
     if (!prompt) {
       return jsonResponse({ success: false, error: "Prompt is required.", errorType: "invalid_request" }, 400);
