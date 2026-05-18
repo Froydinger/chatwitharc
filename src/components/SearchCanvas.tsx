@@ -87,7 +87,7 @@ function ResearchUpgradeWall({ onClose }: { onClose: () => void }) {
           Upgrade to Pro
         </button>
 
-        <p className="text-[11px] text-gray-500">$8/month · Cancel anytime</p>
+        <p className="text-[11px] text-gray-500">$12/month · Cancel anytime</p>
       </motion.div>
     </div>
   );

@@ -230,7 +230,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                   <p className="text-sm font-semibold text-foreground">Upgrade to Pro</p>
                   <p className="text-xs text-muted-foreground">Unlimited messages & more</p>
                 </div>
-                <span className="text-xs font-bold text-cyan-400 group-hover:text-cyan-300 transition-colors">$8/mo</span>
+                <span className="text-xs font-bold text-cyan-400 group-hover:text-cyan-300 transition-colors">$12/mo</span>
               </button>
             </div>
           )}

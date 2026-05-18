@@ -710,7 +710,7 @@ useEffect(() => {
               <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
                 <Sparkles className="h-3.5 w-3.5" />
               </div>
-              <span>Upgrade to Pro — $8/mo for unlimited everything</span>
+              <span>Upgrade to Pro — $12/mo for unlimited everything</span>
               <ArrowRight className="h-3.5 w-3.5 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
             </button>
           )}
