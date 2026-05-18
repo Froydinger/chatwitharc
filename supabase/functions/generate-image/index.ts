@@ -85,14 +85,6 @@ function classifyError(status: number, rawText: string): ErrorInfo {
   return { errorType, errorMessage, debugDetail };
 }
 
-function isRetryableFailure(status: number, rawText: string): boolean {
-  // Don't retry content violations, invalid input, payment issues
-  if (status === 400 || status === 402 || status === 403) return false;
-  const lower = rawText.toLowerCase();
-  if (lower.includes("safety") || lower.includes("content policy") || lower.includes("blocked") || lower.includes("responsible ai") || lower.includes("content violation")) return false;
-  // Retry on 5xx, 408, 429, and known error codes like 1102
-  return status >= 500 || status === 408 || status === 429 || lower.includes("1102");
-}
 
 function normalizeAspectRatio(aspectRatio?: unknown) {
   return typeof aspectRatio === "string" && aspectRatio.trim() ? aspectRatio.trim() : "1:1";
