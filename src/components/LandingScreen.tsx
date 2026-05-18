@@ -301,15 +301,15 @@ const AppMockup = () => {
         </div>
 
         {/* Main Content Area */}
-        <div className="p-3 md:p-16 flex flex-col items-center justify-center min-h-[200px] md:min-h-[500px] relative">
+        <div className="px-4 pt-8 pb-5 md:px-12 md:pt-16 md:pb-10 flex flex-col items-center justify-center min-h-[200px] md:min-h-[460px] relative">
 
           {/* Hero Text inside App */}
-          <h2 className="text-3xl md:text-5xl font-bold mb-8 text-center text-white tracking-tight">
+          <h2 className="text-2xl md:text-4xl font-bold mb-6 md:mb-8 text-center text-white tracking-tight">
             Arc and shine.
           </h2>
 
           {/* Floating Prompts */}
-          <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-8 md:mb-12 max-w-2xl px-4">
+          <div className="flex flex-wrap justify-center gap-1.5 md:gap-3 mb-6 md:mb-10 max-w-2xl">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -348,16 +348,16 @@ const AppMockup = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.7 }}
-            className="w-full max-w-2xl rounded-full h-14 flex items-center px-5 relative group transition-all bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/20 hover:bg-white/8"
+            className="w-[88%] md:w-full max-w-xl rounded-full h-11 md:h-12 flex items-center px-2.5 md:px-3 relative group transition-all bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/20 hover:bg-white/8"
           >
-            <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-gray-400 cursor-pointer hover:text-white hover:bg-white/15 transition-all">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 cursor-pointer hover:text-white hover:bg-white/15 transition-all">
+              <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
             </div>
-            <div className="flex-1 px-4 text-gray-400 font-light text-base">
+            <div className="flex-1 px-3 text-gray-400 font-light text-sm">
               Ask...
             </div>
-            <div className="w-9 h-9 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center cursor-pointer hover:bg-blue-500/30 transition-all">
-              <Brain className="w-5 h-5" />
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center cursor-pointer hover:bg-blue-500/30 transition-all">
+              <Brain className="w-3.5 h-3.5 md:w-4 md:h-4" />
             </div>
           </motion.div>
 
