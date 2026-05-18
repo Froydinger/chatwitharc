@@ -676,7 +676,7 @@ export function LandingScreen() {
       <main className="relative z-10 pt-4 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center">
         <div className="text-center max-w-3xl mx-auto mb-16 animate-fade-in">
           {/* Main Logo */}
-          <div className="mb-8 flex justify-center">
+          <div className="mb-2 flex justify-center">
             <img
               src="/arc-logo-ui.png"
               alt="ArcAi Logo"
