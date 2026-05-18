@@ -684,6 +684,11 @@ export function LandingScreen() {
             />
           </div>
 
+          {/* App Showcase - framed between logo and headline */}
+          <div className="mb-10">
+            <AppMockup />
+          </div>
+
           <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight leading-tight">
             Your mind, <span className="gradient-text">amplified.</span>
           </h1>
