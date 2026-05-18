@@ -2400,7 +2400,7 @@ ${safeCode}
                         )}
                       >
                         {item.icon}
-                        {item.hideLabel ? null : <span className="text-foreground/80">{item.label}</span>}
+                        {item.hideLabelDesktop ? <span className="sm:hidden text-foreground/80">{item.label}</span> : <span className="text-foreground/80">{item.label}</span>}
                       </motion.button>
                     ))}
                   </motion.div>
