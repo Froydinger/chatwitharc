@@ -287,21 +287,21 @@ const AppMockup = () => {
   };
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto animate-fade-in delay-200">
+    <div className="relative w-[70%] sm:w-full max-w-4xl mx-auto animate-fade-in delay-200">
       <div className="glass-panel rounded-xl overflow-hidden border border-white/10 relative z-10">
         {/* Title Bar */}
-        <div className="h-10 bg-black/20 flex items-center px-4 space-x-2 border-b border-white/5">
-          <div className="flex space-x-1.5">
-            <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
-            <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-            <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+        <div className="h-6 md:h-10 bg-black/20 flex items-center px-2 md:px-4 space-x-2 border-b border-white/5">
+          <div className="flex space-x-1 md:space-x-1.5">
+            <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-red-500/80"></div>
+            <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-yellow-500/80"></div>
+            <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-green-500/80"></div>
           </div>
-          <div className="flex-1 text-center text-xs text-gray-500 font-medium">ArcAi <span className="text-gray-600">by Win The Night</span></div>
-          <div className="w-10"></div>
+          <div className="flex-1 text-center text-[9px] md:text-xs text-gray-500 font-medium">ArcAi <span className="text-gray-600">by Win The Night</span></div>
+          <div className="w-6 md:w-10"></div>
         </div>
 
         {/* Main Content Area */}
-        <div className="p-8 md:p-16 flex flex-col items-center justify-center min-h-[400px] md:min-h-[500px] relative">
+        <div className="p-3 md:p-16 flex flex-col items-center justify-center min-h-[200px] md:min-h-[500px] relative">
 
           {/* Hero Text inside App */}
           <h2 className="text-3xl md:text-5xl font-bold mb-8 text-center text-white tracking-tight">
