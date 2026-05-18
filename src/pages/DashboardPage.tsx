@@ -695,25 +695,12 @@ useEffect(() => {
         {/* Portal target for inline image preview — outside glass-dock */}
         <div id="dashboard-image-preview-target" />
 
-        {/* ═══ SUBSCRIPTION BADGE / CTA ═══ */}
+        {/* ═══ FREE BADGE ═══ */}
         <div>
-          {isSubscribed ? (
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/25 bg-primary/8 text-primary text-xs font-medium">
-              <Zap className="h-3.5 w-3.5" />
-              <span>Pro Plan{subscriptionEnd ? ` · renews ${new Date(subscriptionEnd).toLocaleDateString()}` : ''}</span>
-            </div>
-          ) : (
-            <button
-              onClick={() => openCheckout()}
-              className="group inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent hover:from-primary/18 hover:via-primary/10 hover:to-primary/5 text-primary text-xs font-medium transition-all hover:border-primary/35 hover:shadow-[0_0_20px_hsl(var(--primary)/0.1)] active:scale-[0.98]"
-            >
-              <div className="h-6 w-6 rounded-lg bg-primary/15 flex items-center justify-center">
-                <Sparkles className="h-3.5 w-3.5" />
-              </div>
-              <span>Upgrade to Pro — $12/mo for unlimited everything</span>
-              <ArrowRight className="h-3.5 w-3.5 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
-            </button>
-          )}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/25 bg-primary/8 text-primary text-xs font-medium">
+            <Zap className="h-3.5 w-3.5" />
+            <span>ArcAI — Free forever · Unlimited chats · 10 images/day</span>
+          </div>
         </div>
 
         {/* ═══ TAB CONTENT ═══ */}
