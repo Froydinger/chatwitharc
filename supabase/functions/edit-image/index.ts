@@ -13,11 +13,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '
 const REQUEST_TIMEOUT_MS = 55_000;
 const RETRY_DELAY_MS = 3_000;
 
-const MODEL_FALLBACK_CHAIN = [
-  'google/gemini-3.1-flash-image-preview',
-  'google/gemini-3-pro-image-preview',
-  'google/gemini-2.5-flash-image',
-];
+// Locked to a single image model. No fallback chain.
+const IMAGE_MODEL = 'google/gemini-3.1-flash-image-preview';
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -120,17 +117,6 @@ async function callEditGateway(prompt: string, imageUrls: string[], model: strin
   return { ok: false, status: 429, rawText: 'Rate limit retry failed' };
 }
 
-function buildFallbackChain(preferredModel?: string): string[] {
-  const chain = [...MODEL_FALLBACK_CHAIN];
-  if (preferredModel && !chain.includes(preferredModel)) {
-    chain.unshift(preferredModel);
-  } else if (preferredModel && chain.includes(preferredModel)) {
-    const idx = chain.indexOf(preferredModel);
-    chain.splice(idx, 1);
-    chain.unshift(preferredModel);
-  }
-  return chain;
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
