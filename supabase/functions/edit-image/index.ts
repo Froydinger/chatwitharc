@@ -51,13 +51,6 @@ function classifyError(status: number, rawText: string) {
   return { errorType, errorMessage, debugDetail };
 }
 
-function isRetryableFailure(status: number, rawText: string): boolean {
-  if (status === 400 || status === 402 || status === 403) return false;
-  const lower = rawText.toLowerCase();
-  if (lower.includes('safety') || lower.includes('content policy') || lower.includes('blocked') || lower.includes('responsible ai') || lower.includes('content violation')) return false;
-  if (lower.includes('invalid_argument') || lower.includes('unable to process input image')) return false;
-  return status >= 500 || status === 408 || status === 429 || lower.includes('1102');
-}
 
 function buildEditPrompt(userPrompt: string, imageCount: number): string {
   let finalPrompt = '';
