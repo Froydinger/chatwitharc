@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Crown, MessageCircle, Mic, Headphones, Sparkles, X, ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Crown, MessageCircle, Mic, Image as ImageIcon, Sparkles, X, ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
-import { EmbeddedCheckoutForm } from "@/components/EmbeddedCheckout";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +17,7 @@ interface UpgradeModalProps {
 }
 
 export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
-  const [step, setStep] = useState<'info' | 'auth' | 'checkout'>('info');
+  const [step, setStep] = useState<'info' | 'auth'>('info');
   const [isLogin, setIsLogin] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState("");
@@ -25,11 +25,14 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+  const { openCheckout } = useSubscription();
   const { toast } = useToast();
 
+  // After auth completes, immediately open Paddle overlay then close modal
   useEffect(() => {
     if (user && step === 'auth') {
-      setStep('checkout');
+      openCheckout();
+      handleClose();
     }
   }, [user, step]);
 
@@ -43,18 +46,15 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
 
   const handleUpgradeClick = () => {
     if (user) {
-      setStep('checkout');
+      openCheckout();
+      handleClose();
     } else {
       setStep('auth');
     }
   };
 
   const handleBack = () => {
-    if (step === 'checkout' && !user) {
-      setStep('auth');
-    } else if (step === 'checkout' || step === 'auth') {
-      setStep('info');
-    }
+    if (step === 'auth') setStep('info');
   };
 
   const handleAuth = async () => {
@@ -72,7 +72,7 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        toast({ title: "Welcome back!", description: "Proceeding to checkout..." });
+        toast({ title: "Welcome back!", description: "Opening checkout..." });
       } else {
         const redirectUrl = 'https://askarc.chat/';
         const { error } = await supabase.auth.signUp({
@@ -80,7 +80,7 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
           options: { emailRedirectTo: redirectUrl },
         });
         if (error) throw error;
-        toast({ title: "Account created!", description: "Proceeding to checkout..." });
+        toast({ title: "Account created!", description: "Opening checkout..." });
       }
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "An error occurred", variant: "destructive" });
@@ -136,11 +136,11 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className={step === 'checkout' ? "w-full max-w-lg max-h-[90vh] overflow-y-auto" : "w-full max-w-md"}
+            className="w-full max-w-md"
           >
-            <GlassCard variant="bubble" glow className="p-8 relative overflow-hidden rounded-3xl border border-cyan-500/30 animate-[neon-pulse_2s_ease-in-out_infinite]">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500" />
-              
+            <GlassCard variant="bubble" glow className="p-8 relative overflow-hidden rounded-3xl border border-primary/30 animate-[neon-pulse_2s_ease-in-out_infinite]">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-primary/80 to-primary/40" />
+
               <button
                 onClick={handleClose}
                 className="absolute top-4 right-4 p-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
@@ -148,14 +148,7 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
                 <X className="w-4 h-4" />
               </button>
 
-              {step === 'checkout' ? (
-                <div className="space-y-4">
-                  <button onClick={handleBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    <ArrowLeft className="w-4 h-4" /> Back
-                  </button>
-                  <EmbeddedCheckoutForm />
-                </div>
-              ) : step === 'auth' ? (
+              {step === 'auth' ? (
                 <div className="space-y-5">
                   <button onClick={handleBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                     <ArrowLeft className="w-4 h-4" /> Back
@@ -166,7 +159,6 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
                     <p className="text-sm text-muted-foreground">Quick sign-up, then straight to checkout</p>
                   </div>
 
-                  {/* Tab Switcher */}
                   <div className="flex p-1 rounded-full bg-white/5 border border-white/10">
                     <button
                       type="button"
@@ -192,7 +184,6 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
                     </button>
                   </div>
 
-                  {/* Social Buttons */}
                   <div className="space-y-3">
                     <GlassButton
                       variant="ghost"
@@ -224,7 +215,6 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
                     </GlassButton>
                   </div>
 
-                  {/* Email Toggle */}
                   <div className="flex items-center gap-4">
                     <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                     <button
@@ -237,7 +227,6 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
                     <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                   </div>
 
-                  {/* Collapsible Email Form */}
                   <AnimatePresence>
                     {showEmailForm && (
                       <motion.div
@@ -249,7 +238,7 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
                       >
                         <form onSubmit={onSubmit} className="space-y-3">
                           <div className="relative group">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 transition-colors group-focus-within:text-blue-400" />
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 transition-colors group-focus-within:text-primary" />
                             <input
                               type="email"
                               inputMode="email"
@@ -263,7 +252,7 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
                                 "w-full h-11 pl-10 pr-4 rounded-xl",
                                 "bg-white/5 border border-white/10",
                                 "backdrop-blur-sm text-white placeholder:text-white/40",
-                                "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50",
+                                "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50",
                                 "transition-all duration-200"
                               )}
                               disabled={loading}
@@ -271,7 +260,7 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
                             />
                           </div>
                           <div className="relative group">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 transition-colors group-focus-within:text-blue-400" />
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 transition-colors group-focus-within:text-primary" />
                             <input
                               type={showPassword ? "text" : "password"}
                               placeholder="Password"
@@ -281,7 +270,7 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
                                 "w-full h-11 pl-10 pr-10 rounded-xl",
                                 "bg-white/5 border border-white/10",
                                 "backdrop-blur-sm text-white placeholder:text-white/40",
-                                "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50",
+                                "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50",
                                 "transition-all duration-200"
                               )}
                               disabled={loading}
@@ -313,18 +302,15 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
                       transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                       className="flex justify-center"
                     >
-                      <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/20">
-                        <Crown className="w-8 h-8 text-cyan-400" />
+                      <div className="p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
+                        <Crown className="w-8 h-8 text-primary" />
                       </div>
                     </motion.div>
                     <h2 className="text-xl font-bold text-foreground">
                       {userName ? `Welcome, ${userName}!` : "Welcome to ArcAi!"}
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                      Unlock the full ArcAi experience with Pro
-                    </p>
-                    <p className="text-xs text-cyan-400/80 mt-1">
-                      + Get listed on winthenight.org/support as a Pro Subscriber
+                      One subscription. Unlimited everything.
                     </p>
                   </div>
 
@@ -332,12 +318,12 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
                     {[
                       { icon: MessageCircle, text: <span><strong>Unlimited</strong> messages — no daily caps</span> },
                       { icon: Mic, text: <span><strong>Unlimited</strong> voice sessions</span> },
+                      { icon: ImageIcon, text: <span><strong>Unlimited</strong> image generation</span> },
                       { icon: Sparkles, text: "Switch between AI models" },
-                      { icon: Headphones, text: "Built-in music player" },
                     ].map(({ icon: Icon, text }, i) => (
                       <li key={i} className="flex items-center gap-3 text-sm text-foreground">
-                        <div className="p-1 rounded-full bg-cyan-500/10">
-                          <Icon className="w-3.5 h-3.5 text-cyan-400" />
+                        <div className="p-1 rounded-full bg-primary/10">
+                          <Icon className="w-3.5 h-3.5 text-primary" />
                         </div>
                         {text}
                       </li>
@@ -352,7 +338,7 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
                   <div className="space-y-3">
                     <button
                       onClick={handleUpgradeClick}
-                      className="w-full px-6 py-3.5 rounded-full font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.3)]"
+                      className="w-full px-6 py-3.5 rounded-full font-semibold bg-primary text-primary-foreground hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-[0_0_20px_hsl(var(--primary)/0.3)]"
                     >
                       <Crown className="w-4 h-4" />
                       Upgrade to Pro

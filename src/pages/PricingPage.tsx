@@ -1,15 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { Check, Crown, MessageCircle, Mic, Image, Brain, Code, Globe, Sparkles, ArrowLeft, X, Music, Pen } from "lucide-react";
+import { motion } from "framer-motion";
+import { Check, Crown, MessageCircle, Mic, Image, Brain, Code, Globe, Sparkles, ArrowLeft } from "lucide-react";
 import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { AuthModal } from "@/components/AuthModal";
-import { EmbeddedCheckoutForm } from "@/components/EmbeddedCheckout";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
-import { Button } from "@/components/ui/button";
-import maestroIcon from "@/assets/maestro-icon.png";
-import arcanaLogo from "@/assets/arcana-logo.png";
 
 const features = [
   { name: "Image Analysis", free: true, pro: true, icon: Sparkles },
@@ -18,71 +14,14 @@ const features = [
   { name: "Web Search", free: true, pro: true, icon: Globe },
   { name: "AI Chat", free: "30 messages/day", pro: "Unlimited", icon: MessageCircle },
   { name: "Voice Mode", free: "3 sessions/day", pro: "Unlimited", icon: Mic },
-  { name: "Unlimited Image Generation", free: "5 images/day", pro: "Unlimited", icon: Image },
-  { name: "Choose Your Model (GPT or Gemini)", free: false, pro: true, icon: Sparkles },
-  { name: "Maestro's Studio (Music Creation App)", free: false, pro: true, icon: Music },
-  { name: "Arcana™ (Enhanced Writing App)", free: false, pro: true, icon: Pen },
+  { name: "Image Generation", free: "5 images/day", pro: "Unlimited", icon: Image },
+  { name: "Switch Between AI Models", free: false, pro: true, icon: Sparkles },
 ];
-
-function AppBundleShowcase() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.25 }}
-      className="mb-16"
-    >
-      <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 via-card/60 to-card/60 backdrop-blur-md p-7 sm:p-10 relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-purple-500 to-pink-500" />
-
-        <div className="text-center mb-8">
-          <span className="text-xs font-bold uppercase tracking-widest text-primary">One Subscription</span>
-          <h3 className="text-2xl sm:text-3xl font-bold text-foreground mt-2">
-            Three powerful apps.{' '}
-            <span className="bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">One price.</span>
-          </h3>
-          <p className="text-muted-foreground mt-2 max-w-lg mx-auto">
-            ArcAI Pro unlocks premium access to every app in the Win The Night™ ecosystem — and every future app too.
-          </p>
-        </div>
-
-        <div className="grid sm:grid-cols-3 gap-5">
-          {/* ArcAI */}
-          <div className="rounded-xl bg-background/40 border border-border/50 p-5 text-center space-y-3">
-            <img src="/arc-logo-ui.png" alt="ArcAI" className="w-14 h-14 mx-auto rounded-2xl object-cover shadow-lg scale-125" style={{ objectPosition: 'center' }} />
-            <h4 className="font-semibold text-foreground">ArcAI Pro</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">Unlimited AI chat, voice mode, image generation, research & more.</p>
-          </div>
-
-          {/* Maestro's Studio */}
-          <div className="rounded-xl bg-background/40 border border-border/50 p-5 text-center space-y-3">
-            <img src={maestroIcon} alt="Maestro's Studio" className="w-14 h-14 mx-auto rounded-2xl object-cover shadow-lg" />
-            <h4 className="font-semibold text-foreground">Maestro's Studio</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">A full-featured IDE — build apps and publish them to the web.</p>
-          </div>
-
-          {/* Arcana */}
-          <div className="rounded-xl bg-background/40 border border-border/50 p-5 text-center space-y-3">
-            <img src={arcanaLogo} alt="Arcana" className="w-14 h-14 mx-auto rounded-2xl object-cover shadow-lg" />
-            <h4 className="font-semibold text-foreground">Arcana™</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">Write what you love — an AI-enhanced writing app for creators and thinkers.</p>
-          </div>
-        </div>
-
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Plus access to all future Win The Night™ apps — included at no extra cost.
-        </p>
-      </div>
-    </motion.div>
-  );
-}
 
 export function PricingPage() {
   const { user } = useAuth();
   const subscription = useSubscription();
   const [showAuth, setShowAuth] = useState(false);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
   const pendingUpgrade = useRef(false);
   const navigate = useNavigate();
 
@@ -90,8 +29,7 @@ export function PricingPage() {
     if (user && pendingUpgrade.current) {
       pendingUpgrade.current = false;
       setShowAuth(false);
-      navigate("/");
-      setTimeout(() => window.dispatchEvent(new Event('open-upgrade-modal')), 500);
+      subscription.openCheckout();
     }
   }, [user]);
 
@@ -101,7 +39,7 @@ export function PricingPage() {
       setShowAuth(true);
       return;
     }
-    setShowCheckout(true);
+    subscription.openCheckout();
   };
 
   return (
@@ -109,13 +47,11 @@ export function PricingPage() {
       <BackgroundGradients />
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
-        {/* Back link */}
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-10">
           <ArrowLeft className="w-4 h-4" />
           Back to ArcAi
         </Link>
 
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -125,31 +61,9 @@ export function PricingPage() {
             Simple, transparent pricing
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
-            Start free with generous limits. Upgrade to unlock three apps for one price.
+            Start free with generous limits. Upgrade for unlimited everything.
           </p>
         </motion.div>
-
-        {/* App Bundle Showcase */}
-        <AppBundleShowcase />
-
-        {/* Billing Toggle */}
-        <div className="flex items-center justify-center gap-3 mb-10">
-          <button
-            onClick={() => setBillingInterval("monthly")}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${billingInterval === "monthly" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:text-foreground"}`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setBillingInterval("yearly")}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${billingInterval === "yearly" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:text-foreground"}`}
-          >
-            Yearly
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${billingInterval === "yearly" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/15 text-primary"}`}>
-              Save 20%
-            </span>
-          </button>
-        </div>
 
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-2 gap-6 mb-16">
@@ -217,10 +131,8 @@ export function PricingPage() {
             transition={{ delay: 0.2 }}
           >
             <div className="h-full rounded-2xl border-2 border-primary/50 bg-card/60 backdrop-blur-md p-7 sm:p-8 flex flex-col relative overflow-hidden shadow-[0_0_40px_-12px_hsl(var(--primary)/0.3)]">
-              {/* Top accent bar */}
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary to-primary/40" />
-              
-              {/* Popular badge */}
+
               <div className="absolute top-4 right-4">
                 <span className="text-xs font-semibold px-3 py-1 rounded-full bg-primary/15 text-primary border border-primary/30">
                   Best Value
@@ -234,57 +146,22 @@ export function PricingPage() {
                     <Crown className="w-4 h-4 text-primary" />
                   </div>
                   <div className="mt-2 flex items-baseline gap-2">
-                    {billingInterval === "yearly" ? (
-                      <>
-                        <span className="text-4xl font-bold text-foreground">$9.60</span>
-                        <span className="text-lg text-muted-foreground line-through">$12</span>
-                        <span className="text-muted-foreground text-sm">/month</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-4xl font-bold text-foreground">$12</span>
-                        <span className="text-muted-foreground text-sm">/month</span>
-                      </>
-                    )}
+                    <span className="text-4xl font-bold text-foreground">$12</span>
+                    <span className="text-muted-foreground text-sm">/month</span>
                   </div>
-                  {billingInterval === "yearly" ? (
-                    <p className="text-xs text-primary font-medium mt-1">
-                      $115.20 billed today · 20% off annual billing
-                    </p>
-                  ) : (
-                    <p className="text-xs text-primary font-medium mt-1">
-                      Start with a 7-day free trial
-                    </p>
-                  )}
                   <p className="text-sm text-muted-foreground mt-2">
-                    Unlimited everything. Three apps included — ArcAI, Maestro's Studio & Arcana™.
-                  </p>
-                  <p className="text-xs text-primary/80 mt-1.5 flex items-center gap-1">
-                    <Crown className="w-3 h-3" />
-                    Get listed as a Pro Subscriber on winthenight.org/support
+                    Unlimited everything. Cancel anytime.
                   </p>
                 </div>
 
                 <div className="h-px bg-border/50" />
 
-                {/* Included Apps */}
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/15">
-                  <div className="flex -space-x-2">
-                    <img src="/arc-logo-ui.png" alt="ArcAI" className="w-8 h-8 rounded-lg object-cover border-2 border-background z-30 scale-125" />
-                    <img src={maestroIcon} alt="" className="w-8 h-8 rounded-lg object-cover border-2 border-background z-20" />
-                    <img src={arcanaLogo} alt="" className="w-8 h-8 rounded-lg object-cover border-2 border-background z-10" />
-                  </div>
-                  <span className="text-xs font-medium text-foreground">3 apps included</span>
-                </div>
-
                 <ul className="space-y-3">
                   {[
                     { text: "Unlimited messages", bold: true },
                     { text: "Unlimited voice sessions", bold: true },
+                    { text: "Unlimited image generation", bold: true },
                     { text: "Switch between AI models", bold: true },
-                    { text: "Maestro's Studio — build & publish apps", bold: true },
-                    { text: "Arcana™ — AI-enhanced writing", bold: true },
-                    { text: "Listed as Pro Subscriber on Win The Night™", bold: true },
                     { text: "Everything in Free", bold: false },
                     { text: "Priority support", bold: false },
                   ].map(({ text, bold }) => (
@@ -366,7 +243,6 @@ export function PricingPage() {
           </div>
         </motion.div>
 
-        {/* Footer note */}
         <div className="flex flex-col items-center gap-3 mt-10">
           <div className="flex items-center gap-2">
             <img src="/wtn-logo.webp" alt="Win The Night" className="h-5 w-5 object-contain rounded-sm opacity-50" />
@@ -379,37 +255,6 @@ export function PricingPage() {
       </div>
 
       <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
-
-      {/* Embedded Checkout Modal */}
-      <AnimatePresence>
-        {showCheckout && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowCheckout(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg max-h-[90vh] overflow-y-auto"
-            >
-              <div className="rounded-2xl border border-border bg-card/90 backdrop-blur-xl p-8 relative">
-                <button
-                  onClick={() => setShowCheckout(false)}
-                  className="absolute top-4 right-4 p-1.5 rounded-full bg-muted/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-                <EmbeddedCheckoutForm interval={billingInterval} />
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
