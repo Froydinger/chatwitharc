@@ -345,7 +345,7 @@ export function UpgradeModal({ isOpen, onClose, userName }: UpgradeModalProps) {
                   </ul>
 
                   <div className="text-center">
-                    <span className="text-3xl font-bold text-foreground">$8</span>
+                    <span className="text-3xl font-bold text-foreground">$12</span>
                     <span className="text-muted-foreground text-sm"> /month</span>
                   </div>
 
