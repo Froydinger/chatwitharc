@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-
-const ARCAI_PRO_PRODUCT_ID = 'prod_UAtIOiu4df3Rso';
-const ARCAI_PRO_PRICE_ID = 'price_1TCXWdAB32948AKD4SFikT2q';
+import { getPaddle, PADDLE_PRO_PRICE_ID } from '@/lib/paddle';
 
 // Daily limits for free users
 const FREE_DAILY_MESSAGE_LIMIT = 30;
@@ -24,7 +22,6 @@ function getDailyCount(key: string): number {
   const dateKey = localStorage.getItem(DAILY_DATE_KEY);
   const today = getTodayKey();
   if (dateKey !== today) {
-    // Reset counts for new day
     localStorage.setItem(DAILY_DATE_KEY, today);
     localStorage.setItem(DAILY_MSG_KEY, '0');
     localStorage.setItem(DAILY_VOICE_KEY, '0');
@@ -35,7 +32,6 @@ function getDailyCount(key: string): number {
 }
 
 function incrementDailyCount(key: string): number {
-  // Ensure date is set
   const today = getTodayKey();
   if (localStorage.getItem(DAILY_DATE_KEY) !== today) {
     localStorage.setItem(DAILY_DATE_KEY, today);
@@ -50,11 +46,9 @@ function incrementDailyCount(key: string): number {
 
 interface SubscriptionState {
   isSubscribed: boolean;
-  productId: string | null;
   subscriptionEnd: string | null;
   paymentStatus: 'ok' | 'past_due' | 'none';
   loading: boolean;
-  // Limits
   dailyMessagesUsed: number;
   dailyVoiceSessionsUsed: number;
   dailyImagesUsed: number;
@@ -64,14 +58,12 @@ interface SubscriptionState {
   remainingMessages: number;
   remainingVoiceSessions: number;
   remainingImages: number;
-  // Actions
   checkSubscription: () => Promise<void>;
   recordMessage: () => void;
   recordVoiceSession: () => void;
   recordImageGeneration: () => void;
   openCheckout: () => Promise<void>;
   openCustomerPortal: () => Promise<void>;
-  // Constants
   FREE_DAILY_MESSAGE_LIMIT: number;
   FREE_DAILY_VOICE_LIMIT: number;
   FREE_DAILY_IMAGE_LIMIT: number;
@@ -83,7 +75,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const { user } = useAuth();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [productId, setProductId] = useState<string | null>(null);
+  const [isComped, setIsComped] = useState(false);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'ok' | 'past_due' | 'none'>('none');
   const [loading, setLoading] = useState(true);
@@ -91,8 +83,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [dailyVoiceSessionsUsed, setDailyVoiceSessionsUsed] = useState(() => getDailyCount(DAILY_VOICE_KEY));
   const [dailyImagesUsed, setDailyImagesUsed] = useState(() => getDailyCount(DAILY_IMAGE_KEY));
 
-  // Admins and subscribers get unlimited access
-  const hasUnlimitedAccess = isSubscribed || isAdmin;
+  const hasUnlimitedAccess = isSubscribed || isAdmin || isComped;
   const canSendMessage = hasUnlimitedAccess || dailyMessagesUsed < FREE_DAILY_MESSAGE_LIMIT;
   const canUseVoice = hasUnlimitedAccess || dailyVoiceSessionsUsed < FREE_DAILY_VOICE_LIMIT;
   const canGenerateImage = hasUnlimitedAccess || dailyImagesUsed < FREE_DAILY_IMAGE_LIMIT;
@@ -104,23 +95,40 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     if (!user || !supabase) {
       setIsSubscribed(false);
       setIsAdmin(false);
+      setIsComped(false);
       setLoading(false);
       return;
     }
 
     try {
-      // Check admin status
+      // Admin check
       const { data: adminData } = await supabase.rpc('is_admin_user');
       setIsAdmin(!!adminData);
 
-      // Check Stripe subscription
-      const { data, error } = await supabase.functions.invoke('check-subscription');
-      if (error) throw error;
+      // Comp check (by email)
+      if (user.email) {
+        const { data: compData } = await supabase
+          .from('comped_users')
+          .select('email')
+          .ilike('email', user.email)
+          .maybeSingle();
+        setIsComped(!!compData);
+      } else {
+        setIsComped(false);
+      }
 
-      setIsSubscribed(data?.subscribed || false);
-      setProductId(data?.product_id || null);
-      setSubscriptionEnd(data?.subscription_end || null);
-      setPaymentStatus(data?.payment_status || 'none');
+      // Active Paddle subscription?
+      const { data: subData } = await supabase
+        .from('subscriptions')
+        .select('status, current_period_end')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const status = subData?.status ?? null;
+      const active = status === 'active' || status === 'trialing' || status === 'past_due';
+      setIsSubscribed(active);
+      setSubscriptionEnd(subData?.current_period_end ?? null);
+      setPaymentStatus(status === 'past_due' ? 'past_due' : active ? 'ok' : 'none');
     } catch (err) {
       console.error('Failed to check subscription:', err);
       setIsSubscribed(false);
@@ -151,42 +159,51 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [hasUnlimitedAccess]);
 
   const openCheckout = useCallback(async () => {
-    // Dispatch event to open the UpgradeModal with embedded checkout
-    window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
-  }, []);
+    if (!user) {
+      window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
+      return;
+    }
+    const paddle = await getPaddle();
+    if (!paddle) {
+      console.error('[subscription] Paddle failed to initialize');
+      return;
+    }
+    paddle.Checkout.open({
+      items: [{ priceId: PADDLE_PRO_PRICE_ID, quantity: 1 }],
+      customer: user.email ? { email: user.email } : undefined,
+      customData: { user_id: user.id },
+      settings: {
+        displayMode: 'overlay',
+        theme: 'dark',
+        successUrl: `${window.location.origin}/?checkout=success`,
+      },
+    });
+  }, [user]);
 
   const openCustomerPortal = useCallback(async () => {
-    if (!supabase) return;
+    if (!supabase || !user) return;
     try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
+      const { data, error } = await supabase.functions.invoke('payments-portal');
       if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
+      if (data?.url) window.location.href = data.url;
     } catch (err) {
       console.error('Failed to open customer portal:', err);
     }
-  }, []);
+  }, [user]);
 
-  // Check subscription on mount and when user changes
-  useEffect(() => {
-    checkSubscription();
-  }, [checkSubscription]);
+  useEffect(() => { checkSubscription(); }, [checkSubscription]);
 
-  // Auto-refresh every minute
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(checkSubscription, 60000);
     return () => clearInterval(interval);
   }, [user, checkSubscription]);
 
-  // Refresh subscription + daily counts on focus (catches return from Stripe checkout)
   useEffect(() => {
     const handleFocus = () => {
       setDailyMessagesUsed(getDailyCount(DAILY_MSG_KEY));
       setDailyVoiceSessionsUsed(getDailyCount(DAILY_VOICE_KEY));
       setDailyImagesUsed(getDailyCount(DAILY_IMAGE_KEY));
-      // Re-check subscription when user returns (e.g. from Stripe checkout redirect)
       checkSubscription();
     };
     window.addEventListener('focus', handleFocus);
@@ -195,8 +212,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   return (
     <SubscriptionContext.Provider value={{
-      isSubscribed: isSubscribed || isAdmin,
-      productId,
+      isSubscribed: hasUnlimitedAccess,
       subscriptionEnd,
       paymentStatus,
       loading,
@@ -231,5 +247,3 @@ export function useSubscription() {
   }
   return context;
 }
-
-export { ARCAI_PRO_PRODUCT_ID, ARCAI_PRO_PRICE_ID };
