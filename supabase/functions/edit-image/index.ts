@@ -158,7 +158,7 @@ serve(async (req) => {
         prompt,
         base_image_urls: imageArray,
         aspect_ratio: aspectRatio || '16:9',
-        preferred_model: IMAGE_MODEL,
+        preferred_model: selectedModel,
         status: 'processing',
         last_attempt_at: new Date().toISOString(),
         attempts: 1,
