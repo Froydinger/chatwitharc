@@ -763,10 +763,8 @@ export function LandingScreen() {
             )}
           </div>
         </div>
-
-        {/* App Showcase */}
-        <AppMockup />
       </main>
+
 
       {/* Section 1: Speed & Intelligence */}
       <section className="relative z-10 py-24 px-6 max-w-4xl mx-auto text-center" id="features">
