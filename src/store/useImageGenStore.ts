@@ -2,12 +2,20 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 /**
- * Image generation is locked to a single model: Nano Banana 2.
- * The model picker UIs still exist but render a single, immutable option.
+ * Image generation supports two Gemini models:
+ * - Nano Banana 2 (gemini-3.1-flash-image-preview) — default, highest quality
+ * - Nano Banana 1 (gemini-2.5-flash-image) — cheaper & faster, lower quality
  */
-export type ImageModelId = 'google/gemini-3.1-flash-image-preview';
+export type ImageModelId =
+  | 'google/gemini-3.1-flash-image-preview'
+  | 'google/gemini-2.5-flash-image';
 
-export const LOCKED_IMAGE_MODEL: ImageModelId = 'google/gemini-3.1-flash-image-preview';
+export const DEFAULT_IMAGE_MODEL: ImageModelId = 'google/gemini-3.1-flash-image-preview';
+
+export const ALLOWED_IMAGE_MODELS: ImageModelId[] = [
+  'google/gemini-3.1-flash-image-preview',
+  'google/gemini-2.5-flash-image',
+];
 
 export type ImageAspectRatio =
   | '1:1'
@@ -20,7 +28,16 @@ export type ImageAspectRatio =
   | '21:9';
 
 export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb: string; pro?: boolean }> = [
-  { id: 'google/gemini-3.1-flash-image-preview', label: 'Nano Banana 2', blurb: 'Default image model — fast & high quality' },
+  {
+    id: 'google/gemini-3.1-flash-image-preview',
+    label: 'Nano Banana 2',
+    blurb: 'Default — best quality & detail',
+  },
+  {
+    id: 'google/gemini-2.5-flash-image',
+    label: 'Nano Banana 1',
+    blurb: 'Cheaper & faster — lower quality, good for quick drafts',
+  },
 ];
 
 export const IMAGE_ASPECT_OPTIONS: Array<{ id: ImageAspectRatio; label: string }> = [
@@ -37,7 +54,6 @@ export const IMAGE_ASPECT_OPTIONS: Array<{ id: ImageAspectRatio; label: string }
 interface ImageGenState {
   model: ImageModelId;
   aspectRatio: ImageAspectRatio;
-  /** No-op: model is locked to Nano Banana 2. Kept for backwards compatibility. */
   setModel: (m: ImageModelId) => void;
   setAspectRatio: (a: ImageAspectRatio) => void;
 }
@@ -45,18 +61,18 @@ interface ImageGenState {
 export const useImageGenStore = create<ImageGenState>()(
   persist(
     (set) => ({
-      model: LOCKED_IMAGE_MODEL,
+      model: DEFAULT_IMAGE_MODEL,
       aspectRatio: '1:1',
-      // Locked — always force back to NB2 regardless of any persisted/legacy value.
-      setModel: () => set({ model: LOCKED_IMAGE_MODEL }),
+      setModel: (m) =>
+        set({ model: ALLOWED_IMAGE_MODELS.includes(m) ? m : DEFAULT_IMAGE_MODEL }),
       setAspectRatio: (a) => set({ aspectRatio: a }),
     }),
     {
       name: 'arc-image-gen-prefs',
-      // Migrate any previously-persisted legacy model id back to NB2 on hydrate.
+      // Migrate any unknown persisted model back to the default.
       onRehydrateStorage: () => (state) => {
-        if (state && state.model !== LOCKED_IMAGE_MODEL) {
-          state.model = LOCKED_IMAGE_MODEL;
+        if (state && !ALLOWED_IMAGE_MODELS.includes(state.model)) {
+          state.model = DEFAULT_IMAGE_MODEL;
         }
       },
     }

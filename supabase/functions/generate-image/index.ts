@@ -13,8 +13,17 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "
 const REQUEST_TIMEOUT_MS = 55_000;
 const RETRY_DELAY_MS = 3_000;
 
-// Locked to a single image model. No fallback chain — if it fails, we surface the error.
-const IMAGE_MODEL = "google/gemini-3.1-flash-image-preview";
+// Allowed image models — client may pick between these. No fallback chain.
+const DEFAULT_IMAGE_MODEL = "google/gemini-3.1-flash-image-preview";
+const ALLOWED_IMAGE_MODELS = new Set<string>([
+  "google/gemini-3.1-flash-image-preview",
+  "google/gemini-2.5-flash-image",
+]);
+function pickImageModel(requested?: unknown): string {
+  return typeof requested === "string" && ALLOWED_IMAGE_MODELS.has(requested)
+    ? requested
+    : DEFAULT_IMAGE_MODEL;
+}
 
 type ErrorInfo = {
   errorType: string;
@@ -167,6 +176,7 @@ serve(async (req) => {
     const body = await req.json();
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = normalizeAspectRatio(body?.aspectRatio);
+    const selectedModel = pickImageModel(body?.preferredModel);
 
     if (!prompt) {
       return jsonResponse({ success: false, error: "Prompt is required.", errorType: "invalid_request" }, 400);
@@ -179,7 +189,7 @@ serve(async (req) => {
         job_type: "generate",
         prompt,
         aspect_ratio: aspectRatio,
-        preferred_model: IMAGE_MODEL,
+        preferred_model: selectedModel,
         status: "processing",
         last_attempt_at: new Date().toISOString(),
         attempts: 1,
@@ -196,8 +206,8 @@ serve(async (req) => {
     const currentJobId = jobData.id;
     const imagePrompt = buildImagePrompt(prompt, aspectRatio);
 
-    console.log(`Generating image with ${IMAGE_MODEL} for job ${currentJobId}`);
-    const result = await callImageGateway(imagePrompt, IMAGE_MODEL);
+    console.log(`Generating image with ${selectedModel} for job ${currentJobId}`);
+    const result = await callImageGateway(imagePrompt, selectedModel);
 
     if (!result.ok) {
       const errorInfo = classifyError(result.status, result.rawText);

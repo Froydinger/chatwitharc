@@ -13,8 +13,15 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '
 const REQUEST_TIMEOUT_MS = 55_000;
 const RETRY_DELAY_MS = 3_000;
 
-// Locked to a single image model. No fallback chain.
-const IMAGE_MODEL = 'google/gemini-3.1-flash-image-preview';
+// Allowed image models — client may pick between these. No fallback chain.
+const DEFAULT_IMAGE_MODEL = 'google/gemini-3.1-flash-image-preview';
+const ALLOWED_IMAGE_MODELS = new Set<string>([
+  'google/gemini-3.1-flash-image-preview',
+  'google/gemini-2.5-flash-image',
+]);
+function pickModel(requested?: string): string {
+  return requested && ALLOWED_IMAGE_MODELS.has(requested) ? requested : DEFAULT_IMAGE_MODEL;
+}
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -129,7 +136,8 @@ serve(async (req) => {
   let jobId: string | null = null;
 
   try {
-    const { prompt, baseImageUrl, baseImageUrls, aspectRatio } = await req.json();
+    const { prompt, baseImageUrl, baseImageUrls, aspectRatio, imageModel } = await req.json();
+    const selectedModel = pickModel(imageModel);
 
     if (!prompt) return jsonResponse({ error: 'Prompt is required', errorType: 'invalid_request', success: false });
 
@@ -150,7 +158,7 @@ serve(async (req) => {
         prompt,
         base_image_urls: imageArray,
         aspect_ratio: aspectRatio || '16:9',
-        preferred_model: IMAGE_MODEL,
+        preferred_model: selectedModel,
         status: 'processing',
         last_attempt_at: new Date().toISOString(),
         attempts: 1,
@@ -167,8 +175,8 @@ serve(async (req) => {
     const currentJobId = jobData.id;
     const editPrompt = buildEditPrompt(prompt, imageArray.length);
 
-    console.log(`Editing image with ${IMAGE_MODEL} for job ${currentJobId}`);
-    const result = await callEditGateway(editPrompt, imageArray, IMAGE_MODEL, aspectRatio || '16:9');
+    console.log(`Editing image with ${selectedModel} for job ${currentJobId}`);
+    const result = await callEditGateway(editPrompt, imageArray, selectedModel, aspectRatio || '16:9');
 
     if (!result.ok) {
       const err = classifyError(result.status, result.rawText);
