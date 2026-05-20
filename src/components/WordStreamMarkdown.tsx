@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "@/components/CodeBlock";
@@ -15,8 +15,9 @@ interface WordStreamMarkdownProps {
 }
 
 /**
- * Renders streaming assistant markdown with a per-word fade-up reveal.
- * Words that have already been revealed are not re-animated when new tokens arrive.
+ * Renders assistant markdown with a controlled per-word fade-up reveal.
+ * Words appear on a steady cadence even if the full text arrived in one chunk,
+ * giving a "thoughts forming" pace independent of network streaming.
  */
 export const WordStreamMarkdown = ({
   text,
@@ -24,51 +25,67 @@ export const WordStreamMarkdown = ({
   shouldAnimate = true,
   onTyping,
 }: WordStreamMarkdownProps) => {
-  // Track how many words from the full text have already been "seen" (animated)
-  // so newly appended words animate while older ones stay static.
-  const seenCountRef = useRef(0);
-
-  // Total word count (whitespace-delimited) for the current text.
+  // Total word count for the current text snapshot.
   const totalWords = useMemo(() => {
     const m = text.match(/\S+/g);
     return m ? m.length : 0;
   }, [text]);
 
-  // Disable per-word animation entirely for very long responses (perf guardrail).
+  // Long responses skip per-word animation entirely (perf guardrail).
   const animateWords = shouldAnimate && totalWords <= 600;
 
-  // Capture the snapshot of "already seen" before this render commits.
-  const previouslySeen = seenCountRef.current;
-  // After render, anything in the current text is now seen.
-  seenCountRef.current = totalWords;
+  // Controlled reveal: words shown so far.
+  const [revealed, setRevealed] = useState(animateWords ? 0 : totalWords);
+  // Cursor tracking which words already finished their fade-in (so we don't
+  // re-animate them on every tick).
+  const seenRef = useRef(0);
 
-  // Fire scroll callback on text change
-  if (onTyping) {
-    queueMicrotask(() => onTyping());
-  }
+  // Tick the reveal forward on a steady cadence.
+  useEffect(() => {
+    if (!animateWords) {
+      setRevealed(totalWords);
+      seenRef.current = totalWords;
+      return;
+    }
+    if (revealed >= totalWords) return;
 
-  const renderTextWithWords = (children: any): any => {
+    // Catch up if far behind so streaming isn't perpetually lagging
+    const behind = totalWords - revealed;
+    const step = behind > 80 ? 4 : behind > 30 ? 2 : 1;
+    const interval = behind > 80 ? 28 : behind > 30 ? 34 : 55;
+
+    const id = window.setTimeout(() => {
+      setRevealed((r) => Math.min(totalWords, r + step));
+      onTyping?.();
+    }, interval);
+    return () => window.clearTimeout(id);
+  }, [revealed, totalWords, animateWords, onTyping]);
+
+  // Snapshot of what we've already animated before this render.
+  const previouslySeen = seenRef.current;
+  // Mark words up to current reveal cursor as seen for next pass.
+  seenRef.current = revealed;
+
+  const renderTextWithWords = (children: any, globalCursor: { i: number }): any => {
     if (!animateWords) return children;
 
     const wrap = (str: string, keyPrefix: string) => {
-      // Split keeping whitespace separate
       const parts = str.split(/(\s+)/);
-      let wordIdx = 0;
-      // We need each word's absolute index across the whole message to decide
-      // whether to animate. We approximate by counting words within this node,
-      // offset by the running globalWordCursor below.
       return parts.map((p, i) => {
         if (/^\s+$/.test(p) || p === "") {
           return <span key={`${keyPrefix}-${i}`}>{p}</span>;
         }
-        const absoluteIdx = globalWordCursor + wordIdx;
-        wordIdx += 1;
+        const absoluteIdx = globalCursor.i;
+        globalCursor.i += 1;
+        // Hide words not yet revealed
+        if (absoluteIdx >= revealed) {
+          return null;
+        }
         const isNew = absoluteIdx >= previouslySeen;
         if (!isNew) {
           return <span key={`${keyPrefix}-${i}`}>{p}</span>;
         }
-        // Stagger newly arrived words slightly for a "thoughts forming" feel
-        const stagger = Math.min((absoluteIdx - previouslySeen) * 18, 240);
+        const stagger = Math.min((absoluteIdx - previouslySeen) * 22, 180);
         return (
           <span
             key={`${keyPrefix}-${i}`}
@@ -81,15 +98,9 @@ export const WordStreamMarkdown = ({
       });
     };
 
-    let globalWordCursor = 0; // mutated as we walk children
     const walk = (node: any, keyPrefix: string): any => {
       if (typeof node === "string") {
-        const before = globalWordCursor;
-        const matches = node.match(/\S+/g);
-        const count = matches ? matches.length : 0;
-        const out = wrap(node, keyPrefix);
-        globalWordCursor = before + count;
-        return out;
+        return wrap(node, keyPrefix);
       }
       if (Array.isArray(node)) {
         return node.map((c, i) => walk(c, `${keyPrefix}-${i}`));
@@ -101,15 +112,18 @@ export const WordStreamMarkdown = ({
   };
 
   const components = useMemo(
-    () => ({
+    () => {
+      // Shared cursor across all paragraph/list renderers within one render pass.
+      const cursor = { i: 0 };
+      return {
       p: ({ node, children, ...props }: any) => (
         <p className="text-base leading-relaxed mb-3 last:mb-0 text-foreground/90" {...props}>
-          {renderTextWithWords(children)}
+          {renderTextWithWords(children, cursor)}
         </p>
       ),
       li: ({ node, children, ...props }: any) => (
         <li className="text-base leading-relaxed text-foreground/90" {...props}>
-          {renderTextWithWords(children)}
+          {renderTextWithWords(children, cursor)}
         </li>
       ),
       strong: ({ node, ...props }: any) => <strong className="font-semibold text-foreground" {...props} />,
@@ -197,8 +211,9 @@ export const WordStreamMarkdown = ({
           </code>
         );
       },
-    }),
-    [previouslySeen, animateWords]
+      };
+    },
+    [revealed, previouslySeen, animateWords]
   );
 
   return (
