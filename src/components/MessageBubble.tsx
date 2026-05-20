@@ -155,7 +155,6 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
     const canTeleprompt = !isUser && isLatestAssistant && !telepromptDone && message.content.trim().length > 0;
     const shouldTeleprompt = canTeleprompt && (Boolean(shouldAnimateTypewriter) || hasStartedTelepromptRef.current);
-    const isReceivingAssistant = canTeleprompt && Boolean(shouldAnimateTypewriter);
 
     useEffect(() => {
       if (shouldTeleprompt) hasStartedTelepromptRef.current = true;
@@ -514,7 +513,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                                 key={idx}
                                 text={part.content}
                                 shouldAnimate={true}
-                                isFinal={!isReceivingAssistant}
+                                isFinal={!isThinking}
                                 onTyping={() => {
                                   const event = new CustomEvent('typewriter-typing');
                                   window.dispatchEvent(event);
