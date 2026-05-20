@@ -147,8 +147,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
       prevContentLenRef.current = len;
     }, [isLatestAssistant, isThinking, message.content, isUser, haloed]);
 
-    const shouldTeleprompt = !isUser && isLatestAssistant && !isThinking && message.content.trim().length > 0;
-    const isReceivingAssistant = shouldTeleprompt && Boolean(shouldAnimateTypewriter);
+    const canTeleprompt = !isUser && isLatestAssistant && !isThinking && message.content.trim().length > 0;
+    const shouldTeleprompt = canTeleprompt && (Boolean(shouldAnimateTypewriter) || hasStartedTelepromptRef.current);
+    const isReceivingAssistant = canTeleprompt && Boolean(shouldAnimateTypewriter);
 
     useEffect(() => {
       if (shouldTeleprompt) hasStartedTelepromptRef.current = true;
