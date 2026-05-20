@@ -611,7 +611,14 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   ease: "easeInOut"
                 } : { duration: 0.2 }}
               >
-                <ThemedLogo className="h-10 w-10" alt="Arc" />
+                <div
+                  className={logoPulse ? "arc-logo-pulse" : ""}
+                  onAnimationEnd={(e) => {
+                    if (e.animationName === "arc-logo-handoff") setLogoPulse(false);
+                  }}
+                >
+                  <ThemedLogo className="h-10 w-10" alt="Arc" />
+                </div>
                 {isThinking && (
                   <motion.div
                     className="absolute inset-0 rounded-full bg-primary/20 blur-xl"
