@@ -21,6 +21,7 @@ import { BugReportModal } from "@/components/BugReportModal";
 import { useBugReport } from "@/hooks/useBugReport";
 import { useVisibilityHandler } from "@/hooks/useVisibilityHandler";
 import { GlobalMusicPlayer } from "@/components/GlobalMusicPlayer";
+import { LiquidFilter } from "@/components/ui/liquid-filter";
 import { useCorporateModeEnforcer } from "@/hooks/useCorporateMode";
 import { useLocalModelPersistence } from "@/hooks/useLocalModelPersistence";
 import { CorporateMemoryConsentGate } from "@/components/CorporateMemoryConsentModal";
@@ -79,6 +80,7 @@ const App = () => {
         <SubscriptionProvider>
         <TooltipProvider>
           <div className="arcai-drag-bar" />
+          <LiquidFilter />
           <BackgroundGradients />
           {showStarfield && <Starfield />}
             <Toaster />
