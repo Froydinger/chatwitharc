@@ -471,47 +471,57 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     </p>
                   ) : (
                     // AI messages with code block support and markdown
-                    <div className="relative z-10 w-full min-w-0 overflow-hidden">
-                      {contentParts.map((part, idx) => {
-                        if (part.type === "code") {
+                    message.content.trim().length > 0 && (
+                      <div
+                        className={[
+                          "relative z-10 w-full min-w-0 overflow-hidden",
+                          "arc-message-bubble px-4 py-3",
+                          haloed ? "arc-halo-once" : "",
+                          settled ? "arc-settle-once" : "",
+                        ].join(" ").trim()}
+                        onAnimationEnd={(e) => {
+                          if (e.animationName === "arc-aurora-halo") setHaloed(false);
+                          if (e.animationName === "arc-settle") setSettled(false);
+                        }}
+                      >
+                        {contentParts.map((part, idx) => {
+                          if (part.type === "code") {
+                            return (
+                              <CodeBlock
+                                key={idx}
+                                code={part.content}
+                                language={part.language || "plaintext"}
+                              />
+                            );
+                          }
+
+                          if (shouldAnimateTypewriter && !isThinking) {
+                            return (
+                              <WordStreamMarkdown
+                                key={idx}
+                                text={part.content}
+                                shouldAnimate={true}
+                                onTyping={() => {
+                                  const event = new CustomEvent('typewriter-typing');
+                                  window.dispatchEvent(event);
+                                }}
+                              />
+                            );
+                          }
+
                           return (
-                            <CodeBlock
-                              key={idx}
-                              code={part.content}
-                              language={part.language || "plaintext"}
-                            />
+                            <div key={idx} className="text-foreground break-words">
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={markdownComponents}
+                              >
+                                {part.content}
+                              </ReactMarkdown>
+                            </div>
                           );
-                        }
-                        
-                        // For text parts, render with markdown if not animating, otherwise use typewriter
-                        if (shouldAnimateTypewriter && !isThinking) {
-                          return (
-                            <TypewriterMarkdown
-                              key={idx}
-                              text={part.content}
-                              shouldAnimate={true}
-                              onTyping={() => {
-                                // Trigger scroll during typing
-                                const event = new CustomEvent('typewriter-typing');
-                                window.dispatchEvent(event);
-                              }}
-                            />
-                          );
-                        }
-                        
-                        // Static markdown rendering for non-animating messages
-                        return (
-                          <div key={idx} className="text-foreground break-words">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              components={markdownComponents}
-                            >
-                              {part.content}
-                            </ReactMarkdown>
-                          </div>
-                        );
-                      })}
-                    </div>
+                        })}
+                      </div>
+                    )
                   )
                 ))}
 
