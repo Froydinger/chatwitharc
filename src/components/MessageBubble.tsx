@@ -519,7 +519,11 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                                   const event = new CustomEvent('typewriter-typing');
                                   window.dispatchEvent(event);
                                 }}
-                                onComplete={() => setSettled(true)}
+                                onComplete={() => {
+                                  if (idx !== lastTextPartIndex) return;
+                                  setTelepromptDone(true);
+                                  setSettled(true);
+                                }}
                               />
                             );
                           }
