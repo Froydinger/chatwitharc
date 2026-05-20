@@ -476,9 +476,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                         className={[
                           "relative z-10 w-full min-w-0 overflow-hidden",
                           "arc-message-bubble px-4 py-3",
+                          shouldAnimateTypewriter && !isThinking ? "arc-typing-glow" : "",
                           haloed ? "arc-halo-once" : "",
                           settled ? "arc-settle-once" : "",
-                        ].join(" ").trim()}
+                        ].filter(Boolean).join(" ")}
                         onAnimationEnd={(e) => {
                           if (e.animationName === "arc-aurora-halo") setHaloed(false);
                           if (e.animationName === "arc-settle") setSettled(false);
