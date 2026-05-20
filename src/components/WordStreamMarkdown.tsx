@@ -149,8 +149,16 @@ export const WordStreamMarkdown = ({
           {renderTextWithWords(children, cursor)}
         </h4>
       ),
-      strong: ({ node, ...props }: any) => <strong className="font-semibold text-foreground" {...props} />,
-      em: ({ node, ...props }: any) => <em className="italic text-foreground/85" {...props} />,
+      strong: ({ node, children, ...props }: any) => (
+        <strong className="font-semibold text-foreground" {...props}>
+          {renderTextWithWords(children, cursor)}
+        </strong>
+      ),
+      em: ({ node, children, ...props }: any) => (
+        <em className="italic text-foreground/85" {...props}>
+          {renderTextWithWords(children, cursor)}
+        </em>
+      ),
       a: ({ node, href, children, ...props }: any) => {
         const isGeneratedFile = href && (
           href.includes("/storage/v1/object/public/generated-files/") ||
@@ -194,7 +202,7 @@ export const WordStreamMarkdown = ({
             referrerPolicy="no-referrer"
             {...props}
           >
-            {children}
+            {renderTextWithWords(children, cursor)}
           </a>
         );
       },
