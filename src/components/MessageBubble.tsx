@@ -122,6 +122,37 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [editImageUrls, setEditImageUrls] = useState<string[] | null>(null);
     const isUser = message.role === "user";
 
+    // Magical arrival state - one-shot animations for the latest assistant message
+    const [haloed, setHaloed] = useState(false);
+    const [settled, setSettled] = useState(false);
+    const [logoPulse, setLogoPulse] = useState(false);
+    const prevThinkingRef = useRef(isThinking);
+    const prevContentLenRef = useRef(message.content.length);
+    const prevAnimateRef = useRef(shouldAnimateTypewriter);
+
+    useEffect(() => {
+      if (isUser || !isLatestAssistant) return;
+      const len = message.content.length;
+      // Halo: first time content appears while streaming
+      if (!haloed && len > 0 && prevContentLenRef.current === 0) {
+        setHaloed(true);
+      }
+      // Logo handoff pulse: thinking -> speaking, or first token without thinking phase
+      const firstToken = prevContentLenRef.current === 0 && len > 0;
+      const thinkingEnded = prevThinkingRef.current && !isThinking && len > 0;
+      if (firstToken || thinkingEnded) {
+        setLogoPulse(true);
+      }
+      // Settle bounce: typewriter just finished
+      if (prevAnimateRef.current && !shouldAnimateTypewriter && len > 0) {
+        setSettled(true);
+      }
+      prevThinkingRef.current = isThinking;
+      prevContentLenRef.current = len;
+      prevAnimateRef.current = shouldAnimateTypewriter;
+    }, [isLatestAssistant, isThinking, message.content, shouldAnimateTypewriter, isUser, haloed]);
+
+
     const handleCopy = async () => {
       try {
         await navigator.clipboard.writeText(message.content);
