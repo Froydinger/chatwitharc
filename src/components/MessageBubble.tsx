@@ -1,4 +1,4 @@
-import { forwardRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Copy, Edit2, Check } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ImageGenerationPlaceholder } from "@/components/ImageGenerationPlaceholder";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { TypewriterMarkdown } from "@/components/TypewriterMarkdown";
+import { WordStreamMarkdown } from "@/components/WordStreamMarkdown";
 import { ImageModal } from "@/components/ImageModal";
 import { ImageEditModal } from "@/components/ImageEditModal";
 import { CodeBlock } from "@/components/CodeBlock";
