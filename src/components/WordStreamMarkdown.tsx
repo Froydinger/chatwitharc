@@ -117,9 +117,8 @@ export const WordStreamMarkdown = ({
     return walk(children, "w");
   };
 
-  const components = useMemo(() => {
-    const cursor = { i: 0 };
-    return {
+  const cursor = { i: 0 };
+  const components = {
       p: ({ node, children, ...props }: any) => (
         <p className="text-base leading-relaxed mb-3 last:mb-0 text-foreground/90" {...props}>
           {renderTextWithWords(children, cursor)}
@@ -232,7 +231,6 @@ export const WordStreamMarkdown = ({
         );
       },
     };
-  }, [revealed, animateWords]);
 
   return (
     <div className={`relative z-10 text-foreground break-words ${className}`}>
