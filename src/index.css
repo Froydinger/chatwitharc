@@ -838,6 +838,83 @@ All colors MUST be HSL for perfect glass effects.
       0 0 24px hsl(var(--primary-glow) / 0.12) !important;
   }
 
+  /* Arc assistant message bubble - glass aesthetic mirroring input dock */
+  .arc-message-bubble {
+    position: relative;
+    background: linear-gradient(135deg, hsl(var(--background) / 0.72) 0%, hsl(var(--background) / 0.6) 60%, hsl(var(--primary) / 0.10) 100%);
+    backdrop-filter: blur(24px) saturate(120%);
+    -webkit-backdrop-filter: blur(24px) saturate(120%);
+    border: 1px solid hsl(var(--primary) / 0.22);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 hsl(0 0% 100% / 0.06),
+      inset 0 0 18px hsl(var(--primary-glow) / 0.06);
+    border-radius: 22px;
+    border-top-left-radius: 8px;
+  }
+
+  /* One-shot aurora halo on arrival */
+  @keyframes arc-aurora-halo {
+    0% {
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 hsl(0 0% 100% / 0.06),
+        0 0 0 0 hsl(var(--primary) / 0),
+        0 0 0 0 hsl(var(--primary) / 0);
+    }
+    30% {
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 hsl(0 0% 100% / 0.08),
+        0 0 36px 6px hsl(var(--primary) / 0.38),
+        0 0 90px 24px hsl(var(--primary) / 0.18);
+    }
+    100% {
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 hsl(0 0% 100% / 0.06),
+        0 0 0 0 hsl(var(--primary) / 0),
+        0 0 0 0 hsl(var(--primary) / 0);
+    }
+  }
+
+  /* Settle bounce on stream end */
+  @keyframes arc-settle {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.012); }
+    100% { transform: scale(1); }
+  }
+
+  /* Logo handoff pulse - thinking -> speaking */
+  @keyframes arc-logo-handoff {
+    0%   { transform: scale(1);    filter: drop-shadow(0 0 0 hsl(var(--primary) / 0)); }
+    40%  { transform: scale(1.10); filter: drop-shadow(0 0 14px hsl(var(--primary) / 0.7)); }
+    100% { transform: scale(1);    filter: drop-shadow(0 0 0 hsl(var(--primary) / 0)); }
+  }
+
+  /* Word-by-word fade-up */
+  @keyframes arc-word-in {
+    0%   { opacity: 0; transform: translateY(4px); filter: blur(2px); }
+    100% { opacity: 1; transform: translateY(0);   filter: blur(0); }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .arc-halo-once {
+      animation: arc-aurora-halo 1.6s cubic-bezier(0.22, 1, 0.36, 1) 1;
+    }
+    .arc-settle-once {
+      animation: arc-settle 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 1;
+    }
+    .arc-logo-pulse {
+      animation: arc-logo-handoff 480ms cubic-bezier(0.22, 1, 0.36, 1) 1;
+    }
+    .arc-word {
+      display: inline-block;
+      animation: arc-word-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      will-change: opacity, transform, filter;
+    }
+  }
+
   /* Noir theme: Black buttons with white text/icons */
   [data-accent="noir"] .noir-send-btn {
     background-color: hsl(0 0% 5%) !important;
