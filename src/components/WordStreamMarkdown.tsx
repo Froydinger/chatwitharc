@@ -9,15 +9,16 @@ import { SvgArtifact } from "@/components/SvgArtifact";
 interface WordStreamMarkdownProps {
   text: string;
   className?: string;
-  /** When false, renders instantly with no per-word animation */
+  /** When false, all words are immediately revealed (no per-word animation) */
   shouldAnimate?: boolean;
   onTyping?: () => void;
 }
 
 /**
- * Renders assistant markdown with a controlled per-word fade-up reveal.
- * Words appear on a steady cadence even if the full text arrived in one chunk,
- * giving a "thoughts forming" pace independent of network streaming.
+ * Renders assistant markdown with a smooth per-word reveal.
+ * Every word is always mounted; visibility is toggled via CSS transition
+ * (.arc-word -> .arc-word-shown) which avoids the "blip" of remounts and
+ * keeps layout stable.
  */
 export const WordStreamMarkdown = ({
   text,
@@ -25,34 +26,28 @@ export const WordStreamMarkdown = ({
   shouldAnimate = true,
   onTyping,
 }: WordStreamMarkdownProps) => {
-  // Total word count for the current text snapshot.
   const totalWords = useMemo(() => {
     const m = text.match(/\S+/g);
     return m ? m.length : 0;
   }, [text]);
 
-  // Long responses skip per-word animation entirely (perf guardrail).
-  const animateWords = shouldAnimate && totalWords <= 600;
+  // Skip per-word animation entirely for very long responses.
+  const animateWords = shouldAnimate && totalWords <= 800;
 
-  // Controlled reveal: words shown so far.
   const [revealed, setRevealed] = useState(animateWords ? 0 : totalWords);
-  // Cursor tracking which words already finished their fade-in (so we don't
-  // re-animate them on every tick).
-  const seenRef = useRef(0);
 
-  // Tick the reveal forward on a steady cadence.
+  // Steady reveal cadence — paced so it feels like Arc is composing.
   useEffect(() => {
     if (!animateWords) {
       setRevealed(totalWords);
-      seenRef.current = totalWords;
       return;
     }
     if (revealed >= totalWords) return;
 
-    // Catch up if far behind so streaming isn't perpetually lagging
     const behind = totalWords - revealed;
-    const step = behind > 80 ? 4 : behind > 30 ? 2 : 1;
-    const interval = behind > 80 ? 28 : behind > 30 ? 34 : 55;
+    // Stay readable but catch up if a huge chunk landed at once.
+    const step = behind > 120 ? 4 : behind > 40 ? 2 : 1;
+    const interval = behind > 120 ? 32 : behind > 40 ? 42 : 65;
 
     const id = window.setTimeout(() => {
       setRevealed((r) => Math.min(totalWords, r + step));
@@ -61,12 +56,12 @@ export const WordStreamMarkdown = ({
     return () => window.clearTimeout(id);
   }, [revealed, totalWords, animateWords, onTyping]);
 
-  // Snapshot of what we've already animated before this render.
-  const previouslySeen = seenRef.current;
-  // Mark words up to current reveal cursor as seen for next pass.
-  seenRef.current = revealed;
+  // If text shrinks (rare — e.g. message replaced), clamp.
+  useEffect(() => {
+    if (revealed > totalWords) setRevealed(totalWords);
+  }, [totalWords, revealed]);
 
-  const renderTextWithWords = (children: any, globalCursor: { i: number }): any => {
+  const renderTextWithWords = (children: any, cursor: { i: number }): any => {
     if (!animateWords) return children;
 
     const wrap = (str: string, keyPrefix: string) => {
@@ -75,22 +70,13 @@ export const WordStreamMarkdown = ({
         if (/^\s+$/.test(p) || p === "") {
           return <span key={`${keyPrefix}-${i}`}>{p}</span>;
         }
-        const absoluteIdx = globalCursor.i;
-        globalCursor.i += 1;
-        // Hide words not yet revealed
-        if (absoluteIdx >= revealed) {
-          return null;
-        }
-        const isNew = absoluteIdx >= previouslySeen;
-        if (!isNew) {
-          return <span key={`${keyPrefix}-${i}`}>{p}</span>;
-        }
-        const stagger = Math.min((absoluteIdx - previouslySeen) * 22, 180);
+        const idx = cursor.i;
+        cursor.i += 1;
+        const shown = idx < revealed;
         return (
           <span
             key={`${keyPrefix}-${i}`}
-            className="arc-word"
-            style={{ animationDelay: `${stagger}ms` }}
+            className={shown ? "arc-word arc-word-shown" : "arc-word"}
           >
             {p}
           </span>
@@ -111,11 +97,9 @@ export const WordStreamMarkdown = ({
     return walk(children, "w");
   };
 
-  const components = useMemo(
-    () => {
-      // Shared cursor across all paragraph/list renderers within one render pass.
-      const cursor = { i: 0 };
-      return {
+  const components = useMemo(() => {
+    const cursor = { i: 0 };
+    return {
       p: ({ node, children, ...props }: any) => (
         <p className="text-base leading-relaxed mb-3 last:mb-0 text-foreground/90" {...props}>
           {renderTextWithWords(children, cursor)}
@@ -125,6 +109,26 @@ export const WordStreamMarkdown = ({
         <li className="text-base leading-relaxed text-foreground/90" {...props}>
           {renderTextWithWords(children, cursor)}
         </li>
+      ),
+      h1: ({ node, children, ...props }: any) => (
+        <h1 className="text-2xl font-bold mt-5 mb-2.5 text-foreground" {...props}>
+          {renderTextWithWords(children, cursor)}
+        </h1>
+      ),
+      h2: ({ node, children, ...props }: any) => (
+        <h2 className="text-xl font-semibold mt-4 mb-2 text-foreground" {...props}>
+          {renderTextWithWords(children, cursor)}
+        </h2>
+      ),
+      h3: ({ node, children, ...props }: any) => (
+        <h3 className="text-lg font-semibold mt-3 mb-1.5 text-foreground" {...props}>
+          {renderTextWithWords(children, cursor)}
+        </h3>
+      ),
+      h4: ({ node, children, ...props }: any) => (
+        <h4 className="text-base font-semibold mt-3 mb-1.5 text-foreground" {...props}>
+          {renderTextWithWords(children, cursor)}
+        </h4>
       ),
       strong: ({ node, ...props }: any) => <strong className="font-semibold text-foreground" {...props} />,
       em: ({ node, ...props }: any) => <em className="italic text-foreground/85" {...props} />,
@@ -177,10 +181,6 @@ export const WordStreamMarkdown = ({
       },
       ul: ({ node, ...props }: any) => <ul className="list-disc pl-5 mb-3 space-y-1 marker:text-primary/60" {...props} />,
       ol: ({ node, ...props }: any) => <ol className="list-decimal pl-5 mb-3 space-y-1 marker:text-primary/60" {...props} />,
-      h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold mt-5 mb-2.5 text-foreground" {...props} />,
-      h2: ({ node, ...props }: any) => <h2 className="text-xl font-semibold mt-4 mb-2 text-foreground" {...props} />,
-      h3: ({ node, ...props }: any) => <h3 className="text-lg font-semibold mt-3 mb-1.5 text-foreground" {...props} />,
-      h4: ({ node, ...props }: any) => <h4 className="text-base font-semibold mt-3 mb-1.5 text-foreground" {...props} />,
       blockquote: ({ node, ...props }: any) => (
         <blockquote className="border-l-2 border-primary/40 pl-3 py-0.5 my-3.5 bg-primary/5 rounded-r italic text-muted-foreground" {...props} />
       ),
@@ -211,10 +211,8 @@ export const WordStreamMarkdown = ({
           </code>
         );
       },
-      };
-    },
-    [revealed, previouslySeen, animateWords]
-  );
+    };
+  }, [revealed, animateWords]);
 
   return (
     <div className={`relative z-10 text-foreground break-words ${className}`}>

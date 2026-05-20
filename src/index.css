@@ -892,10 +892,22 @@ All colors MUST be HSL for perfect glass effects.
     100% { transform: scale(1);    filter: drop-shadow(0 0 0 hsl(var(--primary) / 0)); }
   }
 
-  /* Word-by-word fade-up */
-  @keyframes arc-word-in {
-    0%   { opacity: 0; transform: translateY(4px); filter: blur(2px); }
-    100% { opacity: 1; transform: translateY(0);   filter: blur(0); }
+  /* Continuous accent glow while Arc is typing */
+  @keyframes arc-typing-pulse {
+    0%, 100% {
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 hsl(0 0% 100% / 0.06),
+        0 0 22px 2px hsl(var(--primary) / 0.20),
+        0 0 60px 12px hsl(var(--primary) / 0.10);
+    }
+    50% {
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 hsl(0 0% 100% / 0.08),
+        0 0 34px 5px hsl(var(--primary) / 0.34),
+        0 0 90px 22px hsl(var(--primary) / 0.18);
+    }
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -908,11 +920,31 @@ All colors MUST be HSL for perfect glass effects.
     .arc-logo-pulse {
       animation: arc-logo-handoff 480ms cubic-bezier(0.22, 1, 0.36, 1) 1;
     }
+    .arc-typing-glow {
+      animation: arc-typing-pulse 2.4s ease-in-out infinite;
+      transition: box-shadow 700ms ease-out;
+    }
+    /* Words start hidden, smoothly transition in when "shown" class is added */
     .arc-word {
-      display: inline-block;
-      animation: arc-word-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      display: inline;
+      opacity: 0;
+      filter: blur(3px);
+      transform: translateY(3px);
+      transition:
+        opacity 600ms cubic-bezier(0.22, 1, 0.36, 1),
+        filter 600ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
       will-change: opacity, transform, filter;
     }
+    .arc-word.arc-word-shown {
+      opacity: 1;
+      filter: blur(0);
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .arc-word { opacity: 1; filter: none; transform: none; }
   }
 
   /* Noir theme: Black buttons with white text/icons */
