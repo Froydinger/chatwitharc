@@ -128,7 +128,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [logoPulse, setLogoPulse] = useState(false);
     const prevThinkingRef = useRef(isThinking);
     const prevContentLenRef = useRef(message.content.length);
-    const prevAnimateRef = useRef(shouldAnimateTypewriter);
+    const hasStartedTelepromptRef = useRef(false);
 
     useEffect(() => {
       if (isUser || !isLatestAssistant) return;
@@ -143,14 +143,18 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
       if (firstToken || thinkingEnded) {
         setLogoPulse(true);
       }
-      // Settle bounce: typewriter just finished
-      if (prevAnimateRef.current && !shouldAnimateTypewriter && len > 0) {
-        setSettled(true);
-      }
       prevThinkingRef.current = isThinking;
       prevContentLenRef.current = len;
-      prevAnimateRef.current = shouldAnimateTypewriter;
-    }, [isLatestAssistant, isThinking, message.content, shouldAnimateTypewriter, isUser, haloed]);
+    }, [isLatestAssistant, isThinking, message.content, isUser, haloed]);
+
+    const shouldTeleprompt = !isUser && isLatestAssistant && !isThinking && message.content.trim().length > 0;
+    const isReceivingAssistant = shouldTeleprompt && Boolean(shouldAnimateTypewriter);
+
+    useEffect(() => {
+      if (shouldTeleprompt) hasStartedTelepromptRef.current = true;
+      if (isUser || isLatestAssistant) return;
+      hasStartedTelepromptRef.current = false;
+    }, [shouldTeleprompt, isLatestAssistant, isUser]);
 
 
     const handleCopy = async () => {
@@ -476,7 +480,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                         className={[
                           "relative z-10 w-full min-w-0 overflow-hidden",
                           "arc-message-bubble px-4 py-3",
-                          shouldAnimateTypewriter && !isThinking ? "arc-typing-glow" : "",
+                          shouldTeleprompt ? "arc-typing-glow" : "",
                           haloed ? "arc-halo-once" : "",
                           settled ? "arc-settle-once" : "",
                         ].filter(Boolean).join(" ")}
@@ -496,16 +500,18 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                             );
                           }
 
-                          if (shouldAnimateTypewriter && !isThinking) {
+                          if (shouldTeleprompt || hasStartedTelepromptRef.current) {
                             return (
                               <WordStreamMarkdown
                                 key={idx}
                                 text={part.content}
                                 shouldAnimate={true}
+                                isFinal={!isReceivingAssistant}
                                 onTyping={() => {
                                   const event = new CustomEvent('typewriter-typing');
                                   window.dispatchEvent(event);
                                 }}
+                                onComplete={() => setSettled(true)}
                               />
                             );
                           }
