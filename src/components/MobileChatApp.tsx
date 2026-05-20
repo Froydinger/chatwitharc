@@ -417,17 +417,14 @@ export function MobileChatApp() {
       const lastMessage = messages[messages.length - 1];
       // If the last message is different from what we tracked, it's a new message
       if (lastLoadedMessageIdRef.current !== lastMessage.id) {
-        // Do not mark a fresh assistant reply as loaded while Arc is still answering;
-        // MessageBubble owns the slower word-by-word teleprompt reveal after completion.
-        if (lastMessage.role === "assistant" && isLoading) return;
         // Don't update the ref immediately - this allows the new message to animate
         const timer = setTimeout(() => {
           lastLoadedMessageIdRef.current = lastMessage.id;
-        }, lastMessage.role === "assistant" ? 8000 : 100);
+        }, 100);
         return () => clearTimeout(timer);
       }
     }
-  }, [messages, isLoading]);
+  }, [messages]);
 
   // Quick Prompts - 6 Chat, 6 Create, 6 Write, 6 Code (memoized to prevent re-renders)
   // Generate fresh prompts on each component mount (site load)
