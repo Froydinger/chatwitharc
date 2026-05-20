@@ -126,6 +126,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [haloed, setHaloed] = useState(false);
     const [settled, setSettled] = useState(false);
     const [logoPulse, setLogoPulse] = useState(false);
+    const [telepromptDone, setTelepromptDone] = useState(false);
     const prevThinkingRef = useRef(isThinking);
     const prevContentLenRef = useRef(message.content.length);
     const hasStartedTelepromptRef = useRef(false);
@@ -147,7 +148,12 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
       prevContentLenRef.current = len;
     }, [isLatestAssistant, isThinking, message.content, isUser, haloed]);
 
-    const canTeleprompt = !isUser && isLatestAssistant && message.content.trim().length > 0;
+    useEffect(() => {
+      setTelepromptDone(false);
+      hasStartedTelepromptRef.current = false;
+    }, [message.id]);
+
+    const canTeleprompt = !isUser && isLatestAssistant && !telepromptDone && message.content.trim().length > 0;
     const shouldTeleprompt = canTeleprompt && (Boolean(shouldAnimateTypewriter) || hasStartedTelepromptRef.current);
     const isReceivingAssistant = canTeleprompt && Boolean(shouldAnimateTypewriter);
 
@@ -242,6 +248,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     };
 
     const contentParts = !isUser && message.type === "text" ? parseCodeBlocks(message.content) : [];
+    const lastTextPartIndex = contentParts.reduce((last, part, index) => part.type === "text" ? index : last, -1);
 
     return (
       <div
