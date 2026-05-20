@@ -972,7 +972,7 @@ All colors MUST be HSL for perfect glass effects.
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  z-index: 1;
+  z-index: -1;
   background: conic-gradient(
     from var(--liquid-sweep-angle, 0deg),
     transparent 0deg,
@@ -1021,7 +1021,7 @@ All colors MUST be HSL for perfect glass effects.
   inset: -1px;
   border-radius: inherit;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
   background: linear-gradient(
     135deg,
     hsl(var(--primary) / 0.35) 0%,
