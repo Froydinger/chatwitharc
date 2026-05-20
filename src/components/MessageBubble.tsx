@@ -1,4 +1,4 @@
-import { forwardRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Copy, Edit2, Check } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ImageGenerationPlaceholder } from "@/components/ImageGenerationPlaceholder";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { TypewriterMarkdown } from "@/components/TypewriterMarkdown";
+import { WordStreamMarkdown } from "@/components/WordStreamMarkdown";
 import { ImageModal } from "@/components/ImageModal";
 import { ImageEditModal } from "@/components/ImageEditModal";
 import { CodeBlock } from "@/components/CodeBlock";
@@ -120,6 +121,37 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
     const [editImageUrls, setEditImageUrls] = useState<string[] | null>(null);
     const isUser = message.role === "user";
+
+    // Magical arrival state - one-shot animations for the latest assistant message
+    const [haloed, setHaloed] = useState(false);
+    const [settled, setSettled] = useState(false);
+    const [logoPulse, setLogoPulse] = useState(false);
+    const prevThinkingRef = useRef(isThinking);
+    const prevContentLenRef = useRef(message.content.length);
+    const prevAnimateRef = useRef(shouldAnimateTypewriter);
+
+    useEffect(() => {
+      if (isUser || !isLatestAssistant) return;
+      const len = message.content.length;
+      // Halo: first time content appears while streaming
+      if (!haloed && len > 0 && prevContentLenRef.current === 0) {
+        setHaloed(true);
+      }
+      // Logo handoff pulse: thinking -> speaking, or first token without thinking phase
+      const firstToken = prevContentLenRef.current === 0 && len > 0;
+      const thinkingEnded = prevThinkingRef.current && !isThinking && len > 0;
+      if (firstToken || thinkingEnded) {
+        setLogoPulse(true);
+      }
+      // Settle bounce: typewriter just finished
+      if (prevAnimateRef.current && !shouldAnimateTypewriter && len > 0) {
+        setSettled(true);
+      }
+      prevThinkingRef.current = isThinking;
+      prevContentLenRef.current = len;
+      prevAnimateRef.current = shouldAnimateTypewriter;
+    }, [isLatestAssistant, isThinking, message.content, shouldAnimateTypewriter, isUser, haloed]);
+
 
     const handleCopy = async () => {
       try {
@@ -439,47 +471,57 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     </p>
                   ) : (
                     // AI messages with code block support and markdown
-                    <div className="relative z-10 w-full min-w-0 overflow-hidden">
-                      {contentParts.map((part, idx) => {
-                        if (part.type === "code") {
+                    message.content.trim().length > 0 && (
+                      <div
+                        className={[
+                          "relative z-10 w-full min-w-0 overflow-hidden",
+                          "arc-message-bubble px-4 py-3",
+                          haloed ? "arc-halo-once" : "",
+                          settled ? "arc-settle-once" : "",
+                        ].join(" ").trim()}
+                        onAnimationEnd={(e) => {
+                          if (e.animationName === "arc-aurora-halo") setHaloed(false);
+                          if (e.animationName === "arc-settle") setSettled(false);
+                        }}
+                      >
+                        {contentParts.map((part, idx) => {
+                          if (part.type === "code") {
+                            return (
+                              <CodeBlock
+                                key={idx}
+                                code={part.content}
+                                language={part.language || "plaintext"}
+                              />
+                            );
+                          }
+
+                          if (shouldAnimateTypewriter && !isThinking) {
+                            return (
+                              <WordStreamMarkdown
+                                key={idx}
+                                text={part.content}
+                                shouldAnimate={true}
+                                onTyping={() => {
+                                  const event = new CustomEvent('typewriter-typing');
+                                  window.dispatchEvent(event);
+                                }}
+                              />
+                            );
+                          }
+
                           return (
-                            <CodeBlock
-                              key={idx}
-                              code={part.content}
-                              language={part.language || "plaintext"}
-                            />
+                            <div key={idx} className="text-foreground break-words">
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={markdownComponents}
+                              >
+                                {part.content}
+                              </ReactMarkdown>
+                            </div>
                           );
-                        }
-                        
-                        // For text parts, render with markdown if not animating, otherwise use typewriter
-                        if (shouldAnimateTypewriter && !isThinking) {
-                          return (
-                            <TypewriterMarkdown
-                              key={idx}
-                              text={part.content}
-                              shouldAnimate={true}
-                              onTyping={() => {
-                                // Trigger scroll during typing
-                                const event = new CustomEvent('typewriter-typing');
-                                window.dispatchEvent(event);
-                              }}
-                            />
-                          );
-                        }
-                        
-                        // Static markdown rendering for non-animating messages
-                        return (
-                          <div key={idx} className="text-foreground break-words">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              components={markdownComponents}
-                            >
-                              {part.content}
-                            </ReactMarkdown>
-                          </div>
-                        );
-                      })}
-                    </div>
+                        })}
+                      </div>
+                    )
                   )
                 ))}
 
@@ -569,7 +611,14 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   ease: "easeInOut"
                 } : { duration: 0.2 }}
               >
-                <ThemedLogo className="h-10 w-10" alt="Arc" />
+                <div
+                  className={logoPulse ? "arc-logo-pulse" : ""}
+                  onAnimationEnd={(e) => {
+                    if (e.animationName === "arc-logo-handoff") setLogoPulse(false);
+                  }}
+                >
+                  <ThemedLogo className="h-10 w-10" alt="Arc" />
+                </div>
                 {isThinking && (
                   <motion.div
                     className="absolute inset-0 rounded-full bg-primary/20 blur-xl"
