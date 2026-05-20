@@ -11,7 +11,10 @@ interface WordStreamMarkdownProps {
   className?: string;
   /** When false, all words are immediately revealed (no per-word animation) */
   shouldAnimate?: boolean;
+  /** True once no more text is expected for this message */
+  isFinal?: boolean;
   onTyping?: () => void;
+  onComplete?: () => void;
 }
 
 /**
@@ -24,15 +27,25 @@ export const WordStreamMarkdown = ({
   text,
   className = "",
   shouldAnimate = true,
+  isFinal = true,
   onTyping,
+  onComplete,
 }: WordStreamMarkdownProps) => {
+  const onTypingRef = useRef(onTyping);
+  const onCompleteRef = useRef(onComplete);
+  const completedTotalRef = useRef(0);
+
+  useEffect(() => {
+    onTypingRef.current = onTyping;
+    onCompleteRef.current = onComplete;
+  }, [onTyping, onComplete]);
+
   const totalWords = useMemo(() => {
     const m = text.match(/\S+/g);
     return m ? m.length : 0;
   }, [text]);
 
-  // Skip per-word animation entirely for very long responses.
-  const animateWords = shouldAnimate && totalWords <= 800;
+  const animateWords = shouldAnimate && totalWords > 0;
 
   const [revealed, setRevealed] = useState(animateWords ? 0 : totalWords);
 
@@ -45,16 +58,23 @@ export const WordStreamMarkdown = ({
     if (revealed >= totalWords) return;
 
     const behind = totalWords - revealed;
-    // Stay readable but catch up if a huge chunk landed at once.
-    const step = behind > 120 ? 4 : behind > 40 ? 2 : 1;
-    const interval = behind > 120 ? 32 : behind > 40 ? 42 : 65;
+    // Manual teleprompter pacing: always one word per tick, even if the
+    // complete answer arrived in one chunk.
+    const interval = behind > 250 ? 36 : behind > 90 ? 44 : 58;
 
     const id = window.setTimeout(() => {
-      setRevealed((r) => Math.min(totalWords, r + step));
-      onTyping?.();
+      setRevealed((r) => Math.min(totalWords, r + 1));
+      onTypingRef.current?.();
     }, interval);
     return () => window.clearTimeout(id);
-  }, [revealed, totalWords, animateWords, onTyping]);
+  }, [revealed, totalWords, animateWords]);
+
+  useEffect(() => {
+    if (isFinal && totalWords > 0 && revealed >= totalWords && completedTotalRef.current !== totalWords) {
+      completedTotalRef.current = totalWords;
+      onCompleteRef.current?.();
+    }
+  }, [isFinal, revealed, totalWords]);
 
   // If text shrinks (rare — e.g. message replaced), clamp.
   useEffect(() => {
