@@ -71,19 +71,19 @@ const GlassButton = React.forwardRef<HTMLButtonElement, GlassButtonProps>(
 
     return (
       <motion.div
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        transition={{ 
-          type: "spring", 
-          damping: 20, 
-          stiffness: 400,
+        whileHover={{ scale: 1.05, borderRadius: 22 }}
+        whileTap={{ scale: 0.95, borderRadius: 14 }}
+        transition={{
+          type: "spring",
+          damping: 14,
+          stiffness: 280,
           mass: 0.5
         }}
         className="relative"
         style={{
           backfaceVisibility: 'hidden',
           transform: 'translateZ(0)',
-          willChange: 'transform'
+          willChange: 'transform, border-radius'
         }}
       >
         <Comp

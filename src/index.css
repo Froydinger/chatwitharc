@@ -919,3 +919,180 @@ All colors MUST be HSL for perfect glass effects.
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* ============================================================
+   LIQUID GLASS FACELIFT
+   CSS-only — works in Safari, Firefox, Chrome, iOS, iPad PWA.
+   Layered on top of existing .glass / .glass-strong / .glass-dock
+   without replacing their structure.
+   ============================================================ */
+
+:root {
+  --liquid-rim-highlight: hsla(0, 0%, 100%, 0.22);
+  --liquid-rim-shadow: hsla(0, 0%, 0%, 0.45);
+  --liquid-spec: hsl(var(--primary-glow) / 0.45);
+  --liquid-disp: url(#liquid-edge);
+}
+
+/* Thick-glass bevel: layered insets so surfaces read as a physical pane */
+.liquid-rim,
+.glass,
+.glass-strong,
+.glass-dock,
+.glass-card,
+.glass-panel,
+.user-message-bubble {
+  box-shadow:
+    inset 0 1px 0 var(--liquid-rim-highlight),
+    inset 0 -1px 0 var(--liquid-rim-shadow),
+    inset 1px 0 0 hsla(0, 0%, 100%, 0.06),
+    inset -1px 0 0 hsla(0, 0%, 0%, 0.18),
+    0 8px 32px hsla(0, 0%, 0%, 0.28);
+}
+
+/* Refractive rim — applied via ::before/::after so content stays sharp. */
+.glass,
+.glass-strong,
+.glass-dock,
+.glass-card,
+.glass-panel,
+.user-message-bubble {
+  position: relative;
+  isolation: isolate;
+}
+
+.glass::after,
+.glass-strong::after,
+.glass-dock::after,
+.glass-card::after,
+.glass-panel::after,
+.user-message-bubble::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: conic-gradient(
+    from var(--liquid-sweep-angle, 0deg),
+    transparent 0deg,
+    transparent 70deg,
+    var(--liquid-spec) 90deg,
+    hsla(0, 0%, 100%, 0.18) 100deg,
+    var(--liquid-spec) 110deg,
+    transparent 130deg,
+    transparent 360deg
+  );
+  mix-blend-mode: overlay;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.glass:hover::after,
+.glass-strong:hover::after,
+.glass-dock:hover::after,
+.glass-card:hover::after,
+.user-message-bubble:hover::after,
+.glass:focus-within::after,
+.glass-strong:focus-within::after,
+.glass-dock:focus-within::after {
+  opacity: 0.65;
+  animation: liquid-sweep 1.6s ease-out;
+}
+
+@keyframes liquid-sweep {
+  0%   { --liquid-sweep-angle: 0deg;   opacity: 0; }
+  30%  { opacity: 0.65; }
+  100% { --liquid-sweep-angle: 360deg; opacity: 0; }
+}
+
+@property --liquid-sweep-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* Refractive edge — warps a 1px rim only (content untouched). */
+.glass-dock::before,
+.glass-panel::before,
+.user-message-bubble::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary) / 0.35) 0%,
+    transparent 30%,
+    transparent 70%,
+    hsl(var(--primary-glow) / 0.35) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  padding: 1px;
+  filter: var(--liquid-disp);
+  opacity: 0.85;
+}
+
+/* iPad PWA: drop the heavy SVG filter to keep the compositor calm. */
+body.is-ipad .glass-dock::before,
+body.is-ipad .glass-panel::before,
+body.is-ipad .user-message-bubble::before {
+  filter: none;
+}
+
+/* Liquid press — inward squish on tap. */
+.glass-btn:active,
+.glass-dock button:active,
+.glass-card:active {
+  transform: scale(0.97);
+  transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Shape morph — pills and buttons subtly bloom on hover. */
+@media (prefers-reduced-motion: no-preference) {
+  .glass-btn,
+  .glass-dock,
+  .bubble-nav-item {
+    transition:
+      background 0.3s ease,
+      border-color 0.3s ease,
+      transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+      border-radius 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 0.3s ease;
+  }
+  .glass-btn:hover {
+    border-radius: calc(var(--radius) + 6px);
+  }
+}
+
+/* Chromatic rim on focus — fakes RGB dispersion at the bevel. */
+.glass-btn:focus-visible,
+.glass-dock:focus-within,
+button.bubble-nav-item:focus-visible {
+  box-shadow:
+    inset 0 1px 0 var(--liquid-rim-highlight),
+    inset 0 -1px 0 var(--liquid-rim-shadow),
+    0 0 0 1px hsl(var(--primary) / 0.5),
+    0 0 14px hsl(var(--primary) / 0.35),
+    0 0 28px hsl(var(--primary-glow) / 0.25),
+    -2px 0 8px hsla(280, 100%, 65%, 0.18),
+     2px 0 8px hsla(180, 100%, 60%, 0.18) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass::after,
+  .glass-strong::after,
+  .glass-dock::after,
+  .glass-card::after,
+  .glass-panel::after,
+  .user-message-bubble::after {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+}
