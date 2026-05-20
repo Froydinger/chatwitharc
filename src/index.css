@@ -851,6 +851,7 @@ All colors MUST be HSL for perfect glass effects.
       inset 0 0 18px hsl(var(--primary-glow) / 0.06);
     border-radius: 22px;
     border-top-left-radius: 8px;
+    transition: box-shadow 900ms ease-out, border-color 900ms ease-out, transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   /* One-shot aurora halo on arrival */
@@ -926,14 +927,15 @@ All colors MUST be HSL for perfect glass effects.
     }
     /* Words start hidden, smoothly transition in when "shown" class is added */
     .arc-word {
-      display: inline;
+      display: inline-block;
+      vertical-align: baseline;
       opacity: 0;
-      filter: blur(3px);
-      transform: translateY(3px);
+      filter: blur(4px);
+      transform: translateY(4px);
       transition:
-        opacity 600ms cubic-bezier(0.22, 1, 0.36, 1),
-        filter 600ms cubic-bezier(0.22, 1, 0.36, 1),
-        transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+        opacity 720ms cubic-bezier(0.16, 1, 0.3, 1),
+        filter 720ms cubic-bezier(0.16, 1, 0.3, 1),
+        transform 720ms cubic-bezier(0.16, 1, 0.3, 1);
       will-change: opacity, transform, filter;
     }
     .arc-word.arc-word-shown {

@@ -126,9 +126,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [haloed, setHaloed] = useState(false);
     const [settled, setSettled] = useState(false);
     const [logoPulse, setLogoPulse] = useState(false);
+    const [telepromptDone, setTelepromptDone] = useState(false);
     const prevThinkingRef = useRef(isThinking);
     const prevContentLenRef = useRef(message.content.length);
-    const prevAnimateRef = useRef(shouldAnimateTypewriter);
+    const hasStartedTelepromptRef = useRef(false);
 
     useEffect(() => {
       if (isUser || !isLatestAssistant) return;
@@ -143,14 +144,23 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
       if (firstToken || thinkingEnded) {
         setLogoPulse(true);
       }
-      // Settle bounce: typewriter just finished
-      if (prevAnimateRef.current && !shouldAnimateTypewriter && len > 0) {
-        setSettled(true);
-      }
       prevThinkingRef.current = isThinking;
       prevContentLenRef.current = len;
-      prevAnimateRef.current = shouldAnimateTypewriter;
-    }, [isLatestAssistant, isThinking, message.content, shouldAnimateTypewriter, isUser, haloed]);
+    }, [isLatestAssistant, isThinking, message.content, isUser, haloed]);
+
+    useEffect(() => {
+      setTelepromptDone(false);
+      hasStartedTelepromptRef.current = false;
+    }, [message.id]);
+
+    const canTeleprompt = !isUser && isLatestAssistant && !telepromptDone && message.content.trim().length > 0;
+    const shouldTeleprompt = canTeleprompt && (Boolean(shouldAnimateTypewriter) || hasStartedTelepromptRef.current);
+
+    useEffect(() => {
+      if (shouldTeleprompt) hasStartedTelepromptRef.current = true;
+      if (isUser || isLatestAssistant) return;
+      hasStartedTelepromptRef.current = false;
+    }, [shouldTeleprompt, isLatestAssistant, isUser]);
 
 
     const handleCopy = async () => {
@@ -237,6 +247,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     };
 
     const contentParts = !isUser && message.type === "text" ? parseCodeBlocks(message.content) : [];
+    const lastTextPartIndex = contentParts.reduce((last, part, index) => part.type === "text" ? index : last, -1);
 
     return (
       <div
@@ -476,7 +487,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                         className={[
                           "relative z-10 w-full min-w-0 overflow-hidden",
                           "arc-message-bubble px-4 py-3",
-                          shouldAnimateTypewriter && !isThinking ? "arc-typing-glow" : "",
+                          shouldTeleprompt ? "arc-typing-glow" : "",
                           haloed ? "arc-halo-once" : "",
                           settled ? "arc-settle-once" : "",
                         ].filter(Boolean).join(" ")}
@@ -496,15 +507,21 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                             );
                           }
 
-                          if (shouldAnimateTypewriter && !isThinking) {
+                          if (shouldTeleprompt || hasStartedTelepromptRef.current) {
                             return (
                               <WordStreamMarkdown
                                 key={idx}
                                 text={part.content}
                                 shouldAnimate={true}
+                                isFinal={!isThinking}
                                 onTyping={() => {
                                   const event = new CustomEvent('typewriter-typing');
                                   window.dispatchEvent(event);
+                                }}
+                                onComplete={() => {
+                                  if (idx !== lastTextPartIndex) return;
+                                  setTelepromptDone(true);
+                                  setSettled(true);
                                 }}
                               />
                             );
