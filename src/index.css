@@ -892,24 +892,21 @@ All colors MUST be HSL for perfect glass effects.
     100% { transform: scale(1);    filter: drop-shadow(0 0 0 hsl(var(--primary) / 0)); }
   }
 
-  /* Continuous accent glow while Arc is typing — punchy, accent-colored,
-     visible even on dark backgrounds */
+  /* Continuous accent glow while Arc is typing */
   @keyframes arc-typing-pulse {
     0%, 100% {
       box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.28),
-        inset 0 1px 0 hsl(0 0% 100% / 0.08),
-        inset 0 0 24px hsl(var(--primary) / 0.18),
-        0 0 28px 4px hsl(var(--primary) / 0.45),
-        0 0 70px 18px hsl(var(--primary) / 0.28);
+        inset 0 1px 0 hsl(0 0% 100% / 0.06),
+        0 0 22px 2px hsl(var(--primary) / 0.20),
+        0 0 60px 12px hsl(var(--primary) / 0.10);
     }
     50% {
       box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.28),
-        inset 0 1px 0 hsl(0 0% 100% / 0.12),
-        inset 0 0 32px hsl(var(--primary) / 0.28),
-        0 0 48px 8px hsl(var(--primary) / 0.70),
-        0 0 120px 30px hsl(var(--primary) / 0.42);
+        inset 0 1px 0 hsl(0 0% 100% / 0.08),
+        0 0 34px 5px hsl(var(--primary) / 0.34),
+        0 0 90px 22px hsl(var(--primary) / 0.18);
     }
   }
 
@@ -923,13 +920,9 @@ All colors MUST be HSL for perfect glass effects.
     .arc-logo-pulse {
       animation: arc-logo-handoff 480ms cubic-bezier(0.22, 1, 0.36, 1) 1;
     }
-    /* Cooling-down transition when the glow class is removed */
-    .arc-message-bubble {
-      transition: box-shadow 1400ms cubic-bezier(0.22, 1, 0.36, 1);
-    }
     .arc-typing-glow {
-      animation: arc-typing-pulse 2s ease-in-out infinite;
-      border-color: hsl(var(--primary) / 0.45) !important;
+      animation: arc-typing-pulse 2.4s ease-in-out infinite;
+      transition: box-shadow 700ms ease-out;
     }
     @keyframes arc-word-materialize {
       0% {

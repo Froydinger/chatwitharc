@@ -379,19 +379,15 @@ export function MobileChatApp() {
     initializedSessionRef.current = currentSessionId;
   }
 
-  // Auto-focus input + cool down the typing glow when Arc finishes responding
+  // Auto-focus input after Arc finishes responding
   const wasLoadingRef = useRef(false);
   useEffect(() => {
+    // Focus input when loading transitions from true to false
     if (wasLoadingRef.current && !isLoading) {
       chatInputRef.current?.focusInput();
-      // Mark the latest assistant message as "seen" so the typing glow stops
-      // and the bubble's box-shadow transition fades it out gracefully.
-      if (messages.length > 0) {
-        lastLoadedMessageIdRef.current = messages[messages.length - 1].id;
-      }
     }
     wasLoadingRef.current = isLoading;
-  }, [isLoading, messages]);
+  }, [isLoading]);
 
   // Scroll to bottom whenever a new message is appended OR we enter a session
   const lastScrolledSessionRef = useRef<string | null>(null);
