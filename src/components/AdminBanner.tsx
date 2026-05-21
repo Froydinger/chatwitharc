@@ -11,96 +11,55 @@ interface BannerSettings {
   color: string;
 }
 
-// Hook to check if admin banner is active
-export function useAdminBanner() {
-  const [isActive, setIsActive] = useState(false);
+// -----------------------------------------------------------------------------
+// Shared banner cache + lightweight pub/sub.
+// Previously, every component using `useAdminBanner` (and the AdminBanner itself)
+// opened its own Supabase realtime channel + ran its own query on every mount.
+// On a single page that meant 3-5 persistent WebSocket subscriptions and
+// duplicate DB reads per user — a recurring monthly Cloud cost for a banner
+// that almost never changes. We now:
+//   • Fetch ONCE on app load, then refresh only when the tab regains focus.
+//   • Share the result across every subscriber via a module-level store.
+//   • No realtime channels, no polling timers.
+// -----------------------------------------------------------------------------
 
-  useEffect(() => {
-    if (!supabase || !isSupabaseConfigured) {
-      setIsActive(false);
-      return;
-    }
+const BANNER_KEYS = [
+  'banner_enabled',
+  'banner_message',
+  'banner_icon',
+  'banner_dismissible',
+  'banner_timeout',
+  'banner_color',
+  'banner_link',
+] as const;
 
-    const checkBanner = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('admin_settings')
-          .select('key, value')
-          .in('key', ['banner_enabled', 'banner_message']);
+const EMPTY_SETTINGS: BannerSettings = {
+  enabled: false,
+  message: '',
+  icon: 'alert',
+  dismissible: false,
+  timeout: 0,
+  color: '#00f0ff',
+};
 
-        if (error) throw error;
+let cachedSettings: BannerSettings = EMPTY_SETTINGS;
+let cachedRawMessage = '';
+let inFlight: Promise<void> | null = null;
+let lastFetchedAt = 0;
+const subscribers = new Set<() => void>();
 
-        const settings = data?.reduce((acc, item) => {
-          acc[item.key] = item.value;
-          return acc;
-        }, {} as Record<string, string>) || {};
+async function fetchSettingsOnce(force = false): Promise<void> {
+  if (!supabase || !isSupabaseConfigured) return;
+  // Throttle: don't re-query more than once every 60s unless forced.
+  if (!force && Date.now() - lastFetchedAt < 60_000) return;
+  if (inFlight) return inFlight;
 
-        const enabled = settings.banner_enabled === 'true';
-        const hasMessage = !!settings.banner_message;
-
-        // Check if user dismissed it (if dismissible)
-        const dismissedKey = `banner_dismissed_${settings.banner_message}`;
-        const isDismissed = localStorage.getItem(dismissedKey) === 'true';
-
-        setIsActive(enabled && hasMessage && !isDismissed);
-      } catch (err) {
-        console.error('Error checking banner:', err);
-        setIsActive(false);
-      }
-    };
-
-    checkBanner();
-
-    // Subscribe to realtime changes
-    const channel = supabase
-      .channel('admin-banner-check')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'admin_settings',
-          filter: 'key=in.(banner_enabled,banner_message)'
-        },
-        () => {
-          checkBanner();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  return isActive;
-}
-
-export function AdminBanner() {
-  const bannerRef = useRef<HTMLDivElement>(null);
-  const [bannerSettings, setBannerSettings] = useState<BannerSettings>({
-    enabled: false,
-    message: '',
-    icon: 'alert',
-    dismissible: false,
-    timeout: 0,
-    color: '#00f0ff'
-  });
-  const [loading, setLoading] = useState(true);
-  const [isDismissed, setIsDismissed] = useState(false);
-  const [bannerHeight, setBannerHeight] = useState(0);
-
-  const fetchBannerSettings = async () => {
-    if (!supabase || !isSupabaseConfigured) {
-      setLoading(false);
-      return;
-    }
-
+  inFlight = (async () => {
     try {
       const { data, error } = await supabase
         .from('admin_settings')
         .select('key, value')
-        .in('key', ['banner_enabled', 'banner_message', 'banner_icon', 'banner_dismissible', 'banner_timeout', 'banner_color']);
+        .in('key', BANNER_KEYS as unknown as string[]);
 
       if (error) throw error;
 
@@ -109,54 +68,72 @@ export function AdminBanner() {
         return acc;
       }, {} as Record<string, string>) || {};
 
-      const newSettings = {
+      cachedSettings = {
         enabled: settings.banner_enabled === 'true',
         message: settings.banner_message || '',
         icon: (settings.banner_icon as 'construction' | 'alert' | 'celebrate') || 'alert',
         dismissible: settings.banner_dismissible === 'true',
         timeout: parseInt(settings.banner_timeout || '0', 10),
-        color: settings.banner_color || '#00f0ff'
+        color: settings.banner_color || '#00f0ff',
       };
-
-      setBannerSettings(newSettings);
-
-      // Check localStorage for dismissed state
-      const dismissedKey = `banner_dismissed_${newSettings.message}`;
-      const wasDismissed = localStorage.getItem(dismissedKey) === 'true';
-      setIsDismissed(wasDismissed);
+      cachedRawMessage = cachedSettings.message;
+      lastFetchedAt = Date.now();
+      subscribers.forEach((cb) => cb());
     } catch (err) {
       console.error('Error fetching banner settings:', err);
     } finally {
-      setLoading(false);
+      inFlight = null;
     }
-  };
+  })();
 
+  return inFlight;
+}
+
+// Refresh when the tab regains focus — cheap, replaces realtime.
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      fetchSettingsOnce();
+    }
+  });
+}
+
+function useBannerSettings() {
+  const [, force] = useState(0);
   useEffect(() => {
-    fetchBannerSettings();
-
-    if (!supabase || !isSupabaseConfigured) return;
-
-    // Subscribe to realtime changes
-    const channel = supabase
-      .channel('admin-banner-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'admin_settings',
-          filter: 'key=in.(banner_enabled,banner_message,banner_icon,banner_dismissible,banner_timeout,banner_color)'
-        },
-        () => {
-          fetchBannerSettings();
-        }
-      )
-      .subscribe();
-
+    const cb = () => force((n) => n + 1);
+    subscribers.add(cb);
+    fetchSettingsOnce();
     return () => {
-      supabase.removeChannel(channel);
+      subscribers.delete(cb);
     };
   }, []);
+  return cachedSettings;
+}
+
+// Hook to check if admin banner is active (used for layout offsets).
+export function useAdminBanner() {
+  const settings = useBannerSettings();
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  useEffect(() => {
+    const dismissedKey = `banner_dismissed_${settings.message}`;
+    setIsDismissed(localStorage.getItem(dismissedKey) === 'true');
+  }, [settings.message]);
+
+  return settings.enabled && !!settings.message && !isDismissed;
+}
+
+export function AdminBanner() {
+  const bannerRef = useRef<HTMLDivElement>(null);
+  const bannerSettings = useBannerSettings();
+  const [isDismissed, setIsDismissed] = useState(false);
+  const [bannerHeight, setBannerHeight] = useState(0);
+
+  useEffect(() => {
+    const dismissedKey = `banner_dismissed_${bannerSettings.message}`;
+    setIsDismissed(localStorage.getItem(dismissedKey) === 'true');
+  }, [bannerSettings.message]);
 
   // Auto-timeout effect
   useEffect(() => {
@@ -186,9 +163,9 @@ export function AdminBanner() {
       document.documentElement.style.setProperty('--admin-banner-height', '0px');
       setBannerHeight(0);
     }
-  }, [bannerSettings.enabled, bannerSettings.message, loading, isDismissed]);
+  }, [bannerSettings.enabled, bannerSettings.message, isDismissed]);
 
-  if (loading || !bannerSettings.enabled || !bannerSettings.message) {
+  if (!bannerSettings.enabled || !bannerSettings.message) {
     return null;
   }
 
@@ -234,8 +211,6 @@ export function AdminBanner() {
             backgroundColor: bannerSettings.color
           }}
           onMouseEnter={(e) => {
-            // Darken the color on hover by 10%
-            const color = bannerSettings.color;
             e.currentTarget.style.filter = 'brightness(0.9)';
           }}
           onMouseLeave={(e) => {
