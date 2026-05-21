@@ -472,7 +472,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     </p>
                   ) : (
                     // AI messages with code block support and markdown
-                    message.content.trim().length > 0 && (
+                    message.content.trim().length > 0 && !["canvas", "code", "ide", "file"].includes(message.type) && (
                       <div
                         className={[
                           "relative z-10 w-full min-w-0 overflow-hidden",
