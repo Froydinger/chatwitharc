@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import DOMPurify from "dompurify";
 import { Download, Copy, Check, Code, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +12,12 @@ export function SvgArtifact({ svgCode }: SvgArtifactProps) {
   const [showCode, setShowCode] = useState(false);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+
+  // Sanitize AI-generated SVG to strip <script>, event handlers, foreign content, etc.
+  const safeSvg = useMemo(
+    () => DOMPurify.sanitize(svgCode, { USE_PROFILES: { svg: true, svgFilters: true } }),
+    [svgCode]
+  );
 
   const handleDownload = () => {
     const blob = new Blob([svgCode], { type: "image/svg+xml" });
@@ -83,7 +90,7 @@ export function SvgArtifact({ svgCode }: SvgArtifactProps) {
           {/* eslint-disable-next-line react/no-danger */}
           <div
             className="max-w-full overflow-hidden [&>svg]:max-w-full [&>svg]:h-auto"
-            dangerouslySetInnerHTML={{ __html: svgCode }}
+            dangerouslySetInnerHTML={{ __html: safeSvg }}
           />
         </div>
       )}

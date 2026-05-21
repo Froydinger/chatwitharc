@@ -31,8 +31,8 @@ export const WordStreamMarkdown = ({
     return m ? m.length : 0;
   }, [text]);
 
-  // Skip per-word animation entirely for very long responses.
-  const animateWords = shouldAnimate && totalWords <= 800;
+  // Animate per-word for nearly all responses; bail only on truly massive dumps.
+  const animateWords = shouldAnimate && totalWords <= 4000;
 
   const [revealed, setRevealed] = useState(animateWords ? 0 : totalWords);
 
@@ -45,9 +45,9 @@ export const WordStreamMarkdown = ({
     if (revealed >= totalWords) return;
 
     const behind = totalWords - revealed;
-    // Stay readable but catch up if a huge chunk landed at once.
-    const step = behind > 120 ? 4 : behind > 40 ? 2 : 1;
-    const interval = behind > 120 ? 32 : behind > 40 ? 42 : 65;
+    // Catch up smoothly on big chunks without ever skipping the fade transition.
+    const step = behind > 400 ? 8 : behind > 150 ? 4 : behind > 50 ? 2 : 1;
+    const interval = behind > 400 ? 24 : behind > 150 ? 32 : behind > 50 ? 42 : 60;
 
     const id = window.setTimeout(() => {
       setRevealed((r) => Math.min(totalWords, r + step));
