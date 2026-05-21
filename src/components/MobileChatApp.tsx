@@ -353,24 +353,31 @@ export function MobileChatApp() {
   // Track session loading state to skip animations when loading old chats
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const prevSessionRef = useRef<string | null>(null);
+  // Track which session has had its initial messages marked as "already seen"
+  const initializedSessionRef = useRef<string | null>(null);
 
-  // Track the last message ID when loading a session to prevent typewriter animation on old messages
+  // Detect session switch — set a brief loading flag and reset initialization
   useEffect(() => {
-    // Detect session switch
     if (currentSessionId !== prevSessionRef.current) {
       setIsSessionLoading(true);
-      // Brief delay then allow animations for new messages only
       const timer = setTimeout(() => setIsSessionLoading(false), 150);
       prevSessionRef.current = currentSessionId;
-      
-      // Set the last loaded message ID to prevent typewriter on existing messages
-      if (messages.length > 0) {
-        lastLoadedMessageIdRef.current = messages[messages.length - 1].id;
-      }
-      
+      initializedSessionRef.current = null;
       return () => clearTimeout(timer);
     }
-  }, [currentSessionId, messages.length]);
+  }, [currentSessionId]);
+
+  // Synchronously mark all existing messages as "already seen" the first
+  // time we render a session's messages. Prevents the last assistant message
+  // from replaying the typewriter on refresh or chat switch.
+  if (
+    currentSessionId &&
+    initializedSessionRef.current !== currentSessionId &&
+    messages.length > 0
+  ) {
+    lastLoadedMessageIdRef.current = messages[messages.length - 1].id;
+    initializedSessionRef.current = currentSessionId;
+  }
 
   // Auto-focus input after Arc finishes responding
   const wasLoadingRef = useRef(false);
