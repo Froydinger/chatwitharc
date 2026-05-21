@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "@/components/CodeBlock";
@@ -98,7 +98,7 @@ export const WordStreamMarkdown = ({
     [animateWords, revealState.count, text, tokens]
   );
 
-  const renderTextWithWords = (children: any, cursor: { i: number }): any => {
+  const renderTextWithWords = useCallback((children: any, cursor: { i: number }): any => {
     if (!animateWords) return children;
 
     const wrap = (str: string, keyPrefix: string) => {
@@ -132,7 +132,7 @@ export const WordStreamMarkdown = ({
     };
 
     return walk(children, "w");
-  };
+  }, [animateWords, revealState.count, revealState.enteringFrom]);
 
   const components = useMemo(() => {
     const cursor = { i: 0 };
@@ -249,7 +249,7 @@ export const WordStreamMarkdown = ({
         );
       },
     };
-  }, [animateWords, revealState.count, revealState.enteringFrom]);
+  }, [renderTextWithWords]);
 
   return (
     <div className={`relative z-10 text-foreground break-words ${className}`}>
