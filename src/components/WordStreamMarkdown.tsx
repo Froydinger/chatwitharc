@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "@/components/CodeBlock";
@@ -14,11 +14,40 @@ interface WordStreamMarkdownProps {
   onTyping?: () => void;
 }
 
+interface RevealState {
+  count: number;
+  enteringFrom: number;
+}
+
+const tokenizeText = (value: string) => value.match(/\s+|\S+/g) ?? [];
+
+const countWords = (tokens: string[]) => tokens.reduce((sum, token) => sum + (/^\s+$/.test(token) ? 0 : 1), 0);
+
+const getPrefixByWords = (tokens: string[], wordLimit: number) => {
+  if (wordLimit <= 0) return "";
+
+  const visible: string[] = [];
+  let words = 0;
+
+  for (const token of tokens) {
+    if (/^\s+$/.test(token)) {
+      if (words > 0 && words < wordLimit) visible.push(token);
+      continue;
+    }
+
+    if (words >= wordLimit) break;
+    visible.push(token);
+    words += 1;
+  }
+
+  return visible.join("");
+};
+
 /**
- * Renders assistant markdown with a smooth per-word reveal.
- * Every word is always mounted; visibility is toggled via CSS transition
- * (.arc-word -> .arc-word-shown) which avoids the "blip" of remounts and
- * keeps layout stable.
+ * Renders assistant markdown with a real per-word reveal queue.
+ * Only the revealed prefix is mounted, so large backend chunks cannot blip the
+ * full response into view. Newly released words get a one-shot blur-to-crisp
+ * keyframe while already-revealed words stay stable.
  */
 export const WordStreamMarkdown = ({
   text,
@@ -26,40 +55,48 @@ export const WordStreamMarkdown = ({
   shouldAnimate = true,
   onTyping,
 }: WordStreamMarkdownProps) => {
-  const totalWords = useMemo(() => {
-    const m = text.match(/\S+/g);
-    return m ? m.length : 0;
-  }, [text]);
+  const tokens = useMemo(() => tokenizeText(text), [text]);
+  const totalWords = useMemo(() => countWords(tokens), [tokens]);
+  const animateWords = shouldAnimate && totalWords <= 6000;
 
-  // Animate per-word for nearly all responses; bail only on truly massive dumps.
-  const animateWords = shouldAnimate && totalWords <= 4000;
+  const [revealState, setRevealState] = useState<RevealState>(() => ({
+    count: animateWords ? 0 : totalWords,
+    enteringFrom: 0,
+  }));
 
-  const [revealed, setRevealed] = useState(animateWords ? 0 : totalWords);
-
-  // Steady reveal cadence — paced so it feels like Arc is composing.
   useEffect(() => {
     if (!animateWords) {
-      setRevealed(totalWords);
+      setRevealState({ count: totalWords, enteringFrom: totalWords });
       return;
     }
-    if (revealed >= totalWords) return;
 
-    const behind = totalWords - revealed;
-    // Catch up smoothly on big chunks without ever skipping the fade transition.
-    const step = behind > 400 ? 8 : behind > 150 ? 4 : behind > 50 ? 2 : 1;
-    const interval = behind > 400 ? 24 : behind > 150 ? 32 : behind > 50 ? 42 : 60;
+    setRevealState((state) => {
+      if (state.count <= totalWords) return state;
+      return { count: totalWords, enteringFrom: totalWords };
+    });
+  }, [animateWords, totalWords]);
+
+  useEffect(() => {
+    if (!animateWords || revealState.count >= totalWords) return;
+
+    const behind = totalWords - revealState.count;
+    const interval = behind > 240 ? 16 : behind > 120 ? 20 : behind > 48 ? 26 : 34;
 
     const id = window.setTimeout(() => {
-      setRevealed((r) => Math.min(totalWords, r + step));
+      setRevealState((state) => {
+        const next = Math.min(totalWords, state.count + 1);
+        return { count: next, enteringFrom: state.count };
+      });
       onTyping?.();
     }, interval);
-    return () => window.clearTimeout(id);
-  }, [revealed, totalWords, animateWords, onTyping]);
 
-  // If text shrinks (rare — e.g. message replaced), clamp.
-  useEffect(() => {
-    if (revealed > totalWords) setRevealed(totalWords);
-  }, [totalWords, revealed]);
+    return () => window.clearTimeout(id);
+  }, [animateWords, onTyping, revealState.count, totalWords]);
+
+  const visibleText = useMemo(
+    () => (animateWords ? getPrefixByWords(tokens, revealState.count) : text),
+    [animateWords, revealState.count, text, tokens]
+  );
 
   const renderTextWithWords = (children: any, cursor: { i: number }): any => {
     if (!animateWords) return children;
@@ -72,11 +109,11 @@ export const WordStreamMarkdown = ({
         }
         const idx = cursor.i;
         cursor.i += 1;
-        const shown = idx < revealed;
+        const isEntering = idx >= revealState.enteringFrom && idx < revealState.count;
         return (
           <span
-            key={`${keyPrefix}-${i}`}
-            className={shown ? "arc-word arc-word-shown" : "arc-word"}
+            key={`arc-word-${idx}`}
+            className={isEntering ? "arc-word arc-word-entering" : "arc-word"}
           >
             {p}
           </span>
@@ -212,12 +249,12 @@ export const WordStreamMarkdown = ({
         );
       },
     };
-  }, [revealed, animateWords]);
+  }, [animateWords, revealState.count, revealState.enteringFrom]);
 
   return (
     <div className={`relative z-10 text-foreground break-words ${className}`}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-        {text}
+        {visibleText}
       </ReactMarkdown>
     </div>
   );
