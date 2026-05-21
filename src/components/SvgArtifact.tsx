@@ -13,6 +13,12 @@ export function SvgArtifact({ svgCode }: SvgArtifactProps) {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
+  // Sanitize AI-generated SVG to strip <script>, event handlers, foreign content, etc.
+  const safeSvg = useMemo(
+    () => DOMPurify.sanitize(svgCode, { USE_PROFILES: { svg: true, svgFilters: true } }),
+    [svgCode]
+  );
+
   const handleDownload = () => {
     const blob = new Blob([svgCode], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
