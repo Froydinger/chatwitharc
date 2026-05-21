@@ -389,49 +389,38 @@ export function MobileChatApp() {
     wasLoadingRef.current = isLoading;
   }, [isLoading]);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Scroll to bottom whenever a new message is appended OR we enter a session
+  const lastScrolledSessionRef = useRef<string | null>(null);
+  const lastMessageCountRef = useRef<number>(0);
   useEffect(() => {
-    if (messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      // Check if this is a new message we haven't seen before
-      if (lastLoadedMessageIdRef.current !== lastMessage.id) {
-        // Immediate scroll for new messages
-        scrollToBottom();
-      }
+    const el = messagesContainerRef.current;
+    if (!el) return;
+
+    const sessionChanged = currentSessionId !== lastScrolledSessionRef.current;
+    const countIncreased = messages.length > lastMessageCountRef.current;
+
+    if (messages.length > 0 && (sessionChanged || countIncreased)) {
+      // Use rAF + timeout so layout settles before scrolling
+      requestAnimationFrame(() => {
+        const node = messagesContainerRef.current;
+        if (!node) return;
+        node.scrollTo({ top: node.scrollHeight, behavior: sessionChanged ? "auto" : "smooth" });
+      });
+      lastScrolledSessionRef.current = currentSessionId;
     }
-  }, [messages]);
+    lastMessageCountRef.current = messages.length;
+  }, [messages.length, currentSessionId]);
 
   // Scroll during typewriter typing - more aggressive
   useEffect(() => {
     const handleTyping = () => {
       const el = messagesContainerRef.current;
       if (!el) return;
-
-      // Always scroll to bottom during typing
-      el.scrollTo({
-        top: el.scrollHeight,
-        behavior: "auto", // Instant scroll during typing
-      });
+      el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
     };
-
     window.addEventListener("typewriter-typing", handleTyping);
     return () => window.removeEventListener("typewriter-typing", handleTyping);
   }, []);
-
-  // Clear the tracked ID when messages change (new message added)
-  useEffect(() => {
-    if (messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      // If the last message is different from what we tracked, it's a new message
-      if (lastLoadedMessageIdRef.current !== lastMessage.id) {
-        // Don't update the ref immediately - this allows the new message to animate
-        const timer = setTimeout(() => {
-          lastLoadedMessageIdRef.current = lastMessage.id;
-        }, 100);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [messages]);
 
   // Quick Prompts - 6 Chat, 6 Create, 6 Write, 6 Code (memoized to prevent re-renders)
   // Generate fresh prompts on each component mount (site load)
