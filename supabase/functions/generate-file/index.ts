@@ -512,8 +512,23 @@ async function generateSimplePDF(content: string): Promise<Uint8Array> {
   const maxWidth = pageWidth - (margin * 2);
   const charsPerLine = 70; // Slightly reduced for better margins
   
+  // Normalize unicode chars that the built-in Helvetica WinAnsi font can't render
+  // (smart quotes, bullets, em/en dashes, ellipsis, etc) into ASCII equivalents.
+  // Without this, the PDF shows "¢" or garbled characters in place of "•", "'", etc.
+  const sanitizeForPdf = (s: string): string => s
+    .replace(/[\u2018\u2019\u201A\u2032]/g, "'")     // curly single quotes / prime
+    .replace(/[\u201C\u201D\u201E\u2033]/g, '"')     // curly double quotes / prime
+    .replace(/[\u2013\u2014\u2015]/g, '-')           // en/em dashes
+    .replace(/\u2026/g, '...')                       // ellipsis
+    .replace(/[\u2022\u25E6\u00B7\u2027]/g, '-')     // bullets -> dash
+    .replace(/[\u2192\u2794]/g, '->')
+    .replace(/[\u2190]/g, '<-')
+    .replace(/\u00A0/g, ' ')                         // nbsp
+    .replace(/[\u2009\u200A\u200B\u200C\u200D\uFEFF]/g, '') // thin/zero-width spaces
+    .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, '?');      // strip anything else non-ASCII
+
   // Split content into lines and wrap long lines
-  const rawLines = content.split('\n');
+  const rawLines = sanitizeForPdf(content).split('\n');
   const wrappedLines: string[] = [];
   
   for (const line of rawLines) {
