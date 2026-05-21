@@ -841,14 +841,14 @@ All colors MUST be HSL for perfect glass effects.
   /* Arc assistant message bubble - glass aesthetic mirroring input dock */
   .arc-message-bubble {
     position: relative;
-    background: linear-gradient(135deg, hsl(var(--background) / 0.72) 0%, hsl(var(--background) / 0.6) 60%, hsl(var(--primary) / 0.10) 100%);
+    background: linear-gradient(135deg, hsl(var(--background) / 0.36) 0%, hsl(var(--background) / 0.30) 60%, hsl(var(--primary) / 0.05) 100%);
     backdrop-filter: blur(24px) saturate(120%);
     -webkit-backdrop-filter: blur(24px) saturate(120%);
-    border: 1px solid hsl(var(--primary) / 0.22);
+    border: 1px solid hsl(var(--primary) / 0.14);
     box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.28),
       inset 0 1px 0 hsl(0 0% 100% / 0.06),
-      inset 0 0 18px hsl(var(--primary-glow) / 0.06);
+      inset 0 0 18px hsl(var(--primary-glow) / 0.03);
     border-radius: 22px;
     border-top-left-radius: 8px;
   }
@@ -924,23 +924,38 @@ All colors MUST be HSL for perfect glass effects.
       animation: arc-typing-pulse 2.4s ease-in-out infinite;
       transition: box-shadow 700ms ease-out;
     }
-    /* Words start hidden, smoothly fade + unblur in when "shown" class is added.
-       inline-block is required for transform/filter to actually paint per-word. */
+    @keyframes arc-word-materialize {
+      0% {
+        opacity: 0;
+        filter: blur(5px);
+        transform: translateY(5px) scale(0.985);
+        text-shadow: 0 0 18px hsl(var(--primary) / 0.28);
+      }
+      58% {
+        opacity: 1;
+        filter: blur(1.5px);
+        transform: translateY(0) scale(1.006);
+        text-shadow: 0 0 12px hsl(var(--primary) / 0.18);
+      }
+      100% {
+        opacity: 1;
+        filter: blur(0);
+        transform: translateY(0) scale(1);
+        text-shadow: 0 0 0 hsl(var(--primary) / 0);
+      }
+    }
+
+    /* Revealed words stay visible; only the newest queued word gets animated. */
     .arc-word {
       display: inline-block;
-      opacity: 0;
-      filter: blur(4px);
-      transform: translateY(2px);
-      transition:
-        opacity 380ms cubic-bezier(0.22, 1, 0.36, 1),
-        filter 380ms cubic-bezier(0.22, 1, 0.36, 1),
-        transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
-      will-change: opacity, transform, filter;
-    }
-    .arc-word.arc-word-shown {
       opacity: 1;
       filter: blur(0);
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
+      will-change: auto;
+    }
+    .arc-word.arc-word-entering {
+      animation: arc-word-materialize 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      will-change: opacity, transform, filter;
     }
   }
 

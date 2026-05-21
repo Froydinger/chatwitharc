@@ -129,6 +129,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const prevThinkingRef = useRef(isThinking);
     const prevContentLenRef = useRef(message.content.length);
     const prevAnimateRef = useRef(shouldAnimateTypewriter);
+    const hasAssistantContent = !isUser && message.content.trim().length > 0;
 
     useEffect(() => {
       if (isUser || !isLatestAssistant) return;
@@ -476,7 +477,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                         className={[
                           "relative z-10 w-full min-w-0 overflow-hidden",
                           "arc-message-bubble px-4 py-3",
-                          shouldAnimateTypewriter && !isThinking ? "arc-typing-glow" : "",
+                          shouldAnimateTypewriter && hasAssistantContent ? "arc-typing-glow" : "",
                           haloed ? "arc-halo-once" : "",
                           settled ? "arc-settle-once" : "",
                         ].filter(Boolean).join(" ")}
@@ -496,7 +497,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                             );
                           }
 
-                          if (shouldAnimateTypewriter && !isThinking) {
+                          if (shouldAnimateTypewriter && hasAssistantContent) {
                             return (
                               <WordStreamMarkdown
                                 key={idx}
