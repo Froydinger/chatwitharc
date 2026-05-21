@@ -149,8 +149,16 @@ For ZIP files:
 
 CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No explanations, no markdown code fences wrapping the output.`;
 
-    // Use passed model for file generation (defaults to Gemini 3 Flash)
-    const selectedModel = model || 'google/gemini-3-flash-preview';
+    // Allowlist supported models — fall back to default if unknown
+    const ALLOWED_MODELS = new Set([
+      'google/gemini-3-flash-preview',
+      'google/gemini-2.5-flash',
+      'google/gemini-2.5-flash-lite',
+      'google/gemini-2.5-pro',
+    ]);
+    const selectedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
+      ? model
+      : 'google/gemini-3-flash-preview';
     console.log('Using model for file generation:', selectedModel);
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

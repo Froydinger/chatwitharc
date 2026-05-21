@@ -137,7 +137,7 @@ export function CodePreview({ code, language }: CodePreviewProps) {
         className="w-full h-full"
         style={{ backgroundColor: isDark ? '#1e1e1e' : '#ffffff', minHeight: '300px' }}
         srcDoc={htmlContent}
-        sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
+        sandbox="allow-scripts allow-forms allow-modals allow-popups"
         title="Code Preview"
       />
     </div>
