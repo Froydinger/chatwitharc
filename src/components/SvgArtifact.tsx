@@ -90,7 +90,7 @@ export function SvgArtifact({ svgCode }: SvgArtifactProps) {
           {/* eslint-disable-next-line react/no-danger */}
           <div
             className="max-w-full overflow-hidden [&>svg]:max-w-full [&>svg]:h-auto"
-            dangerouslySetInnerHTML={{ __html: svgCode }}
+            dangerouslySetInnerHTML={{ __html: safeSvg }}
           />
         </div>
       )}
