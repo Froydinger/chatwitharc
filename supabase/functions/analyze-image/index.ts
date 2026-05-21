@@ -88,8 +88,16 @@ serve(async (req) => {
       contentArray.push({ type: 'image_url', image_url: { url: img } });
     });
 
-    // Use passed model for vision capabilities (defaults to Gemini 3 Flash for speed)
-    const selectedModel = model || 'google/gemini-3-flash-preview';
+    // Allowlist supported vision models — fall back to default if unknown
+    const ALLOWED_MODELS = new Set([
+      'google/gemini-3-flash-preview',
+      'google/gemini-2.5-flash',
+      'google/gemini-2.5-flash-lite',
+      'google/gemini-2.5-pro',
+    ]);
+    const selectedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
+      ? model
+      : 'google/gemini-3-flash-preview';
     console.log('Using model for image analysis:', selectedModel);
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
