@@ -29,7 +29,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { AuthModal } from "./AuthModal";
-import { PrivacyTermsModal } from "./PrivacyTermsModal";
 import { AppleLogo } from "./icons/AppleLogo";
 import { WindowsLogo } from "./icons/WindowsLogo";
 import { BackgroundGradients } from "./BackgroundGradients";
@@ -1135,7 +1134,6 @@ export function LandingScreen() {
           <Link to="/privacy" className="hover:text-white transition-colors">
             Privacy Notice
           </Link>
-          <PrivacyTermsModal />
         </div>
       </footer>
 
