@@ -37,7 +37,6 @@ import UnsubscribePage from "./pages/UnsubscribePage";
 import { SupportPage } from "./pages/SupportPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
-import RefundPolicyPage from "./pages/RefundPolicyPage";
 
 const queryClient = new QueryClient();
 
@@ -114,7 +113,7 @@ const App = () => {
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="/terms" element={<TermsPage />} />
                   <Route path="/privacy" element={<PrivacyPolicyPage />} />
-                  <Route path="/refund-policy" element={<RefundPolicyPage />} />
+                  <Route path="/refund-policy" element={<Navigate to="/terms" replace />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </PageTransition>
