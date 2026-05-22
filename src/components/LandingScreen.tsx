@@ -1135,9 +1135,6 @@ export function LandingScreen() {
           <Link to="/privacy" className="hover:text-white transition-colors">
             Privacy Notice
           </Link>
-          <Link to="/refund-policy" className="hover:text-white transition-colors">
-            Refund Policy
-          </Link>
           <PrivacyTermsModal />
         </div>
       </footer>
