@@ -1,104 +1,187 @@
+import { Link } from "react-router-dom";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
+
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground py-16 px-6">
-      <div className="max-w-3xl mx-auto prose prose-invert">
-        <h1>Privacy Notice</h1>
-        <p><strong>Last updated:</strong> May 18, 2026</p>
+    <div className="min-h-screen text-foreground py-16 px-6">
+      <div className="max-w-3xl mx-auto">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back home
+        </Link>
 
-        <h2>1. Data controller</h2>
-        <p>
-          The data controller for personal data processed through ArcAI is <strong>Win The Night™ Productions | Froydinger™ Design Systems</strong> ("the Seller"). Contact:
-          <a href="mailto:support@askarc.chat"> support@askarc.chat</a>.
-        </p>
+        <div className="glass-card rounded-3xl p-8 md:p-12 border border-white/10">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/15">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight m-0">Privacy Notice</h1>
+          </div>
+          <p className="text-sm text-muted-foreground mb-10">Last updated: May 22, 2026</p>
 
-        <h2>2. Personal data we collect</h2>
-        <ul>
-          <li><strong>Account data:</strong> name, email address, profile photo, authentication identifiers (Google/Apple OAuth sub).</li>
-          <li><strong>Content data:</strong> chats, prompts, uploads, generated images and files, voice transcripts, and saved memories you create.</li>
-          <li><strong>Usage data:</strong> session metadata, feature usage, device type, browser, IP address, approximate location, and diagnostics/error logs.</li>
-          <li><strong>Billing data:</strong> subscription status, plan, billing country, and customer ID (processed by our payment provider; we do not store full card numbers).</li>
-          <li><strong>Support data:</strong> ticket contents and attachments you submit.</li>
-        </ul>
+          <div className="space-y-8 text-[15px] leading-relaxed text-foreground/90">
+            <section>
+              <h2 className="text-xl font-semibold mb-2">Who we are</h2>
+              <p className="text-muted-foreground">
+                ArcAI is operated by <strong>Win The Night™ Productions</strong> in collaboration with{" "}
+                <strong>Froydinger™ Design Systems</strong>. Questions? Email{" "}
+                <a href="mailto:support@askarc.chat" className="text-primary hover:underline">
+                  support@askarc.chat
+                </a>
+                .
+              </p>
+            </section>
 
-        <h2>3. How we use your data</h2>
-        <ul>
-          <li>To provide, maintain, and improve the service.</li>
-          <li>To authenticate you and secure your account.</li>
-          <li>To process subscriptions, payments, and refunds.</li>
-          <li>To respond to support requests and send service-related communications.</li>
-          <li>To detect, prevent, and address fraud, abuse, and security incidents.</li>
-          <li>To comply with legal obligations.</li>
-        </ul>
+            <section>
+              <h2 className="text-xl font-semibold mb-2">ArcAI is free for everyone</h2>
+              <p className="text-muted-foreground">
+                There is no subscription, no checkout, and no billing system. We do not collect
+                payment information, billing addresses, or anything tied to a paid plan — because
+                there isn't one. The only soft limit is 10 image generations per day for
+                non-admin accounts.
+              </p>
+            </section>
 
-        <h2>3a. Legal basis for processing</h2>
-        <ul>
-          <li><strong>Performance of a contract</strong> — to deliver the service you subscribe to (account, content, billing).</li>
-          <li><strong>Legitimate interests</strong> — to secure the service, prevent fraud and abuse, improve features, and operate our business.</li>
-          <li><strong>Legal obligation</strong> — to keep tax, accounting, and compliance records.</li>
-          <li><strong>Consent</strong> — for optional cookies and any marketing communications, where required by law. You can withdraw consent at any time.</li>
-        </ul>
+            <section>
+              <h2 className="text-xl font-semibold mb-2">What we store</h2>
+              <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                <li>
+                  <strong>Account data:</strong> name, email, profile photo, and the OAuth
+                  identifier from Google or Apple.
+                </li>
+                <li>
+                  <strong>Content:</strong> chats, prompts, uploads, generated images and files,
+                  voice transcripts, and memories you create inside Arc's Brain.
+                </li>
+                <li>
+                  <strong>Usage diagnostics:</strong> session metadata, feature usage, device type,
+                  and error logs used to keep the service stable.
+                </li>
+                <li>
+                  <strong>Support data:</strong> tickets and attachments you submit through the
+                  in-app support flow.
+                </li>
+              </ul>
+            </section>
 
-        <h2>4. Recipients & sharing</h2>
-        <p>We share personal data only with these categories of recipients, acting as processors:</p>
-        <ul>
-          <li><strong>Paddle.com Market Limited</strong> — Merchant of Record; processes payments, taxes, refunds, and chargebacks.</li>
-          <li><strong>Supabase (Lovable Cloud)</strong> — hosting, database, authentication, file storage.</li>
-          <li><strong>AI model providers</strong> (Google, OpenAI, and others routed via our AI gateway) — to generate responses to your prompts.</li>
-          <li><strong>Resend</strong> — to send transactional emails.</li>
-          <li><strong>Replicate, Perplexity, Tavily, Suno</strong> — when you use the corresponding image, search, or audio features.</li>
-          <li>Law enforcement or regulators when legally required.</li>
-        </ul>
+            <section>
+              <h2 className="text-xl font-semibold mb-2">How we use it</h2>
+              <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                <li>To provide, maintain, and improve the service.</li>
+                <li>To authenticate you and keep your account secure.</li>
+                <li>To respond to support requests and send service-related emails.</li>
+                <li>To detect and prevent fraud, abuse, and security incidents.</li>
+                <li>To comply with legal obligations.</li>
+              </ul>
+            </section>
 
-        <h2>5. International transfers</h2>
-        <p>
-          Your data may be processed in the United States and other countries where our processors
-          operate. We rely on appropriate safeguards such as Standard Contractual Clauses where
-          required by law.
-        </p>
+            <section>
+              <h2 className="text-xl font-semibold mb-2">Who processes your data for us</h2>
+              <p className="text-muted-foreground mb-3">
+                We share data only with infrastructure providers acting strictly as processors on
+                our behalf:
+              </p>
+              <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                <li>
+                  <strong>Lovable Cloud</strong> — hosting, database, authentication, and file
+                  storage.
+                </li>
+                <li>
+                  <strong>AI model providers</strong> (Google, OpenAI, and others routed through
+                  the Lovable AI Gateway) — to generate responses to your prompts.
+                </li>
+                <li>
+                  <strong>Lovable Emails</strong> — transactional emails sent from{" "}
+                  <code className="text-xs">notify.askarc.chat</code> (account, support, and
+                  system messages).
+                </li>
+                <li>
+                  <strong>Perplexity, Tavily, Replicate, Suno</strong> — only when you explicitly
+                  trigger web search, image, or audio features.
+                </li>
+                <li>Law enforcement or regulators when legally required.</li>
+              </ul>
+            </section>
 
-        <h2>6. Retention</h2>
-        <p>
-          We retain account and content data for as long as your account is active. You can delete
-          individual chats, memories, and uploads from your account at any time. When you delete your
-          account, we delete your personal data within 30 days, except where retention is required by
-          law (e.g., tax records).
-        </p>
+            <section>
+              <h2 className="text-xl font-semibold mb-2">Authentication</h2>
+              <p className="text-muted-foreground">
+                ArcAI supports <strong>Google and Apple Sign-In only</strong>. We do not store
+                passwords, magic-link tokens, or any other credential — authentication is handled
+                entirely by your identity provider.
+              </p>
+            </section>
 
-        <h2>7. Your rights</h2>
-        <p>
-          Depending on your jurisdiction (GDPR, UK GDPR, CCPA, etc.), you have the right to access,
-          correct, delete, port, or restrict processing of your personal data, and to object to
-          processing or withdraw consent. To exercise these rights, email
-          <a href="mailto:support@askarc.chat"> support@askarc.chat</a>. You also have the right to
-          lodge a complaint with your local data protection authority.
-        </p>
+            <section>
+              <h2 className="text-xl font-semibold mb-2">Retention &amp; deletion</h2>
+              <p className="text-muted-foreground">
+                You can delete individual chats, memories, and uploads at any time. Deleting your
+                account permanently removes your data from our database within 30 days, except
+                where retention is required by law. Deletions cannot be reversed — we keep no
+                shadow backups.
+              </p>
+            </section>
 
-        <h2>8. Children</h2>
-        <p>
-          ArcAI is not directed to children under 13 (or under 16 in the EEA/UK). We do not knowingly
-          collect personal data from children.
-        </p>
+            <section>
+              <h2 className="text-xl font-semibold mb-2">Your rights</h2>
+              <p className="text-muted-foreground">
+                Depending on your jurisdiction (GDPR, UK GDPR, CCPA, and similar), you have the
+                right to access, correct, delete, port, or restrict processing of your data, and
+                to object or withdraw consent. Email{" "}
+                <a href="mailto:support@askarc.chat" className="text-primary hover:underline">
+                  support@askarc.chat
+                </a>{" "}
+                to exercise any of these rights.
+              </p>
+            </section>
 
-        <h2>9. Cookies & local storage</h2>
-        <p>
-          We use cookies and browser storage to keep you signed in, remember preferences, and measure
-          basic usage. You can clear these via your browser at any time.
-        </p>
+            <section>
+              <h2 className="text-xl font-semibold mb-2">Children</h2>
+              <p className="text-muted-foreground">
+                ArcAI is not directed to children under 13 (or under 16 in the EEA/UK), and we do
+                not knowingly collect data from them.
+              </p>
+            </section>
 
-        <h2>10. Security</h2>
-        <p>
-          We use industry-standard measures (TLS in transit, encrypted at rest, RLS-protected
-          database, OAuth-only authentication). No method of transmission is 100% secure.
-        </p>
+            <section>
+              <h2 className="text-xl font-semibold mb-2">Security</h2>
+              <p className="text-muted-foreground">
+                TLS in transit, encrypted at rest, row-level security on every table, and
+                OAuth-only authentication. No method of transmission is 100% secure, but we hold
+                ourselves to a high bar.
+              </p>
+            </section>
 
-        <h2>11. Changes</h2>
-        <p>
-          We will post updates to this notice on this page and update the "Last updated" date.
-          Material changes will be announced in-app or via email.
-        </p>
+            <section>
+              <h2 className="text-xl font-semibold mb-2">Changes</h2>
+              <p className="text-muted-foreground">
+                We'll update this page and the date above when the policy changes. Material
+                updates will be announced in-app.
+              </p>
+            </section>
 
-        <h2>12. Contact</h2>
-        <p><a href="mailto:support@askarc.chat">support@askarc.chat</a></p>
+            <section>
+              <h2 className="text-xl font-semibold mb-2">Contact</h2>
+              <p className="text-muted-foreground">
+                <a href="mailto:support@askarc.chat" className="text-primary hover:underline">
+                  support@askarc.chat
+                </a>
+              </p>
+            </section>
+          </div>
+        </div>
+
+        <div className="text-center mt-8">
+          <Link
+            to="/terms"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Read the Terms of Service →
+          </Link>
+        </div>
       </div>
     </div>
   );
