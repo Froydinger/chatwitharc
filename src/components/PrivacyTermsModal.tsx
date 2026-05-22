@@ -18,10 +18,7 @@ export function PrivacyTermsModal({ trigger }: PrivacyTermsModalProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const defaultTrigger = (
-    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-      <FileText className="h-4 w-4 mr-2" />
-      Privacy & Terms
-    </Button>
+
   );
 
   return (
