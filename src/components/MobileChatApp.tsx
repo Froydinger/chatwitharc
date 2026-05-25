@@ -257,9 +257,13 @@ export function MobileChatApp() {
   const [isContextPanelOpen, setIsContextPanelOpen] = useState(false);
   const [showMobileCanvasInput, setShowMobileCanvasInput] = useState(false);
   const [canvasWidthPercent, setCanvasWidthPercent] = useState(50);
+  const [showLibrary, setShowLibrary] = useState(false);
   const canvasResizingRef = useRef(false);
   const snarkyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
+
+  // Static random prompts - picked once on mount, no AI call
+  const staticSuggestions = useMemo(() => pickRandomPrompts(3), []);
 
   // Music store (audio element now in GlobalMusicPlayer)
   const {
