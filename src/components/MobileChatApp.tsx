@@ -790,17 +790,8 @@ export function MobileChatApp() {
                   <WelcomeSection
                     greeting={greeting}
                     heroAvatar={null}
-                    quickPrompts={quickPrompts}
-                    onTriggerPrompt={triggerPrompt}
-                    profile={profile}
-                    chatSessions={chatSessions}
                     isLoading={isLoading}
                     isGeneratingImage={isGeneratingImage}
-                    onOpenHistory={() => {
-                      setRightPanelTab('history');
-                      setRightPanelOpen(true);
-                    }}
-                    onSelectSession={(sessionId) => loadSession(sessionId)}
                   />
                 </div>
               )
