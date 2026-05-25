@@ -35,6 +35,9 @@ import { ContextBlocksPanel } from "@/components/ContextBlocksPanel";
 import { useSubscription } from "@/hooks/useSubscription";
 import { MessageQueue } from "@/components/MessageQueue";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
+import { SmartSuggestions } from "@/components/SmartSuggestions";
+import { PromptLibrary } from "@/components/PromptLibrary";
+import { GENERAL_QUICK_PROMPTS, pickRandomPrompts } from "@/components/WelcomeSection";
 
 /** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
@@ -254,9 +257,13 @@ export function MobileChatApp() {
   const [isContextPanelOpen, setIsContextPanelOpen] = useState(false);
   const [showMobileCanvasInput, setShowMobileCanvasInput] = useState(false);
   const [canvasWidthPercent, setCanvasWidthPercent] = useState(50);
+  const [showLibrary, setShowLibrary] = useState(false);
   const canvasResizingRef = useRef(false);
   const snarkyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
+
+  // Static random prompts - picked once on mount, no AI call
+  const staticSuggestions = useMemo(() => pickRandomPrompts(3), []);
 
   // Music store (audio element now in GlobalMusicPlayer)
   const {
@@ -790,17 +797,8 @@ export function MobileChatApp() {
                   <WelcomeSection
                     greeting={greeting}
                     heroAvatar={null}
-                    quickPrompts={quickPrompts}
-                    onTriggerPrompt={triggerPrompt}
-                    profile={profile}
-                    chatSessions={chatSessions}
                     isLoading={isLoading}
                     isGeneratingImage={isGeneratingImage}
-                    onOpenHistory={() => {
-                      setRightPanelTab('history');
-                      setRightPanelOpen(true);
-                    }}
-                    onSelectSession={(sessionId) => loadSession(sessionId)}
                   />
                 </div>
               )
@@ -916,6 +914,16 @@ export function MobileChatApp() {
               <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
                 <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
               </div>
+              {/* Quick Prompts - below input bar on empty state */}
+              {messages.length === 0 && (
+                <div className="pointer-events-auto mt-4">
+                  <SmartSuggestions
+                    suggestions={staticSuggestions}
+                    onSelectPrompt={triggerPrompt}
+                    onShowMore={() => setShowLibrary(true)}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -939,6 +947,14 @@ export function MobileChatApp() {
         <ContextBlocksPanel
           isOpen={isContextPanelOpen}
           onClose={() => setIsContextPanelOpen(false)}
+        />
+
+        {/* Prompt Library Drawer */}
+        <PromptLibrary
+          isOpen={showLibrary}
+          onClose={() => setShowLibrary(false)}
+          prompts={quickPrompts}
+          onSelectPrompt={triggerPrompt}
         />
 
         {/* Audio element now lives in GlobalMusicPlayer (App.tsx) */}

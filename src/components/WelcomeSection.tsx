@@ -1,13 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { History, ChevronRight } from "lucide-react";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
-import { SmartSuggestions } from "@/components/SmartSuggestions";
-import { PromptLibrary } from "@/components/PromptLibrary";
-import { ThemedLogo } from "@/components/ThemedLogo";
-import { Profile } from "@/hooks/useProfile";
-import { ChatSession } from "@/store/useArcStore";
-import { Button } from "@/components/ui/button";
 
 // Typewriter component for smooth text reveal - plays once only
 function TypewriterText({ text, delay = 0, onComplete }: { text: string; delay?: number; onComplete?: () => void }) {
@@ -156,7 +149,7 @@ function CyclingGreeting() {
 
 // Static general quick prompts - no AI, instant load
 // Uses /write, /code, /image prefix commands where appropriate
-const GENERAL_QUICK_PROMPTS = [
+export const GENERAL_QUICK_PROMPTS = [
   { label: "💬 Let's chat", prompt: "Let's have a chat — what's going on in the world right now?" },
   { label: "💡 Brainstorm", prompt: "I need help brainstorming ideas. Let's think through something creative together." },
   { label: "✍️ Write together", prompt: "/write Open a blank canvas so we can work on writing something together!" },
@@ -180,7 +173,7 @@ const GENERAL_QUICK_PROMPTS = [
 ];
 
 // Pick 3 random prompts, different each session
-function pickRandomPrompts(count: number = 3) {
+export function pickRandomPrompts(count: number = 3) {
   const shuffled = [...GENERAL_QUICK_PROMPTS].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 }
@@ -188,110 +181,62 @@ function pickRandomPrompts(count: number = 3) {
 interface WelcomeSectionProps {
   greeting: string;
   heroAvatar: string | null;
-  quickPrompts: { label: string; prompt: string }[];
-  onTriggerPrompt: (prompt: string) => void;
-  profile: Profile | null;
-  chatSessions: ChatSession[];
   isLoading?: boolean;
   isGeneratingImage?: boolean;
-  onOpenHistory?: () => void;
-  onSelectSession?: (sessionId: string) => void;
 }
 
 export function WelcomeSection({
   greeting,
   heroAvatar,
-  quickPrompts,
-  onTriggerPrompt,
-  profile,
-  chatSessions,
   isLoading = false,
   isGeneratingImage = false,
-  onOpenHistory,
-  onSelectSession,
 }: WelcomeSectionProps) {
-  const [showLibrary, setShowLibrary] = useState(false);
-
-  // Static random prompts - picked once on mount, no AI call
-  const staticSuggestions = useMemo(() => pickRandomPrompts(3), []);
-
-  // Get recent sessions for "Pick up where you left off"
-  const recentSessions = useMemo(() => {
-    return chatSessions
-      .filter(s => {
-        const count = s.messageCount ?? s.messages?.length ?? 0;
-        return count > 0 && s.title;
-      })
-      .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime())
-      .slice(0, 6); // Keep 6 for horizontal scroll
-  }, [chatSessions]);
-
   return (
-    <>
-      <div className="flex flex-col items-center px-4 space-y-3 sm:space-y-4 w-full">
-        {/* Hero Section */}
-        <motion.div
-          className="flex flex-col items-center gap-3 sm:gap-4 text-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1], delay: 0.1 }}
-        >
-          {heroAvatar && (
-            <motion.div
-              className="relative"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, y: [0, -8, 0] }}
-              transition={{
-                opacity: { duration: 0.6, ease: "easeOut" },
-                y: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.8 }
-              }}
-            >
-              <img src={heroAvatar} alt="Arc" className="h-24 w-24 rounded-full" />
-              <motion.div
-                className="absolute -inset-1 bg-primary/30 rounded-full blur-xl"
-                animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              />
-            </motion.div>
-          )}
-
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold relative">
-            <span className="relative inline-block">
-              <CyclingGreeting />
-            </span>
-          </h2>
-        </motion.div>
-
-        {/* Static Quick Prompts - instant, no loading */}
-        <div className="w-full space-y-2">
-          <SmartSuggestions
-            suggestions={staticSuggestions}
-            onSelectPrompt={onTriggerPrompt}
-            onShowMore={() => setShowLibrary(true)}
-          />
-        </div>
-
-
-        {(isLoading || isGeneratingImage) && (
+    <div className="flex flex-col items-center px-4 space-y-3 sm:space-y-4 w-full">
+      {/* Hero Section */}
+      <motion.div
+        className="flex flex-col items-center gap-3 sm:gap-4 text-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1], delay: 0.1 }}
+      >
+        {heroAvatar && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.3 }}
-            className="mt-8"
+            className="relative"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, y: [0, -8, 0] }}
+            transition={{
+              opacity: { duration: 0.6, ease: "easeOut" },
+              y: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.8 }
+            }}
           >
-            <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
+            <img src={heroAvatar} alt="Arc" className="h-24 w-24 rounded-full" />
+            <motion.div
+              className="absolute -inset-1 bg-primary/30 rounded-full blur-xl"
+              animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            />
           </motion.div>
         )}
-      </div>
 
-      {/* Prompt Library Drawer */}
-      <PromptLibrary
-        isOpen={showLibrary}
-        onClose={() => setShowLibrary(false)}
-        prompts={quickPrompts}
-        onSelectPrompt={onTriggerPrompt}
-      />
-    </>
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold relative">
+          <span className="relative inline-block">
+            <CyclingGreeting />
+          </span>
+        </h2>
+      </motion.div>
+
+      {(isLoading || isGeneratingImage) && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ duration: 0.3 }}
+          className="mt-8"
+        >
+          <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
+        </motion.div>
+      )}
+    </div>
   );
 }
