@@ -1,13 +1,6 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { History, ChevronRight } from "lucide-react";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
-import { SmartSuggestions } from "@/components/SmartSuggestions";
-import { PromptLibrary } from "@/components/PromptLibrary";
-import { ThemedLogo } from "@/components/ThemedLogo";
-import { Profile } from "@/hooks/useProfile";
-import { ChatSession } from "@/store/useArcStore";
-import { Button } from "@/components/ui/button";
 
 // Typewriter component for smooth text reveal - plays once only
 function TypewriterText({ text, delay = 0, onComplete }: { text: string; delay?: number; onComplete?: () => void }) {
