@@ -149,7 +149,7 @@ function CyclingGreeting() {
 
 // Static general quick prompts - no AI, instant load
 // Uses /write, /code, /image prefix commands where appropriate
-const GENERAL_QUICK_PROMPTS = [
+export const GENERAL_QUICK_PROMPTS = [
   { label: "💬 Let's chat", prompt: "Let's have a chat — what's going on in the world right now?" },
   { label: "💡 Brainstorm", prompt: "I need help brainstorming ideas. Let's think through something creative together." },
   { label: "✍️ Write together", prompt: "/write Open a blank canvas so we can work on writing something together!" },
@@ -173,7 +173,7 @@ const GENERAL_QUICK_PROMPTS = [
 ];
 
 // Pick 3 random prompts, different each session
-function pickRandomPrompts(count: number = 3) {
+export function pickRandomPrompts(count: number = 3) {
   const shuffled = [...GENERAL_QUICK_PROMPTS].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 }
