@@ -914,6 +914,16 @@ export function MobileChatApp() {
               <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
                 <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
               </div>
+              {/* Quick Prompts - below input bar on empty state */}
+              {messages.length === 0 && (
+                <div className="pointer-events-auto mt-4">
+                  <SmartSuggestions
+                    suggestions={staticSuggestions}
+                    onSelectPrompt={triggerPrompt}
+                    onShowMore={() => setShowLibrary(true)}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
