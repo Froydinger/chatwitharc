@@ -786,7 +786,7 @@ export function MobileChatApp() {
                   <p className="text-sm text-muted-foreground">Loading messages...</p>
                 </div>
               ) : (
-                <div className="flex items-center justify-center" style={{ minHeight: `calc(100vh - 5rem - ${inputHeight}px - env(safe-area-inset-bottom, 0px) - 6rem)` }}>
+                <div className="flex items-end justify-center pb-6" style={{ minHeight: `calc(50vh - 5rem)` }}>
                   <WelcomeSection
                     greeting={greeting}
                     heroAvatar={null}
@@ -897,8 +897,9 @@ export function MobileChatApp() {
           <div
             ref={inputDockRef}
             className={cn(
-              "fixed bottom-6 z-30 pointer-events-none px-4 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+              "fixed z-30 pointer-events-none px-4 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
               "left-0",
+              messages.length === 0 ? "top-1/2 -translate-y-1/2" : "bottom-6",
               // When canvas is open on desktop, limit to left 50% of screen (search mode is now full-screen)
               isCanvasOpen && !isMobile ? "right-[50%]" : "right-0",
               rightPanelOpen && !isCanvasOpen && "lg:left-80 xl:left-96"
