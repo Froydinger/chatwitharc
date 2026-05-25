@@ -9,7 +9,7 @@ import { useSearchStore } from "@/store/useSearchStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput, cancelCurrentRequest, type ChatInputRef } from "@/components/ChatInput";
 import { RightPanel } from "@/components/RightPanel";
-import { WelcomeSection } from "@/components/WelcomeSection";
+import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ThemedLogo } from "@/components/ThemedLogo";
 
@@ -903,14 +903,29 @@ export function MobileChatApp() {
               rightPanelOpen && !isCanvasOpen && "lg:left-80 xl:left-96"
             )}
           >
-            <div className="max-w-4xl mx-auto">
-              {/* Message Queue - rendered above the glass dock so it's outside the pill */}
+            <div className="max-w-4xl mx-auto flex flex-col items-center">
+              {/* Message Queue - at top if it has messages */}
               <div className="pointer-events-auto mb-2 px-1">
                 <MessageQueue
                   onSendMessage={(content) => chatInputRef.current?.sendMessage(content)}
                   isLoading={isLoading}
                 />
               </div>
+
+              {/* Greeting - above input on empty state */}
+              {messages.length === 0 && (
+                <motion.div
+                  className="text-3xl sm:text-4xl lg:text-5xl font-semibold mb-6 text-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1], delay: 0.1 }}
+                >
+                  <span className="relative inline-block">
+                    <CyclingGreeting />
+                  </span>
+                </motion.div>
+              )}
+
               <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
                 <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
               </div>
