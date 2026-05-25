@@ -85,7 +85,7 @@ function getDaypartGreetings(): string[] {
 }
 
 // Cycling greeting component
-function CyclingGreeting() {
+export function CyclingGreeting() {
   const [displayedText, setDisplayedText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
   const greetings = useMemo(() => getDaypartGreetings(), []);
@@ -218,12 +218,6 @@ export function WelcomeSection({
             />
           </motion.div>
         )}
-
-        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold relative">
-          <span className="relative inline-block">
-            <CyclingGreeting />
-          </span>
-        </h2>
       </motion.div>
 
       {(isLoading || isGeneratingImage) && (
