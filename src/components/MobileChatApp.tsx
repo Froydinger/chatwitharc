@@ -903,7 +903,7 @@ export function MobileChatApp() {
               rightPanelOpen && !isCanvasOpen && "lg:left-80 xl:left-96"
             )}
           >
-            <div className="max-w-4xl mx-auto flex flex-col items-center">
+            <div className="max-w-4xl mx-auto">
               {/* Message Queue - at top if it has messages */}
               <div className="pointer-events-auto mb-2 px-1">
                 <MessageQueue
@@ -915,14 +915,16 @@ export function MobileChatApp() {
               {/* Greeting - above input on empty state */}
               {messages.length === 0 && (
                 <motion.div
-                  className="text-3xl sm:text-4xl lg:text-5xl font-semibold mb-6 text-center"
+                  className="flex justify-center mb-6"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1], delay: 0.1 }}
                 >
-                  <span className="relative inline-block">
-                    <CyclingGreeting />
-                  </span>
+                  <div className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-center">
+                    <span className="relative inline-block">
+                      <CyclingGreeting />
+                    </span>
+                  </div>
                 </motion.div>
               )}
 
@@ -931,7 +933,7 @@ export function MobileChatApp() {
               </div>
               {/* Quick Prompts - below input bar on empty state */}
               {messages.length === 0 && (
-                <div className="pointer-events-auto mt-4">
+                <div className="pointer-events-auto mt-4 flex justify-center">
                   <SmartSuggestions
                     suggestions={staticSuggestions}
                     onSelectPrompt={triggerPrompt}
