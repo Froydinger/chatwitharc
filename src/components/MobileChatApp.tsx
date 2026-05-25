@@ -949,6 +949,14 @@ export function MobileChatApp() {
           onClose={() => setIsContextPanelOpen(false)}
         />
 
+        {/* Prompt Library Drawer */}
+        <PromptLibrary
+          isOpen={showLibrary}
+          onClose={() => setShowLibrary(false)}
+          prompts={quickPrompts}
+          onSelectPrompt={triggerPrompt}
+        />
+
         {/* Audio element now lives in GlobalMusicPlayer (App.tsx) */}
 
       </div>
