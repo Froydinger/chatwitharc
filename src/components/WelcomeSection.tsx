@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 
