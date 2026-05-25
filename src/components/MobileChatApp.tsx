@@ -35,6 +35,9 @@ import { ContextBlocksPanel } from "@/components/ContextBlocksPanel";
 import { useSubscription } from "@/hooks/useSubscription";
 import { MessageQueue } from "@/components/MessageQueue";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
+import { SmartSuggestions } from "@/components/SmartSuggestions";
+import { PromptLibrary } from "@/components/PromptLibrary";
+import { GENERAL_QUICK_PROMPTS, pickRandomPrompts } from "@/components/WelcomeSection";
 
 /** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
