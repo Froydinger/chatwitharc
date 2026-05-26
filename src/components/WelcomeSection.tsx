@@ -220,17 +220,7 @@ export function WelcomeSection({
         )}
       </motion.div>
 
-      {(isLoading || isGeneratingImage) && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          transition={{ duration: 0.3 }}
-          className="mt-8"
-        >
-          <ThinkingIndicator isLoading={isLoading} isGeneratingImage={isGeneratingImage} />
-        </motion.div>
-      )}
+      {/* Thinking indicator now rendered above the centered input bar in MobileChatApp to avoid overlap */}
     </div>
   );
 }
