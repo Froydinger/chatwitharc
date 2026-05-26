@@ -639,8 +639,8 @@ export class AIService {
 
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Use code model for file generation (complex content)
-      const selectedModel = getModelForTask('code');
+      // Use file-gen model for document generation (best per family)
+      const selectedModel = getModelForTask('file-gen');
       
       const { data, error } = await supabase.functions.invoke('generate-file', {
         body: { fileType, prompt, model: selectedModel },
