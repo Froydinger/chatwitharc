@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type ModelFamily = 'gemini' | 'gpt';
-export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-analysis' | 'image-edit';
+export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-analysis' | 'image-edit' | 'file-gen';
 
 const MODEL_MAP: Record<ModelFamily, Record<ModelTask, string>> = {
   gemini: {
@@ -10,16 +10,18 @@ const MODEL_MAP: Record<ModelFamily, Record<ModelTask, string>> = {
     'code': 'google/gemini-3.5-flash',
     'deep-chat': 'google/gemini-3.5-flash',
     'image-gen': 'google/gemini-3.1-flash-image-preview',
-    'image-analysis': 'google/gemini-3-flash-preview',
+    'image-analysis': 'google/gemini-3.5-flash',
     'image-edit': 'google/gemini-3.1-flash-image-preview',
+    'file-gen': 'google/gemini-3.5-flash',
   },
   gpt: {
     'chat': 'openai/gpt-5-mini',
     'code': 'openai/gpt-5.2',
     'deep-chat': 'openai/gpt-5.2',
     'image-gen': 'google/gemini-3.1-flash-image-preview',
-    'image-analysis': 'openai/gpt-5-mini',
+    'image-analysis': 'openai/gpt-5.5',
     'image-edit': 'google/gemini-3.1-flash-image-preview',
+    'file-gen': 'openai/gpt-5.5-pro',
   },
 };
 

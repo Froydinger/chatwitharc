@@ -152,9 +152,11 @@ CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No expla
     // Allowlist supported models — fall back to default if unknown
     const ALLOWED_MODELS = new Set([
       'google/gemini-3-flash-preview',
+      'google/gemini-3.5-flash',
       'google/gemini-2.5-flash',
       'google/gemini-2.5-flash-lite',
       'openai/gpt-5.5-pro',
+      'openai/gpt-5.2',
     ]);
     const selectedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
       ? model
