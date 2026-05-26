@@ -154,7 +154,7 @@ CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No expla
       'google/gemini-3-flash-preview',
       'google/gemini-2.5-flash',
       'google/gemini-2.5-flash-lite',
-      'google/gemini-2.5-pro',
+      'openai/gpt-5.5-pro',
     ]);
     const selectedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
       ? model
