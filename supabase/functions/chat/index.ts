@@ -421,7 +421,7 @@ serve(async (req) => {
     const allowedModels = [
       // Gemini models (2 tiers)
       'google/gemini-3-flash-preview',   // Quick
-      'google/gemini-3.1-pro-preview',   // Wise & Thoughtful
+      'google/gemini-3.5-flash',   // Wise & Thoughtful
       // GPT models (3 tiers)
       'openai/gpt-5-nano',               // Quick
       'openai/gpt-5.2',                  // Smarter & Quick
@@ -821,11 +821,11 @@ Output the complete, finished writing using the update_canvas tool.`;
     const fallbackModel = 'google/gemini-3-flash-preview'; // Fallback for canvas/code if Pro times out
 
     // For code mode, upgrade to the best model for each provider
-    // Gemini: use gemini-3.1-pro-preview, GPT: use gpt-5.2
+    // Gemini: use gemini-3.5-flash, GPT: use gpt-5.2
     if (wantsCode) {
       if (selectedModel.startsWith('google/')) {
-        selectedModel = 'google/gemini-3.1-pro-preview';
-        console.log('🔧 Code mode: using gemini-3.1-pro-preview');
+        selectedModel = 'google/gemini-3.5-flash';
+        console.log('🔧 Code mode: using gemini-3.5-flash');
       } else if (selectedModel.startsWith('openai/')) {
         selectedModel = 'openai/gpt-5.2';
         console.log('🔧 Code mode: upgraded GPT model to gpt-5.2');
@@ -834,8 +834,8 @@ Output the complete, finished writing using the update_canvas tool.`;
 
     // Dynamic upgrade: if client detected complex query, use Pro model
     if (useProModel && !wantsCode && selectedModel.startsWith('google/')) {
-      selectedModel = 'google/gemini-3.1-pro-preview';
-      console.log('🧠 Complex query detected: upgraded to gemini-3.1-pro-preview');
+      selectedModel = 'google/gemini-3.5-flash';
+      console.log('🧠 Complex query detected: upgraded to gemini-3.5-flash');
     }
     
     // OpenAI models use max_completion_tokens, Gemini uses max_tokens
@@ -1159,7 +1159,7 @@ Output the complete, finished writing using the update_canvas tool.`;
       });
     } catch (primaryError) {
       // If canvas/code mode with upgraded model fails, try fallback
-      const isUpgradedModel = selectedModel === 'google/gemini-3.1-pro-preview' || selectedModel === 'openai/gpt-5.2';
+      const isUpgradedModel = selectedModel === 'google/gemini-3.5-flash' || selectedModel === 'openai/gpt-5.2';
       if (isCanvasOrCodeMode && isUpgradedModel) {
         // For GPT fallback, use gpt-5-nano; for Gemini fallback, use gemini-3-flash-preview
         const actualFallback = selectedModel.startsWith('openai/') ? 'openai/gpt-5-nano' : fallbackModel;
