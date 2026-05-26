@@ -912,6 +912,24 @@ export function MobileChatApp() {
                 />
               </div>
 
+              {/* Thinking indicator above greeting on empty state while waiting for first message */}
+              {messages.length === 0 && (isLoading || isGeneratingImage) && (
+                <motion.div
+                  className="pointer-events-auto flex justify-center mb-4"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <ThinkingIndicator
+                    isLoading={isLoading}
+                    isGeneratingImage={isGeneratingImage}
+                    searchingChats={isSearchingChats}
+                    accessingMemory={isAccessingMemory}
+                  />
+                </motion.div>
+              )}
+
               {/* Greeting - above input on empty state */}
               {messages.length === 0 && (
                 <motion.div
