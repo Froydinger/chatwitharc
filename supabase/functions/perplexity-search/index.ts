@@ -63,7 +63,7 @@ serve(async (req) => {
 
     console.log('Research search:', { query: userQuery });
 
-    // 1. Tavily search — pull rich results
+    // 1. Tavily search — research-grade settings (advanced depth, deep chunks, raw content, advanced answer)
     const tavilyResp = await fetch('https://api.tavily.com/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -71,8 +71,10 @@ serve(async (req) => {
         api_key: TAVILY_API_KEY,
         query: userQuery,
         search_depth: 'advanced',
-        max_results: 8,
-        include_answer: true,
+        chunks_per_source: 3,
+        max_results: 12,
+        include_answer: 'advanced',
+        include_raw_content: true,
       }),
     });
 
@@ -88,7 +90,7 @@ serve(async (req) => {
     const tavilyData = await tavilyResp.json();
     const rawResults: any[] = tavilyData.results || [];
 
-    // Dedupe by domain so we get diverse citations, cap at 5
+    // Dedupe by domain so we get diverse citations, cap at 8 for richer research
     const seenDomains = new Set<string>();
     const picked: any[] = [];
     for (const r of rawResults) {
@@ -98,7 +100,7 @@ serve(async (req) => {
       if (seenDomains.has(domain)) continue;
       seenDomains.add(domain);
       picked.push({ ...r, _domain: domain });
-      if (picked.length >= 5) break;
+      if (picked.length >= 8) break;
     }
 
     if (picked.length === 0) {
@@ -120,16 +122,19 @@ serve(async (req) => {
       snippet: r.content || '',
     }));
 
-    // 2. Synthesize a cited answer with Lovable AI (Gemini 3 Flash)
+    // 2. Synthesize a cited answer with Lovable AI — use Gemini 2.5 Pro for research-grade reasoning
     let content = '';
     if (LOVABLE_API_KEY) {
-      const sourceBlock = picked.map((r, i) => (
-        `[${i + 1}] ${r.title}\nURL: ${r.url}\nExcerpt: ${(r.content || '').slice(0, 800)}`
-      )).join('\n\n');
+      const sourceBlock = picked.map((r, i) => {
+        const body = (r.raw_content || r.content || '').slice(0, 3000);
+        return `[${i + 1}] ${r.title}\nURL: ${r.url}\nExcerpt: ${body}`;
+      }).join('\n\n');
 
-      const synthSystem = `You are a research assistant. Write a precise, comprehensive answer to the user's query using ONLY the provided sources. Use clear headings, short paragraphs, and bullet points where helpful. CITATION RULES: Cite inline with bracket notation [1], [2] etc. corresponding to source numbers. Use a MINIMUM of 3 and a MAXIMUM of 5 distinct sources — never more than 5 and never invent a source number. Do NOT write out full domain names or URLs inline. Do not mention which search engine or AI was used.`;
+      const tavilyAnswer = tavilyData.answer ? `\n\nQuick answer (reference only, do not cite directly): ${tavilyData.answer}` : '';
 
-      const synthUser = `Query: ${userQuery}\n\nSources:\n${sourceBlock}\n\nWrite the cited answer now.`;
+      const synthSystem = `You are an expert research analyst. Produce a thorough, well-structured answer to the user's query using ONLY the provided sources. Synthesize across sources — compare, contrast, and reconcile differences. Use clear markdown headings, short paragraphs, and bullet points where helpful. Aim for depth and nuance, not just summary. CITATION RULES: Cite inline with [1], [2] etc. matching source numbers. Use a MINIMUM of 4 and MAXIMUM of 8 distinct sources. Never invent source numbers or write full URLs inline. Do not mention which search engine or AI was used.`;
+
+      const synthUser = `Query: ${userQuery}\n\nSources:\n${sourceBlock}${tavilyAnswer}\n\nWrite the comprehensive cited research answer now.`;
 
       try {
         const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -139,7 +144,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+            model: 'google/gemini-2.5-pro',
             messages: [
               { role: 'system', content: synthSystem },
               { role: 'user', content: synthUser },
@@ -165,8 +170,9 @@ serve(async (req) => {
         : picked.map((r, i) => `[${i + 1}] ${r.title}\n${(r.content || '').slice(0, 300)}`).join('\n\n');
     }
 
-    // Strip any inline refs > 5
-    content = content.replace(/\[(\d+)\]/g, (m: string, n: string) => (parseInt(n) > 5 ? '' : m));
+    // Strip any inline refs beyond available citation count
+    const maxCite = citations.length;
+    content = content.replace(/\[(\d+)\]/g, (m: string, n: string) => (parseInt(n) > maxCite ? '' : m));
 
     // Convert [n] markers to superscript markdown links pointing at the citation URL
     citations.forEach((url, index) => {
