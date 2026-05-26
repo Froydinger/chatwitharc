@@ -170,8 +170,9 @@ serve(async (req) => {
         : picked.map((r, i) => `[${i + 1}] ${r.title}\n${(r.content || '').slice(0, 300)}`).join('\n\n');
     }
 
-    // Strip any inline refs > 5
-    content = content.replace(/\[(\d+)\]/g, (m: string, n: string) => (parseInt(n) > 5 ? '' : m));
+    // Strip any inline refs beyond available citation count
+    const maxCite = citations.length;
+    content = content.replace(/\[(\d+)\]/g, (m: string, n: string) => (parseInt(n) > maxCite ? '' : m));
 
     // Convert [n] markers to superscript markdown links pointing at the citation URL
     citations.forEach((url, index) => {
