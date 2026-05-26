@@ -63,7 +63,7 @@ serve(async (req) => {
 
     console.log('Research search:', { query: userQuery });
 
-    // 1. Tavily search — pull rich results
+    // 1. Tavily search — research-grade settings (advanced depth, deep chunks, raw content, advanced answer)
     const tavilyResp = await fetch('https://api.tavily.com/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -71,8 +71,10 @@ serve(async (req) => {
         api_key: TAVILY_API_KEY,
         query: userQuery,
         search_depth: 'advanced',
-        max_results: 8,
-        include_answer: true,
+        chunks_per_source: 3,
+        max_results: 12,
+        include_answer: 'advanced',
+        include_raw_content: true,
       }),
     });
 
