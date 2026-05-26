@@ -144,7 +144,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-pro',
+            model: 'google/gemini-3-flash-preview',
             messages: [
               { role: 'system', content: synthSystem },
               { role: 'user', content: synthUser },
