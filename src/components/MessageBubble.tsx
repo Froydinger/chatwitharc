@@ -474,18 +474,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     // AI messages with code block support and markdown
                     message.content.trim().length > 0 && !["canvas", "code", "ide", "file"].includes(message.type) && (
                       <div
-                        className={[
-                          "relative z-10 w-full min-w-0 overflow-hidden",
-                          "arc-message-bubble px-4 py-3",
-                          shouldAnimateTypewriter && hasAssistantContent ? "arc-typing-glow" : "",
-                          haloed ? "arc-halo-once" : "",
-                          settled ? "arc-settle-once" : "",
-                        ].filter(Boolean).join(" ")}
-                        onAnimationEnd={(e) => {
-                          if (e.animationName === "arc-aurora-halo") setHaloed(false);
-                          if (e.animationName === "arc-settle") setSettled(false);
-                        }}
+                        className="relative z-10 w-full min-w-0 arc-message-bubble"
                       >
+
                         {contentParts.map((part, idx) => {
                           if (part.type === "code") {
                             return (
