@@ -1,19 +1,46 @@
-Plan to make the assistant reveal feel polished and reliable:
+## What's actually causing the AI bubble background
 
-1. **Fix the trigger condition**
-  - Stop treating `isLoading` as “still thinking” once assistant text exists.
-  - Use the word reveal renderer whenever the latest assistant message has content, instead of falling back to instant markdown while streaming.
-2. **Replace chunk-based reveal with a real word queue**
-  - Rework `WordStreamMarkdown` so incoming chunks are buffered and released word-by-word on a consistent animation clock.
-  - The full response will not become visible just because the backend sends a large chunk.
-  - Keep already-revealed words stable so they never reanimate or flicker.
-3. **Make the blur-to-unblur animation smoother**
-  - Use performant per-word CSS: opacity + small translate + blur-to-clear, with `inline-block` and reduced layout churn.
-  - Tune timing so it feels luxurious, not slow: fast enough for long replies, visibly animated for short replies.
-4. **Protect markdown and heavy content**
-  - Keep code blocks, generated files, SVG artifacts, media embeds, and tables from breaking the animation.
-  - Animate normal text/list/header words, while complex blocks render safely once their surrounding text reaches them.
-5. **Verify the path**
-  - Check the latest assistant response behavior in preview: first token, mid-stream chunks, long response tail, and completed message.
-  - Confirm older chat history still renders instantly and reduced-motion users do not get animations.
-6. **Change background of AI responses to half their current opacity, to distinguish them from user message bubble.**
+There's an inline `<style>` block inside `src/components/MobileChatApp.tsx` (lines ~1214-1228) with this rule:
+
+```css
+.chat-messages [class*="bubble"] {
+  background: rgba(18,18,18,0.42) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 18px !important;
+  backdrop-filter: blur(8px) saturate(118%) !important;
+  box-shadow: 0 2px 10px ..., inset ... !important;
+}
+```
+
+The wildcard `[class*="bubble"]` matches **any** class containing the substring "bubble" — so it catches `arc-message-bubble` (the AI message wrapper). Because this style is injected after `index.css`, its `!important` wins over the `.arc-message-bubble { background: transparent !important }` rule I added. That's why nothing I changed in `index.css` made a visible difference.
+
+## Fix
+
+One-line change in `src/components/MobileChatApp.tsx`:
+
+```diff
+- .chat-messages [class*="bubble"]{
++ .chat-messages [class*="bubble"]:not(.arc-message-bubble){
+```
+
+That excludes only the AI message container; the user bubble (`user-message-bubble`) is unaffected and keeps its glowy glass look.
+
+## Cleanup
+
+Also revert the now-unnecessary `!important` overrides I added in `src/index.css` for `.arc-message-bubble` so it goes back to the clean original:
+
+```css
+.arc-message-bubble {
+  position: relative;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+```
+
+## Result
+
+- AI message text renders as free-floating text on the page — no bg, no border, no rounded rect, no blur.
+- User bubble unchanged (still glowy glass).
+- No other code or behavior touched.

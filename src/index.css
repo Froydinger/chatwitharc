@@ -839,9 +839,9 @@ All colors MUST be HSL for perfect glass effects.
   /* Arc assistant message - fully transparent, free-floating */
   .arc-message-bubble {
     position: relative;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
+    background: transparent;
+    border: none;
+    box-shadow: none;
     border-radius: 0;
   }
 

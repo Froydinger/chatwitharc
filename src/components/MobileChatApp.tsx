@@ -1215,7 +1215,7 @@ export function MobileChatApp() {
         .chat-messages .surface,
         .chat-messages .card,
         .chat-messages [data-bubble],
-        .chat-messages [class*="bubble"]{
+        .chat-messages [class*="bubble"]:not(.arc-message-bubble){
           border-radius: 18px !important;
           background: rgba(18,18,18,0.42) !important;
           backdrop-filter: blur(8px) saturate(118%) !important;
