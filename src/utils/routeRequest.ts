@@ -15,18 +15,19 @@ import { isMobileLocalDevice } from '@/utils/mobileLocal';
 export type RouteDestination =
   | 'local'                     // On-device model (label resolved at render)
   | 'cloud-chat'                // Gemini 3 Flash — default chat
-  | 'cloud-chat-pro'            // Gemini 2.5 Pro — heavier reasoning
+  | 'cloud-chat-pro'            // Gemini 3.5 Flash — heavier reasoning
   | 'cloud-search'              // Perplexity (sonar-pro)
   | 'cloud-search-tavily'       // Tavily fallback
   | 'cloud-vision'              // Gemini 3 Flash (image understanding)
   | 'cloud-document'            // Gemini 3 Flash (document analysis)
   | 'cloud-voice'               // OpenAI Realtime
-  | 'cloud-code'                // Gemini 2.5 Pro — /code, canvas code edits
-  | 'cloud-canvas'              // Gemini 2.5 Pro — writing canvas
+  | 'cloud-code'                // Gemini 3.5 Flash — /code, canvas code edits
+  | 'cloud-canvas'              // Gemini 3.5 Flash — writing canvas
   | 'cloud-image'               // Nano Banana 2 — locked image model
   | 'cloud-image-pro'           // Deprecated alias — also maps to Nano Banana 2
   | 'cloud-image-edit'          // Nano Banana 2 — edit pass
   | 'cloud-ide';                // App Builder / IDE agent
+
 
 export interface RouteContext {
   forceWebSearch?: boolean;
@@ -88,9 +89,9 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
     case 'cloud-chat':
       return { label: 'Cloud · Gemini 3 Flash', icon: 'cloud', tooltip: 'Default chat model — Google Gemini 3 Flash.' };
     case 'cloud-chat-pro':
-      return { label: 'Cloud · Gemini 2.5 Pro', icon: 'cloud', tooltip: 'Heavier reasoning — Google Gemini 2.5 Pro.' };
+      return { label: 'Cloud · Gemini 3.5 Flash', icon: 'cloud', tooltip: 'Heavier reasoning — Google Gemini 3.5 Flash.' };
     case 'cloud-search':
-      return { label: 'Cloud · Tavily Research', icon: 'cloud', tooltip: 'Research mode — Tavily advanced search synthesized with Gemini 2.5 Pro.' };
+      return { label: 'Cloud · Perplexity Research', icon: 'cloud', tooltip: 'Research mode — Perplexity synthesized with Gemini 3 Flash.' };
     case 'cloud-search-tavily':
       return { label: 'Cloud · Tavily Search', icon: 'cloud', tooltip: 'Web search via Tavily.' };
     case 'cloud-vision':
@@ -100,15 +101,16 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
     case 'cloud-voice':
       return { label: 'Cloud · OpenAI Realtime', icon: 'cloud', tooltip: 'Voice mode — OpenAI Realtime API.' };
     case 'cloud-code':
-      return { label: 'Cloud · Gemini 3.1 Pro (Code)', icon: 'cloud', tooltip: 'Code generation — Google Gemini 3.1 Pro Preview.' };
+      return { label: 'Cloud · Gemini 3.5 Flash (Code)', icon: 'cloud', tooltip: 'Code generation — Google Gemini 3.5 Flash.' };
     case 'cloud-canvas':
-      return { label: 'Cloud · Gemini 2.5 Pro (Canvas)', icon: 'cloud', tooltip: 'Long-form writing canvas — Google Gemini 2.5 Pro.' };
+      return { label: 'Cloud · Gemini 3.5 Flash (Canvas)', icon: 'cloud', tooltip: 'Long-form writing canvas — Google Gemini 3.5 Flash.' };
     case 'cloud-image':
     case 'cloud-image-pro':
       return { label: 'Cloud · Nano Banana 2', icon: 'cloud', tooltip: 'Image generation — Google Gemini 3.1 Flash Image (Nano Banana 2).' };
     case 'cloud-image-edit':
       return { label: 'Cloud · Nano Banana 2 (Edit)', icon: 'cloud', tooltip: 'Image editing — Google Gemini 3.1 Flash Image (Nano Banana 2).' };
     case 'cloud-ide':
-      return { label: 'Cloud · Gemini 2.5 Pro (App Builder)', icon: 'cloud', tooltip: 'App Builder agent — Google Gemini 2.5 Pro.' };
+      return { label: 'Cloud · Gemini 3.5 Flash (App Builder)', icon: 'cloud', tooltip: 'App Builder agent — Google Gemini 3.5 Flash.' };
   }
+
 }
