@@ -819,9 +819,7 @@ All colors MUST be HSL for perfect glass effects.
 
   /* User message bubble - glowy glass style matching input bar */
   .user-message-bubble {
-    background: linear-gradient(135deg, hsl(var(--background) / 0.75) 0%, hsl(var(--background) / 0.65) 50%, hsl(var(--primary) / 0.18) 100%) !important;
-    backdrop-filter: blur(20px) saturate(115%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(115%) !important;
+    background: linear-gradient(135deg, hsl(var(--background) / 0.92) 0%, hsl(var(--background) / 0.88) 50%, hsl(var(--primary) / 0.22) 100%) !important;
     border: 1px solid hsl(var(--primary) / 0.35) !important;
     box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.3),
@@ -830,7 +828,7 @@ All colors MUST be HSL for perfect glass effects.
   }
   
   .user-message-bubble:hover {
-    background: linear-gradient(135deg, hsl(var(--background) / 0.68) 0%, hsl(var(--background) / 0.58) 50%, hsl(var(--primary) / 0.25) 100%) !important;
+    background: linear-gradient(135deg, hsl(var(--background) / 0.9) 0%, hsl(var(--background) / 0.85) 50%, hsl(var(--primary) / 0.28) 100%) !important;
     border-color: hsl(var(--primary) / 0.45) !important;
     box-shadow:
       0 12px 40px rgba(0, 0, 0, 0.35),
@@ -841,9 +839,7 @@ All colors MUST be HSL for perfect glass effects.
   /* Arc assistant message bubble - glass aesthetic mirroring input dock */
   .arc-message-bubble {
     position: relative;
-    background: linear-gradient(135deg, hsl(var(--background) / 0.36) 0%, hsl(var(--background) / 0.30) 60%, hsl(var(--primary) / 0.05) 100%);
-    backdrop-filter: blur(24px) saturate(120%);
-    -webkit-backdrop-filter: blur(24px) saturate(120%);
+    background: linear-gradient(135deg, hsl(var(--background) / 0.7) 0%, hsl(var(--background) / 0.62) 60%, hsl(var(--primary) / 0.08) 100%);
     border: 1px solid hsl(var(--primary) / 0.14);
     box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.28),
@@ -852,6 +848,7 @@ All colors MUST be HSL for perfect glass effects.
     border-radius: 22px;
     border-top-left-radius: 8px;
   }
+
 
   /* One-shot aurora halo on arrival */
   @keyframes arc-aurora-halo {
