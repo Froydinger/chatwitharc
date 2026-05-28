@@ -15,18 +15,19 @@ import { isMobileLocalDevice } from '@/utils/mobileLocal';
 export type RouteDestination =
   | 'local'                     // On-device model (label resolved at render)
   | 'cloud-chat'                // Gemini 3 Flash — default chat
-  | 'cloud-chat-pro'            // Gemini 2.5 Pro — heavier reasoning
+  | 'cloud-chat-pro'            // Gemini 3.5 Flash — heavier reasoning
   | 'cloud-search'              // Perplexity (sonar-pro)
   | 'cloud-search-tavily'       // Tavily fallback
   | 'cloud-vision'              // Gemini 3 Flash (image understanding)
   | 'cloud-document'            // Gemini 3 Flash (document analysis)
   | 'cloud-voice'               // OpenAI Realtime
-  | 'cloud-code'                // Gemini 2.5 Pro — /code, canvas code edits
-  | 'cloud-canvas'              // Gemini 2.5 Pro — writing canvas
+  | 'cloud-code'                // Gemini 3.5 Flash — /code, canvas code edits
+  | 'cloud-canvas'              // Gemini 3.5 Flash — writing canvas
   | 'cloud-image'               // Nano Banana 2 — locked image model
   | 'cloud-image-pro'           // Deprecated alias — also maps to Nano Banana 2
   | 'cloud-image-edit'          // Nano Banana 2 — edit pass
   | 'cloud-ide';                // App Builder / IDE agent
+
 
 export interface RouteContext {
   forceWebSearch?: boolean;
