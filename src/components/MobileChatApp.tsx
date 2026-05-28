@@ -399,6 +399,10 @@ export function MobileChatApp() {
   // Scroll to bottom whenever a new message is appended OR we enter a session
   const lastScrolledSessionRef = useRef<string | null>(null);
   const lastMessageCountRef = useRef<number>(0);
+  // Tracks whether the user has scrolled away from the bottom during streaming.
+  // When true, we pause auto-scroll so they can read freely until they scroll
+  // back near the bottom (or until the AI finishes and a new message starts).
+  const userScrolledUpRef = useRef(false);
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
@@ -407,6 +411,8 @@ export function MobileChatApp() {
     const countIncreased = messages.length > lastMessageCountRef.current;
 
     if (messages.length > 0 && (sessionChanged || countIncreased)) {
+      // A brand-new message arriving resets the "scrolled up" guard
+      if (countIncreased) userScrolledUpRef.current = false;
       // Use rAF + timeout so layout settles before scrolling
       requestAnimationFrame(() => {
         const node = messagesContainerRef.current;
@@ -418,16 +424,22 @@ export function MobileChatApp() {
     lastMessageCountRef.current = messages.length;
   }, [messages.length, currentSessionId]);
 
-  // Scroll during typewriter typing - more aggressive
+  // Scroll during typewriter typing - respects user scroll-up
   useEffect(() => {
     const handleTyping = () => {
       const el = messagesContainerRef.current;
       if (!el) return;
+      if (userScrolledUpRef.current) return; // user is reading; don't yank
       el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
     };
     window.addEventListener("typewriter-typing", handleTyping);
     return () => window.removeEventListener("typewriter-typing", handleTyping);
   }, []);
+
+  // Reset the scroll-up guard when AI finishes responding
+  useEffect(() => {
+    if (!isLoading) userScrolledUpRef.current = false;
+  }, [isLoading]);
 
   // Quick Prompts - 6 Chat, 6 Create, 6 Write, 6 Code (memoized to prevent re-renders)
   // Generate fresh prompts on each component mount (site load)
@@ -445,6 +457,10 @@ export function MobileChatApp() {
       const currentScrollY = el.scrollTop;
       const isScrollable = el.scrollHeight > el.clientHeight;
       const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
+
+      // Track whether the user scrolled away from the bottom so the typewriter
+      // auto-scroll can back off until they return.
+      userScrolledUpRef.current = isScrollable && !isNearBottom;
 
       // Only show button if content is scrollable, not near bottom, and has messages
       setShowScrollButton(isScrollable && !isNearBottom && messages.length > 0);
@@ -470,6 +486,7 @@ export function MobileChatApp() {
 
     return () => el.removeEventListener("scroll", handleScroll);
   }, [messages.length, lastScrollY, isMobile]);
+
 
   const scrollToBottom = () => {
     const el = messagesContainerRef.current;
