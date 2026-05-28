@@ -302,7 +302,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                           {message.imageUrls.map((url, index) => (
                             <div key={index} className="flex flex-col items-center">
                               <div 
-                                className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden cursor-pointer hover:border-white/20 transition-colors max-w-sm mx-auto"
+                                className="rounded-2xl border border-white/10 bg-white/10 overflow-hidden cursor-pointer hover:border-white/20 transition-colors max-w-sm mx-auto"
                                 onClick={() => setSelectedImageUrl(url)}
                               >
                                 <SmoothImage
