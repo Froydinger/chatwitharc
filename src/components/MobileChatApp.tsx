@@ -1015,10 +1015,22 @@ export function MobileChatApp() {
         {/* Right Panel */}
         <RightPanel
           isOpen={rightPanelOpen}
-          onClose={() => setRightPanelOpen(false)}
+          onClose={() => { setRightPanelDocked(false); setRightPanelOpen(false); }}
           activeTab={rightPanelTab as any}
           onTabChange={setRightPanelTab}
+          isDocked={rightPanelDocked}
+          onToggleDock={toggleDock}
+          onMouseEnter={cancelPanelClose}
+          onMouseLeave={schedulePanelClose}
         />
+
+        {/* Hover edge trigger — desktop only, opens panel preview without docking */}
+        {!isMobile && !isCanvasOpen && (
+          <div
+            className="fixed left-0 top-0 bottom-0 w-2 z-[55] hidden lg:block"
+            onMouseEnter={openPanelPreview}
+          />
+        )}
 
 
         {/* Music Popup */}
