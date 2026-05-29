@@ -189,9 +189,15 @@ export const useArcStore = create<ArcState>()(
         const existing = state.chatSessions.find(s => s.id === sessionId);
         if (!existing) return;
 
-        const updated: ChatSession = { ...existing, canvasContent, lastMessageAt: new Date() };
+        const updatedMessages = existing.messages.map((message) =>
+          message.type === 'canvas'
+            ? { ...message, canvasContent, timestamp: new Date() }
+            : message
+        );
+        const updated: ChatSession = { ...existing, canvasContent, messages: updatedMessages, lastMessageAt: new Date() };
         set({
           chatSessions: state.chatSessions.map(s => (s.id === sessionId ? updated : s)),
+          messages: state.currentSessionId === sessionId ? updatedMessages : state.messages,
         });
 
         // Persist without touching message arrays
@@ -368,7 +374,12 @@ export const useArcStore = create<ArcState>()(
           }
 
           const remoteMessages: Message[] = Array.isArray(data?.messages) ? (data.messages as any) : [];
-          const canvasContent = typeof data?.canvas_content === 'string' ? data.canvas_content : '';
+          const remoteCanvasContent = typeof data?.canvas_content === 'string' ? data.canvas_content : '';
+          const messagesCanvasContent = [...remoteMessages]
+            .reverse()
+            .find((message) => message?.type === 'canvas' && typeof message.canvasContent === 'string' && message.canvasContent.trim().length > 0)
+            ?.canvasContent;
+          const canvasContent = messagesCanvasContent || remoteCanvasContent;
 
           console.log(`✅ Hydrated session with ${remoteMessages.length} messages`);
 
@@ -390,7 +401,11 @@ export const useArcStore = create<ArcState>()(
               cs.id === sessionId 
                 ? { 
                     ...cs, 
-                    messages: remoteMessages, 
+                    messages: canvasContent
+                      ? remoteMessages.map((message) =>
+                          message?.type === 'canvas' ? { ...message, canvasContent } : message
+                        )
+                      : remoteMessages,
                     canvasContent,
                     isHydrated: true,
                     messageCount: remoteMessages.length
@@ -541,7 +556,7 @@ export const useArcStore = create<ArcState>()(
           // CRITICAL: Check if we're about to overwrite non-empty data with empty data
           const { data: existingSession } = await supabase
             .from('chat_sessions')
-            .select('messages')
+            .select('messages, canvas_content, updated_at')
             .eq('id', session.id)
             .maybeSingle();
 
@@ -555,6 +570,17 @@ export const useArcStore = create<ArcState>()(
           if (existingMessageCount > 0 && newMessageCount === 0) {
             console.warn('⚠️ Skipped save: would overwrite', existingMessageCount, 'messages with empty array for session:', session.id);
             return; // Silently skip — this is a guard, not an error
+          }
+
+          const existingUpdatedAt = existingSession?.updated_at ? Date.parse(existingSession.updated_at as string) : 0;
+          const incomingUpdatedAt = session.lastMessageAt instanceof Date
+            ? session.lastMessageAt.getTime()
+            : Date.parse(String(session.lastMessageAt));
+          const remoteCanvas = typeof existingSession?.canvas_content === 'string' ? existingSession.canvas_content : '';
+          const incomingCanvas = typeof session.canvasContent === 'string' ? session.canvasContent : '';
+          if (remoteCanvas.trim() && !incomingCanvas.trim() && existingUpdatedAt > incomingUpdatedAt) {
+            console.warn('⚠️ Skipped save: would overwrite newer canvas content with empty content for session:', session.id);
+            return;
           }
 
           console.log('💾 Saving session:', session.id, '- Messages:', newMessageCount);
@@ -1042,7 +1068,7 @@ export const useArcStore = create<ArcState>()(
             createdAt: existingSession?.createdAt || new Date(),
             lastMessageAt: new Date(),
             messages: updatedMessages,
-            canvasContent: existingSession?.canvasContent,
+            canvasContent,
           };
 
           const updatedSessions = s.chatSessions.map((cs) => (cs.id === sessionId ? sessionToSave : cs));

@@ -141,11 +141,27 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   openWithContent: (content: string, type: CanvasType = 'writing', language = 'typescript') => {
+    const state = get();
+    const hasLiveCanvas = state.content.trim().length > 0 && state.versions.length > 0;
+    if (hasLiveCanvas && (state.content === content || type === state.canvasType)) {
+      set({
+        isOpen: true,
+        mode: 'sideBySide',
+        pendingPrompt: null,
+        canvasType: type,
+        codeLanguage: language,
+        showCodePreview: true,
+        isAIWriting: false,
+        isLoading: false,
+      });
+      return;
+    }
+
     const initialVersion: CanvasVersion = {
       id: crypto.randomUUID(),
       content,
       timestamp: Date.now(),
-      label: 'Restored',
+      label: 'Current',
     };
     set({
       isOpen: true,
