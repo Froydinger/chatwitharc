@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AIService } from '@/services/ai';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
+import { useSubscription } from '@/hooks/useSubscription';
 import { 
   setGlobalInterruptHandler, 
   setGlobalMuteHandoffHandler, 
