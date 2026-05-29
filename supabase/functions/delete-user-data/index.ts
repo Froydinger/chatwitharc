@@ -75,48 +75,34 @@ Deno.serve(async (req) => {
         }
       )
 
-      // Delete user's data from all tables
+      // Delete user's data from all tables that store per-user data
       const deletionResults: Record<string, boolean> = {}
 
-      // 1. Delete chat sessions
-      const { error: sessionsError } = await supabaseAdmin
-        .from('chat_sessions')
-        .delete()
-        .eq('user_id', user.id)
-      deletionResults.chatSessions = !sessionsError
-      if (sessionsError) console.error('Error deleting chat sessions:', sessionsError)
+      const userTables: Array<{ table: string; column?: string }> = [
+        { table: 'chat_sessions' },
+        { table: 'search_sessions' },
+        { table: 'saved_links' },
+        { table: 'generated_files' },
+        { table: 'context_blocks' },
+        { table: 'ide_projects' },
+        { table: 'image_generation_jobs' },
+        { table: 'published_sites' },
+        { table: 'subscriptions' },
+        { table: 'voice_conversations' },
+        { table: 'voice_diagnostics' },
+        { table: 'ticket_messages', column: 'sender_id' },
+        { table: 'support_tickets' },
+        { table: 'profiles' },
+      ]
 
-      // 2. Delete search sessions
-      const { error: searchError } = await supabaseAdmin
-        .from('search_sessions')
-        .delete()
-        .eq('user_id', user.id)
-      deletionResults.searchSessions = !searchError
-      if (searchError) console.error('Error deleting search sessions:', searchError)
-
-      // 3. Delete saved links
-      const { error: linksError } = await supabaseAdmin
-        .from('saved_links')
-        .delete()
-        .eq('user_id', user.id)
-      deletionResults.savedLinks = !linksError
-      if (linksError) console.error('Error deleting saved links:', linksError)
-
-      // 4. Delete generated files
-      const { error: filesError } = await supabaseAdmin
-        .from('generated_files')
-        .delete()
-        .eq('user_id', user.id)
-      deletionResults.generatedFiles = !filesError
-      if (filesError) console.error('Error deleting generated files:', filesError)
-
-      // 5. Delete profile
-      const { error: profileError } = await supabaseAdmin
-        .from('profiles')
-        .delete()
-        .eq('user_id', user.id)
-      deletionResults.profile = !profileError
-      if (profileError) console.error('Error deleting profile:', profileError)
+      for (const { table, column } of userTables) {
+        const { error } = await supabaseAdmin
+          .from(table)
+          .delete()
+          .eq(column ?? 'user_id', user.id)
+        deletionResults[table] = !error
+        if (error) console.error(`Error deleting ${table}:`, error)
+      }
 
       // 6. Delete the auth user account entirely
       const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
