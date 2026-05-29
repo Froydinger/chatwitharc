@@ -36,10 +36,22 @@ export function CodeArtifactCard({
 
   const handleDeployClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    // Publishing is a Boost-only feature. Free users see the upgrade modal.
     if (!isSubscribed) {
       window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
+      toast.info('Publishing is a Boost feature ($7/mo)');
       return;
     }
+    // Hard confirm — publications are permanent and cannot be edited later.
+    const ok = window.confirm(
+      "Publish this code to the web?\n\n" +
+      "• Your site goes live at a yourname.froydingermedia.online URL\n" +
+      "• It stays live forever — even if you cancel Boost later\n" +
+      "• Publications are FINAL: they cannot be edited or re-published after launch\n" +
+      "• You can unpublish at any time, but that is also permanent\n\n" +
+      "Continue?"
+    );
+    if (!ok) return;
     setShowPublishModal(true);
   };
 

@@ -1,6 +1,6 @@
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
-import { Check, Sparkles, ArrowLeft, Zap } from "lucide-react";
+import { Check, Sparkles, ArrowLeft, Zap, Rocket } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export function PricingPage() {
@@ -22,7 +22,7 @@ export function PricingPage() {
           </div>
           <h1 className="text-5xl font-bold mb-4">ArcAI is free for everyone.</h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Want more? Upgrade to Boost for unlimited image and voice generation.
+            Want more? Upgrade to Boost for unlimited image and voice generation — plus publish your code creations to the web.
           </p>
         </div>
 
@@ -40,8 +40,8 @@ export function PricingPage() {
                 "10 voice conversations every 30 days",
                 "10 image generations per day",
                 "Web search, file uploads, document analysis",
-                "Memory, canvases, code generation, app builder",
-                "All future features at no cost",
+                "Memory, canvases, code generation",
+                "All future free features at no cost",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-primary mt-0.5 shrink-0" />
@@ -64,11 +64,12 @@ export function PricingPage() {
               <span className="text-5xl font-bold">$7</span>
               <span className="text-muted-foreground">/ month</span>
             </div>
-            <ul className="space-y-3 mb-8">
+            <ul className="space-y-3 mb-6">
               {[
                 "Everything in Free",
                 "Unlimited image generations",
                 "Unlimited voice conversations",
+                "Publish code creations to the web (yourname.froydingermedia.online)",
                 "Cancel anytime — no contracts",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-3">
@@ -77,6 +78,17 @@ export function PricingPage() {
                 </li>
               ))}
             </ul>
+
+            {/* Publishing fine print — set expectations up front */}
+            <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground space-y-1.5">
+              <div className="flex items-center gap-1.5 text-primary font-medium">
+                <Rocket className="h-3.5 w-3.5" />
+                How publishing works
+              </div>
+              <p>Publish a code creation while you're a Boost subscriber and it stays live forever — even if you cancel later.</p>
+              <p>Publications are <strong>final</strong>: once live they cannot be edited or re-published. You can unpublish at any time, but unpublished sites cannot be brought back.</p>
+            </div>
+
             <GlassButton className="w-full" onClick={openBoost}>
               Get Boost
             </GlassButton>

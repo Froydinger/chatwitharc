@@ -13,9 +13,9 @@ const ROUTE_META: Record<string, RouteMeta> = {
       "Talk to Arc, generate images, write code and prose in one place. Free multimodal AI with realtime voice.",
   },
   "/pricing": {
-    title: "Pricing — ArcAI",
+    title: "Pricing — ArcAI · Free forever, Boost $7/mo",
     description:
-      "Simple ArcAI pricing. Start free, go Pro for unlimited messages, voice, images, music and model selection.",
+      "ArcAI is free forever. Optional ArcAi Boost ($7/mo) unlocks unlimited image generations, unlimited voice conversations, and one-tap web publishing for your code creations.",
   },
   "/downloads": {
     title: "Download ArcAI for Mac, Windows & iOS",

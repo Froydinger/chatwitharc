@@ -2,12 +2,19 @@
 
 > ArcAI (Ask, Reflect, Create) is a free multimodal AI assistant by Win The Night Productions. Realtime voice conversations, image generation, code canvas, writing tools, music player and persistent memory in one app.
 
-ArcAI is the most affordable alternative to ChatGPT, Claude and Gemini. Free tier includes 30 messages/day, 3 voice sessions and 5 image generations. Pro is $12/month for unlimited use.
+ArcAI is free forever for everyone. Unlimited chats with every model, 10 image generations per day, 10 voice conversations every 30 days, web search, file uploads, document analysis, memory, canvases and code generation are all included with no account upgrade required.
+
+The optional **ArcAi Boost** upgrade is $7/month and unlocks:
+- Unlimited image generations
+- Unlimited voice conversations
+- One-tap web publishing for code creations on the `*.froydingermedia.online` domain (publications are permanent and stay live after you cancel, but cannot be edited or re-published once live)
+
+There is no longer a "Pro" tier. There is only Free and the optional Boost upgrade.
 
 ## Pages
 
 - [Home](/): Chat with Arc — voice, images, code and writing in one place.
-- [Pricing](/pricing): Free tier and Pro plan ($12/mo or $115.20/yr).
+- [Pricing](/pricing): Free forever plus the optional $7/mo ArcAi Boost upgrade.
 - [Downloads](/downloads): Native apps for macOS, Windows (beta), iOS and Android.
 - [Dashboard](/dashboard): Central hub for chats, canvases, images, deploys, music and memory.
 - [Support](/support): Open a support ticket or get help.

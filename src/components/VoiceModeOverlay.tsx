@@ -8,6 +8,7 @@ import { VOICES, REALTIME_VOICES, VOICE_AVATARS } from "@/constants/voices";
 import { useProfile } from "@/hooks/useProfile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
+import { UsageMeter } from "@/components/UsageMeter";
 
 // Global ref to allow interrupt from overlay - set by VoiceModeController
 let globalInterruptHandler: (() => void) | null = null;
@@ -517,6 +518,14 @@ export function VoiceModeOverlay() {
                   <Camera className="w-5 h-5 text-foreground" />
                 )}
               </motion.button>
+            </div>
+
+            {/* Voice usage meter — hidden for Boost users */}
+            <div
+              className="absolute left-1/2 -translate-x-1/2 z-10"
+              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1.75rem)' }}
+            >
+              <UsageMeter kind="voice" />
             </div>
 
             {/* Hidden file input for attachments */}
