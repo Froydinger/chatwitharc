@@ -2,6 +2,7 @@ import { PenLine, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { useArcStore } from "@/store/useArcStore";
 
 interface CanvasAttachmentProps {
   preview?: string;
@@ -17,11 +18,19 @@ export const CanvasAttachment = ({
   className
 }: CanvasAttachmentProps) => {
   const { openWithContent } = useCanvasStore();
+  const sessionCanvas = useArcStore((s) => {
+    const id = s.currentSessionId;
+    if (!id) return '';
+    return s.chatSessions.find((cs) => cs.id === id)?.canvasContent || '';
+  });
 
   const handleOpen = () => {
-    // Use atomic openWithContent to set content AND open canvas in one operation
-    // This prevents race conditions where editor re-initializes with empty content
-    openWithContent(canvasContent, 'writing');
+    // Prefer the user's latest saved/edited canvas content for this session
+    // over the AI's original snapshot embedded in the message.
+    const contentToOpen = sessionCanvas && sessionCanvas.trim().length > 0
+      ? sessionCanvas
+      : canvasContent;
+    openWithContent(contentToOpen, 'writing');
   };
 
   // Generate preview from content if not provided
