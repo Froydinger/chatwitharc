@@ -8,6 +8,7 @@ import { VOICES, REALTIME_VOICES, VOICE_AVATARS } from "@/constants/voices";
 import { useProfile } from "@/hooks/useProfile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
+import { UsageMeter } from "@/components/UsageMeter";
 
 // Global ref to allow interrupt from overlay - set by VoiceModeController
 let globalInterruptHandler: (() => void) | null = null;
