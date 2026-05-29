@@ -37,6 +37,7 @@ import UnsubscribePage from "./pages/UnsubscribePage";
 import { SupportPage } from "./pages/SupportPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import { SharedChatPage } from "./pages/SharedChatPage";
 
 const queryClient = new QueryClient();
 
