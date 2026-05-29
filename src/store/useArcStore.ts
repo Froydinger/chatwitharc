@@ -540,7 +540,11 @@ export const useArcStore = create<ArcState>()(
         }
       },
 
-      saveChatToSupabase: async (session: ChatSession) => {
+      saveChatToSupabase: async (session: ChatSession, revision?: number) => {
+        if (revision !== undefined && sessionSaveRevisions.get(session.id) !== revision) {
+          console.log('⏭️ Skipped stale session save:', session.id);
+          return;
+        }
         if (session.isLocalOnly) {
           // Corporate Mode session — stays on this device only.
           return;
