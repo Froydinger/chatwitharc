@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Brain, LayoutDashboard } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Brain, LayoutDashboard, Share2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore } from "@/store/useArcStore";
@@ -12,6 +12,7 @@ import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ThemedLogo } from "@/components/ThemedLogo";
+import { ShareChatDialog } from "@/components/ShareChatDialog";
 
 import { MusicPopup } from "@/components/MusicPopup";
 import { CanvasPanel } from "@/components/CanvasPanel";
@@ -258,6 +259,7 @@ export function MobileChatApp() {
   const [showMobileCanvasInput, setShowMobileCanvasInput] = useState(false);
   const [canvasWidthPercent, setCanvasWidthPercent] = useState(50);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const canvasResizingRef = useRef(false);
   const snarkyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
@@ -627,7 +629,7 @@ export function MobileChatApp() {
                 </motion.div>
               </div>
 
-              {/* Right side buttons - Context + Canvas + Music + Logo */}
+              {/* Right side buttons - Context + Share + Music + Logo */}
               <div className="flex items-center gap-2 pointer-events-auto">
                 {/* Brain / Context Button */}
                 <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
@@ -645,6 +647,20 @@ export function MobileChatApp() {
                   </Button>
                 </motion.div>
 
+                {/* Share Button */}
+                {currentSessionId && (
+                  <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full glass-shimmer transition-all"
+                      onClick={() => setIsShareDialogOpen(true)}
+                      title="Share chat"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                  </motion.div>
+                )}
 
                 {/* Music Player Button */}
                 <motion.div 
@@ -1271,6 +1287,13 @@ export function MobileChatApp() {
       
       {/* Voice Mode Controller (orchestrates the conversation) */}
       <VoiceModeController />
+
+      {/* Share Chat Dialog */}
+      <ShareChatDialog
+        sessionId={currentSessionId}
+        open={isShareDialogOpen}
+        onOpenChange={setIsShareDialogOpen}
+      />
     </div>
   );
 }
