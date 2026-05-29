@@ -2214,7 +2214,7 @@ ${safeCode}
             if (user && !subscription.canUseVoice) {
               toast({
                 title: "Voice limit reached",
-                description: "You've used your 10 free voice conversations this month. Upgrade to ArcAi Boost for unlimited voice.",
+                description: "You've used your 10 free voice conversations this month. Upgrade to ArcAI Boost for unlimited voice.",
               });
               subscription.openCheckout();
               return;

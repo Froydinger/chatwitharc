@@ -21,9 +21,29 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
     openCheckout,
   } = useSubscription();
 
-  if (hasBoost) return null;
-
   const isImage = kind === "image";
+
+  // Boost users get an unlimited pill (still visible so users can confirm
+  // their entitlement at a glance — never hidden).
+  if (hasBoost) {
+    const Icon = isImage ? Sparkles : Mic;
+    return (
+      <div
+        className={cn(
+          "flex items-center gap-2 px-3 py-1.5 rounded-full",
+          "border border-primary/50 bg-primary/10 backdrop-blur-xl shadow-lg",
+          "text-xs font-medium text-primary",
+          className,
+        )}
+        aria-label={`Unlimited ${kind} with ArcAI Boost`}
+      >
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+        <span>Unlimited {isImage ? "images" : "voice"} · Boost</span>
+        <Zap className="h-3 w-3 opacity-80" />
+      </div>
+    );
+  }
+
   const used = isImage ? dailyImagesUsed : voiceConversations30d;
   const limit = isImage ? FREE_DAILY_IMAGE_LIMIT : FREE_VOICE_LIMIT_30D;
   const remaining = Math.max(0, limit - used);

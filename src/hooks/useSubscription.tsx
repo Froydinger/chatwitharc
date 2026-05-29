@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { paymentsAvailable, getStripeEnvironment } from '@/lib/stripe';
 
-// ArcAI is free forever. ArcAi Boost ($7/mo) is a paid upgrade that
+// ArcAI is free forever. ArcAI Boost ($7/mo) is a paid upgrade that
 // removes the two soft limits below.
 export const FREE_DAILY_IMAGE_LIMIT = 10;       // per UTC day
 export const FREE_VOICE_LIMIT_30D = 10;         // rolling 30 days
