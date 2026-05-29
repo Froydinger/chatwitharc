@@ -221,31 +221,72 @@ export function MobileChatApp() {
     };
   }, []);
 
-  // Initialize rightPanelOpen state based on device type and user's last preference
+  // Docked state: when true, the panel pushes content. When false, panel is hover-preview only.
+  const [rightPanelDocked, setRightPanelDocked] = useState(false);
+  const hoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Initialize rightPanelOpen + docked state based on device type and user's last preference
   useEffect(() => {
-    // Check window width for large screens (1024px+) - these should have persistent sidebar
     const isLargeScreen = window.innerWidth >= 1024;
 
     if (isLargeScreen) {
-      // On large screens, respect user's explicit preference only — default to closed
-      const userPreference = localStorage.getItem("arc_rightPanelOpen");
-      if (userPreference === "true") {
-        if (!rightPanelOpen) {
-          setRightPanelOpen(true);
-        }
+      // Restore docked preference; default to undocked (hover-only) for new users
+      const dockedPref = localStorage.getItem("arc_rightPanelDocked") === "true";
+      setRightPanelDocked(dockedPref);
+      if (dockedPref && !rightPanelOpen) {
+        setRightPanelOpen(true);
       }
     } else if (isMobile) {
       // Always close on mobile/tablet by default
+      setRightPanelDocked(false);
       if (rightPanelOpen) {
         setRightPanelOpen(false);
       }
     }
   }, [isMobile]); // Only run on mount and when isMobile changes
 
-  // Effect to save user's preference to localStorage whenever rightPanelOpen changes
+  // Persist docked preference
   useEffect(() => {
-    localStorage.setItem("arc_rightPanelOpen", String(rightPanelOpen));
-  }, [rightPanelOpen]);
+    localStorage.setItem("arc_rightPanelDocked", String(rightPanelDocked));
+  }, [rightPanelDocked]);
+
+  // Hover edge handlers (desktop only)
+  const openPanelPreview = () => {
+    if (isMobile) return;
+    if (hoverCloseTimerRef.current) {
+      clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
+    }
+    if (!rightPanelOpen) setRightPanelOpen(true);
+  };
+
+  const schedulePanelClose = () => {
+    if (isMobile || rightPanelDocked) return;
+    if (hoverCloseTimerRef.current) clearTimeout(hoverCloseTimerRef.current);
+    hoverCloseTimerRef.current = setTimeout(() => {
+      setRightPanelOpen(false);
+    }, 250);
+  };
+
+  const cancelPanelClose = () => {
+    if (hoverCloseTimerRef.current) {
+      clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
+    }
+  };
+
+  const toggleDock = () => {
+    if (rightPanelDocked) {
+      // Undock: unpin and close
+      setRightPanelDocked(false);
+      setRightPanelOpen(false);
+    } else {
+      // Dock: pin open
+      setRightPanelDocked(true);
+      setRightPanelOpen(true);
+    }
+  };
+
 
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -588,7 +629,7 @@ export function MobileChatApp() {
       <div
         className={cn(
           "flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10",
-          rightPanelOpen && !isCanvasOpen && "lg:ml-80 xl:ml-96",
+          rightPanelDocked && !isCanvasOpen && "lg:ml-80 xl:ml-96",
         )}
       >
         {/* Floating header buttons - no bar, hide when canvas is open on desktop */}
@@ -611,7 +652,7 @@ export function MobileChatApp() {
                     size="icon"
                     className="rounded-full glass-shimmer transition-all"
                     onClick={() => {
-                      setRightPanelOpen(!rightPanelOpen);
+                      toggleDock();
                     }}
                   >
                     <Menu className="h-4 w-4" />
@@ -908,7 +949,7 @@ export function MobileChatApp() {
               messages.length === 0 ? "top-1/2 -translate-y-1/2" : "bottom-6",
               // When canvas is open on desktop, limit to left 50% of screen (search mode is now full-screen)
               isCanvasOpen && !isMobile ? "right-[50%]" : "right-0",
-              rightPanelOpen && !isCanvasOpen && "lg:left-80 xl:left-96"
+              rightPanelDocked && !isCanvasOpen && "lg:left-80 xl:left-96"
             )}
           >
             <div className="max-w-4xl mx-auto">
@@ -974,10 +1015,22 @@ export function MobileChatApp() {
         {/* Right Panel */}
         <RightPanel
           isOpen={rightPanelOpen}
-          onClose={() => setRightPanelOpen(false)}
+          onClose={() => { setRightPanelDocked(false); setRightPanelOpen(false); }}
           activeTab={rightPanelTab as any}
           onTabChange={setRightPanelTab}
+          isDocked={rightPanelDocked}
+          onToggleDock={toggleDock}
+          onMouseEnter={cancelPanelClose}
+          onMouseLeave={schedulePanelClose}
         />
+
+        {/* Hover edge trigger — desktop only, opens panel preview without docking */}
+        {!isMobile && !isCanvasOpen && (
+          <div
+            className="fixed left-0 top-0 bottom-0 w-2 z-[55] hidden lg:block"
+            onMouseEnter={openPanelPreview}
+          />
+        )}
 
 
         {/* Music Popup */}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Crown, Quote, ChevronLeft, Lock, Unlock } from "lucide-react";
+import { X, Crown, Quote, ChevronLeft, Lock, Unlock, Pin, PinOff } from "lucide-react";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useAccentStore } from "@/store/useAccentStore";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
@@ -21,9 +21,13 @@ interface RightPanelProps {
   onClose: () => void;
   activeTab: RightPanelTab;
   onTabChange: (tab: RightPanelTab) => void;
+  isDocked?: boolean;
+  onToggleDock?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
+export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked = true, onToggleDock, onMouseEnter, onMouseLeave }: RightPanelProps) {
   // Detect PWA/Electron mode for conditional spacing
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const isAdminBannerActive = useAdminBanner();
@@ -117,6 +121,8 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
         initial={{ x: "-100%" }}
         animate={{ x: isOpen ? "0%" : "-100%" }}
         transition={{ type: "spring", damping: 18, stiffness: 320, mass: 0.65 }}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         className={cn(
           "fixed left-0 z-50 panel-solid border-r border-border shadow-2xl",
           "w-full sm:w-96 lg:w-80 xl:w-96",
@@ -144,9 +150,9 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
               {activeTab === "quote" ? (
                 <>
                   <Button
-                    onClick={() => onTabChange("history")}
                     variant="ghost"
                     size="sm"
+                    onClick={() => onTabChange("history")}
                     className="h-9 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   >
                     <ChevronLeft className="h-3.5 w-3.5 mr-1.5" /> Back
@@ -154,10 +160,16 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={onClose}
-                    className="ml-1 rounded-full bg-muted/50 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={onToggleDock ?? onClose}
+                    title={isDocked ? "Undock sidebar" : "Dock sidebar"}
+                    className={cn(
+                      "ml-1 rounded-full transition-colors",
+                      isDocked
+                        ? "bg-primary/15 text-primary hover:bg-primary/25"
+                        : "bg-muted/50 hover:bg-primary/15 hover:text-primary"
+                    )}
                   >
-                    <X className="h-4 w-4" />
+                    {isDocked ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
                   </Button>
                 </>
               ) : (
@@ -189,10 +201,16 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPan
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={onClose}
-                    className="ml-1 rounded-full bg-muted/50 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={onToggleDock ?? onClose}
+                    title={isDocked ? "Undock sidebar" : "Dock sidebar"}
+                    className={cn(
+                      "ml-1 rounded-full transition-colors",
+                      isDocked
+                        ? "bg-primary/15 text-primary hover:bg-primary/25"
+                        : "bg-muted/50 hover:bg-primary/15 hover:text-primary"
+                    )}
                   >
-                    <X className="h-4 w-4" />
+                    {isDocked ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
                   </Button>
                 </>
               )}
