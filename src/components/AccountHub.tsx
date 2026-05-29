@@ -82,6 +82,8 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     remainingMessages, remainingVoiceSessions,
     openCheckout, openCustomerPortal,
     FREE_DAILY_MESSAGE_LIMIT, FREE_DAILY_VOICE_LIMIT,
+    hasBoost, voiceConversations30d, FREE_VOICE_LIMIT_30D,
+    dailyImagesUsed, FREE_DAILY_IMAGE_LIMIT,
   } = subscription;
 
   const [activeTab, setActiveTab] = useState<HubTab>("overview");
