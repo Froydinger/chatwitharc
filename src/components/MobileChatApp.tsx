@@ -259,6 +259,7 @@ export function MobileChatApp() {
   const [showMobileCanvasInput, setShowMobileCanvasInput] = useState(false);
   const [canvasWidthPercent, setCanvasWidthPercent] = useState(50);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const canvasResizingRef = useRef(false);
   const snarkyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
