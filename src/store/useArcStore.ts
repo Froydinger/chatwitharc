@@ -379,11 +379,7 @@ export const useArcStore = create<ArcState>()(
 
           const remoteMessages: Message[] = Array.isArray(data?.messages) ? (data.messages as any) : [];
           const remoteCanvasContent = typeof data?.canvas_content === 'string' ? data.canvas_content : '';
-          const messagesCanvasContent = [...remoteMessages]
-            .reverse()
-            .find((message) => message?.type === 'canvas' && typeof message.canvasContent === 'string' && message.canvasContent.trim().length > 0)
-            ?.canvasContent;
-          const canvasContent = messagesCanvasContent || remoteCanvasContent;
+          const canvasContent = remoteCanvasContent;
 
           console.log(`✅ Hydrated session with ${remoteMessages.length} messages`);
 
