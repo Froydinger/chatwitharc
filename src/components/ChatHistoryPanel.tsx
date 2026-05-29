@@ -34,6 +34,7 @@ export function ChatHistoryPanel() {
 
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [shareSessionId, setShareSessionId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
