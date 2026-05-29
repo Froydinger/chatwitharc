@@ -629,7 +629,7 @@ export function MobileChatApp() {
       <div
         className={cn(
           "flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10",
-          rightPanelOpen && !isCanvasOpen && "lg:ml-80 xl:ml-96",
+          rightPanelDocked && !isCanvasOpen && "lg:ml-80 xl:ml-96",
         )}
       >
         {/* Floating header buttons - no bar, hide when canvas is open on desktop */}
