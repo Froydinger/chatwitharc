@@ -838,7 +838,7 @@ When the user shares their camera or attaches an image, describe what you see na
         savedTurnIndex = 0;
       });
     }
-  }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, toast, deactivateVoiceMode, saveNewTurns]);
+  }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, toast, deactivateVoiceMode, saveNewTurns, recordVoiceConversation]);
 
   // Periodic auto-save every 30s during active voice mode (reduced from 60s to
   // minimise data loss if a crash occurs between saves)
