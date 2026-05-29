@@ -160,7 +160,7 @@ export interface ArcState {
 
   // Supabase Sync
   syncFromSupabase: () => Promise<void>;
-  saveChatToSupabase: (session: ChatSession) => Promise<void>;
+  saveChatToSupabase: (session: ChatSession, revision?: number) => Promise<void>;
   isOnline: boolean;
   lastSyncAt: Date | null;
   isSyncing: boolean;
