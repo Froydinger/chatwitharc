@@ -23,6 +23,8 @@ function extractCanvasTitle(content: string): string | null {
   return null;
 }
 
+const sessionSaveRevisions = new Map<string, number>();
+
 export interface ChatResource {
   id: string;
   title: string;
