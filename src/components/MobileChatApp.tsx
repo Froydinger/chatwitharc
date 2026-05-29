@@ -1287,6 +1287,13 @@ export function MobileChatApp() {
       
       {/* Voice Mode Controller (orchestrates the conversation) */}
       <VoiceModeController />
+
+      {/* Share Chat Dialog */}
+      <ShareChatDialog
+        sessionId={currentSessionId}
+        open={isShareDialogOpen}
+        onOpenChange={setIsShareDialogOpen}
+      />
     </div>
   );
 }
