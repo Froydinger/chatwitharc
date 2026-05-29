@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Brain, LayoutDashboard, Share2 } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, LayoutDashboard, Share2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore } from "@/store/useArcStore";
@@ -676,22 +676,6 @@ export function MobileChatApp() {
 
               {/* Right side buttons - Context + Share + Music + Logo */}
               <div className="flex items-center gap-2 pointer-events-auto">
-                {/* Brain / Context Button */}
-                <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={cn(
-                      "rounded-full glass-shimmer transition-all",
-                      isContextPanelOpen && "ring-2 ring-primary/50"
-                    )}
-                    onClick={() => setIsContextPanelOpen(!isContextPanelOpen)}
-                    title="Context"
-                  >
-                    <Brain className="h-4 w-4" />
-                  </Button>
-                </motion.div>
-
                 {/* Share Button */}
                 {currentSessionId && messages.length > 0 && (
                   <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
