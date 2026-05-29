@@ -2422,17 +2422,17 @@ ${safeCode}
                       exit={{ opacity: 0, y: isDashboard ? -8 : 8, scale: 0.95 }}
                       transition={{ type: "spring", damping: 25, stiffness: 500 }}
                       className={cn(
-                        "relative grid grid-cols-2 sm:flex sm:flex-nowrap items-center justify-center gap-2 py-2.5 px-3 sm:px-4 rounded-3xl sm:rounded-full ring-[0.5px] ring-border/40 backdrop-blur-xl max-w-[88vw] sm:max-w-none",
+                        "relative grid grid-cols-2 sm:flex sm:flex-nowrap items-center justify-center gap-2 py-3 px-3 sm:px-4 rounded-3xl sm:rounded-full ring-[0.5px] ring-border/40 backdrop-blur-xl max-w-[88vw] sm:max-w-none",
                         isDashboard
                           ? "bg-black/80 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,.5)]"
                           : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]"
                       )}
                   >
                     {([
-                      { label: "Attach", icon: <Paperclip className="h-4 w-4 sm:h-3.5 sm:w-3.5" />, color: "text-blue-400", hideLabelDesktop: true, action: () => { setShowMenu(false); fileInputRef.current?.click(); }, hideInCorporate: true },
-                      { label: "Image", icon: <ImagePlus className="h-4 w-4 sm:h-3.5 sm:w-3.5" />, color: "text-green-400", action: () => { setForceImageMode(true); setShowMenu(false); }, hideInCorporate: true },
-                      { label: "Research", icon: <Search className="h-4 w-4 sm:h-3.5 sm:w-3.5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setShowMenu(false); openSearchMode(); }, hideInCorporate: true },
-                      { label: "Ideas", icon: <Lightbulb className="h-4 w-4 sm:h-3.5 sm:w-3.5" />, color: "text-violet-400", action: () => { setShowMenu(false); setShowPromptLibrary(true); } },
+                      { label: "Attach", icon: <Paperclip className="h-5 w-5" />, color: "text-blue-400", hideLabelDesktop: true, action: () => { setShowMenu(false); fileInputRef.current?.click(); }, hideInCorporate: true },
+                      { label: "Image", icon: <ImagePlus className="h-5 w-5" />, color: "text-green-400", action: () => { setForceImageMode(true); setShowMenu(false); }, hideInCorporate: true },
+                      { label: "Research", icon: <Search className="h-5 w-5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setShowMenu(false); openSearchMode(); }, hideInCorporate: true },
+                      { label: "Ideas", icon: <Lightbulb className="h-5 w-5" />, color: "text-violet-400", action: () => { setShowMenu(false); setShowPromptLibrary(true); } },
                     ] as Array<{ label: string; icon: JSX.Element; color: string; hideLabelDesktop?: boolean; hideInCorporate?: boolean; action: () => void }>)
                       .filter((item) => !(useCorporateModeStore.getState().enabled && item.hideInCorporate))
                       .map((item, i) => (
@@ -2444,7 +2444,7 @@ ${safeCode}
                         transition={{ delay: i * 0.02, type: "spring", damping: 25, stiffness: 500 }}
                         onClick={item.action}
                         className={cn(
-                          "flex items-center gap-1.5 px-3.5 py-2 sm:px-3 sm:py-1.5 rounded-full text-sm sm:text-xs font-medium",
+                          "flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium",
                           "hover:bg-white/10 active:scale-95 transition-all",
                           item.color
                         )}
@@ -2453,6 +2453,7 @@ ${safeCode}
                         {item.hideLabelDesktop ? <span className="sm:hidden text-foreground/80">{item.label}</span> : <span className="text-foreground/80">{item.label}</span>}
                       </motion.button>
                     ))}
+
                   </motion.div>
                 </div>
               );
