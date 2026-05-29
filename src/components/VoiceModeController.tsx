@@ -274,6 +274,7 @@ export function VoiceModeController() {
   const { toast } = useToast();
   const { addMessage, messages } = useArcStore();
   const { profile, updateProfile } = useProfile();
+  const { recordVoiceConversation } = useSubscription();
   const {
     isActive,
     selectedVoice,
