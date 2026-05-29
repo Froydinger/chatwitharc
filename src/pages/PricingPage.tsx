@@ -18,11 +18,11 @@ export function PricingPage() {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-4">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">Free Forever · Optional Boost</span>
+            <span className="text-sm font-medium">Free Forever · Boost Upgrade</span>
           </div>
           <h1 className="text-5xl font-bold mb-4">ArcAI is free for everyone.</h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            No subscriptions required. Power users can optionally add Boost for unlimited image and voice generation.
+            Want more? Upgrade to Boost for unlimited image and voice generation.
           </p>
         </div>
 
