@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { paymentsAvailable, getStripeEnvironment } from '@/lib/stripe';
 
-// ArcAI is 100% free. Chats and voice are unlimited for everyone.
-// Image generation is unlimited for admins, and rate-limited for everyone else.
-const FREE_DAILY_IMAGE_LIMIT = 10;
-const FREE_DAILY_MESSAGE_LIMIT = Infinity; // unlimited
-const FREE_DAILY_VOICE_LIMIT = Infinity; // unlimited
+// ArcAI is free forever. ArcAi Boost ($7/mo) is an OPTIONAL upgrade that
+// removes the two soft limits below.
+export const FREE_DAILY_IMAGE_LIMIT = 10;       // per UTC day
+export const FREE_VOICE_LIMIT_30D = 10;         // rolling 30 days
 
-// Hardcoded admin allowlist (case-insensitive) — these emails always get
-// unlimited images even if their DB admin row hasn't been provisioned yet.
+// Legacy exports kept so existing call sites don't break.
+const FREE_DAILY_MESSAGE_LIMIT = Infinity;
+const FREE_DAILY_VOICE_LIMIT = FREE_VOICE_LIMIT_30D;
+
 const UNLIMITED_EMAILS = new Set([
   'j@froydinger.com',
   'lopezvivtorymma@gmail.com',
@@ -43,28 +45,46 @@ function incrementDailyImageCount(): number {
 }
 
 interface SubscriptionState {
-  isSubscribed: boolean;
-  subscriptionEnd: string | null;
-  paymentStatus: 'ok' | 'past_due' | 'none';
+  // Boost entitlement
+  hasBoost: boolean;
   loading: boolean;
-  dailyMessagesUsed: number;
-  dailyVoiceSessionsUsed: number;
+
+  // Image quota (daily, client-side)
   dailyImagesUsed: number;
+  canGenerateImage: boolean;
+  remainingImages: number;
+
+  // Voice quota (rolling 30 days, server-side)
+  voiceConversations30d: number;
+  canStartVoiceConversation: boolean;
+  remainingVoiceConversations: number;
+
+  // Always-true (kept for legacy call sites)
+  isSubscribed: boolean;
   canSendMessage: boolean;
   canUseVoice: boolean;
-  canGenerateImage: boolean;
+  dailyMessagesUsed: number;
+  dailyVoiceSessionsUsed: number;
   remainingMessages: number;
   remainingVoiceSessions: number;
-  remainingImages: number;
+  subscriptionEnd: string | null;
+  paymentStatus: 'ok' | 'past_due' | 'none';
+
+  // Actions
   checkSubscription: () => Promise<void>;
+  refreshVoiceCount: () => Promise<void>;
   recordMessage: () => void;
   recordVoiceSession: () => void;
+  recordVoiceConversation: () => Promise<void>;
   recordImageGeneration: () => void;
-  openCheckout: () => Promise<void>;
+  openCheckout: () => void;
   openCustomerPortal: () => Promise<void>;
+
+  // Constants
   FREE_DAILY_MESSAGE_LIMIT: number;
   FREE_DAILY_VOICE_LIMIT: number;
   FREE_DAILY_IMAGE_LIMIT: number;
+  FREE_VOICE_LIMIT_30D: number;
 }
 
 const SubscriptionContext = createContext<SubscriptionState | null>(null);
@@ -72,58 +92,105 @@ const SubscriptionContext = createContext<SubscriptionState | null>(null);
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [hasBoostSub, setHasBoostSub] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dailyImagesUsed, setDailyImagesUsed] = useState(() => getDailyImageCount());
+  const [voiceConversations30d, setVoiceConversations30d] = useState(0);
 
   const emailUnlimited = !!user?.email && UNLIMITED_EMAILS.has(user.email.toLowerCase());
-  const hasUnlimitedImages = isAdmin || emailUnlimited;
+  const hasBoost = isAdmin || emailUnlimited || hasBoostSub;
 
-  // App is free for everyone — treat all users as "subscribed" so feature gates
-  // that previously required Pro (model family selector, etc.) are open to all.
-  const isSubscribed = true;
-
-  const canSendMessage = true;
-  const canUseVoice = true;
-  const canGenerateImage = hasUnlimitedImages || dailyImagesUsed < FREE_DAILY_IMAGE_LIMIT;
-
-  const remainingMessages = Infinity;
-  const remainingVoiceSessions = Infinity;
-  const remainingImages = hasUnlimitedImages
+  const canGenerateImage = hasBoost || dailyImagesUsed < FREE_DAILY_IMAGE_LIMIT;
+  const remainingImages = hasBoost
     ? Infinity
     : Math.max(0, FREE_DAILY_IMAGE_LIMIT - dailyImagesUsed);
+
+  const canStartVoiceConversation = hasBoost || voiceConversations30d < FREE_VOICE_LIMIT_30D;
+  const remainingVoiceConversations = hasBoost
+    ? Infinity
+    : Math.max(0, FREE_VOICE_LIMIT_30D - voiceConversations30d);
+
+  const refreshVoiceCount = useCallback(async () => {
+    if (!user || !supabase) {
+      setVoiceConversations30d(0);
+      return;
+    }
+    try {
+      const { data, error } = await supabase.rpc('count_voice_conversations_30d', {
+        target_user_id: user.id,
+      });
+      if (!error && typeof data === 'number') setVoiceConversations30d(data);
+    } catch (err) {
+      console.error('[subscription] voice count failed', err);
+    }
+  }, [user]);
 
   const checkSubscription = useCallback(async () => {
     if (!user || !supabase) {
       setIsAdmin(false);
+      setHasBoostSub(false);
       setLoading(false);
       return;
     }
     try {
-      const { data: adminData } = await supabase.rpc('is_admin_user');
+      const [{ data: adminData }, { data: boostData }] = await Promise.all([
+        supabase.rpc('is_admin_user'),
+        supabase.rpc('user_has_boost', { check_user_id: user.id }),
+      ]);
       setIsAdmin(!!adminData);
+      setHasBoostSub(!!boostData);
     } catch (err) {
-      console.error('Failed to check admin status:', err);
+      console.error('[subscription] check failed', err);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+    await refreshVoiceCount();
+  }, [user, refreshVoiceCount]);
 
   const recordMessage = useCallback(() => { /* unlimited */ }, []);
-  const recordVoiceSession = useCallback(() => { /* unlimited */ }, []);
+  const recordVoiceSession = useCallback(() => { /* legacy no-op */ }, []);
+
+  // Called when a voice session has had at least one user+assistant exchange.
+  const recordVoiceConversation = useCallback(async () => {
+    if (!user || !supabase || hasBoost) return;
+    try {
+      await supabase.rpc('record_voice_conversation', { target_user_id: user.id });
+      setVoiceConversations30d((c) => c + 1);
+    } catch (err) {
+      console.error('[subscription] record voice convo failed', err);
+    }
+  }, [user, hasBoost]);
 
   const recordImageGeneration = useCallback(() => {
-    if (!hasUnlimitedImages) {
+    if (!hasBoost) {
       const count = incrementDailyImageCount();
       setDailyImagesUsed(count);
     }
-  }, [hasUnlimitedImages]);
+  }, [hasBoost]);
 
-  // App is free — these are no-ops, retained so existing call sites don't break.
-  const openCheckout = useCallback(async () => {
-    console.info('[subscription] ArcAI is free — no checkout needed.');
+  // Opens the Boost upgrade modal (mounted globally in App.tsx).
+  const openCheckout = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
   }, []);
+
   const openCustomerPortal = useCallback(async () => {
-    console.info('[subscription] ArcAI is free — no billing portal.');
+    if (!paymentsAvailable()) {
+      window.alert('Billing portal is not configured yet.');
+      return;
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke('payments-portal', {
+        body: {
+          environment: getStripeEnvironment(),
+          returnUrl: window.location.origin,
+        },
+      });
+      if (error || !data?.url) throw new Error(error?.message || data?.error || 'Portal unavailable');
+      window.open(data.url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      console.error('[subscription] portal failed', err);
+      window.alert(err instanceof Error ? err.message : 'Could not open billing portal');
+    }
   }, []);
 
   useEffect(() => { checkSubscription(); }, [checkSubscription]);
@@ -131,35 +198,60 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     const handleFocus = () => {
       setDailyImagesUsed(getDailyImageCount());
+      refreshVoiceCount();
     };
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, []);
+  }, [refreshVoiceCount]);
+
+  // Realtime: re-check Boost when a subscription row changes
+  useEffect(() => {
+    if (!user || !supabase) return;
+    const channel = supabase
+      .channel(`boost-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'subscriptions', filter: `user_id=eq.${user.id}` },
+        () => checkSubscription(),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, checkSubscription]);
 
   return (
     <SubscriptionContext.Provider value={{
-      isSubscribed,
+      hasBoost,
+      loading,
+      dailyImagesUsed,
+      canGenerateImage,
+      remainingImages,
+      voiceConversations30d,
+      canStartVoiceConversation,
+      remainingVoiceConversations,
+
+      // Legacy
+      isSubscribed: hasBoost,
+      canSendMessage: true,
+      canUseVoice: canStartVoiceConversation,
+      dailyMessagesUsed: 0,
+      dailyVoiceSessionsUsed: voiceConversations30d,
+      remainingMessages: Infinity,
+      remainingVoiceSessions: remainingVoiceConversations,
       subscriptionEnd: null,
       paymentStatus: 'ok',
-      loading,
-      dailyMessagesUsed: 0,
-      dailyVoiceSessionsUsed: 0,
-      dailyImagesUsed,
-      canSendMessage,
-      canUseVoice,
-      canGenerateImage,
-      remainingMessages,
-      remainingVoiceSessions,
-      remainingImages,
+
       checkSubscription,
+      refreshVoiceCount,
       recordMessage,
       recordVoiceSession,
+      recordVoiceConversation,
       recordImageGeneration,
       openCheckout,
       openCustomerPortal,
       FREE_DAILY_MESSAGE_LIMIT,
       FREE_DAILY_VOICE_LIMIT,
       FREE_DAILY_IMAGE_LIMIT,
+      FREE_VOICE_LIMIT_30D,
     }}>
       {children}
     </SubscriptionContext.Provider>
