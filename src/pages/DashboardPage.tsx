@@ -1374,12 +1374,11 @@ useEffect(() => {
                     "flex items-center justify-center px-3 py-3 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation",
                     isActive ? "text-primary" : "text-muted-foreground/60 hover:text-muted-foreground"
                   )}
-                  style={{ zIndex: 20 }}
+                  style={{ zIndex: 20, opacity: isHiddenByBubble ? 0 : 1, transitionProperty: 'opacity', transitionDuration: '0.15s' }}
                 >
                   <Icon className={cn(
-                    "h-5 w-5 transition-all duration-150 ease-out",
-                    isActive && "drop-shadow-[0_0_12px_hsl(var(--primary)/0.6)]",
-                    isHiddenByBubble ? "scale-0 opacity-0" : "scale-100 opacity-100"
+                    "h-5 w-5 transition-all duration-300",
+                    isActive && "drop-shadow-[0_0_12px_hsl(var(--primary)/0.6)]"
                   )} />
                 </button>
               );
