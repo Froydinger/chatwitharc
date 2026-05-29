@@ -1086,8 +1086,7 @@ export function LandingScreen() {
               <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Forever.</span>
             </h2>
             <p className="text-gray-400 max-w-xl mx-auto text-lg">
-              No subscription, no credit card, no paywalls. Unlimited chats and voice, plus 10 image generations every
-              day.
+              No subscription &amp; no credit card to start. Unlimited chats, 10 voice conversations per month, and 10 image generations every day. Upgrade if you need more.
             </p>
           </motion.div>
 

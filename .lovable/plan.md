@@ -1,46 +1,15 @@
-## What's actually causing the AI bubble background
+The landing page CTA and a few related spots still say "Unlimited chats and voice" — but the free tier is actually 10 voice conversations per 30 days. This is misleading and needs fixing.
 
-There's an inline `<style>` block inside `src/components/MobileChatApp.tsx` (lines ~1214-1228) with this rule:
+## Changes
 
-```css
-.chat-messages [class*="bubble"] {
-  background: rgba(18,18,18,0.42) !important;
-  border: 1px solid rgba(255,255,255,0.06) !important;
-  border-radius: 18px !important;
-  backdrop-filter: blur(8px) saturate(118%) !important;
-  box-shadow: 0 2px 10px ..., inset ... !important;
-}
-```
+1. **LandingScreen.tsx — pricing section sub-headline**
+  - Current: "No subscription, no credit card, no paywalls. Unlimited chats and voice, plus 10 image generations every day."
+  - New: "No subscription & no credit card to start. Unlimited chats, 10 voice conversations per month, and 10 image generations every day. Upgrade if you need more."
+2. **SettingsPanel.tsx — Free plan description tile**
+  - Current: "Unlimited chats and voice. 10 image generations per day."
+  - New: "Unlimited chats. 10 voice conversations per 30 days. 10 image generations per day."
+3. **RouteSEO.tsx — meta description**
+  - Current: "Optional ArcAi Boost"
+  - New: "Upgrade via ArcAi Boost" (to match the paid-upgrade framing already applied elsewhere)
 
-The wildcard `[class*="bubble"]` matches **any** class containing the substring "bubble" — so it catches `arc-message-bubble` (the AI message wrapper). Because this style is injected after `index.css`, its `!important` wins over the `.arc-message-bubble { background: transparent !important }` rule I added. That's why nothing I changed in `index.css` made a visible difference.
-
-## Fix
-
-One-line change in `src/components/MobileChatApp.tsx`:
-
-```diff
-- .chat-messages [class*="bubble"]{
-+ .chat-messages [class*="bubble"]:not(.arc-message-bubble){
-```
-
-That excludes only the AI message container; the user bubble (`user-message-bubble`) is unaffected and keeps its glowy glass look.
-
-## Cleanup
-
-Also revert the now-unnecessary `!important` overrides I added in `src/index.css` for `.arc-message-bubble` so it goes back to the clean original:
-
-```css
-.arc-message-bubble {
-  position: relative;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  border-radius: 0;
-}
-```
-
-## Result
-
-- AI message text renders as free-floating text on the page — no bg, no border, no rounded rect, no blur.
-- User bubble unchanged (still glowy glass).
-- No other code or behavior touched.
+These are all text-only edits — no logic, no components, no backend changes.
