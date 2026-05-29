@@ -648,7 +648,7 @@ export function MobileChatApp() {
                 </motion.div>
 
                 {/* Share Button */}
-                {currentSessionId && (
+                {currentSessionId && messages.length > 0 && (
                   <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
                     <Button
                       variant="outline"
