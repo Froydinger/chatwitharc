@@ -753,7 +753,7 @@ export function SettingsPanel() {
       <Tile
         icon={Crown}
         title="Free forever"
-        description="Unlimited chats and voice. 10 image generations per day."
+        description="Unlimited chats. 10 voice conversations per 30 days. 10 image generations per day."
       />
     </SectionCard>
   );
