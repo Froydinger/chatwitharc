@@ -949,7 +949,7 @@ export function MobileChatApp() {
               messages.length === 0 ? "top-1/2 -translate-y-1/2" : "bottom-6",
               // When canvas is open on desktop, limit to left 50% of screen (search mode is now full-screen)
               isCanvasOpen && !isMobile ? "right-[50%]" : "right-0",
-              rightPanelOpen && !isCanvasOpen && "lg:left-80 xl:left-96"
+              rightPanelDocked && !isCanvasOpen && "lg:left-80 xl:left-96"
             )}
           >
             <div className="max-w-4xl mx-auto">
