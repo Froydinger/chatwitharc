@@ -2142,15 +2142,22 @@ ${safeCode}
                 "fixed z-[9999] flex items-center justify-center px-4",
                 rightPanelOpen && "lg:mr-80 xl:mr-96"
               )}
-              style={isDashboard ? {
-                top: inputBarRef.current ? inputBarRef.current.getBoundingClientRect().bottom + 12 : 120,
-                left: 0,
-                right: 0,
-              } : {
-                bottom: "calc(100px + env(safe-area-inset-bottom, 0px))",
-                left: 0,
-                right: 0,
-              }}
+              style={(() => {
+                const rect = inputBarRef.current?.getBoundingClientRect();
+                // If we have the input bar, position relative to it:
+                // input in upper half → menu below; input near bottom → menu above.
+                if (rect) {
+                  const inputInUpperHalf = rect.top < window.innerHeight * 0.5;
+                  if (inputInUpperHalf) {
+                    return { top: rect.bottom + 12, left: 0, right: 0 };
+                  }
+                  return { bottom: window.innerHeight - rect.top + 12, left: 0, right: 0 };
+                }
+                // Fallback
+                return isDashboard
+                  ? { top: 120, left: 0, right: 0 }
+                  : { bottom: "calc(100px + env(safe-area-inset-bottom, 0px))", left: 0, right: 0 };
+              })()}
             >
               {/* Compact inline pill bar */}
               <div className={cn(
