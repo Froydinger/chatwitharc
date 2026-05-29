@@ -547,7 +547,7 @@ export const useArcStore = create<ArcState>()(
           // CRITICAL: Check if we're about to overwrite non-empty data with empty data
           const { data: existingSession } = await supabase
             .from('chat_sessions')
-            .select('messages')
+            .select('messages, canvas_content, updated_at')
             .eq('id', session.id)
             .maybeSingle();
 
@@ -561,6 +561,17 @@ export const useArcStore = create<ArcState>()(
           if (existingMessageCount > 0 && newMessageCount === 0) {
             console.warn('⚠️ Skipped save: would overwrite', existingMessageCount, 'messages with empty array for session:', session.id);
             return; // Silently skip — this is a guard, not an error
+          }
+
+          const existingUpdatedAt = existingSession?.updated_at ? Date.parse(existingSession.updated_at as string) : 0;
+          const incomingUpdatedAt = session.lastMessageAt instanceof Date
+            ? session.lastMessageAt.getTime()
+            : Date.parse(String(session.lastMessageAt));
+          const remoteCanvas = typeof existingSession?.canvas_content === 'string' ? existingSession.canvas_content : '';
+          const incomingCanvas = typeof session.canvasContent === 'string' ? session.canvasContent : '';
+          if (remoteCanvas.trim() && !incomingCanvas.trim() && existingUpdatedAt > incomingUpdatedAt) {
+            console.warn('⚠️ Skipped save: would overwrite newer canvas content with empty content for session:', session.id);
+            return;
           }
 
           console.log('💾 Saving session:', session.id, '- Messages:', newMessageCount);
