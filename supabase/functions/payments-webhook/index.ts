@@ -1,120 +1,106 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// Stripe webhook handler for ArcAi Boost subscriptions.
+// Registered for both sandbox and live by enable_stripe_payments.
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { type StripeEnv, verifyWebhook } from "../_shared/stripe.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, paddle-signature",
-};
-
-// Convert hex string to Uint8Array
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
-  return bytes;
-}
-
-async function verifySignature(rawBody: string, signatureHeader: string, secret: string): Promise<boolean> {
-  try {
-    const parts = Object.fromEntries(signatureHeader.split(";").map((p) => p.split("=")));
-    const ts = parts.ts;
-    const h1 = parts.h1;
-    if (!ts || !h1) return false;
-    const key = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(secret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"],
+let _supabase: ReturnType<typeof createClient> | null = null;
+function getSupabase() {
+  if (!_supabase) {
+    _supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } },
     );
-    const sigBuf = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${ts}:${rawBody}`));
-    const expected = Array.from(new Uint8Array(sigBuf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-    // constant-time compare
-    if (expected.length !== h1.length) return false;
-    let diff = 0;
-    for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ h1.charCodeAt(i);
-    return diff === 0;
-  } catch (e) {
-    console.error("[payments-webhook] verify error", e);
-    return false;
   }
+  return _supabase;
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+function resolvePriceId(item: any): string | null {
+  return item?.price?.lookup_key
+    || item?.price?.metadata?.lovable_external_id
+    || item?.price?.id
+    || null;
+}
 
-  const url = new URL(req.url);
-  const env = url.searchParams.get("env") === "live" ? "live" : "sandbox";
-  const secret = env === "live"
-    ? Deno.env.get("PAYMENTS_LIVE_WEBHOOK_SECRET")
-    : Deno.env.get("PAYMENTS_SANDBOX_WEBHOOK_SECRET");
-
-  const rawBody = await req.text();
-  const sigHeader = req.headers.get("paddle-signature") ?? "";
-
-  if (!secret) {
-    console.error("[payments-webhook] missing webhook secret", { env });
-    return new Response(JSON.stringify({ error: "config" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+async function upsertSubscription(subscription: any, env: StripeEnv) {
+  const userId = subscription.metadata?.userId;
+  if (!userId) {
+    console.error("[payments-webhook] subscription event with no userId metadata", subscription.id);
+    return;
   }
+  const item = subscription.items?.data?.[0];
+  const priceId = resolvePriceId(item);
+  const productId = typeof item?.price?.product === "string" ? item.price.product : item?.price?.product?.id;
+  const periodStart = item?.current_period_start ?? subscription.current_period_start;
+  const periodEnd = item?.current_period_end ?? subscription.current_period_end;
 
-  const ok = await verifySignature(rawBody, sigHeader, secret);
-  if (!ok) {
-    console.error("[payments-webhook] invalid signature");
-    return new Response(JSON.stringify({ error: "invalid signature" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
-
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } },
+  await getSupabase().from("subscriptions").upsert(
+    {
+      user_id: userId,
+      stripe_subscription_id: subscription.id,
+      stripe_customer_id: subscription.customer,
+      product_id: productId,
+      price_id: priceId,
+      status: subscription.status,
+      current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
+      current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+      cancel_at_period_end: subscription.cancel_at_period_end || false,
+      environment: env,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "stripe_subscription_id" },
   );
+}
+
+async function markCanceled(subscription: any, env: StripeEnv) {
+  await getSupabase()
+    .from("subscriptions")
+    .update({
+      status: "canceled",
+      cancel_at_period_end: subscription.cancel_at_period_end || false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_subscription_id", subscription.id)
+    .eq("environment", env);
+}
+
+Deno.serve(async (req) => {
+  if (req.method !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+  const rawEnv = new URL(req.url).searchParams.get("env");
+  if (rawEnv !== "sandbox" && rawEnv !== "live") {
+    console.error("[payments-webhook] invalid env query param:", rawEnv);
+    return new Response(JSON.stringify({ received: true, ignored: "invalid env" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const env: StripeEnv = rawEnv;
 
   try {
-    const event = JSON.parse(rawBody);
-    const type: string = event.event_type ?? event.type ?? "";
-    const data = event.data ?? {};
-    console.log("[payments-webhook] event", { type, id: data.id });
+    const event = await verifyWebhook(req, env);
+    console.log("[payments-webhook]", env, event.type);
 
-    if (type.startsWith("subscription.")) {
-      const userId: string | undefined = data.custom_data?.user_id;
-      const customerId: string | undefined = data.customer_id;
-      const subId: string | undefined = data.id;
-      const status: string = data.status ?? "active";
-      const priceId: string | undefined = data.items?.[0]?.price?.id;
-      const productId: string | undefined = data.items?.[0]?.price?.product_id;
-      const periodEnd: string | undefined = data.current_billing_period?.ends_at;
-      const canceledAt: string | undefined = data.canceled_at;
-
-      if (!userId) {
-        // Fallback: look up by customer_id
-        const { data: existing } = await supabase.from("subscriptions").select("user_id").eq("paddle_customer_id", customerId).maybeSingle();
-        if (!existing) {
-          console.error("[payments-webhook] no user_id and no existing subscription", { customerId, subId });
-          return new Response(JSON.stringify({ received: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
-      }
-
-      const row = {
-        user_id: userId,
-        paddle_customer_id: customerId,
-        paddle_subscription_id: subId,
-        paddle_product_id: productId,
-        paddle_price_id: priceId,
-        status,
-        current_period_end: periodEnd,
-        canceled_at: canceledAt,
-        updated_at: new Date().toISOString(),
-      };
-
-      if (userId) {
-        await supabase.from("subscriptions").upsert(row, { onConflict: "user_id" });
-      } else if (subId) {
-        await supabase.from("subscriptions").update(row).eq("paddle_subscription_id", subId);
-      }
+    switch (event.type) {
+      case "customer.subscription.created":
+      case "customer.subscription.updated":
+        await upsertSubscription(event.data.object, env);
+        break;
+      case "customer.subscription.deleted":
+        await markCanceled(event.data.object, env);
+        break;
+      default:
+        // Ignore others (checkout.session.*, transaction.*, invoice.*, etc.)
+        break;
     }
 
-    return new Response(JSON.stringify({ received: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ received: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (err) {
     console.error("[payments-webhook] error", err);
-    return new Response(JSON.stringify({ received: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response("Webhook error", { status: 400 });
   }
 });
