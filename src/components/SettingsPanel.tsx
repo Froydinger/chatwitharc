@@ -274,6 +274,7 @@ export function SettingsPanel() {
   const { profile, updateProfile, updating } = useProfile();
   const {
     isSubscribed,
+    hasBoost,
     subscriptionEnd,
     openCheckout,
     openCustomerPortal,
@@ -748,21 +749,69 @@ export function SettingsPanel() {
     <SectionCard
       icon={Crown}
       title="Your Plan"
-      subtitle="ArcAI is free for everyone"
+      subtitle={hasBoost ? "ArcAI Boost — unlimited everything" : "Upgrade to unlock unlimited access"}
     >
-      <Tile
-        icon={Crown}
-        title="Free forever"
-        description="Unlimited chats. 10 voice conversations per 30 days. 10 image generations per day."
-      />
+      {hasBoost ? (
+        <>
+          <Tile
+            icon={Sparkles}
+            title="ArcAI Boost"
+            description="Unlimited chats, voice, and image generations. Access to all premium models."
+            right={<span className="text-xs font-semibold text-primary">ACTIVE</span>}
+          />
+          <Tile
+            icon={CreditCard}
+            title="Manage Billing"
+            description="Update payment method, view invoices, or cancel"
+            onClick={openCustomerPortal}
+            right={<span className="text-xs text-primary">Open →</span>}
+          />
+        </>
+      ) : (
+        <>
+          <Tile
+            icon={Crown}
+            title="Free Plan"
+            description="Unlimited chats. 10 voice conversations per 30 days. 10 image generations per day."
+          />
+          <button
+            onClick={openCheckout}
+            className="w-full text-left rounded-2xl p-4 border border-primary/40 bg-gradient-to-br from-primary/20 to-primary/5 hover:from-primary/30 hover:to-primary/10 transition-all group"
+          >
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/25 text-primary flex items-center justify-center shrink-0">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold text-foreground">Upgrade to ArcAI Boost</span>
+                  <span className="text-xs font-bold text-primary">$7/month</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Unlimited images, voice, premium models, Maestro's Studio & Arcana
+                </p>
+              </div>
+              <span className="text-primary text-sm font-semibold group-hover:translate-x-0.5 transition-transform shrink-0">
+                Upgrade →
+              </span>
+            </div>
+          </button>
+        </>
+      )}
     </SectionCard>
   );
 
   const UsageCard = (
-    <SectionCard icon={Stars} title="Today's Usage" subtitle="Image limit resets daily">
+    <SectionCard icon={Stars} title="Today's Usage" subtitle={hasBoost ? "Unlimited with Boost" : "Image limit resets daily"}>
       <Tile
         title="Image Generations"
-        right={<span className="font-mono text-foreground text-sm">{dailyImagesUsed} / {FREE_DAILY_IMAGE_LIMIT}</span>}
+        right={
+          hasBoost ? (
+            <span className="font-mono text-primary text-sm">Unlimited</span>
+          ) : (
+            <span className="font-mono text-foreground text-sm">{dailyImagesUsed} / {FREE_DAILY_IMAGE_LIMIT}</span>
+          )
+        }
       />
     </SectionCard>
   );
