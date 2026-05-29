@@ -102,6 +102,7 @@ const App = () => {
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/chat/:sessionId" element={<Index />} />
+                  <Route path="/share/:sessionId" element={<SharedChatPage />} />
                   <Route path="/downloads" element={<DownloadPage />} />
                   <Route path="/pricing" element={<PricingPage />} />
                   <Route path="/dashboard" element={<DashboardPage />} />
