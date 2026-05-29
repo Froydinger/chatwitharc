@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Crown, Quote, ChevronLeft, Lock, Unlock } from "lucide-react";
+import { X, Crown, Quote, ChevronLeft, Lock, Unlock, Pin, PinOff } from "lucide-react";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useAccentStore } from "@/store/useAccentStore";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
@@ -21,9 +21,13 @@ interface RightPanelProps {
   onClose: () => void;
   activeTab: RightPanelTab;
   onTabChange: (tab: RightPanelTab) => void;
+  isDocked?: boolean;
+  onToggleDock?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-export function RightPanel({ isOpen, onClose, activeTab, onTabChange }: RightPanelProps) {
+export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked = true, onToggleDock, onMouseEnter, onMouseLeave }: RightPanelProps) {
   // Detect PWA/Electron mode for conditional spacing
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const isAdminBannerActive = useAdminBanner();
