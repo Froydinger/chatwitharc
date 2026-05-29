@@ -157,13 +157,24 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                   >
                     <ChevronLeft className="h-3.5 w-3.5 mr-1.5" /> Back
                   </Button>
+                  {/* Mobile: X close button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    title="Close sidebar"
+                    className="lg:hidden ml-1 rounded-full transition-colors bg-muted/50 hover:bg-primary/15 hover:text-primary"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  {/* Desktop: Pin dock/undock button */}
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={onToggleDock ?? onClose}
                     title={isDocked ? "Undock sidebar" : "Dock sidebar"}
                     className={cn(
-                      "ml-1 rounded-full transition-colors",
+                      "hidden lg:flex ml-1 rounded-full transition-colors",
                       isDocked
                         ? "bg-primary/15 text-primary hover:bg-primary/25"
                         : "bg-muted/50 hover:bg-primary/15 hover:text-primary"
@@ -198,13 +209,24 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                       {corporateMode ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
                     </Button>
                   )}
+                  {/* Mobile: X close button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    title="Close sidebar"
+                    className="lg:hidden ml-1 rounded-full transition-colors bg-muted/50 hover:bg-primary/15 hover:text-primary"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  {/* Desktop: Pin dock/undock button */}
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={onToggleDock ?? onClose}
                     title={isDocked ? "Undock sidebar" : "Dock sidebar"}
                     className={cn(
-                      "ml-1 rounded-full transition-colors",
+                      "hidden lg:flex ml-1 rounded-full transition-colors",
                       isDocked
                         ? "bg-primary/15 text-primary hover:bg-primary/25"
                         : "bg-muted/50 hover:bg-primary/15 hover:text-primary"
