@@ -559,9 +559,15 @@ export function MobileChatApp() {
     const newSessionId = createNewSession();
     navigate(`/chat/${newSessionId}`);
 
+    // Close panel only on mobile or when undocked on desktop. Keep docked sidebar open.
+    if (isMobile || !rightPanelDocked) {
+      setRightPanelOpen(false);
+    }
+
     // Reset model to Quick for new chat (session only)
     sessionStorage.setItem("arc_session_model", "google/gemini-3-flash-preview");
   };
+
 
 
   const triggerPrompt = useCallback(
