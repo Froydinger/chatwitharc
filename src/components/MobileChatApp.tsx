@@ -1186,11 +1186,13 @@ export function MobileChatApp() {
         @keyframes twinkle { 0%,100%{transform:scale(0.9) rotate(0); opacity:0.85} 50%{transform:scale(1.05) rotate(8deg); opacity:1} }
         .animate-twinkle{ animation: twinkle 1.6s ease-in-out infinite; }
 
-        /* Subtle glass bubbles for message area */
+        /* Subtle glass bubbles for generic message-area surfaces.
+           Explicitly exclude .user-message-bubble and .arc-message-bubble so the
+           MessageBubble component's gorgeous aurora-glow styling wins. */
         .chat-messages .surface,
         .chat-messages .card,
-        .chat-messages [data-bubble],
-        .chat-messages [class*="bubble"]:not(.arc-message-bubble){
+        .chat-messages [data-bubble]:not(.user-message-bubble):not(.arc-message-bubble),
+        .chat-messages [class*="bubble"]:not(.user-message-bubble):not(.arc-message-bubble){
           border-radius: 18px !important;
           background: rgba(18,18,18,0.42) !important;
           backdrop-filter: blur(8px) saturate(118%) !important;
