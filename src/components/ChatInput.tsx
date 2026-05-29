@@ -374,6 +374,26 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
    const inputBarRef = useRef<HTMLDivElement>(null);
   const modelLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Tick to force re-render when the input bar's screen position can change
+  // (window resize, scroll, soft keyboard open/close via visualViewport).
+  // Used to anchor floating menus (ImageOptionsDock, UsageMeter) just above
+  // the input bar rather than glued to the viewport bottom.
+  const [, setViewportTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setViewportTick((t) => (t + 1) % 1000000);
+    window.addEventListener("resize", bump);
+    window.addEventListener("scroll", bump, true);
+    window.visualViewport?.addEventListener("resize", bump);
+    window.visualViewport?.addEventListener("scroll", bump);
+    return () => {
+      window.removeEventListener("resize", bump);
+      window.removeEventListener("scroll", bump, true);
+      window.visualViewport?.removeEventListener("resize", bump);
+      window.visualViewport?.removeEventListener("scroll", bump);
+    };
+  }, []);
+
+
   // Prompt library
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
   const quickPrompts = getAllPromptsFlat();
@@ -1920,19 +1940,28 @@ ${safeCode}
       {!inline && (shouldShowBanana || (selectedImages.length > 0 && allImagesEditMode)) && (() => {
         const hasImages = selectedImages.length > 0;
         const hasDocs = selectedDocuments.length > 0;
-        // Each preview row adds ~100px above the input bar.
-        const stackPx = 110 + (hasImages ? 100 : 0) + (hasDocs ? 100 : 0);
+        // Anchor relative to the input bar so the dock floats just above it
+        // instead of being glued to the viewport bottom. Falls back to the
+        // old bottom-anchored math if the ref isn't measured yet.
+        const rect = inputBarRef.current?.getBoundingClientRect();
+        const previewStack = (hasImages ? 100 : 0) + (hasDocs ? 100 : 0);
+        const dockBottom = rect
+          ? `${Math.max(12, window.innerHeight - rect.top + 12 + previewStack)}px`
+          : `calc(${110 + previewStack}px + env(safe-area-inset-bottom, 0px))`;
+        const meterBottom = rect
+          ? `${Math.max(12, window.innerHeight - rect.top + 12 + previewStack + 70)}px`
+          : `calc(${110 + previewStack + 70}px + env(safe-area-inset-bottom, 0px))`;
         return (
           <>
             <ImageOptionsDock
               portalRoot={portalRoot}
-              bottomOffset={`calc(${stackPx}px + env(safe-area-inset-bottom, 0px))`}
+              bottomOffset={dockBottom}
             />
             {/* Floating usage meter — only renders for non-Boost users */}
             {portalRoot && createPortal(
               <div
                 className="fixed left-1/2 -translate-x-1/2 z-[34] pointer-events-auto"
-                style={{ bottom: `calc(${stackPx + 70}px + env(safe-area-inset-bottom, 0px))` }}
+                style={{ bottom: meterBottom }}
               >
                 <UsageMeter kind="image" />
               </div>,
@@ -1941,6 +1970,7 @@ ${safeCode}
           </>
         );
       })()}
+
 
       {/* Selected Documents preview - for non-inline, portal above dock */}
       {!inline && selectedDocuments.length > 0 && portalRoot && createPortal(
@@ -2392,17 +2422,17 @@ ${safeCode}
                       exit={{ opacity: 0, y: isDashboard ? -8 : 8, scale: 0.95 }}
                       transition={{ type: "spring", damping: 25, stiffness: 500 }}
                       className={cn(
-                        "relative grid grid-cols-2 sm:flex sm:flex-nowrap items-center justify-center gap-2 py-2.5 px-3 sm:px-4 rounded-3xl sm:rounded-full ring-[0.5px] ring-border/40 backdrop-blur-xl max-w-[88vw] sm:max-w-none",
+                        "relative grid grid-cols-2 sm:flex sm:flex-nowrap items-center justify-center gap-2 py-3 px-3 sm:px-4 rounded-3xl sm:rounded-full ring-[0.5px] ring-border/40 backdrop-blur-xl max-w-[88vw] sm:max-w-none",
                         isDashboard
                           ? "bg-black/80 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,.5)]"
                           : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]"
                       )}
                   >
                     {([
-                      { label: "Attach", icon: <Paperclip className="h-4 w-4 sm:h-3.5 sm:w-3.5" />, color: "text-blue-400", hideLabelDesktop: true, action: () => { setShowMenu(false); fileInputRef.current?.click(); }, hideInCorporate: true },
-                      { label: "Image", icon: <ImagePlus className="h-4 w-4 sm:h-3.5 sm:w-3.5" />, color: "text-green-400", action: () => { setForceImageMode(true); setShowMenu(false); }, hideInCorporate: true },
-                      { label: "Research", icon: <Search className="h-4 w-4 sm:h-3.5 sm:w-3.5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setShowMenu(false); openSearchMode(); }, hideInCorporate: true },
-                      { label: "Ideas", icon: <Lightbulb className="h-4 w-4 sm:h-3.5 sm:w-3.5" />, color: "text-violet-400", action: () => { setShowMenu(false); setShowPromptLibrary(true); } },
+                      { label: "Attach", icon: <Paperclip className="h-5 w-5" />, color: "text-blue-400", hideLabelDesktop: true, action: () => { setShowMenu(false); fileInputRef.current?.click(); }, hideInCorporate: true },
+                      { label: "Image", icon: <ImagePlus className="h-5 w-5" />, color: "text-green-400", action: () => { setForceImageMode(true); setShowMenu(false); }, hideInCorporate: true },
+                      { label: "Research", icon: <Search className="h-5 w-5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setShowMenu(false); openSearchMode(); }, hideInCorporate: true },
+                      { label: "Ideas", icon: <Lightbulb className="h-5 w-5" />, color: "text-violet-400", action: () => { setShowMenu(false); setShowPromptLibrary(true); } },
                     ] as Array<{ label: string; icon: JSX.Element; color: string; hideLabelDesktop?: boolean; hideInCorporate?: boolean; action: () => void }>)
                       .filter((item) => !(useCorporateModeStore.getState().enabled && item.hideInCorporate))
                       .map((item, i) => (
@@ -2414,7 +2444,7 @@ ${safeCode}
                         transition={{ delay: i * 0.02, type: "spring", damping: 25, stiffness: 500 }}
                         onClick={item.action}
                         className={cn(
-                          "flex items-center gap-1.5 px-3.5 py-2 sm:px-3 sm:py-1.5 rounded-full text-sm sm:text-xs font-medium",
+                          "flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium",
                           "hover:bg-white/10 active:scale-95 transition-all",
                           item.color
                         )}
@@ -2423,6 +2453,7 @@ ${safeCode}
                         {item.hideLabelDesktop ? <span className="sm:hidden text-foreground/80">{item.label}</span> : <span className="text-foreground/80">{item.label}</span>}
                       </motion.button>
                     ))}
+
                   </motion.div>
                 </div>
               );
