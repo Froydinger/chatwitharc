@@ -374,7 +374,12 @@ export const useArcStore = create<ArcState>()(
           }
 
           const remoteMessages: Message[] = Array.isArray(data?.messages) ? (data.messages as any) : [];
-          const canvasContent = typeof data?.canvas_content === 'string' ? data.canvas_content : '';
+          const remoteCanvasContent = typeof data?.canvas_content === 'string' ? data.canvas_content : '';
+          const messagesCanvasContent = [...remoteMessages]
+            .reverse()
+            .find((message) => message?.type === 'canvas' && typeof message.canvasContent === 'string' && message.canvasContent.trim().length > 0)
+            ?.canvasContent;
+          const canvasContent = messagesCanvasContent || remoteCanvasContent;
 
           console.log(`✅ Hydrated session with ${remoteMessages.length} messages`);
 
@@ -396,7 +401,11 @@ export const useArcStore = create<ArcState>()(
               cs.id === sessionId 
                 ? { 
                     ...cs, 
-                    messages: remoteMessages, 
+                    messages: canvasContent
+                      ? remoteMessages.map((message) =>
+                          message?.type === 'canvas' ? { ...message, canvasContent } : message
+                        )
+                      : remoteMessages,
                     canvasContent,
                     isHydrated: true,
                     messageCount: remoteMessages.length
