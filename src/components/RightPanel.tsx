@@ -121,6 +121,8 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
         initial={{ x: "-100%" }}
         animate={{ x: isOpen ? "0%" : "-100%" }}
         transition={{ type: "spring", damping: 18, stiffness: 320, mass: 0.65 }}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         className={cn(
           "fixed left-0 z-50 panel-solid border-r border-border shadow-2xl",
           "w-full sm:w-96 lg:w-80 xl:w-96",
