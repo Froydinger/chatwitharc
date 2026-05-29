@@ -2193,10 +2193,10 @@ ${safeCode}
           onClick={async () => {
             if (user && !subscription.canUseVoice) {
               toast({
-                title: "Voice session limit reached",
-                description: "Upgrade to ArcAi Pro for unlimited voice sessions.",
-                variant: "destructive",
+                title: "Voice limit reached",
+                description: "You've used your 10 free voice conversations this month. Upgrade to ArcAi Boost for unlimited voice.",
               });
+              subscription.openCheckout();
               return;
             }
 

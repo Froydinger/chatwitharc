@@ -82,6 +82,8 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     remainingMessages, remainingVoiceSessions,
     openCheckout, openCustomerPortal,
     FREE_DAILY_MESSAGE_LIMIT, FREE_DAILY_VOICE_LIMIT,
+    hasBoost, voiceConversations30d, FREE_VOICE_LIMIT_30D,
+    dailyImagesUsed, FREE_DAILY_IMAGE_LIMIT,
   } = subscription;
 
   const [activeTab, setActiveTab] = useState<HubTab>("overview");
@@ -248,8 +250,8 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     : null;
 
 
-  const msgPercent = isSubscribed ? 0 : Math.min(100, (dailyMessagesUsed / FREE_DAILY_MESSAGE_LIMIT) * 100);
-  const voicePercent = isSubscribed ? 0 : Math.min(100, (dailyVoiceSessionsUsed / FREE_DAILY_VOICE_LIMIT) * 100);
+  const imagePercent = hasBoost ? 0 : Math.min(100, (dailyImagesUsed / FREE_DAILY_IMAGE_LIMIT) * 100);
+  const voicePercent = hasBoost ? 0 : Math.min(100, (voiceConversations30d / FREE_VOICE_LIMIT_30D) * 100);
 
   const getSyncStatus = () => {
     if (!user) return { icon: CloudOff, color: "text-muted-foreground", text: "Not signed in" };
@@ -336,12 +338,12 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                 <div className="p-4 rounded-xl glass border border-border/30 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Crown className={cn("h-4 w-4", isSubscribed ? "text-primary" : "text-muted-foreground")} />
+                      <Crown className={cn("h-4 w-4", hasBoost ? "text-primary" : "text-muted-foreground")} />
                       <span className="font-medium">
-                        {subLoading ? "Loading..." : isSubscribed ? "ArcAI Pro" : "Free Plan"}
+                        {subLoading ? "Loading..." : hasBoost ? "ArcAi Boost" : "Free · ArcAI"}
                       </span>
                     </div>
-                    {isSubscribed ? (
+                    {hasBoost ? (
                       <Button size="sm" variant="outline" className="h-7 text-xs glass border-glass-border" onClick={handlePortal} disabled={portalLoading}>
                         {portalLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Manage"}
                       </Button>
@@ -350,26 +352,29 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                         size="sm" className="h-7 text-xs noir-send-btn"
                         onClick={() => { onClose(); window.dispatchEvent(new CustomEvent('open-upgrade-modal')); }}
                       >
-                        Upgrade to Pro
+                        Get Boost
                       </Button>
                     )}
                   </div>
-                  {!isSubscribed && !subLoading && (
+                  {!hasBoost && !subLoading && (
                     <div className="space-y-2">
                       <div>
                         <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                          <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" /> Messages</span>
-                          <span>{dailyMessagesUsed}/{FREE_DAILY_MESSAGE_LIMIT}</span>
+                          <span>🖼️ Images (today)</span>
+                          <span>{dailyImagesUsed}/{FREE_DAILY_IMAGE_LIMIT}</span>
                         </div>
-                        <Progress value={msgPercent} className="h-1.5" />
+                        <Progress value={imagePercent} className="h-1.5" />
                       </div>
                       <div>
                         <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                          <span>🎙️ Voice Sessions</span>
-                          <span>{dailyVoiceSessionsUsed}/{FREE_DAILY_VOICE_LIMIT}</span>
+                          <span>🎙️ Voice (last 30 days)</span>
+                          <span>{voiceConversations30d}/{FREE_VOICE_LIMIT_30D}</span>
                         </div>
                         <Progress value={voicePercent} className="h-1.5" />
                       </div>
+                      <p className="text-[10px] text-muted-foreground/70 text-center pt-1">
+                        ArcAI is free forever. Boost is an optional upgrade.
+                      </p>
                     </div>
                   )}
                 </div>
