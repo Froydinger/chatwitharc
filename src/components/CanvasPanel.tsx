@@ -312,12 +312,22 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     toast({ title: `Downloaded as .${extension}` });
   };
 
-  const handleSaveVersion = async () => {
+  const persistCurrentCanvas = async () => {
     if (!content.trim()) return;
-    saveVersion();
     if (currentSessionId) {
       await updateSessionCanvasContent(currentSessionId, content);
     }
+  };
+
+  const handleCloseCanvas = () => {
+    void persistCurrentCanvas();
+    closeCanvas();
+  };
+
+  const handleSaveVersion = async () => {
+    if (!content.trim()) return;
+    saveVersion();
+    await persistCurrentCanvas();
     toast({ title: "Version saved" });
   };
 
@@ -380,7 +390,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={closeCanvas}
+            onClick={handleCloseCanvas}
             className="h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all"
           >
             <ChevronLeft className="w-5 h-5" />

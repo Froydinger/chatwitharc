@@ -23,6 +23,8 @@ function extractCanvasTitle(content: string): string | null {
   return null;
 }
 
+const sessionSaveRevisions = new Map<string, number>();
+
 export interface ChatResource {
   id: string;
   title: string;
@@ -158,7 +160,7 @@ export interface ArcState {
 
   // Supabase Sync
   syncFromSupabase: () => Promise<void>;
-  saveChatToSupabase: (session: ChatSession) => Promise<void>;
+  saveChatToSupabase: (session: ChatSession, revision?: number) => Promise<void>;
   isOnline: boolean;
   lastSyncAt: Date | null;
   isSyncing: boolean;
@@ -185,6 +187,8 @@ export const useArcStore = create<ArcState>()(
       allSessionsHydrated: false,
 
       updateSessionCanvasContent: async (sessionId: string, canvasContent: string) => {
+        const revision = (sessionSaveRevisions.get(sessionId) ?? 0) + 1;
+        sessionSaveRevisions.set(sessionId, revision);
         const state = get();
         const existing = state.chatSessions.find(s => s.id === sessionId);
         if (!existing) return;
@@ -202,7 +206,7 @@ export const useArcStore = create<ArcState>()(
 
         // Persist without touching message arrays
         try {
-          await get().saveChatToSupabase(updated);
+          await get().saveChatToSupabase(updated, revision);
         } catch (e) {
           console.error('❌ Failed to save canvas to Supabase:', e);
         }
@@ -375,11 +379,7 @@ export const useArcStore = create<ArcState>()(
 
           const remoteMessages: Message[] = Array.isArray(data?.messages) ? (data.messages as any) : [];
           const remoteCanvasContent = typeof data?.canvas_content === 'string' ? data.canvas_content : '';
-          const messagesCanvasContent = [...remoteMessages]
-            .reverse()
-            .find((message) => message?.type === 'canvas' && typeof message.canvasContent === 'string' && message.canvasContent.trim().length > 0)
-            ?.canvasContent;
-          const canvasContent = messagesCanvasContent || remoteCanvasContent;
+          const canvasContent = remoteCanvasContent;
 
           console.log(`✅ Hydrated session with ${remoteMessages.length} messages`);
 
@@ -536,7 +536,11 @@ export const useArcStore = create<ArcState>()(
         }
       },
 
-      saveChatToSupabase: async (session: ChatSession) => {
+      saveChatToSupabase: async (session: ChatSession, revision?: number) => {
+        if (revision !== undefined && sessionSaveRevisions.get(session.id) !== revision) {
+          console.log('⏭️ Skipped stale session save:', session.id);
+          return;
+        }
         if (session.isLocalOnly) {
           // Corporate Mode session — stays on this device only.
           return;
