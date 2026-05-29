@@ -562,41 +562,62 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          cancel_at_period_end: boolean
           canceled_at: string | null
           created_at: string
           current_period_end: string | null
+          current_period_start: string | null
+          environment: string
           id: string
           paddle_customer_id: string | null
           paddle_price_id: string | null
           paddle_product_id: string | null
           paddle_subscription_id: string | null
+          price_id: string | null
+          product_id: string | null
           status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          cancel_at_period_end?: boolean
           canceled_at?: string | null
           created_at?: string
           current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
           id?: string
           paddle_customer_id?: string | null
           paddle_price_id?: string | null
           paddle_product_id?: string | null
           paddle_subscription_id?: string | null
+          price_id?: string | null
+          product_id?: string | null
           status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          cancel_at_period_end?: boolean
           canceled_at?: string | null
           created_at?: string
           current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
           id?: string
           paddle_customer_id?: string | null
           paddle_price_id?: string | null
           paddle_product_id?: string | null
           paddle_subscription_id?: string | null
+          price_id?: string | null
+          product_id?: string | null
           status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -694,6 +715,24 @@ export type Database = {
           },
         ]
       }
+      voice_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       voice_diagnostics: {
         Row: {
           connection_state: string | null
@@ -739,6 +778,10 @@ export type Database = {
     }
     Functions: {
       count_user_images: { Args: { target_user_id: string }; Returns: number }
+      count_voice_conversations_30d: {
+        Args: { target_user_id: string }
+        Returns: number
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -776,6 +819,10 @@ export type Database = {
           read_ct: number
         }[]
       }
+      record_voice_conversation: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
       search_chat_sessions: {
         Args: {
           max_sessions?: number
@@ -789,6 +836,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      user_has_boost: { Args: { check_user_id: string }; Returns: boolean }
       user_has_pro_access: { Args: { check_user_id: string }; Returns: boolean }
     }
     Enums: {
