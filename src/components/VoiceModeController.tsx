@@ -817,6 +817,15 @@ When the user shares their camera or attaches an image, describe what you see na
 
       // Final save of any remaining turns
       saveNewTurns(true).then((count) => {
+        const finalTurns = useVoiceModeStore.getState().conversationTurns;
+        const hadExchange =
+          finalTurns.some((t) => t.role === 'user' && t.transcript.trim()) &&
+          finalTurns.some((t) => t.role === 'assistant' && t.transcript.trim());
+        if (hadExchange) {
+          recordVoiceConversation().catch((e) =>
+            console.error('Failed to record voice conversation:', e)
+          );
+        }
         if (count > 0 || savedTurnIndex > 0) {
           console.log(`✅ Voice conversation fully saved (${savedTurnIndex} total turns)`);
           toast({
