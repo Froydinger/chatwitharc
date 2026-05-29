@@ -142,7 +142,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   openWithContent: (content: string, type: CanvasType = 'writing', language = 'typescript') => {
     const state = get();
-    if (state.content === content && state.versions.length > 0) {
+    const hasLiveCanvas = state.content.trim().length > 0 && state.versions.length > 0;
+    if (hasLiveCanvas && (state.content === content || type === state.canvasType)) {
       set({
         isOpen: true,
         mode: 'sideBySide',
