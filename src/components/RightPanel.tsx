@@ -150,9 +150,9 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
               {activeTab === "quote" ? (
                 <>
                   <Button
-                    onClick={() => onTabChange("history")}
                     variant="ghost"
                     size="sm"
+                    onClick={() => onTabChange("history")}
                     className="h-9 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   >
                     <ChevronLeft className="h-3.5 w-3.5 mr-1.5" /> Back
@@ -160,10 +160,16 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={onClose}
-                    className="ml-1 rounded-full bg-muted/50 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={onToggleDock ?? onClose}
+                    title={isDocked ? "Undock sidebar" : "Dock sidebar"}
+                    className={cn(
+                      "ml-1 rounded-full transition-colors",
+                      isDocked
+                        ? "bg-primary/15 text-primary hover:bg-primary/25"
+                        : "bg-muted/50 hover:bg-primary/15 hover:text-primary"
+                    )}
                   >
-                    <X className="h-4 w-4" />
+                    {isDocked ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
                   </Button>
                 </>
               ) : (
@@ -195,10 +201,16 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={onClose}
-                    className="ml-1 rounded-full bg-muted/50 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={onToggleDock ?? onClose}
+                    title={isDocked ? "Undock sidebar" : "Dock sidebar"}
+                    className={cn(
+                      "ml-1 rounded-full transition-colors",
+                      isDocked
+                        ? "bg-primary/15 text-primary hover:bg-primary/25"
+                        : "bg-muted/50 hover:bg-primary/15 hover:text-primary"
+                    )}
                   >
-                    <X className="h-4 w-4" />
+                    {isDocked ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
                   </Button>
                 </>
               )}
