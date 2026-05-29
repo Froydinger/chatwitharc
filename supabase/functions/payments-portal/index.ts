@@ -1,69 +1,60 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// Open a Stripe Billing Portal session for the authenticated user.
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "../_shared/stripe.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const PADDLE_API = (env: "sandbox" | "live") =>
-  env === "live" ? "https://api.paddle.com" : "https://sandbox-api.paddle.com";
-
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("Unauthorized");
+
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { persistSession: false } },
     );
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No auth");
-    const { data: userData } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
-    const user = userData.user;
-    if (!user) throw new Error("User not authenticated");
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) throw new Error("Unauthorized");
+
+    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+    const environment: StripeEnv = body?.environment === "live" ? "live" : "sandbox";
+    const returnUrl: string | undefined = body?.returnUrl;
 
     const { data: sub } = await supabase
       .from("subscriptions")
-      .select("paddle_subscription_id, paddle_customer_id")
+      .select("stripe_customer_id")
       .eq("user_id", user.id)
+      .eq("environment", environment)
+      .not("stripe_customer_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
-    if (!sub?.paddle_subscription_id) throw new Error("No subscription found");
+    if (!sub?.stripe_customer_id) throw new Error("No subscription found");
 
-    // Determine env from URL prefix on stored sub id or fall back to live
-    const isProd = !!Deno.env.get("PADDLE_LIVE_API_KEY");
-    const env: "sandbox" | "live" = isProd ? "live" : "sandbox";
-    const apiKey = env === "live"
-      ? Deno.env.get("PADDLE_LIVE_API_KEY")
-      : Deno.env.get("PADDLE_SANDBOX_API_KEY");
-
-    if (!apiKey) throw new Error("Paddle API key not configured");
-
-    // Generate a customer portal session
-    const resp = await fetch(`${PADDLE_API(env)}/customers/${sub.paddle_customer_id}/portal-sessions`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ subscription_ids: [sub.paddle_subscription_id] }),
+    const stripe = createStripeClient(environment);
+    const portal = await stripe.billingPortal.sessions.create({
+      customer: sub.stripe_customer_id,
+      ...(returnUrl && { return_url: returnUrl }),
     });
 
-    const json = await resp.json();
-    if (!resp.ok) throw new Error(`Paddle error: ${JSON.stringify(json)}`);
-
-    const url = json.data?.urls?.general?.overview ?? json.data?.urls?.subscriptions?.[0]?.cancel_subscription;
-    return new Response(JSON.stringify({ url }), {
+    return new Response(JSON.stringify({ url: portal.url }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500,
+    console.error("[payments-portal]", err);
+    return new Response(JSON.stringify({ error: getStripeErrorMessage(err) }), {
+      status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
