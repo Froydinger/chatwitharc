@@ -653,7 +653,7 @@ export function MobileChatApp() {
                     className="rounded-full glass-shimmer transition-all"
                     onClick={() => {
                       if (isMobile) {
-                        setRightPanelOpen(prev => !prev);
+                        setRightPanelOpen(!rightPanelOpen);
                       } else {
                         toggleDock();
                       }
