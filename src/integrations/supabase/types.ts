@@ -76,7 +76,9 @@ export type Database = {
           canvas_content: string | null
           created_at: string | null
           id: string
+          is_public: boolean
           messages: Json | null
+          shared_at: string | null
           title: string
           updated_at: string | null
           user_id: string
@@ -85,7 +87,9 @@ export type Database = {
           canvas_content?: string | null
           created_at?: string | null
           id?: string
+          is_public?: boolean
           messages?: Json | null
+          shared_at?: string | null
           title: string
           updated_at?: string | null
           user_id: string
@@ -94,7 +98,9 @@ export type Database = {
           canvas_content?: string | null
           created_at?: string | null
           id?: string
+          is_public?: boolean
           messages?: Json | null
+          shared_at?: string | null
           title?: string
           updated_at?: string | null
           user_id?: string
