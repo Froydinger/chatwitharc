@@ -302,8 +302,10 @@ export function MobileChatApp() {
   // SESSION-SAFE canvas autosave: only save if we're still on the same session we hydrated
   useEffect(() => {
     if (!currentSessionId) return;
+    if (!isCanvasOpen) return;
     // Only persist if we're definitely on the right session (prevents bleed on switch)
     if (currentSessionId !== lastHydratedSessionRef.current) return;
+    if (!canvasContent.trim()) return;
 
     const id = window.setTimeout(() => {
       // Double-check session hasn't changed during the debounce
@@ -313,7 +315,7 @@ export function MobileChatApp() {
     }, 650);
 
     return () => window.clearTimeout(id);
-  }, [canvasContent, currentSessionId, updateSessionCanvasContent]);
+  }, [canvasContent, currentSessionId, isCanvasOpen, updateSessionCanvasContent]);
 
   // Snarky greeting - no names, just personality
   const [greeting, setGreeting] = useState(getDaypartGreeting());
