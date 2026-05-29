@@ -643,33 +643,6 @@ export function MobileChatApp() {
                   </Button>
                 </motion.div>
 
-                {/* Canvas Reopen Button - shows when canvas is closed but has content */}
-                <AnimatePresence>
-                  {canReopenCanvas && (
-                    <motion.div
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      whileHover={{ scale: 1.1, y: -2 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ type: "spring", damping: 15, stiffness: 300 }}
-                    >
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="rounded-full glass-shimmer transition-all ring-2 ring-purple-500/50"
-                        onClick={() => {
-                          // reopen without nuking current content
-                          if (sessionCanvas && !canvasContent) hydrateFromSession(sessionCanvas);
-                          reopenCanvas();
-                        }}
-                        title="Reopen Canvas"
-                      >
-                        <PenLine className="h-4 w-4 text-purple-400" />
-                      </Button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
 
                 {/* Music Player Button */}
                 <motion.div 
