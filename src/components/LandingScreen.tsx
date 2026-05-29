@@ -1110,7 +1110,7 @@ export function LandingScreen() {
               <Link to="/pricing" className="text-cyan-400 hover:text-cyan-300 transition-colors">
                 Get ArcAi Boost for $7/mo
               </Link>{" "}
-              — unlimited images &amp; voice. Totally optional.
+              — unlimited images &amp; voice.
             </p>
           </div>
         </div>

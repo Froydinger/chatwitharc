@@ -373,7 +373,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                         <Progress value={voicePercent} className="h-1.5" />
                       </div>
                       <p className="text-[10px] text-muted-foreground/70 text-center pt-1">
-                        ArcAI is free forever. Boost is an optional upgrade.
+                        ArcAI is free forever. Boost is a paid upgrade.
                       </p>
                     </div>
                   )}

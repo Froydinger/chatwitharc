@@ -12,8 +12,8 @@ interface UpgradeModalProps {
   userName?: string;
 }
 
-// ArcAI is free forever. This modal pitches the OPTIONAL ArcAi Boost upgrade
-// ($7/mo) for users who want unlimited image generation and unlimited voice
+// ArcAI is free forever. This modal pitches the ArcAi Boost upgrade ($7/mo)
+// for users who want unlimited image generation and unlimited voice
 // conversations. Free quotas: 10 images/day, 10 voice conversations / 30 days.
 export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
   const { user } = useAuth();
@@ -43,7 +43,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
               <Zap className="h-7 w-7 text-primary" />
             </div>
             <h2 className="text-2xl font-bold mb-1">ArcAi Boost</h2>
-            <p className="text-sm text-muted-foreground mb-1">Optional upgrade — Arc stays free forever</p>
+            <p className="text-sm text-muted-foreground mb-1">$7/month paid upgrade</p>
             <div className="flex items-baseline justify-center gap-1 my-4">
               <span className="text-4xl font-bold">{BOOST_PRICE_DISPLAY.split('/')[0]}</span>
               <span className="text-muted-foreground">/ month</span>

@@ -54,11 +54,11 @@ export function PricingPage() {
             </Link>
           </GlassCard>
 
-          {/* Boost — optional upgrade */}
+          {/* Boost — paid upgrade */}
           <GlassCard className="p-8 border-primary/40 shadow-[0_0_30px_hsl(var(--primary)/0.15)]">
             <div className="flex items-center gap-2 mb-2">
               <Zap className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Optional Upgrade · ArcAi Boost</span>
+              <span className="text-sm font-medium text-primary">Paid Upgrade · ArcAi Boost</span>
             </div>
             <div className="flex items-baseline gap-2 mb-6">
               <span className="text-5xl font-bold">$7</span>
@@ -81,7 +81,7 @@ export function PricingPage() {
               Get Boost
             </GlassButton>
             <p className="text-xs text-muted-foreground text-center mt-3">
-              Boost is an optional add-on, not an account tier. ArcAI remains free forever.
+              ArcAI is free forever. Boost is a $7/month paid upgrade.
             </p>
           </GlassCard>
         </div>
