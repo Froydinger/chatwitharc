@@ -250,8 +250,8 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     : null;
 
 
-  const msgPercent = isSubscribed ? 0 : Math.min(100, (dailyMessagesUsed / FREE_DAILY_MESSAGE_LIMIT) * 100);
-  const voicePercent = isSubscribed ? 0 : Math.min(100, (dailyVoiceSessionsUsed / FREE_DAILY_VOICE_LIMIT) * 100);
+  const imagePercent = hasBoost ? 0 : Math.min(100, (dailyImagesUsed / FREE_DAILY_IMAGE_LIMIT) * 100);
+  const voicePercent = hasBoost ? 0 : Math.min(100, (voiceConversations30d / FREE_VOICE_LIMIT_30D) * 100);
 
   const getSyncStatus = () => {
     if (!user) return { icon: CloudOff, color: "text-muted-foreground", text: "Not signed in" };
