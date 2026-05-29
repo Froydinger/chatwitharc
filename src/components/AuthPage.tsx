@@ -389,6 +389,25 @@ export function AuthPage() {
                   {mode === 'login' ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
                 </button>
               </div>
+
+              {/* Google OAuth Data Disclosure */}
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-xs text-gray-300 leading-relaxed space-y-2">
+                <p className="font-semibold text-white">How we use your Google account</p>
+                <p>
+                  When you continue with Google (or Apple), we only receive your <span className="text-white font-medium">email address</span> and <span className="text-white font-medium">name</span>. That's it.
+                </p>
+                <p>
+                  Your email is used to create your ArcAI account. Your name is pre-filled in your profile and you can change it anytime in Settings.
+                </p>
+                <p>
+                  We do <span className="text-white font-medium">not</span> collect, sell, or share any other data from your Google account. No contacts, no calendar, no Drive, nothing else.
+                </p>
+                <p className="pt-1">
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">Privacy Policy</a>
+                  <span className="text-gray-500"> · </span>
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">Terms of Service</a>
+                </p>
+              </div>
             </>
           )}
         </motion.div>
