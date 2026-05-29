@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { useArcStore } from "@/store/useArcStore";
 import { CanvasCodeEditor } from "@/components/CanvasCodeEditor";
 import { CodePreview } from "@/components/CodePreview";
 import { getLanguageDisplay, getFileExtension, canPreview } from "@/utils/codeUtils";
@@ -78,6 +79,8 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const currentSessionId = useArcStore((state) => state.currentSessionId);
+  const updateSessionCanvasContent = useArcStore((state) => state.updateSessionCanvasContent);
   const { isSubscribed } = useSubscription();
   const [isStandaloneApp, setIsStandaloneApp] = useState(false); // Mac PWA / Electron (traffic lights)
   const [isIOS, setIsIOS] = useState(false);
@@ -309,9 +312,12 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     toast({ title: `Downloaded as .${extension}` });
   };
 
-  const handleSaveVersion = () => {
+  const handleSaveVersion = async () => {
     if (!content.trim()) return;
     saveVersion();
+    if (currentSessionId) {
+      await updateSessionCanvasContent(currentSessionId, content);
+    }
     toast({ title: "Version saved" });
   };
 
