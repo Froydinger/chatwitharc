@@ -37,6 +37,7 @@ import UnsubscribePage from "./pages/UnsubscribePage";
 import { SupportPage } from "./pages/SupportPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import { SharedChatPage } from "./pages/SharedChatPage";
 
 const queryClient = new QueryClient();
 
@@ -101,6 +102,7 @@ const App = () => {
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/chat/:sessionId" element={<Index />} />
+                  <Route path="/share/:sessionId" element={<SharedChatPage />} />
                   <Route path="/downloads" element={<DownloadPage />} />
                   <Route path="/pricing" element={<PricingPage />} />
                   <Route path="/dashboard" element={<DashboardPage />} />
