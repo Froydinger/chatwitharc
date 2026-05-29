@@ -189,9 +189,15 @@ export const useArcStore = create<ArcState>()(
         const existing = state.chatSessions.find(s => s.id === sessionId);
         if (!existing) return;
 
-        const updated: ChatSession = { ...existing, canvasContent, lastMessageAt: new Date() };
+        const updatedMessages = existing.messages.map((message) =>
+          message.type === 'canvas'
+            ? { ...message, canvasContent, timestamp: new Date() }
+            : message
+        );
+        const updated: ChatSession = { ...existing, canvasContent, messages: updatedMessages, lastMessageAt: new Date() };
         set({
           chatSessions: state.chatSessions.map(s => (s.id === sessionId ? updated : s)),
+          messages: state.currentSessionId === sessionId ? updatedMessages : state.messages,
         });
 
         // Persist without touching message arrays
