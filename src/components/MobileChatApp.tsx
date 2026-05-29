@@ -629,7 +629,7 @@ export function MobileChatApp() {
                 </motion.div>
               </div>
 
-              {/* Right side buttons - Context + Canvas + Music + Logo */}
+              {/* Right side buttons - Context + Share + Music + Logo */}
               <div className="flex items-center gap-2 pointer-events-auto">
                 {/* Brain / Context Button */}
                 <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
