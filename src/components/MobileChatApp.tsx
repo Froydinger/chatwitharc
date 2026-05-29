@@ -652,7 +652,7 @@ export function MobileChatApp() {
                     size="icon"
                     className="rounded-full glass-shimmer transition-all"
                     onClick={() => {
-                      setRightPanelOpen(!rightPanelOpen);
+                      toggleDock();
                     }}
                   >
                     <Menu className="h-4 w-4" />
