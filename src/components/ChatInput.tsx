@@ -35,6 +35,7 @@ import {
   hasPartialOpenTag,
 } from "@/utils/localToolProtocol";
 import { ImageOptionsDock } from "@/components/ImageOptionsDock";
+import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore } from "@/store/useImageGenStore";
 
 // Global cancellation flag and AbortController
@@ -1922,10 +1923,22 @@ ${safeCode}
         // Each preview row adds ~100px above the input bar.
         const stackPx = 110 + (hasImages ? 100 : 0) + (hasDocs ? 100 : 0);
         return (
-          <ImageOptionsDock
-            portalRoot={portalRoot}
-            bottomOffset={`calc(${stackPx}px + env(safe-area-inset-bottom, 0px))`}
-          />
+          <>
+            <ImageOptionsDock
+              portalRoot={portalRoot}
+              bottomOffset={`calc(${stackPx}px + env(safe-area-inset-bottom, 0px))`}
+            />
+            {/* Floating usage meter — only renders for non-Boost users */}
+            {portalRoot && createPortal(
+              <div
+                className="fixed left-1/2 -translate-x-1/2 z-[34] pointer-events-auto"
+                style={{ bottom: `calc(${stackPx + 70}px + env(safe-area-inset-bottom, 0px))` }}
+              >
+                <UsageMeter kind="image" />
+              </div>,
+              portalRoot,
+            )}
+          </>
         );
       })()}
 

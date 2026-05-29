@@ -519,6 +519,14 @@ export function VoiceModeOverlay() {
               </motion.button>
             </div>
 
+            {/* Voice usage meter — hidden for Boost users */}
+            <div
+              className="absolute left-1/2 -translate-x-1/2 z-10"
+              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1.75rem)' }}
+            >
+              <UsageMeter kind="voice" />
+            </div>
+
             {/* Hidden file input for attachments */}
             <input
               ref={fileInputRef}
