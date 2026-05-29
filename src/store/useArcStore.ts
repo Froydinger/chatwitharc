@@ -187,6 +187,8 @@ export const useArcStore = create<ArcState>()(
       allSessionsHydrated: false,
 
       updateSessionCanvasContent: async (sessionId: string, canvasContent: string) => {
+        const revision = (sessionSaveRevisions.get(sessionId) ?? 0) + 1;
+        sessionSaveRevisions.set(sessionId, revision);
         const state = get();
         const existing = state.chatSessions.find(s => s.id === sessionId);
         if (!existing) return;
@@ -204,7 +206,7 @@ export const useArcStore = create<ArcState>()(
 
         // Persist without touching message arrays
         try {
-          await get().saveChatToSupabase(updated);
+          await get().saveChatToSupabase(updated, revision);
         } catch (e) {
           console.error('❌ Failed to save canvas to Supabase:', e);
         }
