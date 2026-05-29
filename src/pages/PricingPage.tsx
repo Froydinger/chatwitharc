@@ -58,7 +58,7 @@ export function PricingPage() {
           <GlassCard className="p-8 border-primary/40 shadow-[0_0_30px_hsl(var(--primary)/0.15)]">
             <div className="flex items-center gap-2 mb-2">
               <Zap className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Paid Upgrade · ArcAi Boost</span>
+              <span className="text-sm font-medium text-primary">Paid Upgrade · ArcAI Boost</span>
             </div>
             <div className="flex items-baseline gap-2 mb-6">
               <span className="text-5xl font-bold">$7</span>

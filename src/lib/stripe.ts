@@ -8,7 +8,7 @@ export function paymentsEnvironment(): StripeEnv {
   if (clientToken?.startsWith("pk_test_")) return "sandbox";
   if (clientToken?.startsWith("pk_live_")) return "live";
   throw new Error(
-    "ArcAi Boost checkout isn't configured for this build. Complete go-live in your Lovable project to enable production payments.",
+    "ArcAI Boost checkout isn't configured for this build. Complete go-live in your Lovable project to enable production payments.",
   );
 }
 

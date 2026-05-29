@@ -340,7 +340,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                     <div className="flex items-center gap-2">
                       <Crown className={cn("h-4 w-4", hasBoost ? "text-primary" : "text-muted-foreground")} />
                       <span className="font-medium">
-                        {subLoading ? "Loading..." : hasBoost ? "ArcAi Boost" : "Free · ArcAI"}
+                        {subLoading ? "Loading..." : hasBoost ? "ArcAI Boost" : "Free · ArcAI"}
                       </span>
                     </div>
                     {hasBoost ? (

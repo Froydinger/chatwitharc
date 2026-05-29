@@ -131,7 +131,7 @@ export function SupportPopup({ isOpen, onClose }: SupportPopupProps) {
               <div className="flex items-center gap-2">
                 <Crown className={cn("h-4 w-4", isSubscribed ? "text-primary" : "text-muted-foreground")} />
                 <span className="font-medium text-sm">
-                  {subLoading ? "Loading..." : isSubscribed ? "ArcAi Boost" : "Free · ArcAI"}
+                  {subLoading ? "Loading..." : isSubscribed ? "ArcAI Boost" : "Free · ArcAI"}
                 </span>
               </div>
               {isSubscribed ? (

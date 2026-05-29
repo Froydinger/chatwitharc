@@ -1108,7 +1108,7 @@ export function LandingScreen() {
             <p className="text-xs text-gray-500 mt-2 text-center">
               Want more?{" "}
               <Link to="/pricing" className="text-cyan-400 hover:text-cyan-300 transition-colors">
-                Get ArcAi Boost for $7/mo
+                Get ArcAI Boost for $7/mo
               </Link>{" "}
               — unlimited images &amp; voice.
             </p>

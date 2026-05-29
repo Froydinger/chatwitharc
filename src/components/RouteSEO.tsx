@@ -15,7 +15,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/pricing": {
     title: "Pricing — ArcAI · Free forever, Boost $7/mo",
     description:
-      "ArcAI is free forever. Upgrade via ArcAi Boost ($7/mo) for unlimited image generations, unlimited voice conversations, and one-tap web publishing for your code creations.",
+      "ArcAI is free forever. Upgrade via ArcAI Boost ($7/mo) for unlimited image generations, unlimited voice conversations, and one-tap web publishing for your code creations.",
   },
   "/downloads": {
     title: "Download ArcAI for Mac, Windows & iOS",
