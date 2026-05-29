@@ -91,10 +91,21 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const [showManageModal, setShowManageModal] = useState(false);
 
   const handlePublish = () => {
+    // Publishing is Boost-only. Free users go through the upgrade flow.
     if (!isSubscribed) {
       window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
+      sonnerToast.info('Publishing is a Boost feature ($7/mo)');
       return;
     }
+    const ok = window.confirm(
+      "Publish this code to the web?\n\n" +
+      "• Your site goes live at a yourname.froydingermedia.online URL\n" +
+      "• It stays live forever — even if you cancel Boost later\n" +
+      "• Publications are FINAL: they cannot be edited or re-published after launch\n" +
+      "• You can unpublish at any time, but that is also permanent\n\n" +
+      "Continue?"
+    );
+    if (!ok) return;
     setShowPublishModal(true);
   };
 
