@@ -935,7 +935,7 @@ export const useArcStore = create<ArcState>()(
               createdAt: existingSession?.createdAt || new Date(),
               lastMessageAt: new Date(),
               messages: updatedMessages,
-              canvasContent,
+              canvasContent: existingSession?.canvasContent,
               isLocalOnly: existingSession?.isLocalOnly,
               // Preserve hydration so local-only sessions don't get wiped by a
               // cloud fetch on next load (the cloud row never exists for them).
