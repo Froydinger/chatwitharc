@@ -195,7 +195,11 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
       Markdown,
     ],
     // CRITICAL: Don't initialize with code content - TipTap will mangle it
+    // For writing mode, parse initial content AS markdown so formatting (headings,
+    // bold, italics, blockquotes, line breaks) is preserved instead of being treated
+    // as literal text/HTML on first mount.
     content: isCodeMode ? '' : (content || ""),
+    contentType: isCodeMode ? 'html' : 'markdown',
     onUpdate: ({ editor: ed }) => {
       // CRITICAL: Don't update store during AI writing, programmatic setContent, OR code mode
       // Code mode content must NEVER be processed by TipTap
@@ -204,6 +208,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
       const md = editorGetMarkdown(ed as ReturnType<typeof useEditor>);
       if (md !== undefined && md !== content) {
         setContent(md, false);
+        lastSyncedContent.current = md;
       }
     },
   }, [isCodeMode]); // Re-create editor when switching modes
