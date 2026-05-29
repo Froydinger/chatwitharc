@@ -345,19 +345,33 @@ export function ChatHistoryPanel() {
                         </div>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "h-8 w-8 flex-shrink-0 rounded-full transition-all",
-                        "hover:bg-destructive/10 hover:text-destructive",
-                        deletingId === session.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                      )}
-                      onClick={(e) => handleDeleteSession(session.id, e)}
-                      aria-label="Delete chat"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full transition-all hover:bg-primary/10 hover:text-primary opacity-0 group-hover:opacity-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShareSessionId(session.id);
+                        }}
+                        aria-label="Share chat"
+                      >
+                        <Share2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "h-8 w-8 rounded-full transition-all",
+                          "hover:bg-destructive/10 hover:text-destructive",
+                          deletingId === session.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                        )}
+                        onClick={(e) => handleDeleteSession(session.id, e)}
+                        aria-label="Delete chat"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
@@ -366,6 +380,11 @@ export function ChatHistoryPanel() {
           <PaginationButtons />
         </>
       )}
+      <ShareChatDialog
+        sessionId={shareSessionId}
+        open={!!shareSessionId}
+        onOpenChange={(o) => !o && setShareSessionId(null)}
+      />
     </div>
   );
 }
