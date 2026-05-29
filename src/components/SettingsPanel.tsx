@@ -274,6 +274,7 @@ export function SettingsPanel() {
   const { profile, updateProfile, updating } = useProfile();
   const {
     isSubscribed,
+    hasBoost,
     subscriptionEnd,
     openCheckout,
     openCustomerPortal,
