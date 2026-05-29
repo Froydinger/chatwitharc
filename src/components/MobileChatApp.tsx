@@ -221,31 +221,72 @@ export function MobileChatApp() {
     };
   }, []);
 
-  // Initialize rightPanelOpen state based on device type and user's last preference
+  // Docked state: when true, the panel pushes content. When false, panel is hover-preview only.
+  const [rightPanelDocked, setRightPanelDocked] = useState(false);
+  const hoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Initialize rightPanelOpen + docked state based on device type and user's last preference
   useEffect(() => {
-    // Check window width for large screens (1024px+) - these should have persistent sidebar
     const isLargeScreen = window.innerWidth >= 1024;
 
     if (isLargeScreen) {
-      // On large screens, respect user's explicit preference only — default to closed
-      const userPreference = localStorage.getItem("arc_rightPanelOpen");
-      if (userPreference === "true") {
-        if (!rightPanelOpen) {
-          setRightPanelOpen(true);
-        }
+      // Restore docked preference; default to undocked (hover-only) for new users
+      const dockedPref = localStorage.getItem("arc_rightPanelDocked") === "true";
+      setRightPanelDocked(dockedPref);
+      if (dockedPref && !rightPanelOpen) {
+        setRightPanelOpen(true);
       }
     } else if (isMobile) {
       // Always close on mobile/tablet by default
+      setRightPanelDocked(false);
       if (rightPanelOpen) {
         setRightPanelOpen(false);
       }
     }
   }, [isMobile]); // Only run on mount and when isMobile changes
 
-  // Effect to save user's preference to localStorage whenever rightPanelOpen changes
+  // Persist docked preference
   useEffect(() => {
-    localStorage.setItem("arc_rightPanelOpen", String(rightPanelOpen));
-  }, [rightPanelOpen]);
+    localStorage.setItem("arc_rightPanelDocked", String(rightPanelDocked));
+  }, [rightPanelDocked]);
+
+  // Hover edge handlers (desktop only)
+  const openPanelPreview = () => {
+    if (isMobile) return;
+    if (hoverCloseTimerRef.current) {
+      clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
+    }
+    if (!rightPanelOpen) setRightPanelOpen(true);
+  };
+
+  const schedulePanelClose = () => {
+    if (isMobile || rightPanelDocked) return;
+    if (hoverCloseTimerRef.current) clearTimeout(hoverCloseTimerRef.current);
+    hoverCloseTimerRef.current = setTimeout(() => {
+      setRightPanelOpen(false);
+    }, 250);
+  };
+
+  const cancelPanelClose = () => {
+    if (hoverCloseTimerRef.current) {
+      clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
+    }
+  };
+
+  const toggleDock = () => {
+    if (rightPanelDocked) {
+      // Undock: unpin and close
+      setRightPanelDocked(false);
+      setRightPanelOpen(false);
+    } else {
+      // Dock: pin open
+      setRightPanelDocked(true);
+      setRightPanelOpen(true);
+    }
+  };
+
 
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
