@@ -292,8 +292,8 @@ export function SettingsPanel() {
   const themeMode = useAccentStore((s) => s.themeMode);
 
 
-  const showStarfield = useStarfieldStore((s) => s.showStarfield);
-  const setShowStarfield = useStarfieldStore((s) => s.setShowStarfield);
+
+
   const { isAdmin } = useAdminSettings();
   const isMobileLocal = isMobileLocalDevice();
 
