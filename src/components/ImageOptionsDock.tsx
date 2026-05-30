@@ -63,15 +63,17 @@ export function ImageOptionsDock({ portalRoot, bottomOffset }: ImageOptionsDockP
       style={{ bottom: bottomOffset ?? "calc(110px + env(safe-area-inset-bottom, 0px))" }}
     >
       <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between gap-3 mb-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <ImageIcon className="h-4 w-4 text-primary" />
             <span>Image options</span>
           </div>
-          <span className="text-[11px] text-muted-foreground hidden sm:inline">
-            Pick model & aspect ratio
-          </span>
+          <div className="flex items-center gap-2 min-w-0">
+            <UsageMeter kind="image" />
+          </div>
         </div>
+
+
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Model picker */}
