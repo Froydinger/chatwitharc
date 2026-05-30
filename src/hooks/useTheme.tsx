@@ -1,12 +1,18 @@
 import { useEffect } from "react";
+import { useAccentStore } from "@/store/useAccentStore";
 
 export function useTheme() {
-  // Dark mode only - always enforce dark and remove light class
-  useEffect(() => {
-    document.documentElement.classList.remove("light");
-    document.documentElement.classList.add("dark");
-  }, []);
+  const accentColor = useAccentStore((s) => s.accentColor);
 
-  // Accent color CSS variables are managed entirely by useAccentColor hook.
-  // This hook only ensures dark mode class is applied.
+  // Light mode activates only when the "white" accent is selected; everything else stays dark.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (accentColor === "white") {
+      root.classList.remove("dark");
+      root.classList.add("light");
+    } else {
+      root.classList.remove("light");
+      root.classList.add("dark");
+    }
+  }, [accentColor]);
 }
