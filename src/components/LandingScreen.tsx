@@ -315,7 +315,7 @@ const AppMockup = () => {
 
   return (
     <div className="relative w-[70%] sm:w-full max-w-4xl mx-auto animate-fade-in delay-200">
-      <div className="glass-panel rounded-xl overflow-hidden border border-slate-200 relative z-10">
+      <div className="rounded-xl overflow-hidden border border-slate-200 relative z-10 bg-white/85 backdrop-blur-2xl shadow-[0_8px_32px_rgba(15,23,42,0.08),0_2px_8px_rgba(15,23,42,0.04),inset_0_1px_0_rgba(255,255,255,0.6)]">
         {/* Title Bar */}
         <div className="h-6 md:h-10 bg-slate-100 flex items-center px-2 md:px-4 space-x-2 border-b border-slate-200">
           <div className="flex space-x-1 md:space-x-1.5">
@@ -471,7 +471,7 @@ export function LandingScreen() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -100, opacity: 0 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-slate-200 backdrop-blur-xl"
+            className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/10 backdrop-blur-xl"
             style={{
               paddingTop: `calc(${isPWAMode || isElectronApp ? "env(safe-area-inset-top, 0px)" : "0px"} + ${isAdminBannerActive ? "var(--admin-banner-height, 0px)" : "0px"})`,
             }}
@@ -479,15 +479,15 @@ export function LandingScreen() {
             <div className="flex items-center justify-between px-4 py-3 md:px-8 max-w-7xl mx-auto">
               <div className="flex items-center space-x-3">
                 <ThemedLogo keepOriginal className="w-6 h-6" />
-                <span className="text-lg tracking-tight text-slate-900 flex items-center">
+                <span className="text-lg tracking-tight text-white flex items-center">
                   <span className="font-thin">Arc</span>
                   <span className="font-light">Ai</span>
-                  <span className="hidden sm:flex items-center ml-2 gap-1 text-xs text-slate-500 font-light">
+                  <span className="hidden sm:flex items-center ml-2 gap-1 text-xs text-white/70 font-light">
                     by
                     <img
                       src="/wtn-logo.webp"
                       alt="Win The Night"
-                      className="h-4 w-4 object-contain rounded-sm opacity-70"
+                      className="h-4 w-4 object-contain rounded-sm opacity-80"
                     />
                   </span>
                 </span>
@@ -495,13 +495,13 @@ export function LandingScreen() {
               <div className="flex items-center space-x-4">
                 <a
                   href="#features"
-                  className="hidden md:block text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                  className="hidden md:block text-sm font-medium text-white/75 hover:text-white transition-colors"
                 >
                   Features
                 </a>
                 <a
                   href="#pricing"
-                  className="hidden md:block text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                  className="hidden md:block text-sm font-medium text-white/75 hover:text-white transition-colors"
                 >
                   Pricing
                 </a>
