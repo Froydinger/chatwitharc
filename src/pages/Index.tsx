@@ -25,13 +25,14 @@ export function Index() {
     }
   }, [loading]);
 
-  // Force dark mode for landing page when not authenticated
+  // Force light mode for landing page when not authenticated
   useEffect(() => {
     if (!user && !loading) {
-      document.documentElement.classList.remove('light');
-      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
     }
   }, [user, loading]);
+
 
   // Load session from URL if present (priority: URL takes precedence)
   useEffect(() => {
