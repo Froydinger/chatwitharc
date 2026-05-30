@@ -1972,17 +1972,24 @@ ${safeCode}
       })()}
 
 
-      {/* Selected Documents preview - for non-inline, portal above dock */}
-      {!inline && selectedDocuments.length > 0 && portalRoot && createPortal(
-        <div
-          className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
-          style={{ bottom: selectedImages.length > 0 ? "calc(210px + env(safe-area-inset-bottom, 0px))" : "calc(110px + env(safe-area-inset-bottom, 0px))" }}
-        >
-          <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">Documents ({selectedDocuments.length}/3)</span>
-              <button onClick={() => setSelectedDocuments([])} className="text-xs text-muted-foreground hover:text-foreground">Clear</button>
-            </div>
+      {/* Selected Documents preview - for non-inline, portal anchored above input */}
+      {!inline && selectedDocuments.length > 0 && portalRoot && (() => {
+        const rect = inputBarRef.current?.getBoundingClientRect();
+        const imgStack = selectedImages.length > 0 ? 220 : 0;
+        const bottom = rect
+          ? `${Math.max(12, window.innerHeight - rect.top + 12 + imgStack)}px`
+          : `calc(${110 + imgStack}px + env(safe-area-inset-bottom, 0px))`;
+        return createPortal(
+          <div
+            className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
+            style={{ bottom }}
+          >
+            <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-muted-foreground">Documents ({selectedDocuments.length}/3)</span>
+                <button onClick={() => setSelectedDocuments([])} className="text-xs text-muted-foreground hover:text-foreground">Clear</button>
+              </div>
+
             <div className="flex flex-col gap-2">
               {selectedDocuments.map((doc, i) => (
                 <div key={i} className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2 group">
