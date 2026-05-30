@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Crown, ImageIcon, Ratio, Sparkles, Check } from "lucide-react";
+import { ChevronDown, Crown, Ratio, Sparkles, Check } from "lucide-react";
 import {
   useImageGenStore,
   IMAGE_MODEL_OPTIONS,
