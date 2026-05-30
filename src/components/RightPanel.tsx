@@ -141,17 +141,8 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
         {/* Internal wrapper with conditional padding for desktop traffic lights */}
         <div className="flex flex-col h-full" style={{ paddingTop: isStandaloneApp ? '30px' : undefined }}>
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border bg-background">
-            <button
-              onClick={() => onTabChange("history")}
-              className={cn(
-                "text-sm font-semibold transition-colors",
-                activeTab === "quote" ? "text-muted-foreground hover:text-foreground cursor-pointer" : "text-foreground cursor-default"
-              )}
-            >
-              Chats
-            </button>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center p-2 border-b border-border bg-background">
+            <div className="flex items-center w-full">
               {/* Theme cycle: dark → light → system */}
               <Button
                 variant="ghost"
@@ -159,7 +150,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                 onClick={cycleThemeMode}
                 title={themeLabel}
                 aria-label={themeLabel}
-                className="h-9 w-9 rounded-full bg-muted/40 hover:bg-primary/15 hover:text-primary transition-colors"
+                className="h-9 w-9 rounded-full bg-muted/40 hover:bg-primary/15 hover:text-primary transition-colors flex-1"
               >
                 <motion.span
                   key={themeMode}
@@ -178,7 +169,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                     variant="ghost"
                     size="sm"
                     onClick={() => onTabChange("history")}
-                    className="h-9 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    className="h-9 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 flex-1"
                   >
                     <ChevronLeft className="h-3.5 w-3.5 mr-1.5" /> Back
                   </Button>
@@ -188,7 +179,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                     size="icon"
                     onClick={onClose}
                     title="Close sidebar"
-                    className="lg:hidden ml-1 rounded-full transition-colors bg-muted/50 hover:bg-primary/15 hover:text-primary"
+                    className="lg:hidden rounded-full transition-colors bg-muted/50 hover:bg-primary/15 hover:text-primary flex-1"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -199,7 +190,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                     onClick={onToggleDock ?? onClose}
                     title={isDocked ? "Undock sidebar" : "Dock sidebar"}
                     className={cn(
-                      "hidden lg:flex ml-1 rounded-full transition-colors",
+                      "hidden lg:flex rounded-full transition-colors flex-1",
                       isDocked
                         ? "bg-primary/15 text-primary hover:bg-primary/25"
                         : "bg-muted/50 hover:bg-primary/15 hover:text-primary"
@@ -213,7 +204,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                   <Button
                     onClick={() => onTabChange("quote")}
                     className={cn(
-                      "h-9 px-3 rounded-lg text-xs font-medium transition-all bg-muted/50 text-foreground hover:bg-muted hover:text-primary"
+                      "h-9 px-3 rounded-lg text-xs font-medium transition-all bg-muted/50 text-foreground hover:bg-muted hover:text-primary flex-1"
                     )}
                   >
                     <Quote className="h-3.5 w-3.5 mr-1.5" /> Daily Quote
@@ -225,7 +216,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                       onClick={handleToggleCorporate}
                       title={corporateMode ? "Disable Corporate Mode" : "Enable Corporate Mode"}
                       className={cn(
-                        "rounded-full transition-colors",
+                        "rounded-full transition-colors flex-1",
                         corporateMode
                           ? "bg-primary/15 text-primary hover:bg-primary/25"
                           : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -240,7 +231,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                     size="icon"
                     onClick={onClose}
                     title="Close sidebar"
-                    className="lg:hidden ml-1 rounded-full transition-colors bg-muted/50 hover:bg-primary/15 hover:text-primary"
+                    className="lg:hidden rounded-full transition-colors bg-muted/50 hover:bg-primary/15 hover:text-primary flex-1"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -251,7 +242,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                     onClick={onToggleDock ?? onClose}
                     title={isDocked ? "Undock sidebar" : "Dock sidebar"}
                     className={cn(
-                      "hidden lg:flex ml-1 rounded-full transition-colors",
+                      "hidden lg:flex rounded-full transition-colors flex-1",
                       isDocked
                         ? "bg-primary/15 text-primary hover:bg-primary/25"
                         : "bg-muted/50 hover:bg-primary/15 hover:text-primary"
