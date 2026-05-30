@@ -839,9 +839,9 @@ export function SettingsPanel() {
         return (
           <>
             {AccentColorCard}
-            {StarfieldCard}
           </>
         );
+
       case "ai":
         return (
           <>
