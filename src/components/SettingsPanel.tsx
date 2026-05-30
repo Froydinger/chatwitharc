@@ -34,6 +34,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
+import { useAccentStore } from "@/store/useAccentStore";
+
 import { lovable } from "@/integrations/lovable/index";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
 import { useProfile } from "@/hooks/useProfile";
@@ -287,6 +289,9 @@ export function SettingsPanel() {
   } = useSubscription();
   const { toast } = useToast();
   const { accentColor, setAccentColor } = useAccentColor();
+  const lightMode = useAccentStore((s) => s.lightMode);
+  const toggleLightMode = useAccentStore((s) => s.toggleLightMode);
+
   const showStarfield = useStarfieldStore((s) => s.showStarfield);
   const setShowStarfield = useStarfieldStore((s) => s.setShowStarfield);
   const { isAdmin } = useAdminSettings();
@@ -439,9 +444,8 @@ export function SettingsPanel() {
     { id: "purple", label: "Purple", gradient: "linear-gradient(135deg, hsl(268,85%,52%), hsl(268,82%,62%))" },
     { id: "orange", label: "Orange", gradient: "linear-gradient(135deg, hsl(22,100%,50%), hsl(22,98%,60%))" },
     { id: "noir",   label: "Noir",   gradient: "linear-gradient(135deg, hsl(0,0%,4%), hsl(0,0%,18%))" },
-    { id: "white",  label: "White",  gradient: "linear-gradient(135deg, hsl(0,0%,100%), hsl(0,0%,88%))" },
-
   ];
+
 
   // ----- Section renderers -----
 
@@ -656,7 +660,7 @@ export function SettingsPanel() {
   const AccentColorCard = (
     <SectionCard icon={Palette} title="Accent Color" subtitle="Personalize your app accent" className="lg:col-span-2">
       <Tile>
-        <div className="grid grid-cols-7 gap-3">
+        <div className="grid grid-cols-8 gap-3">
           {colorOptions.map((opt) => {
             const isActive = accentColor === opt.id;
             return (
@@ -675,10 +679,28 @@ export function SettingsPanel() {
               </button>
             );
           })}
+          {/* Light mode toggle — independent of accent color */}
+          <button
+            onClick={toggleLightMode}
+            className={`aspect-square rounded-xl relative transition-all border border-white/20 ${
+              lightMode
+                ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110"
+                : "hover:scale-105"
+            }`}
+            style={{ background: "linear-gradient(135deg, hsl(0,0%,100%), hsl(0,0%,88%))" }}
+            aria-label={lightMode ? "Switch to dark mode" : "Switch to light mode"}
+            title={lightMode ? "Light mode on — tap for dark" : "Tap for light mode"}
+          >
+            {lightMode && <Check className="absolute inset-0 m-auto h-5 w-5 text-black drop-shadow-lg" />}
+          </button>
         </div>
+        <p className="text-[11px] text-muted-foreground mt-3">
+          The white tile toggles light mode using your current accent.
+        </p>
       </Tile>
     </SectionCard>
   );
+
 
   const StarfieldCard = (
     <SectionCard icon={Stars} title="Background Stars" subtitle="Animated starfield effect">

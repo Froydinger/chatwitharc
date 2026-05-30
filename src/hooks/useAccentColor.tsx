@@ -79,29 +79,18 @@ const accentColorConfigs = {
     lightPrimaryGlow: "22 98% 58%",
   },
   noir: {
-    primary: "0 0% 8%",
-    primaryGlow: "0 0% 20%",
+    primary: "0 0% 95%",
+    primaryGlow: "0 0% 80%",
     aiMessageBg: "0 0% 12%",
     aiMessageBorder: "0 0% 20%",
     userMessageBg: "0 0% 0%",
     userMessageBorder: "0 0% 18%",
     lightAiMessageBg: "0 0% 97%",
     lightAiMessageBorder: "0 0% 90%",
-    lightPrimary: "0 0% 8%",
-    lightPrimaryGlow: "0 0% 20%",
-  },
-  white: {
-    primary: "0 0% 15%",
-    primaryGlow: "0 0% 35%",
-    aiMessageBg: "0 0% 96%",
-    aiMessageBorder: "0 0% 88%",
-    userMessageBg: "0 0% 15%",
-    userMessageBorder: "0 0% 15%",
-    lightAiMessageBg: "0 0% 96%",
-    lightAiMessageBorder: "0 0% 88%",
     lightPrimary: "0 0% 15%",
-    lightPrimaryGlow: "0 0% 35%",
+    lightPrimaryGlow: "0 0% 25%",
   },
+
 
 };
 
@@ -163,12 +152,13 @@ export function useAccentColor() {
       root.style.setProperty("--user-message-bg", config.userMessageBg);
       root.style.setProperty("--user-message-border", config.userMessageBorder);
 
-      // Noir is now black accent → needs white foreground. White accent (light mode) also uses dark accent on light bg → white foreground.
-      if (isNoir || validAccentColor === "white") {
-        root.style.setProperty("--primary-foreground", "0 0% 98%");
+      // Noir theme: black text on white buttons for contrast
+      if (isNoir) {
+        root.style.setProperty("--primary-foreground", "0 0% 5%");
       } else {
         root.style.setProperty("--primary-foreground", "240 10% 98%");
       }
+
 
 
       // Update light mode CSS variables dynamically when in light mode

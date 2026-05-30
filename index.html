@@ -16,13 +16,12 @@
             yellow: { primary: "48 95% 60%", primaryGlow: "48 95% 70%", aiMessageBg: "48 15% 16%", aiMessageBorder: "48 20% 24%", userMessageBg: "48 95% 60%", userMessageBorder: "48 95% 60%", lightPrimary: "48 95% 55%", lightPrimaryGlow: "48 95% 65%", lightAiMessageBg: "48 20% 97%", lightAiMessageBorder: "48 15% 92%" },
             purple: { primary: "270 75% 60%", primaryGlow: "270 75% 70%", aiMessageBg: "270 15% 16%", aiMessageBorder: "270 20% 24%", userMessageBg: "270 75% 60%", userMessageBorder: "270 75% 60%", lightPrimary: "270 75% 55%", lightPrimaryGlow: "270 75% 65%", lightAiMessageBg: "270 20% 97%", lightAiMessageBorder: "270 15% 92%" },
             orange: { primary: "25 95% 58%", primaryGlow: "25 95% 68%", aiMessageBg: "25 15% 16%", aiMessageBorder: "25 20% 24%", userMessageBg: "25 95% 58%", userMessageBorder: "25 95% 58%", lightPrimary: "25 95% 55%", lightPrimaryGlow: "25 95% 65%", lightAiMessageBg: "25 20% 97%", lightAiMessageBorder: "25 15% 92%" },
-            noir: { primary: "0 0% 8%", primaryGlow: "0 0% 20%", aiMessageBg: "0 0% 12%", aiMessageBorder: "0 0% 20%", userMessageBg: "0 0% 0%", userMessageBorder: "0 0% 18%", lightPrimary: "0 0% 8%", lightPrimaryGlow: "0 0% 20%", lightAiMessageBg: "0 0% 97%", lightAiMessageBorder: "0 0% 90%" },
-            white: { primary: "0 0% 15%", primaryGlow: "0 0% 35%", aiMessageBg: "0 0% 96%", aiMessageBorder: "0 0% 88%", userMessageBg: "0 0% 15%", userMessageBorder: "0 0% 15%", lightPrimary: "0 0% 15%", lightPrimaryGlow: "0 0% 35%", lightAiMessageBg: "0 0% 96%", lightAiMessageBorder: "0 0% 88%" }
+            noir: { primary: "0 0% 95%", primaryGlow: "0 0% 80%", aiMessageBg: "0 0% 12%", aiMessageBorder: "0 0% 20%", userMessageBg: "0 0% 0%", userMessageBorder: "0 0% 18%", lightPrimary: "0 0% 15%", lightPrimaryGlow: "0 0% 25%", lightAiMessageBg: "0 0% 97%", lightAiMessageBorder: "0 0% 90%" }
           };
 
-          // Accent "white" activates light mode; everything else is dark.
+          // Light mode is a standalone toggle (separate from accent color)
           var accentColor = localStorage.getItem('accentColor') || 'blue';
-          var theme = accentColor === 'white' ? 'light' : 'dark';
+          var theme = localStorage.getItem('lightMode') === 'true' ? 'light' : 'dark';
           
           // Apply theme class immediately
           document.documentElement.classList.remove(theme === 'light' ? 'dark' : 'light');
@@ -45,12 +44,13 @@
           root.style.setProperty('--user-message-bg', config.userMessageBg);
           root.style.setProperty('--user-message-border', config.userMessageBorder);
           
-          // Noir (black accent) and white (light mode) both need a near-white foreground on the dark accent
-          if (accentColor === 'noir' || accentColor === 'white') {
-            root.style.setProperty('--primary-foreground', '0 0% 98%');
+          // Noir theme: black text on white buttons
+          if (accentColor === 'noir') {
+            root.style.setProperty('--primary-foreground', '0 0% 5%');
           } else {
             root.style.setProperty('--primary-foreground', '240 10% 98%');
           }
+
 
           
           // Mark theme as ready
