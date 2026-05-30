@@ -34,7 +34,7 @@ import {
   stripToolTags,
   hasPartialOpenTag,
 } from "@/utils/localToolProtocol";
-import { ImageOptionsDock } from "@/components/ImageOptionsDock";
+import { ImageOptionsDock, ImageOptionsContent } from "@/components/ImageOptionsDock";
 import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore } from "@/store/useImageGenStore";
 
