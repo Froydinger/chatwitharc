@@ -200,11 +200,12 @@ All colors MUST be HSL for perfect glass effects.
     --button-fg: 0 0% 92%;
   }
 
-  /* Noir in light mode — inherits standard light tokens, just darker primary outline */
+  /* Noir in light mode — inherits standard light tokens with airy borders */
   :root.light[data-accent="noir"] {
-    --border: 0 0% 12%;
-    --glass-border: 0 0% 20%;
+    --border: 0 0% 88%;
+    --glass-border: 0 0% 90%;
   }
+
 
 }
 
@@ -222,20 +223,22 @@ All colors MUST be HSL for perfect glass effects.
   background-color: hsl(0 0% 15%) !important;
 }
 
-/* Noir light-mode buttons — white fill with black text + black outline */
+/* Noir light-mode buttons — white fill with black text + soft outline */
 :root.light[data-accent="noir"] button[class*="bg-primary"],
 :root.light[data-accent="noir"] [role="button"][class*="bg-primary"],
 :root.light[data-accent="noir"] .bg-primary {
   background-color: hsl(0 0% 100%) !important;
   color: hsl(0 0% 8%) !important;
-  border: 1px solid hsl(0 0% 8%) !important;
+  border: 1px solid hsl(0 0% 85%) !important;
 }
 
 :root.light[data-accent="noir"] button[class*="bg-primary"]:hover,
 :root.light[data-accent="noir"] [role="button"][class*="bg-primary"]:hover,
 :root.light[data-accent="noir"] .bg-primary:hover {
-  background-color: hsl(0 0% 94%) !important;
+  background-color: hsl(0 0% 96%) !important;
+  border-color: hsl(0 0% 78%) !important;
 }
+
 
 @layer base {
   * {

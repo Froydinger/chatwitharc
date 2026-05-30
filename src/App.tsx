@@ -15,7 +15,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { RouteSEO } from "@/components/RouteSEO";
 import { FingerPopupContainer } from "@/components/FingerPopup";
 import { Starfield } from "@/components/Starfield";
-import { useStarfieldStore } from "@/store/useStarfieldStore";
+
 import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { BugReportModal } from "@/components/BugReportModal";
 import { useBugReport } from "@/hooks/useBugReport";
@@ -57,7 +57,7 @@ const detectStandaloneMode = () => {
 
 const App = () => {
   const { isOpen, errorMessage, errorStack, closeBugReport } = useBugReport();
-  const showStarfield = useStarfieldStore((s) => s.showStarfield);
+  
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   useVisibilityHandler();
   useCorporateModeEnforcer();
@@ -84,7 +84,7 @@ const App = () => {
           <div className="arcai-drag-bar" />
           <LiquidFilter />
           <BackgroundGradients />
-          {showStarfield && <Starfield />}
+          <Starfield />
             <Toaster />
             <Sonner />
             <FingerPopupContainer />

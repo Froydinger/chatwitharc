@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Star {
@@ -45,6 +45,17 @@ const generateStars = (
 
 export const Starfield = () => {
   const isMobile = useIsMobile();
+  const [isLight, setIsLight] = useState(
+    typeof document !== "undefined" && document.documentElement.classList.contains("light")
+  );
+
+  useEffect(() => {
+    const update = () => setIsLight(document.documentElement.classList.contains("light"));
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   const stars = useMemo(() => {
     const count = isMobile ? 60 : 140;
@@ -54,6 +65,10 @@ export const Starfield = () => {
       ...generateStars(Math.floor(count * 0.15), 200, [1.5, 2.5], [0.25, 0.55]),
     ];
   }, [isMobile]);
+
+  // Stars only exist at night — hide them in light mode
+  if (isLight) return null;
+
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -5 }}>

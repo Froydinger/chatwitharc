@@ -48,7 +48,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useStarfieldStore } from "@/store/useStarfieldStore";
+
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
 import { VoiceSelector } from "@/components/VoiceSelector";
@@ -292,8 +292,8 @@ export function SettingsPanel() {
   const themeMode = useAccentStore((s) => s.themeMode);
 
 
-  const showStarfield = useStarfieldStore((s) => s.showStarfield);
-  const setShowStarfield = useStarfieldStore((s) => s.setShowStarfield);
+
+
   const { isAdmin } = useAdminSettings();
   const isMobileLocal = isMobileLocalDevice();
 
@@ -685,16 +685,7 @@ export function SettingsPanel() {
   );
 
 
-  const StarfieldCard = (
-    <SectionCard icon={Stars} title="Background Stars" subtitle="Animated starfield effect">
-      <Tile
-        icon={Stars}
-        title="Show stars"
-        description="Drifting starfield in the background"
-        right={<Switch checked={showStarfield} onCheckedChange={setShowStarfield} />}
-      />
-    </SectionCard>
-  );
+
 
   const VoiceCard = (
     <SectionCard icon={Mic} title="Voice Mode" subtitle="Choose your assistant's voice">
@@ -839,9 +830,9 @@ export function SettingsPanel() {
         return (
           <>
             {AccentColorCard}
-            {StarfieldCard}
           </>
         );
+
       case "ai":
         return (
           <>
