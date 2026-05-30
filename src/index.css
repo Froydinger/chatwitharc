@@ -82,6 +82,30 @@ All colors MUST be HSL for perfect glass effects.
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
+  /* Light Theme - activated when accent = "white" */
+  :root.light {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 8%;
+    --card: 0 0% 99%;
+    --card-foreground: 0 0% 10%;
+    --surface: 0 0% 97%;
+    --surface-foreground: 0 0% 12%;
+    --secondary: 0 0% 92%;
+    --secondary-foreground: 0 0% 15%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 38%;
+    --accent: 0 0% 90%;
+    --accent-foreground: 0 0% 12%;
+    --border: 0 0% 86%;
+    --input: 0 0% 96%;
+    --input-dark: 0 0% 92%;
+    --glass-bg: 0 0% 100%;
+    --glass-border: 0 0% 88%;
+    --ai-message-bg: 0 0% 96%;
+    --ai-message-border: 0 0% 88%;
+  }
+
+
   /* Noir Theme - Deep Black Glass */
   :root[data-accent="noir"] {
     --background: 0 0% 2%;
