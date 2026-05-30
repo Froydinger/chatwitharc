@@ -1989,13 +1989,24 @@ ${safeCode}
                 <span className="text-sm text-muted-foreground">Documents ({selectedDocuments.length}/3)</span>
                 <button onClick={() => setSelectedDocuments([])} className="text-xs text-muted-foreground hover:text-foreground">Clear</button>
               </div>
-
+              <div className="flex flex-col gap-2">
+                {selectedDocuments.map((doc, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2 group">
+                    <FileText className="h-4 w-4 text-primary shrink-0" />
+                    <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
+                    <span className="text-xs text-muted-foreground">{(doc.size / 1024).toFixed(0)} KB</span>
+                    <button onClick={() => removeDocument(i)} className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>,
-        portalRoot,
+          </div>,
+          portalRoot,
         );
       })()}
+
       {/* Selected Images preview - for non-inline, portal anchored above input */}
       {!inline && selectedImages.length > 0 && portalRoot && (() => {
         const rect = inputBarRef.current?.getBoundingClientRect();
