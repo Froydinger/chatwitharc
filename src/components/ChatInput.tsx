@@ -1951,14 +1951,13 @@ ${safeCode}
 
       {/* Image options dock — visible whenever the user is in image-gen mode.
           Stacked above any selected-images / selected-documents previews. */}
-      {!inline && (shouldShowBanana || (selectedImages.length > 0 && allImagesEditMode)) && (() => {
-        const hasImages = selectedImages.length > 0;
+      {!inline && shouldShowBanana && selectedImages.length === 0 && (() => {
         const hasDocs = selectedDocuments.length > 0;
         // Anchor relative to the input bar so the dock floats just above it
         // instead of being glued to the viewport bottom. Falls back to the
         // old bottom-anchored math if the ref isn't measured yet.
         const rect = inputBarRef.current?.getBoundingClientRect();
-        const previewStack = (hasImages ? 100 : 0) + (hasDocs ? 100 : 0);
+        const previewStack = hasDocs ? 100 : 0;
         const dockBottom = rect
           ? `${Math.max(12, window.innerHeight - rect.top + 12 + previewStack)}px`
           : `calc(${110 + previewStack}px + env(safe-area-inset-bottom, 0px))`;
