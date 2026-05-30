@@ -200,11 +200,12 @@ All colors MUST be HSL for perfect glass effects.
     --button-fg: 0 0% 92%;
   }
 
-  /* Noir in light mode — inherits standard light tokens, just darker primary outline */
+  /* Noir in light mode — inherits standard light tokens with airy borders */
   :root.light[data-accent="noir"] {
-    --border: 0 0% 12%;
-    --glass-border: 0 0% 20%;
+    --border: 0 0% 88%;
+    --glass-border: 0 0% 90%;
   }
+
 
 }
 
