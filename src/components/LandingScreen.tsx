@@ -783,7 +783,7 @@ export function LandingScreen() {
           <h2 className="text-3xl md:text-5xl font-bold text-slate-900 leading-tight">
             Think fast.
             <br />
-            <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-yellow-600 to-orange-500 bg-clip-text text-transparent">
               Type faster.
             </span>
           </h2>
@@ -845,7 +845,7 @@ export function LandingScreen() {
           <h2 className="text-3xl md:text-5xl font-bold text-slate-900 leading-tight">
             Real Life,
             <br />
-            <span className="bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">Real Talk.</span>
+            <span className="bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">Real Talk.</span>
           </h2>
           <p className="text-slate-600 text-lg leading-relaxed max-w-lg">
             More than a chatbot. ArcAi helps you think through life's real moments — and knows when to point you to a
@@ -911,7 +911,7 @@ export function LandingScreen() {
           <h2 className="text-3xl md:text-5xl font-bold text-slate-900 leading-tight">
             Know more.
             <br />
-            <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
               Guess less.
             </span>
           </h2>
@@ -953,7 +953,7 @@ export function LandingScreen() {
           <h2 className="text-3xl md:text-5xl font-bold text-slate-900 leading-tight">
             Set the mood.
             <br />
-            <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               Skip the ads.
             </span>
           </h2>
@@ -1083,7 +1083,7 @@ export function LandingScreen() {
           >
             <h2 className="text-3xl md:text-5xl font-bold text-slate-900 leading-tight">
               Chat free.{" "}
-              <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Forever.</span>
+              <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">Forever.</span>
             </h2>
             <p className="text-slate-600 max-w-xl mx-auto text-lg">
               No credit card to start. Unlimited chats, 10 voice conversations per month, and 10 images every day.
