@@ -110,7 +110,7 @@ export const BackgroundGradients = () => {
 
   return (
     <motion.div
-      key={`bg-static-${accentColor}-${primaryGlow}`}
+      key={`bg-static-${accentColor}-${primaryGlow}-${isLight}`}
       className="fixed pointer-events-none -z-10"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
