@@ -79,29 +79,18 @@ const accentColorConfigs = {
     lightPrimaryGlow: "22 98% 58%",
   },
   noir: {
-    primary: "0 0% 8%",
-    primaryGlow: "0 0% 20%",
+    primary: "0 0% 95%",
+    primaryGlow: "0 0% 80%",
     aiMessageBg: "0 0% 12%",
     aiMessageBorder: "0 0% 20%",
     userMessageBg: "0 0% 0%",
     userMessageBorder: "0 0% 18%",
     lightAiMessageBg: "0 0% 97%",
     lightAiMessageBorder: "0 0% 90%",
-    lightPrimary: "0 0% 8%",
-    lightPrimaryGlow: "0 0% 20%",
-  },
-  white: {
-    primary: "0 0% 15%",
-    primaryGlow: "0 0% 35%",
-    aiMessageBg: "0 0% 96%",
-    aiMessageBorder: "0 0% 88%",
-    userMessageBg: "0 0% 15%",
-    userMessageBorder: "0 0% 15%",
-    lightAiMessageBg: "0 0% 96%",
-    lightAiMessageBorder: "0 0% 88%",
     lightPrimary: "0 0% 15%",
-    lightPrimaryGlow: "0 0% 35%",
+    lightPrimaryGlow: "0 0% 25%",
   },
+
 
 };
 
