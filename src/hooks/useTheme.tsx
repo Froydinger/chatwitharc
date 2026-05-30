@@ -2,18 +2,30 @@ import { useEffect } from "react";
 import { useAccentStore } from "@/store/useAccentStore";
 
 export function useTheme() {
-  const lightMode = useAccentStore((s) => s.lightMode);
+  const themeMode = useAccentStore((s) => s.themeMode);
 
-  // Light mode is a standalone toggle (the "white" tile in the accent picker).
-  // When on, applies .light to the documentElement; the selected accent color stays as-is and its lightPrimary tokens take over.
+  // Resolve themeMode → effective light/dark. "system" follows OS preference and listens for changes.
   useEffect(() => {
     const root = document.documentElement;
-    if (lightMode) {
-      root.classList.remove("dark");
-      root.classList.add("light");
-    } else {
-      root.classList.remove("light");
-      root.classList.add("dark");
+
+    const apply = (isLight: boolean) => {
+      if (isLight) {
+        root.classList.remove("dark");
+        root.classList.add("light");
+      } else {
+        root.classList.remove("light");
+        root.classList.add("dark");
+      }
+    };
+
+    if (themeMode === "system") {
+      const mq = window.matchMedia("(prefers-color-scheme: light)");
+      apply(mq.matches);
+      const handler = (e: MediaQueryListEvent) => apply(e.matches);
+      mq.addEventListener("change", handler);
+      return () => mq.removeEventListener("change", handler);
     }
-  }, [lightMode]);
+
+    apply(themeMode === "light");
+  }, [themeMode]);
 }

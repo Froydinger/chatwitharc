@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Crown, Quote, ChevronLeft, Lock, Unlock, Pin, PinOff } from "lucide-react";
+import { X, Crown, Quote, ChevronLeft, Lock, Unlock, Pin, PinOff, Moon, Sun, Monitor } from "lucide-react";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useAccentStore } from "@/store/useAccentStore";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
@@ -35,6 +35,11 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
   const corporateMode = useCorporateModeStore((s) => s.enabled);
   const setCorporate = useCorporateModeStore((s) => s.setEnabled);
   const accent = useAccentStore((s) => s.accentColor);
+  const themeMode = useAccentStore((s) => s.themeMode);
+  const cycleThemeMode = useAccentStore((s) => s.cycleThemeMode);
+  const ThemeIcon = themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
+  const themeLabel = themeMode === "light" ? "Light mode (tap for system)" : themeMode === "system" ? "System mode (tap for dark)" : "Dark mode (tap for light)";
+
   const { selectedModelId, status: localStatus } = useLocalAIStore();
   const { toast } = useToast();
   const isMobileLocal = isMobileLocalDevice();
@@ -147,6 +152,26 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
               Chats
             </button>
             <div className="flex items-center gap-2">
+              {/* Theme cycle: dark → light → system */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={cycleThemeMode}
+                title={themeLabel}
+                aria-label={themeLabel}
+                className="h-9 w-9 rounded-full bg-muted/40 hover:bg-primary/15 hover:text-primary transition-colors"
+              >
+                <motion.span
+                  key={themeMode}
+                  initial={{ rotate: -90, opacity: 0, scale: 0.7 }}
+                  animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", damping: 14, stiffness: 320 }}
+                  className="inline-flex"
+                >
+                  <ThemeIcon className="h-4 w-4" />
+                </motion.span>
+              </Button>
+
               {activeTab === "quote" ? (
                 <>
                   <Button
