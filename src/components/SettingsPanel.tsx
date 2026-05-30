@@ -287,6 +287,9 @@ export function SettingsPanel() {
   } = useSubscription();
   const { toast } = useToast();
   const { accentColor, setAccentColor } = useAccentColor();
+  const lightMode = useAccentStore((s) => s.lightMode);
+  const toggleLightMode = useAccentStore((s) => s.toggleLightMode);
+
   const showStarfield = useStarfieldStore((s) => s.showStarfield);
   const setShowStarfield = useStarfieldStore((s) => s.setShowStarfield);
   const { isAdmin } = useAdminSettings();
