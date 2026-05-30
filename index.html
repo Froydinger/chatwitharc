@@ -19,9 +19,19 @@
             noir: { primary: "0 0% 95%", primaryGlow: "0 0% 80%", aiMessageBg: "0 0% 12%", aiMessageBorder: "0 0% 20%", userMessageBg: "0 0% 0%", userMessageBorder: "0 0% 18%", lightPrimary: "0 0% 15%", lightPrimaryGlow: "0 0% 25%", lightAiMessageBg: "0 0% 97%", lightAiMessageBorder: "0 0% 90%" }
           };
 
-          // Light mode is a standalone toggle (separate from accent color)
+          // Theme mode: dark | light | system (legacy lightMode boolean migrated)
           var accentColor = localStorage.getItem('accentColor') || 'blue';
-          var theme = localStorage.getItem('lightMode') === 'true' ? 'light' : 'dark';
+          var savedMode = localStorage.getItem('themeMode');
+          if (!savedMode) {
+            savedMode = localStorage.getItem('lightMode') === 'true' ? 'light' : 'dark';
+          }
+          var theme;
+          if (savedMode === 'system') {
+            theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+          } else {
+            theme = savedMode === 'light' ? 'light' : 'dark';
+          }
+
           
           // Apply theme class immediately
           document.documentElement.classList.remove(theme === 'light' ? 'dark' : 'light');
