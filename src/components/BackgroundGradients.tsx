@@ -5,26 +5,30 @@ import { useState, useEffect } from "react";
 export const BackgroundGradients = () => {
   const { accentColor } = useAccentColor();
   const [primaryGlow, setPrimaryGlow] = useState("200 90% 65%");
+  const [isLight, setIsLight] = useState(false);
 
   const isNoir = accentColor === "noir";
 
-  // Read the CSS variable directly so we react to changes
+  // Read the CSS variable + theme class so we react to changes
   useEffect(() => {
-    const updateGlow = () => {
+    const update = () => {
       const computed = getComputedStyle(document.documentElement).getPropertyValue("--primary-glow").trim();
-      if (computed) {
-        setPrimaryGlow(computed);
-      }
+      if (computed) setPrimaryGlow(computed);
+      setIsLight(document.documentElement.classList.contains("light"));
     };
-    
-    // Update immediately
-    updateGlow();
-    
-    // Also update after a tiny delay to catch async CSS var changes
-    const timeout = setTimeout(updateGlow, 50);
-    
-    return () => clearTimeout(timeout);
+
+    update();
+    const timeout = setTimeout(update, 50);
+
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-accent"] });
+
+    return () => {
+      clearTimeout(timeout);
+      observer.disconnect();
+    };
   }, [accentColor]);
+
 
   // Detect iPad PWA
   const isIpadPWA = () => {
