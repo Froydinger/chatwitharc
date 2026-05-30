@@ -152,6 +152,26 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
               Chats
             </button>
             <div className="flex items-center gap-2">
+              {/* Theme cycle: dark → light → system */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={cycleThemeMode}
+                title={themeLabel}
+                aria-label={themeLabel}
+                className="h-9 w-9 rounded-full bg-muted/40 hover:bg-primary/15 hover:text-primary transition-colors"
+              >
+                <motion.span
+                  key={themeMode}
+                  initial={{ rotate: -90, opacity: 0, scale: 0.7 }}
+                  animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", damping: 14, stiffness: 320 }}
+                  className="inline-flex"
+                >
+                  <ThemeIcon className="h-4 w-4" />
+                </motion.span>
+              </Button>
+
               {activeTab === "quote" ? (
                 <>
                   <Button
