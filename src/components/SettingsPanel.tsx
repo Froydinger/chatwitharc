@@ -685,16 +685,7 @@ export function SettingsPanel() {
   );
 
 
-  const StarfieldCard = (
-    <SectionCard icon={Stars} title="Background Stars" subtitle="Animated starfield effect">
-      <Tile
-        icon={Stars}
-        title="Show stars"
-        description="Drifting starfield in the background"
-        right={<Switch checked={showStarfield} onCheckedChange={setShowStarfield} />}
-      />
-    </SectionCard>
-  );
+
 
   const VoiceCard = (
     <SectionCard icon={Mic} title="Voice Mode" subtitle="Choose your assistant's voice">
