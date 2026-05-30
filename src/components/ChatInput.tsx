@@ -1962,27 +1962,13 @@ ${safeCode}
         const dockBottom = rect
           ? `${Math.max(12, window.innerHeight - rect.top + 12 + previewStack)}px`
           : `calc(${110 + previewStack}px + env(safe-area-inset-bottom, 0px))`;
-        const meterBottom = rect
-          ? `${Math.max(12, window.innerHeight - rect.top + 12 + previewStack + 70)}px`
-          : `calc(${110 + previewStack + 70}px + env(safe-area-inset-bottom, 0px))`;
         return (
-          <>
-            <ImageOptionsDock
-              portalRoot={portalRoot}
-              bottomOffset={dockBottom}
-            />
-            {/* Floating usage meter — only renders for non-Boost users */}
-            {portalRoot && createPortal(
-              <div
-                className="fixed left-1/2 -translate-x-1/2 z-[34] pointer-events-auto"
-                style={{ bottom: meterBottom }}
-              >
-                <UsageMeter kind="image" />
-              </div>,
-              portalRoot,
-            )}
-          </>
+          <ImageOptionsDock
+            portalRoot={portalRoot}
+            bottomOffset={dockBottom}
+          />
         );
+
       })()}
 
 
