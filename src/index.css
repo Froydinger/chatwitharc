@@ -100,9 +100,60 @@ All colors MUST be HSL for perfect glass effects.
     --input: 0 0% 96%;
     --input-dark: 0 0% 92%;
     --glass-bg: 0 0% 100%;
-    --glass-border: 0 0% 88%;
+    --glass-border: 0 0% 82%;
+    --glass-glow: var(--primary);
     --ai-message-bg: 0 0% 96%;
-    --ai-message-border: 0 0% 88%;
+    --ai-message-border: 0 0% 86%;
+  }
+
+  /* Instant theme switching — disable transitions/animations during swap */
+  :root.theme-switching,
+  :root.theme-switching *,
+  :root.theme-switching *::before,
+  :root.theme-switching *::after {
+    transition: none !important;
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+
+  /* Light mode glass bubble overrides — softer shadows, visible borders */
+  :root.light .user-message-bubble {
+    background: linear-gradient(135deg,
+      hsl(var(--primary) / 0.10) 0%,
+      hsl(var(--primary) / 0.06) 50%,
+      hsl(var(--primary) / 0.18) 100%) !important;
+    border: 1px solid hsl(var(--primary) / 0.30) !important;
+    box-shadow:
+      0 8px 24px hsl(var(--primary) / 0.12),
+      inset 0 0 16px hsl(var(--primary-glow) / 0.06) !important;
+  }
+  :root.light .user-message-bubble:hover {
+    background: linear-gradient(135deg,
+      hsl(var(--primary) / 0.14) 0%,
+      hsl(var(--primary) / 0.08) 50%,
+      hsl(var(--primary) / 0.22) 100%) !important;
+    border-color: hsl(var(--primary) / 0.40) !important;
+    box-shadow:
+      0 12px 30px hsl(var(--primary) / 0.16),
+      inset 0 0 22px hsl(var(--primary-glow) / 0.10),
+      0 0 20px hsl(var(--primary-glow) / 0.10) !important;
+  }
+
+  /* Light mode glass dock — softer shadows */
+  :root.light .glass-dock {
+    background:
+      linear-gradient(135deg, hsl(var(--primary) / 0.10) 0%, hsl(var(--primary) / 0.06) 50%, hsl(var(--primary) / 0.10) 100%),
+      hsl(var(--background) / 0.70);
+    box-shadow:
+      0 8px 24px hsl(var(--primary) / 0.10),
+      0 0 18px hsl(var(--primary) / 0.08),
+      inset 0 1px 0 hsl(var(--foreground) / 0.04);
+  }
+  :root.light .glass-dock[data-has-images="true"] {
+    box-shadow:
+      0 12px 32px hsl(var(--primary) / 0.14),
+      0 4px 12px hsl(var(--primary) / 0.08),
+      inset 0 1px 0 hsl(var(--foreground) / 0.06);
   }
 
 
