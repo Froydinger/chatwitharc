@@ -197,7 +197,7 @@ export function LandingVoiceDemo() {
                   <div className={`rounded-2xl px-3.5 py-2 text-sm max-w-[80%] ${
                     msg.role === "user"
                       ? "bg-violet-500/15 text-slate-800 rounded-tr-md"
-                      : "bg-white/[0.06] text-slate-700 rounded-tl-md"
+                      : "bg-slate-50 text-slate-700 rounded-tl-md"
                   }`}>
                     {msg.text}
                   </div>

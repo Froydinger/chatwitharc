@@ -199,7 +199,7 @@ function CodeCanvasCard({
   return (
     <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 backdrop-blur-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)]">
       {/* Title bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 bg-white/[0.03]">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 bg-slate-50">
         <div className="flex items-center gap-2">
           <div className="flex gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
@@ -211,7 +211,7 @@ function CodeCanvasCard({
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-0.5 px-3 py-1.5 border-b border-slate-200 bg-white/[0.02]">
+      <div className="flex items-center gap-0.5 px-3 py-1.5 border-b border-slate-200 bg-slate-50">
         <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${
           phase === "coding" ? "bg-slate-100 text-slate-900" : "text-slate-500"
         }`}>
@@ -269,7 +269,7 @@ function CodeCanvasCard({
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, duration: 0.4 }}
-                className="w-full max-w-[260px] rounded-2xl border border-slate-200 bg-white/[0.04] backdrop-blur-sm p-6 space-y-4"
+                className="w-full max-w-[260px] rounded-2xl border border-slate-200 bg-slate-50 backdrop-blur-sm p-6 space-y-4"
               >
                 <motion.h1 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="text-2xl font-bold text-slate-900">
                   🚀 My First App
@@ -310,7 +310,7 @@ function CodeCanvasCard({
       </div>
 
       {/* Bottom bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-t border-slate-200 bg-white/[0.02]">
+      <div className="flex items-center justify-between px-4 py-2 border-t border-slate-200 bg-slate-50">
         <span className="text-[10px] text-gray-600">
           {phase === "coding" ? `${visibleLines} / ${CODE_LINES.length} lines` : "Preview mode"}
         </span>
@@ -329,7 +329,7 @@ function WritingCanvasCard({
   return (
     <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 backdrop-blur-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)]">
       {/* Title bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 bg-white/[0.03]">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 bg-slate-50">
         <div className="flex items-center gap-2">
           <div className="flex gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
@@ -341,7 +341,7 @@ function WritingCanvasCard({
       </div>
 
       {/* Writing mode indicator */}
-      <div className="flex items-center gap-0.5 px-3 py-1.5 border-b border-slate-200 bg-white/[0.02]">
+      <div className="flex items-center gap-0.5 px-3 py-1.5 border-b border-slate-200 bg-slate-50">
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-900">
           <PenLine className="w-3 h-3" /> Write
         </div>
@@ -387,7 +387,7 @@ function WritingCanvasCard({
       </div>
 
       {/* Bottom bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-t border-slate-200 bg-white/[0.02]">
+      <div className="flex items-center justify-between px-4 py-2 border-t border-slate-200 bg-slate-50">
         <span className="text-[10px] text-gray-600">{poemLines} / {POEM_LINES.length} lines</span>
         <span className="text-[10px] text-gray-600">md</span>
       </div>
