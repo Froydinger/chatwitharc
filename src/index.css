@@ -157,8 +157,8 @@ All colors MUST be HSL for perfect glass effects.
   }
 
 
-  /* Noir Theme - Deep Black Glass */
-  :root[data-accent="noir"] {
+  /* Noir Theme - Deep Black Glass (dark mode only) */
+  :root.dark[data-accent="noir"] {
     --background: 0 0% 2%;
     --card: 0 0% 3%;
     --surface: 0 0% 2%;
@@ -170,29 +170,45 @@ All colors MUST be HSL for perfect glass effects.
     --input-dark: 0 0% 6%;
     --glass-bg: 0 0% 2%;
     --glass-border: 0 0% 12%;
-  }
-
-
-  /* Noir mode buttons - black with white text instead of white with black text */
-  :root[data-accent="noir"] {
     --button-bg: 0 0% 8%;
     --button-fg: 0 0% 92%;
   }
 
+  /* Noir in light mode — inherits standard light tokens, just darker primary outline */
+  :root.light[data-accent="noir"] {
+    --border: 0 0% 12%;
+    --glass-border: 0 0% 20%;
+  }
+
 }
 
-/* Noir mode button overrides - must be outside @layer for specificity */
-:root[data-accent="noir"] button[class*="bg-primary"],
-:root[data-accent="noir"] [role="button"][class*="bg-primary"],
-:root[data-accent="noir"] .bg-primary {
+/* Noir dark-mode button overrides — black button with white text */
+:root.dark[data-accent="noir"] button[class*="bg-primary"],
+:root.dark[data-accent="noir"] [role="button"][class*="bg-primary"],
+:root.dark[data-accent="noir"] .bg-primary {
   background-color: hsl(0 0% 8%) !important;
   color: hsl(0 0% 92%) !important;
 }
 
-:root[data-accent="noir"] button[class*="bg-primary"]:hover,
-:root[data-accent="noir"] [role="button"][class*="bg-primary"]:hover,
-:root[data-accent="noir"] .bg-primary:hover {
+:root.dark[data-accent="noir"] button[class*="bg-primary"]:hover,
+:root.dark[data-accent="noir"] [role="button"][class*="bg-primary"]:hover,
+:root.dark[data-accent="noir"] .bg-primary:hover {
   background-color: hsl(0 0% 15%) !important;
+}
+
+/* Noir light-mode buttons — white fill with black text + black outline */
+:root.light[data-accent="noir"] button[class*="bg-primary"],
+:root.light[data-accent="noir"] [role="button"][class*="bg-primary"],
+:root.light[data-accent="noir"] .bg-primary {
+  background-color: hsl(0 0% 100%) !important;
+  color: hsl(0 0% 8%) !important;
+  border: 1px solid hsl(0 0% 8%) !important;
+}
+
+:root.light[data-accent="noir"] button[class*="bg-primary"]:hover,
+:root.light[data-accent="noir"] [role="button"][class*="bg-primary"]:hover,
+:root.light[data-accent="noir"] .bg-primary:hover {
+  background-color: hsl(0 0% 94%) !important;
 }
 
 @layer base {
