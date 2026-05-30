@@ -163,12 +163,13 @@ export function useAccentColor() {
       root.style.setProperty("--user-message-bg", config.userMessageBg);
       root.style.setProperty("--user-message-border", config.userMessageBorder);
 
-      // Noir theme: black text on white buttons for contrast
-      if (isNoir) {
-        root.style.setProperty("--primary-foreground", "0 0% 5%");
+      // Noir is now black accent → needs white foreground. White accent (light mode) also uses dark accent on light bg → white foreground.
+      if (isNoir || validAccentColor === "white") {
+        root.style.setProperty("--primary-foreground", "0 0% 98%");
       } else {
         root.style.setProperty("--primary-foreground", "240 10% 98%");
       }
+
 
       // Update light mode CSS variables dynamically when in light mode
       if (isLight) {
