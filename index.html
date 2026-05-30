@@ -23,8 +23,10 @@
           var accentColor = localStorage.getItem('accentColor') || 'blue';
           var savedMode = localStorage.getItem('themeMode');
           if (!savedMode) {
-            savedMode = localStorage.getItem('lightMode') === 'true' ? 'light' : 'dark';
+            var legacy = localStorage.getItem('lightMode');
+            savedMode = legacy === 'false' ? 'dark' : 'light';
           }
+
           var theme;
           if (savedMode === 'system') {
             theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
@@ -67,7 +69,7 @@
           document.documentElement.classList.add('theme-ready');
         } catch (e) {
           console.warn('Failed to apply theme before render:', e);
-          document.documentElement.classList.add('dark', 'theme-ready');
+          document.documentElement.classList.add('light', 'theme-ready');
         }
       })();
     </script>

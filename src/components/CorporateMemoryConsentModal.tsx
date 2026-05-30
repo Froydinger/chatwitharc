@@ -86,41 +86,42 @@ export function CorporateMemoryConsentModal({
             </div>
             <DialogTitle>Use your memories on-device?</DialogTitle>
           </div>
-          <DialogDescription className="pt-2">
+          <DialogDescription className="pt-2 text-foreground">
             Corporate Mode runs entirely on your device. To still get personalized
             answers, Arc can pull a one-time copy of your saved memories down to
             this device and reference them locally.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 text-sm">
-          <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border/40">
+        <div className="space-y-3 text-sm text-foreground">
+          <div className="flex items-start gap-3 p-3 rounded-xl bg-foreground/5 border border-foreground/10">
             <Brain className="h-4 w-4 text-primary mt-0.5 shrink-0" />
             <div>
               <p className="font-medium">One-time download, then offline</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-foreground/80 mt-0.5">
                 We fetch your memories now and cache them on this device. After
                 that, Corporate Mode reads them locally with no network calls.
               </p>
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border/40">
+          <div className="flex items-start gap-3 p-3 rounded-xl bg-foreground/5 border border-foreground/10">
             <CloudOff className="h-4 w-4 text-primary mt-0.5 shrink-0" />
             <div>
               <p className="font-medium">No new memories will be written</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-foreground/80 mt-0.5">
                 Saving new memories requires the cloud, so it stays disabled while
                 Corporate Mode is on.
               </p>
             </div>
           </div>
 
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-foreground/70">
             You can change this any time from the Privacy / Corporate Mode panel
             in Settings.
           </p>
         </div>
+
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
           <Button variant="ghost" onClick={handleDeny} disabled={busy}>

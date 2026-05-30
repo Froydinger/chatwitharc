@@ -42,14 +42,15 @@ export const useAccentStore = create<AccentStore>((set, get) => ({
     try {
       const saved = localStorage.getItem("themeMode");
       if (isThemeMode(saved)) return saved;
-      // Legacy: migrate old lightMode boolean
+      // Legacy: migrate old lightMode boolean (only "false" forces dark; default is light)
       const legacy = localStorage.getItem("lightMode");
-      if (legacy === "true") return "light";
-      return "dark";
+      if (legacy === "false") return "dark";
+      return "light";
     } catch {
-      return "dark";
+      return "light";
     }
   })(),
+
   setAccentColorLocal: (color) => {
     try {
       localStorage.setItem("accentColor", color);
