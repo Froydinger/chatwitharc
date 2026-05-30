@@ -289,8 +289,11 @@ export function SettingsPanel() {
   } = useSubscription();
   const { toast } = useToast();
   const { accentColor, setAccentColor } = useAccentColor();
-  const lightMode = useAccentStore((s) => s.lightMode);
-  const toggleLightMode = useAccentStore((s) => s.toggleLightMode);
+  const themeMode = useAccentStore((s) => s.themeMode);
+  const setThemeMode = useAccentStore((s) => s.setThemeMode);
+  const lightMode = themeMode === "light";
+  const toggleLightMode = () => setThemeMode(lightMode ? "dark" : "light");
+
 
   const showStarfield = useStarfieldStore((s) => s.showStarfield);
   const setShowStarfield = useStarfieldStore((s) => s.setShowStarfield);
