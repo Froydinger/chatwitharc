@@ -438,7 +438,9 @@ export function SettingsPanel() {
     { id: "yellow", label: "Yellow", gradient: "linear-gradient(135deg, hsl(45,100%,48%), hsl(45,100%,58%))" },
     { id: "purple", label: "Purple", gradient: "linear-gradient(135deg, hsl(268,85%,52%), hsl(268,82%,62%))" },
     { id: "orange", label: "Orange", gradient: "linear-gradient(135deg, hsl(22,100%,50%), hsl(22,98%,60%))" },
-    { id: "noir",   label: "Noir",   gradient: "linear-gradient(135deg, hsl(0,0%,95%), hsl(0,0%,70%))" },
+    { id: "noir",   label: "Noir",   gradient: "linear-gradient(135deg, hsl(0,0%,4%), hsl(0,0%,18%))" },
+    { id: "white",  label: "White",  gradient: "linear-gradient(135deg, hsl(0,0%,100%), hsl(0,0%,88%))" },
+
   ];
 
   // ----- Section renderers -----
