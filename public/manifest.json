@@ -4,21 +4,41 @@
   "description": "Ask, Reflect, Create with advanced AI conversations and realtime voice capabilities",
   "start_url": "/?source=pwa",
   "display": "standalone",
-  "background_color": "#00cdff",
-  "theme_color": "#00cdff",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icons/mac512.png",
-      "sizes": "512x512 180x180",
+      "src": "/icons/apple-icon-light.png",
+      "sizes": "1024x1024 512x512 192x192 180x180",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/apple-icon-dark.png",
+      "sizes": "1024x1024 512x512 192x192 180x180",
+      "type": "image/png",
+      "purpose": "any",
+      "color_scheme": "dark"
+    },
+    {
+      "src": "/icons/apple-icon-light.png",
+      "sizes": "1024x1024 512x512 192x192 180x180",
+      "type": "image/png",
+      "purpose": "any",
+      "color_scheme": "light"
+    },
+    {
+      "src": "/icons/mac512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icons/appstore1024.png",
-      "sizes": "1024x1024 512x512 192x192",
+      "sizes": "1024x1024",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ],
   "categories": ["productivity", "utilities", "social"],
