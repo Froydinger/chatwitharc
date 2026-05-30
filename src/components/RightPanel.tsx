@@ -35,6 +35,11 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
   const corporateMode = useCorporateModeStore((s) => s.enabled);
   const setCorporate = useCorporateModeStore((s) => s.setEnabled);
   const accent = useAccentStore((s) => s.accentColor);
+  const themeMode = useAccentStore((s) => s.themeMode);
+  const cycleThemeMode = useAccentStore((s) => s.cycleThemeMode);
+  const ThemeIcon = themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
+  const themeLabel = themeMode === "light" ? "Light mode (tap for system)" : themeMode === "system" ? "System mode (tap for dark)" : "Dark mode (tap for light)";
+
   const { selectedModelId, status: localStatus } = useLocalAIStore();
   const { toast } = useToast();
   const isMobileLocal = isMobileLocalDevice();
