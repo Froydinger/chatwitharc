@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type AccentColor = "red" | "blue" | "green" | "yellow" | "purple" | "orange" | "noir" | "white";
+export type AccentColor = "red" | "blue" | "green" | "yellow" | "purple" | "orange" | "noir";
 
 function isAccentColor(value: unknown): value is AccentColor {
   return (
@@ -10,24 +10,32 @@ function isAccentColor(value: unknown): value is AccentColor {
     value === "yellow" ||
     value === "purple" ||
     value === "orange" ||
-    value === "noir" ||
-    value === "white"
+    value === "noir"
   );
 }
 
-
 type AccentStore = {
   accentColor: AccentColor;
+  lightMode: boolean;
   setAccentColorLocal: (color: AccentColor) => void;
+  setLightMode: (on: boolean) => void;
+  toggleLightMode: () => void;
 };
 
-export const useAccentStore = create<AccentStore>((set) => ({
+export const useAccentStore = create<AccentStore>((set, get) => ({
   accentColor: (() => {
     try {
       const saved = localStorage.getItem("accentColor");
       return isAccentColor(saved) ? saved : "blue";
     } catch {
       return "blue";
+    }
+  })(),
+  lightMode: (() => {
+    try {
+      return localStorage.getItem("lightMode") === "true";
+    } catch {
+      return false;
     }
   })(),
   setAccentColorLocal: (color) => {
@@ -37,5 +45,22 @@ export const useAccentStore = create<AccentStore>((set) => ({
       // ignore
     }
     set({ accentColor: color });
+  },
+  setLightMode: (on) => {
+    try {
+      localStorage.setItem("lightMode", on ? "true" : "false");
+    } catch {
+      // ignore
+    }
+    set({ lightMode: on });
+  },
+  toggleLightMode: () => {
+    const next = !get().lightMode;
+    try {
+      localStorage.setItem("lightMode", next ? "true" : "false");
+    } catch {
+      // ignore
+    }
+    set({ lightMode: next });
   },
 }));
