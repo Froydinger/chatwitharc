@@ -2027,7 +2027,7 @@ ${safeCode}
                   const url = imagePreviewUrls[i];
                   return (
                     <div key={i} className="relative group shrink-0">
-                      <img src={url} alt={`sel-${i}`} className="w-16 h-16 object-cover rounded-full border border-border/40" />
+                      <img src={url} alt={`sel-${i}`} className="w-10 h-10 sm:w-16 sm:h-16 object-cover rounded-full border border-border/40" />
                       <button onClick={() => removeImage(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity" title="Remove">
                         <X className="w-3 h-3" />
                       </button>
@@ -2529,7 +2529,7 @@ ${safeCode}
                   const url = imagePreviewUrls[i];
                   return (
                     <div key={i} className="relative group shrink-0">
-                      <img src={url} alt={`sel-${i}`} className="w-16 h-16 object-cover rounded-full border border-border/40" />
+                      <img src={url} alt={`sel-${i}`} className="w-10 h-10 sm:w-16 sm:h-16 object-cover rounded-full border border-border/40" />
                       <button onClick={() => removeImage(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity" title="Remove">
                         <X className="w-3 h-3" />
                       </button>
