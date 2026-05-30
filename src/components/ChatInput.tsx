@@ -1990,57 +1990,54 @@ ${safeCode}
                 <button onClick={() => setSelectedDocuments([])} className="text-xs text-muted-foreground hover:text-foreground">Clear</button>
               </div>
 
-            <div className="flex flex-col gap-2">
-              {selectedDocuments.map((doc, i) => (
-                <div key={i} className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2 group">
-                  <FileText className="h-4 w-4 text-primary shrink-0" />
-                  <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
-                  <span className="text-xs text-muted-foreground">{(doc.size / 1024).toFixed(0)} KB</span>
-                  <button onClick={() => removeDocument(i)} className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                    <X className="w-3 h-3" />
+            </div>
+          </div>
+        </div>,
+        portalRoot,
+        );
+      })()}
+      {/* Selected Images preview - for non-inline, portal anchored above input */}
+      {!inline && selectedImages.length > 0 && portalRoot && (() => {
+        const rect = inputBarRef.current?.getBoundingClientRect();
+        const bottom = rect
+          ? `${Math.max(12, window.innerHeight - rect.top + 12)}px`
+          : `calc(110px + env(safe-area-inset-bottom, 0px))`;
+        return createPortal(
+          <div
+            className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
+            style={{ bottom }}
+          >
+            <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/14)</span>
+                <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">Clear All</button>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {selectedImages.map((f, i) => {
+                  const url = imagePreviewUrls[i];
+                  return (
+                    <div key={i} className="relative group shrink-0">
+                      <img src={url} alt={`sel-${i}`} className="w-16 h-16 object-cover rounded-full border border-border/40" />
+                      <button onClick={() => removeImage(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity" title="Remove">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              {selectedImages.length > 0 && (
+                <div className="mt-3 pt-2 border-t border-border/30">
+                  <button type="button" onClick={() => setAllImagesEditMode(!allImagesEditMode)} className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80">
+                    {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
                   </button>
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        </div>,
-        portalRoot,
-      )}
-      {/* Selected Images preview - for non-inline, portal above dock */}
-      {!inline && selectedImages.length > 0 && portalRoot && createPortal(
-        <div
-          className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
-          style={{ bottom: "calc(110px + env(safe-area-inset-bottom, 0px))" }}
-        >
-          <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/14)</span>
-              <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">Clear All</button>
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {selectedImages.map((f, i) => {
-                const url = imagePreviewUrls[i];
-                return (
-                  <div key={i} className="relative group shrink-0">
-                    <img src={url} alt={`sel-${i}`} className="w-16 h-16 object-cover rounded-full border border-border/40" />
-                    <button onClick={() => removeImage(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity" title="Remove">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            {selectedImages.length > 0 && (
-              <div className="mt-3 pt-2 border-t border-border/30">
-                <button type="button" onClick={() => setAllImagesEditMode(!allImagesEditMode)} className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80">
-                  {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>,
-        portalRoot,
-      )}
+          </div>,
+          portalRoot,
+        );
+      })()}
+
 
       {/* Input Row */}
       <div ref={inputBarRef} className="chat-input-halo flex items-center gap-3 rounded-full">
