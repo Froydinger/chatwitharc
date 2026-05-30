@@ -2544,6 +2544,11 @@ ${safeCode}
                   </button>
                 </div>
               )}
+              {(shouldShowBanana || allImagesEditMode) && (
+                <div className="mt-3 pt-2 border-t border-border/30">
+                  <ImageOptionsContent />
+                </div>
+              )}
             </div>
           </div>
         );
