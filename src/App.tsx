@@ -57,7 +57,7 @@ const detectStandaloneMode = () => {
 
 const App = () => {
   const { isOpen, errorMessage, errorStack, closeBugReport } = useBugReport();
-  const showStarfield = useStarfieldStore((s) => s.showStarfield);
+  
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   useVisibilityHandler();
   useCorporateModeEnforcer();
