@@ -85,10 +85,10 @@ const accentColorConfigs = {
     aiMessageBorder: "0 0% 20%",
     userMessageBg: "0 0% 0%",
     userMessageBorder: "0 0% 18%",
-    lightAiMessageBg: "0 0% 97%",
-    lightAiMessageBorder: "0 0% 90%",
-    lightPrimary: "0 0% 15%",
-    lightPrimaryGlow: "0 0% 25%",
+    lightAiMessageBg: "0 0% 100%",
+    lightAiMessageBorder: "0 0% 8%",
+    lightPrimary: "0 0% 0%",
+    lightPrimaryGlow: "0 0% 0%",
   },
 
 
