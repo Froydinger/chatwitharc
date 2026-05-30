@@ -23,8 +23,10 @@
           var accentColor = localStorage.getItem('accentColor') || 'blue';
           var savedMode = localStorage.getItem('themeMode');
           if (!savedMode) {
-            savedMode = localStorage.getItem('lightMode') === 'true' ? 'light' : 'dark';
+            var legacy = localStorage.getItem('lightMode');
+            savedMode = legacy === 'false' ? 'dark' : 'light';
           }
+
           var theme;
           if (savedMode === 'system') {
             theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
