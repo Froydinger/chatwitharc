@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 export type AccentColor = "red" | "blue" | "green" | "yellow" | "purple" | "orange" | "noir";
+export type ThemeMode = "light" | "dark" | "system";
 
 function isAccentColor(value: unknown): value is AccentColor {
   return (
@@ -14,13 +15,19 @@ function isAccentColor(value: unknown): value is AccentColor {
   );
 }
 
+function isThemeMode(value: unknown): value is ThemeMode {
+  return value === "light" || value === "dark" || value === "system";
+}
+
 type AccentStore = {
   accentColor: AccentColor;
-  lightMode: boolean;
+  themeMode: ThemeMode;
   setAccentColorLocal: (color: AccentColor) => void;
-  setLightMode: (on: boolean) => void;
-  toggleLightMode: () => void;
+  setThemeMode: (mode: ThemeMode) => void;
+  cycleThemeMode: () => void;
 };
+
+const THEME_CYCLE: ThemeMode[] = ["dark", "light", "system"];
 
 export const useAccentStore = create<AccentStore>((set, get) => ({
   accentColor: (() => {
@@ -31,11 +38,16 @@ export const useAccentStore = create<AccentStore>((set, get) => ({
       return "blue";
     }
   })(),
-  lightMode: (() => {
+  themeMode: (() => {
     try {
-      return localStorage.getItem("lightMode") === "true";
+      const saved = localStorage.getItem("themeMode");
+      if (isThemeMode(saved)) return saved;
+      // Legacy: migrate old lightMode boolean
+      const legacy = localStorage.getItem("lightMode");
+      if (legacy === "true") return "light";
+      return "dark";
     } catch {
-      return false;
+      return "dark";
     }
   })(),
   setAccentColorLocal: (color) => {
@@ -46,21 +58,22 @@ export const useAccentStore = create<AccentStore>((set, get) => ({
     }
     set({ accentColor: color });
   },
-  setLightMode: (on) => {
+  setThemeMode: (mode) => {
     try {
-      localStorage.setItem("lightMode", on ? "true" : "false");
+      localStorage.setItem("themeMode", mode);
     } catch {
       // ignore
     }
-    set({ lightMode: on });
+    set({ themeMode: mode });
   },
-  toggleLightMode: () => {
-    const next = !get().lightMode;
+  cycleThemeMode: () => {
+    const cur = get().themeMode;
+    const next = THEME_CYCLE[(THEME_CYCLE.indexOf(cur) + 1) % THEME_CYCLE.length];
     try {
-      localStorage.setItem("lightMode", next ? "true" : "false");
+      localStorage.setItem("themeMode", next);
     } catch {
       // ignore
     }
-    set({ lightMode: next });
+    set({ themeMode: next });
   },
 }));
