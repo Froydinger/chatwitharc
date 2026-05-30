@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Crown, Quote, ChevronLeft, Lock, Unlock, Pin, PinOff } from "lucide-react";
+import { X, Crown, Quote, ChevronLeft, Lock, Unlock, Pin, PinOff, Moon, Sun, Monitor } from "lucide-react";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useAccentStore } from "@/store/useAccentStore";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
