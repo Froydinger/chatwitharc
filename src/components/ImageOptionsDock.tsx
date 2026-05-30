@@ -11,6 +11,8 @@ import {
 import { useSubscription } from "@/hooks/useSubscription";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { UsageMeter } from "@/components/UsageMeter";
+
 
 interface ImageOptionsDockProps {
   /** The element to portal into (the floating dock parent). */
