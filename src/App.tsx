@@ -20,6 +20,7 @@ import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { BugReportModal } from "@/components/BugReportModal";
 import { useBugReport } from "@/hooks/useBugReport";
 import { useVisibilityHandler } from "@/hooks/useVisibilityHandler";
+import { useTheme } from "@/hooks/useTheme";
 import { GlobalMusicPlayer } from "@/components/GlobalMusicPlayer";
 import { LiquidFilter } from "@/components/ui/liquid-filter";
 import { useCorporateModeEnforcer } from "@/hooks/useCorporateMode";
@@ -61,6 +62,7 @@ const App = () => {
   useVisibilityHandler();
   useCorporateModeEnforcer();
   useLocalModelPersistence();
+  useTheme();
 
   // Detect standalone mode on mount
   useEffect(() => {
