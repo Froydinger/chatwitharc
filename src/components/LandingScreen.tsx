@@ -677,7 +677,7 @@ export function LandingScreen() {
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight leading-tight">
-            Your mind, <span className="gradient-text">amplified.</span>
+            Your mind, <span className="bg-gradient-to-r from-slate-900 to-blue-600 bg-clip-text text-transparent">amplified.</span>
           </h1>
           <p className="text-lg md:text-xl text-slate-600 mb-8 max-w-xl mx-auto leading-relaxed">
             The intelligent AI companion that adapts to you. Create, code, and think with fluid, intuitive
