@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type AccentColor = "red" | "blue" | "green" | "yellow" | "purple" | "orange" | "noir";
+export type AccentColor = "red" | "blue" | "green" | "yellow" | "purple" | "orange" | "noir" | "white";
 
 function isAccentColor(value: unknown): value is AccentColor {
   return (
@@ -10,9 +10,11 @@ function isAccentColor(value: unknown): value is AccentColor {
     value === "yellow" ||
     value === "purple" ||
     value === "orange" ||
-    value === "noir"
+    value === "noir" ||
+    value === "white"
   );
 }
+
 
 type AccentStore = {
   accentColor: AccentColor;
