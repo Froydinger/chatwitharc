@@ -114,7 +114,8 @@ export function ImageOptionsContent({ showUsage = true }: { showUsage?: boolean 
         </div>
 
         {/* Aspect ratio picker */}
-        <div className="relative">
+        <div className="relative flex flex-col gap-1">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 pl-1">Size</span>
           <button
             type="button"
             onClick={() => setOpenMenu(openMenu === "aspect" ? null : "aspect")}
