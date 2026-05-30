@@ -2,29 +2,24 @@
   "name": "ArcAI - Ask, Reflect, Create",
   "short_name": "ArcAI",
   "description": "Ask, Reflect, Create with advanced AI conversations and realtime voice capabilities",
-  "start_url": "/?source=pwa",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
-  "orientation": "portrait-primary",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "/icons/apple-icon-light.png",
-      "sizes": "1024x1024",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/mac512.png",
+      "src": "/icons/apple-icon-light.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icons/appstore1024.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
   "categories": ["productivity", "utilities", "social"],
