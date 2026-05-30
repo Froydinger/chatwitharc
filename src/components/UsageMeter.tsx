@@ -38,7 +38,8 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
         aria-label={`Unlimited ${kind} with ArcAI Boost`}
       >
         <Icon className="h-3.5 w-3.5 shrink-0" />
-        <span>Unlimited {isImage ? "images" : "voice"} · Boost</span>
+        <span className="hidden sm:inline">Unlimited {isImage ? "images" : "voice"} · Boost</span>
+        <span className="sm:hidden">{isImage ? "Unltd." : "Unltd."}</span>
         <Zap className="h-3 w-3 opacity-80" />
       </div>
     );
@@ -72,10 +73,13 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
       aria-label={`${remaining} ${kind} ${remaining === 1 ? "generation" : "generations"} remaining ${periodLabel}. Upgrade to Boost for unlimited.`}
     >
       <Icon className="h-3.5 w-3.5 shrink-0" />
-      <span className="tabular-nums">
+      <span className="tabular-nums hidden sm:inline">
         {isExhausted
           ? `Out of free ${isImage ? "images" : "voice"} ${periodLabel}`
           : `${remaining} / ${limit} ${isImage ? "images" : "voice"} left ${periodLabel}`}
+      </span>
+      <span className="tabular-nums sm:hidden">
+        {isImage ? `${used}/${limit}` : `${used}/${limit}`}
       </span>
       {/* mini progress bar */}
       <span className="hidden sm:inline-block w-10 h-1 rounded-full bg-muted/70 overflow-hidden">
