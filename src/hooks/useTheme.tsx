@@ -4,11 +4,12 @@ import { useAccentStore } from "@/store/useAccentStore";
 export function useTheme() {
   const themeMode = useAccentStore((s) => s.themeMode);
 
-  // Resolve themeMode → effective light/dark. "system" follows OS preference and listens for changes.
   useEffect(() => {
     const root = document.documentElement;
 
     const apply = (isLight: boolean) => {
+      // Disable transitions during theme swap for instant switching
+      root.classList.add("theme-switching");
       if (isLight) {
         root.classList.remove("dark");
         root.classList.add("light");
@@ -16,6 +17,12 @@ export function useTheme() {
         root.classList.remove("light");
         root.classList.add("dark");
       }
+      // Force a reflow then re-enable transitions on next frame
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      root.offsetHeight;
+      requestAnimationFrame(() => {
+        root.classList.remove("theme-switching");
+      });
     };
 
     if (themeMode === "system") {
