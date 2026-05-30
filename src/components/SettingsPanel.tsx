@@ -660,7 +660,7 @@ export function SettingsPanel() {
   const AccentColorCard = (
     <SectionCard icon={Palette} title="Accent Color" subtitle="Personalize your app accent" className="lg:col-span-2">
       <Tile>
-        <div className="grid grid-cols-7 gap-3">
+        <div className="grid grid-cols-8 gap-3">
           {colorOptions.map((opt) => {
             const isActive = accentColor === opt.id;
             return (
@@ -679,10 +679,28 @@ export function SettingsPanel() {
               </button>
             );
           })}
+          {/* Light mode toggle — independent of accent color */}
+          <button
+            onClick={toggleLightMode}
+            className={`aspect-square rounded-xl relative transition-all border border-white/20 ${
+              lightMode
+                ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110"
+                : "hover:scale-105"
+            }`}
+            style={{ background: "linear-gradient(135deg, hsl(0,0%,100%), hsl(0,0%,88%))" }}
+            aria-label={lightMode ? "Switch to dark mode" : "Switch to light mode"}
+            title={lightMode ? "Light mode on — tap for dark" : "Tap for light mode"}
+          >
+            {lightMode && <Check className="absolute inset-0 m-auto h-5 w-5 text-black drop-shadow-lg" />}
+          </button>
         </div>
+        <p className="text-[11px] text-muted-foreground mt-3">
+          The white tile toggles light mode using your current accent.
+        </p>
       </Tile>
     </SectionCard>
   );
+
 
   const StarfieldCard = (
     <SectionCard icon={Stars} title="Background Stars" subtitle="Animated starfield effect">
