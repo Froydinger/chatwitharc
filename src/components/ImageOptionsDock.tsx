@@ -57,21 +57,18 @@ export function ImageOptionsContent({ showUsage = true }: { showUsage?: boolean 
 
   return (
     <>
-      <div className="flex items-center justify-between gap-3 mb-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <ImageIcon className="h-4 w-4 text-primary" />
-          <span>Image options</span>
-        </div>
-        {showUsage && (
+      {showUsage && (
+        <div className="flex items-center justify-end gap-3 mb-2">
           <div className="flex items-center gap-2 min-w-0">
             <UsageMeter kind="image" />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-end gap-3">
         {/* Model picker */}
-        <div className="relative">
+        <div className="relative flex flex-col gap-1">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 pl-1">Model</span>
           <button
             type="button"
             onClick={() => setOpenMenu(openMenu === "model" ? null : "model")}
