@@ -122,7 +122,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
             "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer mr-1",
             inputValue.trim()
               ? "!bg-[hsl(205,100%,48%)]/80 text-white ring-2 ring-[hsl(205,100%,48%)] !shadow-[0_0_12px_rgba(0,140,245,0.3)]"
-              : "text-muted-foreground cursor-not-allowed",
+              : "text-muted-foreground cursor-not-allowed opacity-30",
           ].join(" ")}
           aria-label="Send"
         >
