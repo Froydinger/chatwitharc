@@ -24,7 +24,8 @@
           var savedMode = localStorage.getItem('themeMode');
           if (!savedMode) {
             var legacy = localStorage.getItem('lightMode');
-            savedMode = legacy === 'false' ? 'dark' : 'light';
+            // Default to 'system' so the app follows OS preference for new users
+            savedMode = legacy === 'false' ? 'dark' : legacy === 'true' ? 'light' : 'system';
           }
 
           var theme;
