@@ -175,6 +175,7 @@ export function useAccentColor() {
 
       // Update light mode CSS variables dynamically when in light mode
       if (isLight) {
+        root.style.removeProperty("--background");
         root.style.setProperty("--primary", config.lightPrimary);
         root.style.setProperty("--primary-glow", config.lightPrimaryGlow);
         root.style.setProperty("--ring", config.lightPrimary);
