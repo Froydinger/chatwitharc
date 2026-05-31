@@ -11,7 +11,6 @@ import { ChatInput, cancelCurrentRequest, type ChatInputRef } from "@/components
 import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
-import { ThemedLogo } from "@/components/ThemedLogo";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
 
 import { MusicPopup } from "@/components/MusicPopup";
@@ -130,9 +129,6 @@ function getDaypartGreeting(d: Date = new Date()): string {
   return greetings[randomIndex];
 }
 
-/** Keep header logo as-is */
-const HEADER_LOGO = "/arc-logo-ui.png";
-
 export function MobileChatApp() {
   const navigate = useNavigate();
   const {
@@ -245,82 +241,124 @@ export function MobileChatApp() {
     }
   }, [isMobile]); // Only run on mount and when isMobile changes
 
-  // Edge-swipe to open sidebar — PWA/standalone only (iOS + Android), not regular mobile web
+  const dashboardSwipeOpeningRef = useRef(false);
+
+  // Mobile swipe gestures for browser + PWA. Decisions happen on touchend so route changes
+  // never start while the finger/browser is still finishing the native swipe.
   useEffect(() => {
     if (!isMobile) return;
-    const isPWA =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true;
-    if (!isPWA) return;
+
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverscroll = html.style.overscrollBehaviorX;
+    const prevBodyOverscroll = body.style.overscrollBehaviorX;
+    const prevBodyTouchAction = body.style.touchAction;
+    html.style.overscrollBehaviorX = 'contain';
+    body.style.overscrollBehaviorX = 'contain';
+    body.style.touchAction = 'pan-y';
 
     let startX = 0;
     let startY = 0;
-    let tracking = false;
-    let trackingDashboard = false;
+    let currentX = 0;
+    let currentY = 0;
+    let mode: 'dashboard' | 'panel-open' | 'panel-close' | null = null;
+    let lockedHorizontal = false;
+    let committed = false;
+
+    const resetSwipe = () => {
+      mode = null;
+      lockedHorizontal = false;
+      committed = false;
+    };
 
     const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1 || isCanvasOverlayActive || isSearchOpen) return;
       const t = e.touches[0];
       if (!t) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, button, a, [contenteditable="true"]')) return;
+
       const w = window.innerWidth;
       const deadZone = 40; // px buffer around center
       const leftHalfMax = w / 2 - deadZone;
       const rightHalfMin = w / 2 + deadZone;
+      startX = currentX = t.clientX;
+      startY = currentY = t.clientY;
 
       // Right-half swipe-left to open Dashboard from any chat
-      if (
-        !rightPanelOpen &&
-        t.clientX > rightHalfMin
-      ) {
-        startX = t.clientX;
-        startY = t.clientY;
-        trackingDashboard = true;
+      if (!rightPanelOpen && t.clientX > rightHalfMin) {
+        mode = 'dashboard';
         return;
       }
 
       if (rightPanelOpen) {
         // Close swipe must start in the right half
         if (t.clientX < rightHalfMin) return;
+        mode = 'panel-close';
       } else {
         // Open swipe must start in the left half
         if (t.clientX > leftHalfMax) return;
+        mode = 'panel-open';
       }
-      startX = t.clientX;
-      startY = t.clientY;
-      tracking = true;
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (!tracking && !trackingDashboard) return;
+      if (!mode) return;
       const t = e.touches[0];
       if (!t) return;
-      const dx = t.clientX - startX;
-      const dy = Math.abs(t.clientY - startY);
-      if (trackingDashboard && dx < -50 && dy < 60) {
-        trackingDashboard = false;
-        navigate("/dashboard");
+      currentX = t.clientX;
+      currentY = t.clientY;
+      const dx = currentX - startX;
+      const adx = Math.abs(dx);
+      const ady = Math.abs(currentY - startY);
+
+      if (!lockedHorizontal) {
+        if (ady > 28 && ady > adx) { resetSwipe(); return; }
+        if (adx < 28 || adx < ady * 1.35) return;
+        lockedHorizontal = true;
+      }
+
+      if (e.cancelable) e.preventDefault();
+      if (mode === 'dashboard') committed = dx < -64 && ady < 72;
+      if (mode === 'panel-open') committed = dx > 64 && ady < 72;
+      if (mode === 'panel-close') committed = dx < -64 && ady < 72;
+    };
+
+    const onTouchEnd = () => {
+      if (!mode) return;
+      const finalMode = mode;
+      const shouldCommit = committed;
+      resetSwipe();
+      if (!shouldCommit) return;
+
+      if (finalMode === 'dashboard') {
+        if (dashboardSwipeOpeningRef.current) return;
+        dashboardSwipeOpeningRef.current = true;
+        sessionStorage.setItem('arc_dashboard_entry', 'swipe');
+        navigate('/dashboard');
         return;
       }
-      if (!tracking) return;
-      if (!rightPanelOpen && dx > 50 && dy < 60) {
-        tracking = false;
+      if (finalMode === 'panel-open') {
         setRightPanelOpen(true);
-      } else if (rightPanelOpen && dx < -50 && dy < 60) {
-        tracking = false;
+      } else if (finalMode === 'panel-close') {
         setRightPanelOpen(false);
       }
     };
 
-    const onTouchEnd = () => { tracking = false; trackingDashboard = false; };
-
     window.addEventListener('touchstart', onTouchStart, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', resetSwipe, { passive: true });
     return () => {
       window.removeEventListener('touchstart', onTouchStart);
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', resetSwipe);
+      html.style.overscrollBehaviorX = prevHtmlOverscroll;
+      body.style.overscrollBehaviorX = prevBodyOverscroll;
+      body.style.touchAction = prevBodyTouchAction;
     };
-  }, [isMobile, rightPanelOpen, setRightPanelOpen, messages.length, navigate]);
+  }, [isMobile, rightPanelOpen, setRightPanelOpen, navigate, isCanvasOverlayActive, isSearchOpen]);
 
 
   // Persist docked preference
