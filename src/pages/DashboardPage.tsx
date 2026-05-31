@@ -303,8 +303,14 @@ useEffect(() => {
       if (!t) return;
       const dx = t.clientX - startX;
       const dy = Math.abs(t.clientY - startY);
-      if (dy > 60) { tracking = false; return; }
-      if (Math.abs(dx) < 70) return;
+      const adx = Math.abs(dx);
+
+      // Strong vertical movement → cancel horizontal swipe tracking
+      if (dy > 30 && dy > adx) { tracking = false; return; }
+
+      // Need a clear horizontal bias before switching tabs
+      if (adx < 50 || adx < dy * 1.8) return;
+
       tracking = false;
       const idx = tabs.findIndex(tt => tt.key === activeTab);
       if (dx < 0) {
