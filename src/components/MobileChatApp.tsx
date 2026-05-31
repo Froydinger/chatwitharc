@@ -1368,7 +1368,7 @@ export function MobileChatApp() {
           box-shadow:
             0 8px 32px rgba(0, 0, 0, 0.3),
             inset 0 0 20px hsl(var(--primary-glow) / 0.12);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           cursor: text;
         }
         .glass-dock::before{ display: none; }
