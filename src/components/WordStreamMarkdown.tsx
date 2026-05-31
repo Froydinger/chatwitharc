@@ -110,7 +110,7 @@ export const WordStreamMarkdown = ({
         }
         const idx = cursor.i;
         cursor.i += 1;
-        const isEntering = idx >= revealState.enteringFrom && idx < revealState.count;
+        const isEntering = idx === revealState.count - 1;
         return (
           <span
             key={`arc-word-${idx}`}
