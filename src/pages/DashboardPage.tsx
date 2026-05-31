@@ -1359,7 +1359,8 @@ useEffect(() => {
         </AnimatePresence>
       </div>
 
-      {/* ═══ BOTTOM NAVIGATION ═══ */}
+      {/* ═══ BOTTOM NAVIGATION (portaled so transform parent doesn't break fixed positioning) ═══ */}
+      {createPortal(
       <div className="fixed bottom-0 left-0 right-0 sm:right-auto z-50 pointer-events-none flex justify-center sm:justify-start" style={{ paddingBottom: '20px' }}>
         <div
           ref={setPillRef}
