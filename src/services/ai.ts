@@ -266,7 +266,14 @@ export class AIService {
             canvasUpdate: data.canvas_update,
             codeUpdate: data.code_update,
             memorySaved: data.memory_saved,
-            weatherData: data.weather_data
+            weatherData: data.weather_data,
+            locationUsed: usedLocation ? {
+              city: usedLocation.city,
+              region: usedLocation.region,
+              country: usedLocation.country,
+              latitude: usedLocation.latitude,
+              longitude: usedLocation.longitude,
+            } : undefined,
           };
         } catch (err: any) {
           lastError = err;
