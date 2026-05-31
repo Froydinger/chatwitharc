@@ -795,7 +795,7 @@ useEffect(() => {
         <AnimatePresence mode="wait" initial={false} custom={tabDirection}>
           {/* ====== OVERVIEW ====== */}
           {activeTab === "overview" && (
-            <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-5">
+            <motion.div key="overview" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-5">
 
               {/* Quick stat chips — single clean row */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -858,7 +858,7 @@ useEffect(() => {
 
           {/* ====== FULL CHATS ====== */}
           {activeTab === "chats" && (
-            <motion.div key="chats" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-4">
+            <motion.div key="chats" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -933,7 +933,7 @@ useEffect(() => {
 
           {/* ====== IMAGES ====== */}
           {activeTab === "images" && (
-            <motion.div key="images" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-4">
+            <motion.div key="images" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
               <AnimatePresence mode="wait">
                 {viewingImageIndex !== null && currentImage ? (
                   <motion.div key="viewer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
@@ -1058,7 +1058,7 @@ useEffect(() => {
 
           {/* ====== FULL CANVASES ====== */}
           {activeTab === "canvases" && (
-            <motion.div key="canvases" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-4">
+            <motion.div key="canvases" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
               <AnimatePresence mode="wait">
                 {selectedCanvas ? (
                   <motion.div key="canvas-detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
@@ -1197,7 +1197,7 @@ useEffect(() => {
 
           {/* ====== MEMORIES ====== */}
           {activeTab === "memories" && (
-            <motion.div key="memories" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-4">
+            <motion.div key="memories" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
