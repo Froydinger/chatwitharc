@@ -9,6 +9,7 @@ const accentColorConfigs = {
   red: {
     primary: "0 90% 48%",
     primaryGlow: "0 92% 58%",
+    darkBackground: "0 18% 4%",
     aiMessageBg: "0 15% 14%",
     aiMessageBorder: "0 22% 22%",
     userMessageBg: "0 90% 48%",
