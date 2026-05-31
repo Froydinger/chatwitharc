@@ -1044,17 +1044,17 @@ All colors MUST be HSL for perfect glass effects.
     100% { transform: scale(1);    filter: drop-shadow(0 0 0 hsl(var(--primary) / 0)); }
   }
 
-  /* Static accent glow while Arc is streaming - uses drop-shadow so it works on transparent bubble */
+  /* Static accent glow while Arc is streaming - text-shadow so it's visible on transparent bubble */
   .arc-typing-glow {
-    /* Default (not streaming): no glow. Transition fades it out smoothly when class flips off. */
-    filter: drop-shadow(0 0 0 hsl(var(--primary) / 0));
-    transition: filter 600ms ease-out;
+    text-shadow: 0 0 0 hsl(var(--primary) / 0);
+    transition: text-shadow 600ms ease-out;
   }
 
-  .arc-typing-glow.arc-typing-glow-active {
-    filter:
-      drop-shadow(0 0 8px hsl(var(--primary) / 0.35))
-      drop-shadow(0 0 22px hsl(var(--primary) / 0.20));
+  .arc-typing-glow.arc-typing-glow-active,
+  .arc-typing-glow.arc-typing-glow-active * {
+    text-shadow:
+      0 0 6px hsl(var(--primary) / 0.55),
+      0 0 18px hsl(var(--primary) / 0.30);
   }
 
   @media (prefers-reduced-motion: no-preference) {
