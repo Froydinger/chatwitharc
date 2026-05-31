@@ -320,8 +320,11 @@ export function SettingsPanel() {
   }, []);
 
   useEffect(() => {
-    if (!displayNameDirty) setDisplayNameDraft(profile?.display_name || "");
-  }, [profile?.display_name, displayNameDirty]);
+    const sectionParam = searchParams.get("section") as SectionId | null;
+    if (sectionParam && SECTIONS.some((s) => s.id === sectionParam)) {
+      setSection(sectionParam);
+    }
+  }, [searchParams]);
 
   const handleDataDeleted = () => {
     createNewSession();
