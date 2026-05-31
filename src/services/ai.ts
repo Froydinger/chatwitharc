@@ -163,6 +163,7 @@ export class AIService {
 
       // Auto-inject user location when the latest message implies it's relevant.
       // Uses cached location if available; otherwise silently requests permission once.
+      let usedLocation: import('@/lib/userLocation').UserLocation | null = null;
       try {
         const lastUserText = messages.filter(m => m.role === 'user').pop()?.content || '';
         let loc = getCachedLocation();
@@ -170,6 +171,7 @@ export class AIService {
           loc = await getUserLocation();
         }
         if (loc) {
+          usedLocation = loc;
           const locLine = formatLocationForContext(loc);
           const existing = (effectiveProfile as any).context_info || '';
           (effectiveProfile as any).context_info = existing
