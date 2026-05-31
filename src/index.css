@@ -795,6 +795,23 @@ All colors MUST be HSL for perfect glass effects.
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    color: hsl(0 0% 96%);
+  }
+
+  .glass-panel :is(.text-foreground, .text-card-foreground, .text-secondary-foreground, .text-accent-foreground) {
+    color: hsl(0 0% 96%) !important;
+  }
+
+  .glass-panel :is(.text-muted-foreground, [class*="text-foreground/"]) {
+    color: hsl(0 0% 78%) !important;
+  }
+
+  .glass-panel :is(input, textarea, select) {
+    color: hsl(0 0% 96%);
+  }
+
+  .glass-panel :is(input::placeholder, textarea::placeholder) {
+    color: hsl(0 0% 68%);
   }
 
   .glass-card {
