@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowRight, CirclePlus } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 
