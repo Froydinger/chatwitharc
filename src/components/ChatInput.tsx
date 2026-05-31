@@ -2445,7 +2445,7 @@ ${safeCode}
                       className={cn(
                         "relative grid grid-cols-2 sm:flex sm:flex-nowrap items-center justify-center gap-2 py-3 px-3 sm:px-4 rounded-3xl sm:rounded-full ring-[0.5px] ring-border/40 backdrop-blur-xl max-w-[88vw] sm:max-w-none",
                         isDashboard
-                          ? "bg-black/80 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,.5)]"
+                          ? "bg-background/80 border border-border/40 shadow-[0_8px_32px_rgba(0,0,0,.3)] dark:bg-black/80 dark:border-white/10 dark:shadow-[0_8px_32px_rgba(0,0,0,.5)]"
                           : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]"
                       )}
                   >
