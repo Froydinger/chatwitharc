@@ -61,6 +61,7 @@ const accentColorConfigs = {
   purple: {
     primary: "268 85% 52%",
     primaryGlow: "268 82% 62%",
+    darkBackground: "268 22% 4%",
     aiMessageBg: "268 18% 14%",
     aiMessageBorder: "268 22% 22%",
     userMessageBg: "268 85% 52%",
