@@ -201,40 +201,35 @@ export function ChatHistoryPanel() {
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4 pt-4 px-4 pb-4 h-full overflow-y-auto scrollbar-hide">
-      {/* Action Buttons - top */}
-      {/* New Chat */}
-      <div className="space-y-3">
-        {/* Dashboard */}
+      {/* Quick Actions — compact segmented glass pill */}
+      <div className="flex items-center gap-1.5 p-1.5 rounded-full backdrop-blur-2xl bg-background/40 border border-border/40 shadow-[0_0_12px_hsl(var(--primary)/0.15)]">
         <button
           onClick={() => navigate('/dashboard')}
-          className="w-full h-12 rounded-full inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] bg-primary/50 text-white shadow-[0_0_8px_hsl(var(--primary)/0.5),0_0_16px_hsl(var(--primary)/0.3),inset_0_0_4px_hsl(var(--primary)/0.2)] overflow-hidden relative"
+          className="flex-1 h-9 rounded-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold transition-all hover:scale-[1.02] active:scale-[0.97] bg-primary/60 text-white shadow-[0_0_8px_hsl(var(--primary)/0.45)] relative overflow-hidden"
+          title="Dashboard"
         >
           <span className="absolute inset-0 -translate-x-full animate-[shimmer_2.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          <Layers className="h-4 w-4 mr-2 relative z-10" />
+          <Layers className="h-3.5 w-3.5 relative z-10" />
           <span className="relative z-10">Dashboard</span>
         </button>
-
-        {/* New Chat */}
         <button
           onClick={handleNewChat}
-          className="w-full h-12 rounded-full inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] text-foreground overflow-hidden relative bg-transparent border border-primary/40 shadow-[0_0_6px_hsl(var(--primary)/0.3)]"
+          className="flex-1 h-9 rounded-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground/90 transition-all hover:scale-[1.02] active:scale-[0.97] hover:bg-primary/10"
+          title="New chat"
         >
-          <Plus className="h-4 w-4 mr-2" />
-          <span>New chat</span>
+          <Plus className="h-3.5 w-3.5" />
+          <span>New</span>
         </button>
-      </div>
-
-      {/* Research Mode */}
-      <div>
         <button
           onClick={() => {
             openSearchMode();
             goToChat();
           }}
-          className="w-full h-12 rounded-full inline-flex items-center justify-center text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] text-foreground overflow-hidden relative bg-transparent border border-primary/40 shadow-[0_0_6px_hsl(var(--primary)/0.3)]"
+          className="flex-1 h-9 rounded-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground/90 transition-all hover:scale-[1.02] active:scale-[0.97] hover:bg-primary/10"
+          title="Research Mode"
         >
-          <Search className="h-4 w-4 mr-2" fill="currentColor" strokeWidth={1.5} />
-          <span>Research Mode</span>
+          <Search className="h-3.5 w-3.5" strokeWidth={2} />
+          <span>Research</span>
         </button>
       </div>
 
