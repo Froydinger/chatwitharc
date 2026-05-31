@@ -115,8 +115,9 @@ function checkForImageRequest(message: string): boolean {
 function checkForCodingRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
-  // Support both code/ and /code syntax — prefix only, no natural language
+  // Support code/, /code, build/, /build — App Builder IDE is disabled, so /build is routed to code
   if (/^code\//.test(m) || /^\/code\b/.test(m)) return true;
+  if (/^build\//.test(m) || /^\/build\b/.test(m)) return true;
   return false;
 }
 

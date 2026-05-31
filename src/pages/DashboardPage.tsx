@@ -639,7 +639,7 @@ useEffect(() => {
       totalImageCount != null && totalImageCount > 0 ? `You've generated ${totalImageCount} image${totalImageCount === 1 ? '' : 's'} with Arc so far.` : null,
       contextBlocks.length > 0 ? `Arc is remembering ${contextBlocks.length} key details about you.` : null,
       "Start a new chat to brainstorm your next big idea.",
-      "Use /build to create a web app from a single prompt.",
+      "Use /code to have Arc write or debug code for you.",
     ].filter(Boolean) as string[];
     return tips[Math.floor(Math.random() * tips.length)];
   }, [allChats.length, totalImageCount, contextBlocks.length]);
