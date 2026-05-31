@@ -122,7 +122,7 @@ export const SourcesAccordion = ({ sources, showMediaEmbeds = true, messageConte
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="group flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/50 hover:border-primary/30 transition-all w-full max-w-full overflow-hidden"
+                  className="group flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/50 hover:border-primary/30 transition-[background-color,border-color] w-full max-w-full overflow-hidden"
                 >
                   {/* Favicon */}
                   <div className="flex-shrink-0 mt-0.5">

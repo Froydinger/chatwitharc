@@ -50,6 +50,7 @@ function ResearchUpgradeWall({ onClose }: { onClose: () => void }) {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="max-w-md w-full mx-6 glass-card rounded-3xl p-8 relative overflow-hidden text-center space-y-6"
+        style={{ transition: 'background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease' }}
       >
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
 
@@ -956,7 +957,7 @@ export function SearchCanvas() {
                                   initial={{ opacity: 0, scale: 0.9 }}
                                   animate={{ opacity: 1, scale: 1 }}
                                   transition={{ delay: index * 0.03 }}
-                                  className="group flex items-center gap-2 px-3 py-2 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-all"
+                                  className="group flex items-center gap-2 px-3 py-2 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-[background-color,border-color]"
                                 >
                                   <div className="flex-shrink-0 w-4 h-4">
                                     {getFaviconUrl(result.url) ? (
