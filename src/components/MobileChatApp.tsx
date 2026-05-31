@@ -1070,11 +1070,11 @@ export function MobileChatApp() {
               <motion.div
                 className="pointer-events-auto glass-dock"
                 data-has-images={hasSelectedImages}
-                initial={{ opacity: 0, y: 24, scale: 0.97, filter: 'blur(6px)' }}
-                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: 16, scale: 0.98, filter: 'blur(4px)' }}
-                transition={{ type: 'spring', stiffness: 260, damping: 26, mass: 0.85 }}
-                style={{ willChange: 'transform, opacity, filter' }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 12 }}
+                transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+                style={{ willChange: 'transform, opacity' }}
               >
                 <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
               </motion.div>
