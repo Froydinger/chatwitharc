@@ -216,7 +216,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                       onClick={handleToggleCorporate}
                       title={corporateMode ? "Disable Corporate Mode" : "Enable Corporate Mode"}
                       className={cn(
-                        "rounded-full transition-colors flex-1",
+                        "h-9 w-9 lg:h-auto lg:w-auto rounded-full transition-colors lg:flex-1",
                         corporateMode
                           ? "bg-primary/15 text-primary hover:bg-primary/25"
                           : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
