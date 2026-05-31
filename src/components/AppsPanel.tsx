@@ -149,7 +149,7 @@ export function AppsPanel() {
                 No apps yet
               </h3>
               <p className="text-muted-foreground mb-8 text-lg">
-                Use <span className="font-mono text-primary">/build</span> to build your first app with the IDE.
+                The App Builder is offline while we rebuild it. Check back soon.
               </p>
             </GlassCard>
           </div>
