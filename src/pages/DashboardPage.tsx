@@ -240,6 +240,8 @@ useEffect(() => {
   const switchTab = (tab: DashboardTab) => {
     const tabIndex = tabs.findIndex(t => t.key === tab);
     if (tabIndex === -1) return;
+    const prevIndex = tabs.findIndex(t => t.key === activeTab);
+    setTabDirection(tabIndex >= prevIndex ? 1 : -1);
 
     // Animate bubble like it's being grabbed and dropped
     // Pickup animation
