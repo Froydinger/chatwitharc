@@ -122,14 +122,14 @@ export function LandingVoiceDemo() {
               <Mic className="w-6 h-6 text-violet-400" />
             </div>
           </div>
-          <h2 className="text-3xl md:text-5xl font-bold text-slate-900 leading-tight">
+          <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
             Talk to it.
             <br />
             <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
               Like, actually talk.
             </span>
           </h2>
-          <p className="text-slate-600 max-w-lg mx-auto text-lg">
+          <p className="text-slate-600 dark:text-slate-300 max-w-lg mx-auto text-lg">
             Voice Mode turns Arc into a real-time AI companion. Just press and talk — it listens, thinks, and responds like a conversation, not a command.
           </p>
         </motion.div>
@@ -145,7 +145,7 @@ export function LandingVoiceDemo() {
             if (!hasStarted) setTimeout(() => setHasStarted(true), 500);
           }}
         >
-          <div className="rounded-3xl overflow-hidden border border-slate-200 bg-slate-200 backdrop-blur-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)] h-[400px] flex flex-col">
+          <div className="rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-200 dark:bg-slate-700 backdrop-blur-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)] h-[400px] flex flex-col">
             {/* Waveform area */}
             <div className="px-6 pt-8 pb-4 shrink-0">
               <div className="flex items-end justify-center gap-[3px] h-16 mb-2">
@@ -166,7 +166,7 @@ export function LandingVoiceDemo() {
               </div>
               <div className="text-center">
                 <span className={`text-xs font-medium ${
-                  isListening ? "text-violet-400" : activeStep >= 0 && activeStep < CONVERSATION.length ? "text-cyan-400" : "text-slate-500"
+                  isListening ? "text-violet-400" : activeStep >= 0 && activeStep < CONVERSATION.length ? "text-cyan-400" : "text-slate-500 dark:text-slate-400 dark:text-slate-500"
                 }`}>
                   {isListening ? "Listening…" : activeStep >= 0 && activeStep < CONVERSATION.length ? "Speaking…" : activeStep >= CONVERSATION.length ? "Tap to talk" : ""}
                 </span>
@@ -189,15 +189,15 @@ export function LandingVoiceDemo() {
                       : "bg-gradient-to-br from-cyan-500 to-blue-500"
                   }`}>
                     {msg.role === "user" ? (
-                      <Mic className="w-3 h-3 text-slate-900" />
+                      <Mic className="w-3 h-3 text-slate-900 dark:text-slate-100" />
                     ) : (
-                      <Volume2 className="w-3 h-3 text-slate-900" />
+                      <Volume2 className="w-3 h-3 text-slate-900 dark:text-slate-100" />
                     )}
                   </div>
                   <div className={`rounded-2xl px-3.5 py-2 text-sm max-w-[80%] ${
                     msg.role === "user"
-                      ? "bg-violet-500/15 text-slate-800 rounded-tr-md"
-                      : "bg-slate-50 text-slate-700 rounded-tl-md"
+                      ? "bg-violet-500/15 text-slate-800 dark:text-slate-100 rounded-tr-md"
+                      : "bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 rounded-tl-md"
                   }`}>
                     {msg.text}
                   </div>
@@ -217,10 +217,10 @@ export function LandingVoiceDemo() {
                 className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${
                   isListening
                     ? "bg-gradient-to-br from-violet-500 to-fuchsia-500"
-                    : "bg-slate-100 border border-slate-200"
+                    : "bg-slate-100 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-700"
                 }`}
               >
-                <Mic className={`w-6 h-6 ${isListening ? "text-slate-900" : "text-slate-600"}`} />
+                <Mic className={`w-6 h-6 ${isListening ? "text-slate-900 dark:text-slate-100" : "text-slate-600 dark:text-slate-300"}`} />
               </motion.div>
             </div>
           </div>
