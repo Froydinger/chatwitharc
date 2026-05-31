@@ -2409,7 +2409,7 @@ ${safeCode}
                   ? accentColor === "noir"
                     ? "bg-white/5 ring-1 ring-white/20 text-foreground hover:bg-white/10"
                     : "bg-primary/10 ring-1 ring-primary/40 text-primary hover:bg-primary/20 !shadow-[0_0_10px_rgba(var(--primary-rgb),0.25)]"
-                  : "text-muted-foreground cursor-not-allowed",
+                  : "text-muted-foreground cursor-not-allowed opacity-30",
               ].join(" ")}
               aria-label="Send"
             >
