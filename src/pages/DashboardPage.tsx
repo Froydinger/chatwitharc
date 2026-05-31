@@ -363,6 +363,8 @@ useEffect(() => {
       window.removeEventListener('touchstart', onTouchStart);
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
+      html.style.overscrollBehaviorX = prevHtmlOverscroll;
+      body.style.overscrollBehaviorX = prevBodyOverscroll;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile, activeTab, navigate]);
