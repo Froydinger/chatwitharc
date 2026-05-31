@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask } from "@/store/useModelStore";
+import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext } from "@/lib/userLocation";
 
 // Detect if a user message warrants upgrading to a more powerful model
 export function detectComplexQuery(message: string): boolean {
@@ -158,6 +159,26 @@ export class AIService {
       } catch (e) {
         console.warn('Falling back to provided profile:', e);
       }
+
+      // Auto-inject user location when the latest message implies it's relevant.
+      // Uses cached location if available; otherwise silently requests permission once.
+      try {
+        const lastUserText = messages.filter(m => m.role === 'user').pop()?.content || '';
+        let loc = getCachedLocation();
+        if (!loc && detectsLocationIntent(lastUserText)) {
+          loc = await getUserLocation();
+        }
+        if (loc) {
+          const locLine = formatLocationForContext(loc);
+          const existing = (effectiveProfile as any).context_info || '';
+          (effectiveProfile as any).context_info = existing
+            ? `${existing}\n\n${locLine}`
+            : locLine;
+        }
+      } catch (e) {
+        console.warn('Location injection skipped:', e);
+      }
+
 
       // Model routing based on user's model family preference
       const isCanvasOrCode = forceCanvas || forceCode;
