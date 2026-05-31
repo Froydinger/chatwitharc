@@ -714,7 +714,7 @@ useEffect(() => {
         <div>
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/25 bg-primary/8 text-primary text-xs font-medium">
             <Zap className="h-3.5 w-3.5" />
-            <span>ArcAI — Free forever · Unlimited chats · 10 images/day</span>
+            <span>{hasBoost ? "ArcAI Boost — Unlimited chats, voice & images" : "ArcAI — Free forever · Unlimited chats · 10 images/day"}</span>
           </div>
         </div>
 
