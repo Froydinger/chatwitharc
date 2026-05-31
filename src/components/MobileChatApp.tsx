@@ -245,6 +245,55 @@ export function MobileChatApp() {
     }
   }, [isMobile]); // Only run on mount and when isMobile changes
 
+  // Edge-swipe to open sidebar — PWA/standalone only (iOS + Android), not regular mobile web
+  useEffect(() => {
+    if (!isMobile) return;
+    const isPWA =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
+    if (!isPWA) return;
+
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (rightPanelOpen) return;
+      const t = e.touches[0];
+      if (!t) return;
+      // Start swipe only if finger begins within 24px of the left edge
+      if (t.clientX <= 24) {
+        startX = t.clientX;
+        startY = t.clientY;
+        tracking = true;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!tracking) return;
+      const t = e.touches[0];
+      if (!t) return;
+      const dx = t.clientX - startX;
+      const dy = Math.abs(t.clientY - startY);
+      if (dx > 50 && dy < 60) {
+        tracking = false;
+        setRightPanelOpen(true);
+      }
+    };
+
+    const onTouchEnd = () => { tracking = false; };
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [isMobile, rightPanelOpen, setRightPanelOpen]);
+
+
   // Persist docked preference
   useEffect(() => {
     localStorage.setItem("arc_rightPanelDocked", String(rightPanelDocked));

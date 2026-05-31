@@ -142,7 +142,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
         <div className="flex flex-col h-full" style={{ paddingTop: isStandaloneApp ? '30px' : undefined }}>
           {/* Header */}
           <div className="flex items-center p-2 border-b border-border bg-background">
-            <div className="flex items-center w-full">
+            <div className="flex items-center w-full gap-2">
               {/* Theme cycle: dark → light → system */}
               <Button
                 variant="ghost"
@@ -150,7 +150,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                 onClick={cycleThemeMode}
                 title={themeLabel}
                 aria-label={themeLabel}
-                className="h-9 w-9 rounded-full bg-muted/40 hover:bg-primary/15 hover:text-primary transition-colors flex-1"
+                className="h-9 w-9 rounded-full bg-muted/40 hover:bg-primary/15 hover:text-primary transition-colors lg:flex-1"
               >
                 <motion.span
                   key={themeMode}
@@ -179,7 +179,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                     size="icon"
                     onClick={onClose}
                     title="Close sidebar"
-                    className="lg:hidden rounded-full transition-colors bg-muted/50 hover:bg-primary/15 hover:text-primary flex-1"
+                    className="lg:hidden h-9 w-9 rounded-full transition-colors bg-muted/50 hover:bg-primary/15 hover:text-primary"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -216,7 +216,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                       onClick={handleToggleCorporate}
                       title={corporateMode ? "Disable Corporate Mode" : "Enable Corporate Mode"}
                       className={cn(
-                        "rounded-full transition-colors flex-1",
+                        "h-9 w-9 lg:h-auto lg:w-auto rounded-full transition-colors lg:flex-1",
                         corporateMode
                           ? "bg-primary/15 text-primary hover:bg-primary/25"
                           : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -231,7 +231,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                     size="icon"
                     onClick={onClose}
                     title="Close sidebar"
-                    className="lg:hidden rounded-full transition-colors bg-muted/50 hover:bg-primary/15 hover:text-primary flex-1"
+                    className="lg:hidden h-9 w-9 rounded-full transition-colors bg-muted/50 hover:bg-primary/15 hover:text-primary"
                   >
                     <X className="h-4 w-4" />
                   </Button>
