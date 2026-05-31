@@ -2246,7 +2246,7 @@ ${safeCode}
                 <motion.button
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.1, type: "spring", damping: 25, stiffness: 500 }}
+                  transition={{ delay: 0.1, duration: 0.18, ease: [0.25, 0.8, 0.25, 1] }}
                   type="button"
                   onMouseDown={(e) => { e.preventDefault(); setInputValue(""); textareaRef.current?.focus(); }}
                   className="flex items-center justify-center h-7 w-7 rounded-full hover:bg-white/10 active:scale-95 transition-all text-muted-foreground"
