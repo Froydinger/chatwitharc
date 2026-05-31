@@ -9,6 +9,7 @@ const accentColorConfigs = {
   red: {
     primary: "0 90% 48%",
     primaryGlow: "0 92% 58%",
+    darkBackground: "0 18% 4%",
     aiMessageBg: "0 15% 14%",
     aiMessageBorder: "0 22% 22%",
     userMessageBg: "0 90% 48%",
@@ -21,6 +22,7 @@ const accentColorConfigs = {
   blue: {
     primary: "205 100% 48%",
     primaryGlow: "205 95% 58%",
+    darkBackground: "210 30% 4%",
     aiMessageBg: "205 18% 14%",
     aiMessageBorder: "205 22% 22%",
     userMessageBg: "205 100% 48%",
@@ -33,6 +35,7 @@ const accentColorConfigs = {
   green: {
     primary: "145 82% 35%",
     primaryGlow: "145 80% 45%",
+    darkBackground: "145 20% 4%",
     aiMessageBg: "145 18% 14%",
     aiMessageBorder: "145 22% 22%",
     userMessageBg: "145 82% 35%",
@@ -45,6 +48,7 @@ const accentColorConfigs = {
   yellow: {
     primary: "45 100% 48%",
     primaryGlow: "45 100% 58%",
+    darkBackground: "45 18% 4%",
     aiMessageBg: "45 18% 14%",
     aiMessageBorder: "45 22% 22%",
     userMessageBg: "45 100% 48%",
@@ -57,6 +61,7 @@ const accentColorConfigs = {
   purple: {
     primary: "268 85% 52%",
     primaryGlow: "268 82% 62%",
+    darkBackground: "268 22% 4%",
     aiMessageBg: "268 18% 14%",
     aiMessageBorder: "268 22% 22%",
     userMessageBg: "268 85% 52%",
@@ -69,6 +74,7 @@ const accentColorConfigs = {
   orange: {
     primary: "22 100% 50%",
     primaryGlow: "22 98% 60%",
+    darkBackground: "22 22% 4%",
     aiMessageBg: "22 18% 14%",
     aiMessageBorder: "22 22% 22%",
     userMessageBg: "22 100% 50%",
@@ -81,6 +87,7 @@ const accentColorConfigs = {
   noir: {
     primary: "0 0% 95%",
     primaryGlow: "0 0% 80%",
+    darkBackground: "0 0% 2%",
     aiMessageBg: "0 0% 12%",
     aiMessageBorder: "0 0% 20%",
     userMessageBg: "0 0% 0%",
@@ -152,6 +159,11 @@ export function useAccentColor() {
       root.style.setProperty("--user-message-bg", config.userMessageBg);
       root.style.setProperty("--user-message-border", config.userMessageBorder);
 
+      // Apply accent-tinted dark background (cleared in light mode below)
+      if (config.darkBackground) {
+        root.style.setProperty("--background", config.darkBackground);
+      }
+
       // Noir theme: black text on white buttons for contrast
       if (isNoir) {
         root.style.setProperty("--primary-foreground", "0 0% 5%");
@@ -163,6 +175,7 @@ export function useAccentColor() {
 
       // Update light mode CSS variables dynamically when in light mode
       if (isLight) {
+        root.style.removeProperty("--background");
         root.style.setProperty("--primary", config.lightPrimary);
         root.style.setProperty("--primary-glow", config.lightPrimaryGlow);
         root.style.setProperty("--ring", config.lightPrimary);
