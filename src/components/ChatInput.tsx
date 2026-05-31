@@ -2407,8 +2407,8 @@ ${safeCode}
                 "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
                 inputValue.trim() || selectedImages.length || selectedDocuments.length
                   ? accentColor === "noir"
-                    ? "!bg-white/90 text-black ring-2 ring-white/60 hover:!bg-white !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
-                    : "!bg-primary/80 text-primary-foreground ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]"
+                    ? "bg-white/5 ring-1 ring-white/20 text-foreground hover:bg-white/10"
+                    : "bg-primary/10 ring-1 ring-primary/40 text-primary hover:bg-primary/20 !shadow-[0_0_10px_rgba(var(--primary-rgb),0.25)]"
                   : "text-muted-foreground cursor-not-allowed",
               ].join(" ")}
               aria-label="Send"
