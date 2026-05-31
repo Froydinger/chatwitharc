@@ -57,7 +57,7 @@ serve(async (req) => {
 IMPORTANT: Be practical and useful - NOT ethereal, spiritual, or wellness-focused.
 Prompts should help with real tasks, decisions, and everyday problems.
 
-CRITICAL: Labels SHORT (2-3 words). Prompts concise (1-2 sentences).
+CRITICAL: Labels SHORT (2-3 words). Prompts concise (1-2 sentences). Keep them GENERAL — never invent fake user context (no fake counts, leftover items, names, dates, possessions).
 Be grounded and helpful, not poetic!`,
 
       create: `Generate 6 COMPLETELY DIFFERENT image prompts. Be creative but PRACTICAL:
@@ -76,7 +76,7 @@ Use VARIED emojis. Make them useful!`,
 
 Focus on real-world writing tasks people actually need help with.
 
-CRITICAL: Labels SHORT (2-3 words). Prompts practical and specific (1-2 sentences).
+CRITICAL: Labels SHORT (2-3 words). Prompts general and open-ended (1-2 sentences) — never fabricate user-specific details.
 Avoid creative writing prompts - focus on utility!`,
 
       code: `Generate 6 USEFUL coding prompts. Think tools people actually need:
@@ -103,6 +103,12 @@ STRICT REQUIREMENTS:
 6. Be CREATIVE and UNEXPECTED - surprise the user!
 7. Use only regular straight quotes (") not smart/curly quotes
 8. Avoid backslashes, use forward slashes if needed
+9. KEEP PROMPTS GENERAL & OPEN-ENDED. The user will add their own context in follow-ups.
+   - DO NOT invent fake user-specific details (e.g. "5 ingredients in my fridge", "leftover screws from a flat-pack project", "my friend Sarah's wedding next Tuesday").
+   - DO NOT pretend the user has a specific situation, possession, deadline, count, or backstory.
+   - DO write prompts that invite the user to bring their own details: "Suggest a recipe with ingredients I have", "Help me troubleshoot a DIY project", "Draft an email I need to send".
+   - Good: "🍳 Quick Dinner" → "Suggest a quick dinner idea I can make tonight."
+   - Bad: "🍳 Fridge Sandwich" → "Suggest a sandwich using the 5 ingredients left in my fridge before grocery day."
 
 LABEL FORMAT (MANDATORY):
 "[EMOJI] Short Title" - Example: "🎯 Dream Journal" or "🚀 Space Opera"
@@ -117,7 +123,7 @@ Return ONLY valid JSON array with 6 objects:
 FOR IMAGE PROMPTS: prompt MUST start with "Generate image:" (exactly)
 Example: {"label": "🎨 Neon City", "prompt": "Generate image: a cyberpunk cityscape with neon lights."}
 
-CRITICAL: Every single label MUST have an emoji at the start! Use only regular quotes in JSON!`;
+CRITICAL: Every single label MUST have an emoji at the start! Use only regular quotes in JSON! Keep prompts general — never fabricate specific user details!`;
 
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!lovableApiKey) {
