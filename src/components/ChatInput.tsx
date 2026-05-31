@@ -2188,7 +2188,7 @@ ${safeCode}
               initial={{ opacity: 0, y: 8, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 6, scale: 0.97 }}
-              transition={{ type: "spring", damping: 30, stiffness: 700, mass: 0.25 }}
+              transition={{ duration: 0.18, ease: [0.25, 0.8, 0.25, 1] }}
               className={cn(
                 "fixed z-[9999] flex items-center justify-center px-4",
                 rightPanelOpen && "lg:mr-80 xl:mr-96"
@@ -2230,7 +2230,7 @@ ${safeCode}
                     key={item.label}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.02, type: "spring", damping: 25, stiffness: 500 }}
+                    transition={{ delay: i * 0.02, duration: 0.18, ease: [0.25, 0.8, 0.25, 1] }}
                     type="button"
                     onMouseDown={(e) => { e.preventDefault(); item.action(); }}
                     className={cn(
@@ -2246,7 +2246,7 @@ ${safeCode}
                 <motion.button
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.1, type: "spring", damping: 25, stiffness: 500 }}
+                  transition={{ delay: 0.1, duration: 0.18, ease: [0.25, 0.8, 0.25, 1] }}
                   type="button"
                   onMouseDown={(e) => { e.preventDefault(); setInputValue(""); textareaRef.current?.focus(); }}
                   className="flex items-center justify-center h-7 w-7 rounded-full hover:bg-white/10 active:scale-95 transition-all text-muted-foreground"
@@ -2441,7 +2441,7 @@ ${safeCode}
                       initial={{ opacity: 0, y: isDashboard ? -8 : 8, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: isDashboard ? -8 : 8, scale: 0.95 }}
-                      transition={{ type: "spring", damping: 25, stiffness: 500 }}
+                      transition={{ duration: 0.2, ease: [0.25, 0.8, 0.25, 1] }}
                       className={cn(
                         "relative grid grid-cols-2 sm:flex sm:flex-nowrap items-center justify-center gap-2 py-3 px-3 sm:px-4 rounded-3xl sm:rounded-full ring-[0.5px] ring-border/40 backdrop-blur-xl max-w-[88vw] sm:max-w-none",
                         isDashboard
@@ -2462,7 +2462,7 @@ ${safeCode}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ delay: i * 0.02, type: "spring", damping: 25, stiffness: 500 }}
+                        transition={{ delay: i * 0.02, duration: 0.18, ease: [0.25, 0.8, 0.25, 1] }}
                         onClick={item.action}
                         className={cn(
                           "flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium",
