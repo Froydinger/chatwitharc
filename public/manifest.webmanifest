@@ -7,6 +7,6 @@
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "icons": [
-    { "src": "/icon-light.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+    { "src": "/icons/apple-icon-ios.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
   ]
 }
