@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { X, Paperclip, ArrowRight, Sparkles, ImagePlus, Mic, Code2, PenLine, Search, Globe, Square, Lightbulb, Rocket, FileText, ListPlus } from "lucide-react";
+import { X, Paperclip, ArrowRight, Sparkles, CirclePlus, ImagePlus, Mic, Code2, PenLine, Search, Globe, Square, Lightbulb, Rocket, FileText, ListPlus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
@@ -2154,7 +2154,7 @@ ${safeCode}
               </span>
             </>
           ) : (
-            <Sparkles className="h-5 w-5" />
+            <CirclePlus className="h-5 w-5" />
           )}
         </button>
 

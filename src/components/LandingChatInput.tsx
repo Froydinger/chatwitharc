@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, CirclePlus } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 
@@ -89,13 +89,14 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           isActive ? "ring-2 ring-[hsl(205,100%,48%)]/40 shadow-[0_0_24px_rgba(0,140,245,0.15)]" : "",
         ].join(" ")}
       >
-        {/* Left Button - Star/Sparkles */}
+        {/* Left Button - Add/Plus */}
         <button
           type="button"
           aria-label="Options"
           className="shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer text-muted-foreground hover:text-foreground ml-1"
         >
-          <Sparkles className="h-5 w-5" />
+          <CirclePlus className="h-5 w-5" />
+
         </button>
 
         {/* Input - EXACT copy of ChatInput approach */}
@@ -120,7 +121,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           className={[
             "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer mr-1",
             inputValue.trim()
-              ? "!bg-[hsl(205,100%,48%)] text-white ring-2 ring-[hsl(205,100%,48%)] hover:!bg-[hsl(205,100%,52%)] !shadow-[0_0_12px_rgba(0,140,245,0.35)]"
+              ? "!bg-[hsl(205,100%,48%)]/80 text-white ring-2 ring-[hsl(205,100%,48%)] !shadow-[0_0_12px_rgba(0,140,245,0.3)]"
               : "text-muted-foreground cursor-not-allowed",
           ].join(" ")}
           aria-label="Send"
