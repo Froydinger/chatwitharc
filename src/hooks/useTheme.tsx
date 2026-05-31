@@ -8,6 +8,12 @@ export function useTheme() {
     const root = document.documentElement;
 
     const apply = (isLight: boolean) => {
+      // Shared chat pages always render in dark theme for legibility of the CTA bar
+      if (typeof window !== "undefined" && window.location.pathname.startsWith("/share/")) {
+        root.classList.remove("light");
+        root.classList.add("dark");
+        return;
+      }
       // Disable transitions during theme swap for instant switching
       root.classList.add("theme-switching");
       if (isLight) {
