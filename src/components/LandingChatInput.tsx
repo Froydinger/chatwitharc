@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowRight, CirclePlus } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 
@@ -95,7 +95,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           aria-label="Options"
           className="shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer text-muted-foreground hover:text-foreground ml-1"
         >
-          <CirclePlus className="h-5 w-5" />
+          <Plus className="h-5 w-5" />
 
         </button>
 
