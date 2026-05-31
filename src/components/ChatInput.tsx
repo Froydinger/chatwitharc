@@ -2154,7 +2154,7 @@ ${safeCode}
               </span>
             </>
           ) : (
-            <CirclePlus className="h-5 w-5" />
+            <Plus className="h-5 w-5" />
           )}
         </button>
 

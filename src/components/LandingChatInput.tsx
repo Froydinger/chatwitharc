@@ -95,7 +95,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           aria-label="Options"
           className="shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer text-muted-foreground hover:text-foreground ml-1"
         >
-          <CirclePlus className="h-5 w-5" />
+          <Plus className="h-5 w-5" />
 
         </button>
 
