@@ -111,7 +111,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
 
             {/* Main Glass Card */}
-            <div className="relative backdrop-blur-[40px] bg-gradient-to-br from-black/85 via-black/80 to-black/85 rounded-3xl border border-white/[0.08] shadow-2xl shadow-black/50 p-8">
+            <div className="relative backdrop-blur-[40px] bg-gradient-to-br from-black/85 via-black/80 to-black/85 rounded-3xl border-0 shadow-2xl shadow-black/50 p-8">
               <motion.button
                 whileHover={{ scale: 1.1, backgroundColor: "rgba(255, 255, 255, 0.15)" }}
                 whileTap={{ scale: 0.95 }}
