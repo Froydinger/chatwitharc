@@ -74,6 +74,7 @@ const accentColorConfigs = {
   orange: {
     primary: "22 100% 50%",
     primaryGlow: "22 98% 60%",
+    darkBackground: "22 22% 4%",
     aiMessageBg: "22 18% 14%",
     aiMessageBorder: "22 22% 22%",
     userMessageBg: "22 100% 50%",
