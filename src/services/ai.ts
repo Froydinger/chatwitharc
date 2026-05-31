@@ -76,6 +76,7 @@ export interface SendMessageResult {
   codeUpdate?: CodeUpdate;
   memorySaved?: { content: string };
   weatherData?: import('@/components/WeatherCard').WeatherData;
+  locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
 }
 
 export class AIService {
@@ -162,6 +163,7 @@ export class AIService {
 
       // Auto-inject user location when the latest message implies it's relevant.
       // Uses cached location if available; otherwise silently requests permission once.
+      let usedLocation: import('@/lib/userLocation').UserLocation | null = null;
       try {
         const lastUserText = messages.filter(m => m.role === 'user').pop()?.content || '';
         let loc = getCachedLocation();
@@ -169,6 +171,7 @@ export class AIService {
           loc = await getUserLocation();
         }
         if (loc) {
+          usedLocation = loc;
           const locLine = formatLocationForContext(loc);
           const existing = (effectiveProfile as any).context_info || '';
           (effectiveProfile as any).context_info = existing
@@ -263,7 +266,14 @@ export class AIService {
             canvasUpdate: data.canvas_update,
             codeUpdate: data.code_update,
             memorySaved: data.memory_saved,
-            weatherData: data.weather_data
+            weatherData: data.weather_data,
+            locationUsed: usedLocation ? {
+              city: usedLocation.city,
+              region: usedLocation.region,
+              country: usedLocation.country,
+              latitude: usedLocation.latitude,
+              longitude: usedLocation.longitude,
+            } : undefined,
           };
         } catch (err: any) {
           lastError = err;

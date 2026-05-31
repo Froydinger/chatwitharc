@@ -1801,6 +1801,7 @@ ${safeCode}
                 type: 'text',
                 memoryAction,
                 weatherData: result.weatherData,
+                locationUsed: result.locationUsed,
                 sourceModel: didSearchWeb
                   ? (result.searchProvider === 'tavily' ? 'cloud-search-tavily' : 'cloud-search')
                   : 'cloud-chat',
