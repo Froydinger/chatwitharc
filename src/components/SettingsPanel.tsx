@@ -870,6 +870,7 @@ export function SettingsPanel() {
           <>
             {!isMobileLocal && <CorporateModePanel />}
             {MemoryCard}
+            <SharedLinksCard />
             {ExportCard}
             {SyncCard}
           </>
