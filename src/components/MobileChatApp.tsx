@@ -11,7 +11,6 @@ import { ChatInput, cancelCurrentRequest, type ChatInputRef } from "@/components
 import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
-import { ThemedLogo } from "@/components/ThemedLogo";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
 
 import { MusicPopup } from "@/components/MusicPopup";
@@ -129,9 +128,6 @@ function getDaypartGreeting(d: Date = new Date()): string {
   const randomIndex = Math.floor((Math.random() * 1000 + Date.now()) % greetings.length);
   return greetings[randomIndex];
 }
-
-/** Keep header logo as-is */
-const HEADER_LOGO = "/arc-logo-ui.png";
 
 export function MobileChatApp() {
   const navigate = useNavigate();
