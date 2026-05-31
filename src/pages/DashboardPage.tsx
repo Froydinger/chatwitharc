@@ -281,13 +281,10 @@ useEffect(() => {
     window.scrollTo({ top: 0 });
   };
 
-  // PWA mobile: horizontal swipe to switch tabs (or return to chat from leftmost tab)
+  // Mobile: horizontal swipe to switch tabs (or return to chat from leftmost tab).
+  // Enabled for all mobile contexts (browser + PWA on iOS/Android).
   useEffect(() => {
     if (!isMobile) return;
-    const isPWA =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true;
-    if (!isPWA) return;
 
     let startX = 0;
     let startY = 0;
