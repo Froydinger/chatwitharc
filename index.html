@@ -83,10 +83,14 @@
 
     <!-- PWA Configuration -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0a0a0f">
+    <meta name="theme-color" content="#0a0a0f" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ArcAI">
+    <!-- Apple touch icons: light/dark variants so the home screen icon follows the OS theme -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/arc-ios-pwa-icon-180.png" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-icon-light.png" media="(prefers-color-scheme: light)">
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/arc-ios-pwa-icon-180.png">
 
     <!-- Open Graph -->
