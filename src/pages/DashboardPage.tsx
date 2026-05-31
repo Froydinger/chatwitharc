@@ -164,6 +164,7 @@ useEffect(() => {
   const [canvasPage, setCanvasPage] = useState(1);
   const [selectedCanvas, setSelectedCanvas] = useState<CanvasItem | null>(null);
   const [canvasDetailTab, setCanvasDetailTab] = useState<CanvasDetailTab>("canvas");
+  const [tabDirection, setTabDirection] = useState<1 | -1>(1);
   const imageFetchStartedRef = useRef(false);
   const { openWithContent } = useCanvasStore();
 
