@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "@/components/CodeBlock";
@@ -12,6 +12,7 @@ interface WordStreamMarkdownProps {
   /** When false, all words are immediately revealed (no per-word animation) */
   shouldAnimate?: boolean;
   onTyping?: () => void;
+  onComplete?: () => void;
 }
 
 interface RevealState {
@@ -96,6 +97,7 @@ export const WordStreamMarkdown = ({
   className = "",
   shouldAnimate = true,
   onTyping,
+  onComplete,
 }: WordStreamMarkdownProps) => {
   const tokens = useMemo(() => tokenizeText(text), [text]);
   const totalWords = useMemo(() => countWords(tokens), [tokens]);
@@ -105,6 +107,7 @@ export const WordStreamMarkdown = ({
     count: animateWords ? 0 : totalWords,
     enteringFrom: 0,
   }));
+  const completedWordCountRef = useRef(-1);
 
   useEffect(() => {
     if (!animateWords) {
@@ -135,6 +138,13 @@ export const WordStreamMarkdown = ({
 
     return () => window.clearTimeout(id);
   }, [animateWords, onTyping, revealState.count, totalWords]);
+
+  useEffect(() => {
+    if (!animateWords || totalWords === 0 || revealState.count < totalWords) return;
+    if (completedWordCountRef.current === totalWords) return;
+    completedWordCountRef.current = totalWords;
+    onComplete?.();
+  }, [animateWords, onComplete, revealState.count, totalWords]);
 
   const visibleText = useMemo(
     () => hideUnclosedMarkdownTail(animateWords ? getPrefixByWords(tokens, revealState.count) : text),
