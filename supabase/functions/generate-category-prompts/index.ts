@@ -57,7 +57,7 @@ serve(async (req) => {
 IMPORTANT: Be practical and useful - NOT ethereal, spiritual, or wellness-focused.
 Prompts should help with real tasks, decisions, and everyday problems.
 
-CRITICAL: Labels SHORT (2-3 words). Prompts concise (1-2 sentences).
+CRITICAL: Labels SHORT (2-3 words). Prompts concise (1-2 sentences). Keep them GENERAL — never invent fake user context (no fake counts, leftover items, names, dates, possessions).
 Be grounded and helpful, not poetic!`,
 
       create: `Generate 6 COMPLETELY DIFFERENT image prompts. Be creative but PRACTICAL:
@@ -76,7 +76,7 @@ Use VARIED emojis. Make them useful!`,
 
 Focus on real-world writing tasks people actually need help with.
 
-CRITICAL: Labels SHORT (2-3 words). Prompts practical and specific (1-2 sentences).
+CRITICAL: Labels SHORT (2-3 words). Prompts general and open-ended (1-2 sentences) — never fabricate user-specific details.
 Avoid creative writing prompts - focus on utility!`,
 
       code: `Generate 6 USEFUL coding prompts. Think tools people actually need:
