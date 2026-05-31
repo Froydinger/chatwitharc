@@ -1044,24 +1044,40 @@ All colors MUST be HSL for perfect glass effects.
     100% { transform: scale(1);    filter: drop-shadow(0 0 0 hsl(var(--primary) / 0)); }
   }
 
-  /* Accent glow while Arc is streaming - warm settle-out when done */
+  /* Accent glow while Arc is streaming - warm settle-out when done.
+     Use a CSS variable so we can transition a single scalar (opacity multiplier)
+     smoothly. Children inherit text-shadow via the descendant rule so the
+     interpolated value follows them even after the typewriter DOM swap. */
   .arc-typing-glow {
-    text-shadow: 0 0 0 hsl(var(--primary) / 0);
-    transition: text-shadow 1800ms cubic-bezier(0.16, 1, 0.3, 1);
+    --arc-glow-strength: 0;
+    text-shadow:
+      0 0 4px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.95)),
+      0 0 12px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.80)),
+      0 0 28px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.60)),
+      0 0 52px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.40));
+    transition: --arc-glow-strength 2200ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .arc-typing-glow * {
     text-shadow: inherit;
-    transition: inherit;
   }
 
   .arc-typing-glow.arc-typing-glow-active {
+    --arc-glow-strength: 1;
+    transition: --arc-glow-strength 380ms ease-out;
+  }
+
+  /* Light mode: dramatically quieter so the page stays calm */
+  .light .arc-typing-glow {
     text-shadow:
-      0 0 4px hsl(var(--primary) / 0.65),
-      0 0 12px hsl(var(--primary) / 0.55),
-      0 0 28px hsl(var(--primary) / 0.40),
-      0 0 48px hsl(var(--primary) / 0.25);
-    transition: text-shadow 350ms ease-out;
+      0 0 6px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.22)),
+      0 0 16px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.14));
+  }
+
+  @property --arc-glow-strength {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 0;
   }
 
   @media (prefers-reduced-motion: no-preference) {
