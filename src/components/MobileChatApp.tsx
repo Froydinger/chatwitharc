@@ -260,17 +260,20 @@ export function MobileChatApp() {
     const onTouchStart = (e: TouchEvent) => {
       const t = e.touches[0];
       if (!t) return;
+      const w = window.innerWidth;
+      const deadZone = 40; // px buffer around center
+      const leftHalfMax = w / 2 - deadZone;
+      const rightHalfMin = w / 2 + deadZone;
       if (rightPanelOpen) {
-        // Track any touch when panel is open so we can detect a left-swipe close
-        startX = t.clientX;
-        startY = t.clientY;
-        tracking = true;
-      } else if (t.clientX <= 24) {
-        // Start open-swipe only near the left edge
-        startX = t.clientX;
-        startY = t.clientY;
-        tracking = true;
+        // Close swipe must start in the right half
+        if (t.clientX < rightHalfMin) return;
+      } else {
+        // Open swipe must start in the left half
+        if (t.clientX > leftHalfMax) return;
       }
+      startX = t.clientX;
+      startY = t.clientY;
+      tracking = true;
     };
 
     const onTouchMove = (e: TouchEvent) => {
