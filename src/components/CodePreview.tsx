@@ -22,7 +22,25 @@ export function CodePreview({ code, language }: CodePreviewProps) {
     ` : '';
 
     if (language === "html") {
-      return code;
+      // If we got a fragment (no <html>/<body>/<!DOCTYPE>), wrap it so it always
+      // renders as a proper live preview. Also strip markdown code fences in case
+      // the canvas content was saved with ```html ... ``` wrapping.
+      let html = (code || '').trim();
+      html = html.replace(/^```(?:html)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      const looksLikeDoc = /<!doctype\s+html|<html[\s>]|<body[\s>]/i.test(html);
+      if (looksLikeDoc) return html;
+      return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      html, body { margin: 0; padding: 16px; font-family: system-ui, -apple-system, sans-serif; ${isDark ? 'background:#1e1e1e;color:#d4d4d4;' : 'background:#ffffff;color:#0f172a;'} }
+      img, video, iframe { max-width: 100%; height: auto; }
+    </style>
+  </head>
+  <body>${html}</body>
+</html>`;
     } else if (language === "css") {
       return `
           <!DOCTYPE html>
