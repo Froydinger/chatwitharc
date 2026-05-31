@@ -81,7 +81,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Shield, Crown, Sparkles, Activity, ExternalLink } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { LocalAIPanel } from "@/components/LocalAIPanel";
 import { CorporateModePanel } from "@/components/CorporateModePanel";
@@ -266,6 +266,7 @@ function ImageDefaultsCard() {
 export function SettingsPanel() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [section, setSection] = useState<SectionId>("account");
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const {
     clearAllSessions,
@@ -317,6 +318,13 @@ export function SettingsPanel() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+
+  useEffect(() => {
+    const sectionParam = searchParams.get("section") as SectionId | null;
+    if (sectionParam && SECTIONS.some((s) => s.id === sectionParam)) {
+      setSection(sectionParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!displayNameDirty) setDisplayNameDraft(profile?.display_name || "");
