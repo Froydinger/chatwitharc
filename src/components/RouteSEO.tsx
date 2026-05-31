@@ -8,42 +8,50 @@ interface RouteMeta {
 
 const ROUTE_META: Record<string, RouteMeta> = {
   "/": {
-    title: "ArcAI — Ask, Reflect, Create",
+    title: "ArcAI • Ask, Reflect, Create",
     description:
       "Talk to Arc, generate images, write code and prose in one place. Free multimodal AI with realtime voice.",
   },
   "/pricing": {
-    title: "Pricing — ArcAI · Free forever, Boost $7/mo",
+    title: "ArcAI • Pricing",
     description:
       "ArcAI is free forever. Upgrade via ArcAI Boost ($7/mo) for unlimited image generations, unlimited voice conversations, and one-tap web publishing for your code creations.",
   },
   "/downloads": {
-    title: "Download ArcAI for Mac, Windows & iOS",
+    title: "ArcAI • Downloads",
     description:
       "Get ArcAI on every device. Download the desktop and mobile apps for realtime voice, images and chat.",
   },
   "/dashboard": {
-    title: "Dashboard — ArcAI",
+    title: "ArcAI • Dashboard",
     description:
       "Your ArcAI hub: chats, canvases, images, deploys, music and memory all in one place.",
   },
   "/dashboard/settings": {
-    title: "Settings — ArcAI",
+    title: "ArcAI • Settings",
     description:
       "Manage your ArcAI account, accent color, voice, memory and subscription preferences.",
   },
   "/support": {
-    title: "Support — ArcAI",
+    title: "ArcAI • Support",
     description:
       "Open a ticket or get help with ArcAI. Real humans, fast replies, no runaround.",
   },
   "/admin": {
-    title: "Admin — ArcAI",
+    title: "ArcAI • Admin",
     description: "ArcAI admin tools.",
   },
   "/unsubscribe": {
-    title: "Unsubscribe — ArcAI",
+    title: "ArcAI • Unsubscribe",
     description: "Manage email preferences for ArcAI.",
+  },
+  "/terms": {
+    title: "ArcAI • Terms",
+    description: "ArcAI terms of service and refund policy.",
+  },
+  "/privacy": {
+    title: "ArcAI • Privacy",
+    description: "ArcAI privacy policy.",
   },
 };
 
@@ -62,12 +70,12 @@ export const RouteSEO = () => {
     ROUTE_META[location.pathname] ??
     (path === "/chat"
       ? {
-          title: "Chat — ArcAI",
+          title: "ArcAI • Chat",
           description:
             "Continue your ArcAI conversation with memory, voice and creative tools.",
         }
       : {
-          title: "ArcAI — Ask, Reflect, Create",
+          title: "ArcAI • Page Not Found",
           description:
             "Talk to Arc, generate images, write code and prose in one place. Free multimodal AI with realtime voice.",
         });
