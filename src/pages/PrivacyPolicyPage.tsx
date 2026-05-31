@@ -99,7 +99,7 @@ export default function PrivacyPolicyPage() {
                   system messages).
                 </li>
                 <li>
-                  <strong>Perplexity, Tavily, Replicate, Suno</strong> — only when you explicitly
+                  <strong>Web Search, image, and audio providers</strong> — only when you explicitly
                   trigger web search, image, or audio features.
                 </li>
                 <li>Law enforcement or regulators when legally required.</li>

@@ -91,9 +91,9 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
     case 'cloud-chat-pro':
       return { label: 'Cloud · Gemini 3.5 Flash', icon: 'cloud', tooltip: 'Heavier reasoning — Google Gemini 3.5 Flash.' };
     case 'cloud-search':
-      return { label: 'Cloud · Perplexity Research', icon: 'cloud', tooltip: 'Research mode — Perplexity synthesized with Gemini 3 Flash.' };
+      return { label: 'Cloud · Web Search', icon: 'cloud', tooltip: 'Web Search with cited sources.' };
     case 'cloud-search-tavily':
-      return { label: 'Cloud · Tavily Search', icon: 'cloud', tooltip: 'Web search via Tavily.' };
+      return { label: 'Cloud · Web Search', icon: 'cloud', tooltip: 'Web Search with cited sources.' };
     case 'cloud-vision':
       return { label: 'Cloud · Gemini 3 Flash (Vision)', icon: 'cloud', tooltip: 'Image understanding — Google Gemini 3 Flash.' };
     case 'cloud-document':

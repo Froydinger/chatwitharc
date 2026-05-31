@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { cloneElement, isValidElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "@/components/CodeBlock";
@@ -62,33 +62,57 @@ const hideUnclosedMarkdownTail = (input: string): string => {
 
   let out = input;
 
-  // Unclosed link/image: `[text` or `[text](partial` — strip (can't fabricate).
+  // Unclosed link/image: only strip genuinely unfinished syntax. Completed
+  // bracket text like citations (`[1]`) must stay visible while streaming.
   const lastOpenBracket = out.lastIndexOf("[");
   if (lastOpenBracket !== -1) {
     const tail = out.slice(lastOpenBracket);
-    if (!/^!?\[[^\]]*\]\([^)]*\)/.test(tail)) {
+    const closeBracketIndex = tail.indexOf("]");
+    const hasOpenParenAfterBracket = closeBracketIndex !== -1 && tail[closeBracketIndex + 1] === "(";
+    const hasClosedParen = hasOpenParenAfterBracket && tail.indexOf(")", closeBracketIndex + 2) !== -1;
+
+    if (closeBracketIndex === -1 || (hasOpenParenAfterBracket && !hasClosedParen)) {
       out = out.slice(0, lastOpenBracket);
     }
   }
 
-  // For each inline delimiter, if there's an odd count, append a synthetic
-  // closer so the open span renders formatted immediately. Walk longest-first
-  // so `**` is handled before `*`. Count non-overlapping occurrences.
-  const appendCloserIfOdd = (s: string, delim: string): string => {
-    // Count non-overlapping occurrences (escape regex specials).
-    const esc = delim.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const matches = s.match(new RegExp(esc, "g"));
-    const count = matches ? matches.length : 0;
-    if (count === 0 || count % 2 === 0) return s;
-    // Don't close if the tail is just the delimiter alone (no content yet) —
-    // avoids rendering empty `**` shells that flash.
-    const tailAfter = s.slice(s.lastIndexOf(delim) + delim.length);
-    if (tailAfter.length === 0) return s.slice(0, s.lastIndexOf(delim));
+  const appendCloserForDelimiter = (s: string, delim: "**" | "__" | "~~" | "`" | "*" | "_"): string => {
+    const canOpen = (index: number) => {
+      const before = s[index - 1] ?? " ";
+      const after = s[index + delim.length] ?? "";
+      return after !== "" && !/\s/.test(after) && (delim === "`" || !/\w/.test(before));
+    };
+
+    const canClose = (index: number) => {
+      const before = s[index - 1] ?? "";
+      const after = s[index + delim.length] ?? " ";
+      return before !== "" && !/\s/.test(before) && (delim === "`" || !/\w/.test(after));
+    };
+
+    let openIndex = -1;
+    for (let i = 0; i < s.length;) {
+      if (delim.length === 1 && s.startsWith(delim + delim, i)) {
+        i += 2;
+        continue;
+      }
+      if (!s.startsWith(delim, i) || (delim === "_" && s.startsWith("__", i))) {
+        i += 1;
+        continue;
+      }
+
+      if (openIndex !== -1 && canClose(i)) openIndex = -1;
+      else if (openIndex === -1 && canOpen(i)) openIndex = i;
+      i += delim.length;
+    }
+
+    if (openIndex === -1) return s;
+    const tailAfter = s.slice(openIndex + delim.length);
+    if (tailAfter.length === 0) return s.slice(0, openIndex);
     return s + delim;
   };
 
-  for (const delim of ["**", "__", "~~", "`", "*", "_"]) {
-    out = appendCloserIfOdd(out, delim);
+  for (const delim of ["**", "__", "~~", "`", "*", "_"] as const) {
+    out = appendCloserForDelimiter(out, delim);
   }
 
   return out;
@@ -189,6 +213,11 @@ export const WordStreamMarkdown = ({
       if (Array.isArray(node)) {
         return node.map((c, i) => walk(c, `${keyPrefix}-${i}`));
       }
+      if (isValidElement(node)) {
+        const tagName = typeof (node as any).type === "string" ? (node as any).type : (node as any).props?.node?.tagName;
+        if (!["strong", "em", "a", "del"].includes(tagName)) return node;
+        return cloneElement(node as any, null, walk((node as any).props.children, `${keyPrefix}-inline`));
+      }
       return node;
     };
 
@@ -230,12 +259,12 @@ export const WordStreamMarkdown = ({
       ),
       strong: ({ node, children, ...props }: any) => (
         <strong className="font-semibold text-foreground" {...props}>
-          {renderTextWithWords(children, cursor)}
+          {children}
         </strong>
       ),
       em: ({ node, children, ...props }: any) => (
         <em className="italic text-foreground/85" {...props}>
-          {renderTextWithWords(children, cursor)}
+          {children}
         </em>
       ),
       a: ({ node, href, children, ...props }: any) => {
