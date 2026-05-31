@@ -523,11 +523,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                                 key={idx}
                                 text={part.content}
                                 shouldAnimate={true}
-                                onTyping={() => {
-                                  const event = new CustomEvent('typewriter-typing');
-                                  window.dispatchEvent(event);
-                                }}
-                                onComplete={() => setIsTypewriterVisuallyActive(false)}
+                                onTyping={handleTypewriterTyping}
+                                onComplete={handleTypewriterComplete}
                               />
                             );
                           }
