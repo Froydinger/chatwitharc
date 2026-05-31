@@ -1481,7 +1481,7 @@ useEffect(() => {
         isOpen={isMusicPopupOpen}
         onClose={() => setIsMusicPopupOpen(false)}
       />
-    </div>
+    </motion.div>
   );
 }
 
