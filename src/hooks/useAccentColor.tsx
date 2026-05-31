@@ -22,6 +22,7 @@ const accentColorConfigs = {
   blue: {
     primary: "205 100% 48%",
     primaryGlow: "205 95% 58%",
+    darkBackground: "210 30% 4%",
     aiMessageBg: "205 18% 14%",
     aiMessageBorder: "205 22% 22%",
     userMessageBg: "205 100% 48%",
