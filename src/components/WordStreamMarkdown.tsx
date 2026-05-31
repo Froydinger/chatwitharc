@@ -71,24 +71,43 @@ const hideUnclosedMarkdownTail = (input: string): string => {
     }
   }
 
-  // For each inline delimiter, if there's an odd count, append a synthetic
-  // closer so the open span renders formatted immediately. Walk longest-first
-  // so `**` is handled before `*`. Count non-overlapping occurrences.
-  const appendCloserIfOdd = (s: string, delim: string): string => {
-    // Count non-overlapping occurrences (escape regex specials).
-    const esc = delim.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const matches = s.match(new RegExp(esc, "g"));
-    const count = matches ? matches.length : 0;
-    if (count === 0 || count % 2 === 0) return s;
-    // Don't close if the tail is just the delimiter alone (no content yet) —
-    // avoids rendering empty `**` shells that flash.
-    const tailAfter = s.slice(s.lastIndexOf(delim) + delim.length);
-    if (tailAfter.length === 0) return s.slice(0, s.lastIndexOf(delim));
+  const appendCloserForDelimiter = (s: string, delim: "**" | "__" | "~~" | "`" | "*" | "_"): string => {
+    const canOpen = (index: number) => {
+      const before = s[index - 1] ?? " ";
+      const after = s[index + delim.length] ?? "";
+      return after !== "" && !/\s/.test(after) && (delim === "`" || !/\w/.test(before));
+    };
+
+    const canClose = (index: number) => {
+      const before = s[index - 1] ?? "";
+      const after = s[index + delim.length] ?? " ";
+      return before !== "" && !/\s/.test(before) && (delim === "`" || !/\w/.test(after));
+    };
+
+    let openIndex = -1;
+    for (let i = 0; i < s.length;) {
+      if (delim.length === 1 && s.startsWith(delim + delim, i)) {
+        i += 2;
+        continue;
+      }
+      if (!s.startsWith(delim, i) || (delim === "_" && s.startsWith("__", i))) {
+        i += 1;
+        continue;
+      }
+
+      if (openIndex !== -1 && canClose(i)) openIndex = -1;
+      else if (openIndex === -1 && canOpen(i)) openIndex = i;
+      i += delim.length;
+    }
+
+    if (openIndex === -1) return s;
+    const tailAfter = s.slice(openIndex + delim.length);
+    if (tailAfter.length === 0) return s.slice(0, openIndex);
     return s + delim;
   };
 
-  for (const delim of ["**", "__", "~~", "`", "*", "_"]) {
-    out = appendCloserIfOdd(out, delim);
+  for (const delim of ["**", "__", "~~", "`", "*", "_"] as const) {
+    out = appendCloserForDelimiter(out, delim);
   }
 
   return out;
